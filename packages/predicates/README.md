@@ -37,8 +37,8 @@ Predicates.matchesType('integer', 5);              // true
 Predicates.matchesAnyType(['string', 'null'], null); // true
 
 // String bounds — Unicode code-point aware
-Predicates.satisfiesMinLength('hello', 3);   // true
-Predicates.satisfiesMaxLength('hi', 10);     // true
+Predicates.satisfiesMinimumLength('hello', 3);   // true
+Predicates.satisfiesMaximumLength('hi', 10);     // true
 Predicates.checkPattern('abc', /^a/);        // true
 Predicates.codePointLength('👋');            // 1
 
@@ -49,20 +49,20 @@ Predicates.checkMaximum(10, 10, false);      // true
 Predicates.checkMultipleOf(0.3, 0.1);        // true  (epsilon-tolerant)
 
 // Array constraints
-Predicates.satisfiesMinItems([1, 2], 2);      // true
-Predicates.satisfiesMaxItems([1, 2, 3], 2);   // false
+Predicates.satisfiesMinimumItems([1, 2], 2);      // true
+Predicates.satisfiesMaximumItems([1, 2, 3], 2);   // false
 Predicates.satisfiesUniqueItems([1, 2, 1]);   // false
-Predicates.satisfiesContains(2, 1, 3);        // true  (matchCount within [min, max])
+Predicates.satisfiesContains(2, { 'maximumContains': 3, 'minimumContains': 1 });        // true  (matchCount within [min, max])
 
 // Object constraints
 Predicates.hasAllRequiredProperties({ a: 1 }, ['a', 'b']); // false — 'b' missing (own properties only)
 Predicates.hasNoAdditionalProperties({ a: 1 }, new Set(['a'])); // true
-Predicates.satisfiesMinProperties({ a: 1 }, 2);            // false
-Predicates.satisfiesMaxProperties({ a: 1, b: 2 }, 3);     // true
+Predicates.satisfiesMinimumProperties({ a: 1 }, 2);            // false
+Predicates.satisfiesMaximumProperties({ a: 1, b: 2 }, 3);     // true
 
 // Enum and const
 Predicates.satisfiesEnum('red', ['red', 'green', 'blue']); // true
-Predicates.satisfiesConst({ x: 1 }, { x: 1 });            // true (deep equal)
+DataType.deepEqual({ x: 1 }, { x: 1 });                   // true (JSON Schema `const`, from @studnicky/json)
 
 // Coercion
 Predicates.coerceToBoolean('true');    // true

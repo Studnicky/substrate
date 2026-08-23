@@ -47,3 +47,18 @@ export const BANNED_SHORTENINGS = new Set([
 ]);
 
 export const IDENTIFIER_NAME_PATTERN = /^[A-Za-z_$][\w$]*$/u;
+
+/**
+ * JSON Schema vocabulary keywords. These are EXTERNAL SPEC identifiers, not names the
+ * author chose, so the banned-shortening check must not apply to them: renaming
+ * `'minLength'` inside a Schema does not rename a variable, it silently breaks
+ * validation, and there is no compliant rewrite. Same reasoning as the ESLint rule-ID
+ * exemption — a key that belongs to someone else's vocabulary is data, not an identifier.
+ */
+export const EXTERNAL_VOCABULARY_KEYS: ReadonlySet<string> = new Set([
+  'additionalItems', 'additionalProperties', 'exclusiveMaximum', 'exclusiveMinimum',
+  'maxContains', 'maximum', 'maxItems', 'maxLength',
+  'maxProperties', 'minContains', 'minimum', 'minItems',
+  'minLength', 'minProperties', 'multipleOf', 'patternProperties',
+  'propertyNames', 'unevaluatedItems', 'unevaluatedProperties', 'uniqueItems'
+]);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { type QueryParamsInterface, UrlUtils } from '../../../src/index.js';
+import { type QueryParametersInterface, UrlQueryString } from '../../../src/index.js';
 import scenarioGroups from './query.scenarios.json' with { type: 'json' };
 
 type RuntimeTag = { shape: 'undefined' };
@@ -55,7 +55,7 @@ type ScenarioCase = {
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
-const { buildQueryString, buildUrl, parseQueryString } = UrlUtils;
+const { buildQueryString, buildUrl, parseQueryString } = UrlQueryString;
 
 const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   undefined: () => undefined
@@ -105,8 +105,8 @@ function requireParams(value: { [key: string]: RuntimeValue } | undefined): { [k
   return value;
 }
 
-function materializeParams(params: { [key: string]: RuntimeValue }): QueryParamsInterface {
-  return materializeValue(params) as QueryParamsInterface;
+function materializeParams(params: { [key: string]: RuntimeValue }): QueryParametersInterface {
+  return materializeValue(params) as QueryParametersInterface;
 }
 
 function runBuildQueryString(scenarioCase: ScenarioCase): void {

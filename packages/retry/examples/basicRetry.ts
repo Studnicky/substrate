@@ -21,14 +21,15 @@ class Counter {
 
 const counter = new Counter();
 
-const retry = Retry.create({ 'maxRetries': 3 });
+const retry = Retry.create({ 'maximumRetries': 3 });
 
 const result = await retry.execute(() => {
   const attempt = counter.increment();
   if (attempt <= BasicRetryFixtures.failCount) {
     throw new Error(`Transient failure on attempt ${attempt}`);
   }
-  return Promise.resolve(`success on attempt ${attempt}`);
+  const result = Promise.resolve(`success on attempt ${attempt}`);
+  return result;
 });
 
 console.log(`Result: ${result}`);

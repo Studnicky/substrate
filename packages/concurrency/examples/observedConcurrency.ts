@@ -171,7 +171,10 @@ class ObservedConcurrencyAssertions {
     assert.equal(coalesce.startEvents.length, 2, 'startEvents: 2 leaders (one batch, one sequential)');
     assert.equal(coalesce.joinEvents.length, 2, 'joinEvents: 2 joiners in concurrent batch');
     assert.ok(
-      coalesce.settledEvents.every((e) => { return e.success === true; }),
+      coalesce.settledEvents.every((event) => {
+        const result = event.success === true;
+        return result;
+      }),
       'all settled with success=true'
     );
   }

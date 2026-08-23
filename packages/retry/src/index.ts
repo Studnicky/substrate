@@ -9,7 +9,7 @@ export { RetryCallStateEntity } from './entities/RetryCallStateEntity.js';
 export { RetryConfigEntity } from './entities/RetryConfigEntity.js';
 export { RetryContextDataEntity } from './entities/RetryContextDataEntity.js';
 export {
-  MaxRetriesExceededError,
+  MaximumRetriesExceededError,
   NonRetryableError,
   RetryError
 } from './errors/index.js';

@@ -24,7 +24,7 @@ pnpm add @studnicky/worker-pool
 import { WorkerPool } from '@studnicky/worker-pool';
 
 const pool = WorkerPool.create({
-  workerPath: new URL('./worker.mjs', import.meta.url).pathname,
+  workerPath: fileURLToPath(new URL('./worker.mjs', import.meta.url)),
   concurrency: 4,
   timeoutMs: 5000
 });
@@ -105,7 +105,7 @@ class TelemetryWorkerPool extends WorkerPool<{ n: number }, number> {
 
 const pool = TelemetryWorkerPool.create({
   concurrency: 2,
-  workerPath: new URL('./worker.mjs', import.meta.url).pathname
+  workerPath: fileURLToPath(new URL('./worker.mjs', import.meta.url))
 });
 
 const results = await pool.run([{ n: 5 }, { n: 10 }, { n: 15 }]);

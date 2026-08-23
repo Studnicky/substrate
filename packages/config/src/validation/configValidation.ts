@@ -25,52 +25,54 @@ export class ConfigValidation {
   }
 
   /** Shared undefined/null skip guard used by every assert method. */
-  private static isSkippable(val: unknown): val is undefined | null {
-    return val === undefined || val === null;
+  private static isSkippable(value: unknown): value is undefined | null {
+    const result = value === undefined || value === null;
+    return result;
   }
 
   /**
-   * Returns whether `val` exposes `method` as a callable own/inherited property.
+   * Returns whether `value` exposes `method` as a callable own/inherited property.
    * Property access on exotic objects (proxies, throwing getters) may throw —
    * callers are responsible for deciding how to handle that.
    */
-  private static hasCallableMethod(val: object, method: string): boolean {
-    if (!(method in val)) { return false; }
-    return typeof Reflect.get(val, method) === 'function';
+  private static hasCallableMethod(value: object, method: string): boolean {
+    if (!(method in value)) { return false; }
+    const result = typeof Reflect.get(value, method) === 'function';
+    return result;
   }
 
-  public static assertString(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertString(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Guard.isString(val)) {
+    if (!Guard.isString(value)) {
       this.onValidationError(`${name} must be a string`);
     }
   }
 
-  public static assertNumber(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertNumber(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Guard.isNumber(val)) {
+    if (!Guard.isNumber(value)) {
       this.onValidationError(`${name} must be a number`);
     }
   }
 
-  public static assertBoolean(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertBoolean(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Guard.isBoolean(val)) {
+    if (!Guard.isBoolean(value)) {
       this.onValidationError(`${name} must be a boolean`);
     }
   }
 
-  public static assertFunction(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertFunction(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Guard.isFunction(val)) {
+    if (!Guard.isFunction(value)) {
       this.onValidationError(`${name} must be a function`);
     }
   }
@@ -79,11 +81,11 @@ export class ConfigValidation {
    * Assert number is an integer.
    * Assumes assertNumber has already passed.
    */
-  public static assertInteger(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertInteger(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Number.isInteger(val)) {
+    if (!Number.isInteger(value)) {
       this.onValidationError(`${name} must be an integer`);
     }
   }
@@ -92,11 +94,11 @@ export class ConfigValidation {
    * Assert number is finite (not Infinity or -Infinity).
    * Assumes assertNumber has already passed.
    */
-  public static assertFinite(val: unknown, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertFinite(value: unknown, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Number.isFinite(val)) {
+    if (!Number.isFinite(value)) {
       this.onValidationError(`${name} must be finite`);
     }
   }
@@ -105,11 +107,11 @@ export class ConfigValidation {
    * Assert number is non-negative (>= 0).
    * Assumes assertNumber has already passed.
    */
-  public static assertNonNegative(val: unknown, name: string): void {
-    if (this.isSkippable(val) || typeof val !== 'number') {
+  public static assertNonNegative(value: unknown, name: string): void {
+    if (this.isSkippable(value) || typeof value !== 'number') {
       return;
     }
-    if (val < 0) {
+    if (value < 0) {
       this.onValidationError(`${name} must be non-negative`);
     }
   }
@@ -118,25 +120,25 @@ export class ConfigValidation {
    * Assert number is positive (> 0).
    * Assumes assertNumber has already passed.
    */
-  public static assertPositive(val: unknown, name: string): void {
-    if (this.isSkippable(val) || typeof val !== 'number') {
+  public static assertPositive(value: unknown, name: string): void {
+    if (this.isSkippable(value) || typeof value !== 'number') {
       return;
     }
-    if (val <= 0) {
+    if (value <= 0) {
       this.onValidationError(`${name} must be positive`);
     }
   }
 
   /**
-   * Assert number is at least min value.
+   * Assert number is at least the minimum value.
    * Assumes assertNumber has already passed.
    */
-  public static assertMin(val: unknown, min: number, name: string): void {
-    if (this.isSkippable(val) || typeof val !== 'number') {
+  public static assertMinimum(value: unknown, minimum: number, name: string): void {
+    if (this.isSkippable(value) || typeof value !== 'number') {
       return;
     }
-    if (val < min) {
-      this.onValidationError(`${name} must be at least ${min}`);
+    if (value < minimum) {
+      this.onValidationError(`${name} must be at least ${minimum}`);
     }
   }
 
@@ -144,25 +146,25 @@ export class ConfigValidation {
    * Assert number is positive or Infinity.
    * Assumes assertNumber has already passed.
    */
-  public static assertPositiveOrInfinity(val: unknown, name: string): void {
-    if (this.isSkippable(val) || typeof val !== 'number') {
+  public static assertPositiveOrInfinity(value: unknown, name: string): void {
+    if (this.isSkippable(value) || typeof value !== 'number') {
       return;
     }
-    if (val !== Infinity && val <= 0) {
+    if (value !== Infinity && value <= 0) {
       this.onValidationError(`${name} must be positive or Infinity`);
     }
   }
 
-  public static assertHasMethod(val: unknown, method: string, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertHasMethod(value: unknown, method: string, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (!Guard.isObject(val)) {
+    if (!Guard.isObject(value)) {
       this.onValidationError(`${name} must be an object`);
       return;
     }
     try {
-      if (!this.hasCallableMethod(val, method)) {
+      if (!this.hasCallableMethod(value, method)) {
         this.onValidationError(`${name} must have a ${method} method`);
       }
     } catch (error) {
@@ -175,16 +177,16 @@ export class ConfigValidation {
     }
   }
 
-  public static assertFunctionOrObjectWithMethod(val: unknown, method: string, name: string): void {
-    if (this.isSkippable(val)) {
+  public static assertFunctionOrObjectWithMethod(value: unknown, method: string, name: string): void {
+    if (this.isSkippable(value)) {
       return;
     }
-    if (Guard.isFunction(val)) {
+    if (Guard.isFunction(value)) {
       return;
     }
-    if (Guard.isObject(val)) {
+    if (Guard.isObject(value)) {
       try {
-        if (this.hasCallableMethod(val, method)) {
+        if (this.hasCallableMethod(value, method)) {
           return;
         }
       } catch (error) {
@@ -200,7 +202,13 @@ export class ConfigValidation {
   }
 
   public static assertNoUnknownKeys(config: Record<string, unknown>, knownKeys: Set<string>): void {
-    for (const key of Object.keys(config)) {
+    const keys = Object.keys(config);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
       if (!knownKeys.has(key)) {
         this.onValidationError(`Unknown configuration key: ${key}`);
       }

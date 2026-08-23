@@ -6,11 +6,13 @@ import { EMPTY_LENGTH } from '../constants/index.js';
 
 /** Creates detached diagnostic graphs without retaining caller-owned values. */
 class RetryDiagnosticSnapshot {
-  static error(error: Error, seen: WeakMap<object, unknown> = new WeakMap()): Error {
+  static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
     const snapshot = this.value(error, seen);
+
     if (!(snapshot instanceof Error)) {
       throw new TypeError('Retry diagnostic snapshot must preserve Error values.');
     }
+
     return snapshot;
   }
 
@@ -20,50 +22,81 @@ class RetryDiagnosticSnapshot {
     }
 
     if (seen.has(value)) {
-      return seen.get(value);
+      const result = seen.get(value);
+
+      return result;
     }
 
     if (value instanceof Error) {
       const snapshot = new Error(value.message, { 'cause': undefined });
+
       seen.set(value, snapshot);
       snapshot.name = value.name;
-      for (const key of Reflect.ownKeys(value)) {
+      const propertyKeys = Reflect.ownKeys(value);
+      const propertyKeyLength = propertyKeys.length;
+
+      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
+        const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
+
         Reflect.set(snapshot, key, this.value(propertyValue, seen));
       }
+
       return snapshot;
     }
 
     if (Array.isArray(value)) {
       const snapshot: unknown[] = [];
+
       seen.set(value, snapshot);
-      for (const entry of value) {
+      const length = value.length;
+
+      for (let index = 0; index < length; index += 1) {
+        const entry: unknown = value[index];
+
         snapshot.push(this.value(entry, seen));
       }
+
       return snapshot;
     }
 
     if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
       const snapshot: Record<string, unknown> = {};
+
       seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
+      const propertyKeys = Reflect.ownKeys(value);
+      const propertyKeyLength = propertyKeys.length;
+
+      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
+        const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
+
         Reflect.set(snapshot, key, this.value(propertyValue, seen));
       }
+
       return snapshot;
     }
 
     try {
       const snapshot: object = structuredClone(value);
+
       seen.set(value, snapshot);
+
       return snapshot;
     } catch {
       const snapshot: Record<string, unknown> = {};
+
       seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
+      const propertyKeys = Reflect.ownKeys(value);
+      const propertyKeyLength = propertyKeys.length;
+
+      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
+        const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
+
         Reflect.set(snapshot, key, this.value(propertyValue, seen));
       }
+
       return snapshot;
     }
   }
@@ -72,7 +105,7 @@ class RetryDiagnosticSnapshot {
 /**
  * Base error class for all retry-related failures
  *
- * Extended by MaxRetriesExceededError and NonRetryableError.
+ * Extended by MaximumRetriesExceededError and NonRetryableError.
  * Provides common properties for tracking attempt count and error history.
  */
 export class RetryError extends BaseError {
@@ -84,17 +117,25 @@ export class RetryError extends BaseError {
   /** Returns a detached snapshot of the failure that terminated retrying. */
   public override get cause(): Error | undefined {
     const cause = this.#causeSnapshot;
-    return cause === undefined ? undefined : RetryDiagnosticSnapshot.error(cause);
+    const result = cause === undefined ? undefined : RetryDiagnosticSnapshot.error(cause);
+
+    return result;
   }
 
   /** Returns a readonly detached snapshot of the complete attempt history. */
   public get errors(): readonly Error[] {
     const snapshots: Error[] = [];
     const seen = new WeakMap<object, unknown>();
-    for (const error of this.#errors) {
+    const errorLength = this.#errors.length;
+
+    for (let errorIndex = 0; errorIndex < errorLength; errorIndex += 1) {
+      const error = this.#errors[errorIndex]!;
+
       snapshots.push(RetryDiagnosticSnapshot.error(error, seen));
     }
-    return Object.freeze(snapshots);
+    const result = Object.freeze(snapshots);
+
+    return result;
   }
 
   /**
@@ -116,20 +157,33 @@ export class RetryError extends BaseError {
     const causeSnapshot = cause === undefined ? undefined : RetryDiagnosticSnapshot.error(cause, seen);
 
     let errorSnapshots: readonly Error[];
+
     if (errors.length > EMPTY_LENGTH) {
       const snapshots: Error[] = [];
-      for (const error of errors) {
+      const errorLength = errors.length;
+
+      for (let errorIndex = 0; errorIndex < errorLength; errorIndex += 1) {
+        const error = errors[errorIndex]!;
+
         snapshots.push(RetryDiagnosticSnapshot.error(error, seen));
       }
-      errorSnapshots = Object.freeze(snapshots);
+      const result = Object.freeze(snapshots);
+
+      errorSnapshots = result;
     } else if (causeSnapshot !== undefined) {
       errorSnapshots = Object.freeze([causeSnapshot]);
     } else {
       errorSnapshots = Object.freeze([]);
     }
 
-    super({ 'cause': undefined, 'code': code, 'message': message, 'retryable': false });
-    Reflect.deleteProperty(this, 'cause');
+    // `cause` is deliberately absent as an own property: this class exposes the cause
+    // through `#causeSnapshot` projection, and an own `cause` would shadow it. Withholding
+    // it from `BaseError` is what achieves that — `BaseError` installs `cause` only when
+    // the value is defined — so the detached-projection contract holds with no property to
+    // remove afterwards. `instantiation.loop.spec.ts` covers the contract.
+    super({
+      'code': code, 'message': message, 'retryable': false
+    });
     this.#causeSnapshot = causeSnapshot;
     this.#errors = errorSnapshots;
     this.attempts = attempts;

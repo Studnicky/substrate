@@ -51,6 +51,10 @@
     {
       "code": "function build(handler = (x: number) => { let y = x; return y; }) { return handler; } build();",
       "name": "default-parameter multi-statement arrow closure whose owning function IS called, but the call site is not per-iteration - not flagged, call exists but is not proven hot"
+    },
+    {
+      "code": "declare const items: readonly number[]; declare function doWork(x: number): number; declare function process(it: number, cb: (x: number) => number): void; for (const it of items) { process(it, (x) => { const y = doWork(x); return y; }); }",
+      "name": "per-iteration arrow whose body is the explicit-return-binding house style (const y = <call>; return y;) - the pair collapses to one effective statement, not flagged"
     }
   ],
   "invalid": [
@@ -124,6 +128,24 @@
         }
       ],
       "name": "suggestive key name \"transformAsync\" inside a real loop - flagged identically to any other key name, no name-based escape"
+    },
+    {
+      "code": "declare const items: readonly number[]; declare function doSomething(): void; declare function other(): number; declare function process(it: number, cb: () => number): void; for (const it of items) { process(it, () => { doSomething(); return other(); }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "two genuinely distinct statements (an unrelated call, then a different return) - no collapse, still flagged"
+    },
+    {
+      "code": "declare const items: readonly number[]; declare function doWork(x: number): number; declare function sideEffect(): void; declare function process(it: number, cb: (x: number) => number): void; for (const it of items) { process(it, (x) => { const y = doWork(x); sideEffect(); return y; }); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "const y = <call>; sideEffect(); return y; - the trailing return collapses with nothing, since the immediately preceding statement (sideEffect()) is not its binding - still flagged"
     }
   ]
 }

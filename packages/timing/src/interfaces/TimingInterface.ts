@@ -37,5 +37,5 @@ export interface TimingInterface {
    *
    * @returns Record of event names to elapsed times in ms, plus durationMs for total
    */
-  getEvents(): Record<string, number>;
+  getEvents(): ReadonlyMap<string, number>;
 }

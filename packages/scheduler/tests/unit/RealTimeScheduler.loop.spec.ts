@@ -368,7 +368,7 @@ const scenarioRunners = {
       public fireCount = 0;
       public scheduleCount = 0;
       public constructor() { super(); }
-      protected override get maxTimeoutDelayMs(): number {
+      protected override get maximumTimeoutDelayMs(): number {
         return maxDelayMs;
       }
       protected override onFire(_id: string): void {
@@ -409,7 +409,7 @@ const scenarioRunners = {
     class TinyMaxDelayScheduler extends RealTimeScheduler {
       public fireCount = 0;
       public constructor() { super(); }
-      protected override get maxTimeoutDelayMs(): number {
+      protected override get maximumTimeoutDelayMs(): number {
         return maxDelayMs;
       }
       protected override onFire(_id: string): void {

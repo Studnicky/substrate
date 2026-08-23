@@ -19,12 +19,12 @@ console.log('Path.toAccess(/):', JSON.stringify(Path.toAccess('/')));
 // Path.get — proto-safe dot-path read
 // ---------------------------------------------------------------------------
 
-const doc = PathSortHashFixture.Doc;
+const document = PathSortHashFixture.Document;
 
-console.log('Path.get user.address.city:', Path.get(doc, 'user.address.city'));
-console.log('Path.get items[0].name:', Path.get(doc, 'items[0].name'));
-console.log('Path.get missing.key:', Path.get(doc, 'missing.key'));
-console.log('Path.get __proto__:', Path.get(doc, '__proto__'));
+console.log('Path.get user.address.city:', Path.get(document, 'user.address.city'));
+console.log('Path.get items[0].name:', Path.get(document, 'items[0].name'));
+console.log('Path.get missing.key:', Path.get(document, 'missing.key'));
+console.log('Path.get __proto__:', Path.get(document, '__proto__'));
 
 // ---------------------------------------------------------------------------
 // Sort.natural — numeric substrings sorted as numbers
@@ -42,10 +42,10 @@ console.log('shortestFirst:', byLengthAsc);
 // Hash.value — deterministic FNV-1a 32-bit hex
 // ---------------------------------------------------------------------------
 
-const h1 = Hash.value({ 'a': 1, 'b': 2 });
-const h2 = Hash.value({ 'a': 1, 'b': 2 });
+const firstHash = Hash.value({ 'a': 1, 'b': 2 });
+const secondHash = Hash.value({ 'a': 1, 'b': 2 });
 
-console.log('h1:', h1, 'h2:', h2, 'equal:', h1 === h2);
+console.log('firstHash:', firstHash, 'secondHash:', secondHash, 'equal:', firstHash === secondHash);
 
 // ---------------------------------------------------------------------------
 // StructuralHash.of — strips annotation-only keys before hashing
@@ -64,19 +64,19 @@ assert.equal(Path.toAccess('/user/address/city'), 'user.address.city', 'identifi
 assert.equal(Path.toAccess(''), '', 'root pointer returns empty string');
 assert.equal(Path.toAccess('/'), '', 'slash-only pointer returns empty string');
 
-assert.equal(Path.get(doc, 'user.address.city'), 'Melbourne', 'nested path retrieves value');
-assert.equal(Path.get(doc, 'items[0].name'), 'alpha', 'array index in path');
-assert.equal(Path.get(doc, 'missing.key'), undefined, 'missing path returns undefined');
-assert.equal(Path.get(doc, '__proto__'), undefined, '__proto__ blocked');
-assert.equal(Path.get(doc, 'constructor'), undefined, 'constructor blocked');
+assert.equal(Path.get(document, 'user.address.city'), 'Melbourne', 'nested path retrieves value');
+assert.equal(Path.get(document, 'items[0].name'), 'alpha', 'array index in path');
+assert.equal(Path.get(document, 'missing.key'), undefined, 'missing path returns undefined');
+assert.equal(Path.get(document, '__proto__'), undefined, '__proto__ blocked');
+assert.equal(Path.get(document, 'constructor'), undefined, 'constructor blocked');
 
 assert.deepEqual(files, ['file1', 'file2', 'file10'], 'natural sort treats numerics as numbers');
 assert.deepEqual(byLength, ['description', 'type', 'id'], 'longestFirst ordering');
 assert.deepEqual(byLengthAsc, ['id', 'type', 'description'], 'shortestFirst ordering');
 
-assert.equal(h1, h2, 'key-order-normalised hash');
-assert.equal(typeof h1, 'string', 'hash is a string');
-assert.equal(h1.length, 8, 'hash is 8 hex chars');
+assert.equal(firstHash, secondHash, 'key-order-normalised hash');
+assert.equal(typeof firstHash, 'string', 'hash is a string');
+assert.equal(firstHash.length, 8, 'hash is 8 hex chars');
 assert.notEqual(Hash.value({ 'a': 1 }), Hash.value({ 'a': 2 }), 'different values produce different hashes');
 
 assert.equal(

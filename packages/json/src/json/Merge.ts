@@ -34,14 +34,27 @@ export class Merge {
   ): readonly string[] {
     const seenKeys: Record<string, true> = {};
 
-    for (const baseKey of Object.keys(base)) {
-      seenKeys[baseKey] = true;
+    const baseKeys = Object.keys(base);
+    const baseLength = baseKeys.length;
+    for (let index = 0; index < baseLength; index += 1) {
+      const baseKey = baseKeys[index];
+      if (baseKey === undefined) {
+        continue;
+      }
+      Reflect.set(seenKeys, baseKey, true);
     }
-    for (const overlayKey of Object.keys(overlay)) {
-      seenKeys[overlayKey] = true;
+    const overlayKeys = Object.keys(overlay);
+    const overlayLength = overlayKeys.length;
+    for (let index = 0; index < overlayLength; index += 1) {
+      const overlayKey = overlayKeys[index];
+      if (overlayKey === undefined) {
+        continue;
+      }
+      Reflect.set(seenKeys, overlayKey, true);
     }
 
-    return Object.keys(seenKeys).sort();
+    const result = Object.keys(seenKeys).sort();
+    return result;
   }
 
   /**
@@ -59,8 +72,9 @@ export class Merge {
   protected static snapshot(value: unknown): unknown {
     if (Array.isArray(value)) {
       const snapshot: unknown[] = [];
-      for (const entry of value) {
-        snapshot.push(this.snapshot(entry));
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        snapshot.push(this.snapshot(value[index]));
       }
       return snapshot;
     }
@@ -70,8 +84,14 @@ export class Merge {
     }
 
     const snapshot: Record<string, unknown> = {};
-    for (const key of Object.keys(value).sort()) {
-      snapshot[key] = this.snapshot(value[key]);
+    const keys = Object.keys(value).sort();
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
+      Reflect.set(snapshot, key, this.snapshot(Reflect.get(value, key)));
     }
     return snapshot;
   }
@@ -84,8 +104,13 @@ export class Merge {
     const keys = this.unionKeys(base, overlay);
     const merged: Record<string, unknown> = {};
 
-    for (const key of keys) {
-      merged[key] = this.deep(base[key], overlay[key]);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
+      Reflect.set(merged, key, this.deep(Reflect.get(base, key), Reflect.get(overlay, key)));
     }
 
     return merged;
@@ -109,32 +134,40 @@ export class Merge {
   public static deep(baseValue: unknown, overlayValue: unknown): unknown;
   public static deep(baseValue: unknown, overlayValue: unknown): unknown {
     if (overlayValue === undefined) {
-      return this.snapshot(baseValue);
+      const result = this.snapshot(baseValue);
+      return result;
     }
 
     if (baseValue === undefined) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
 
     if (Array.isArray(overlayValue)) {
       if (Array.isArray(baseValue)) {
-        return this.snapshot(this.mergeArrays(baseValue, overlayValue));
+        const result = this.snapshot(this.mergeArrays(baseValue, overlayValue));
+        return result;
       }
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
 
     if (Array.isArray(baseValue)) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
 
     if (!this.isMergeable(overlayValue)) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
 
     if (!this.isMergeable(baseValue)) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
 
-    return this.mergeObjects(baseValue, overlayValue);
+    const result = this.mergeObjects(baseValue, overlayValue);
+    return result;
   }
 }

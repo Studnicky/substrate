@@ -20,7 +20,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  * into a one-shot request execution pattern.
  *
  * `execute()` composes a cancellation signal via `Signal#compose()`, runs the caller-supplied
- * `fn` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
+ * `callback` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
  * `onExecuteComplete` / `onExecuteError` lifecycle hooks, and — if a `Context` was composed —
  * runs the entire call inside a fresh context scope.
  *
@@ -34,7 +34,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  * ```typescript
  * const executor = RequestExecutor.create({
  *   fetchClient: { baseURL: 'https://api.example.com' },
- *   retry: { maxRetries: 3 },
+ *   retry: { maximumRetries: 3 },
  *   deadlineMs: 5000
  * });
  *
@@ -115,17 +115,17 @@ export class RequestExecutor {
   }
 
   /**
-   * Runs `fn` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
+   * Runs `callback` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
    * in the retry loop and (when configured) a Context scope. The retry loop is bracketed by the
    * `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks.
    *
-   * @param fn - Receives the composed FetchClient and the composed AbortSignal for this call.
+   * @param callback - Receives the composed FetchClient and the composed AbortSignal for this call.
    *   The caller passes the signal into whichever verb call it makes (e.g. `client.get(path, { signal })`).
    * @param options - Per-call signal/deadline/context-seed overrides
-   * @returns The result of `fn`, after retries succeed
+   * @returns The result of `callback`, after retries succeed
    */
   async execute<T>(
-    fn: (client: FetchClient, signal: AbortSignal) => Promise<T>,
+    callback: (client: FetchClient, signal: AbortSignal) => Promise<T>,
     options?: RequestExecutorExecuteOptionsInterface
   ): Promise<T> {
     const deadlineMs = options?.deadlineMs ?? this.#deadlineMs;
@@ -134,14 +134,6 @@ export class RequestExecutor {
       ...(options?.signal !== undefined ? { 'signal': options.signal } : {})
     });
 
-    const runRetryable = (): Promise<T> => {
-      const result = this.#retry.execute((): Promise<T> => {
-        const result = fn(this.#fetchClient, composedSignal);
-        return result;
-      });
-      return result;
-    };
-
     const runObserved = async (): Promise<T> => {
       this.hooks.invoke('onExecuteStart', () => {
         const result = this.onExecuteStart();
@@ -149,7 +141,10 @@ export class RequestExecutor {
       });
 
       try {
-        const result = await runRetryable();
+        const result = await this.#retry.execute((): Promise<T> => {
+          const callbackResult = callback(this.#fetchClient, composedSignal);
+          return callbackResult;
+        });
 
         this.hooks.invoke('onExecuteComplete', () => {
           const hookResult = this.onExecuteComplete(result);

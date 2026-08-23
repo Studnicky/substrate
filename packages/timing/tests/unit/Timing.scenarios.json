@@ -35,9 +35,9 @@
       "input": {
         "timing": {
           "options": [
-            { "maxEvents": 5 },
+            { "maximumEvents": 5 },
             { "precision": { "ms": 2 } },
-            { "maxEvents": 10, "precision": { "ms": 3 } }
+            { "maximumEvents": 10, "precision": { "ms": 3 } }
           ]
         }
       },
@@ -195,10 +195,10 @@
     },
     {
       "name": "evicts-when-max-events-exceeded",
-      "description": "evicts oldest events when maxEvents exceeded",
+      "description": "evicts oldest events when maximumEvents exceeded",
       "shape": "evicts-when-max-events-exceeded",
       "input": {
-        "timing": { "maxEvents": 3 },
+        "timing": { "maximumEvents": 3 },
         "events": [
           { "component": "GraphAdapter", "operation": "query" },
           { "component": "CacheService", "operation": "get" },
@@ -231,7 +231,7 @@
               "CacheService.get",
               "EntityResolver.resolve"
             ],
-            "timing": { "maxEvents": 2 }
+            "timing": { "maximumEvents": 2 }
           },
           {
             "eventNames": [
@@ -240,7 +240,7 @@
               "CacheService.get",
               "EntityResolver.resolve"
             ],
-            "timing": { "maxEvents": 1 }
+            "timing": { "maximumEvents": 1 }
           }
         ]
       },
@@ -258,7 +258,7 @@
     },
     {
       "name": "evicts-default-max-events",
-      "description": "evicts oldest events once the default maxEvents is exceeded",
+      "description": "evicts oldest events once the default maximumEvents is exceeded",
       "shape": "evicts-default-max-events",
       "input": {
         "event": {
@@ -367,7 +367,7 @@
           "component": "GraphAdapter",
           "operation": "query"
         },
-        "timing": { "maxEvents": 1 }
+        "timing": { "maximumEvents": 1 }
       },
       "expected": {
         "errorName": "HookInvocationError"
@@ -636,10 +636,10 @@
     },
     {
       "name": "onEvict-hook-called",
-      "description": "onEvict hook is called when maxEvents is exceeded",
+      "description": "onEvict hook is called when maximumEvents is exceeded",
       "shape": "onEvict-hook-called",
       "input": {
-        "timing": { "maxEvents": 2 },
+        "timing": { "maximumEvents": 2 },
         "events": [
           { "component": "TestService", "operation": "first" },
           { "component": "TestService", "operation": "second" }
@@ -663,26 +663,26 @@
       }
     },
     {
-      "name": "maxEvents-accessible",
-      "description": "maxEvents and startTime are accessible from subclass",
-      "shape": "maxEvents-accessible",
+      "name": "maximumEvents-accessible",
+      "description": "maximumEvents and startTime are accessible from subclass",
+      "shape": "maximumEvents-accessible",
       "input": {
-        "timing": { "maxEvents": 42 }
+        "timing": { "maximumEvents": 42 }
       },
       "expected": {
-        "maxEvents": 42,
+        "maximumEvents": 42,
         "startTimeType": "bigint"
       }
     },
     {
-      "name": "maxEvents-defaults",
-      "description": "maxEvents defaults to DEFAULT_MAX_EVENTS when not specified",
-      "shape": "maxEvents-defaults",
+      "name": "maximumEvents-defaults",
+      "description": "maximumEvents defaults to DEFAULT_MAXIMUM_EVENTS when not specified",
+      "shape": "maximumEvents-defaults",
       "input": {
         "defaultMaxEvents": 1000
       },
       "expected": {
-        "maxEvents": 1000
+        "maximumEvents": 1000
       }
     },
     {

@@ -11,14 +11,14 @@
       "name": "hook-invocation-error-enter-call-swallows",
       "description": "Retry swallows a throwing enterCall hook via the consolidated hook-invocation mechanism",
       "shape": "enter-call-swallows",
-      "input": { "retry": { "maxRetries": 1 }, "message": "enterCall boom", "result": "ok" },
+      "input": { "retry": { "maximumRetries": 1 }, "message": "enterCall boom", "result": "ok" },
       "expected": { "result": "ok" }
     },
     {
       "name": "hook-invocation-error-async-rejects-are-guarded",
       "description": "Retry guards an async-rejecting enterCall hook without changing the successful result",
       "shape": "async-rejects-are-guarded",
-      "input": { "retry": { "maxRetries": 1 }, "result": "ok", "message": "enterCall async boom" },
+      "input": { "retry": { "maximumRetries": 1 }, "result": "ok", "message": "enterCall async boom" },
       "expected": { "result": "ok", "unhandledRejections": 0 }
     }
   ]

@@ -14,15 +14,15 @@ import { PatchDatatypeFixture } from './fixtures/PatchDatatypeFixture.js';
 const workingDocs: {
   'circular': Record<string, unknown>;
   'cyclic': Record<string, unknown>;
-  'doc': Record<string, unknown>;
-  'doc2': Record<string, unknown>;
-  'doc3': Record<string, unknown>;
+  'document': Record<string, unknown>;
+  'documentThree': Record<string, unknown>;
+  'documentTwo': Record<string, unknown>;
 } = {
   'circular': { 'name': 'cycle' },
   'cyclic': { 'a': 1 },
-  'doc': { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' },
-  'doc2': { 'name': 'alpha', 'tags': ['a', 'b'] },
-  'doc3': {}
+  'document': { 'count': 0, 'meta': { 'version': 1 }, 'status': 'draft' },
+  'documentThree': {},
+  'documentTwo': { 'name': 'alpha', 'tags': ['a', 'b'] }
 };
 
 // ---------------------------------------------------------------------------
@@ -36,23 +36,23 @@ const patch = Patch.create([
   { 'op': 'remove', 'path': '/count' }
 ]);
 
-patch.apply(workingDocs.doc);
+patch.apply(workingDocs.document);
 
-console.log('doc after patch:', workingDocs.doc);
+console.log('document after patch:', workingDocs.document);
 
-Patch.create({ 'op': 'add', 'path': '/score', 'value': 100 }).apply(workingDocs.doc2);
-Patch.create({ 'op': 'replace', 'path': '/name', 'value': 'beta' }).apply(workingDocs.doc2);
+Patch.create({ 'op': 'add', 'path': '/score', 'value': 100 }).apply(workingDocs.documentTwo);
+Patch.create({ 'op': 'replace', 'path': '/name', 'value': 'beta' }).apply(workingDocs.documentTwo);
 
-console.log('doc2 after patches:', workingDocs.doc2);
+console.log('documentTwo after patches:', workingDocs.documentTwo);
 
 const combined = Patch.create([
   { 'op': 'add', 'path': '/x', 'value': 1 },
   { 'op': 'add', 'path': '/y', 'value': 2 }
 ]);
 
-combined.apply(workingDocs.doc3);
+combined.apply(workingDocs.documentThree);
 
-console.log('doc3 after combined patch:', workingDocs.doc3);
+console.log('documentThree after combined patch:', workingDocs.documentThree);
 
 // test operation throws PatchError on mismatch
 const strictPatch = Patch.create({ 'op': 'test', 'path': '/name', 'value': 'WRONG' });
@@ -72,15 +72,15 @@ console.log('isEmpty:', Patch.create([]).isEmpty(), Patch.create({ 'op': 'add', 
 const nestedEqual = DataType.deepEqual({ 'a': [1, 2] }, { 'a': [1, 2] });
 const nanEqual = DataType.deepEqual(Number.NaN, Number.NaN);
 
-const d1 = new Date(1_000_000);
-const d2 = new Date(1_000_000);
-const m1 = PatchDatatypeFixture.M1;
-const m2 = PatchDatatypeFixture.M2;
+const firstDate = new Date(1_000_000);
+const secondDate = new Date(1_000_000);
+const firstMap = PatchDatatypeFixture.M1;
+const secondMap = PatchDatatypeFixture.M2;
 
 console.log('deepEqual nested arrays:', nestedEqual);
 console.log('NaN equals NaN:', nanEqual);
-console.log('Date equality:', DataType.deepEqual(d1, d2));
-console.log('Map equality:', DataType.deepEqual(m1, m2));
+console.log('Date equality:', DataType.deepEqual(firstDate, secondDate));
+console.log('Map equality:', DataType.deepEqual(firstMap, secondMap));
 console.log('isPlainObject({}):', DataType.isPlainObject({}));
 console.log('isRecord({a:1}):', DataType.isRecord({ 'a': 1 }));
 
@@ -105,15 +105,15 @@ Frozen.deepFreeze(workingDocs.circular);
 console.log('circular frozen safely:', Object.isFrozen(workingDocs.circular));
 // #endregion usage
 
-assert.equal(workingDocs.doc.status, 'published', 'replace operation applied');
-assert.equal(workingDocs.doc.publishedAt, '2026-06-22', 'add operation applied');
-assert.equal(workingDocs.doc.count, undefined, 'remove operation applied');
+assert.equal(workingDocs.document.status, 'published', 'replace operation applied');
+assert.equal(workingDocs.document.publishedAt, '2026-06-22', 'add operation applied');
+assert.equal(workingDocs.document.count, undefined, 'remove operation applied');
 
-assert.equal(workingDocs.doc2.score, 100, 'add operation applied');
-assert.equal(workingDocs.doc2.name, 'beta', 'replace operation applied');
+assert.equal(workingDocs.documentTwo.score, 100, 'add operation applied');
+assert.equal(workingDocs.documentTwo.name, 'beta', 'replace operation applied');
 
-assert.equal(workingDocs.doc3.x, 1, 'combined patch: first op');
-assert.equal(workingDocs.doc3.y, 2, 'combined patch: second op');
+assert.equal(workingDocs.documentThree.x, 1, 'combined patch: first op');
+assert.equal(workingDocs.documentThree.y, 2, 'combined patch: second op');
 
 assert.equal(Patch.create([]).isEmpty(), true, 'empty patch reports isEmpty');
 assert.equal(Patch.create({ 'op': 'add', 'path': '/a', 'value': 1 }).isEmpty(), false, 'non-empty patch not isEmpty');
@@ -121,8 +121,8 @@ assert.equal(Patch.create({ 'op': 'add', 'path': '/a', 'value': 1 }).isEmpty(), 
 assert.equal(nestedEqual, true, 'deepEqual for nested arrays');
 assert.equal(DataType.deepEqual({ 'a': 1 }, { 'a': 2 }), false, 'deepEqual detects difference');
 assert.equal(nanEqual, true, 'NaN equals NaN');
-assert.equal(DataType.deepEqual(d1, d2), true, 'Date equality by value');
-assert.equal(DataType.deepEqual(m1, m2), true, 'Map deep equality');
+assert.equal(DataType.deepEqual(firstDate, secondDate), true, 'Date equality by value');
+assert.equal(DataType.deepEqual(firstMap, secondMap), true, 'Map deep equality');
 
 assert.equal(DataType.isPlainObject({}), true, 'plain object guard');
 assert.equal(DataType.isPlainObject([]), false, 'array is not plain object');

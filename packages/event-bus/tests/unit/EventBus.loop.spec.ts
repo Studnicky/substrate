@@ -159,8 +159,25 @@ class OverflowObservedBus extends EventBus<{ 'x': string }> {
 }
 
 class IntrospectableBus extends EventBus<TestTopics> {
+  readonly #topicSubscriberCounts = new Map<keyof TestTopics, number>();
+
   hasTopic(topic: keyof TestTopics): boolean {
-    return this.hasTopicEntry(topic);
+    const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
+    return subscriberCount > 0;
+  }
+
+  protected override onSubscribe<K extends keyof TestTopics>(topic: K): void {
+    const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
+    this.#topicSubscriberCounts.set(topic, subscriberCount + 1);
+  }
+
+  protected override onUnsubscribe<K extends keyof TestTopics>(topic: K): void {
+    const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
+    if (subscriberCount <= 1) {
+      this.#topicSubscriberCounts.delete(topic);
+      return;
+    }
+    this.#topicSubscriberCounts.set(topic, subscriberCount - 1);
   }
 }
 

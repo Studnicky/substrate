@@ -9,7 +9,7 @@ export namespace KeyedRateLimiterRegistryOptionsEntity {
     'additionalProperties': false,
     'properties': {
       'keyIdleTtlMs': { 'minimum': 0, 'type': 'number' },
-      'maxKeys': { 'minimum': 1, 'type': 'integer' }
+      'maximumKeys': { 'minimum': 1, 'type': 'integer' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

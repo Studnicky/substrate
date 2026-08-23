@@ -8,16 +8,16 @@ import { Memoize } from '../src/index.js';
 class TelemetryMemoize extends Memoize<[string], { 'chargeId': string }> {
   readonly events: string[] = [];
 
-  static tracked(fn: (id: string) => Promise<{ 'chargeId': string }>): TelemetryMemoize {
-    const keyFn = (id: string): string => {
+  static tracked(callback: (id: string) => Promise<{ 'chargeId': string }>): TelemetryMemoize {
+    const keyDeriver = (id: string): string => {
       if (id.length === 0 || id.trim().length === 0) {
         throw new Error('Charge ID cannot be empty');
       }
       return `charge:${id}`;
     };
-    const result = TelemetryMemoize.create(fn, {
+    const result = TelemetryMemoize.create(callback, {
       'capacity': 1000,
-      'keyFn': keyFn,
+      'keyDeriver': keyDeriver,
       'ttlMs': 60_000
     });
     return result;
@@ -44,20 +44,22 @@ let fetchCalls = 0;
 class Charge {
   static fetch(id: string): Promise<{ 'chargeId': string }> {
     fetchCalls += 1;
-    return Promise.resolve({ 'chargeId': `ch_${id}` });
+    const result: { 'chargeId': string } = { 'chargeId': `ch_${id}` };
+    const promise = Promise.resolve(result);
+    return promise;
   }
 }
 
 // Concurrent calls with the same (new) key share one invocation via Coalesce
 class SharedChargeResolver {
-  private static resolveFn: (value: { 'chargeId': string }) => void = () => {};
+  private static resolveCallback: (value: { 'chargeId': string }) => void = () => {};
 
   static capture(resolve: (value: { 'chargeId': string }) => void): void {
-    SharedChargeResolver.resolveFn = resolve;
+    SharedChargeResolver.resolveCallback = resolve;
   }
 
   static resolve(value: { 'chargeId': string }): void {
-    SharedChargeResolver.resolveFn(value);
+    SharedChargeResolver.resolveCallback(value);
   }
 }
 

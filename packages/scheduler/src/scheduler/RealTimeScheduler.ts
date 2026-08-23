@@ -32,7 +32,8 @@ class RealTimeSchedulerInstance {
     constructor: RealTimeSchedulerSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -111,7 +112,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
    * ~24.8 days). `scheduleAt` chains through intermediate stages capped at this value
    * for any `atMs` further out than this. Override to substitute a smaller value in tests.
    */
-  protected get maxTimeoutDelayMs(): number {
+  protected get maximumTimeoutDelayMs(): number {
     const result = 2147483647;
     return result;
   }
@@ -195,7 +196,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     const scheduleNowMs = Date.now();
     const rawDelayMs = atMs - scheduleNowMs;
     const timers = this.#timers;
-    const maxDelayMs = this.maxTimeoutDelayMs;
+    const maximumDelayMilliseconds = this.maximumTimeoutDelayMs;
 
     if (rawDelayMs < 0) {
       this.hooks.invoke('onMiss', () => {
@@ -206,13 +207,13 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
     const armStage = (): void => {
       const remainingDelayMs = atMs - Date.now();
-      const isTerminalStage = remainingDelayMs <= maxDelayMs;
+      const isTerminalStage = remainingDelayMs <= maximumDelayMilliseconds;
       let stageDelayMs: number;
 
       if (isTerminalStage) {
         stageDelayMs = remainingDelayMs < 0 ? 0 : remainingDelayMs;
       } else {
-        stageDelayMs = maxDelayMs;
+        stageDelayMs = maximumDelayMilliseconds;
       }
 
       const handle = this.createTimeout(() => {

@@ -13,10 +13,14 @@ import {
   INITIAL_BUFFER_COUNT,
   INITIAL_BUFFER_HEAD,
   LAST_ARRAY_INDEX,
-  PERCENTILE_MAX
+  PERCENTILE_MAXIMUM
 } from '../constants/index.js';
 import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
+
+interface SampleBufferConstructorInterface<TInstance extends SampleBuffer> extends Function {
+  readonly 'prototype': TInstance;
+}
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -56,13 +60,14 @@ import { SampleBufferError } from '../errors/index.js';
 export class SampleBuffer implements SampleBufferInterface {
   private static isConstructed<TInstance extends SampleBuffer>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: SampleBufferConstructorInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<TInstance extends SampleBuffer = SampleBuffer>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: SampleBufferConstructorInterface<TInstance>,
     options: SampleBufferOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
@@ -77,7 +82,8 @@ export class SampleBuffer implements SampleBufferInterface {
       const errors = SampleBufferOptionsEntity.validate.errors ?? [];
       const parts = errors.map((e) => {
         const part = `${e.instancePath} ${e.message}`.trim();
-        return part;
+        const result = part;
+        return result;
       });
       const message = parts.join('; ');
       throw new SampleBufferError(message.length > 0 ? message : 'invalid options');
@@ -143,20 +149,23 @@ export class SampleBuffer implements SampleBufferInterface {
     }
 
     result.sort((left, right) => {
-      return left - right;
+      const sortOrder = left - right;
+      return sortOrder;
     });
     this.hooks.invoke('onComputeComplete', () => {
       const hookResult = this.onComputeComplete(length, result);
       return hookResult;
     });
-    return result;
+    const sortedSamples = result;
+    return sortedSamples;
   }
 
   /**
    * Whether the buffer has reached capacity
    */
   get isFull(): boolean {
-    return this.count === this.capacity;
+    const result = this.count === this.capacity;
+    return result;
   }
 
   /**
@@ -266,7 +275,7 @@ export class SampleBuffer implements SampleBufferInterface {
       });
       return result;
     }
-    if (pct >= PERCENTILE_MAX) {
+    if (pct >= PERCENTILE_MAXIMUM) {
       result = sorted.at(LAST_ARRAY_INDEX)!;
       this.hooks.invoke('onPercentile', () => {
         const hookResult = this.onPercentile(pct, result);
@@ -276,7 +285,7 @@ export class SampleBuffer implements SampleBufferInterface {
     }
 
     // Linear interpolation for percentile
-    const rank = (pct / PERCENTILE_MAX) * (sorted.length - INCREMENT_BY_ONE);
+    const rank = (pct / PERCENTILE_MAXIMUM) * (sorted.length - INCREMENT_BY_ONE);
     const lowerIndex = Math.floor(rank);
     const upperIndex = Math.ceil(rank);
 

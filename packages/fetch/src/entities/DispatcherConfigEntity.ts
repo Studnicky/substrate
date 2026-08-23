@@ -61,7 +61,7 @@ export namespace DispatcherConfigEntity {
         'minimum': 0,
         'type': 'number'
       },
-      'keepAliveMaxTimeout': {
+      'keepAliveMaximumTimeout': {
         'description': 'Maximum keep-alive timeout when overridden by server hints (milliseconds)',
         'minimum': 0,
         'type': 'number'
@@ -81,27 +81,27 @@ export namespace DispatcherConfigEntity {
         'minLength': 1,
         'type': 'string'
       },
-      'maxConcurrentStreams': {
+      'maximumConcurrentStreams': {
         'description': 'Maximum concurrent H2 streams per connection',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxHeaderSize': {
+      'maximumHeaderSize': {
         'description': 'Maximum request header size in bytes',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxOrigins': {
+      'maximumOrigins': {
         'description': 'Maximum number of origins (hosts) the Agent can manage',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxRequestsPerClient': {
+      'maximumRequestsPerClient': {
         'description': 'Maximum number of requests per client connection before rotation',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxResponseSize': {
+      'maximumResponseSize': {
         'description': 'Maximum response body size in bytes (-1 = unlimited)',
         'minimum': -1,
         'type': 'integer'

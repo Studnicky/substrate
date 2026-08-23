@@ -45,7 +45,7 @@ type RetrySupportInput = Record<string, unknown> & {
   result?: string;
   retry?: Record<string, unknown> & {
     backoffStrategy?: unknown;
-    maxRetries?: unknown;
+    maximumRetries?: unknown;
   };
   value?: Record<string, unknown>;
 };
@@ -140,7 +140,7 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
     Retry.create({
       backoffStrategy: input.retry?.backoffStrategy as never,
-      maxRetries: Number(input.retry?.maxRetries)
+      maximumRetries: Number(input.retry?.maximumRetries)
     });
   }, ConfigurationError);
 }
@@ -150,7 +150,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const { expected, input } = scenarioCase;
     const retry = new RecordingRetry({
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -162,7 +162,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const retry = new RecordingRetry({
       'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -174,7 +174,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const retry = new OverridingRetry({
       'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);

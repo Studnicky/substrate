@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
@@ -36,7 +37,7 @@ interface BoundedConcurrencyBatchInputInterface {
 }
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {

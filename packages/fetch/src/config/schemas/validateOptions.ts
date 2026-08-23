@@ -8,11 +8,11 @@ import { ConfigurationError } from '../../errors/index.js';
  * Validators for known Fetch API options
  * Each validator checks the type and value constraints for its option
  */
-const optionValidators: Record<string, (value: unknown, key: string) => void> = {
-  'body': () => {
+const optionValidators = new Map<string, (value: unknown) => void>([
+  ['body', () => {
     // Body can be any type
-  },
-  'cache': (value: unknown) => {
+  }],
+  ['cache', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('cache must be a string');
     }
@@ -28,8 +28,8 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (!validCache.includes(value)) {
       throw new ConfigurationError(`cache must be one of: ${validCache.join(', ')}`);
     }
-  },
-  'credentials': (value: unknown) => {
+  }],
+  ['credentials', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('credentials must be a string');
     }
@@ -42,21 +42,21 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (!validCredentials.includes(value)) {
       throw new ConfigurationError(`credentials must be one of: ${validCredentials.join(', ')}`);
     }
-  },
-  'headers': () => {
+  }],
+  ['headers', () => {
     // Headers are validated separately by headers validator
-  },
-  'integrity': (value: unknown) => {
+  }],
+  ['integrity', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('integrity must be a string');
     }
-  },
-  'keepalive': (value: unknown) => {
+  }],
+  ['keepalive', (value: unknown) => {
     if (typeof value !== 'boolean') {
       throw new ConfigurationError('keepalive must be a boolean');
     }
-  },
-  'method': (value: unknown) => {
+  }],
+  ['method', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('method must be a string');
     }
@@ -75,8 +75,8 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (!validMethods.includes(value.toUpperCase())) {
       throw new ConfigurationError(`method must be one of: ${validMethods.join(', ')}`);
     }
-  },
-  'mode': (value: unknown) => {
+  }],
+  ['mode', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('mode must be a string');
     }
@@ -90,8 +90,8 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (!validModes.includes(value)) {
       throw new ConfigurationError(`mode must be one of: ${validModes.join(', ')}`);
     }
-  },
-  'redirect': (value: unknown) => {
+  }],
+  ['redirect', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('redirect must be a string');
     }
@@ -104,13 +104,13 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (!validRedirect.includes(value)) {
       throw new ConfigurationError(`redirect must be one of: ${validRedirect.join(', ')}`);
     }
-  },
-  'referrer': (value: unknown) => {
+  }],
+  ['referrer', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('referrer must be a string');
     }
-  },
-  'referrerPolicy': (value: unknown) => {
+  }],
+  ['referrerPolicy', (value: unknown) => {
     if (typeof value !== 'string') {
       throw new ConfigurationError('referrerPolicy must be a string');
     }
@@ -128,13 +128,13 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
     if (value !== '' && !validPolicies.includes(value)) {
       throw new ConfigurationError(`referrerPolicy must be one of: ${validPolicies.join(', ')}`);
     }
-  },
-  'signal': (value: unknown) => {
+  }],
+  ['signal', (value: unknown) => {
     if (value !== undefined && value !== null && !(value instanceof AbortSignal)) {
       throw new ConfigurationError('signal must be an AbortSignal instance');
     }
-  },
-  'timeout': (value: unknown) => {
+  }],
+  ['timeout', (value: unknown) => {
     if (value !== undefined && value !== null) {
       if (typeof value !== 'number') {
         throw new ConfigurationError('timeout must be a number');
@@ -146,8 +146,8 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
         throw new ConfigurationError('timeout must be finite');
       }
     }
-  }
-};
+  }]
+]);
 
 /**
  * Validates options object
@@ -155,24 +155,30 @@ const optionValidators: Record<string, (value: unknown, key: string) => void> = 
  */
 export class ValidateOptions {
   /**
-   * @param val - Fetch options configuration to validate
+   * @param value - Fetch options configuration to validate
    * @throws ConfigurationError if validation fails
    */
-  public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  public static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
 
-    if (typeof val !== 'object' || Array.isArray(val)) {
+    if (typeof value !== 'object' || Array.isArray(value)) {
       throw new ConfigurationError('options must be an object');
     }
 
-    for (const key of Object.keys(val)) {
-      const value: unknown = Reflect.get(val, key);
-      const validator = optionValidators[key];
+    const optionNames = Object.keys(value);
+    const optionNameLength = optionNames.length;
+    for (let index = 0; index < optionNameLength; index += 1) {
+      const key = optionNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const optionValue: unknown = Reflect.get(value, key);
+      const validator = optionValidators.get(key);
 
       if (validator !== undefined) {
-        validator(value, key);
+        validator(optionValue);
       }
       // Unknown options are allowed (custom options)
     }

@@ -1,6 +1,19 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 export namespace BoundedDispatcherStartEventEntity {
+  class StartEventValidator {
+    static validate(candidate: unknown): candidate is Type {
+      if (candidate === null) {
+        return false;
+      }
+      const result = typeof candidate === 'object'
+        && Object.hasOwn(candidate, 'phase')
+        && Object.keys(candidate).length === 1
+        && Reflect.get(candidate, 'phase') === 'start';
+      return result;
+    }
+  }
+
   export const Schema = {
     'additionalProperties': false,
     'properties': {
@@ -12,11 +25,8 @@ export namespace BoundedDispatcherStartEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof candidate === 'object'
-      && candidate !== null
-      && Object.hasOwn(candidate, 'phase')
-      && Object.keys(candidate).length === 1
-      && Reflect.get(candidate, 'phase') === 'start';
-  }
+  export const validate = (candidate: unknown): candidate is Type => {
+    const result = StartEventValidator.validate(candidate);
+    return result;
+  };
 }

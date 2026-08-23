@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 
 import {
-  BANNED_SHORTENINGS, IDENTIFIER_NAME_PATTERN
+  BANNED_SHORTENINGS, EXTERNAL_VOCABULARY_KEYS, IDENTIFIER_NAME_PATTERN
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
@@ -146,6 +146,12 @@ class KeyName {
     const { value } = node;
 
     if (typeof value !== 'string' || !IDENTIFIER_NAME_PATTERN.test(value)) {
+      return undefined;
+    }
+    // External-vocabulary keys (JSON Schema) are not author-chosen identifiers. Renaming
+    // `'minLength'` in a Schema breaks validation rather than improving a name, and no
+    // compliant rewrite exists — see EXTERNAL_VOCABULARY_KEYS for the full reasoning.
+    if (EXTERNAL_VOCABULARY_KEYS.has(value)) {
       return undefined;
     }
 

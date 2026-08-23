@@ -9,7 +9,7 @@ import { validateRetryConfig } from '../config/validateRetryConfig.js';
  */
 class RetryConfigGuard {
   /**
-   * Validates both the JSON-serializable subset (maxRetries via schema) and the
+   * Validates both the JSON-serializable subset (maximumRetries via schema) and the
    * runtime members (errorClassifier) by delegating to the shared structural
    * validator, without constructing a Retry instance or a DefaultHttpErrorClassifier.
    *

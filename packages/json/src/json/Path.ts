@@ -2,7 +2,7 @@
  * Path — JSON Pointer utilities and dot-path access.
  *
  * - `toAccess`: JSON Pointer → JS access notation.
- * - `get`: proto-pollution-safe dot-path read with `[*]` wildcard support and maxDepth.
+ * - `get`: proto-pollution-safe dot-path read with `[*]` wildcard support and maximumDepth.
  *
  * Subclass `Path` and override `protected static isSafeProperty` to customise the
  * property deny-list.
@@ -65,9 +65,12 @@ export class Path {
 
     let result = '';
 
-    const segmentsLen = segments.length;
-    for (let i = 0; i < segmentsLen; i++) {
-      const segment = segments[i]!;
+    const length = segments.length;
+    for (let index = 0; index < length; index += 1) {
+      const segment = segments[index];
+      if (segment === undefined) {
+        continue;
+      }
 
       if (NUMERIC_SEGMENT_PATTERN.test(segment)) {
         result += `[${segment}]`;
@@ -82,7 +85,7 @@ export class Path {
   }
 
   /**
-   * Extract a value from `obj` using a dot-path string.
+   * Extract a value from `object` using a dot-path string.
    *
    * Supports array indexing (`items[0]`) and wildcard (`items[*]`).
    * Proto-pollution safe — returns `undefined` for dangerous property names.
@@ -90,17 +93,17 @@ export class Path {
    * When `[*]` is encountered, returns a `PathWildcardResultInterface` sentinel
    * describing the matched array and any remaining path suffix.
    *
-   * @param obj - The root value to traverse.
+   * @param object - The root value to traverse.
    * @param path - Dot-separated path (e.g. `"user.address.city"`).
-   * @param options - Optional `maxDepth` to limit traversal depth.
+   * @param options - Optional `maximumDepth` to limit traversal depth.
    */
   public static get(
-    obj: unknown,
+    object: unknown,
     path: string,
     options?: PathGetOptionsEntity.Type
   ): unknown {
     if (path === '') {
-      return obj;
+      return object;
     }
 
     // Bracket-quoted key syntax: ["special.key"]
@@ -108,11 +111,14 @@ export class Path {
       const matches = [...path.matchAll(BRACKET_QUOTED_KEY_PATTERN)];
 
       if (matches.length > 0) {
-        let current: unknown = obj;
+        let current: unknown = object;
 
-        const matchesLen = matches.length;
-        for (let j = 0; j < matchesLen; j++) {
-          const match = matches[j]!;
+        const length = matches.length;
+        for (let index = 0; index < length; index += 1) {
+          const match = matches[index];
+          if (match === undefined) {
+            continue;
+          }
           const key = match[0].slice(2, -2);
 
           if (!this.isSafeProperty(key)) {
@@ -131,15 +137,15 @@ export class Path {
 
     const parts = path.split('.');
 
-    if (options?.maxDepth !== undefined && parts.length > options.maxDepth) {
+    if (options?.maximumDepth !== undefined && parts.length > options.maximumDepth) {
       return undefined;
     }
 
-    let current: unknown = obj;
-    const partsLen = parts.length;
+    let current: unknown = object;
+    const length = parts.length;
 
-    for (let i = 0; i < partsLen; i++) {
-      const part = parts[i];
+    for (let index = 0; index < length; index += 1) {
+      const part = parts[index];
 
       if (part === undefined || part === '') {
         continue;
@@ -169,7 +175,7 @@ export class Path {
         }
 
         if (arrayIndex === '*') {
-          const remaining = parts.slice(i + 1);
+          const remaining = parts.slice(index + 1);
 
           return {
             'array': arrayValue,
@@ -182,9 +188,9 @@ export class Path {
           return undefined;
         }
 
-        const idx = Number(arrayIndex);
+        const arrayIndexNumber = Number(arrayIndex);
 
-        current = arrayValue[idx];
+        current = arrayValue[arrayIndexNumber];
       } else {
         if (!this.isSafeProperty(part)) {
           return undefined;

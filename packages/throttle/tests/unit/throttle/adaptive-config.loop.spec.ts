@@ -56,8 +56,8 @@ interface AdaptiveBatchInputInterface {
 interface ScenarioExpectedInterface {
   adaptive?: {
     enabled?: boolean;
-    maxConcurrency?: number;
-    minConcurrency?: number;
+    maximumConcurrency?: number;
+    minimumConcurrency?: number;
     targetLatencyMs?: number;
   };
   adjustmentDirection?: AdjustmentDirection;
@@ -65,8 +65,8 @@ interface ScenarioExpectedInterface {
   enabled?: boolean;
   error?: string;
   hookErrorMessage?: string;
-  maxConcurrency?: number;
-  minConcurrency?: number;
+  maximumConcurrency?: number;
+  minimumConcurrency?: number;
   rejectEnabledTrue?: boolean;
   throttleValidated?: boolean;
   validated?: boolean;
@@ -161,8 +161,8 @@ function assertValidAllFields(scenarioCase: ScenarioCase): void {
   assert.ok(stats.adaptive !== undefined);
   assert.strictEqual(stats.concurrencyLimit, scenarioCase.expected.concurrencyLimit);
   assert.strictEqual(stats.adaptive.enabled, expectedAdaptive.enabled);
-  assert.strictEqual(stats.adaptive.minConcurrency, expectedAdaptive.minConcurrency);
-  assert.strictEqual(stats.adaptive.maxConcurrency, expectedAdaptive.maxConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, expectedAdaptive.minimumConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, expectedAdaptive.maximumConcurrency);
   assert.strictEqual(stats.adaptive.targetLatencyMs, expectedAdaptive.targetLatencyMs);
 }
 
@@ -170,8 +170,8 @@ function assertValidRequiredFields(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minConcurrency, scenarioCase.expected.minConcurrency);
-  assert.strictEqual(stats.adaptive.maxConcurrency, scenarioCase.expected.maxConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
 }
 
 function assertValidDisabledNoExtraFields(scenarioCase: ScenarioCase): void {
@@ -269,14 +269,14 @@ function assertDefaultMinConcurrency(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minConcurrency, scenarioCase.expected.minConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
 }
 
 function assertDefaultMaxConcurrency(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.maxConcurrency, scenarioCase.expected.maxConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
 }
 
 const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {

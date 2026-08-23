@@ -9,15 +9,15 @@ export class ValidateMetadata {
    * Validates metadata object
    * Metadata can contain any key-value pairs
    *
-   * @param val - Metadata configuration to validate
+   * @param value - Metadata configuration to validate
    * @throws ConfigurationError if validation fails
    */
-  public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  public static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
 
-    if (typeof val !== 'object' || Array.isArray(val)) {
+    if (typeof value !== 'object' || Array.isArray(value)) {
       throw new ConfigurationError('metadata must be an object');
     }
   }

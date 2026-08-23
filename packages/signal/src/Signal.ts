@@ -13,7 +13,9 @@ class SignalInstance {
     constructor: SignalSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 }
 
@@ -26,13 +28,13 @@ export class Signal {
     this.hooks = hooks;
   }
 
-  static create<TInstance extends Signal = Signal>(
-    this: SignalSubclassInterface<TInstance>
-  ): TInstance {
+  static create<TInstance extends Signal = Signal>(this: SignalSubclassInterface<TInstance>): TInstance {
     const result: unknown = Reflect.construct(this, []);
+
     if (!SignalInstance.belongsTo(this, result)) {
       throw new TypeError('Signal.create() did not construct the requested subclass.');
     }
+
     return result;
   }
 
@@ -40,12 +42,13 @@ export class Signal {
     if (Signal.#never === null) {
       Signal.#never = new AbortController().signal;
     }
+
     return Signal.#never;
   }
 
   async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
-    const callerSignal  = options.signal;
-    const deadlineMs    = options.deadlineMs;
+    const callerSignal = options.signal;
+    const deadlineMs = options.deadlineMs;
 
     if (deadlineMs !== undefined && (typeof deadlineMs !== 'number' || isNaN(deadlineMs) || deadlineMs < 0)) {
       throw new SignalError('deadlineMs must be a non-negative number');
@@ -54,8 +57,12 @@ export class Signal {
     const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
 
     let result: AbortSignal;
+
     if (callerSignal !== undefined && timeoutSignal !== undefined) {
-      result = AbortSignal.any([callerSignal, timeoutSignal]);
+      result = AbortSignal.any([
+        callerSignal,
+        timeoutSignal
+      ]);
     } else if (callerSignal !== undefined) {
       result = callerSignal;
     } else if (timeoutSignal !== undefined) {
@@ -65,10 +72,12 @@ export class Signal {
       result = Signal.never();
     }
 
-    await this.hooks.invokeAsync('onCompose', () => {
+    await this.hooks.invokeAsync('onCompose', async () => {
       const hookResult = this.onCompose(options, result);
-      return hookResult;
+
+      await hookResult;
     });
+
     return result;
   }
 

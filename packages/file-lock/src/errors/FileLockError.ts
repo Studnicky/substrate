@@ -5,7 +5,7 @@ import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
  * Subclasses carry the specific code and context.
  */
 export abstract class FileLockError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
   }
 }

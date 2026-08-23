@@ -16,21 +16,21 @@ import { Pipeline } from '../src/index.js';
 class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   private startTime = 0;
 
-  protected override onRunStart(ctx: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
+  protected override onRunStart(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
     this.startTime = Date.now();
-    return ctx;
+    return context;
   }
 
-  protected override onRunComplete(ctx: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
-    return { ...ctx, 'elapsed': Date.now() - this.startTime };
+  protected override onRunComplete(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
+    return { ...context, 'elapsed': Date.now() - this.startTime };
   }
 }
 
 const pipeline = TimedPipeline.create<HookRequestContextEntity.Type>([
   // Stage: attach an Authorization header
-  (ctx) => { return {
-    ...ctx,
-    'headers': { ...ctx.headers, 'Authorization': 'Bearer token-abc' }
+  (context) => { return {
+    ...context,
+    'headers': { ...context.headers, 'Authorization': 'Bearer token-abc' }
   }; }
 ]);
 

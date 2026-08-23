@@ -28,24 +28,28 @@ export class Empty {
 
   /** Returns a fresh empty array typed as `T[]`. */
   public static array<T>(): T[] {
-    return [];
+    const result: T[] = [];
+    return result;
   }
 
   /** Returns a fresh empty `Map<K, V>`. */
   public static map<K, V>(): Map<K, V> {
-    return new Map<K, V>();
+    const result = new Map<K, V>();
+    return result;
   }
 
   /** Returns a fresh empty `Set<T>`. */
   public static set<T>(): Set<T> {
-    return new Set<T>();
+    const result = new Set<T>();
+    return result;
   }
 
   // ── Predicates ───────────────────────────────────────────────────────────
 
   /** Returns `true` when `value` is exactly the empty string `''`. */
   public static isString(value: unknown): boolean {
-    return value === '';
+    const result = value === '';
+    return result;
   }
 
   /**
@@ -61,21 +65,25 @@ export class Empty {
     if (!Guard.isObject(value)) {
       return false;
     }
-    return Object.keys(value).length === 0;
+    const result = Object.keys(value).length === 0;
+    return result;
   }
 
   /** Returns `true` when `value` is an `Array` with `length === 0`. */
   public static isArray(value: unknown): boolean {
-    return Array.isArray(value) && value.length === 0;
+    const result = Array.isArray(value) && value.length === 0;
+    return result;
   }
 
   /** Returns `true` when `value` is a `Map` with `size === 0`. */
   public static isMap(value: unknown): boolean {
-    return value instanceof Map && value.size === 0;
+    const result = value instanceof Map && value.size === 0;
+    return result;
   }
 
   /** Returns `true` when `value` is a `Set` with `size === 0`. */
   public static isSet(value: unknown): boolean {
-    return value instanceof Set && value.size === 0;
+    const result = value instanceof Set && value.size === 0;
+    return result;
   }
 }

@@ -23,6 +23,12 @@ interface VisibleRangeResolvedConfigInterface {
   readonly 'overscan': VisibleRangeResolvedConfigEntity.Type['overscan'];
 }
 
+interface VisibleRangeFunctionInterface extends Function {}
+
+interface VisibleRangeConstructorInterface<TInstance> {
+  readonly 'prototype': TInstance;
+}
+
 /**
  * Computes the inclusive `[start, end]` index range of items currently
  * visible given a scroll offset, viewport size, and overscan.
@@ -44,13 +50,14 @@ interface VisibleRangeResolvedConfigInterface {
 export class VisibleRange {
   private static isConstructed<TInstance extends VisibleRange>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface
   ): value is TInstance {
-    return value instanceof constructor;
+    const isInstance = value instanceof constructor;
+    return isInstance;
   }
 
   static create<TInstance extends VisibleRange = VisibleRange>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
     config: VisibleRangeConfigInterface
   ): TInstance {
     const resolved = VisibleRange.#resolve(config);
@@ -236,7 +243,8 @@ export class VisibleRange {
       }
     }
 
-    return Math.min(Math.max(0, lo - 1), count - 1);
+    const index = Math.min(Math.max(0, lo - 1), count - 1);
+    return index;
   }
 
   /**

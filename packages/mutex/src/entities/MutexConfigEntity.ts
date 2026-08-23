@@ -8,10 +8,10 @@ export namespace MutexConfigEntity {
     'additionalProperties': false,
     'properties': {
       'enableCoalescing': { 'type': 'boolean' },
-      'maxQueueSize': { 'minimum': 0, 'type': 'integer' },
+      'maximumQueueSize': { 'minimum': 0, 'type': 'integer' },
       'timeout': { 'minimum': 0, 'type': 'integer' }
     },
-    'required': ['enableCoalescing', 'maxQueueSize', 'timeout'],
+    'required': ['enableCoalescing', 'maximumQueueSize', 'timeout'],
     'type': 'object'
   } as const satisfies JSONSchema;
 

@@ -151,7 +151,7 @@
     },
     {
       "description": "returns true when string meets minimum code-point count",
-      "shape": "satisfiesMinLength:hello:3:true",
+      "shape": "satisfiesMinimumLength:hello:3:true",
       "name": "returns true when string meets minimum code-point count",
       "input": {
         "predicates": {
@@ -165,7 +165,7 @@
     },
     {
       "description": "returns false when string is shorter than minimum",
-      "shape": "satisfiesMinLength:hi:3:false",
+      "shape": "satisfiesMinimumLength:hi:3:false",
       "name": "returns false when string is shorter than minimum",
       "input": {
         "predicates": {
@@ -179,11 +179,11 @@
     },
     {
       "description": "handles surrogate pair as single code point (meets min 1)",
-      "shape": "satisfiesMinLength:𝄞:1:true",
+      "shape": "satisfiesMinimumLength:\ud834\udd1e:1:true",
       "name": "handles surrogate pair as single code point (meets min 1)",
       "input": {
         "predicates": {
-          "value": "𝄞",
+          "value": "\ud834\udd1e",
           "minLength": 1
         }
       },
@@ -193,11 +193,11 @@
     },
     {
       "description": "handles surrogate pair as single code point (below min 2)",
-      "shape": "satisfiesMinLength:𝄞:2:false",
+      "shape": "satisfiesMinimumLength:\ud834\udd1e:2:false",
       "name": "handles surrogate pair as single code point (below min 2)",
       "input": {
         "predicates": {
-          "value": "𝄞",
+          "value": "\ud834\udd1e",
           "minLength": 2
         }
       },
@@ -207,7 +207,7 @@
     },
     {
       "description": "returns true when string is within maximum code-point count",
-      "shape": "satisfiesMaxLength:hello:10:true",
+      "shape": "satisfiesMaximumLength:hello:10:true",
       "name": "returns true when string is within maximum code-point count",
       "input": {
         "predicates": {
@@ -221,7 +221,7 @@
     },
     {
       "description": "returns false when string exceeds maximum",
-      "shape": "satisfiesMaxLength:hello:3:false",
+      "shape": "satisfiesMaximumLength:hello:3:false",
       "name": "returns false when string exceeds maximum",
       "input": {
         "predicates": {
@@ -235,7 +235,7 @@
     },
     {
       "description": "returns true at exact maximum",
-      "shape": "satisfiesMaxLength:hello:5:true",
+      "shape": "satisfiesMaximumLength:hello:5:true",
       "name": "returns true at exact maximum",
       "input": {
         "predicates": {
@@ -249,11 +249,11 @@
     },
     {
       "description": "handles surrogate pairs as single code points (within max)",
-      "shape": "satisfiesMaxLength:𝄞𝄞:2:true",
+      "shape": "satisfiesMaximumLength:\ud834\udd1e\ud834\udd1e:2:true",
       "name": "handles surrogate pairs as single code points (within max)",
       "input": {
         "predicates": {
-          "value": "𝄞𝄞",
+          "value": "\ud834\udd1e\ud834\udd1e",
           "maxLength": 2
         }
       },
@@ -263,11 +263,11 @@
     },
     {
       "description": "handles surrogate pairs as single code points (exceeds max)",
-      "shape": "satisfiesMaxLength:𝄞𝄞𝄞:2:false",
+      "shape": "satisfiesMaximumLength:\ud834\udd1e\ud834\udd1e\ud834\udd1e:2:false",
       "name": "handles surrogate pairs as single code points (exceeds max)",
       "input": {
         "predicates": {
-          "value": "𝄞𝄞𝄞",
+          "value": "\ud834\udd1e\ud834\udd1e\ud834\udd1e",
           "maxLength": 2
         }
       },
@@ -491,7 +491,7 @@
     },
     {
       "description": "returns true when array meets minimum length",
-      "shape": "satisfiesMinItems:2:1:true",
+      "shape": "satisfiesMinimumItems:2:1:true",
       "name": "returns true when array meets minimum length",
       "input": {
         "predicates": {
@@ -508,7 +508,7 @@
     },
     {
       "description": "returns true at exact minimum",
-      "shape": "satisfiesMinItems:1:1:true",
+      "shape": "satisfiesMinimumItems:1:1:true",
       "name": "returns true at exact minimum",
       "input": {
         "predicates": {
@@ -524,7 +524,7 @@
     },
     {
       "description": "returns false when array is shorter than minimum",
-      "shape": "satisfiesMinItems:0:1:false",
+      "shape": "satisfiesMinimumItems:0:1:false",
       "name": "returns false when array is shorter than minimum",
       "input": {
         "predicates": {
@@ -538,7 +538,7 @@
     },
     {
       "description": "returns true when array is within maximum",
-      "shape": "satisfiesMaxItems:2:3:true",
+      "shape": "satisfiesMaximumItems:2:3:true",
       "name": "returns true when array is within maximum",
       "input": {
         "predicates": {
@@ -555,7 +555,7 @@
     },
     {
       "description": "returns false when array exceeds maximum",
-      "shape": "satisfiesMaxItems:3:2:false",
+      "shape": "satisfiesMaximumItems:3:2:false",
       "name": "returns false when array exceeds maximum",
       "input": {
         "predicates": {
@@ -764,52 +764,6 @@
       },
       "expected": {
         "result": false
-      }
-    },
-    {
-      "description": "returns true for deeply equal primitive",
-      "shape": "satisfiesConst:primitive:true",
-      "name": "returns true for deeply equal primitive",
-      "input": {
-        "predicates": {
-          "value": 42,
-          "constValue": 42
-        }
-      },
-      "expected": {
-        "result": true
-      }
-    },
-    {
-      "description": "returns false for non-equal primitive",
-      "shape": "satisfiesConst:primitive:false",
-      "name": "returns false for non-equal primitive",
-      "input": {
-        "predicates": {
-          "value": 42,
-          "constValue": 43
-        }
-      },
-      "expected": {
-        "result": false
-      }
-    },
-    {
-      "description": "returns true for deeply equal object",
-      "shape": "satisfiesConst:object:true",
-      "name": "returns true for deeply equal object",
-      "input": {
-        "predicates": {
-          "value": {
-            "a": 1
-          },
-          "constValue": {
-            "a": 1
-          }
-        }
-      },
-      "expected": {
-        "result": true
       }
     },
     {
@@ -1398,7 +1352,7 @@
       "name": "counts surrogate-pair emoji as one code point",
       "input": {
         "predicates": {
-          "value": "😀"
+          "value": "\ud83d\ude00"
         }
       },
       "expected": {

@@ -40,7 +40,8 @@ export class Draft {
 
   /** Return `true` when `value` should be wrapped in a nested draft proxy. */
   protected static isDraftable(value: unknown): value is Record<string, unknown> | unknown[] {
-    return Array.isArray(value) || DataType.isPlainObject(value);
+    const result = Array.isArray(value) || DataType.isPlainObject(value);
+    return result;
   }
 
   /** Return a canonical JSON value or reject a non-JSON draft patch operand. */
@@ -98,7 +99,8 @@ export class Draft {
     const existingChild = node.children.get(key);
 
     if (existingChild !== undefined && existingChild.base === value) {
-      return node.proxies.get(key);
+      const result = node.proxies.get(key);
+      return result;
     }
 
     const childNode = this.createNode(value);
@@ -107,7 +109,8 @@ export class Draft {
     node.children.set(key, childNode);
     node.proxies.set(key, childProxy);
 
-    return childProxy;
+    const result = childProxy;
+    return result;
   }
 
   /** Build the `Proxy` handler for a single draft node. */
@@ -137,7 +140,8 @@ export class Draft {
         return value;
       }
 
-      return this.getChildProxy(node, prop, value);
+      const result = this.getChildProxy(node, prop, value);
+      return result;
     };
 
     const getOwnPropertyDescriptorHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey): PropertyDescriptor | undefined => {
@@ -165,7 +169,8 @@ export class Draft {
         return false;
       }
 
-      return Reflect.has(source, prop);
+      const result = Reflect.has(source, prop);
+      return result;
     };
 
     const ownKeysHandler = (_target: Record<PropertyKey, unknown> | unknown[]): ArrayLike<string | symbol> => {
@@ -175,7 +180,8 @@ export class Draft {
         return [];
       }
 
-      return Reflect.ownKeys(source);
+      const result = Reflect.ownKeys(source);
+      return result;
     };
 
     const setHandler = (_target: Record<PropertyKey, unknown> | unknown[], prop: PropertyKey, value: unknown): boolean => {
@@ -230,18 +236,18 @@ export class Draft {
       return source;
     }
 
-    for (const [key, childNode, dirty] of childEntries) {
+    const childEntryLength = childEntries.length;
+    for (let index = 0; index < childEntryLength; index += 1) {
+      const childEntry = childEntries[index];
+      if (childEntry === undefined) {
+        continue;
+      }
+      const [key, childNode, dirty] = childEntry;
       if (dirty) {
         Reflect.set(result, key, this.finalize(childNode));
       }
     }
 
-    return result;
-  }
-
-  /** Escape a JSON Pointer path segment (RFC-6901 `~0`/`~1`). */
-  protected static escapeSegment(segment: string): string {
-    const result = segment.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1');
     return result;
   }
 
@@ -271,9 +277,9 @@ export class Draft {
       return;
     }
 
-    const len = base.length;
-    for (let i = 0; i < len; i += 1) {
-      this.diffValues(base[i], next[i], `${path}/${i}`, ops);
+    const length = base.length;
+    for (let index = 0; index < length; index += 1) {
+      this.diffValues(base[index], next[index], `${path}/${index}`, ops);
     }
   }
 
@@ -284,22 +290,34 @@ export class Draft {
     path: string,
     ops: PatchOperationInterface[]
   ): void {
-    for (const key of Object.keys(base)) {
+    const baseKeys = Object.keys(base);
+    const baseKeyLength = baseKeys.length;
+    for (let index = 0; index < baseKeyLength; index += 1) {
+      const key = baseKeys[index];
+      if (key === undefined) {
+        continue;
+      }
       if (!(key in next)) {
-        ops.push({ 'op': 'remove', 'path': `${path}/${this.escapeSegment(key)}` });
+        ops.push({ 'op': 'remove', 'path': `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}` });
       }
     }
 
-    for (const key of Object.keys(next)) {
-      const childPath = `${path}/${this.escapeSegment(key)}`;
+    const nextKeys = Object.keys(next);
+    const nextKeyLength = nextKeys.length;
+    for (let index = 0; index < nextKeyLength; index += 1) {
+      const key = nextKeys[index];
+      if (key === undefined) {
+        continue;
+      }
+      const childPath = `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}`;
 
       if (!(key in base)) {
-        const value = next[key];
+        const value = Reflect.get(next, key);
         ops.push({ 'op': 'add', 'path': childPath, 'value': this.requireJsonValue(value) });
         continue;
       }
 
-      this.diffValues(base[key], next[key], childPath, ops);
+      this.diffValues(Reflect.get(base, key), Reflect.get(next, key), childPath, ops);
     }
   }
 
@@ -323,7 +341,8 @@ export class Draft {
 
     Reflect.apply(recipe, undefined, [proxy]);
 
-    return this.finalize(rootNode);
+    const result = this.finalize(rootNode);
+    return result;
   }
 
   /**

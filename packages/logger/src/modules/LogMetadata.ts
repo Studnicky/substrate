@@ -14,8 +14,9 @@ export class LogMetadata {
    * @returns True if metadata has requestId
    */
   public static hasCorrelation(metadata: CoreLogFieldsEntity.Type): metadata is CorrelationMetadataInterface {
-    return 'requestId' in metadata
+    const result = 'requestId' in metadata
       && typeof metadata.requestId === 'string';
+    return result;
   }
 
   /**
@@ -25,8 +26,9 @@ export class LogMetadata {
    * @returns True if metadata has durationMs
    */
   public static hasTiming(metadata: CoreLogFieldsEntity.Type): metadata is TimingMetadataInterface {
-    return 'durationMs' in metadata
+    const result = 'durationMs' in metadata
       && typeof metadata.durationMs === 'number';
+    return result;
   }
 
   /**
@@ -36,7 +38,8 @@ export class LogMetadata {
    * @returns True if metadata has error
    */
   public static hasError(metadata: CoreLogFieldsEntity.Type): metadata is ErrorMetadataInterface {
-    return 'error' in metadata
+    const result = 'error' in metadata
       && typeof metadata.error === 'string';
+    return result;
   }
 }

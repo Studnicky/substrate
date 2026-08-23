@@ -10,7 +10,7 @@
  * @example
  * ```typescript
  * const mutex = Mutex.create<string>({
- *   maxQueueSize: 100,
+ *   maximumQueueSize: 100,
  *   timeout: 5000
  * });
  *
@@ -66,9 +66,13 @@ interface InFlightOperationInterface {
   'promise': Promise<unknown>;
 }
 
+interface MutexConstructorInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
 interface QueueNodeInterface extends QueueEntryInterface {
   'next': QueueNodeInterface | undefined;
-  'prev': QueueNodeInterface | undefined;
+  'previous': QueueNodeInterface | undefined;
 }
 
 /**
@@ -102,7 +106,7 @@ class LinkedAcquisitionQueue {
   enqueue(entry: QueueEntryInterface): void {
     const node: QueueNodeInterface = {
       'next': undefined,
-      'prev': this.#tail,
+      'previous': this.#tail,
       'queuedAt': entry.queuedAt,
       'reject': entry.reject,
       'resolve': entry.resolve,
@@ -160,22 +164,22 @@ class LinkedAcquisitionQueue {
   }
 
   #detach(node: QueueNodeInterface): void {
-    const { next, prev } = node;
+    const { next, previous } = node;
 
-    if (prev !== undefined) {
-      prev.next = next;
+    if (previous !== undefined) {
+      previous.next = next;
     } else {
       this.#head = next;
     }
 
     if (next !== undefined) {
-      next.prev = prev;
+      next.previous = previous;
     } else {
-      this.#tail = prev;
+      this.#tail = previous;
     }
 
     node.next = undefined;
-    node.prev = undefined;
+    node.previous = undefined;
     this.#size -= INCREMENT_BY_ONE;
 
     if (node.timeoutId !== undefined) {
@@ -198,17 +202,17 @@ class MutexLock<K extends PropertyKey> {
   readonly 'key': K;
 
   #released = false;
-  readonly #releaseFn: () => void;
+  readonly #releaseFunction: () => void;
 
-  constructor(key: K, releaseFn: () => void) {
+  constructor(key: K, releaseFunction: () => void) {
     this.key = key;
-    this.#releaseFn = releaseFn;
+    this.#releaseFunction = releaseFunction;
   }
 
   release(): void {
     if (!this.#released) {
       this.#released = true;
-      this.#releaseFn();
+      this.#releaseFunction();
     }
   }
 }
@@ -257,7 +261,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * @example
    * ```typescript
    * const mutex = Mutex.create<string>({
-   *   maxQueueSize: 100,
+   *   maximumQueueSize: 100,
    *   timeout: 5000,
    *   debug: true
    * });
@@ -265,9 +269,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private static isConstructed<TInstance>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: MutexConstructorInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   /**
@@ -277,22 +282,19 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * `MutexLock` above — so it is not statically present on the class type).
    */
   private static hasAsyncDispose(value: object): value is MutexLockInterface {
-    return Symbol.asyncDispose in value;
+    const result = Symbol.asyncDispose in value;
+    return result;
   }
 
   static create<
     K extends PropertyKey = string,
     TInstance extends Mutex<K> = Mutex<K>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: MutexConstructorInterface<TInstance>,
     config?: Partial<MutexConfigEntity.Type>
   ): TInstance {
-    const resolveConstructor = (): Function & { readonly 'prototype': TInstance } => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveConstructor(), [config]);
-    if (!Mutex.isConstructed<TInstance>(result, resolveConstructor())) {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!Mutex.isConstructed<TInstance>(result, this)) {
       throw new TypeError('Mutex.create() must construct a Mutex instance');
     }
     return result;
@@ -350,7 +352,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param key - The key to lock on
    * @returns Promise that resolves to a release function
-   * @throws {QueueSizeExceededError} If maxQueueSize is exceeded
+   * @throws {QueueSizeExceededError} If maximumQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
@@ -384,7 +386,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     // If lock not held, acquire immediately
     if (!this.locks.has(key)) {
-      return this.acquireImmediate(key, requestedAt);
+      const result = this.acquireImmediate(key, requestedAt);
+      return result;
     }
 
     // Lock is held, check queue size limit
@@ -402,7 +405,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       return result;
     });
 
-    return await this.createQueuedAcquisition(key, queue, requestedAt);
+    const result = await this.createQueuedAcquisition(key, queue, requestedAt);
+    return result;
   }
 
   /**
@@ -413,7 +417,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param key - The key to lock on
    * @returns Promise that resolves to a MutexLockInterface with automatic disposal
-   * @throws {QueueSizeExceededError} If maxQueueSize is exceeded
+   * @throws {QueueSizeExceededError} If maximumQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
@@ -583,7 +587,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       return result;
     });
 
-    return this.createReleaseFunction(key);
+    const result = this.createReleaseFunction(key);
+    return result;
   }
 
   /**
@@ -656,12 +661,14 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   completeQueue(): Promise<void> {
     if (this.isComplete()) {
-      return Promise.resolve();
+      const result = Promise.resolve();
+      return result;
     }
 
-    return new Promise<void>((resolve) => {
+    const result = new Promise<void>((resolve) => {
       this.observers.push(resolve);
     });
+    return result;
   }
 
   /**
@@ -756,7 +763,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private async executeCoalescedOperation(
     key: K,
-    fn: () => unknown,
+    callback: () => unknown,
     resolveDeferred: (value: unknown) => void,
     rejectDeferred: (error: Error) => void
   ): Promise<void> {
@@ -765,7 +772,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     try {
       release = await this.acquire(key);
 
-      const result = await fn();
+      const result = await callback();
 
       resolveDeferred(result);
     } catch (error) {
@@ -787,7 +794,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * @example
    * ```typescript
    * const config = mutex.getConfig();
-   * console.log(`Max queue size: ${config.maxQueueSize}`);
+   * console.log(`Max queue size: ${config.maximumQueueSize}`);
    * ```
    */
   getConfig(): Readonly<MutexConfigEntity.Type> {
@@ -802,7 +809,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * @returns stats.activeLocksCount - Currently held locks
    * @returns stats.queuedCount - Operations waiting in queues across all keys
    * @returns stats.totalExecuted - Total locks acquired since creation
-   * @returns stats.maxQueueSize - Maximum queue size per key (0 = unlimited)
+   * @returns stats.maximumQueueSize - Maximum queue size per key (0 = unlimited)
    * @returns stats.timeout - Lock acquisition timeout in ms (0 = no timeout)
    *
    * @example Monitor mutex state
@@ -817,7 +824,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const stats: MutexStatsEntity.Type = {
       'activeLocksCount': this.locks.size,
       'coalescedCount': this.coalescedCount,
-      'maxQueueSize': this.config.maxQueueSize,
+      'maximumQueueSize': this.config.maximumQueueSize,
       'queuedCount': this.getTotalQueuedCount(),
       'timeout': this.config.timeout,
       'totalExecuted': this.totalExecuted
@@ -892,7 +899,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   isComplete(): boolean {
-    return this.locks.size === EMPTY_LENGTH && this.queues.size === EMPTY_LENGTH;
+    const result = this.locks.size === EMPTY_LENGTH && this.queues.size === EMPTY_LENGTH;
+    return result;
   }
 
   /**
@@ -919,12 +927,6 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   /**
    * Join an existing in-flight operation
    */
-  private joinInFlightOperation(_key: K, inFlight: InFlightOperationInterface): Promise<unknown> {
-    this.coalescedCount++;
-
-    return inFlight.promise;
-  }
-
   /**
    * Notify all observers that the mutex is now idle
    */
@@ -988,7 +990,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   queueSize(key: K): number {
     const queue = this.queues.get(key);
 
-    return queue !== undefined ? queue.size : EMPTY_LENGTH;
+    const result = queue !== undefined ? queue.size : EMPTY_LENGTH;
+    return result;
   }
 
   /**
@@ -1083,7 +1086,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * @param fn - The function to execute exclusively
    * @param acceptsResult - Optional runtime predicate that validates and narrows the shared result
    * @returns The shared result as `unknown`, or as the predicate's proven type
-   * @throws {QueueSizeExceededError} If maxQueueSize is exceeded
+   * @throws {QueueSizeExceededError} If maximumQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
@@ -1095,20 +1098,20 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * }, acceptsEntity);
    * ```
    */
-  runExclusive(key: K, fn: () => unknown): Promise<unknown>;
+  runExclusive(key: K, callback: () => unknown): Promise<unknown>;
   runExclusive<T>(
     key: K,
-    fn: () => unknown,
+    callback: () => unknown,
     acceptsResult: (value: unknown) => value is T
   ): Promise<T>;
   async runExclusive<T>(
     key: K,
-    fn: () => unknown,
+    callback: () => unknown,
     acceptsResult?: (value: unknown) => value is T
   ): Promise<unknown> {
     const result = this.config.enableCoalescing
-      ? await this.runExclusiveCoalesced(key, fn)
-      : await this.runExclusiveStandard(key, fn);
+      ? await this.runExclusiveCoalesced(key, callback)
+      : await this.runExclusiveStandard(key, callback);
 
     if (acceptsResult !== undefined && !acceptsResult(result)) {
       throw new TypeError(`Mutex result for key ${String(key)} does not satisfy the requested type`);
@@ -1122,15 +1125,18 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private runExclusiveCoalesced(
     key: K,
-    fn: () => unknown
+    callback: () => unknown
   ): Promise<unknown> {
     const inFlight = this.inFlightOperations.get(key);
 
     if (inFlight !== undefined) {
-      return this.joinInFlightOperation(key, inFlight);
+      this.coalescedCount++;
+      const result = inFlight.promise;
+      return result;
     }
 
-    return this.startCoalescedOperation(key, fn);
+    const result = this.startCoalescedOperation(key, callback);
+    return result;
   }
 
   /**
@@ -1138,11 +1144,11 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private async runExclusiveStandard(
     key: K,
-    fn: () => unknown
+    callback: () => unknown
   ): Promise<unknown> {
     const release = await this.acquire(key);
 
-    return await Promise.resolve(fn()).then(
+    const result = await Promise.resolve(callback()).then(
       (result) => {
         release();
         return result;
@@ -1152,6 +1158,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         throw error;
       }
     );
+    return result;
   }
 
   /**
@@ -1194,7 +1201,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private startCoalescedOperation(
     key: K,
-    fn: () => unknown
+    callback: () => unknown
   ): Promise<unknown> {
     let deferredResolve!: (value: unknown) => void;
     let deferredReject!: (error: Error) => void;
@@ -1207,17 +1214,18 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       'promise': deferredPromise
     });
 
-    void this.executeCoalescedOperation(key, fn, deferredResolve, deferredReject);
+    void this.executeCoalescedOperation(key, callback, deferredResolve, deferredReject);
 
-    return deferredPromise;
+    const result = deferredPromise;
+    return result;
   }
 
   /**
    * Validate queue size and throw if limit exceeded
    */
   private validateQueueSize(key: K, queue: LinkedAcquisitionQueue): void {
-    if (this.config.maxQueueSize > UNLIMITED_QUEUE_SIZE && queue.size >= this.config.maxQueueSize) {
-      throw new QueueSizeExceededError(key, this.config.maxQueueSize);
+    if (this.config.maximumQueueSize > UNLIMITED_QUEUE_SIZE && queue.size >= this.config.maximumQueueSize) {
+      throw new QueueSizeExceededError(key, this.config.maximumQueueSize);
     }
   }
 

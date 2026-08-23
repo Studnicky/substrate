@@ -30,10 +30,10 @@ export namespace HookInvokerOptionsEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (candidate.detectReentrancy !== undefined && typeof candidate.detectReentrancy !== 'boolean') { return false; }
     if (candidate.timeoutMs !== undefined && (typeof candidate.timeoutMs !== 'number' || !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)) { return false; }
     return true;
-  }
+  };
 }

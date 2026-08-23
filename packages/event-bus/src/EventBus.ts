@@ -27,7 +27,8 @@ class EventBusInstance {
     constructor: EventBusSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -64,31 +65,36 @@ export class EventBus<TTopicMap extends object> {
     protected override onEnqueue(_depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      return owner.hooks.invokeAsync('onEnqueue', () => { const result = owner.onEnqueue(topic); return result; });
+      const result = owner.hooks.invokeAsync('onEnqueue', () => { const invocationResult = owner.onEnqueue(topic); return invocationResult; });
+      return result;
     }
 
     protected override onDequeue(_depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      return owner.hooks.invokeAsync('onDequeue', () => { const result = owner.onDequeue(topic); return result; });
+      const result = owner.hooks.invokeAsync('onDequeue', () => { const invocationResult = owner.onDequeue(topic); return invocationResult; });
+      return result;
     }
 
     protected override onDrop(): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      return owner.hooks.invokeAsync('onDrop', () => { const result = owner.onDrop(topic); return result; });
+      const result = owner.hooks.invokeAsync('onDrop', () => { const invocationResult = owner.onDrop(topic); return invocationResult; });
+      return result;
     }
 
     protected override onOverflow(depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      return owner.hooks.invokeAsync('onOverflow', () => { const result = owner.onOverflow(topic, depth); return result; });
+      const result = owner.hooks.invokeAsync('onOverflow', () => { const invocationResult = owner.onOverflow(topic, depth); return invocationResult; });
+      return result;
     }
 
     protected override onHandlerError(error: unknown): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      return owner.hooks.invokeAsync('onHandlerError', () => { const result = owner.onHandlerError(topic, error); return result; });
+      const result = owner.hooks.invokeAsync('onHandlerError', () => { const invocationResult = owner.onHandlerError(topic, error); return invocationResult; });
+      return result;
     }
   };
 
@@ -119,12 +125,6 @@ export class EventBus<TTopicMap extends object> {
 
   protected constructor(config?: BusQueueOptionsEntity.Type) {
     this.#config = Object.freeze(structuredClone(config ?? {}));
-  }
-
-  /** True when the topic still has a (possibly empty) entry in the internal store — exposed for subclass introspection/testing. */
-  protected hasTopicEntry<K extends keyof TTopicMap>(topic: K): boolean {
-    const result = this.#store.has(topic);
-    return result;
   }
 
   #getTopicMap<K extends keyof TTopicMap>(topic: K, create: true): Map<

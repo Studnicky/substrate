@@ -212,11 +212,6 @@ export class ContextScope implements ContextScopeInterface {
    * @param snapshot - The final key-value snapshot
    * @returns The (possibly augmented) snapshot returned from terminate()
    */
-  protected onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
-    const result = snapshot;
-    return result;
-  }
-
   /**
    * Hook called when execute() is called on a terminated scope, before the throw.
    * Subclasses override to observe or log the illegal access.
@@ -231,17 +226,17 @@ export class ContextScope implements ContextScopeInterface {
    * share the same underlying store, allowing state to accumulate across calls.
    *
    * @typeParam TResult - Return type of the function
-   * @param fn - Function to execute within the context
-   * @returns The result of the function (or Promise if fn is async)
+   * @param callback - Function to execute within the context
+   * @returns The result of the function (or Promise if callback is async)
    * @throws {ContextError} If scope has been terminated
    *
    * @remarks
-   * When `fn` is async (returns a Promise), `onAfterExecute()` fires only
+   * When `callback` is async (returns a Promise), `onAfterExecute()` fires only
    * after the returned promise resolves, and `onError()` fires if it
    * rejects instead. The returned promise still resolves/rejects exactly
-   * as `fn`'s promise does.
+   * as `callback`'s promise does.
    */
-  execute<TResult>(fn: () => TResult): TResult {
+  execute<TResult>(callback: () => TResult): TResult {
     if (this.#state === 'terminated') {
       this.hooks.invoke('onTerminatedAccess', () => {
         const hookResult = this.onTerminatedAccess();
@@ -256,7 +251,7 @@ export class ContextScope implements ContextScopeInterface {
     });
     let result: TResult;
     try {
-      result = this.#storage.run(this.#store, fn);
+      result = this.#storage.run(this.#store, callback);
     } catch (error) {
       this.hooks.invoke('onError', () => {
         const hookResult = this.onError(error);
@@ -298,7 +293,7 @@ export class ContextScope implements ContextScopeInterface {
    * Returns a snapshot of all values accumulated during execution.
    * After termination, execute() will throw and the internal store is cleared.
    *
-   * @returns Snapshot of all context values at termination (possibly augmented by onTerminate)
+   * @returns Snapshot of all context values at termination
    * @throws {ContextError} If already terminated
    */
   terminate(): Record<string, unknown> {
@@ -319,6 +314,7 @@ export class ContextScope implements ContextScopeInterface {
       return hookResult;
     });
 
-    return this.onTerminate(snapshot);
+    const result: Record<string, unknown> = snapshot;
+    return result;
   }
 }

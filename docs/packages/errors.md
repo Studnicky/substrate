@@ -39,9 +39,9 @@ Add domain-specific `create()`, `serializeExtra()`, and `formatUserMessage()` by
 
 <<< ../../packages/errors/examples/03-domain-subclass.ts#usage
 
-## Domain errors with `DomainErrorArgs`
+## Domain errors with `DomainErrorArgumentList`
 
-`DomainErrorArgs.build()` collapses the repeated "compute `code`/`message`/`retryable`, call `super()`" ceremony that small leaf error classes duplicate. It accepts `DomainErrorOptionsInterface<TFields>` and returns `BaseErrorArgumentsInterface`, so it works with any compatible error base:
+`DomainErrorArgumentList.build()` collapses the repeated "compute `code`/`message`/`retryable`, call `super()`" ceremony that small leaf error classes duplicate. It accepts `DomainErrorOptionsInterface<TFields>` and returns `BaseErrorArgumentsInterface`, so it works with any compatible error base:
 
 <<< ../../packages/errors/examples/04-domain-error-args.ts#usage
 

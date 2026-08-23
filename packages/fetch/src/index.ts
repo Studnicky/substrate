@@ -39,11 +39,11 @@ export type {
   ClientConfigInterface,
   FetchClientInterface,
   FetchOptionsInterface,
-  QueryParamsInterface,
+  QueryParametersInterface,
   RequestContextInterface,
   ResponseContextInterface,
   UndiciDispatcherInterface
 } from './interfaces/index.js';
 export { FetchClient } from './modules/FetchClient.js';
 export { UndiciDispatcher } from './modules/UndiciDispatcher.js';
-export { UrlUtils } from './modules/UrlUtils.js';
+export { UrlQueryString } from './modules/UrlQueryString.js';

@@ -20,8 +20,8 @@ console.log('NoOpTiming.getEvents():', events);
 console.log('clear() returns self:', returned === timing);
 // #endregion usage
 
-// NoOpTiming always returns exactly { durationMs: 0 }
-assert.deepEqual(events, { 'durationMs': 0 });
+// NoOpTiming always returns exactly Map(1) { 'durationMs' => 0 }
+assert.deepEqual(events, new Map([['durationMs', 0]]));
 assert.equal(returned, timing);
 
 console.log('noop-timing: all assertions passed');

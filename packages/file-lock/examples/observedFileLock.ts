@@ -84,10 +84,10 @@ class FileLockScenarios {
     let timedOut = false;
     try {
       await TracedFileLock.create({ 'path': missingPath, 'timeoutMs': 50 });
-    } catch (err) {
-      if (err instanceof FileLockTimeoutError) {
+    } catch (error) {
+      if (error instanceof FileLockTimeoutError) {
         timedOut = true;
-        console.log(`[file-lock] caught timeout for missing path: path=${err.path}`);
+        console.log(`[file-lock] caught timeout for missing path: path=${error.path}`);
       }
     }
 
@@ -107,19 +107,19 @@ const results = await FileLockScenarios.run(dir);
 
 // Scenario 1: clean acquire
 const s1 = results.lock1.events;
-assert.equal(s1.filter((e) => { return e.hook === 'onAcquireStart'; }).length, 1, 's1: onAcquireStart fires once');
-assert.equal(s1.filter((e) => { return e.hook === 'onAcquire'; }).length, 1, 's1: onAcquire fires once');
-assert.equal(s1.filter((e) => { return e.hook === 'onRelease'; }).length, 1, 's1: onRelease fires once');
-assert.equal(s1.filter((e) => { return e.hook === 'onContended'; }).length, 0, 's1: no contention');
+assert.equal(s1.filter((event) => { const result = event.hook === 'onAcquireStart'; return result; }).length, 1, 's1: onAcquireStart fires once');
+assert.equal(s1.filter((event) => { const result = event.hook === 'onAcquire'; return result; }).length, 1, 's1: onAcquire fires once');
+assert.equal(s1.filter((event) => { const result = event.hook === 'onRelease'; return result; }).length, 1, 's1: onRelease fires once');
+assert.equal(s1.filter((event) => { const result = event.hook === 'onContended'; return result; }).length, 0, 's1: no contention');
 
 // Scenario 2: contended acquire
 const s2holder = results.holder.events;
 const s2 = results.lock2.events;
-assert.equal(s2holder.filter((e) => { return e.hook === 'onAcquire'; }).length, 1, 's2 holder: onAcquire fires once');
-assert.equal(s2holder.filter((e) => { return e.hook === 'onRelease'; }).length, 1, 's2 holder: onRelease fires once');
-assert.ok(s2.filter((e) => { return e.hook === 'onContended'; }).length >= 1, 's2 waiter: onContended fires at least once');
-assert.ok(s2.filter((e) => { return e.hook === 'onAcquireWait'; }).length >= 1, 's2 waiter: onAcquireWait fires at least once');
-assert.equal(s2.filter((e) => { return e.hook === 'onAcquire'; }).length, 1, 's2 waiter: onAcquire fires once after holder releases');
+assert.equal(s2holder.filter((event) => { const result = event.hook === 'onAcquire'; return result; }).length, 1, 's2 holder: onAcquire fires once');
+assert.equal(s2holder.filter((event) => { const result = event.hook === 'onRelease'; return result; }).length, 1, 's2 holder: onRelease fires once');
+assert.ok(s2.filter((event) => { const result = event.hook === 'onContended'; return result; }).length >= 1, 's2 waiter: onContended fires at least once');
+assert.ok(s2.filter((event) => { const result = event.hook === 'onAcquireWait'; return result; }).length >= 1, 's2 waiter: onAcquireWait fires at least once');
+assert.equal(s2.filter((event) => { const result = event.hook === 'onAcquire'; return result; }).length, 1, 's2 waiter: onAcquire fires once after holder releases');
 
 // Scenario 3: timeout
 assert.ok(results.timedOut, 's3: timeout error was thrown');

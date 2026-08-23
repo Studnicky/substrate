@@ -20,7 +20,7 @@ type ScenarioShape =
   | 'valid-requestIdGenerator'
   | 'valid-autoGenerateRequestId-false'
   | 'valid-metadata'
-  | 'valid-default-params'
+  | 'valid-default-parameters'
   | 'valid-fetch-options'
   | 'invalid-baseURL'
   | 'invalid-timeout-negative'
@@ -314,7 +314,7 @@ async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promi
   applyOptionalField(mutableConfig, 'headers', replacementConfig.headers);
   applyOptionalField(mutableConfig, 'metadata', replacementConfig.metadata);
   applyOptionalField(mutableConfig, 'options', replacementConfig.options);
-  applyOptionalField(mutableConfig, 'params', replacementConfig.params);
+  applyOptionalField(mutableConfig, 'parameters', replacementConfig.parameters);
 
   await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
 
@@ -324,10 +324,10 @@ async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promi
   assert.deepStrictEqual(capturedContext.options.headers, scenarioCase.expected.headers);
   assert.deepStrictEqual(capturedContext.options.metadata, scenarioCase.expected.optionsMetadata);
   assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
-  // `params` is never part of `FetchOptionsInterface` — resolved query params are folded
+  // `parameters` is never part of `FetchOptionsInterface` — resolved query parameters are folded
   // into the request URL instead — so this asserts the field does not leak onto options.
-  const optionsWithParams = capturedContext.options as FetchOptionsInterface & { params?: unknown };
-  assert.deepStrictEqual(optionsWithParams.params, materializeExpectedValue(scenarioCase.expected.params));
+  const optionsWithParameters = capturedContext.options as FetchOptionsInterface & { parameters?: unknown };
+  assert.deepStrictEqual(optionsWithParameters.parameters, materializeExpectedValue(scenarioCase.expected.parameters));
 }
 
 async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Promise<void> {
@@ -417,7 +417,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'invalid-unknown-keys': runInvalidConfig,
   'valid-autoGenerateRequestId-false': runValidConfig,
   'valid-baseURL': runValidConfig,
-  'valid-default-params': runValidConfig,
+  'valid-default-parameters': runValidConfig,
   'valid-dispatcher': runValidConfig,
   'valid-fetch-options': runValidConfig,
   'valid-headers': runValidConfig,

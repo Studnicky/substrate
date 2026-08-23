@@ -71,12 +71,12 @@ console.log(err.code);    // 'DATABASE_ERROR'
 
 Override `formatUserMessage()` to provide user-safe messages distinct from internal error messages.
 
-## DomainErrorArgs
+## DomainErrorArgumentList
 
-Leaf error classes that just carry typed fields onto a domain error base can skip the manual `this.x = x` assignment ceremony with `DomainErrorArgs.build()`:
+Leaf error classes that just carry typed fields onto a domain error base can skip the manual `this.x = x` assignment ceremony with `DomainErrorArgumentList.build()`:
 
 ```typescript
-import { DomainErrorArgs } from '@studnicky/errors';
+import { DomainErrorArgumentList } from '@studnicky/errors';
 
 class RateLimitExceededError extends RateLimitError {
   readonly route!: string;
@@ -84,7 +84,7 @@ class RateLimitExceededError extends RateLimitError {
 
   constructor(route: string, limit: number) {
     const fields = { route, limit };
-    super(DomainErrorArgs.build(fields, {
+    super(DomainErrorArgumentList.build(fields, {
       code: 'rateLimit.exceeded',
       message: (f) => `Rate limit of ${f.limit} exceeded for "${f.route}"`,
       retryable: true
@@ -94,7 +94,7 @@ class RateLimitExceededError extends RateLimitError {
 }
 ```
 
-`DomainErrorArgs.build(fields, options)` accepts `DomainErrorOptionsInterface<TFields>` and returns `BaseErrorArgumentsInterface`, dropping any `cause`/`correlationId`/`metadata`/`retryable` left undefined. Field assignment stays with the caller — `Object.assign(this, fields)` after `super()` — since `this` is unavailable before `super()` runs. It works with any error base whose constructor accepts `BaseErrorArgumentsInterface` and leaves the `extends` chain untouched so `instanceof` checks against the domain base still hold.
+`DomainErrorArgumentList.build(fields, options)` accepts `DomainErrorOptionsInterface<TFields>` and returns `BaseErrorArgumentsInterface`, dropping any `cause`/`correlationId`/`metadata`/`retryable` left undefined. Field assignment stays with the caller — `Object.assign(this, fields)` after `super()` — since `this` is unavailable before `super()` runs. It works with any error base whose constructor accepts `BaseErrorArgumentsInterface` and leaves the `extends` chain untouched so `instanceof` checks against the domain base still hold.
 
 ## Classifier, module, and validation contracts
 

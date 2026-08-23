@@ -27,6 +27,14 @@
     {
       "name": "static block: this is the constructor",
       "code": "class Foo { static registry = null; static { Foo.registry = new WeakSet(); } }"
+    },
+    {
+      "name": "this passed to a public static nested collaborator the class itself owns - stays in the object graph",
+      "code": "class Foo { static OwnedMachine = class {}; constructor() { this.machine = new Foo.OwnedMachine(this); } }"
+    },
+    {
+      "name": "this passed to a #private static nested collaborator the class itself owns - provably cannot leave the class",
+      "code": "class Foo { static #OwnedCoalesce = class {}; constructor() { this.coalesce = new Foo.#OwnedCoalesce(this); } }"
     }
   ],
   "invalid": [
@@ -83,6 +91,11 @@
     {
       "name": "this.parent = this - stores a self-cycle on the instance",
       "code": "class Foo { parent = null; bar() { this.parent = this; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "new SomeOtherClass(this) - a genuine escape, not the enclosing class's own nested collaborator",
+      "code": "class SomeOtherClass { constructor(owner) {} } class Foo { constructor() { this.other = new SomeOtherClass(this); } }",
       "errors": [{ "messageId": "escapes" }]
     }
   ]

@@ -39,17 +39,19 @@ export namespace ValidationErrorArgumentsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   /** Validates construction arguments without introducing a dependency on `@studnicky/json`. */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
-    if (Object.keys(candidate).some((key) => { return !ALLOWED_KEYS.has(key); })) { return false; }
+    const hasUnknownKey = Object.keys(candidate).some((key) => { const result = !ALLOWED_KEYS.has(key); return result; });
+    if (hasUnknownKey) { return false; }
     if (typeof candidate.message !== 'string') { return false; }
     if (typeof candidate.path !== 'string') { return false; }
     if (candidate.correlationId !== undefined && typeof candidate.correlationId !== 'string') { return false; }
     if (candidate.violations === undefined) { return true; }
     if (!Array.isArray(candidate.violations)) { return false; }
-    for (const violation of candidate.violations) {
-      if (!ValidationViolationDetailEntity.validate(violation)) { return false; }
+    const violationsLength = candidate.violations.length;
+    for (let violationIndex = 0; violationIndex < violationsLength; violationIndex += 1) {
+      if (!ValidationViolationDetailEntity.validate(Reflect.get(candidate.violations, violationIndex))) { return false; }
     }
     return true;
-  }
+  };
 }

@@ -21,9 +21,10 @@ export namespace ErrorDiagnosticEntity {
   export type Type = FromSchema<typeof Schema>;
 
   /** Validates the schema-backed diagnostic fields without introducing a json-package cycle. */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.message !== 'string' || typeof candidate.name !== 'string') { return false; }
-    return candidate.stack === undefined || typeof candidate.stack === 'string';
-  }
+    const result = candidate.stack === undefined || typeof candidate.stack === 'string';
+    return result;
+  };
 }

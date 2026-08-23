@@ -149,14 +149,17 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
     }
 
     if (typeof matcher === 'function') {
-      return Boolean(Reflect.apply(matcher, undefined, [value]));
+      const result = Boolean(Reflect.apply(matcher, undefined, [value]));
+      return result;
     }
 
     if (Array.isArray(matcher)) {
-      return matcher.includes(value);
+      const result = matcher.includes(value);
+      return result;
     }
 
-    return value === matcher;
+    const result = value === matcher;
+    return result;
   }
 
   /**
@@ -174,16 +177,15 @@ export abstract class ErrorClassifier implements ErrorClassifierInterface {
    * ```
    */
   protected messageContains(error: Error, ...patterns: string[]): boolean {
-    const msg = error.message.toLowerCase();
-    const lowerPatterns = patterns.map((pattern) => {
-      const result = pattern.toLowerCase();
-      return result;
-    });
-
-    return lowerPatterns.some((pattern) => {
-      const result = msg.includes(pattern);
-      return result;
-    });
+    const message = error.message.toLowerCase();
+    const patternCount = patterns.length;
+    for (let patternIndex = 0; patternIndex < patternCount; patternIndex += 1) {
+      const pattern = patterns[patternIndex];
+      if (pattern !== undefined && message.includes(pattern.toLowerCase())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

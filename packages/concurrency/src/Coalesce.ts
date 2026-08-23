@@ -17,7 +17,8 @@ class CoalesceInstance {
     constructor: CoalesceSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -39,15 +40,12 @@ export class Coalesce<T> {
     this: CoalesceSubclassInterface<TInstance>,
     options?: CoalesceOptionsEntity.Type
   ): TInstance {
-    const resolveSubclassConstructor = (): CoalesceSubclassInterface<TInstance> => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!CoalesceInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!CoalesceInstance.belongsTo(this, result)) {
       throw new TypeError('Coalesce.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
@@ -137,8 +135,10 @@ export class Coalesce<T> {
   }
 
   isInflight(key: string): boolean {
-    const result = this.#inFlight.has(key);
-    return result;
+    if (this.#inFlight.has(key)) {
+      return true;
+    }
+    return false;
   }
 
   /**

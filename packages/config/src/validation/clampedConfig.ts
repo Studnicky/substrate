@@ -47,28 +47,47 @@ export class ClampedConfig {
     config: T,
     rules: Readonly<Record<string, ClampRuleEntity.Type>>
   ): T {
-    const result = { ...config };
+    const result: T = { ...config };
 
-    for (const [field, rule] of Object.entries(rules)) {
-      if (!(field in config)) {
+    const entries = Object.entries(rules);
+    const configValues = new Map(Object.entries(config));
+    const length = entries.length;
+
+    for (let index = 0; index < length; index += 1) {
+      const entry = entries[index];
+
+      if (entry === undefined) {
         continue;
       }
-      const raw = config[field];
+      const [
+        field,
+        rule
+      ] = entry;
+
+      if (!configValues.has(field)) {
+        continue;
+      }
+      const raw = configValues.get(field);
+
       if (typeof raw !== 'number') {
         continue;
       }
-      if (raw >= rule.min && raw <= rule.max) {
+      if (raw >= rule.minimum && raw <= rule.maximum) {
         continue;
       }
-      const clamped = Math.min(Math.max(raw, rule.min), rule.max);
+      const clamped = Math.min(Math.max(raw, rule.minimum), rule.maximum);
+
       Reflect.set(result, field, clamped);
+      const event: ClampEventEntity.Type = {
+        'clamped': clamped,
+        'field': field,
+        'raw': raw,
+        'reason': rule.reason
+      };
+
       this.hooks.invoke('onClamp', () => {
-        const hookResult = this.onClamp({
-          'clamped': clamped,
-          'field': field,
-          'raw': raw,
-          'reason': rule.reason
-        });
+        const hookResult = this.onClamp(event);
+
         return hookResult;
       });
     }

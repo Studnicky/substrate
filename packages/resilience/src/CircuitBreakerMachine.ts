@@ -93,26 +93,44 @@ export class CircuitBreakerMachine extends StateMachine<
       | CircuitBreakerOnSuccessEffectEntity.Type
       | CircuitBreakerOnTripEffectEntity.Type
   > {
-    switch (event.type) {
-      case 'callFailed':
-        return this.#reduceCallFailed(state, event);
-      case 'callRejected':
-        return { 'effects': [{ 'variant': 'onReject' }], 'state': state };
-      case 'callSucceeded':
-        return this.#reduceCallSucceeded(state);
-      case 'manualOpen':
-        return { 'effects': [{ 'variant': 'onOpen' }], 'state': { 'openedAt': event.at, 'variant': 'open' } };
-      case 'manualReset':
-        return { 'effects': [{ 'variant': 'onClose' }], 'state': { 'failureCount': 0, 'variant': 'closed' } };
-      case 'resetTimeoutElapsed':
-        return this.#reduceResetTimeoutElapsed(state);
-      default:
-        throw new TransitionRejectedError({
-          'eventType': (event as { 'type': string }).type,
-          'reason': 'Unhandled CircuitBreakerMachine event type',
-          'stateVariant': state.variant
-        });
+    const transitionHandlers = new Map<typeof event.type, () => ReturnType<CircuitBreakerMachine['reduce']>>([
+      ['callFailed', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        if (event.type !== 'callFailed') {
+          throw new TransitionRejectedError({ 'eventType': event.type, 'reason': 'Unexpected CircuitBreakerMachine event type', 'stateVariant': state.variant });
+        }
+        const result = this.#reduceCallFailed(state, event);
+        return result;
+      }],
+      ['callRejected', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        const result: ReturnType<CircuitBreakerMachine['reduce']> = { 'effects': [{ 'variant': 'onReject' }], 'state': state };
+        return result;
+      }],
+      ['callSucceeded', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        const result = this.#reduceCallSucceeded(state);
+        return result;
+      }],
+      ['manualOpen', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        if (event.type !== 'manualOpen') {
+          throw new TransitionRejectedError({ 'eventType': event.type, 'reason': 'Unexpected CircuitBreakerMachine event type', 'stateVariant': state.variant });
+        }
+        const result: ReturnType<CircuitBreakerMachine['reduce']> = { 'effects': [{ 'variant': 'onOpen' }], 'state': { 'openedAt': event.at, 'variant': 'open' } };
+        return result;
+      }],
+      ['manualReset', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        const result: ReturnType<CircuitBreakerMachine['reduce']> = { 'effects': [{ 'variant': 'onClose' }], 'state': { 'failureCount': 0, 'variant': 'closed' } };
+        return result;
+      }],
+      ['resetTimeoutElapsed', (): ReturnType<CircuitBreakerMachine['reduce']> => {
+        const result = this.#reduceResetTimeoutElapsed(state);
+        return result;
+      }]
+    ]);
+    const handler = transitionHandlers.get(event.type);
+    if (handler === undefined) {
+      throw new TransitionRejectedError({ 'eventType': event.type, 'reason': 'Unhandled CircuitBreakerMachine event type', 'stateVariant': state.variant });
     }
+    const result = handler();
+    return result;
   }
 
   #reduceResetTimeoutElapsed(

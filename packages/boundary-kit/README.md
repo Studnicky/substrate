@@ -26,7 +26,7 @@ import { BoundaryKit } from '@studnicky/boundary-kit';
 const kit = BoundaryKit.create({
   throttle: { concurrencyLimit: 10 },
   circuitBreaker: { failureThreshold: 5, resetTimeoutMs: 30_000 },
-  retry: { maxRetries: 3 }
+  retry: { maximumRetries: 3 }
 });
 
 const response = await kit.execute(() => fetch('https://api.example.com/users'));

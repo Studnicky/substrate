@@ -9,10 +9,10 @@ import {
   CircuitStateEntity,
   DeadLetterQueue,
   DeadLetterQueueRetryGenerator,
-  DlqAbortedError,
-  DlqClosedError,
-  DlqEntryMetadataEntity,
-  DlqFullError,
+  DeadLetterQueueAbortedError,
+  DeadLetterQueueClosedError,
+  DeadLetterQueueEntryMetadataEntity,
+  DeadLetterQueueFullError,
   ResilienceConfigError,
   TokenBucket,
   TokenBucketExhaustedError
@@ -149,30 +149,30 @@ class FanOutDeadLetterQueue<T> extends DeadLetterQueue<T> {
 
 class ObservedRetryGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   readonly events: string[] = [];
-  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ObservedRetryGenerator<T> { return new ObservedRetryGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs }); }
+  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ObservedRetryGenerator<T> { return new ObservedRetryGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
   protected override onDone(): void { this.events.push('done'); }
   protected override onWait(intervalMs: number): void { this.events.push(`wait:${intervalMs}`); }
   protected override onYield(): void { this.events.push('yield'); }
 }
 
 class ThrowingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
-  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingYieldGenerator<T> { return new ThrowingYieldGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs }); }
+  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingYieldGenerator<T> { return new ThrowingYieldGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
   protected override onYield(): void { throw new Error('onYield boom'); }
 }
 
 class ThrowingWaitGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
-  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingWaitGenerator<T> { return new ThrowingWaitGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs }); }
+  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingWaitGenerator<T> { return new ThrowingWaitGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
   protected override onWait(): void { throw new Error('onWait boom'); }
 }
 
 class ThrowingDoneGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
-  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingDoneGenerator<T> { return new ThrowingDoneGenerator<T>({ 'dlq': dlq, 'intervalMs': intervalMs }); }
+  static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingDoneGenerator<T> { return new ThrowingDoneGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
   protected override onDone(): void { throw new Error('onDone boom'); }
 }
 
 class AsyncRejectingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   readonly #cause: Error;
-  constructor(dlq: DeadLetterQueue<T>, intervalMs: number, cause: Error) { super({ 'dlq': dlq, 'intervalMs': intervalMs }); this.#cause = cause; }
+  constructor(dlq: DeadLetterQueue<T>, intervalMs: number, cause: Error) { super({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); this.#cause = cause; }
   get recordedHookErrors(): readonly HookInvocationError[] { return this.hooks.getHookErrors(); }
   protected override async onYield(): Promise<void> { await Promise.resolve(); throw this.#cause; }
 }
@@ -357,9 +357,9 @@ function dlqEnqueueErrorScenarioInput(value: string): DlqEnqueueErrorScenario {
 }
 
 const dlqErrorTypes = {
-  'DlqAbortedError': DlqAbortedError,
-  'DlqClosedError': DlqClosedError,
-  'DlqFullError': DlqFullError
+  'DeadLetterQueueAbortedError': DeadLetterQueueAbortedError,
+  'DeadLetterQueueClosedError': DeadLetterQueueClosedError,
+  'DeadLetterQueueFullError': DeadLetterQueueFullError
 } satisfies Record<string, AnyErrorConstructor>;
 
 function isDlqErrorTypeName(value: string): value is keyof typeof dlqErrorTypes {
@@ -1054,7 +1054,7 @@ const scenarioHandlers = {
     const controller = new AbortController();
     controller.abort();
     const dlq = DeadLetterQueue.create<string>({ signal: controller.signal });
-    assert.throws(() => { dlq.enqueue(stringInput(input, 'item'), stringInput(input, 'reason')); }, DlqAbortedError);
+    assert.throws(() => { dlq.enqueue(stringInput(input, 'item'), stringInput(input, 'reason')); }, DeadLetterQueueAbortedError);
   },
   'dlq-size': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -1202,7 +1202,7 @@ const scenarioHandlers = {
     const items = stringArrayInput(input, 'items');
     const dlq = new ObservedDlq<string>({ capacity: numberInput(input, 'capacity') });
     dlq.enqueue(stringArrayItem(items, 'items', 0), 'r');
-    assert.throws(() => { dlq.enqueue(stringArrayItem(items, 'items', 1), 'r'); }, DlqFullError);
+    assert.throws(() => { dlq.enqueue(stringArrayItem(items, 'items', 1), 'r'); }, DeadLetterQueueFullError);
     assert.ok(dlq.events.some((e) => e.type === stringInput(expected, 'eventsContain')));
   },
   'dlq-observed-close': async (scenarioCase: ScenarioCase, _input: ScenarioInput): Promise<void> => {
@@ -1236,14 +1236,14 @@ const scenarioHandlers = {
     assert.equal(dequeueDlq.size, 0);
     const overflowDlq = ThrowingOverflowDlq.create<string>({ capacity: numberInput(input, 'overflowCapacity') });
     overflowDlq.enqueue('first', reason);
-    assert.throws(() => { overflowDlq.enqueue('second', reason); }, DlqFullError);
+    assert.throws(() => { overflowDlq.enqueue('second', reason); }, DeadLetterQueueFullError);
     const closeDlq = ThrowingCloseDlq.create<string>();
     closeDlq.close();
     assert.equal(closeDlq.closed, booleanInput(expected, 'closed'));
     const abortDlq = ThrowingAbortDlq.create<string>();
     abortDlq.abort();
     if (booleanInput(expected, 'abortedRejects')) {
-      assert.throws(() => { abortDlq.enqueue(item, reason); }, DlqAbortedError);
+      assert.throws(() => { abortDlq.enqueue(item, reason); }, DeadLetterQueueAbortedError);
     } else {
       assert.doesNotThrow(() => { abortDlq.enqueue(item, reason); });
     }
@@ -1281,12 +1281,12 @@ const scenarioHandlers = {
   'dlqr-invalid-interval': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const dlq = DeadLetterQueue.create<string>();
     for (const intervalMs of numberArrayInput(input, 'intervalMs')) {
-      assert.throws(() => { DeadLetterQueueRetryGenerator.create({ dlq, intervalMs }); }, ResilienceConfigError);
+      assert.throws(() => { DeadLetterQueueRetryGenerator.create({ deadLetterQueue: dlq, intervalMs }); }, ResilienceConfigError);
     }
   },
   'dlqr-missing-dlq': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     assert.throws(() => {
-      DeadLetterQueueRetryGenerator.create({ dlq: null as never, intervalMs: numberInput(input, 'intervalMs') });
+      DeadLetterQueueRetryGenerator.create({ deadLetterQueue: null as never, intervalMs: numberInput(input, 'intervalMs') });
     }, ResilienceConfigError);
   },
   'dlqr-lifecycle': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -1373,8 +1373,8 @@ const scenarioHandlers = {
   },
   'entity-dlq-entry': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'valid')), booleanInput(expected, 'valid'));
-    assert.equal(DlqEntryMetadataEntity.validate(recordInput(input, 'invalid')), booleanInput(expected, 'invalid'));
+    assert.equal(DeadLetterQueueEntryMetadataEntity.validate(recordInput(input, 'valid')), booleanInput(expected, 'valid'));
+    assert.equal(DeadLetterQueueEntryMetadataEntity.validate(recordInput(input, 'invalid')), booleanInput(expected, 'invalid'));
   }
 } satisfies Record<ScenarioShape, ScenarioHandler>;
 

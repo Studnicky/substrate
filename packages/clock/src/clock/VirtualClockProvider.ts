@@ -24,7 +24,8 @@ class VirtualClockProviderInstance {
     constructor: VirtualClockProviderSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -60,7 +61,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
   }
 
   private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
-    return (
+    const result = (
       typeof counter === 'object' &&
       counter !== null &&
       'nowMs' in counter &&
@@ -68,6 +69,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
       'advance' in counter &&
       typeof counter.advance === 'function'
     );
+    return result;
   }
 
   /**
@@ -76,15 +78,6 @@ export class VirtualClockProvider implements ClockProviderInterface {
    */
   protected get counter(): Readonly<VirtualTimeCounter> {
     const result = this.#counter;
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to replace or instrument the raw
-   * virtual ms value before it is consumed by `hrtime()` and `now()`.
-   */
-  protected readVirtualMs(): number {
-    const result = this.#counter.nowMs();
     return result;
   }
 
@@ -109,7 +102,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
 
   /** Returns the virtual time in nanoseconds (epoch-ms * 1,000,000). */
   public hrtime(): bigint {
-    const result = BigInt(this.readVirtualMs()) * NS_PER_MS;
+    const result = BigInt(this.#counter.nowMs()) * NS_PER_MS;
 
     this.hooks.invoke('onHrtime', () => {
       const hookResult = this.onHrtime(result);
@@ -120,7 +113,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
 
   /** Returns the virtual epoch-ms (always non-negative). */
   public now(): number {
-    const ms = this.readVirtualMs();
+    const ms = this.#counter.nowMs();
     const result = ms >= 0 ? ms : 0;
 
     this.hooks.invoke('onNow', () => {

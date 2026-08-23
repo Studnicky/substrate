@@ -3,13 +3,13 @@
  */
 export class SafeStringify {
   /**
-   * @param obj - The object to stringify
+   * @param object - The object to stringify
    * @returns JSON string representation, with '[Circular]' replacing circular references
    */
-  public static stringify(obj: unknown): string {
+  public static stringify(object: unknown): string {
     const seen = new WeakSet();
 
-    return JSON.stringify(obj, (_key, value: unknown) => {
+    const result = JSON.stringify(object, (_key, value: unknown) => {
       if (typeof value === 'object' && value !== null) {
         if (seen.has(value)) {
           return '[Circular]';
@@ -19,5 +19,6 @@ export class SafeStringify {
 
       return value;
     });
+    return result;
   }
 }

@@ -15,12 +15,12 @@ export namespace RetryConfigEntity {
         'exclusiveMinimum': 0,
         'type': 'integer'
       },
-      'maxElapsedMs': {
+      'maximumElapsedMs': {
         'description': 'Maximum total elapsed time across all attempts (ms)',
         'minimum': 0,
         'type': 'integer'
       },
-      'maxRetries': {
+      'maximumRetries': {
         'description': 'Maximum number of retry attempts',
         'minimum': 0,
         'type': 'integer'

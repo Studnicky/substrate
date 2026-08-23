@@ -24,8 +24,8 @@ interface ExecuteOptionsInterface<T> {
 /**
  * The same composition order RequestExecutor#execute() uses internally: a context scope
  * wraps the whole call, `onExecuteStart`/`onExecuteComplete`/`onExecuteError` bracket the
- * retry loop, the retry loop wraps the caller's fn, and the composed cancellation signal
- * threads through into whatever call fn makes. Nothing here is hidden inside a facade class —
+ * retry loop, the retry loop wraps the caller's callback, and the composed cancellation signal
+ * threads through into whatever call callback makes. Nothing here is hidden inside a facade class —
  * every primitive is a plain local variable the caller owns, and the lifecycle hooks are plain
  * callbacks rather than protected methods to override.
  */
@@ -35,7 +35,7 @@ class Directly {
     retry: Retry,
     signal: Signal,
     context: Context,
-    fn: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
+    callback: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
     options: ExecuteOptionsInterface<T> = {}
   ): Promise<T> {
     const composedSignal = await signal.compose(
@@ -49,7 +49,7 @@ class Directly {
         options.onExecuteStart?.();
 
         try {
-          const attemptResult = await retry.execute(() => { const result = fn(fetchClient, composedSignal); return result; });
+          const attemptResult = await retry.execute(() => { const result = callback(fetchClient, composedSignal); return result; });
 
           options.onExecuteComplete?.(attemptResult);
 
@@ -104,7 +104,7 @@ if (address === null || typeof address !== 'object') {
 
 // #region usage
 const fetchClient = FetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
-const retry = Retry.create({ 'maxRetries': 3 });
+const retry = Retry.create({ 'maximumRetries': 3 });
 const signal = Signal.create();
 const context = Context.create({ 'name': 'directComposition' });
 

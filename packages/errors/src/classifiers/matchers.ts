@@ -29,7 +29,8 @@ class TypeGuardFactory {
    * Type guard matcher - ensures value is of specific type
    */
   public static isType<T>(type: string): (value: unknown) => value is T {
-    return (value: unknown): value is T => {return typeof value === type;};
+    const result: (value: unknown) => value is T = (value: unknown): value is T => {const typeMatches = typeof value === type; return typeMatches;};
+    return result;
   }
 }
 
@@ -40,12 +41,12 @@ const NumberMatchers = Object.freeze({
   /**
    * Check if number is greater than value
    */
-  'greaterThan': (min: number) => {return (value: number): boolean => {return value > min;};},
+  'greaterThan': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value > minimum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is greater than or equal to value
    */
-  'gte': (min: number) => {return (value: number): boolean => {return value >= min;};},
+  'gte': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is in range (inclusive)
@@ -55,22 +56,30 @@ const NumberMatchers = Object.freeze({
    * hasProperty(error, 'status', number.inRange(500, 599))
    * ```
    */
-  'inRange': (min: number, max: number) => {return (value: number): boolean => {return value >= min && value <= max;};},
+  'inRange': (minimum: number, maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum && value <= maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is less than value
    */
-  'lessThan': (max: number) => {return (value: number): boolean => {return value < max;};},
+  'lessThan': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value < maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is less than or equal to value
    */
-  'lte': (max: number) => {return (value: number): boolean => {return value <= max;};},
+  'lte': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value <= maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number equals any of the provided values
    */
-  'oneOf': (...values: number[]) => {return (value: number): boolean => { const result = values.includes(value); return result; };}
+  'oneOf': (...values: number[]) => {return (value: number): boolean => {
+    const length = values.length;
+    for (let index = 0; index < length; index += 1) {
+      if (values[index] === value) {
+        return true;
+      }
+    }
+    return false;
+  };}
 });
 
 /**
@@ -80,7 +89,10 @@ const StringMatchers = Object.freeze({
   /**
    * Check if string contains substring (case-sensitive)
    */
-  'contains': (substring: string) => {return (value: string): boolean => { const result = value.includes(substring); return result; };},
+  'contains': (substring: string) => {return (value: string): boolean => {
+    const result = value.indexOf(substring) !== -1;
+    return result;
+  };},
 
   /**
    * Check if string contains substring (case-insensitive)
@@ -88,41 +100,62 @@ const StringMatchers = Object.freeze({
   'containsIgnoreCase': (substring: string) => {
     const lowerSubstring = substring.toLowerCase();
 
-    return (value: string): boolean => { const result = value.toLowerCase().includes(lowerSubstring); return result; };
+    return (value: string): boolean => {
+      const result = value.toLowerCase().indexOf(lowerSubstring) !== -1;
+      return result;
+    };
   },
 
   /**
    * Check if string ends with suffix (case-sensitive)
    */
-  'endsWith': (suffix: string) => {return (value: string): boolean => { const result = value.endsWith(suffix); return result; };},
+  'endsWith': (suffix: string) => {return (value: string): boolean => {
+    const result = value.length >= suffix.length && value.slice(value.length - suffix.length) === suffix;
+    return result;
+  };},
 
   /**
    * Check if string length is in range
    */
-  'lengthInRange': (min: number, max: number) => {return (value: string): boolean =>
-  {return value.length >= min && value.length <= max;};},
+  'lengthInRange': (minimum: number, maximum: number) => {return (value: string): boolean =>
+  {const result = value.length >= minimum && value.length <= maximum; return result;};},
 
   /**
    * Check if string matches regex pattern
    */
-  'matches': (pattern: RegExp) => {return (value: string): boolean => { const result = pattern.test(value); return result; };},
+  'matches': (pattern: RegExp) => {return (value: string): boolean => {
+    const result = pattern.test(value) === true;
+    return result;
+  };},
 
   /**
    * Check if string is not empty
    */
   'notEmpty': (value: string): boolean => {
-    return value.length > EMPTY_LENGTH;
+    const result = value.length > EMPTY_LENGTH;
+    return result;
   },
 
   /**
    * Check if string equals any of the provided values
    */
-  'oneOf': (...values: string[]) => {return (value: string): boolean => { const result = values.includes(value); return result; };},
+  'oneOf': (...values: string[]) => {return (value: string): boolean => {
+    const length = values.length;
+    for (let index = 0; index < length; index += 1) {
+      if (values[index] === value) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if string starts with prefix (case-sensitive)
    */
-  'startsWith': (prefix: string) => {return (value: string): boolean => { const result = value.startsWith(prefix); return result; };},
+  'startsWith': (prefix: string) => {return (value: string): boolean => {
+    const result = value.indexOf(prefix) === 0;
+    return result;
+  };},
 
   /**
    * Check if string starts with prefix (case-insensitive)
@@ -130,7 +163,10 @@ const StringMatchers = Object.freeze({
   'startsWithIgnoreCase': (prefix: string) => {
     const lowerPrefix = prefix.toLowerCase();
 
-    return (value: string): boolean => { const result = value.toLowerCase().startsWith(lowerPrefix); return result; };
+    return (value: string): boolean => {
+      const result = value.toLowerCase().indexOf(lowerPrefix) === 0;
+      return result;
+    };
   }
 });
 
@@ -142,7 +178,8 @@ const BooleanMatchers = Object.freeze({
    * Check if value is false
    */
   'isFalse': (value: boolean): boolean => {
-    return !value;
+    const result = !value;
+    return result;
   },
 
   /**
@@ -161,31 +198,56 @@ const ArrayMatchers = Object.freeze({
   /**
    * Check if array contains value
    */
-  'contains': <T>(searchValue: T) => {return (value: T[]): boolean => { const result = value.includes(searchValue); return result; };},
+  'contains': <T>(searchValue: T) => {return (value: T[]): boolean => {
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      if (value[index] === searchValue) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if array contains all of the values
    */
-  'containsAll': <T>(...searchValues: T[]) => {return (value: T[]): boolean =>
-  { const result = searchValues.every((sv) => { const result = value.includes(sv); return result; }); return result; };},
+  'containsAll': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
+    const valuesSet = new Set(value);
+    const requiredValues = new Set(searchValues);
+    for (const requiredValue of requiredValues) {
+      if (!valuesSet.has(requiredValue)) {
+        return false;
+      }
+    }
+    return true;
+  };},
 
   /**
    * Check if array contains any of the values
    */
-  'containsAny': <T>(...searchValues: T[]) => {return (value: T[]): boolean =>
-  { const result = searchValues.some((sv) => { const result = value.includes(sv); return result; }); return result; };},
+  'containsAny': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
+    const valuesSet = new Set(value);
+    const requiredValues = new Set(searchValues);
+    for (const requiredValue of requiredValues) {
+      if (valuesSet.has(requiredValue)) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if array length is in range
    */
-  'lengthInRange': (min: number, max: number) => {return <T>(value: T[]): boolean =>
-  {return value.length >= min && value.length <= max;};},
+  'lengthInRange': (minimum: number, maximum: number) => {return <T>(value: T[]): boolean =>
+  {const result = value.length >= minimum && value.length <= maximum; return result;};},
 
   /**
    * Check if array is not empty
    */
   'notEmpty': <T>(value: T[]): boolean => {
-    return value.length > EMPTY_LENGTH;
+    const result = value.length > EMPTY_LENGTH;
+    return result;
   }
 });
 
@@ -197,19 +259,37 @@ const ObjectMatchers = Object.freeze({
    * Check if object has all properties
    */
   'hasAllProperties': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => { const result = propertyNames.every((prop) => {return prop in value;}); return result; };},
+  {return (value: Record<string, unknown>): boolean => {
+    const propertyNamesLength = propertyNames.length;
+    for (let propertyNameIndex = 0; propertyNameIndex < propertyNamesLength; propertyNameIndex += 1) {
+      const propertyName = propertyNames[propertyNameIndex];
+      if (propertyName === undefined || !(propertyName in value)) {
+        return false;
+      }
+    }
+    return true;
+  };},
 
   /**
    * Check if object has any of the properties
    */
   'hasAnyProperty': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => { const result = propertyNames.some((prop) => {return prop in value;}); return result; };},
+  {return (value: Record<string, unknown>): boolean => {
+    const propertyNamesLength = propertyNames.length;
+    for (let propertyNameIndex = 0; propertyNameIndex < propertyNamesLength; propertyNameIndex += 1) {
+      const propertyName = propertyNames[propertyNameIndex];
+      if (propertyName !== undefined && propertyName in value) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if object has property
    */
   'hasProperty': (propertyName: string) =>
-  {return (value: Record<string, unknown>): boolean => {return propertyName in value;};}
+  {return (value: Record<string, unknown>): boolean => {const result = propertyName in value; return result;};}
 });
 
 /**
@@ -230,7 +310,17 @@ const LogicMatchers = Object.freeze({
    * ```
    */
   'and': <T>(...predicates: ((value: T) => boolean)[]) => {
-    return (value: T): boolean => { const result = predicates.every((pred) => { const result = pred(value); return result; }); return result; };
+    return (value: T): boolean => {
+      const predicatesLength = predicates.length;
+      for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
+        const predicate = predicates[predicateIndex];
+        const predicateMatches = predicate?.(value) ?? false;
+        if (!predicateMatches) {
+          return false;
+        }
+      }
+      return true;
+    };
   },
 
   /**
@@ -243,7 +333,8 @@ const LogicMatchers = Object.freeze({
    */
   'not': <T>(predicate: (value: T) => boolean) => {
     return (value: T): boolean => {
-      return !predicate(value);
+      const result = !predicate(value);
+      return result;
     };
   },
 
@@ -261,7 +352,16 @@ const LogicMatchers = Object.freeze({
    * ```
    */
   'or': <T>(...predicates: ((value: T) => boolean)[]) => {
-    return (value: T): boolean => { const result = predicates.some((pred) => { const result = pred(value); return result; }); return result; };
+    return (value: T): boolean => {
+      const predicatesLength = predicates.length;
+      for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
+        const predicate = predicates[predicateIndex];
+        if (predicate?.(value) === true) {
+          return true;
+        }
+      }
+      return false;
+    };
   }
 });
 
@@ -293,7 +393,8 @@ const HttpMatchers = Object.freeze({
    * Rate limiting
    */
   'isRateLimited': (status: number): boolean => {
-    return status === HttpStatus.TOO_MANY_REQUESTS;
+    const result = status === HttpStatus.TOO_MANY_REQUESTS;
+    return result;
   },
 
   /**
@@ -367,14 +468,16 @@ const DatabaseMatchers = Object.freeze({
    * Foreign key violation (23503)
    */
   'isForeignKeyViolation': (code: string): boolean => {
-    return code === '23503';
+    const result = code === '23503';
+    return result;
   },
 
   /**
    * Unique violation (23505)
    */
   'isUniqueViolation': (code: string): boolean => {
-    return code === '23505';
+    const result = code === '23505';
+    return result;
   }
 });
 
@@ -391,7 +494,8 @@ const InstanceMatchers = Object.freeze({
    * ```
    */
   'isError': (value: unknown): value is Error => {
-    return value instanceof Error;
+    const result = value instanceof Error;
+    return result;
   },
 
   /**
@@ -407,7 +511,8 @@ const InstanceMatchers = Object.freeze({
   'named': (name: string) => {return (value: unknown): boolean => {
     if (value === null || value === undefined || typeof value !== 'object') { return false; }
 
-    return (value as { 'constructor'?: { 'name'?: string } }).constructor?.name === name;
+    const result = (value as { 'constructor'?: { 'name'?: string } }).constructor?.name === name;
+    return result;
   };},
 
   /**
@@ -423,7 +528,8 @@ const InstanceMatchers = Object.freeze({
 
     const constructorName = (value as { 'constructor'?: { 'name'?: string } }).constructor?.name ?? '';
 
-    return names.includes(constructorName);
+    const result = names.includes(constructorName);
+    return result;
   };},
 
   /**
@@ -435,9 +541,10 @@ const InstanceMatchers = Object.freeze({
    * hasProperty(error, 'originalError', instance.of(Error))
    * ```
    */
-  'of': <T>(constructor: new (...args: never[]) => T) => {
+  'of': <T>(constructor: new (...argumentList: never[]) => T) => {
     return (value: unknown): value is T => {
-      return value instanceof constructor;
+      const result = value instanceof constructor;
+      return result;
     };
   },
 
@@ -449,8 +556,16 @@ const InstanceMatchers = Object.freeze({
    * hasProperty(error, 'cause', instance.ofAny(TypeError, RangeError, ReferenceError))
    * ```
    */
-  'ofAny': <T>(...constructors: (new (...args: never[]) => T)[]) =>
-  {return (value: unknown): value is T => { const result = constructors.some((ctor) => {return value instanceof ctor;}); return result; };}
+  'ofAny': <T>(...constructors: (new (...argumentList: never[]) => T)[]) => {
+    const result = (value: unknown): value is T => {
+      const matches = constructors.some((targetConstructor) => {
+        const instanceMatches = value instanceof targetConstructor;
+        return instanceMatches;
+      });
+      return matches;
+    };
+    return result;
+  }
 });
 
 /**
@@ -461,7 +576,11 @@ class ProtoMatcherFactory {
     return (value: unknown): boolean => {
       if (value === null || value === undefined) { return false; }
 
-      return methodNames.every((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
+      const result = methodNames.every((name) => {
+        const hasMethod = typeof Reflect.get(value, name) === 'function';
+        return hasMethod;
+      });
+      return result;
     };
   }
 
@@ -469,7 +588,11 @@ class ProtoMatcherFactory {
     return (value: unknown): boolean => {
       if (value === null || value === undefined) { return false; }
 
-      return methodNames.some((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
+      const result = methodNames.some((name) => {
+        const hasMethod = typeof Reflect.get(value, name) === 'function';
+        return hasMethod;
+      });
+      return result;
     };
   }
 
@@ -477,7 +600,8 @@ class ProtoMatcherFactory {
     return (value: unknown): boolean => {
       if (value === null || value === undefined) { return false; }
 
-      return typeof (value as Record<string, unknown>)[methodName] === 'function';
+      const result = typeof Reflect.get(value, methodName) === 'function';
+      return result;
     };
   }
 
@@ -485,7 +609,8 @@ class ProtoMatcherFactory {
     return (value: unknown): boolean => {
       if (value === null || value === undefined) { return false; }
 
-      return typeof value === 'object' && propertyName in value;
+      const result = typeof value === 'object' && propertyName in value;
+      return result;
     };
   }
 
@@ -494,11 +619,13 @@ class ProtoMatcherFactory {
       return false;
     }
 
-    return typeof (value as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function';
+    const result = typeof Reflect.get(value, Symbol.asyncIterator) === 'function';
+    return result;
   }
 
-  public static isCallable(value: unknown): value is (...args: unknown[]) => unknown {
-    return typeof value === 'function';
+  public static isCallable(value: unknown): value is (...argumentList: unknown[]) => unknown {
+    const result = typeof value === 'function';
+    return result;
   }
 
   public static isIterable(value: unknown): boolean {
@@ -506,7 +633,8 @@ class ProtoMatcherFactory {
       return false;
     }
 
-    return typeof (value as Record<symbol, unknown>)[Symbol.iterator] === 'function';
+    const result = typeof Reflect.get(value, Symbol.iterator) === 'function';
+    return result;
   }
 }
 

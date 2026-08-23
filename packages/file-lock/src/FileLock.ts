@@ -46,11 +46,13 @@ class FileLockInstance {
     constructor: FileLockSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static hasDispose(value: object): value is FileLockDisposableInterface {
-    return Symbol.dispose in value;
+    const result = Symbol.dispose in value;
+    return result;
   }
 }
 
@@ -96,10 +98,12 @@ export class FileLock {
     if (!FileLockOptionsEntity.validate(schemaOptions)) {
       const messages = (FileLockOptionsEntity.validate.errors ?? [])
         .map((e) => {
-          return e.message ?? String(e);
+          const result = e.message ?? String(e);
+          return result;
         })
         .join('; ');
-      return await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
+      const result = await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
+      return result;
     }
 
     const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = schemaOptions;
@@ -177,7 +181,7 @@ export class FileLock {
       return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
     }
 
-    return await new Promise<void>((resolve, reject) => {
+    const result = await new Promise<void>((resolve, reject) => {
       const poll = (): void => {
         try {
           this.#fs.renameSync(path, lockPath);
@@ -225,6 +229,7 @@ export class FileLock {
       };
       poll();
     });
+    return result;
   }
 
   /**
@@ -237,7 +242,8 @@ export class FileLock {
   static #isContentionError(error: unknown): boolean {
     if (!(error instanceof Error)) { return false; }
     if ('code' in error && error.code === 'ENOENT') { return true; }
-    return error.message.startsWith('ENOENT');
+    const result = error.message.startsWith('ENOENT');
+    return result;
   }
 
   /**
@@ -251,8 +257,8 @@ export class FileLock {
       const base = LockPathHelpers.basename(path);
       const entries = this.#fs.readdirSync(dir);
       const lockPrefix = `${base}.lock.`;
-      const entriesLen = entries.length;
-      for (let i = 0; i < entriesLen; i++) {
+      const entriesLength = entries.length;
+      for (let i = 0; i < entriesLength; i++) {
         if ((entries.at(i) ?? '').startsWith(lockPrefix)) { return true; }
       }
       return false;
@@ -289,7 +295,7 @@ export class FileLock {
 
   /** Returns detached diagnostics for every hook failure recorded since construction. */
   getHookErrors(): readonly HookInvocationError[] {
-    const result = this.hooks.getHookErrors();
+    const result = [...this.hooks.getHookErrors()];
     return result;
   }
 

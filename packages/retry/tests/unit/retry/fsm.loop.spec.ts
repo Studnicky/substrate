@@ -7,7 +7,7 @@ import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateE
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryContextInterface } from '../../../src/interfaces/RetryContextInterface.js';
 
-import { MaxRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
+import { MaximumRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
@@ -36,8 +36,8 @@ type ScenarioCase = {
       failureCountBeforeSuccess?: number;
     };
     errorMessage?: string;
-    maxElapsedMs?: number;
-    maxRetries: number;
+    maximumElapsedMs?: number;
+    maximumRetries: number;
     rejectedTransition?: TransitionRecord;
     result?: string;
   };
@@ -80,24 +80,24 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'aborted-by-hook': async (scenarioCase) => {
     const retry = new AbortingTrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error('will be aborted'); }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
   },
   'exhausted-after-max-retries': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error('always fails'); }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
 
     assert.deepStrictEqual(retry.transitions.find((transition) => transition.to === 'exhausted'), scenarioCase.expected.exhausted);
@@ -105,13 +105,13 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'exhausted-after-max-elapsed': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      ...(scenarioCase.input.maxElapsedMs === undefined ? {} : { maxElapsedMs: scenarioCase.input.maxElapsedMs }),
-      maxRetries: scenarioCase.input.maxRetries
+      ...(scenarioCase.input.maximumElapsedMs === undefined ? {} : { maximumElapsedMs: scenarioCase.input.maximumElapsedMs }),
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error('elapsed budget'); }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
 
     assert.deepStrictEqual(retry.transitions.find((transition) => transition.to === 'exhausted'), scenarioCase.expected.exhausted);
@@ -119,7 +119,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'immediate-success': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     const result = await retry.execute(async () => scenarioCase.input.result);
@@ -146,7 +146,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     const retry = new GuardRejectingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
@@ -160,7 +160,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'non-retryable-error': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: new AlwaysNonRetryableClassifier(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
@@ -172,7 +172,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'retryable-failure-then-success': async (scenarioCase) => {
     const retry = new TrackingRetry({
       errorClassifier: DefaultHttpErrorClassifier.create(),
-      maxRetries: scenarioCase.input.maxRetries
+      maximumRetries: scenarioCase.input.maximumRetries
     });
 
     let callCount = 0;

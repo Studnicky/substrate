@@ -268,6 +268,19 @@ const MAXIMUM_RECURSION_DEPTH = 100;
 export class TypeContractClassification {
   private static readonly programs = new WeakMap<Program, TypeContractClassification>();
 
+  // Every function value's own intrinsic properties, per the ECMAScript/TypeScript `Function`
+  // interface: `prototype` (constructible functions), `name`, `length`, plus the two
+  // non-strict-mode legacy own properties `arguments`/`caller`. Naming ONLY these adds no data
+  // shape beyond what `Function` already carries — see `isIntrinsicFunctionIntersection`'s call
+  // site in `classifyCallability` for the full reasoning.
+  private static readonly INTRINSIC_FUNCTION_MEMBER_NAMES = new Set([
+    'arguments',
+    'caller',
+    'length',
+    'name',
+    'prototype'
+  ]);
+
   private readonly aliasCache: WeakMap<TypeAliasDeclaration, AliasClassificationResultInterface>;
   private readonly checker: TypeChecker;
   private readonly interfaceCache: WeakMap<InterfaceDeclaration, InterfaceClassificationResultInterface>;
@@ -726,6 +739,40 @@ export class TypeContractClassification {
       };
     }
 
+    // `Function & { readonly 'prototype': TInstance }` IS NOT A MIXED SHAPE.
+    //
+    // The rule this method backs bans mixing a CALLABLE shape with DATA — an options object
+    // that happens to also be callable. `prototype` is not data bolted onto a callable; it is
+    // an INTRINSIC member every function value already carries (`name`, `length`, `prototype`,
+    // and — non-strict-mode only — `arguments`/`caller`). Intersecting `Function` with a
+    // literal naming only those members adds no data shape at all; it NARROWS which function
+    // this is (one whose `prototype` is `TInstance`) without introducing a second, unrelated
+    // concern the way `{ (): void; retries: number }` would. This is the canonical TypeScript
+    // spelling for "a constructor function whose instances are `TInstance`", required by the
+    // polymorphic static-factory idiom this codebase is built on:
+    //
+    //   static create<TInstance extends X>(this: Function & { readonly 'prototype': TInstance }): TInstance {
+    //     const result: unknown = Reflect.construct(this, []);
+    //     ...
+    //
+    // (`packages/health-registry/src/HealthRegistry.ts`, `packages/idempotency-guard/src/
+    // IdempotencyGuard.ts` — both the `this` parameter and the `isConstructed` guard's
+    // `constructor` parameter use it.) `arch/lexical-this-only` ALREADY recognises and permits
+    // this exact factory idiom in static context (`this` as a constructor reference) — see
+    // that rule's own module comment. The two rules must agree about the SAME idiom rather
+    // than one permitting what the other bans; this exemption is what keeps them agreeing.
+    //
+    // Scoped narrowly: every non-callable constituent of the intersection must be a type
+    // LITERAL whose members are drawn ONLY from the intrinsic-property allowlist below, with a
+    // statically-known (non-computed) name. A literal naming any OTHER member — `retries`,
+    // `options`, anything not already on every function value — is still data riding along
+    // with a callable, and stays reported exactly as before.
+    if (isIntersectionTypeNode(node) && this.isIntrinsicFunctionIntersection(node)) {
+      return {
+        'hasCallable': true, 'hasData': false
+      };
+    }
+
     if (isUnionTypeNode(node) || isIntersectionTypeNode(node)) {
       let hasCallable = false;
       let hasData = false;
@@ -862,6 +909,92 @@ export class TypeContractClassification {
     return {
       'hasCallable': false, 'hasData': true
     };
+  }
+
+  /**
+   * True when `node` is `Function & { ... }` (or `SomeFunctionType & { ... }`) where every
+   * non-callable constituent is a type literal naming only intrinsic function properties. See
+   * the module comment at this method's call site for the full reasoning.
+   */
+  private isIntrinsicFunctionIntersection(node: IntersectionTypeNode): boolean {
+    let hasCallableAnchor = false;
+    const members = node.types;
+    const length = members.length;
+
+    for (let index = 0; index < length; index++) {
+      const member = members.at(index);
+
+      if (member === undefined) {
+        continue;
+      }
+      if (this.isCallableAnchor(member)) {
+        hasCallableAnchor = true;
+        continue;
+      }
+      if (!TypeContractClassification.isAllIntrinsicFunctionMembersLiteral(member)) {
+        return false;
+      }
+    }
+
+    return hasCallableAnchor;
+  }
+
+  /** A function type node, a construct-signature type node, or the `Function` intrinsic. */
+  private isCallableAnchor(node: TypeNode): boolean {
+    if (isFunctionTypeNode(node) || isConstructorTypeNode(node)) {
+      return true;
+    }
+
+    const result = isTypeReferenceNode(node) && this.isIntrinsic(node, 'Function');
+
+    return result;
+  }
+
+  /**
+   * True when `node` is a type literal whose every member is a non-computed `PropertySignature`
+   * named from {@link INTRINSIC_FUNCTION_MEMBER_NAMES}. A method signature, an index signature,
+   * a call/construct signature, or a computed or non-intrinsic property name disqualifies —
+   * that member is genuine data (or a genuine second callable shape) riding along with the
+   * anchor, and the intersection stays a real mix.
+   */
+  private static isAllIntrinsicFunctionMembersLiteral(node: TypeNode): boolean {
+    if (!isTypeLiteralNode(node)) {
+      return false;
+    }
+
+    const members = node.members;
+    const length = members.length;
+
+    for (let index = 0; index < length; index++) {
+      const member = members.at(index);
+
+      if (member === undefined) {
+        continue;
+      }
+      if (!isPropertySignature(member) || isComputedPropertyName(member.name)) {
+        return false;
+      }
+
+      const name = TypeContractClassification.staticPropertyName(member.name);
+
+      if (name === undefined || !TypeContractClassification.INTRINSIC_FUNCTION_MEMBER_NAMES.has(name)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** Reads an `Identifier` or string-`Literal` property name's static text, else `undefined`. */
+  private static staticPropertyName(node: PropertySignature['name']): string | undefined {
+    if (isIdentifier(node)) {
+      return node.text;
+    }
+    if (isStringLiteral(node)) {
+      return node.text;
+    }
+
+    return undefined;
   }
 
   /**

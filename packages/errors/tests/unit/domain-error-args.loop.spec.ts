@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BaseError } from '../../src/errors/BaseError.js';
-import { DomainErrorArgs } from '../../src/errors/DomainErrorArgs.js';
+import { DomainErrorArgumentList } from '../../src/errors/DomainErrorArgumentList.js';
 import type { BaseErrorArgumentsInterface } from '../../src/interfaces/BaseErrorArgumentsInterface.js';
 import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
 import scenarioGroups from './domain-error-args.scenarios.json' with { type: 'json' };
@@ -19,7 +19,7 @@ class StubFileLockTimeoutError extends StubFileLockError {
 
   constructor(error: StubFileLockErrorInputInterface) {
     const fields = error.fields;
-    super(DomainErrorArgs.build(fields, buildStubFileLockOptions(error)));
+    super(DomainErrorArgumentList.build(fields, buildStubFileLockOptions(error)));
     Object.assign(this, fields);
   }
 }
@@ -90,7 +90,7 @@ const runnerMap = {
   'includes-optional-fields': (scenario) => {
     const { expected, input } = scenario;
     const options = buildStubFileLockOptions(input.error);
-    const args = DomainErrorArgs.build(input.error.fields, options);
+    const args = DomainErrorArgumentList.build(input.error.fields, options);
     assert.strictEqual(args.cause, options.cause);
     assert.strictEqual(args.correlationId, String(expected.correlationId));
     assert.strictEqual(args.retryable, Boolean(expected.retryable));
@@ -107,7 +107,7 @@ const runnerMap = {
   },
   'omits-optional-fields': (scenario) => {
     const { expected, input } = scenario;
-    const args = DomainErrorArgs.build(input.error.fields, buildStubFileLockOptions(input.error));
+    const args = DomainErrorArgumentList.build(input.error.fields, buildStubFileLockOptions(input.error));
     assert.strictEqual('cause' in args, Boolean(expected.hasCause));
     assert.strictEqual('correlationId' in args, Boolean(expected.hasCorrelationId));
     assert.strictEqual('metadata' in args, Boolean(expected.hasMetadata));
@@ -125,7 +125,7 @@ const runnerMap = {
     const { input } = scenario;
     const fields = input.error.fields;
     let received: Readonly<typeof fields> | undefined;
-    DomainErrorArgs.build(fields, {
+    DomainErrorArgumentList.build(fields, {
       ...buildStubFileLockOptions(input.error),
       message: (f) => {
         received = f;
@@ -140,7 +140,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
   await runnerMap[scenario.shape](scenario);
 }
 
-void describe('DomainErrorArgs.build()', () => {
+void describe('DomainErrorArgumentList.build()', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);

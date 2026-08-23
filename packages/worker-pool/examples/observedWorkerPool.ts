@@ -1,6 +1,7 @@
 /** observedWorkerPool — override the lifecycle hooks to collect telemetry. Run: npx tsx examples/observedWorkerPool.ts */
 
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 
 // #region usage
 import type {
@@ -42,7 +43,7 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
 
 const pool = TelemetryWorkerPool.create({
   'concurrency': 2,
-  'workerPath': new URL('./observedWorkerPoolWorker.mjs', import.meta.url).pathname
+  'workerPath': fileURLToPath(new URL('./observedWorkerPoolWorker.mjs', import.meta.url))
 });
 
 const results = await pool.run([{ 'n': 5 }, { 'n': 10 }, { 'n': 15 }]);

@@ -36,8 +36,8 @@ export namespace ValidatedAdaptiveConfigEntity {
     'required': [
       'adjustmentInterval',
       'enabled',
-      'maxConcurrency',
-      'minConcurrency',
+      'maximumConcurrency',
+      'minimumConcurrency',
       'sampleWindow',
       'scaleDownThreshold',
       'scaleUpThreshold',
@@ -50,10 +50,10 @@ export namespace ValidatedAdaptiveConfigEntity {
 
   const compiledValidate = SchemaValidator.compile<Type>(Schema);
 
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!compiledValidate(candidate)) {
       throw ConfigurationError.create(SchemaValidator.formatErrors(compiledValidate.errors));
     }
     return true;
-  }
+  };
 }

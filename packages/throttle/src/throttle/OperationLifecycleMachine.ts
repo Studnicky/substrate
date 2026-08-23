@@ -34,16 +34,37 @@ import type { FsmStepInterface } from '@studnicky/fsm';
 
 import { StateMachine } from '@studnicky/fsm';
 
-import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 import type { OperationLifecycleEffect } from './OperationLifecycleEffect.js';
 import type { OperationLifecycleEvent } from './OperationLifecycleEvent.js';
 
-const OPERATIONAL_STATE: OperationLifecycleStateEntity.Type = { 'variant': 'operational' };
+import { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 
-class UnhandledEvent {
-  public static throw(event: never): never {
-    throw new Error(`Unhandled OperationLifecycleEvent: ${JSON.stringify(event)}`);
-  }
+interface OperationLifecycleEventReducerInterface {
+  (
+    state: OperationLifecycleStateEntity.Type,
+    event: OperationLifecycleEvent.AbortStartedEventInterface
+    | OperationLifecycleEvent.AcquiredEventInterface
+    | OperationLifecycleEvent.ConcurrencyAdjustedEventInterface
+    | OperationLifecycleEvent.ContendedEventInterface
+    | OperationLifecycleEvent.DrainCompletedEventInterface
+    | OperationLifecycleEvent.DrainStartedEventInterface
+    | OperationLifecycleEvent.OperationRejectedEventInterface
+    | OperationLifecycleEvent.QueuedEventInterface
+    | OperationLifecycleEvent.SlotReleasedEventInterface
+    | OperationLifecycleEvent.WindowSlidEventInterface
+  ): FsmStepInterface<
+    OperationLifecycleStateEntity.Type,
+      OperationLifecycleEffect.FireOnAbortStartEffectInterface
+      | OperationLifecycleEffect.FireOnAcquireEffectInterface
+      | OperationLifecycleEffect.FireOnAcquireWaitEffectInterface
+      | OperationLifecycleEffect.FireOnAdaptiveAdjustEffectInterface
+      | OperationLifecycleEffect.FireOnContendedEffectInterface
+      | OperationLifecycleEffect.FireOnDrainCompleteEffectInterface
+      | OperationLifecycleEffect.FireOnDrainStartEffectInterface
+      | OperationLifecycleEffect.FireOnReleaseEffectInterface
+      | OperationLifecycleEffect.FireOnRejectEffectInterface
+      | OperationLifecycleEffect.FireOnWindowSlideEffectInterface
+  >;
 }
 
 export class OperationLifecycleMachine extends StateMachine<
@@ -69,12 +90,32 @@ export class OperationLifecycleMachine extends StateMachine<
     | OperationLifecycleEffect.FireOnRejectEffectInterface
     | OperationLifecycleEffect.FireOnWindowSlideEffectInterface
 > {
+  private static readonly reducerByEventType = new Map<
+    Parameters<OperationLifecycleEventReducerInterface>[1]['type'],
+    OperationLifecycleEventReducerInterface
+  >([
+    ['AbortStarted', OperationLifecycleMachine.#reduceAbortStarted],
+    ['Acquired', OperationLifecycleMachine.#reduceAcquired],
+    ['ConcurrencyAdjusted', OperationLifecycleMachine.#reduceConcurrencyAdjusted],
+    ['Contended', OperationLifecycleMachine.#reduceContended],
+    ['DrainCompleted', OperationLifecycleMachine.#reduceDrainCompleted],
+    ['DrainStarted', OperationLifecycleMachine.#reduceDrainStarted],
+    ['OperationRejected', OperationLifecycleMachine.#reduceOperationRejected],
+    ['Queued', OperationLifecycleMachine.#reduceQueued],
+    ['SlotReleased', OperationLifecycleMachine.#reduceSlotReleased],
+    ['WindowSlid', OperationLifecycleMachine.#reduceWindowSlid]
+  ]);
+
   constructor() {
     super();
   }
 
   getInitialState(): OperationLifecycleStateEntity.Type {
-    const result = OPERATIONAL_STATE;
+    const initialState: OperationLifecycleStateEntity.Type = { 'variant': 'operational' };
+    const result: OperationLifecycleStateEntity.Type = Object.assign({}, initialState);
+    if (!OperationLifecycleStateEntity.validate(result)) {
+      throw new TypeError('OperationLifecycleMachine initial state is invalid');
+    }
     return result;
   }
 
@@ -90,45 +131,95 @@ export class OperationLifecycleMachine extends StateMachine<
     | OperationLifecycleEvent.QueuedEventInterface
     | OperationLifecycleEvent.SlotReleasedEventInterface
     | OperationLifecycleEvent.WindowSlidEventInterface
-  ): FsmStepInterface<
-    OperationLifecycleStateEntity.Type,
-      OperationLifecycleEffect.FireOnAbortStartEffectInterface
-      | OperationLifecycleEffect.FireOnAcquireEffectInterface
-      | OperationLifecycleEffect.FireOnAcquireWaitEffectInterface
-      | OperationLifecycleEffect.FireOnAdaptiveAdjustEffectInterface
-      | OperationLifecycleEffect.FireOnContendedEffectInterface
-      | OperationLifecycleEffect.FireOnDrainCompleteEffectInterface
-      | OperationLifecycleEffect.FireOnDrainStartEffectInterface
-      | OperationLifecycleEffect.FireOnReleaseEffectInterface
-      | OperationLifecycleEffect.FireOnRejectEffectInterface
-      | OperationLifecycleEffect.FireOnWindowSlideEffectInterface
-  > {
-    switch (event.type) {
-      case 'AbortStarted':
-        return { 'effects': [{ 'cancelledCount': event.cancelledCount, 'variant': 'FireOnAbortStart' }], 'state': state };
-      case 'Acquired':
-        return { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnAcquire' }], 'state': state };
-      case 'ConcurrencyAdjusted':
-        return { 'effects': [{ 'newLimit': event.newLimit, 'previousLimit': event.previousLimit, 'variant': 'FireOnAdaptiveAdjust' }], 'state': state };
-      case 'Contended':
-        return { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnContended' }], 'state': state };
-      case 'DrainCompleted':
-        return { 'effects': [{ 'totalExecuted': event.totalExecuted, 'variant': 'FireOnDrainComplete' }], 'state': state };
-      case 'DrainStarted':
-        return { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnDrainStart' }], 'state': state };
-      case 'OperationRejected':
-        return { 'effects': [{ 'reason': event.reason, 'variant': 'FireOnReject' }], 'state': state };
-      case 'Queued':
-        return { 'effects': [{ 'queuedCount': event.queuedCount, 'variant': 'FireOnAcquireWait' }], 'state': state };
-      case 'SlotReleased':
-        // Every outcome — queue handoff granted, throttle became idle, or still busy with
-        // an empty queue — funnels through this single arm, which always returns exactly
-        // one FireOnRelease effect. That is the fix: there is no switch arm, and therefore
-        // no reachable event, that can produce zero or two onRelease fires.
-        return { 'effects': [{ 'activeCount': event.activeCount, 'totalExecuted': event.totalExecuted, 'variant': 'FireOnRelease' }], 'state': state };
-      case 'WindowSlid':
-        return { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnWindowSlide' }], 'state': state };
-      default: return UnhandledEvent.throw(event);
+  ): ReturnType<OperationLifecycleEventReducerInterface> {
+    const reducer = OperationLifecycleMachine.reducerByEventType.get(event.type);
+    if (reducer === undefined) {
+      throw new TypeError(`Unhandled OperationLifecycleEvent: ${JSON.stringify(event)}`);
     }
+    const result = reducer(state, event);
+    return result;
+  }
+
+  static #reduceAbortStarted(
+    state: OperationLifecycleStateEntity.Type,
+    event: Parameters<OperationLifecycleEventReducerInterface>[1]
+  ): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'AbortStarted') {
+      throw new TypeError(`Expected AbortStarted event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'cancelledCount': event.cancelledCount, 'variant': 'FireOnAbortStart' }], 'state': state };
+    return result;
+  }
+
+  static #reduceAcquired(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'Acquired') {
+      throw new TypeError(`Expected Acquired event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnAcquire' }], 'state': state };
+    return result;
+  }
+
+  static #reduceConcurrencyAdjusted(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'ConcurrencyAdjusted') {
+      throw new TypeError(`Expected ConcurrencyAdjusted event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'newLimit': event.newLimit, 'previousLimit': event.previousLimit, 'variant': 'FireOnAdaptiveAdjust' }], 'state': state };
+    return result;
+  }
+
+  static #reduceContended(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'Contended') {
+      throw new TypeError(`Expected Contended event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnContended' }], 'state': state };
+    return result;
+  }
+
+  static #reduceDrainCompleted(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'DrainCompleted') {
+      throw new TypeError(`Expected DrainCompleted event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'totalExecuted': event.totalExecuted, 'variant': 'FireOnDrainComplete' }], 'state': state };
+    return result;
+  }
+
+  static #reduceDrainStarted(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'DrainStarted') {
+      throw new TypeError(`Expected DrainStarted event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnDrainStart' }], 'state': state };
+    return result;
+  }
+
+  static #reduceOperationRejected(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'OperationRejected') {
+      throw new TypeError(`Expected OperationRejected event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'reason': event.reason, 'variant': 'FireOnReject' }], 'state': state };
+    return result;
+  }
+
+  static #reduceQueued(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'Queued') {
+      throw new TypeError(`Expected Queued event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'queuedCount': event.queuedCount, 'variant': 'FireOnAcquireWait' }], 'state': state };
+    return result;
+  }
+
+  static #reduceSlotReleased(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'SlotReleased') {
+      throw new TypeError(`Expected SlotReleased event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'activeCount': event.activeCount, 'totalExecuted': event.totalExecuted, 'variant': 'FireOnRelease' }], 'state': state };
+    return result;
+  }
+
+  static #reduceWindowSlid(state: OperationLifecycleStateEntity.Type, event: Parameters<OperationLifecycleEventReducerInterface>[1]): ReturnType<OperationLifecycleEventReducerInterface> {
+    if (event.type !== 'WindowSlid') {
+      throw new TypeError(`Expected WindowSlid event, received ${event.type}`);
+    }
+    const result: ReturnType<OperationLifecycleEventReducerInterface> = { 'effects': [{ 'activeCount': event.activeCount, 'queuedCount': event.queuedCount, 'variant': 'FireOnWindowSlide' }], 'state': state };
+    return result;
   }
 }

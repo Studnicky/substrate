@@ -2,12 +2,12 @@
 
 import { HookInvoker } from '@studnicky/errors';
 
+import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
-import type { DlqEntryInterface } from './interfaces/DlqEntryInterface.js';
 
-import { DlqAbortedError } from './DlqAbortedError.js';
-import { DlqClosedError } from './DlqClosedError.js';
-import { DlqFullError } from './DlqFullError.js';
+import { DeadLetterQueueAbortedError } from './DeadLetterQueueAbortedError.js';
+import { DeadLetterQueueClosedError } from './DeadLetterQueueClosedError.js';
+import { DeadLetterQueueFullError } from './DeadLetterQueueFullError.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
 /**
@@ -28,7 +28,8 @@ class DeadLetterQueueInstance {
     constructor: DeadLetterQueueSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -39,7 +40,7 @@ export class DeadLetterQueue<T> {
 
   readonly #capacity: number;
   readonly #clock: () => number;
-  readonly #entries: DlqEntryInterface<T>[] = [];
+  readonly #entries: DeadLetterQueueEntryInterface<T>[] = [];
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
@@ -80,7 +81,7 @@ export class DeadLetterQueue<T> {
       throw new ResilienceConfigError('capacity must be > 0');
     }
     this.#capacity = capacity;
-    this.#clock = options?.clock ?? (() => { const result = Date.now(); return result; });
+    this.#clock = options?.clock ?? Date.now;
     const signal = options?.signal;
     let aborted = false;
     if (signal !== undefined) {
@@ -95,16 +96,16 @@ export class DeadLetterQueue<T> {
   get closed(): boolean { const result = this.#closed;
     return result; }
 
-  /** Throws DlqFullError | DlqClosedError | DlqAbortedError on failure. */
+  /** Throws DeadLetterQueueFullError | DeadLetterQueueClosedError | DeadLetterQueueAbortedError on failure. */
   enqueue(item: T, reason: string, error?: Error): void {
-    if (this.#aborted) { throw new DlqAbortedError(); }
-    if (this.#closed) { throw new DlqClosedError(); }
+    if (this.#aborted) { throw new DeadLetterQueueAbortedError(); }
+    if (this.#closed) { throw new DeadLetterQueueClosedError(); }
     if (this.#entries.length >= this.#capacity) {
       this.hooks.invoke('onOverflow', () => {
         const result = this.onOverflow();
         return result;
       });
-      throw new DlqFullError();
+      throw new DeadLetterQueueFullError();
     }
     this.#entries.push({ 'enqueuedAtMs': this.#clock(), 'error': error, 'id': crypto.randomUUID(), 'item': item, 'reason': reason });
     this.wakeDrainWaiters();
@@ -115,7 +116,7 @@ export class DeadLetterQueue<T> {
   }
 
   /** Single-consumer by default — a second concurrent drain() call replaces the previously registered waiter. Override `registerDrainWaiter`/`wakeDrainWaiters` for consumer-side fan-out. */
-  async *drain(): AsyncGenerator<DlqEntryInterface<T>> {
+  async *drain(): AsyncGenerator<DeadLetterQueueEntryInterface<T>> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
@@ -153,7 +154,7 @@ export class DeadLetterQueue<T> {
   protected onDequeue(_item: T): void {}
 
   /**
-   * Fires when `enqueue()` is called on a full queue, before throwing DlqFullError.
+   * Fires when `enqueue()` is called on a full queue, before throwing DeadLetterQueueFullError.
    * Must not throw or block.
    */
   protected onOverflow(): void {}

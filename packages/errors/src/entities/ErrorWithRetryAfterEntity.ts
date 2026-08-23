@@ -23,8 +23,9 @@ export namespace ErrorWithRetryAfterEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
-    return typeof candidate.retryAfter === 'number';
-  }
+    const result = typeof candidate.retryAfter === 'number';
+    return result;
+  };
 }

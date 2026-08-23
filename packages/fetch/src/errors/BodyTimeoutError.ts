@@ -16,8 +16,6 @@
  * }
  * ```
  */
-import { DomainErrorArgs } from '@studnicky/errors';
-
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class BodyTimeoutError extends FetchBaseError {
@@ -31,19 +29,15 @@ export class BodyTimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
-  private static buildMessage(fields: Readonly<{ 'undiciCode': 'UND_ERR_BODY_TIMEOUT'; 'url': string }>): string {
-    const result = `Body timeout for ${fields.url}`;
-    return result;
-  }
-
   constructor(url: string, cause?: Error) {
     const fields = { 'undiciCode': 'UND_ERR_BODY_TIMEOUT' as const, 'url': url };
-    super(DomainErrorArgs.build(fields, {
+    super({
       'cause': cause,
       'code': 'fetch.bodyTimeout',
-      'message': BodyTimeoutError.buildMessage,
+      'message': `Body timeout for ${fields.url}`,
       'retryable': true
-    }));
-    Object.assign(this, fields);
+    });
+    this.undiciCode = fields.undiciCode;
+    this.url = fields.url;
   }
 }

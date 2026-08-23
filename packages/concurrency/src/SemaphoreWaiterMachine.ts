@@ -54,6 +54,7 @@ export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateInt
   }
 
   protected override isTerminated(state: SemaphoreWaiterStateInterface): boolean {
-    return state.variant === 'ready' || state.variant === 'cancelled';
+    const result = state.variant === 'ready' || state.variant === 'cancelled';
+    return result;
   }
 }

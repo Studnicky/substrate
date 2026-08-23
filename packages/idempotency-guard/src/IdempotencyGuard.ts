@@ -68,6 +68,7 @@ export class IdempotencyGuard<TResult = unknown> {
       super.onCoalesceStart(key);
       this.#owner.hooks.invoke('onExecute', () => {
         const hookResult = this.#owner.onExecute(key);
+
         return hookResult;
       });
     }
@@ -76,6 +77,7 @@ export class IdempotencyGuard<TResult = unknown> {
       super.onCoalesceJoin(key);
       this.#owner.hooks.invoke('onCoalesce', () => {
         const hookResult = this.#owner.onCoalesce(key);
+
         return hookResult;
       });
     }
@@ -91,7 +93,9 @@ export class IdempotencyGuard<TResult = unknown> {
     value: unknown,
     constructor: Function & { readonly 'prototype': TInstance }
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 
   static create<
@@ -102,9 +106,11 @@ export class IdempotencyGuard<TResult = unknown> {
     options: IdempotencyGuardOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
+
     if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
       throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
+
     return result;
   }
 
@@ -146,13 +152,16 @@ export class IdempotencyGuard<TResult = unknown> {
       if (cached.fingerprint === fingerprint) {
         await this.hooks.invokeAsync('onReplay', () => {
           const hookResult = this.onReplay(key);
+
           return hookResult;
         });
+
         return cached.result;
       }
 
       await this.hooks.invokeAsync('onConflict', () => {
         const hookResult = this.onConflict(key);
+
         return hookResult;
       });
       throw new IdempotencyConflictError(key);
@@ -166,15 +175,18 @@ export class IdempotencyGuard<TResult = unknown> {
     // keys purely by `key`, so it cannot distinguish fingerprints on its
     // own.
     const leaderFingerprint = this.#inFlightFingerprints.get(key);
+
     if (leaderFingerprint !== undefined && leaderFingerprint !== fingerprint) {
       await this.hooks.invokeAsync('onConflict', () => {
         const hookResult = this.onConflict(key);
+
         return hookResult;
       });
       throw new IdempotencyConflictError(key);
     }
 
     const isLeader = leaderFingerprint === undefined;
+
     if (isLeader) {
       this.#inFlightFingerprints.set(key, fingerprint);
     }
@@ -183,9 +195,13 @@ export class IdempotencyGuard<TResult = unknown> {
       const executeFactory = async (): Promise<IdempotencyGuardEntryInterface<TResult>> => {
         const produced = factory();
         const result = await Promise.resolve(produced);
-        return { 'fingerprint': fingerprint, 'result': result };
+
+        return {
+          'fingerprint': fingerprint, 'result': result
+        };
       };
       const entry = await this.#coalesce.run(key, executeFactory);
+
       if (entry.fingerprint !== fingerprint) {
         throw new TypeError('Idempotency guard result entry does not match its payload fingerprint.');
       }

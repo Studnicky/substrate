@@ -16,8 +16,9 @@ export namespace CacheEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
-    return (candidate.event === 'hit' || candidate.event === 'miss') && typeof candidate.key === 'string';
-  }
+    const result = (candidate.event === 'hit' || candidate.event === 'miss') && typeof candidate.key === 'string';
+    return result;
+  };
 }

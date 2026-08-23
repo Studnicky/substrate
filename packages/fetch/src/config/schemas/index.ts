@@ -8,7 +8,7 @@ export { ValidateHeaders } from './validateHeaders.js';
 export { ValidateHookTimeoutMs } from './validateHookTimeoutMs.js';
 export { ValidateMetadata } from './validateMetadata.js';
 export { ValidateOptions } from './validateOptions.js';
-export { ValidateParams } from './validateParams.js';
+export { ValidateParameters } from './validateParameters.js';
 export { ValidateRequestIdGenerator } from './validateRequestIdGenerator.js';
 export { ValidateTimeout } from './validateTimeout.js';
 export { ValidateURL } from './validateURL.js';

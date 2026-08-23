@@ -1,6 +1,6 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity, ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
 
 import { HookInvoker } from '@studnicky/errors';
 
@@ -36,7 +36,8 @@ class CircuitBreakerInstance {
     constructor: CircuitBreakerSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -48,7 +49,7 @@ export class CircuitBreaker {
   readonly #resetTimeoutMs: number;
   readonly #name: string;
   readonly #clock: () => number;
-  readonly #classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
+  readonly #errorClassifier: ErrorClassifierFunctionInterface | ErrorClassifierInterface | undefined;
   readonly #machine: CircuitBreakerMachine;
   #machineState: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type;
   /**
@@ -87,31 +88,20 @@ export class CircuitBreaker {
     if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
     this.#resetTimeoutMs = options.resetTimeoutMs;
     this.#name = options.name ?? 'circuit-breaker';
-    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+    this.#clock = options.clock ?? Date.now;
     this.#machine = new CircuitBreakerMachine({
       'failureThreshold': options.failureThreshold,
       'successThreshold': options.successThreshold ?? 1
     });
     this.#machineState = this.#machine.getInitialState();
 
-    let classifierFn: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
-    if (options.errorClassifier === undefined) {
-      // Arrow function required for subclass polymorphism - classifyError may be overridden
-      classifierFn = (error, attemptNumber) => { const result = this.classifyError(error, attemptNumber); return result; };
-    } else if (typeof options.errorClassifier === 'function') {
-      classifierFn = options.errorClassifier;
-    } else {
-      const classifier = options.errorClassifier;
-
-      classifierFn = (error, attemptNumber) => { const result = classifier.classify(error, attemptNumber); return result; };
-    }
-    this.#classifierFn = classifierFn;
+    this.#errorClassifier = options.errorClassifier;
   }
 
   get state(): CircuitStateEntity.Type { const result = this.#machineState.variant;
     return result; }
 
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
+  async execute<T>(callback: () => Promise<T>): Promise<T> {
     this.#checkHalfOpen();
     if (this.#machineState.variant === 'open') {
       this.#dispatch({ 'type': 'callRejected' });
@@ -119,22 +109,22 @@ export class CircuitBreaker {
     }
     const wasHalfOpen = this.#machineState.variant === 'halfOpen';
     try {
-      const result = await fn();
+      const result = await callback();
       this.#dispatch({ 'type': 'callSucceeded' });
       if (!wasHalfOpen) {
         this.#classifierAttemptCount = 0;
       }
       return result;
-    } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      const classification = this.#classifierFn(error, this.#classifierAttemptCount);
+    } catch (caughtError: unknown) {
+      const error = caughtError instanceof Error ? caughtError : new Error(String(caughtError));
+      const classification = this.#classifyError(error, this.#classifierAttemptCount);
       if (!classification.retryable) {
         if (!wasHalfOpen) {
           this.#classifierAttemptCount += 1;
         }
-        this.#dispatch({ 'at': this.#clock(), 'error': err, 'type': 'callFailed' });
+        this.#dispatch({ 'at': this.#clock(), 'error': caughtError, 'type': 'callFailed' });
       }
-      throw err;
+      throw caughtError;
     }
   }
 
@@ -166,7 +156,8 @@ export class CircuitBreaker {
    * @returns Classification result indicating whether the error counts as a failure
    */
   protected classifyError(_error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
-    return { 'retryable': false };
+    const result: ErrorClassificationEntity.Type = { 'retryable': false };
+    return result;
   }
 
   /**
@@ -211,6 +202,20 @@ export class CircuitBreaker {
    */
   protected onReject(): void {}
 
+  #classifyError(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
+    const classifier = this.#errorClassifier;
+    if (classifier === undefined) {
+      const result = this.classifyError(error, attemptNumber);
+      return result;
+    }
+    if (typeof classifier === 'function') {
+      const result = classifier(error, attemptNumber);
+      return result;
+    }
+    const result = classifier.classify(error, attemptNumber);
+    return result;
+  }
+
   #checkHalfOpen(): void {
     if (this.#machineState.variant === 'open' && this.#clock() - this.#machineState.openedAt >= this.#resetTimeoutMs) {
       this.#dispatch({ 'type': 'resetTimeoutElapsed' });
@@ -251,35 +256,23 @@ export class CircuitBreaker {
     | CircuitBreakerOnSuccessEffectEntity.Type
     | CircuitBreakerOnTripEffectEntity.Type
   ): void {
-    switch (effect.variant) {
-      case 'onClose':
-        this.hooks.invoke('onClose', () => { const result = this.onClose();
-          return result; });
-        return;
-      case 'onFailure':
-        this.hooks.invoke('onFailure', () => { const result = this.onFailure(effect.error);
-          return result; });
-        return;
-      case 'onHalfOpen':
-        this.hooks.invoke('onHalfOpen', () => { const result = this.onHalfOpen();
-          return result; });
-        return;
-      case 'onOpen':
-        this.hooks.invoke('onOpen', () => { const result = this.onOpen();
-          return result; });
-        return;
-      case 'onReject':
-        this.hooks.invoke('onReject', () => { const result = this.onReject();
-          return result; });
-        return;
-      case 'onSuccess':
-        this.hooks.invoke('onSuccess', () => { const result = this.onSuccess();
-          return result; });
-        return;
-      case 'onTrip':
-        this.hooks.invoke('onTrip', () => { const result = this.onTrip();
-          return result; });
-        return;
+    const handlers = new Map<typeof effect.variant, () => void>([
+      ['onClose', (): void => { this.hooks.invoke('onClose', () => { const result = this.onClose(); return result; }); }],
+      ['onFailure', (): void => {
+        if (effect.variant === 'onFailure') {
+          this.hooks.invoke('onFailure', () => { const result = this.onFailure(effect.error); return result; });
+        }
+      }],
+      ['onHalfOpen', (): void => { this.hooks.invoke('onHalfOpen', () => { const result = this.onHalfOpen(); return result; }); }],
+      ['onOpen', (): void => { this.hooks.invoke('onOpen', () => { const result = this.onOpen(); return result; }); }],
+      ['onReject', (): void => { this.hooks.invoke('onReject', () => { const result = this.onReject(); return result; }); }],
+      ['onSuccess', (): void => { this.hooks.invoke('onSuccess', () => { const result = this.onSuccess(); return result; }); }],
+      ['onTrip', (): void => { this.hooks.invoke('onTrip', () => { const result = this.onTrip(); return result; }); }]
+    ]);
+    const handler = handlers.get(effect.variant);
+    if (handler === undefined) {
+      throw new TypeError(`No handler for effect '${effect.variant}'`);
     }
+    handler();
   }
 }

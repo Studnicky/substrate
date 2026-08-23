@@ -20,7 +20,7 @@ export class ConfigurationError extends BaseError {
     return result;
   }
 
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(arguments_: Readonly<BaseErrorArgumentsInterface>) {
+    super(arguments_);
   }
 }

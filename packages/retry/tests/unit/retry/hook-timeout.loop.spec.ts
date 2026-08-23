@@ -13,7 +13,7 @@ type ScenarioCase =
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
-  retry?: Partial<Pick<RetryConfigInterface, 'hookTimeoutMs' | 'maxRetries'>>;
+  retry?: Partial<Pick<RetryConfigInterface, 'hookTimeoutMs' | 'maximumRetries'>>;
 };
 
 type AttemptOutcome = 'failure' | 'success';

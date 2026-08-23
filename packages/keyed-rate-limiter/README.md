@@ -58,10 +58,10 @@ The factory-based `create()` configuration receives the key on every cache miss,
 
 | Static factory | Strategy | Use when |
 |---|---|---|
-| `KeyedRateLimiter.create({ requestsPerSecond, burstSize, maxKeys?, keyIdleTtlMs?, clock? })` | `TokenBucket` per key | The default — token-bucket rate limiting, keyed |
-| `KeyedRateLimiter.create({ factory, maxKeys?, keyIdleTtlMs? })` | Any `RateLimiterStrategyInterface` implementation | A different algorithm, or per-key strategy configuration |
+| `KeyedRateLimiter.create({ requestsPerSecond, burstSize, maximumKeys?, keyIdleTtlMs?, clock? })` | `TokenBucket` per key | The default — token-bucket rate limiting, keyed |
+| `KeyedRateLimiter.create({ factory, maximumKeys?, keyIdleTtlMs? })` | Any `RateLimiterStrategyInterface` implementation | A different algorithm, or per-key strategy configuration |
 
-`maxKeys` becomes the composed `LruCache`'s `capacity` (defaults to 10,000 if omitted); `keyIdleTtlMs` becomes its `ttlMs`.
+`maximumKeys` becomes the composed `LruCache`'s `capacity` (defaults to 10,000 if omitted); `keyIdleTtlMs` becomes its `ttlMs`.
 
 ## Lifecycle hooks
 

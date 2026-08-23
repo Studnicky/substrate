@@ -7,7 +7,7 @@ export namespace PathGetOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'maxDepth': { 'minimum': 0, 'type': 'integer' }
+      'maximumDepth': { 'minimum': 0, 'type': 'integer' }
     },
     'title': 'PathGetOptionsType',
     'type': 'object'

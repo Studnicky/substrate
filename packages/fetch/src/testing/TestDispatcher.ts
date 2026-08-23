@@ -41,7 +41,7 @@ class TestRequest {
   public readonly 'method': string;
   public readonly 'origin': string;
   public readonly 'path': string;
-  public readonly 'searchParams': URLSearchParams;
+  public readonly 'searchParameters': URL['searchParams'];
   public readonly 'signal': AbortSignal | undefined;
   public readonly 'url': string;
 
@@ -51,7 +51,7 @@ class TestRequest {
     method: string,
     origin: string,
     path: string,
-    searchParams: URLSearchParams,
+    searchParameters: URL['searchParams'],
     signal: AbortSignal | undefined,
     url: string
   ) {
@@ -60,7 +60,7 @@ class TestRequest {
     this.method = method;
     this.origin = origin;
     this.path = path;
-    this.searchParams = searchParams;
+    this.searchParameters = searchParameters;
     this.signal = signal;
     this.url = url;
   }
@@ -85,17 +85,24 @@ class TestDispatcherInstance {
     constructor: TestDispatcherSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
-export class TestDispatcher {
-  readonly '__substrateFetchTransport' = true;
+const TEST_TRANSPORT_MARKER = '__substrateFetchTransport';
 
+export class TestDispatcher {
   #capacity: number;
   #destroyed = false;
   #label: string;
   #originStates = new Map<string, OriginState>();
+  #substrateFetchTransport = true;
+
+  get [TEST_TRANSPORT_MARKER](): boolean {
+    const result = this.#substrateFetchTransport;
+    return result;
+  }
 
   static create<TInstance extends TestDispatcher = TestDispatcher>(
     this: TestDispatcherSubclassInterface<TInstance>,
@@ -105,7 +112,8 @@ export class TestDispatcher {
     if (!TestDispatcherInstance.belongsTo(this, result)) {
       throw new TypeError('TestDispatcher.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   static #abortError(): DOMException {
@@ -144,7 +152,8 @@ export class TestDispatcher {
     }
 
     try {
-      return JSON.parse(body) as Record<string, unknown>;
+      const result = JSON.parse(body) as Record<string, unknown>;
+      return result;
     } catch {
       return {};
     }
@@ -158,8 +167,15 @@ export class TestDispatcher {
     const normalized = new Headers(headers);
     const result: Record<string, string> = {};
 
-    for (const [key, value] of normalized.entries()) {
-      result[key] = value;
+    const entries = Array.from(normalized.entries());
+    const entryLength = entries.length;
+    for (let index = 0; index < entryLength; index += 1) {
+      const entry = entries[index];
+      if (entry === undefined) {
+        continue;
+      }
+      const [key, value] = entry;
+      Reflect.set(result, key, value);
     }
 
     return result;
@@ -175,22 +191,26 @@ export class TestDispatcher {
     }
 
     if (body instanceof Uint8Array) {
-      return new TextDecoder().decode(body);
+      const result = new TextDecoder().decode(body);
+      return result;
     }
 
     if (body instanceof ArrayBuffer) {
-      return new TextDecoder().decode(new Uint8Array(body));
+      const result = new TextDecoder().decode(new Uint8Array(body));
+      return result;
     }
 
     if (ArrayBuffer.isView(body)) {
-      return new TextDecoder().decode(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
+      const result = new TextDecoder().decode(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
+      return result;
     }
 
     if (body instanceof Blob) {
       throw new TypeError('Blob request bodies are not supported in the fetch test dispatcher');
     }
 
-    return String(body);
+    const result = String(body);
+    return result;
   }
 
   static #jsonResponse(status: number, value: unknown, headers: Record<string, string> = {}): Response {
@@ -214,7 +234,9 @@ export class TestDispatcher {
   static #log(...parts: readonly unknown[]): void {
     if (process.env.SUBSTRATE_FETCH_TEST_LOG === '1') {
       const entries: string[] = [];
-      for (const part of parts) {
+      const partLength = parts.length;
+      for (let index = 0; index < partLength; index += 1) {
+        const part = parts[index];
         entries.push(String(part));
       }
       process.stderr.write(`[fetch-test-dispatcher] ${entries.join(' ')}\n`);
@@ -295,11 +317,19 @@ export class TestDispatcher {
   getStats(): Readonly<Record<string, unknown>> {
     const frozen: Record<string, unknown> = {};
 
-    for (const [origin, state] of this.#originStates.entries()) {
-      frozen[origin] = Object.freeze({ ...state.stats });
+    const originStateEntries = Array.from(this.#originStates.entries());
+    const originStateEntryLength = originStateEntries.length;
+    for (let index = 0; index < originStateEntryLength; index += 1) {
+      const entry = originStateEntries[index];
+      if (entry === undefined) {
+        continue;
+      }
+      const [origin, state] = entry;
+      Reflect.set(frozen, origin, Object.freeze({ ...state.stats }));
     }
 
-    return Object.freeze(frozen);
+    const result = Object.freeze(frozen);
+    return result;
   }
 
   async fetch(url: string, init: Record<string, unknown>): Promise<Response> {
@@ -478,56 +508,72 @@ export class TestDispatcher {
     }
 
     if (request.method === 'GET' && request.path === '/404') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/echo') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'query': Object.fromEntries(request.searchParams.entries())
-      });
+      const query: Record<string, string> = {};
+      const queryEntries = Array.from(request.searchParameters.entries());
+      const queryEntryLength = queryEntries.length;
+      for (let index = 0; index < queryEntryLength; index += 1) {
+        const entry = queryEntries[index];
+        if (entry === undefined) {
+          continue;
+        }
+        const [key, value] = entry;
+        Reflect.set(query, key, value);
+      }
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, { 'query': query });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/delay') {
-      const delayMs = Number(request.searchParams.get('ms') ?? '5000');
+      const delayMs = Number(request.searchParameters.get('ms') ?? '5000');
       await TestDispatcher.#delay(Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 5000, request.signal);
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         'message': `delayed ${Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 5000}ms`
       });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/posts') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, [
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, [
         { 'id': 1, 'title': 'Post 1' },
         { 'id': 2, 'title': 'Post 2' }
       ]);
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/posts/1') {
       await TestDispatcher.#delay(5, request.signal);
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         'headers': request.headers,
         'id': 1,
         'title': 'Test Post',
         'userId': 1
       });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/posts/2') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         'headers': request.headers,
         'id': 2,
         'title': 'Test Post 2',
         'userId': 1
       });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/posts/3') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         'headers': request.headers,
         'id': 3,
         'title': 'Test Post 3',
         'userId': 1
       });
+      return result;
     }
 
     if (request.method === 'HEAD' && request.path === '/posts/1') {
@@ -541,46 +587,54 @@ export class TestDispatcher {
     }
 
     if (request.method === 'DELETE' && request.path === '/posts/1') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {});
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {});
+      return result;
     }
 
     if (request.method === 'PATCH' && request.path === '/posts/1') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         ...TestDispatcher.#parseJsonBody(request.body),
         'id': 1,
         'title': 'Test Post'
       });
+      return result;
     }
 
     if (request.method === 'PUT' && request.path === '/posts/1') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         ...TestDispatcher.#parseJsonBody(request.body),
         'id': 1
       });
+      return result;
     }
 
     if (request.method === 'POST' && request.path === '/posts') {
-      return TestDispatcher.#jsonResponse(201, {
+      const result = TestDispatcher.#jsonResponse(201, {
         ...TestDispatcher.#parseJsonBody(request.body),
         'id': 101
       });
+      return result;
     }
 
     if (request.method === 'POST' && request.path === '/echo') {
-      return TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
         'body': TestDispatcher.#parseJsonBody(request.body),
         'headers': request.headers
       });
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/ok') {
-      return TestDispatcher.#textResponse(HTTP_STATUS_OK, 'ok');
+      const result = TestDispatcher.#textResponse(HTTP_STATUS_OK, 'ok');
+      return result;
     }
 
     if (request.method === 'GET' && request.path === '/not-found') {
-      return TestDispatcher.#jsonResponse(404, { 'error': 'Not Found' });
+      const result = TestDispatcher.#jsonResponse(404, { 'error': 'Not Found' });
+      return result;
     }
 
-    return TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+    return result;
   }
 }

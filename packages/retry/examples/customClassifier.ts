@@ -49,15 +49,16 @@ class AttemptCounter {
 const counter = new AttemptCounter();
 
 const retry = new DatabaseRetry({
-  'maxRetries': 3
+  'maximumRetries': 3
 });
 
 const result = await retry.execute(() => {
-  const n = counter.next();
-  if (n <= CustomClassifierFixtures.failUntil) {
-    throw new DatabaseError(`Deadlock on attempt ${n}`, true);
+  const attemptNumber = counter.next();
+  if (attemptNumber <= CustomClassifierFixtures.failUntil) {
+    throw new DatabaseError(`Deadlock on attempt ${attemptNumber}`, true);
   }
-  return Promise.resolve(`query succeeded on attempt ${n}`);
+  const result = Promise.resolve(`query succeeded on attempt ${attemptNumber}`);
+  return result;
 });
 
 console.log(`Result: ${result}`);

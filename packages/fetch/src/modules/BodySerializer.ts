@@ -17,11 +17,12 @@ export class BodySerializer {
    * @returns True if Content-Type should be set
    */
   static needsJsonContentType(body: unknown): boolean {
-    return typeof body === 'object'
+    const result = typeof body === 'object'
       && body !== null
       && !(body instanceof Buffer)
       && !(body instanceof ArrayBuffer)
       && !ArrayBuffer.isView(body);
+    return result;
   }
 
   /**
@@ -34,22 +35,27 @@ export class BodySerializer {
    */
   static serialize(body: unknown): ArrayBuffer | string | Uint8Array | undefined {
     if (body === undefined || body === null) {
-      return undefined;
+      const result = undefined;
+      return result;
     }
 
     if (typeof body === 'string') {
-      return body;
+      const result = body;
+      return result;
     }
 
     if (body instanceof ArrayBuffer) {
-      return body;
+      const result = body;
+      return result;
     }
 
     if (ArrayBuffer.isView(body)) {
       const visibleBytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-      return Uint8Array.from(visibleBytes);
+      const result = Uint8Array.from(visibleBytes);
+      return result;
     }
 
-    return JSON.stringify(body);
+    const result = JSON.stringify(body);
+    return result;
   }
 }

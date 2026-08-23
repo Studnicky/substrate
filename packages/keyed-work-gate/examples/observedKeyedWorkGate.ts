@@ -84,11 +84,13 @@ class UserProfile {
 
 class ResultValidation {
   static acceptsUndefined(value: unknown): value is undefined {
-    return value === undefined;
+    const result = value === undefined;
+    return result;
   }
 
   static acceptsUserProfile(value: unknown): value is UserProfile {
-    return value instanceof UserProfile;
+    const result = value instanceof UserProfile;
+    return result;
   }
 }
 

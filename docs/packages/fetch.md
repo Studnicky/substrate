@@ -53,11 +53,11 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 | Export | Purpose |
 |--------|---------|
-| `UrlUtils` | Static helpers for building and parsing URLs |
+| `UrlQueryString` | Static helpers for building and parsing URLs |
 
 ## Public API
 
-The package root exports `FetchClient`, `UndiciDispatcher`, `UrlUtils`, `DEFAULT_DISPATCHER_CONFIG`, fetch error classes, dispatcher entities, `FetchRequestOptionsEntity`, `ClientConfigDataEntity`, and the package-owned request, response, configuration, query, body, fetch-option, client, and dispatcher interfaces. The request and client interfaces compose schema-expressible fields from those entities while retaining runtime-only headers, signals, dispatchers, metadata, and callbacks.
+The package root exports `FetchClient`, `UndiciDispatcher`, `UrlQueryString`, `DEFAULT_DISPATCHER_CONFIG`, fetch error classes, dispatcher entities, `FetchRequestOptionsEntity`, `ClientConfigDataEntity`, and the package-owned request, response, configuration, query, body, fetch-option, client, and dispatcher interfaces. The request and client interfaces compose schema-expressible fields from those entities while retaining runtime-only headers, signals, dispatchers, metadata, and callbacks.
 
 ## Observability hooks
 

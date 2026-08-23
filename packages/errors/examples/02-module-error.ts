@@ -14,12 +14,12 @@ const notFound = ModuleError.create('User not found', {
 console.log('ModuleError NOT_FOUND: code=%s, statusCode=%d, retryable=%s', notFound.code, notFound.statusCode, notFound.retryable);
 
 // Retryable connection error
-const connErr = ModuleError.create('Service unreachable', {
+const connectionError = ModuleError.create('Service unreachable', {
   'context': { 'host': 'db.internal', 'port': 5432 },
   'scenario': 'CONNECTION'
 });
 
-console.log('ModuleError CONNECTION: retryable=%s, statusCode=%d', connErr.retryable, connErr.statusCode);
+console.log('ModuleError CONNECTION: retryable=%s, statusCode=%d', connectionError.retryable, connectionError.statusCode);
 
 // Cause chain
 const cause = new Error('ETIMEDOUT');
@@ -41,8 +41,8 @@ assert.strictEqual(notFound.code, ErrorDefaults.NOT_FOUND.code);
 assert.strictEqual(notFound.statusCode, 404);
 assert.strictEqual(notFound.retryable, false);
 assert.deepStrictEqual(notFound.context, { 'userId': 'u-456' });
-assert.strictEqual(connErr.retryable, true);
-assert.strictEqual(connErr.statusCode, 503);
+assert.strictEqual(connectionError.retryable, true);
+assert.strictEqual(connectionError.statusCode, 503);
 assert.strictEqual(wrapped.cause, cause, '.cause is the original error');
 assert.ok(BaseError.hasCauseOfType(wrapped, Error), 'BaseError.hasCauseOfType(wrapped, Error) = true');
 assert.strictEqual(chain.length, 2, 'chain has 2 nodes');

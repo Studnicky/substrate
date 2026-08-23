@@ -15,7 +15,7 @@ interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
  * runtime members (errorClassifier, backoffStrategy). This interface is the full
  * contract accepted by {@link Retry.create}.
  *
- * Schema validation covers only the JSON subset (maxRetries). Runtime members are
+ * Schema validation covers only the JSON subset (maximumRetries). Runtime members are
  * validated by the Retry construction path.
  */
 export interface RetryConfigInterface extends RetryConfigEntity.Type {

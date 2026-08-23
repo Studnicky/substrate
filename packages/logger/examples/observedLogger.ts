@@ -109,7 +109,10 @@ console.log('Logger events:', JSON.stringify(logger.events));
 
 // Verify onLog fired for the info call
 {
-  const logEvents = logger.events.filter((e) => { return e.shape === 'log'; });
+  const logEvents = logger.events.filter((event) => {
+    const result = event.shape === 'log';
+    return result;
+  });
   assert.strictEqual(logEvents.length, 1);
   const [firstLog] = logEvents;
   assert.ok(firstLog?.shape === 'log');
@@ -117,12 +120,18 @@ console.log('Logger events:', JSON.stringify(logger.events));
 }
 
 // Verify onDropped fired for the debug call
-const droppedEvents = logger.events.filter((e) => { return e.shape === 'dropped'; });
+const droppedEvents = logger.events.filter((event) => {
+  const result = event.shape === 'dropped';
+  return result;
+});
 assert.strictEqual(droppedEvents.length, 1);
 
 // Verify onChildCreate fired
 {
-  const childEvents = logger.events.filter((e) => { return e.shape === 'childCreate'; });
+  const childEvents = logger.events.filter((event) => {
+    const result = event.shape === 'childCreate';
+    return result;
+  });
   assert.strictEqual(childEvents.length, 1);
   const [firstChild] = childEvents;
   assert.ok(firstChild?.shape === 'childCreate');
@@ -131,7 +140,10 @@ assert.strictEqual(droppedEvents.length, 1);
 
 // Verify onTransportError fired (throwing transport)
 {
-  const transportErrorEvents = logger.events.filter((e) => { return e.shape === 'transportError'; });
+  const transportErrorEvents = logger.events.filter((event) => {
+    const result = event.shape === 'transportError';
+    return result;
+  });
   assert.strictEqual(transportErrorEvents.length, 1);
   const [firstTransportError] = transportErrorEvents;
   assert.ok(firstTransportError?.shape === 'transportError');

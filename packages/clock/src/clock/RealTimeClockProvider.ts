@@ -24,7 +24,8 @@ class RealTimeClockProviderInstance {
     constructor: RealTimeClockProviderSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -67,22 +68,6 @@ export class RealTimeClockProvider implements ClockProviderInterface {
   }
 
   /**
-   * Extension seam: subclasses may override to replace the raw `Date.now()` source.
-   */
-  protected readRawMs(): number {
-    const result = Date.now();
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to replace the raw `performance.now()` source.
-   */
-  protected readRawHrtimeMs(): number {
-    const result = performance.now();
-    return result;
-  }
-
-  /**
    * Extension seam: exposes the constructor-supplied offset to subclasses.
    */
   protected get offsetMs(): number {
@@ -114,7 +99,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * Not guaranteed to match `Date.now()` — use for elapsed-time measurements only.
    */
   public hrtime(): bigint {
-    const ms = this.readRawHrtimeMs() + this.offsetMs;
+    const ms = performance.now() + this.offsetMs;
 
     // Split into whole-millisecond and fractional-millisecond parts before
     // converting to BigInt. Multiplying the full `ms` value by 1e6 as a
@@ -135,7 +120,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
 
   /** Returns the current wall-clock time in milliseconds since the Unix epoch. */
   public now(): number {
-    const result = this.readRawMs() + this.offsetMs;
+    const result = Date.now() + this.offsetMs;
 
     this.hooks.invoke('onNow', () => {
       const hookResult = this.onNow(result);

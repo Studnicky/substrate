@@ -56,8 +56,8 @@ client.simulateRequest('GET', '/users', 'req-001', 'https://api.example.com/user
 client.simulateSuccess('GET', 'req-001', 200, 45);
 
 // Simulate an error
-const err = new Error('connection refused');
-client.simulateError(err, 'POST', 'req-002', 'https://api.example.com/data', 120);
+const error = new Error('connection refused');
+client.simulateError(error, 'POST', 'req-002', 'https://api.example.com/data', 120);
 
 console.log('TelemetryClient — hooks fire correctly:');
 console.log(`  onRequestStart: ${client.requestEvents.length} event(s)`);
@@ -78,7 +78,7 @@ assert.strictEqual(client.responseEvents[0]?.statusCode, 200);
 assert.strictEqual(client.responseEvents[0]?.durationMs, 45);
 
 assert.strictEqual(client.errorEvents.length, 1, 'onRequestError fired once');
-assert.strictEqual(client.errorEvents[0]?.error, err);
+assert.strictEqual(client.errorEvents[0]?.error, error);
 assert.strictEqual(client.errorEvents[0]?.durationMs, 120);
 
 console.log('03-telemetry-hooks: all assertions passed');

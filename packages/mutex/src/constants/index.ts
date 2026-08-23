@@ -12,6 +12,6 @@ export const NOT_FOUND_INDEX = -1;
 
 export const MUTEX_CONFIG_KEYS = new Set<string>([
   'enableCoalescing',
-  'maxQueueSize',
+  'maximumQueueSize',
   'timeout'
 ]);

@@ -213,8 +213,8 @@ function assertConfigMatches(
   config: Readonly<MutexConfigEntity.Type>,
   expected: Record<string, unknown>
 ): void {
-  if ('maxQueueSize' in expected) {
-    assert.strictEqual(config.maxQueueSize, expected.maxQueueSize);
+  if ('maximumQueueSize' in expected) {
+    assert.strictEqual(config.maximumQueueSize, expected.maximumQueueSize);
   }
   if ('timeout' in expected) {
     assert.strictEqual(config.timeout, expected.timeout);
@@ -234,8 +234,8 @@ function assertStatsMatch(stats: Record<string, unknown>, expected: Record<strin
   if ('totalExecuted' in expected) {
     assert.strictEqual(stats.totalExecuted, expected.totalExecuted);
   }
-  if ('maxQueueSize' in expected) {
-    assert.strictEqual(stats.maxQueueSize, expected.maxQueueSize);
+  if ('maximumQueueSize' in expected) {
+    assert.strictEqual(stats.maximumQueueSize, expected.maximumQueueSize);
   }
   if ('timeout' in expected) {
     assert.strictEqual(stats.timeout, expected.timeout);
@@ -426,10 +426,10 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'config-external-modification': (scenarioCase) => {
     const mutex = Mutex.create(mutexConfig(scenarioCase));
     const config = mutex.getConfig();
-    Object.assign(config, { maxQueueSize: 999 });
-    assert.strictEqual(mutex.getConfig().maxQueueSize, scenarioCase.expected.maxQueueSize);
+    Object.assign(config, { maximumQueueSize: 999 });
+    assert.strictEqual(mutex.getConfig().maximumQueueSize, scenarioCase.expected.maximumQueueSize);
     assert.strictEqual(
-      mutex.getConfig().maxQueueSize === scenarioCase.expected.maxQueueSize,
+      mutex.getConfig().maximumQueueSize === scenarioCase.expected.maximumQueueSize,
       scenarioCase.expected.externalMutationIgnored
     );
   },
@@ -719,7 +719,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.strictEqual('activeLocksCount' in stats, scenarioCase.expected.hasActiveLocksCount);
     assert.strictEqual('queuedCount' in stats, scenarioCase.expected.hasQueuedCount);
     assert.strictEqual('totalExecuted' in stats, scenarioCase.expected.hasTotalExecuted);
-    assert.ok('maxQueueSize' in stats);
+    assert.ok('maximumQueueSize' in stats);
     assert.ok('timeout' in stats);
   },
   'stats-initial': (scenarioCase) => {

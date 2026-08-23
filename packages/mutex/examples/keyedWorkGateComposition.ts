@@ -20,23 +20,6 @@ import { LockTimeoutError, Mutex } from '../src/index.js';
 const mutex = Mutex.create<string>({ 'timeout': 200 });
 const coalesce = Coalesce.create<unknown>({ 'timeout': 100 });
 
-// Single-flight: concurrent same-key callers collapse onto one in-flight execution, which
-// itself runs under mutex-guarded exclusive access (so a non-coalesced caller reaching the
-// same key via Serialized still can't interleave with it).
-class SingleFlight {
-  static run(key: string, fn: () => Promise<unknown>): Promise<unknown> {
-    const result = coalesce.run(key, () => { const result = mutex.runExclusive(key, fn); return result; });
-    return result;
-  }
-}
-
-// Serialized: no coalescing — every call actually runs `fn`, but exclusively per key.
-class Serialized {
-  static run(key: string, fn: () => Promise<unknown>): Promise<unknown> {
-    const result = mutex.runExclusive(key, fn);
-    return result;
-  }
-}
 // #endregion usage
 
 // Each scenario runs its own work and assertions inside one static method, so the
@@ -55,8 +38,8 @@ class Scenarios {
     }
 
     const [singleFlightA, singleFlightB] = await Promise.all([
-      SingleFlight.run('resource-1', SharedResultFactory.create),
-      SingleFlight.run('resource-1', SharedResultFactory.create)
+      coalesce.run('resource-1', () => { const result = mutex.runExclusive('resource-1', SharedResultFactory.create); return result; }),
+      coalesce.run('resource-1', () => { const result = mutex.runExclusive('resource-1', SharedResultFactory.create); return result; })
     ]);
 
     console.log('Single-flight results:', singleFlightA, singleFlightB, 'factory calls:', factoryCallCount);
@@ -72,9 +55,9 @@ class Scenarios {
     let serializedCounter = 0;
 
     await Promise.all([
-      Serialized.run('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
-      Serialized.run('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
-      Serialized.run('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); })
+      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
+      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
+      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); })
     ]);
 
     console.log('Serialized execution order:', serializedOrder);
@@ -94,16 +77,17 @@ class Scenarios {
 
     let coalesceTimedOut = false;
     const [timeoutOutcome, patientOutcome] = await Promise.allSettled([
-      SingleFlight.run('resource-3', SlowResultFactory.create),
+      coalesce.run('resource-3', () => { const result = mutex.runExclusive('resource-3', SlowResultFactory.create); return result; }),
       (async (): Promise<string> => {
         // A second caller joining the same in-flight promise, with no timeout ceiling of its
         // own on this call path, still receives the eventual result.
         await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
-        return await mutex.runExclusive(
+        const result = await mutex.runExclusive(
           'resource-3-patient-marker',
           async () => { await Promise.resolve(); const result = 'patient-marker'; return result; },
-          (value): value is string => { return typeof value === 'string'; }
+          (value): value is string => { const result = typeof value === 'string'; return result; }
         );
+        return result;
       })()
     ]);
 

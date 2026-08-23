@@ -57,6 +57,37 @@ import { ObjectGuard } from '../shared/ObjectGuard.js';
 // Each of these appears once or twice in the entire repo, so strictness here costs
 // almost nothing and closes the loopholes permanently.
 
+// `this` HANDED TO THE CLASS'S OWN NESTED COLLABORATOR IS NOT AN ESCAPE.
+//
+// Four sites, every one the same idiom — a constructor handing `this` to a nested class the
+// enclosing class itself owns:
+//
+//   this.#coalesce = new Memoize.#OwnedCoalesce<TArgumentList, TResult>(this);
+//   this.#coalesce = new IdempotencyGuard.#OwnedCoalesce<TResult>(this);
+//   this.hooks = new Paginator.OwnedHookInvoker<TPage, TCursor>(this);
+//   this.machine = new Paginator.OwnedMachine<TPage, TCursor>(this);
+//
+// The rule's intent, stated above, is that `this` must not ESCAPE its class — reach
+// somewhere that is not the object. Handing it to `Memoize.#OwnedCoalesce` does not do that:
+// the reference stays inside the enclosing class's own object graph, passed to a type the
+// class itself declares and owns. Two of the four callees (`Memoize.#OwnedCoalesce`,
+// `IdempotencyGuard.#OwnedCoalesce`) are `#private static` nested classes, so the reference
+// provably cannot leave the enclosing class at all — there is no external name that resolves
+// to them. `Paginator.OwnedHookInvoker`/`Paginator.OwnedMachine` are public-static nested
+// classes, but still the enclosing class's own declared collaborators, not third-party code.
+//
+// This idiom is LOAD-BEARING, not incidental style: an earlier agent replaced the owner
+// back-reference on one of these collaborators with constructor parameters instead, to
+// satisfy this rule as it stood, and broke async hook error containment — the collaborator
+// needs `this` to route a failure back to the owning instance's own hook-error accounting.
+// The test suite caught the regression. Do not "fix" this idiom away again.
+//
+// The exemption is intentionally narrow: `this` in the argument list of a `NewExpression`
+// whose callee is a `MemberExpression` rooted at the ENCLOSING CLASS'S OWN NAME (covering
+// both `Class.Nested(this)` and `Class.#Nested(this)` — the callee's property is not
+// inspected, only its object). `new SomeOtherClass(this)` still reports: `SomeOtherClass` is
+// not the class handing out `this`, so that reference genuinely leaves the object graph.
+
 class ThisContext {
   /**
    * True when the nearest enclosing class member is `static`, where `this` is the
@@ -84,6 +115,27 @@ class ThisContext {
     }
 
     return false;
+  }
+}
+
+class EnclosingClass {
+  /** The nearest enclosing `ClassDeclaration`/`ClassExpression`'s own declared name, if any. */
+  public static ownName(node: Rule.Node): string | undefined {
+    let current: Rule.Node | undefined = node.parent as Rule.Node | undefined;
+
+    while (current !== undefined) {
+      const nodeType = AstHelpers.getNodeType(current);
+
+      if (nodeType === 'ClassDeclaration' || nodeType === 'ClassExpression') {
+        const result = ObjectGuard.isObject(current) ? AstHelpers.getIdentifierName(current.id) : undefined;
+
+        return result;
+      }
+
+      current = current.parent as Rule.Node | undefined;
+    }
+
+    return undefined;
   }
 }
 
@@ -141,6 +193,44 @@ class PermittedUse {
 
     return result;
   }
+
+  /**
+   * `this` passed to `new EnclosingClass.Nested(this)` / `new EnclosingClass.#Nested(this)` —
+   * a constructor handing itself to a nested class the enclosing class itself owns. See the
+   * module comment above `ThisContext` for why this stays inside the object graph rather
+   * than escaping it.
+   */
+  public static isOwnedNestedCollaboratorArgument(node: Rule.Node, parent: Rule.Node): boolean {
+    if (AstHelpers.getNodeType(parent) !== 'NewExpression') {
+      return false;
+    }
+    if (!ObjectGuard.isObject(parent)) {
+      return false;
+    }
+
+    const isArgument = Array.isArray(parent.arguments) && parent.arguments.includes(node);
+
+    if (!isArgument) {
+      return false;
+    }
+
+    const callee = parent.callee;
+
+    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
+      return false;
+    }
+
+    const calleeObjectName = AstHelpers.getIdentifierName(callee.object);
+
+    if (calleeObjectName === undefined) {
+      return false;
+    }
+
+    const enclosingClassName = EnclosingClass.ownName(node);
+    const result = enclosingClassName !== undefined && enclosingClassName === calleeObjectName;
+
+    return result;
+  }
 }
 
 export const lexicalThisOnly: Rule.RuleModule = {
@@ -159,6 +249,9 @@ export const lexicalThisOnly: Rule.RuleModule = {
         return;
       }
       if (PermittedUse.isConstructorReference(node, parent)) {
+        return;
+      }
+      if (PermittedUse.isOwnedNestedCollaboratorArgument(node, parent)) {
         return;
       }
 

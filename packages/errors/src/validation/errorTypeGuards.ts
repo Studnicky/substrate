@@ -47,7 +47,8 @@ class ErrorLikeGuard {
       return true;
     }
 
-    return typeof value === 'object' && value !== null;
+    const result = typeof value === 'object' && value !== null;
+    return result;
   }
 }
 
@@ -66,11 +67,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithStatus(error: unknown): error is ErrorWithStatusEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'status' in error
       && typeof error.status === 'number'
     );
+    return result;
   }
 
   /**
@@ -84,11 +86,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithStatusCode(error: unknown): error is ErrorWithStatusCodeEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'statusCode' in error
       && typeof error.statusCode === 'number'
     );
+    return result;
   }
 
   /**
@@ -104,11 +107,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithCode(error: unknown): error is ErrorWithCodeEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'code' in error
       && typeof error.code === 'string'
     );
+    return result;
   }
 
   /**
@@ -122,11 +126,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithRetryAfter(error: unknown): error is ErrorWithRetryAfterEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'retryAfter' in error
       && typeof error.retryAfter === 'number'
     );
+    return result;
   }
 
   /**
@@ -140,11 +145,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithErrno(error: unknown): error is ErrorWithErrnoEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'errno' in error
       && typeof error.errno === 'number'
     );
+    return result;
   }
 
   /**
@@ -158,11 +164,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithSyscall(error: unknown): error is ErrorWithSyscallEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'syscall' in error
       && typeof error.syscall === 'string'
     );
+    return result;
   }
 
   /**
@@ -176,11 +183,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithHostname(error: unknown): error is ErrorWithHostnameEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'hostname' in error
       && typeof error.hostname === 'string'
     );
+    return result;
   }
 
   /**
@@ -194,11 +202,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithPort(error: unknown): error is ErrorWithPortEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'port' in error
       && typeof error.port === 'number'
     );
+    return result;
   }
 
   /**
@@ -212,11 +221,12 @@ class ErrorPropertyGuards {
    * ```
    */
   public static isErrorWithAddress(error: unknown): error is ErrorWithAddressEntity.Type {
-    return (
+    const result = (
       ErrorLikeGuard.isErrorOrObjectLike(error)
       && 'address' in error
       && typeof error.address === 'string'
     );
+    return result;
   }
 }
 

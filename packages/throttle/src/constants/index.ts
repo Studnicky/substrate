@@ -15,18 +15,18 @@ export const INITIAL_BUFFER_TAIL = 0;
 export const PERCENTILE_P50 = 50;
 export const PERCENTILE_P95 = 95;
 export const PERCENTILE_P99 = 99;
-export const PERCENTILE_MAX = 100;
-export const MIN_SAMPLE_WINDOW = 10;
-export const MIN_ADJUSTMENT_INTERVAL = 100;
-export const MIN_CONCURRENCY_LIMIT = 1;
+export const PERCENTILE_MAXIMUM = 100;
+export const MINIMUM_SAMPLE_WINDOW = 10;
+export const MINIMUM_ADJUSTMENT_INTERVAL = 100;
+export const MINIMUM_CONCURRENCY_LIMIT = 1;
 export const NO_DELAY_MS = 0;
 export const BUFFER_GROWTH_FACTOR = 2;
 export const LAST_ARRAY_INDEX = -1;
 
 export const DEFAULT_ADAPTIVE_CONFIG = {
   'adjustmentInterval': 1000,
-  'maxConcurrency': 100,
-  'minConcurrency': 1,
+  'maximumConcurrency': 100,
+  'minimumConcurrency': 1,
   'sampleWindow': 100,
   'scaleDownThreshold': 1.5,
   'scaleUpThreshold': 0.5,
@@ -41,8 +41,8 @@ export const THROTTLE_CONFIG_KEYS = new Set<string>([
 export const ADAPTIVE_CONFIG_KEYS = new Set<string>([
   'adjustmentInterval',
   'enabled',
-  'maxConcurrency',
-  'minConcurrency',
+  'maximumConcurrency',
+  'minimumConcurrency',
   'sampleWindow',
   'scaleDownThreshold',
   'scaleUpThreshold',

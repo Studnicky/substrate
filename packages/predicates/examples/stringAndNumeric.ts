@@ -12,11 +12,11 @@ console.log('codePointLength hello:', Predicates.codePointLength('hello'));   //
 console.log('codePointLength 👋:', Predicates.codePointLength('👋'));          // 1
 console.log('codePointLength 👋👋:', Predicates.codePointLength('👋👋'));      // 2
 
-// satisfiesMinLength / satisfiesMaxLength operate on code-point counts
-console.log('satisfiesMinLength hello 5:', Predicates.satisfiesMinLength('hello', 5));  // true
-console.log('satisfiesMinLength hi 5:', Predicates.satisfiesMinLength('hi', 5));        // false
-console.log('satisfiesMaxLength hello 5:', Predicates.satisfiesMaxLength('hello', 5));  // true
-console.log('satisfiesMaxLength hello 4:', Predicates.satisfiesMaxLength('hello', 4));  // false
+// satisfiesMinimumLength / satisfiesMaximumLength operate on code-point counts
+console.log('satisfiesMinimumLength hello 5:', Predicates.satisfiesMinimumLength('hello', 5));  // true
+console.log('satisfiesMinimumLength hi 5:', Predicates.satisfiesMinimumLength('hi', 5));        // false
+console.log('satisfiesMaximumLength hello 5:', Predicates.satisfiesMaximumLength('hello', 5));  // true
+console.log('satisfiesMaximumLength hello 4:', Predicates.satisfiesMaximumLength('hello', 4));  // false
 
 // checkPattern accepts a compiled RegExp
 console.log('checkPattern abc123:', Predicates.checkPattern('abc123', WORD_PATTERN));  // true
@@ -58,12 +58,12 @@ assert.equal(Predicates.codePointLength('👋'), 1);
 assert.equal(Predicates.codePointLength('👋👋'), 2);
 assert.equal(Predicates.codePointLength(''), 0);
 
-assert.equal(Predicates.satisfiesMinLength('hello', 5), true);
-assert.equal(Predicates.satisfiesMinLength('hi', 5), false);
-assert.equal(Predicates.satisfiesMinLength('👋👋', 2), true);
-assert.equal(Predicates.satisfiesMaxLength('hello', 5), true);
-assert.equal(Predicates.satisfiesMaxLength('hello', 4), false);
-assert.equal(Predicates.satisfiesMaxLength('👋', 1), true);
+assert.equal(Predicates.satisfiesMinimumLength('hello', 5), true);
+assert.equal(Predicates.satisfiesMinimumLength('hi', 5), false);
+assert.equal(Predicates.satisfiesMinimumLength('👋👋', 2), true);
+assert.equal(Predicates.satisfiesMaximumLength('hello', 5), true);
+assert.equal(Predicates.satisfiesMaximumLength('hello', 4), false);
+assert.equal(Predicates.satisfiesMaximumLength('👋', 1), true);
 
 assert.equal(Predicates.checkPattern('abc123', WORD_PATTERN), true);
 assert.equal(Predicates.checkPattern('abc 123', WORD_PATTERN), false);

@@ -24,12 +24,12 @@ export namespace AdaptiveStatsEntity {
         'minimum': 0,
         'type': 'integer'
       },
-      'maxConcurrency': {
+      'maximumConcurrency': {
         'description': 'Maximum concurrency limit.',
         'minimum': 1,
         'type': 'integer'
       },
-      'minConcurrency': {
+      'minimumConcurrency': {
         'description': 'Minimum concurrency limit.',
         'minimum': 1,
         'type': 'integer'
@@ -44,8 +44,8 @@ export namespace AdaptiveStatsEntity {
       'adjustmentCount',
       'enabled',
       'lastAdjustmentTime',
-      'maxConcurrency',
-      'minConcurrency',
+      'maximumConcurrency',
+      'minimumConcurrency',
       'targetLatencyMs'
     ],
     'title': 'AdaptiveStats',

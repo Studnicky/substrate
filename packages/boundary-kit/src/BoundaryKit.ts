@@ -12,6 +12,10 @@ import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInter
 import { BOUNDARY_KIT_DEFAULTS } from './constants/BOUNDARY_KIT_DEFAULTS.js';
 import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
 
+interface BoundaryKitSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
 /**
  * Default `CircuitBreaker` options `BoundaryKit` resolves against when `circuitBreaker`
  * is omitted from config. `CircuitBreakerOptionsInterface` requires `failureThreshold`
@@ -47,7 +51,7 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
  * const kit = BoundaryKit.create({
  *   throttle: { concurrencyLimit: 10 },
  *   circuitBreaker: { failureThreshold: 5, resetTimeoutMs: 30_000 },
- *   retry: { maxRetries: 3 }
+ *   retry: { maximumRetries: 3 }
  * });
  *
  * const response = await kit.execute(() => fetch('https://api.example.com/users'));
@@ -56,9 +60,10 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
 export class BoundaryKit {
   private static isConstructed<TInstance extends BoundaryKit>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: BoundaryKitSubclassInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   /**
@@ -68,7 +73,7 @@ export class BoundaryKit {
    * @returns New BoundaryKit instance
    */
   static create<TInstance extends BoundaryKit = BoundaryKit>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: BoundaryKitSubclassInterface<TInstance>,
     config: BoundaryKitConfigInterface = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [{
@@ -132,21 +137,19 @@ export class BoundaryKit {
    *   explicitly (not inferred from an `undefined` result, which `Throttle#execute()`
    *   also produces whenever `fn` itself legitimately resolves `undefined`/`void`)
    */
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
+  async execute<T>(callback: () => Promise<T>): Promise<T> {
     let completion: readonly [T] | undefined;
 
     const runRetryable = async (): Promise<T> => {
-      const result = await this.#retry.execute(fn);
+      const result = await this.#retry.execute(callback);
       completion = [result];
       return result;
     };
 
-    const runProtected = (): Promise<T> => {
+    await this.#throttle.execute(() => {
       const result = this.#circuitBreaker.execute(runRetryable);
       return result;
-    };
-
-    await this.#throttle.execute(runProtected);
+    });
 
     if (completion === undefined) {
       throw new BoundaryKitAbortedError();

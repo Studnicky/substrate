@@ -10,9 +10,6 @@
 
 import { Hash } from './Hash.js';
 
-/** Keys stripped before hashing by default. */
-const STRUCTURAL_METADATA_KEYS = new Set(['$id', 'description', 'title']);
-
 export class StructuralHash {
   // ---------------------------------------------------------------------------
   // Protected steps — override in subclasses to customise stripping
@@ -23,8 +20,11 @@ export class StructuralHash {
    * Override to extend or restrict the metadata key set.
    */
   protected static isMetadataKey(key: string): boolean {
-    const result = STRUCTURAL_METADATA_KEYS.has(key);
-    return result;
+    if (key === '$id' || key === 'description' || key === 'title') {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -33,7 +33,12 @@ export class StructuralHash {
    */
   protected static stripMetadata(value: unknown): unknown {
     if (Array.isArray(value)) {
-      return value.map((item: unknown) => { const result = this.stripMetadata(item); return result; });
+      const result: unknown[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        result.push(this.stripMetadata(value[index]));
+      }
+      return result;
     }
 
     if (typeof value !== 'object' || value === null) {
@@ -42,11 +47,18 @@ export class StructuralHash {
 
     const result: Record<string, unknown> = {};
 
-    for (const [key, val] of Object.entries(value)) {
+    const keys = Object.keys(value);
+    const keyLength = keys.length;
+    for (let index = 0; index < keyLength; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
       if (this.isMetadataKey(key)) {
         continue;
       }
-      result[key] = this.stripMetadata(val);
+      const nestedValue: unknown = Reflect.get(value, key);
+      Reflect.set(result, key, this.stripMetadata(nestedValue));
     }
 
     return result;
@@ -63,7 +75,8 @@ export class StructuralHash {
    * Two schemas that differ only in annotations produce the same hash.
    */
   public static of(schema: Record<string, unknown>): string {
-    const result = Hash.value(this.stripMetadata(schema));
+    const structuralSchema = this.stripMetadata(schema);
+    const result = Hash.value(structuralSchema);
     return result;
   }
 }

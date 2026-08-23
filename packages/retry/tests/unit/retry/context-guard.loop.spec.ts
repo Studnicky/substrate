@@ -35,7 +35,7 @@ function createValidContext(): Record<string, unknown> {
     'delayMs': 0,
     'elapsedMs': 10,
     'error': new Error('boom'),
-    'maxRetries': 3,
+    'maximumRetries': 3,
     'state': {},
     'stats': {
       'failedRequests': 0,

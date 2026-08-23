@@ -26,17 +26,17 @@ console.log('untouched branch same reference?', next.untouched === base.untouche
 // Draft.producePatch — same mechanics, plus the RFC-6902 patch that produced it
 // ---------------------------------------------------------------------------
 
-const doc = DraftFixture.Doc;
+const document = DraftFixture.Document;
 
-const { 'next': patchedNext, patch } = Draft.producePatch(doc, (draft) => {
+const { 'next': patchedNext, patch } = Draft.producePatch(document, (draft) => {
   draft.count = 1;
   draft.status = 'published';
 });
 
 console.log('generated patch:', patch);
 
-// Replaying the generated patch against a fresh copy of `doc` reproduces `next`.
-const replayed: Record<string, unknown> = { ...doc };
+// Replaying the generated patch against a fresh copy of `document` reproduces `next`.
+const replayed: Record<string, unknown> = { ...document };
 
 Patch.create(patch).apply(replayed);
 

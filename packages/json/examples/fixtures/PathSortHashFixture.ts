@@ -1,6 +1,6 @@
 /** Static input data for examples/path-sort-hash.ts. */
 export namespace PathSortHashFixture {
-  export const Doc = {
+  export const Document = {
     'items': [{ 'name': 'alpha' }, { 'name': 'beta' }],
     'user': { 'address': { 'city': 'Melbourne' } }
   };

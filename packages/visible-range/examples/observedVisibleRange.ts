@@ -36,7 +36,10 @@ console.log('Fixed-mode ranges:', fixedModeChanges);
 // measurements arrive (e.g. after a row renders and reports its height).
 const list = VisibleRange.create({
   'count': 500,
-  'estimateSize': () => { const result = 32; return result; },
+  'estimateSize': () => {
+    const estimatedItemSize = 16 * 2;
+    return estimatedItemSize;
+  },
   'overscan': 1
 });
 

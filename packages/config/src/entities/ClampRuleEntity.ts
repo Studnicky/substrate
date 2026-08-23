@@ -7,11 +7,11 @@ export namespace ClampRuleEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'max': { 'type': 'number' },
-      'min': { 'type': 'number' },
+      'maximum': { 'type': 'number' },
+      'minimum': { 'type': 'number' },
       'reason': { 'type': 'string' }
     },
-    'required': ['max', 'min', 'reason'],
+    'required': ['maximum', 'minimum', 'reason'],
     'type': 'object'
   } as const satisfies JSONSchema;
 

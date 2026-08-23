@@ -14,7 +14,7 @@ import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { RequestContextInterface } from '../interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../interfaces/ResponseContextInterface.js';
-import type { ValidatorFnInterface } from '../interfaces/ValidatorFnInterface.js';
+import type { ValidatorCallbackInterface } from '../interfaces/ValidatorCallbackInterface.js';
 
 import { DispatcherAgent } from '../config/DispatcherAgent.js';
 import {
@@ -24,7 +24,7 @@ import {
   ValidateHookTimeoutMs,
   ValidateMetadata,
   ValidateOptions,
-  ValidateParams,
+  ValidateParameters,
   ValidateRequestIdGenerator,
   ValidateTimeout,
   ValidateURL
@@ -42,17 +42,17 @@ import {
 import { BodySerializer } from './BodySerializer.js';
 import { FetchTransport } from './FetchTransport.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
-import { UrlUtils } from './UrlUtils.js';
+import { UrlQueryString } from './UrlQueryString.js';
 
 /**
  * Undici error code to custom error class dispatch map
  */
-const UNDICI_ERROR_MAP: Record<string, 'body' | 'connect' | 'headers' | 'socket'> = {
-  'UND_ERR_BODY_TIMEOUT': 'body',
-  'UND_ERR_CONNECT_TIMEOUT': 'connect',
-  'UND_ERR_HEADERS_TIMEOUT': 'headers',
-  'UND_ERR_SOCKET': 'socket'
-};
+const UNDICI_ERROR_MAP = new Map<string, 'body' | 'connect' | 'headers' | 'socket'>([
+  ['UND_ERR_BODY_TIMEOUT', 'body'],
+  ['UND_ERR_CONNECT_TIMEOUT', 'connect'],
+  ['UND_ERR_HEADERS_TIMEOUT', 'headers'],
+  ['UND_ERR_SOCKET', 'socket']
+]);
 
 interface FetchClientSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
@@ -63,7 +63,8 @@ class FetchClientInstance {
     constructor: FetchClientSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -140,7 +141,8 @@ export class FetchClient implements FetchClientInterface {
    */
   private buildFullUrl(path: string): string {
     if (this.config.baseURL === undefined) {
-      return this.config.params === undefined ? path : UrlUtils.buildUrl(path, this.config.params);
+      const result: string = this.config.parameters === undefined ? path : UrlQueryString.buildUrl(path, this.config.parameters);
+      return result;
     }
 
     if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -155,8 +157,8 @@ export class FetchClient implements FetchClientInterface {
 
     let url = `${base}${pathPart}`;
 
-    if (this.config.params !== undefined) {
-      url = UrlUtils.buildUrl(url, this.config.params);
+    if (this.config.parameters !== undefined) {
+      url = UrlQueryString.buildUrl(url, this.config.parameters);
     }
 
     return url;
@@ -389,9 +391,9 @@ export class FetchClient implements FetchClientInterface {
    */
   private extractOrigin(url: string): string | undefined {
     try {
-      const urlObj = new URL(url);
+      const urlObject = new URL(url);
 
-      return urlObj.origin;
+      return urlObject.origin;
     } catch {
       return undefined;
     }
@@ -521,7 +523,8 @@ export class FetchClient implements FetchClientInterface {
    */
   protected onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     const result: RequestContextInterface = context;
-    return Promise.resolve(result);
+    const response = Promise.resolve(result);
+    return response;
   }
 
   /**
@@ -544,7 +547,8 @@ export class FetchClient implements FetchClientInterface {
    */
   protected onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     const result: ResponseContextInterface = context;
-    return Promise.resolve(result);
+    const response = Promise.resolve(result);
+    return response;
   }
 
   /** Fires when a request is about to start. */
@@ -732,7 +736,7 @@ export class FetchClient implements FetchClientInterface {
     }
     const errorCode = error.code;
 
-    const errorType = UNDICI_ERROR_MAP[errorCode];
+    const errorType = UNDICI_ERROR_MAP.get(errorCode);
 
     if (errorType === undefined) {
       return undefined;
@@ -759,26 +763,33 @@ export class FetchClient implements FetchClientInterface {
     return new BodyTimeoutError(url, error);
   }
 
-  private static readonly CONFIG_VALIDATORS: Record<string, ValidatorFnInterface> = {
-    'autoGenerateRequestId': (value) => { ValidateAutoGenerateRequestId.validate(value); },
-    'baseURL': (value) => { ValidateURL.validate(value); },
-    'dispatcher': validateDispatcher,
-    'headers': ValidateHeaders.validate,
-    'hookTimeoutMs': (value) => { ValidateHookTimeoutMs.validate(value); },
-    'metadata': ValidateMetadata.validate,
-    'options': ValidateOptions.validate,
-    'params': (value) => { ValidateParams.validate(value); },
-    'requestIdGenerator': (value) => { ValidateRequestIdGenerator.validate(value); },
-    'timeout': (value) => { ValidateTimeout.validate(value); }
-  };
+  private static readonly CONFIG_VALIDATORS = new Map<string, ValidatorCallbackInterface>([
+    ['autoGenerateRequestId', (value) => { ValidateAutoGenerateRequestId.validate(value); }],
+    ['baseURL', (value) => { ValidateURL.validate(value); }],
+    ['dispatcher', validateDispatcher],
+    ['headers', ValidateHeaders.validate],
+    ['hookTimeoutMs', (value) => { ValidateHookTimeoutMs.validate(value); }],
+    ['metadata', ValidateMetadata.validate],
+    ['options', ValidateOptions.validate],
+    ['parameters', ValidateParameters.validate],
+    ['requestIdGenerator', (value) => { ValidateRequestIdGenerator.validate(value); }],
+    ['timeout', (value) => { ValidateTimeout.validate(value); }]
+  ]);
 
   private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
     if (typeof config !== 'object' || Array.isArray(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
-    for (const [key, value] of Object.entries(config)) {
-      const validator = FetchClient.CONFIG_VALIDATORS[key];
+    const configNames = Object.keys(config);
+    const configNameLength = configNames.length;
+    for (let index = 0; index < configNameLength; index += 1) {
+      const key = configNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const value: unknown = Reflect.get(config, key);
+      const validator = FetchClient.CONFIG_VALIDATORS.get(key);
 
       if (validator === undefined) {
         throw new ConfigurationError(`"${key}" is not declared in the schema`);
@@ -787,19 +798,21 @@ export class FetchClient implements FetchClientInterface {
       validator(value);
     }
 
-    return FetchClient.snapshotConfig(config);
+    const result = FetchClient.snapshotConfig(config);
+    return result;
   }
 
   /** Detaches constructor-owned configuration from caller-owned mutable data. */
   private static snapshotConfig(config: ClientConfigInterface): ClientConfigInterface {
-    return {
+    const result: ClientConfigInterface = {
       ...config,
       ...(config.dispatcher === undefined ? {} : { 'dispatcher': { ...config.dispatcher } }),
       ...(config.headers === undefined ? {} : { 'headers': { ...config.headers } }),
       ...(config.metadata === undefined ? {} : { 'metadata': FetchClient.snapshotRecord(config.metadata) }),
       ...(config.options === undefined ? {} : { 'options': FetchClient.snapshotOptions(config.options) }),
-      ...(config.params === undefined ? {} : { 'params': FetchClient.snapshotParams(config.params) })
+      ...(config.parameters === undefined ? {} : { 'parameters': FetchClient.snapshotParameters(config.parameters) })
     };
+    return result;
   }
 
   private static snapshotOptions(options: FetchOptionsInterface): FetchOptionsInterface {
@@ -819,13 +832,20 @@ export class FetchClient implements FetchClientInterface {
     };
   }
 
-  private static snapshotParams(
-    params: NonNullable<ClientConfigInterface['params']>
-  ): NonNullable<ClientConfigInterface['params']> {
-    const snapshot: NonNullable<ClientConfigInterface['params']> = {};
+  private static snapshotParameters(
+    parameters: NonNullable<ClientConfigInterface['parameters']>
+  ): NonNullable<ClientConfigInterface['parameters']> {
+    const snapshot: NonNullable<ClientConfigInterface['parameters']> = {};
 
-    for (const [key, value] of Object.entries(params)) {
-      snapshot[key] = Array.isArray(value) ? [...value] : value;
+    const parameterEntries = Object.entries(parameters);
+    const parameterEntryLength = parameterEntries.length;
+    for (let index = 0; index < parameterEntryLength; index += 1) {
+      const entry = parameterEntries[index];
+      if (entry === undefined) {
+        continue;
+      }
+      const [key, value] = entry;
+      Reflect.set(snapshot, key, Array.isArray(value) ? [...value] : value);
     }
 
     return snapshot;
@@ -834,8 +854,15 @@ export class FetchClient implements FetchClientInterface {
   private static snapshotRecord(record: Record<string, unknown>): Record<string, unknown> {
     const snapshot: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(record)) {
-      snapshot[key] = FetchClient.snapshotValue(value);
+    const propertyNames = Object.keys(record);
+    const propertyNameLength = propertyNames.length;
+    for (let index = 0; index < propertyNameLength; index += 1) {
+      const key = propertyNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const value: unknown = Reflect.get(record, key);
+      Reflect.set(snapshot, key, FetchClient.snapshotValue(value));
     }
 
     return snapshot;
@@ -844,7 +871,9 @@ export class FetchClient implements FetchClientInterface {
   private static snapshotValue(value: unknown): unknown {
     if (Array.isArray(value)) {
       const snapshot: unknown[] = [];
-      for (const item of value) {
+      const valueLength = value.length;
+      for (let index = 0; index < valueLength; index += 1) {
+        const item: unknown = Reflect.get(value, index);
         snapshot.push(FetchClient.snapshotValue(item));
       }
       return snapshot;
@@ -860,8 +889,15 @@ export class FetchClient implements FetchClientInterface {
 
     const snapshot: Record<string, unknown> = {};
 
-    for (const [key, nested] of Object.entries(value)) {
-      snapshot[key] = FetchClient.snapshotValue(nested);
+    const propertyNames = Object.keys(value);
+    const propertyNameLength = propertyNames.length;
+    for (let index = 0; index < propertyNameLength; index += 1) {
+      const key = propertyNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const nested: unknown = Reflect.get(value, key);
+      Reflect.set(snapshot, key, FetchClient.snapshotValue(nested));
     }
 
     return snapshot;

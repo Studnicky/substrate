@@ -55,7 +55,8 @@ export class SchemaValidator {
       return 'invalid payload';
     }
 
-    return errors.map(SchemaValidator.formatError).join('; ');
+    const result = errors.map(SchemaValidator.formatError).join('; ');
+    return result;
   }
 
   /** Renders a single Ajv error object. Override to customise per-error wording. */

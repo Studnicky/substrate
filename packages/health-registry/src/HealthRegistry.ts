@@ -1,6 +1,8 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import {
+  type HookInvocationError, HookInvoker
+} from '@studnicky/errors';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
@@ -49,20 +51,22 @@ export class HealthRegistry {
     value: unknown,
     constructor: Function & { readonly 'prototype': TInstance }
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 
   static readonly #OwnedHookInvoker = class HealthRegistryHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
   };
 
-  static create<TInstance extends HealthRegistry>(
-    this: Function & { readonly 'prototype': TInstance }
-  ): TInstance {
+  static create<TInstance extends HealthRegistry>(this: Function & { readonly 'prototype': TInstance }): TInstance {
     const result: unknown = Reflect.construct(this, []);
+
     if (!HealthRegistry.isConstructed(result, this)) {
       throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
     }
+
     return result;
   }
 
@@ -76,12 +80,14 @@ export class HealthRegistry {
   /** Count of hook failures recorded by `onHookError` since construction. */
   get hookErrorCount(): number {
     const result = this.hooks.hookErrorCount;
+
     return result;
   }
 
   /** Returns a defensive copy of every hook failure recorded since construction. */
   getHookErrors(): readonly HookInvocationError[] {
     const result = this.hooks.getHookErrors();
+
     return result;
   }
 
@@ -97,9 +103,11 @@ export class HealthRegistry {
       'check': check,
       'timeoutMs': options?.timeoutMs
     };
+
     this.#registry.set(name, entry);
     this.hooks.invoke('onCheckRegistered', () => {
       const result = this.onCheckRegistered(name);
+
       return result;
     });
   }
@@ -111,11 +119,13 @@ export class HealthRegistry {
 
   has(name: string): boolean {
     const result = this.#registry.has(name);
+
     return result;
   }
 
   list(): readonly string[] {
     const keys = this.#registry.keys();
+
     return [...keys];
   }
 
@@ -127,36 +137,54 @@ export class HealthRegistry {
   async evaluate(): Promise<HealthEvaluationInterface> {
     const entries = [...this.#registry.entries()];
 
-    const settled = await Promise.allSettled(
-      entries.map(([name, entry]) => { const result = this.#runCheck(name, entry); return result; })
-    );
+    const settled = await Promise.allSettled(entries.map(async ([
+      name,
+      entry
+    ]) => {
+      const result = this.#runCheck(name, entry);
+
+      return await result;
+    }));
 
     const results = new Map<string, HealthCheckResultInterface>();
+
     settled.forEach((outcome, index) => {
       const entry = entries[index];
-      if (entry === undefined) { return; }
+
+      if (entry === undefined) {
+        return;
+      }
       const [name] = entry;
       let result: HealthCheckResultInterface;
+
       if (outcome.status === 'fulfilled') {
         result = outcome.value;
       } else {
         const reason: unknown = outcome.reason;
-        result = { 'metadata': { 'error': reason }, 'status': 'unhealthy' };
+
+        result = {
+          'metadata': { 'error': reason }, 'status': 'unhealthy'
+        };
       }
       results.set(name, result);
     });
 
     const overall = HealthRegistry.#aggregate(results);
+
     this.hooks.invoke('onAggregate', () => {
       const result = this.onAggregate(overall, results);
+
       return result;
     });
 
-    return { 'results': results, 'status': overall };
+    return {
+      'results': results, 'status': overall
+    };
   }
 
   static #aggregate(results: ReadonlyMap<string, HealthCheckResultInterface>): HealthStatusEntity.Type {
     let hasDegraded = false;
+
     for (const result of results.values()) {
       if (result.status === 'unhealthy') {
         return 'unhealthy';
@@ -165,7 +193,10 @@ export class HealthRegistry {
         hasDegraded = true;
       }
     }
-    return hasDegraded ? 'degraded' : 'healthy';
+
+    const overall = hasDegraded ? 'degraded' : 'healthy';
+
+    return overall;
   }
 
   async #runCheck(name: string, entry: HealthCheckEntryInterface): Promise<HealthCheckResultInterface> {
@@ -176,13 +207,17 @@ export class HealthRegistry {
         ? await this.#runWithTimeout(name, entry.check, entry.timeoutMs)
         : await entry.check();
     } catch (error) {
-      result = { 'metadata': { 'error': error }, 'status': 'unhealthy' };
+      result = {
+        'metadata': { 'error': error }, 'status': 'unhealthy'
+      };
     }
 
     this.hooks.invoke('onCheckResult', () => {
       const hookResult = this.onCheckResult(name, result.status, result.metadata);
+
       return hookResult;
     });
+
     return result;
   }
 
@@ -194,14 +229,23 @@ export class HealthRegistry {
       timer = setTimeout(() => {
         this.hooks.invoke('onCheckTimeout', () => {
           const result = this.onCheckTimeout(name, timeoutMs);
+
           return result;
         });
-        resolve({ 'metadata': { 'reason': 'timeout', 'timeoutMs': timeoutMs }, 'status': 'unhealthy' });
+        resolve({
+          'metadata': {
+            'reason': 'timeout', 'timeoutMs': timeoutMs
+          }, 'status': 'unhealthy'
+        });
       }, timeoutMs);
     });
 
     try {
-      const result = await Promise.race([checkPromise, timeoutPromise]);
+      const result = await Promise.race([
+        checkPromise,
+        timeoutPromise
+      ]);
+
       return result;
     } finally {
       clearTimeout(timer);

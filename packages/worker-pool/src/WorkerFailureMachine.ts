@@ -48,9 +48,10 @@ export class WorkerFailureMachine extends StateMachine<
     state: WorkerFailureStateInterface,
     event: WorkerFailureEventInterface
   ): FsmStepInterface<WorkerFailureStateInterface, FireOnWorkerErrorEffectInterface> {
-    return {
+    const result: FsmStepInterface<WorkerFailureStateInterface, FireOnWorkerErrorEffectInterface> = {
       'effects': [{ 'error': event.error, 'index': event.index, 'variant': 'FireOnWorkerError' }],
       'state': state
     };
+    return result;
   }
 }

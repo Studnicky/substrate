@@ -5,7 +5,7 @@ import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 import type { ErrorClassificationEntity } from '@studnicky/errors';
 
-import { MaxRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
+import { MaximumRetriesExceededError, NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-throw.scenarios.json' with { type: 'json' };
 
@@ -14,7 +14,7 @@ type ScenarioCase =
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
-  retry: Pick<RetryConfigInterface, 'maxRetries'>;
+  retry: Pick<RetryConfigInterface, 'maximumRetries'>;
 };
 
 class RetryableClassifier {
@@ -111,7 +111,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      (error: unknown) => error instanceof MaxRetriesExceededError && error.name === String(expected.errorShape)
+      (error: unknown) => error instanceof MaximumRetriesExceededError && error.name === String(expected.errorShape)
     );
   },
   'on-give-up-non-retryable': async (scenario) => {

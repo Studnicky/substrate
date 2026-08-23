@@ -30,7 +30,7 @@ export interface RetryContextInterface<TState = Record<string, unknown>> {
   'error': Error;
 
   /** Maximum number of configured retries. */
-  'maxRetries': RetryConfigEntity.Type['maxRetries'];
+  'maximumRetries': RetryConfigEntity.Type['maximumRetries'];
 
   /** Caller-defined mutable state that persists across attempts. */
   'state': TState;

@@ -25,11 +25,13 @@ interface ChannelStateInterface<T> {
 
 class ChannelVariantGuards {
   public static isClosedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
-    return variant === 'closed-idle' || variant === 'closed-subscribed';
+    const result = variant === 'closed-idle' || variant === 'closed-subscribed';
+    return result;
   }
 
   public static isSubscribedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
-    return variant === 'open-subscribed' || variant === 'closed-subscribed';
+    const result = variant === 'open-subscribed' || variant === 'closed-subscribed';
+    return result;
   }
 }
 
@@ -42,7 +44,8 @@ class ChannelInstance {
     constructor: ChannelSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -71,7 +74,8 @@ export class Channel<T> {
     if (!ChannelInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('Channel.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

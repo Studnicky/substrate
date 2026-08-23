@@ -544,7 +544,7 @@ const scenarioRunnerMap = {
     for (const [path, expected] of getScenarios) {
       assert.deepEqual(Path.get(obj, path), expected);
     }
-    assert.equal(Path.get(obj, 'user.address.city', { maxDepth: 1 }), undefined);
+    assert.equal(Path.get(obj, 'user.address.city', { maximumDepth: 1 }), undefined);
     const result = Path.get(obj, 'items[*]');
     assert.ok(result !== null && typeof result === 'object');
     assert.equal(Reflect.get(result, 'isWildcard'), scenarioCase.expected.wildcard);

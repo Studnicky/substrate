@@ -19,6 +19,14 @@
     {
       "code": "type MaybeMapEntryType<K, V> = Map<K, V> | V;",
       "name": "a second method-bearing library interface union member is not callable evidence either"
+    },
+    {
+      "code": "type PolymorphicFactoryType<TInstance> = Function & { readonly 'prototype': TInstance };",
+      "name": "Function intersected with only its own intrinsic prototype member is not a mix - the polymorphic static-factory idiom lexical-this-only also permits"
+    },
+    {
+      "code": "type NamedConstructorType<TInstance> = Function & { readonly 'name': string; readonly 'prototype': TInstance };",
+      "name": "Function intersected with more than one intrinsic function member (name and prototype) is still not a mix"
     }
   ],
   "invalid": [
@@ -121,6 +129,16 @@
         }
       ],
       "name": "a generic identity alias substitutes the caller's concrete type argument instead of recursing into its bare type parameter"
+    },
+    {
+      "code": "type MixedFactoryType<TInstance> = Function & { readonly 'prototype': TInstance; retries: number };",
+      "errors": [
+        {
+          "data": { "location": "MixedFactoryType", "name": "MixedFactoryType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "Function intersected with an intrinsic member PLUS a genuine data member (retries) is still a mix - the exemption does not cover added members outside the intrinsic allowlist"
     }
   ]
 }

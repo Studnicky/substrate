@@ -9,21 +9,27 @@ export class ValidateHeaders {
    * Validates headers object
    * All header values must be strings
    *
-   * @param val - Headers configuration to validate
+   * @param value - Headers configuration to validate
    * @throws ConfigurationError if validation fails
    */
-  public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  public static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
 
-    if (typeof val !== 'object' || Array.isArray(val)) {
+    if (typeof value !== 'object' || Array.isArray(value)) {
       throw new ConfigurationError('headers must be an object');
     }
 
-    for (const key of Object.keys(val)) {
-      const value: unknown = Reflect.get(val, key);
-      if (typeof value !== 'string') {
+    const headerNames = Object.keys(value);
+    const headerNameLength = headerNames.length;
+    for (let index = 0; index < headerNameLength; index += 1) {
+      const key = headerNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const headerValue: unknown = Reflect.get(value, key);
+      if (typeof headerValue !== 'string') {
         throw new ConfigurationError(`header value for "${key}" must be a string`);
       }
     }

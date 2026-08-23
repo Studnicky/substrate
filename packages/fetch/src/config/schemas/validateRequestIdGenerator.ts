@@ -9,21 +9,21 @@ export class ValidateRequestIdGenerator extends FetchConfigValidation {
   /**
    * Validates requestIdGenerator function
    *
-   * @param val - Value to validate
+   * @param value - Value to validate
    * @throws ConfigurationError if validation fails
    */
-  public static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  public static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
 
-    if (typeof val !== 'function') {
+    if (typeof value !== 'function') {
       this.onValidationError('requestIdGenerator must be a function');
     }
 
     // Test that the function returns a string
     try {
-      const result: unknown = Reflect.apply(val, undefined, []);
+      const result: unknown = Reflect.apply(value, undefined, []);
 
       if (typeof result !== 'string') {
         this.onValidationError('requestIdGenerator must return a string');

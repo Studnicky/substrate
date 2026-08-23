@@ -24,7 +24,8 @@ class ClockInstance {
     constructor: ClockSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -63,7 +64,7 @@ export class Clock {
   }
 
   private static isValidProvider(provider: unknown): provider is ClockProviderInterface {
-    return (
+    const result = (
       typeof provider === 'object' &&
       provider !== null &&
       'now' in provider &&
@@ -71,23 +72,6 @@ export class Clock {
       'hrtime' in provider &&
       typeof provider.hrtime === 'function'
     );
-  }
-
-  /**
-   * Extension seam: subclasses may override to intercept or replace the raw
-   * hrtime value before monotonicity clamping is applied.
-   */
-  protected readHrtime(): bigint {
-    const result = this.#provider.hrtime();
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to intercept or replace the raw
-   * now value before monotonicity clamping is applied.
-   */
-  protected readNow(): number {
-    const result = this.#provider.now();
     return result;
   }
 
@@ -115,7 +99,7 @@ export class Clock {
    * Never returns a value smaller than the previous call on this instance.
    */
   public hrtime(): bigint {
-    const candidate = this.readHrtime();
+    const candidate = this.#provider.hrtime();
 
     if (candidate > this.#lastHrtime) {
       this.#lastHrtime = candidate;
@@ -133,7 +117,7 @@ export class Clock {
    * Never returns a value smaller than the previous call on this instance.
    */
   public now(): number {
-    const candidate = this.readNow();
+    const candidate = this.#provider.now();
 
     if (candidate > this.#lastNow) {
       this.#lastNow = candidate;

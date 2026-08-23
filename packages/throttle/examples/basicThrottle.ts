@@ -9,15 +9,14 @@ import { Throttle } from '../src/index.js';
 
 const throttle = Throttle.create({ 'concurrencyLimit': 3 });
 
-const results = await Promise.all(
-  [0, 1, 2, 3, 4, 5].map((i) => {
-    const result = throttle.execute(async () => {
-      await setTimeout(1);
-      return i;
-    });
-    return result;
-  })
-);
+const results = await Promise.all([
+  throttle.execute(async () => { await setTimeout(1); const result = 0; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 1; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 2; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 3; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 4; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 5; return result; })
+]);
 
 const stats = throttle.getStats();
 
@@ -26,7 +25,9 @@ console.log('results:', results);
 // #endregion usage
 
 assert.equal(results.length, 6, 'Expected 6 results');
-for (const [index, result] of results.entries()) {
+const resultLength = results.length;
+for (let index = 0; index < resultLength; index += 1) {
+  const result = results[index];
   assert.notEqual(result, undefined, `Result at index ${index} should not be undefined`);
   assert.equal(result, index, `Expected result ${index}`);
 }

@@ -61,7 +61,8 @@ class BusQueueInstance {
     constructor: BusQueueSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -79,7 +80,7 @@ export class BusQueue<T> {
   protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
   readonly #hwm: number;
-  readonly #onError: ((err: unknown) => void) | undefined;
+  readonly #onError: ((error: unknown) => void) | undefined;
   readonly #queue: CircularBuffer<BusQueueEntry<T>>;
   readonly #backpressureWaiters: CircularBuffer<{ 'resolve': () => void }>;
   readonly #drainWaiters: { 'resolve': () => void }[] = [];
@@ -278,15 +279,15 @@ export class BusQueue<T> {
   async #tryHandleItem(item: T): Promise<void> {
     try {
       await this.#handler(item);
-    } catch (err: unknown) {
+    } catch (error: unknown) {
       const onError = this.#onError;
       if (onError !== undefined) {
         await this.hooks.invokeAsync('onError', () => {
-          const result = onError(err);
+          const result = onError(error);
           return result;
         });
       }
-      await this.hooks.invokeAsync('onHandlerError', () => { const result = this.onHandlerError(err); return result; });
+      await this.hooks.invokeAsync('onHandlerError', () => { const result = this.onHandlerError(error); return result; });
     }
   }
 

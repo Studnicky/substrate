@@ -935,9 +935,9 @@
       },
       "expected": {
         "errors": [
-          "DlqFullError",
-          "DlqClosedError",
-          "DlqAbortedError"
+          "DeadLetterQueueFullError",
+          "DeadLetterQueueClosedError",
+          "DeadLetterQueueAbortedError"
         ]
       }
     },
@@ -953,7 +953,7 @@
         }
       },
       "expected": {
-        "error": "DlqAbortedError"
+        "error": "DeadLetterQueueAbortedError"
       }
     },
     {
@@ -1162,7 +1162,7 @@
     },
     {
       "name": "resilience-dlq-observed-overflow",
-      "description": "DeadLetterQueue onOverflow fires before DlqFullError",
+      "description": "DeadLetterQueue onOverflow fires before DeadLetterQueueFullError",
       "shape": "dlq-observed-overflow",
       "input": {
         "resilience": {
@@ -1332,7 +1332,7 @@
     },
     {
       "name": "resilience-entity-dlq-entry",
-      "description": "DlqEntryMetadataEntity validates complete and invalid metadata",
+      "description": "DeadLetterQueueEntryMetadataEntity validates complete and invalid metadata",
       "shape": "entity-dlq-entry",
       "input": {
         "resilience": {

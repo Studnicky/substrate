@@ -34,11 +34,11 @@ export namespace ErrorCodeDescriptorEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.code !== 'string') { return false; }
     if (typeof candidate.description !== 'string') { return false; }
     if (typeof candidate.retryable !== 'boolean') { return false; }
     return true;
-  }
+  };
 }

@@ -27,7 +27,8 @@ class PatchInstance {
     constructor: PatchSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -42,7 +43,13 @@ export class Patch {
       return undefined;
     }
 
-    for (const key of Object.keys(candidate)) {
+    const candidateKeys = Object.keys(candidate);
+    const candidateKeyLength = candidateKeys.length;
+    for (let index = 0; index < candidateKeyLength; index += 1) {
+      const key = candidateKeys[index];
+      if (key === undefined) {
+        continue;
+      }
       if (!Patch.operationKeys.has(key)) {
         return undefined;
       }
@@ -88,8 +95,8 @@ export class Patch {
   protected constructor(operations: unknown = []) {
     const candidates = Array.isArray(operations) ? Array.from<unknown>(operations) : [operations];
     const ops: PatchOperationInterface[] = [];
-    const opsLen = candidates.length;
-    for (let i = 0; i < opsLen; i += 1) {
+    const operationLength = candidates.length;
+    for (let i = 0; i < operationLength; i += 1) {
       const candidate = candidates[i];
 
       const operation = Patch.parseOperation(candidate);
@@ -116,10 +123,14 @@ export class Patch {
 
   /** Return a deeply isolated projection of the patch operations. */
   public get operations(): readonly PatchOperationInterface[] {
-    const operations = this.#operations.map((operation) => {
-      const snapshot = structuredClone(operation);
-      return snapshot;
-    });
+    const operations: PatchOperationInterface[] = [];
+    const operationLength = this.#operations.length;
+    for (let index = 0; index < operationLength; index += 1) {
+      const operation = this.#operations[index];
+      if (operation !== undefined) {
+        operations.push(structuredClone(operation));
+      }
+    }
     return operations;
   }
 
@@ -133,24 +144,37 @@ export class Patch {
    * Throws `PatchError` if any operation cannot be applied.
    */
   public apply(target: Record<string, unknown>): Record<string, unknown> {
-    for (const op of this.#operations) {
+    const operationLength = this.#operations.length;
+    for (let index = 0; index < operationLength; index += 1) {
+      const op = this.#operations[index];
+      if (op === undefined) {
+        continue;
+      }
       const operation = structuredClone(op);
       this.applyOperation(target, operation);
     }
 
-    return target;
+    const result = target;
+    return result;
   }
 
   /** Return `true` when the patch has no operations. */
   public isEmpty(): boolean {
-    return this.#operations.length === 0;
+    const result = this.#operations.length === 0;
+    return result;
   }
 
   /** Human-readable summary of operations. */
   public toString(): string {
-    const result = this.#operations
-      .map((op) => { const result = this.describeOp(op); return result; })
-      .join(', ');
+    const descriptions: string[] = [];
+    const operationLength = this.#operations.length;
+    for (let index = 0; index < operationLength; index += 1) {
+      const operation = this.#operations[index];
+      if (operation !== undefined) {
+        descriptions.push(this.describeOp(operation));
+      }
+    }
+    const result = descriptions.join(', ');
     return result;
   }
 
@@ -167,9 +191,10 @@ export class Patch {
       return [];
     }
 
-    return path.slice(1).split('/').map((part) =>
+    const result = path.slice(1).split('/').map((part) =>
     { const result = part.replace(ESCAPED_SLASH_PATTERN, '/').replace(ESCAPED_TILDE_PATTERN, '~'); return result; }
     );
+    return result;
   }
 
   /** Read the value at `path` from `target`. */
@@ -177,8 +202,8 @@ export class Patch {
     const parts = this.parsePath(path);
     let current: unknown = target;
 
-    const partsLen = parts.length;
-    for (let i = 0; i < partsLen; i++) {
+    const partLength = parts.length;
+    for (let i = 0; i < partLength; i += 1) {
       const part = parts[i]!;
 
       if (current === null || typeof current !== 'object') {
@@ -401,45 +426,44 @@ export class Patch {
     }
   }
 
-  private static readonly operationAppliers: Record<
-    string,
-    (self: Patch, target: Record<string, unknown>, op: PatchOperationInterface) => void
-  > = {
-    'add': (self, target, op) => { self.applyAdd(target, op); },
-    'copy': (self, target, op) => { self.applyCopy(target, op); },
-    'move': (self, target, op) => { self.applyMove(target, op); },
-    'remove': (self, target, op) => { self.applyRemove(target, op); },
-    'replace': (self, target, op) => { self.applyReplace(target, op); },
-    'test': (self, target, op) => { self.applyTest(target, op); }
-  };
+  readonly #operationAppliers = new Map<string, (target: Record<string, unknown>, operation: PatchOperationInterface) => void>([
+    ['add', (target, operation) => { this.applyAdd(target, operation); }],
+    ['copy', (target, operation) => { this.applyCopy(target, operation); }],
+    ['move', (target, operation) => { this.applyMove(target, operation); }],
+    ['remove', (target, operation) => { this.applyRemove(target, operation); }],
+    ['replace', (target, operation) => { this.applyReplace(target, operation); }],
+    ['test', (target, operation) => { this.applyTest(target, operation); }]
+  ]);
+
+  private static readonly operationDescriptions = new Map<string, { 'includesSource': boolean; 'includesValue': boolean; 'label': string }>([
+    ['add', { 'includesSource': false, 'includesValue': true, 'label': 'ADD' }],
+    ['copy', { 'includesSource': true, 'includesValue': false, 'label': 'COPY' }],
+    ['move', { 'includesSource': true, 'includesValue': false, 'label': 'MOVE' }],
+    ['remove', { 'includesSource': false, 'includesValue': false, 'label': 'REMOVE' }],
+    ['replace', { 'includesSource': false, 'includesValue': true, 'label': 'REPLACE' }],
+    ['test', { 'includesSource': false, 'includesValue': true, 'label': 'TEST' }]
+  ]);
 
   /** Apply a single RFC-6902 operation to `target`. */
   protected applyOperation(target: Record<string, unknown>, op: PatchOperationInterface): void {
-    const applier = Patch.operationAppliers[op.op];
+    const applier = this.#operationAppliers.get(op.op);
 
     if (applier === undefined) {
       throw new PatchError(`Unknown patch operation: ${String(op.op)}`, String(op.op), op.path);
     }
-    applier(this, target, op);
+    applier(target, op);
   }
 
   /** Produce a human-readable description of a single operation. */
   protected describeOp(op: PatchOperationInterface): string {
-    switch (op.op) {
-      case 'add':
-        return `ADD ${op.path} = ${JSON.stringify(op.value)}`;
-      case 'copy':
-        return `COPY ${op.from ?? '?'} → ${op.path}`;
-      case 'move':
-        return `MOVE ${op.from ?? '?'} → ${op.path}`;
-      case 'remove':
-        return `REMOVE ${op.path}`;
-      case 'replace':
-        return `REPLACE ${op.path} = ${JSON.stringify(op.value)}`;
-      case 'test':
-        return `TEST ${op.path} = ${JSON.stringify(op.value)}`;
-      default:
-        return `${String(op.op).toUpperCase()} ${op.path}`;
+    const description = Patch.operationDescriptions.get(op.op);
+    if (description !== undefined) {
+      const source = description.includesSource ? `${op.from ?? '?'} → ` : '';
+      const value = description.includesValue ? ` = ${JSON.stringify(op.value)}` : '';
+      const result = `${description.label} ${source}${op.path}${value}`;
+      return result;
     }
+    const result = `${String(op.op).toUpperCase()} ${op.path}`;
+    return result;
   }
 }

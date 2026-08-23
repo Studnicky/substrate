@@ -8,8 +8,8 @@ import { ConfigValidation } from '@studnicky/config';
  * Internal validator for the errorClassifier configuration parameter.
  */
 class ErrorClassifierValidator {
-  static validate(val: unknown): void {
-    ConfigValidation.assertFunctionOrObjectWithMethod(val, 'classify', 'errorClassifier');
+  static validate(value: unknown): void {
+    ConfigValidation.assertFunctionOrObjectWithMethod(value, 'classify', 'errorClassifier');
   }
 }
 

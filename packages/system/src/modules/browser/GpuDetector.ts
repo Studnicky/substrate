@@ -28,13 +28,15 @@ class BrowserGlobals {
     if (typeof value !== 'object' || value === null) { return false; }
 
     const createElement: unknown = Reflect.get(value, 'createElement');
-    return typeof createElement === 'function';
+    const result = typeof createElement === 'function';
+    return result;
   }
 
   /** Returns the document as-is, so its methods keep their receiver. */
   static findDocument(): BrowserDocumentInterface | undefined {
     const candidate: unknown = Reflect.get(globalThis, 'document');
-    return BrowserGlobals.isDocument(candidate) ? candidate : undefined;
+    const result: BrowserDocumentInterface | undefined = BrowserGlobals.isDocument(candidate) ? candidate : undefined;
+    return result;
   }
 }
 
@@ -45,13 +47,13 @@ export class GpuDetector {
         return null;
       }
 
-      const doc = BrowserGlobals.findDocument();
+      const document = BrowserGlobals.findDocument();
 
-      if (doc === undefined) {
+      if (document === undefined) {
         return null;
       }
 
-      const canvas = doc.createElement('canvas');
+      const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl');
 
       if (gl === null) {
@@ -68,11 +70,12 @@ export class GpuDetector {
       const vendor: unknown = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);
       if (typeof renderer !== 'string' || typeof vendor !== 'string') { return null; }
 
-      return {
+      const result: GpuInfoEntity.Type = {
         'computeApi': GpuDetector.#mapComputeApi(renderer, vendor),
         'name': renderer,
         'vramMb': null
       };
+      return result;
     } catch {
       return null;
     }

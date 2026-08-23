@@ -16,12 +16,12 @@ export namespace AdaptiveConfigEntity {
         'description': 'Whether adaptive concurrency is enabled.',
         'type': 'boolean'
       },
-      'maxConcurrency': {
+      'maximumConcurrency': {
         'description': 'Maximum concurrency limit (ceiling).',
         'minimum': 1,
         'type': 'integer'
       },
-      'minConcurrency': {
+      'minimumConcurrency': {
         'description': 'Minimum concurrency limit (floor).',
         'minimum': 1,
         'type': 'integer'
@@ -60,10 +60,10 @@ export namespace AdaptiveConfigEntity {
 
   const compiledValidate = SchemaValidator.compile<Type>(Schema);
 
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!compiledValidate(candidate)) {
       throw ConfigurationError.create(SchemaValidator.formatErrors(compiledValidate.errors));
     }
     return true;
-  }
+  };
 }

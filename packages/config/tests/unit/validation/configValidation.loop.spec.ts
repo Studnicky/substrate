@@ -58,7 +58,7 @@ type ScenarioGroupName =
   | 'assertFunctionOrObjectWithMethod'
   | 'assertHasMethod'
   | 'assertInteger'
-  | 'assertMin'
+  | 'assertMinimum'
   | 'assertNoUnknownKeys'
   | 'assertNonNegative'
   | 'assertNumber'
@@ -97,7 +97,7 @@ const scenarioGroupNames: readonly ScenarioGroupName[] = [
   'assertFinite',
   'assertNonNegative',
   'assertPositive',
-  'assertMin',
+  'assertMinimum',
   'assertPositiveOrInfinity',
   'assertHasMethod',
   'assertFunctionOrObjectWithMethod',
@@ -206,8 +206,8 @@ const configAssertions: Record<ScenarioGroupName, ConfigAssertion> = {
   'assertInteger': ({ input, validationName }): void => {
     ConfigValidation.assertInteger(input, validationName);
   },
-  'assertMin': ({ input, scenario, validationName }): void => {
-    ConfigValidation.assertMin(input, requiredNumber(scenario.min, 'assertMin.min'), validationName);
+  'assertMinimum': ({ input, scenario, validationName }): void => {
+    ConfigValidation.assertMinimum(input, requiredNumber(scenario.min, 'assertMinimum.min'), validationName);
   },
   'assertNoUnknownKeys': ({ input, scenario }): void => {
     ConfigValidation.assertNoUnknownKeys(requiredRecord(input, 'assertNoUnknownKeys scenarios require a record input'), new Set(scenario.knownKeys ?? []));

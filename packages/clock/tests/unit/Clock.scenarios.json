@@ -839,7 +839,7 @@
     },
     {
       "name": "metered-clock-now",
-      "description": "MeteredClock readNow intercepts now calls and monotonicity holds",
+      "description": "Metered clock provider records now calls and monotonicity holds",
       "shape": "metered-clock-now",
       "input": {
         "counterOptions": {
@@ -856,7 +856,7 @@
     },
     {
       "name": "metered-clock-hrtime",
-      "description": "MeteredClock readHrtime intercepts hrtime calls",
+      "description": "Metered clock provider records hrtime calls",
       "shape": "metered-clock-hrtime",
       "input": {
         "counterOptions": {

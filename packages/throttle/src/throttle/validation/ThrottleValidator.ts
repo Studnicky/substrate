@@ -16,13 +16,14 @@ class ThrottleValidator {
       return false;
     }
 
-    return (
+    const result = (
       Guard.isFunction(value.execute)
       && Guard.isFunction(value.getStats)
       && Guard.isFunction(value.isComplete)
       && Guard.isFunction(value.drain)
       && Guard.isFunction(value.abort)
     );
+    return result;
   }
 }
 

@@ -24,9 +24,9 @@ export class DataType {
     seen.add(value);
 
     if (Array.isArray(value)) {
-      const itemLen = value.length;
-      for (let i = 0; i < itemLen; i += 1) {
-        if (this.walkForCycle(value[i], seen)) {
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        if (this.walkForCycle(value[index], seen)) {
           return true;
         }
       }
@@ -37,9 +37,9 @@ export class DataType {
 
     if (this.isPlainObject(value)) {
       const children = Object.values(value);
-      const childLen = children.length;
-      for (let i = 0; i < childLen; i += 1) {
-        if (this.walkForCycle(children[i], seen)) {
+      const length = children.length;
+      for (let index = 0; index < length; index += 1) {
+        if (this.walkForCycle(children[index], seen)) {
           return true;
         }
       }
@@ -54,11 +54,11 @@ export class DataType {
     if (left.size !== right.size) {
       return false;
     }
-    for (const [key, leftVal] of left.entries()) {
+    for (const [key, leftValue] of left.entries()) {
       if (!right.has(key)) {
         return false;
       }
-      if (!this.deepEqual(leftVal, right.get(key))) {
+      if (!this.deepEqual(leftValue, right.get(key))) {
         return false;
       }
     }
@@ -90,13 +90,16 @@ export class DataType {
       return false;
     }
 
-    const leftLen = leftKeys.length;
-    for (let i = 0; i < leftLen; i += 1) {
-      const key = leftKeys[i]!;
+    const length = leftKeys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = leftKeys[index];
+      if (key === undefined) {
+        continue;
+      }
       if (!(key in right)) {
         return false;
       }
-      if (!this.deepEqual(left[key], right[key])) {
+      if (!this.deepEqual(Reflect.get(left, key), Reflect.get(right, key))) {
         return false;
       }
     }
@@ -140,7 +143,8 @@ export class DataType {
 
     // Date
     if (left instanceof Date && right instanceof Date) {
-      return left.getTime() === right.getTime();
+      const result = left.getTime() === right.getTime();
+      return result;
     }
     if (left instanceof Date || right instanceof Date) {
       return false;
@@ -148,7 +152,8 @@ export class DataType {
 
     // RegExp
     if (left instanceof RegExp && right instanceof RegExp) {
-      return left.toString() === right.toString();
+      const result = left.toString() === right.toString();
+      return result;
     }
     if (left instanceof RegExp || right instanceof RegExp) {
       return false;
@@ -156,7 +161,8 @@ export class DataType {
 
     // Set
     if (left instanceof Set && right instanceof Set) {
-      return this.compareSets(left, right);
+      const result = this.compareSets(left, right);
+      return result;
     }
     if (left instanceof Set || right instanceof Set) {
       return false;
@@ -164,7 +170,8 @@ export class DataType {
 
     // Map
     if (left instanceof Map && right instanceof Map) {
-      return this.compareMaps(left, right);
+      const result = this.compareMaps(left, right);
+      return result;
     }
     if (left instanceof Map || right instanceof Map) {
       return false;
@@ -175,9 +182,9 @@ export class DataType {
       if (left.length !== right.length) {
         return false;
       }
-      const leftLen = left.length;
-      for (let i = 0; i < leftLen; i++) {
-        if (!this.deepEqual(left[i], right[i])) {
+      const length = left.length;
+      for (let index = 0; index < length; index += 1) {
+        if (!this.deepEqual(left[index], right[index])) {
           return false;
         }
       }
@@ -189,7 +196,8 @@ export class DataType {
 
     // Plain objects
     if (this.isRecord(left) && this.isRecord(right)) {
-      return this.compareObjects(left, right);
+      const result = this.compareObjects(left, right);
+      return result;
     }
 
     return false;
@@ -213,11 +221,13 @@ export class DataType {
     }
     const proto: unknown = Object.getPrototypeOf(value);
 
-    return proto === Object.prototype || proto === null;
+    const result = proto === Object.prototype || proto === null;
+    return result;
   }
 
   /** Type guard for non-null, non-array objects (`Record<string, unknown>`). */
   public static isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+    const result = typeof value === 'object' && value !== null && !Array.isArray(value);
+    return result;
   }
 }

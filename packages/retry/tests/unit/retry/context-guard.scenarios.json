@@ -37,9 +37,9 @@
     },
     {
       "name": "reject-bad-max-retries",
-      "description": "rejects negative maxRetries",
+      "description": "rejects negative maximumRetries",
       "shape": "reject-bad-max-retries",
-      "input": { "source": "valid-context", "override": { "maxRetries": -1 } },
+      "input": { "source": "valid-context", "override": { "maximumRetries": -1 } },
       "expected": { "result": false }
     },
     {

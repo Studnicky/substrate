@@ -507,10 +507,10 @@
     },
     {
       "name": "keep-alive-max-timeout-valid",
-      "description": "validateDispatcher accepts keepAliveMaxTimeout",
+      "description": "validateDispatcher accepts keepAliveMaximumTimeout",
       "input": {
         "dispatcher": {
-          "keepAliveMaxTimeout": 5000
+          "keepAliveMaximumTimeout": 5000
         }
       },
       "expected": {
@@ -519,10 +519,10 @@
     },
     {
       "name": "keep-alive-max-timeout-negative",
-      "description": "validateDispatcher rejects negative keepAliveMaxTimeout",
+      "description": "validateDispatcher rejects negative keepAliveMaximumTimeout",
       "input": {
         "dispatcher": {
-          "keepAliveMaxTimeout": -1
+          "keepAliveMaximumTimeout": -1
         }
       },
       "expected": {
@@ -534,10 +534,10 @@
     },
     {
       "name": "keep-alive-max-timeout-infinite",
-      "description": "validateDispatcher rejects infinite keepAliveMaxTimeout",
+      "description": "validateDispatcher rejects infinite keepAliveMaximumTimeout",
       "input": {
         "dispatcher": {
-          "keepAliveMaxTimeout": {
+          "keepAliveMaximumTimeout": {
             "__shape": "infinity"
           }
         }
@@ -551,10 +551,10 @@
     },
     {
       "name": "keep-alive-max-timeout-non-number",
-      "description": "validateDispatcher rejects non-number keepAliveMaxTimeout",
+      "description": "validateDispatcher rejects non-number keepAliveMaximumTimeout",
       "input": {
         "dispatcher": {
-          "keepAliveMaxTimeout": {}
+          "keepAliveMaximumTimeout": {}
         }
       },
       "expected": {
@@ -652,10 +652,10 @@
     },
     {
       "name": "max-concurrent-streams-valid",
-      "description": "validateDispatcher accepts maxConcurrentStreams",
+      "description": "validateDispatcher accepts maximumConcurrentStreams",
       "input": {
         "dispatcher": {
-          "maxConcurrentStreams": 50
+          "maximumConcurrentStreams": 50
         }
       },
       "expected": {
@@ -664,10 +664,10 @@
     },
     {
       "name": "max-concurrent-streams-zero",
-      "description": "validateDispatcher rejects maxConcurrentStreams below one",
+      "description": "validateDispatcher rejects maximumConcurrentStreams below one",
       "input": {
         "dispatcher": {
-          "maxConcurrentStreams": 0
+          "maximumConcurrentStreams": 0
         }
       },
       "expected": {
@@ -679,10 +679,10 @@
     },
     {
       "name": "max-concurrent-streams-non-integer",
-      "description": "validateDispatcher rejects non-integer maxConcurrentStreams",
+      "description": "validateDispatcher rejects non-integer maximumConcurrentStreams",
       "input": {
         "dispatcher": {
-          "maxConcurrentStreams": 10.5
+          "maximumConcurrentStreams": 10.5
         }
       },
       "expected": {
@@ -694,10 +694,10 @@
     },
     {
       "name": "max-concurrent-streams-non-number",
-      "description": "validateDispatcher rejects non-number maxConcurrentStreams",
+      "description": "validateDispatcher rejects non-number maximumConcurrentStreams",
       "input": {
         "dispatcher": {
-          "maxConcurrentStreams": {}
+          "maximumConcurrentStreams": {}
         }
       },
       "expected": {
@@ -709,10 +709,10 @@
     },
     {
       "name": "max-response-size-unbounded",
-      "description": "validateDispatcher accepts maxResponseSize -1",
+      "description": "validateDispatcher accepts maximumResponseSize -1",
       "input": {
         "dispatcher": {
-          "maxResponseSize": -1
+          "maximumResponseSize": -1
         }
       },
       "expected": {
@@ -721,10 +721,10 @@
     },
     {
       "name": "max-response-size-positive",
-      "description": "validateDispatcher accepts positive maxResponseSize",
+      "description": "validateDispatcher accepts positive maximumResponseSize",
       "input": {
         "dispatcher": {
-          "maxResponseSize": 1048576
+          "maximumResponseSize": 1048576
         }
       },
       "expected": {
@@ -733,10 +733,10 @@
     },
     {
       "name": "max-response-size-invalid-negative",
-      "description": "validateDispatcher rejects invalid negative maxResponseSize",
+      "description": "validateDispatcher rejects invalid negative maximumResponseSize",
       "input": {
         "dispatcher": {
-          "maxResponseSize": -2
+          "maximumResponseSize": -2
         }
       },
       "expected": {
@@ -748,10 +748,10 @@
     },
     {
       "name": "max-response-size-non-number",
-      "description": "validateDispatcher rejects non-number maxResponseSize",
+      "description": "validateDispatcher rejects non-number maximumResponseSize",
       "input": {
         "dispatcher": {
-          "maxResponseSize": {}
+          "maximumResponseSize": {}
         }
       },
       "expected": {
@@ -763,10 +763,10 @@
     },
     {
       "name": "max-header-size-valid",
-      "description": "validateDispatcher accepts maxHeaderSize",
+      "description": "validateDispatcher accepts maximumHeaderSize",
       "input": {
         "dispatcher": {
-          "maxHeaderSize": 32768
+          "maximumHeaderSize": 32768
         }
       },
       "expected": {
@@ -775,10 +775,10 @@
     },
     {
       "name": "max-header-size-zero",
-      "description": "validateDispatcher rejects maxHeaderSize below one",
+      "description": "validateDispatcher rejects maximumHeaderSize below one",
       "input": {
         "dispatcher": {
-          "maxHeaderSize": 0
+          "maximumHeaderSize": 0
         }
       },
       "expected": {
@@ -790,10 +790,10 @@
     },
     {
       "name": "max-requests-per-client-valid",
-      "description": "validateDispatcher accepts maxRequestsPerClient",
+      "description": "validateDispatcher accepts maximumRequestsPerClient",
       "input": {
         "dispatcher": {
-          "maxRequestsPerClient": 100
+          "maximumRequestsPerClient": 100
         }
       },
       "expected": {
@@ -802,10 +802,10 @@
     },
     {
       "name": "max-requests-per-client-undefined",
-      "description": "validateDispatcher accepts undefined maxRequestsPerClient",
+      "description": "validateDispatcher accepts undefined maximumRequestsPerClient",
       "input": {
         "dispatcher": {
-          "maxRequestsPerClient": {
+          "maximumRequestsPerClient": {
             "__shape": "undefined"
           }
         }
@@ -816,10 +816,10 @@
     },
     {
       "name": "max-requests-per-client-null",
-      "description": "validateDispatcher accepts null maxRequestsPerClient",
+      "description": "validateDispatcher accepts null maximumRequestsPerClient",
       "input": {
         "dispatcher": {
-          "maxRequestsPerClient": null
+          "maximumRequestsPerClient": null
         }
       },
       "expected": {
@@ -828,10 +828,10 @@
     },
     {
       "name": "max-requests-per-client-zero",
-      "description": "validateDispatcher rejects maxRequestsPerClient below one",
+      "description": "validateDispatcher rejects maximumRequestsPerClient below one",
       "input": {
         "dispatcher": {
-          "maxRequestsPerClient": 0
+          "maximumRequestsPerClient": 0
         }
       },
       "expected": {
@@ -1045,10 +1045,10 @@
     },
     {
       "name": "max-origins-valid",
-      "description": "validateDispatcher accepts maxOrigins",
+      "description": "validateDispatcher accepts maximumOrigins",
       "input": {
         "dispatcher": {
-          "maxOrigins": 50
+          "maximumOrigins": 50
         }
       },
       "expected": {
@@ -1057,10 +1057,10 @@
     },
     {
       "name": "max-origins-undefined",
-      "description": "validateDispatcher accepts undefined maxOrigins",
+      "description": "validateDispatcher accepts undefined maximumOrigins",
       "input": {
         "dispatcher": {
-          "maxOrigins": {
+          "maximumOrigins": {
             "__shape": "undefined"
           }
         }
@@ -1071,10 +1071,10 @@
     },
     {
       "name": "max-origins-null",
-      "description": "validateDispatcher accepts null maxOrigins",
+      "description": "validateDispatcher accepts null maximumOrigins",
       "input": {
         "dispatcher": {
-          "maxOrigins": null
+          "maximumOrigins": null
         }
       },
       "expected": {
@@ -1083,10 +1083,10 @@
     },
     {
       "name": "max-origins-below-one",
-      "description": "validateDispatcher rejects maxOrigins below one",
+      "description": "validateDispatcher rejects maximumOrigins below one",
       "input": {
         "dispatcher": {
-          "maxOrigins": 0
+          "maximumOrigins": 0
         }
       },
       "expected": {
@@ -1098,10 +1098,10 @@
     },
     {
       "name": "max-origins-non-integer",
-      "description": "validateDispatcher rejects non-integer maxOrigins",
+      "description": "validateDispatcher rejects non-integer maximumOrigins",
       "input": {
         "dispatcher": {
-          "maxOrigins": 10.5
+          "maximumOrigins": 10.5
         }
       },
       "expected": {
@@ -1113,31 +1113,31 @@
     },
     {
       "name": "max-header-size-non-number",
-      "description": "validateDispatcher rejects non-number maxHeaderSize",
+      "description": "validateDispatcher rejects non-number maximumHeaderSize",
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "dispatcher.maxHeaderSize must be a number"
+          "dispatcher.maximumHeaderSize must be a number"
         ]
       },
       "input": {
         "dispatcher": {
-          "maxHeaderSize": "bad"
+          "maximumHeaderSize": "bad"
         }
       }
     },
     {
       "name": "max-requests-per-client-non-number",
-      "description": "validateDispatcher rejects non-number maxRequestsPerClient",
+      "description": "validateDispatcher rejects non-number maximumRequestsPerClient",
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "dispatcher.maxRequestsPerClient must be a number"
+          "dispatcher.maximumRequestsPerClient must be a number"
         ]
       },
       "input": {
         "dispatcher": {
-          "maxRequestsPerClient": "bad"
+          "maximumRequestsPerClient": "bad"
         }
       }
     },
@@ -1188,31 +1188,31 @@
     },
     {
       "name": "max-origins-non-number",
-      "description": "validateDispatcher rejects non-number maxOrigins",
+      "description": "validateDispatcher rejects non-number maximumOrigins",
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "dispatcher.maxOrigins must be a number"
+          "dispatcher.maximumOrigins must be a number"
         ]
       },
       "input": {
         "dispatcher": {
-          "maxOrigins": "bad"
+          "maximumOrigins": "bad"
         }
       }
     },
     {
       "name": "max-response-size-non-integer",
-      "description": "validateDispatcher rejects non-integer maxResponseSize",
+      "description": "validateDispatcher rejects non-integer maximumResponseSize",
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "dispatcher.maxResponseSize must be an integer"
+          "dispatcher.maximumResponseSize must be an integer"
         ]
       },
       "input": {
         "dispatcher": {
-          "maxResponseSize": 1.5
+          "maximumResponseSize": 1.5
         }
       }
     },
@@ -1292,15 +1292,15 @@
           "connectTimeout": 10000,
           "enabled": true,
           "headersTimeout": 300000,
-          "keepAliveMaxTimeout": 600000,
+          "keepAliveMaximumTimeout": 600000,
           "keepAliveTimeout": 60000,
           "keepAliveTimeoutThreshold": 2000,
           "localAddress": "192.168.1.100",
-          "maxConcurrentStreams": 100,
-          "maxHeaderSize": 32768,
-          "maxOrigins": 100,
-          "maxRequestsPerClient": 1000,
-          "maxResponseSize": -1,
+          "maximumConcurrentStreams": 100,
+          "maximumHeaderSize": 32768,
+          "maximumOrigins": 100,
+          "maximumRequestsPerClient": 1000,
+          "maximumResponseSize": -1,
           "pipelining": 1,
           "strictContentLength": true
         }

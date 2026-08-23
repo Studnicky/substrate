@@ -11,7 +11,7 @@ export interface KeyedRateLimiterCreateConfigInterface {
   /** Time-to-live (ms) for an idle key's bucket before it is evicted from the cache. */
   'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.Type['keyIdleTtlMs'];
   /** Maximum number of distinct keys retained at once. Defaults to 10,000. */
-  'maxKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maxKeys'];
+  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maximumKeys'];
   /** Sustained refill rate applied to every per-key `TokenBucket`. */
   'requestsPerSecond': TokenBucketOptionsEntity.Type['requestsPerSecond'];
 }

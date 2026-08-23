@@ -12,7 +12,7 @@ type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'async-rejects-are-guarded' | 'enter-call-swallows' | 'hookinvoker-default-throws'; name: string };
 
 type RetryScenarioInput = Record<string, unknown> & {
-  retry?: Partial<Pick<RetryConfigInterface, 'maxRetries'>>;
+  retry?: Partial<Pick<RetryConfigInterface, 'maximumRetries'>>;
 };
 
 type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;

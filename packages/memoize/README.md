@@ -29,7 +29,7 @@ import { Memoize } from '@studnicky/memoize';
 
 const memo = Memoize.create(
   (userId: string) => fetchUser(userId),
-  { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
+  { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
 );
 
 const user = await memo.call('user-42');
@@ -46,7 +46,7 @@ memo.clear();
 
 Concurrent calls with the same derived key, issued before the first resolves, share one invocation — the wrapped function runs exactly once via the composed `Coalesce`.
 
-`keyFn` is a required config field — it mirrors `LruCache`'s explicit-key model rather than an implicit tuple hash, which is unsound for object/function arguments.
+`keyDeriver` is a required config field — it mirrors `LruCache`'s explicit-key model rather than an implicit tuple hash, which is unsound for object/function arguments.
 
 ## API
 
@@ -54,21 +54,21 @@ Concurrent calls with the same derived key, issued before the first resolves, sh
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `keyFn` | `(...args) => string` | Derives the cache/coalesce key from a call's arguments (required) |
+| `keyDeriver` | `(...args) => string` | Derives the cache/coalesce key from a call's arguments (required) |
 | `capacity` | `number` | Maximum number of distinct derived keys retained at once (composed `LruCache` capacity) |
 | `ttlMs` | `number?` | Time-to-live (ms) for a cached result |
 | `staleMs` | `number?` | Staleness threshold (ms) for a cached result |
 
 ### `call(...args): Promise<TResult>`
 
-Derives `key = keyFn(...args)` and checks the composed cache:
+Derives `key = keyDeriver(...args)` and checks the composed cache:
 
 - Entry present → the cached result is returned without re-invoking `fn`.
 - No entry → runs through the composed `Coalesce` so concurrent callers sharing the key share one invocation, then caches the result.
 
 ### `invalidate(...args): void`
 
-Evicts the cache entry for `keyFn(...args)` so the next matching call re-invokes `fn`.
+Evicts the cache entry for `keyDeriver(...args)` so the next matching call re-invokes `fn`.
 
 ### `clear(): void`
 
@@ -99,7 +99,7 @@ class TelemetryMemoize extends Memoize<[string], User> {
   readonly events: string[] = [];
 
   static tracked(fn: (userId: string) => Promise<User>): TelemetryMemoize {
-    return TelemetryMemoize.create(fn, { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 });
+    return TelemetryMemoize.create(fn, { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 });
   }
 
   protected override onMemoHit(key: string): void {

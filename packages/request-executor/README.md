@@ -27,7 +27,7 @@ import { RequestExecutor } from '@studnicky/request-executor';
 
 const executor = RequestExecutor.create({
   fetchClient: { baseURL: 'https://api.example.com' },
-  retry: { maxRetries: 3 },
+  retry: { maximumRetries: 3 },
   deadlineMs: 5000
 });
 
@@ -90,7 +90,7 @@ class ReportingRequestExecutor extends RequestExecutor {
   }
 }
 
-const retry = new TelemetryRetry({ maxRetries: 3 });
+const retry = new TelemetryRetry({ maximumRetries: 3 });
 const executor = ReportingRequestExecutor.tracked(retry);
 ```
 

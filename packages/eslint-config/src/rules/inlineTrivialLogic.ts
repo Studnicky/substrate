@@ -5,7 +5,9 @@ import type {
 
 import { DEFAULT_OPTIONS } from './constants/InlineTrivialLogicConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
+import { ParameterNames } from './shared/ParameterNames.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
 // THREE DEFECTS FOUND AND FIXED HERE, EACH VERIFIED BEFORE AND AFTER THE FIX.
@@ -117,8 +119,8 @@ namespace InlineTrivialLogicOptionsEntity {
     'additionalProperties': false,
     'properties': {
       'allowLiterals': {
-        'default': false,
-        'description': 'Allow functions that return a constant literal (string, number, boolean).',
+        'default': true,
+        'description': 'Allow functions that return a constant literal or template literal (string, number, boolean). Default true — such a function is the value, not a forward to one. Set false for the stricter posture of also flagging literal returns.',
         'type': 'boolean'
       },
       'allowMemberExpressions': {
@@ -152,6 +154,79 @@ namespace InlineTrivialLogicOptionsEntity {
  * above: such a function re-declares a TYPE-level narrowing contract even when its VALUE-level
  * body is a pure forward, so it is exempt from this rule regardless of body shape.
  */
+// A CALLBACK PASSED AS AN ARGUMENT IS NOT A SHIM. DO NOT REMOVE THIS EXEMPTION.
+//
+// This rule's remedy is "inline the logic at the call site". That presupposes a NAMED
+// binding with call sites to inline into. An inline function passed as an argument has
+// neither — it IS the argument, and it is a DEFERRED computation whose whole purpose is
+// that the callee decides whether and when to run it:
+//
+//   this.hooks.invoke('onContended', () => {
+//     const result = this.onContended(key, queue.size);
+//     return result;
+//   });
+//
+// `hooks.invoke` runs the thunk only when that hook is enabled. "Inlining" it would
+// evaluate `this.onContended(...)` eagerly at every call — a SEMANTIC change from lazy
+// to eager, not a refactor. There is no compliant rewrite, which is the signature of a
+// false positive rather than a finding.
+//
+// Before this exemption the rule reported 469 of these across the hook-invoking
+// primitives (Mutex, Throttle, Retry, RealTimeScheduler, VirtualScheduler, EventBus,
+// SampleBuffer), every one unfixable. Two independent cleanup agents stopped and
+// escalated rather than force them, correctly.
+//
+// PAIRED RULE: `v8/inline-arrow-functions` already owns the performance concern for an
+// inline function in a position rebuilt per call or iteration. That rule decides whether
+// a callback should be hoisted; this rule stays on named forwarding bindings. Neither is
+// weakened — they cover different questions, and duplicating the callback case here only
+// produced diagnostics with no remedy.
+class CallbackArgumentGuard {
+  /**
+   * True when `node` is an inline function that reaches a call argument — directly, or as
+   * a property value inside an object/array literal that is itself an argument:
+   *
+   *   runIfEnabled('hook', () => { ... })                          direct
+   *   DomainErrorArgs.build(fields, { 'message': (f) => `...` })    via a property value
+   *
+   * The second shape is just as undeliverable to a "call site": the `message` slot REQUIRES
+   * a function value, so there is nothing to inline it into. Only LITERAL containers are
+   * walked through — an arrow bound to a `const`, or stored on a class field, is not a
+   * required callback and stays reportable, which keeps `v8/inline-functions` as the owner
+   * of the dispatch-map question.
+   */
+  public static isCallArgument(node: Rule.Node): boolean {
+    let current: Rule.Node = node;
+    let walker = current.parent;
+
+    while (walker !== null && ObjectGuard.isObject(walker)
+      && (walker.type === 'Property' || walker.type === 'ObjectExpression' || walker.type === 'ArrayExpression')) {
+      current = walker;
+      walker = current.parent;
+    }
+
+    const parent = walker;
+
+    if (parent === null || !ObjectGuard.isObject(parent)) {
+      return false;
+    }
+    if (parent.type !== 'CallExpression' && parent.type !== 'NewExpression') {
+      return false;
+    }
+
+    const argumentList: readonly unknown[] = Array.isArray(parent.arguments) ? parent.arguments : [];
+    const argumentCount = argumentList.length;
+
+    for (let index = 0; index < argumentCount; index += 1) {
+      if (argumentList.at(index) === current) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
 class TypePredicateGuard {
   public static hasTypePredicateReturn(node: unknown): boolean {
     if (!ObjectGuard.isObject(node)) {
@@ -176,6 +251,259 @@ class TypePredicateGuard {
   }
 }
 
+// (e) A MEMBER DECLARED BY A TYPE CONTRACT HAS NO CALL SITE TO INLINE INTO.
+//
+// This rule's message is "inline the logic at the call site" -- a fix that presupposes a
+// NAMED binding whose call sites can be found and rewritten. That presupposition fails for
+// a class member whose signature is DICTATED, not chosen, by a type the class declares
+// conformance to:
+//
+//   export class SystemProvider implements SystemProviderInterface {
+//     arch(): string {
+//       const result = os.arch();
+//       return result;
+//     }
+//   }
+//
+// (`packages/system/src/providers/SystemProvider.ts`.) Callers never call `SystemProvider`
+// directly -- they hold a `SystemProviderInterface` and dispatch through it, and a SECOND
+// implementation (`packages/system/src/providers/browser/SystemProvider.ts`) supplies a
+// different body for the same member. There is no single call site to inline into: deleting
+// the method removes the class's conformance to `implements SystemProviderInterface`, and
+// "inlining" would require rewriting every caller everywhere the interface is used, which
+// changes virtual dispatch into a compile-time choice of implementation -- not a refactor.
+//
+// The same absence of a call site applies to a `protected` template-method hook a base class
+// declares for its subclasses to override:
+//
+//   /** Pass-through default -- override to pre-process the initial context. */
+//   protected onRunStart(context: T): T {
+//     const result = context;
+//     return result;
+//   }
+//
+// (`packages/pipeline/src/pipeline/Pipeline.ts`.) Deleting it removes a documented extension
+// seam AND breaks the base class's own internal call sites that invoke it polymorphically --
+// there is no "the call site", there are as many call sites as subclasses, present and future.
+//
+// Both shapes share the same root cause: the method exists because a TYPE says it must, not
+// because the author chose to factor it out. `TypeContractGuard` recognizes exactly that --
+// a class member whose declaring class has a heritage clause (`implements`/`extends`) whose
+// resolved type already declares a member of the same name, or a member marked `protected` or
+// `override` -- and exempts it. A COMPUTED method name (`[dynamicKey]() { ... }`) is
+// deliberately NOT exempt: the static name is unknowable, so neither the heritage-resolution
+// question nor the override-seam question can be answered, and the rule stays strict rather
+// than guess.
+class TypeContractGuard {
+  /**
+   * True when `node` is the function value of a class method (or a class-field function
+   * value) whose declaration is mandated by a type contract rather than chosen freely --
+   * see the block comment above. Uses the TypeScript checker to resolve heritage members
+   * rather than matching identifiers by name (this package's standing convention; see
+   * `CallIdentity.ts`), so a same-named unrelated method on an unrelated interface never
+   * produces a false exemption.
+   */
+  public static isTypeContractMember(node: Rule.Node, context: Rule.RuleContext): boolean {
+    const container = TypeContractGuard.#findMethodContainer(node);
+
+    if (container === undefined) {
+      return false;
+    }
+
+    const computed = (container as { readonly 'computed'?: unknown }).computed;
+
+    if (computed !== false) {
+      return false;
+    }
+
+    const methodName = TypeContractGuard.#getStaticKeyName((container as { readonly 'key'?: unknown }).key);
+
+    if (methodName === undefined) {
+      return false;
+    }
+    if (TypeContractGuard.#hasLocalContractModifier(container)) {
+      return true;
+    }
+
+    const classNode = TypeContractGuard.#findContainingClass(container);
+
+    if (classNode === undefined) {
+      return false;
+    }
+
+    const result = TypeContractGuard.#heritageDeclaresMember(classNode, methodName, context);
+
+    return result;
+  }
+
+  /** Walks up to the `MethodDefinition`/`PropertyDefinition` that owns `node` as its value. */
+  static #findMethodContainer(node: Rule.Node): Rule.Node | undefined {
+    const parent = node.parent;
+
+    if (parent === null || !ObjectGuard.isObject(parent)) {
+      return undefined;
+    }
+    if (parent.type !== 'MethodDefinition' && parent.type !== 'PropertyDefinition') {
+      return undefined;
+    }
+    if (parent.value !== node) {
+      return undefined;
+    }
+
+    return parent;
+  }
+
+  /** Reads a statically-known member name off a non-computed key; `undefined` otherwise. */
+  static #getStaticKeyName(key: unknown): string | undefined {
+    if (!ObjectGuard.isObject(key)) {
+      return undefined;
+    }
+    if (key.type === 'Identifier' && typeof key.name === 'string') {
+      return key.name;
+    }
+    if (key.type === 'Literal' && typeof key.value === 'string') {
+      return key.value;
+    }
+
+    return undefined;
+  }
+
+  /** `protected` accessibility or an explicit `override` modifier -- a declared override seam. */
+  static #hasLocalContractModifier(container: Rule.Node): boolean {
+    const accessibility = (container as { readonly 'accessibility'?: unknown }).accessibility;
+
+    if (accessibility === 'protected') {
+      return true;
+    }
+
+    const overrideModifier = (container as { readonly 'override'?: unknown }).override;
+    const result = overrideModifier === true;
+
+    return result;
+  }
+
+  static #findContainingClass(container: Rule.Node): Rule.Node | undefined {
+    const classBody = container.parent;
+
+    if (classBody === null || !ObjectGuard.isObject(classBody)) {
+      return undefined;
+    }
+
+    const classNode = (classBody as { readonly 'parent'?: unknown }).parent;
+
+    if (!ObjectGuard.isObject(classNode)) {
+      return undefined;
+    }
+    if (classNode.type !== 'ClassDeclaration' && classNode.type !== 'ClassExpression') {
+      return undefined;
+    }
+
+    return classNode as unknown as Rule.Node;
+  }
+
+  /** Every heritage expression (`extends` target, each `implements` entry) on `classNode`. */
+  static #collectHeritageExpressions(classNode: Rule.Node): readonly Rule.Node[] {
+    const result: Rule.Node[] = [];
+    const superClass = (classNode as { readonly 'superClass'?: unknown }).superClass;
+
+    if (ObjectGuard.isObject(superClass)) {
+      result.push(superClass as unknown as Rule.Node);
+    }
+
+    const implementsClauses = (classNode as { readonly 'implements'?: unknown }).implements;
+
+    if (ObjectGuard.isArray(implementsClauses)) {
+      const clauseCount = implementsClauses.length;
+
+      for (let index = 0; index < clauseCount; index += 1) {
+        const clause = implementsClauses.at(index);
+
+        if (!ObjectGuard.isObject(clause)) {
+          continue;
+        }
+
+        const expression = clause.expression;
+
+        if (ObjectGuard.isObject(expression)) {
+          result.push(expression as unknown as Rule.Node);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * True when any `extends`/`implements` heritage expression resolves (via the checker, not
+   * name-matching -- see `CallIdentity.ts`) to a type that already declares `methodName`. This
+   * single check covers both an interface member (case a) and an inherited/abstract base-class
+   * member (also case a, and the source of case b's "abstract anywhere in the heritage chain":
+   * `checker.getTypeAtLocation` flattens abstract members into the resolved type identically to
+   * concrete ones, so an abstract ancestor member surfaces here with no separate walk needed).
+   * Silent (`false`) when type services are unavailable, matching this package's standing
+   * posture of going quiet rather than guessing without types.
+   */
+  static #heritageDeclaresMember(classNode: Rule.Node, methodName: string, context: Rule.RuleContext): boolean {
+    const servicesUnknown: unknown = context.sourceCode.parserServices;
+
+    if (!AstHelpers.hasTypeServices(servicesUnknown)) {
+      return false;
+    }
+
+    const checker = servicesUnknown.program.getTypeChecker();
+    const heritageExpressions = TypeContractGuard.#collectHeritageExpressions(classNode);
+    const heritageCount = heritageExpressions.length;
+
+    for (let index = 0; index < heritageCount; index += 1) {
+      const expression = heritageExpressions.at(index);
+
+      if (expression === undefined) {
+        continue;
+      }
+
+      const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(expression);
+
+      if (tsNode === undefined) {
+        continue;
+      }
+
+      const type = checker.getTypeAtLocation(tsNode);
+      const property = checker.getPropertyOfType(type, methodName);
+
+      if (property !== undefined) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
+// (f) A BODY THAT IS A VALUE IS NOT A SHIM. ONLY DELEGATION IS.
+//
+// Three sites reduce to a literal, a bare identifier, or a template literal — not to a call:
+//
+//   packages/types/src/guards/Empty.ts             static string(): string { return ''; }
+//   packages/retry/.../BackoffStrategy.ts          static constant(_a, baseDelayMs) { return baseDelayMs; }
+//   packages/logger/src/modules/LogEventName.ts    static create(c, o) { return `${c}.${o}`; }
+//
+// This rule's message names an indirection to remove: "inline the logic at the call site."
+// A SHIM is by definition an indirection layer — it forwards to something else and adds
+// nothing. None of these forwards to anything else; each one IS the value it produces. There
+// is no callee to inline, no hidden delegation these three could be replaced by calling
+// directly instead. `Empty.string()` and `LogEventName.create()` are the general case:
+// `DEFAULT_OPTIONS.allowLiterals` (see that constant's own comment) now defaults to `true`, so
+// a body that reduces to a `Literal`/`TemplateLiteral` is exempt by default — a changed
+// default rather than a new branch, since the option already existed for exactly this
+// question and only its DEFAULT value was wrong. `BackoffStrategy.constant` needs one more
+// step: its reduced body is a bare parameter reference, not a literal, and `TrivialExpression`
+// handles that case separately — see `IdentifierSelection`'s own module comment in
+// `TrivialExpression.ts` for why a function selecting among several of its own parameters
+// (discarding the rest) is exempt the same way, while a single-parameter identity function
+// (`passThrough(x) { return x; }`) stays reported. A genuine 1:1 forward to another call —
+// `wrap(a, b) { return Other.compute(a, b); }` — is unaffected by any of these exemptions: it
+// reduces to a `CallExpression`, the one shape this rule still reports unconditionally.
+
 class ForwardedReturnReduction {
   public static reduce(body: readonly unknown[]): unknown {
     const meaningful = ForwardedReturnReduction.#dropLeadingEmptyStatements(body);
@@ -186,7 +514,10 @@ class ForwardedReturnReduction {
       return result;
     }
     if (meaningful.length === 2) {
-      const result = ForwardedReturnReduction.#fromDeclareThenReturn(meaningful.at(0), meaningful.at(1));
+      // Accepts any declaration kind (`var`/`let`/`const`) — see `DeclareThenReturnShape`'s
+      // own module comment for why this rule's value-forwarding question is kind-agnostic
+      // while `v8/inline-arrow-functions`'s house-style question is not.
+      const result = DeclareThenReturnShape.of(meaningful.at(0), meaningful.at(1))?.initializer;
 
       return result;
     }
@@ -216,42 +547,6 @@ class ForwardedReturnReduction {
 
     return result;
   }
-
-  static #fromDeclareThenReturn(first: unknown, second: unknown): unknown {
-    if (AstHelpers.getNodeType(first) !== 'VariableDeclaration') {
-      return undefined;
-    }
-    if (AstHelpers.getNodeType(second) !== 'ReturnStatement') {
-      return undefined;
-    }
-    if (!ObjectGuard.isObject(first) || !ObjectGuard.isObject(second)) {
-      return undefined;
-    }
-
-    const declarations = first.declarations;
-
-    if (!ObjectGuard.isArray(declarations) || declarations.length !== 1) {
-      return undefined;
-    }
-
-    const declarator = declarations.at(0);
-
-    if (!ObjectGuard.isObject(declarator)) {
-      return undefined;
-    }
-
-    const declaredName = AstHelpers.getIdentifierName(declarator.id);
-    const returnedName = AstHelpers.getIdentifierName(second.argument);
-
-    if (declaredName === undefined || returnedName === undefined) {
-      return undefined;
-    }
-    if (declaredName !== returnedName) {
-      return undefined;
-    }
-
-    return declarator.init;
-  }
 }
 
 export const inlineTrivialLogic: Rule.RuleModule = {
@@ -275,7 +570,7 @@ export const inlineTrivialLogic: Rule.RuleModule = {
       if (type === 'ThisExpression') {
         return;
       }
-      if (!TrivialExpression.isTrivial(expression, options)) {
+      if (!TrivialExpression.isTrivial(expression, options, ParameterNames.of(node), context)) {
         return;
       }
 
@@ -294,7 +589,13 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     };
 
     const onArrowFunctionExpression: NonNullable<Rule.RuleListener['ArrowFunctionExpression']> = (node) => {
+      if (CallbackArgumentGuard.isCallArgument(node)) {
+        return;
+      }
       if (TypePredicateGuard.hasTypePredicateReturn(node)) {
+        return;
+      }
+      if (TypeContractGuard.isTypeContractMember(node, context)) {
         return;
       }
       if (node.body.type === 'BlockStatement') {
@@ -313,7 +614,13 @@ export const inlineTrivialLogic: Rule.RuleModule = {
     };
 
     const onFunctionExpression: NonNullable<Rule.RuleListener['FunctionExpression']> = (node) => {
+      if (CallbackArgumentGuard.isCallArgument(node)) {
+        return;
+      }
       if (TypePredicateGuard.hasTypePredicateReturn(node)) {
+        return;
+      }
+      if (TypeContractGuard.isTypeContractMember(node, context)) {
         return;
       }
       reportBodyIfTrivial(node, node.body.body);

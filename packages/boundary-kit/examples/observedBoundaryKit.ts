@@ -75,14 +75,15 @@ class ObservedBoundaryKitExample {
         throw new Error('transient failure');
       }
 
-      return Promise.resolve('default-ok');
+      const result = Promise.resolve('default-ok');
+      return result;
     });
 
     console.log('Default kit result:', defaultResult, `(${String(defaultAttempts)} attempts)`);
 
     const throttle = new TelemetryThrottle({ 'concurrencyLimit': 3 });
     const circuitBreaker = new TelemetryCircuitBreaker({ 'failureThreshold': 2, 'resetTimeoutMs': 5000 });
-    const retry = new TelemetryRetry({ 'maxRetries': 2 });
+    const retry = new TelemetryRetry({ 'maximumRetries': 2 });
 
     const observedKit = BoundaryKit.create({
       'circuitBreaker': circuitBreaker,
@@ -99,7 +100,8 @@ class ObservedBoundaryKitExample {
         throw new Error('transient failure');
       }
 
-      return Promise.resolve('observed-ok');
+      const result = Promise.resolve('observed-ok');
+      return result;
     });
 
     console.log('Observed kit result:', observedResult);

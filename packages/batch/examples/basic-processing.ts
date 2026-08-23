@@ -9,7 +9,8 @@ import { BasicProcessingFixture } from './fixtures/BasicProcessingFixture.js';
 class NumberItem {
   static double(n: number): Promise<number> {
     const doubled = n * 2;
-    return Promise.resolve(doubled);
+    const result = Promise.resolve(doubled);
+    return result;
   }
 }
 
@@ -29,6 +30,7 @@ console.log('All results:', allResults);
 assert.equal(allResults.length, 5, 'Expected 5 results');
 
 // Results must match expected doubled values (order preserved within each batch).
-assert.deepEqual(allResults.sort((a, b) => {return a - b;}), BasicProcessingFixture.ExpectedDoubled);
+const sortedResults = allResults.sort((a, b) => { const result = a - b; return result; });
+assert.deepEqual(sortedResults, BasicProcessingFixture.ExpectedDoubled);
 
 console.log('basic-processing: all assertions passed');

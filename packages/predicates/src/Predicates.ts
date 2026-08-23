@@ -13,17 +13,20 @@ export class Predicates {
     [
       'array',
       (value: unknown): unknown => {
-        return !Array.isArray(value) && typeof value !== 'object' ? [value] : value;
+        const result = !Array.isArray(value) && typeof value !== 'object' ? [value] : value;
+        return result;
       }
     ],
     [
       'boolean',
       (value: unknown): unknown => {
         if (typeof value === 'string') {
-          return Predicates.coerceToBoolean(value) ?? value;
+          const result = Predicates.coerceToBoolean(value) ?? value;
+          return result;
         }
         if (value === 1) {
-          return true;
+          const result = true;
+          return result;
         }
         if (value === 0) {
           return false;
@@ -38,10 +41,12 @@ export class Predicates {
         if (typeof value === 'string') {
           const coerced = Predicates.coerceToNumber(value);
 
-          return coerced === undefined ? value : Math.trunc(coerced);
+          const result = coerced === undefined ? value : Math.trunc(coerced);
+          return result;
         }
         if (typeof value === 'boolean') {
-          return value ? 1 : 0;
+          const result = value ? 1 : 0;
+          return result;
         }
 
         return value;
@@ -50,17 +55,20 @@ export class Predicates {
     [
       'null',
       (value: unknown): unknown => {
-        return value === '' || value === 'null' ? null : value;
+        const result = value === '' || value === 'null' ? null : value;
+        return result;
       }
     ],
     [
       'number',
       (value: unknown): unknown => {
         if (typeof value === 'string') {
-          return Predicates.coerceToNumber(value) ?? value;
+          const result = Predicates.coerceToNumber(value) ?? value;
+          return result;
         }
         if (typeof value === 'boolean') {
-          return value ? 1 : 0;
+          const result = value ? 1 : 0;
+          return result;
         }
 
         return value;
@@ -69,7 +77,8 @@ export class Predicates {
     [
       'string',
       (value: unknown): unknown => {
-        return typeof value === 'string' ? value : String(value);
+        const result = typeof value === 'string' ? value : String(value);
+        return result;
       }
     ]
   ]);
@@ -77,47 +86,46 @@ export class Predicates {
   private static readonly typeMatchers = new Map<string, (value: unknown) => boolean>([
     [
       'array',
-      (value: unknown): boolean => {
-        const result = Array.isArray(value);
-        return result;
-      }
+      Array.isArray
     ],
     [
       'integer',
       (value: unknown): boolean => {
-        const result = Predicates.isIntegerValue(value);
+        const result = typeof value === 'number' && Number.isInteger(value);
         return result;
       }
     ],
     [
       'null',
       (value: unknown): boolean => {
-        return value === null;
+        const result = value === null;
+        return result;
       }
     ],
     [
       'number',
       (value: unknown): boolean => {
-        const result = Predicates.isFiniteNumber(value);
+        const result = typeof value === 'number' && Number.isFinite(value);
         return result;
       }
     ],
     [
       'object',
       (value: unknown): boolean => {
-        return Predicates.inferValueType(value) === 'object';
+        const result = Predicates.inferValueType(value) === 'object';
+        return result;
       }
     ]
   ]);
 
   /** Count Unicode code points without allocating an intermediate array. */
-  static codePointLength(str: string): number {
+  static codePointLength(string: string): number {
     let length = 0;
-    const strLen = str.length;
+    const stringLength = string.length;
 
-    for (let index = 0; index < strLen; index++) {
+    for (let index = 0; index < stringLength; index++) {
       length++;
-      const code = str.codePointAt(index);
+      const code = string.codePointAt(index);
 
       if (code !== undefined && code > 0xFF_FF) {
         index++;
@@ -128,36 +136,37 @@ export class Predicates {
   }
 
   /** Returns true as soon as `target` code points have been counted; stops early. */
-  private static codePointLengthAtLeast(str: string, target: number): boolean {
+  private static codePointLengthAtLeast(string: string, target: number): boolean {
     let count = 0;
-    const strLen = str.length;
+    const stringLength = string.length;
 
-    for (let index = 0; index < strLen; index++) {
+    for (let index = 0; index < stringLength; index++) {
       count++;
       if (count >= target) {
         return true;
       }
-      const code = str.codePointAt(index);
+      const code = string.codePointAt(index);
 
       if (code !== undefined && code > 0xFF_FF) {
         index++;
       }
     }
 
-    return count >= target;
+    const result = count >= target;
+    return result;
   }
 
   /** Returns false as soon as code-point count exceeds `limit`; stops early. */
-  private static codePointLengthAtMost(str: string, limit: number): boolean {
+  private static codePointLengthAtMost(string: string, limit: number): boolean {
     let count = 0;
-    const strLen = str.length;
+    const stringLength = string.length;
 
-    for (let index = 0; index < strLen; index++) {
+    for (let index = 0; index < stringLength; index++) {
       count++;
       if (count > limit) {
         return false;
       }
-      const code = str.codePointAt(index);
+      const code = string.codePointAt(index);
 
       if (code !== undefined && code > 0xFF_FF) {
         index++;
@@ -183,7 +192,8 @@ export class Predicates {
   static coerceToNumber(value: string): number | undefined {
     const coerced = Number(value);
 
-    return Number.isFinite(coerced) ? coerced : undefined;
+    const result = Number.isFinite(coerced) ? coerced : undefined;
+    return result;
   }
 
   /** Attempt coercion in schema-type order; returns first successful result or original value. */
@@ -192,9 +202,9 @@ export class Predicates {
       return value;
     }
 
-    const typesLen = schemaTypes.length;
+    const schemaTypeCount = schemaTypes.length;
 
-    for (let i = 0; i < typesLen; i += 1) {
+    for (let i = 0; i < schemaTypeCount; i += 1) {
       const type = schemaTypes[i]!;
       const coercer = Predicates.coercionHandlers.get(type);
 
@@ -219,50 +229,57 @@ export class Predicates {
       return 'array';
     }
 
-    return typeof value;
+    const result = typeof value;
+    return result;
   }
 
   static isFiniteNumber(value: unknown): boolean {
-    return typeof value === 'number' && Number.isFinite(value);
+    const result = typeof value === 'number' && Number.isFinite(value);
+    return result;
   }
 
   static isIntegerValue(value: unknown): boolean {
-    return typeof value === 'number' && Number.isInteger(value);
+    const result = typeof value === 'number' && Number.isInteger(value);
+    return result;
   }
 
   static matchesAnyType(schemaTypes: string[], value: unknown): boolean {
-    const result = schemaTypes.some((schemaType: string): boolean => {
-      const result = Predicates.matchesType(schemaType, value);
-      return result;
-    });
-    return result;
+    const schemaTypeCount = schemaTypes.length;
+    for (let index = 0; index < schemaTypeCount; index += 1) {
+      const schemaType = schemaTypes[index]!;
+      if (Predicates.matchesType(schemaType, value)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static matchesType(schemaType: string, value: unknown): boolean {
     const matcher = Predicates.typeMatchers.get(schemaType);
 
-    return matcher === undefined ? Predicates.inferValueType(value) === schemaType : matcher(value);
-  }
-
-  static satisfiesConst(value: unknown, constValue: unknown): boolean {
-    const result = DataType.deepEqual(value, constValue);
+    const result = matcher === undefined ? Predicates.inferValueType(value) === schemaType : matcher(value);
     return result;
   }
 
   static satisfiesEnum(value: unknown, enumValues: unknown[]): boolean {
-    const result = enumValues.some((enumValue: unknown): boolean => {
-      const result = DataType.deepEqual(value, enumValue);
-      return result;
-    });
-    return result;
+    const enumValueCount = enumValues.length;
+    for (let index = 0; index < enumValueCount; index += 1) {
+      const enumValue = enumValues[index];
+      if (DataType.deepEqual(value, enumValue)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static checkMinimum(value: number, minimum: number, exclusive: boolean): boolean {
-    return exclusive ? value > minimum : value >= minimum;
+    const result = exclusive ? value > minimum : value >= minimum;
+    return result;
   }
 
   static checkMaximum(value: number, maximum: number, exclusive: boolean): boolean {
-    return exclusive ? value < maximum : value <= maximum;
+    const result = exclusive ? value < maximum : value <= maximum;
+    return result;
   }
 
   /** Uses epsilon tolerance for floating-point rounding errors. */
@@ -272,7 +289,8 @@ export class Predicates {
     }
     const quotient = value / divisor;
 
-    return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
+    const result = Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
+    return result;
   }
 
   static checkPattern(value: string, pattern: RegExp): boolean {
@@ -284,26 +302,28 @@ export class Predicates {
   }
 
   /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */
-  static satisfiesMinLength(value: string, minimum: number): boolean {
-    const len = value.length;
+  static satisfiesMinimumLength(value: string, minimum: number): boolean {
+    const length = value.length;
 
-    if (len < minimum) {
+    if (length < minimum) {
       return false;
     }
-    if (len >= minimum * 2) {
+    if (length >= minimum * 2) {
       return true;
     }
 
-    return Predicates.codePointLengthAtLeast(value, minimum);
+    const result = Predicates.codePointLengthAtLeast(value, minimum);
+    return result;
   }
 
   /** Fast-path: code_points <= utf16_length, so value.length<=max is definitely true. */
-  static satisfiesMaxLength(value: string, maximum: number): boolean {
+  static satisfiesMaximumLength(value: string, maximum: number): boolean {
     if (value.length <= maximum) {
       return true;
     }
 
-    return Predicates.codePointLengthAtMost(value, maximum);
+    const result = Predicates.codePointLengthAtMost(value, maximum);
+    return result;
   }
 
   /** Only base64/base64url are actively checked; unknown encodings return true per spec. */
@@ -312,7 +332,8 @@ export class Predicates {
       return true;
     }
 
-    return Predicates.#decodeBase64Safe(value, encoding === 'base64url') !== null;
+    const result = Predicates.#decodeBase64Safe(value, encoding === 'base64url') !== null;
+    return result;
   }
 
   /** Only application/json is actively checked; unknown media types return true per spec. */
@@ -334,7 +355,8 @@ export class Predicates {
     }
 
     if (mediaType === 'application/json') {
-      return Predicates.#isValidJson(content);
+      const result = Predicates.#isValidJson(content);
+      return result;
     }
 
     return true;
@@ -343,34 +365,36 @@ export class Predicates {
   /** Validates minContains/maxContains bounds against match count from a contains schema. */
   static satisfiesContains(
     matchCount: number,
-    minContains: number | undefined,
-    maxContains: number | undefined
+    options: Readonly<{ 'maximumContains'?: number | undefined; 'minimumContains'?: number | undefined }> = {}
   ): boolean {
-    const minimum = minContains ?? (maxContains === undefined ? 1 : 0);
+    const { maximumContains, minimumContains } = options;
+    const minimum = minimumContains ?? (maximumContains === undefined ? 1 : 0);
 
     if (matchCount < minimum) {
       return false;
     }
-    if (maxContains !== undefined && matchCount > maxContains) {
+    if (maximumContains !== undefined && matchCount > maximumContains) {
       return false;
     }
 
     return true;
   }
 
-  static satisfiesMinItems(value: unknown[], minimum: number): boolean {
-    return value.length >= minimum;
+  static satisfiesMinimumItems(value: unknown[], minimum: number): boolean {
+    const result = value.length >= minimum;
+    return result;
   }
 
-  static satisfiesMaxItems(value: unknown[], maximum: number): boolean {
-    return value.length <= maximum;
+  static satisfiesMaximumItems(value: unknown[], maximum: number): boolean {
+    const result = value.length <= maximum;
+    return result;
   }
 
   static satisfiesUniqueItems(value: unknown[]): boolean {
-    const valueLen = value.length;
+    const valueLength = value.length;
 
-    for (let index = 0; index < valueLen; index++) {
-      for (let other = index + 1; other < valueLen; other++) {
+    for (let index = 0; index < valueLength; index++) {
+      for (let other = index + 1; other < valueLength; other++) {
         if (DataType.deepEqual(value[index], value[other])) {
           return false;
         }
@@ -382,27 +406,36 @@ export class Predicates {
 
   /** Checks own properties only; inherited keys (e.g. from the prototype chain) never satisfy `required`. */
   static hasAllRequiredProperties(value: Record<string, unknown>, required: string[]): boolean {
-    const result = required.every((key: string): boolean => {
-      const result = Object.hasOwn(value, key);
-      return result;
-    });
-    return result;
+    const requiredCount = required.length;
+    for (let index = 0; index < requiredCount; index += 1) {
+      const key = required[index]!;
+      if (!Object.hasOwn(value, key)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static hasNoAdditionalProperties(value: Record<string, unknown>, allowedKeys: Set<string>): boolean {
-    const result = Object.keys(value).every((key: string): boolean => {
-      const result = allowedKeys.has(key);
-      return result;
-    });
+    const keys = Object.keys(value);
+    const keyCount = keys.length;
+    for (let index = 0; index < keyCount; index += 1) {
+      const key = keys[index]!;
+      if (!allowedKeys.has(key)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static satisfiesMinimumProperties(value: Record<string, unknown>, minimum: number): boolean {
+    const result = Object.keys(value).length >= minimum;
     return result;
   }
 
-  static satisfiesMinProperties(value: Record<string, unknown>, minimum: number): boolean {
-    return Object.keys(value).length >= minimum;
-  }
-
-  static satisfiesMaxProperties(value: Record<string, unknown>, maximum: number): boolean {
-    return Object.keys(value).length <= maximum;
+  static satisfiesMaximumProperties(value: Record<string, unknown>, maximum: number): boolean {
+    const result = Object.keys(value).length <= maximum;
+    return result;
   }
 
   static #decodeBase64Safe(value: string, urlSafe: boolean): null | string {
@@ -412,7 +445,8 @@ export class Predicates {
         : value;
       const decoded = atob(normalised);
 
-      return decoded;
+      const result = decoded;
+      return result;
     } catch {
       return null;
     }

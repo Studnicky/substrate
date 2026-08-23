@@ -78,7 +78,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       });
     }
 
-    const defaults = ErrorDefaults[options.scenario];
+    const defaults = Reflect.get(ErrorDefaults, options.scenario);
 
     const mergedOptions: ModuleErrorOptionsInterface = {
       'cause': options.cause,
@@ -88,7 +88,8 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       'statusCode': options.statusCode ?? defaults.statusCode
     };
 
-    return new ModuleError(message, mergedOptions);
+    const result = new ModuleError(message, mergedOptions);
+    return result;
   }
 
   /**
@@ -99,9 +100,10 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   readonly #context: Record<string, unknown> | undefined;
 
   public get context(): Record<string, unknown> | undefined {
-    return this.#context === undefined
+    const result: Record<string, unknown> | undefined = this.#context === undefined
       ? undefined
       : DefensiveSnapshot.record(this.#context);
+    return result;
   }
 
   /**
@@ -144,9 +146,6 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       ? undefined
       : DefensiveSnapshot.record(options.context);
 
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, this.constructor);
-    }
   }
 
   /**

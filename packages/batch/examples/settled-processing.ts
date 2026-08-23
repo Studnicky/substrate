@@ -18,9 +18,11 @@ class Result {
 
   static process(item: ItemEntity.Type): Promise<Result> {
     if (item.shouldFail) {
-      return Promise.reject(new Error(`Item ${item.id} failed`));
+      const result = Promise.reject(new Error(`Item ${item.id} failed`));
+      return result;
     }
-    return Promise.resolve(new Result(item.id, `processed-${item.id}`));
+    const result = Promise.resolve(new Result(item.id, `processed-${item.id}`));
+    return result;
   }
 }
 
@@ -30,7 +32,9 @@ class SettledProcessingExample {
 
     for await (const batch of Batch.create<Result>(2).processSettled(SettledProcessingFixture.Items, Result.process)) {
       console.log('Batch settled results:');
-      for (const result of batch) {
+      const batchLength = batch.length;
+      for (let index = 0; index < batchLength; index += 1) {
+        const result = batch[index]!;
         if (result.status === 'fulfilled') {
           console.log('  fulfilled:', result.value);
         } else {
@@ -46,19 +50,27 @@ class SettledProcessingExample {
     // All 4 items must have been processed (fulfilled or rejected).
     assert.equal(allSettled.length, 4, 'Expected 4 settled results');
 
-    const fulfilled = allSettled.filter((r): r is PromiseFulfilledResult<Result> => {return r.status === 'fulfilled';});
-    const rejected = allSettled.filter((r): r is PromiseRejectedResult => {return r.status === 'rejected';});
+    const fulfilled = allSettled.filter((result): result is PromiseFulfilledResult<Result> => {
+      const matches = result.status === 'fulfilled';
+      return matches;
+    });
+    const rejected = allSettled.filter((result): result is PromiseRejectedResult => {
+      const matches = result.status === 'rejected';
+      return matches;
+    });
 
     assert.equal(fulfilled.length, 3, 'Expected 3 fulfilled results');
     assert.equal(rejected.length, 1, 'Expected 1 rejected result');
 
     // Verify fulfilled values.
     const fulfilledValues: Result[] = [];
-    for (const r of fulfilled) {
-      fulfilledValues.push(r.value);
+    const fulfilledLength = fulfilled.length;
+    for (let index = 0; index < fulfilledLength; index += 1) {
+      const fulfilledResult = fulfilled[index]!;
+      fulfilledValues.push(fulfilledResult.value);
     }
-    fulfilledValues.sort((a, b) => {return a.id - b.id;});
-    assert.deepEqual(fulfilledValues, [
+    const sortedFulfilledValues = fulfilledValues.sort((a, b) => { const result = a.id - b.id; return result; });
+    assert.deepEqual(sortedFulfilledValues, [
       new Result(1, 'processed-1'),
       new Result(3, 'processed-3'),
       new Result(4, 'processed-4')

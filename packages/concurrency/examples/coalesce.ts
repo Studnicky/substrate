@@ -58,11 +58,13 @@ class CoalesceDemo {
 
   static async runDistinctKeys(): Promise<void> {
     const coalesce = Coalesce.create<string>();
-    const callCounts: Record<string, number> = { 'a': 0, 'b': 0 };
+    const callCounts = new Map<string, number>([['a', 0], ['b', 0]]);
 
     const factory = (key: string) => {return (): Promise<string> => {
-      callCounts[key]! += 1;
-      return Promise.resolve(`result-${key}`);
+      const nextCount = (callCounts.get(key) ?? 0) + 1;
+      callCounts.set(key, nextCount);
+      const result = Promise.resolve(`result-${key}`);
+      return result;
     };};
 
     const [a, b] = await Promise.all([
@@ -73,8 +75,8 @@ class CoalesceDemo {
     console.log('Distinct keys — a:', a, 'b:', b, 'callCounts:', callCounts);
     assert.equal(a, 'result-a');
     assert.equal(b, 'result-b');
-    assert.equal(callCounts.a, 1);
-    assert.equal(callCounts.b, 1);
+    assert.equal(callCounts.get('a'), 1);
+    assert.equal(callCounts.get('b'), 1);
   }
 
   static async runSequentialCallsEachInvokeFactory(): Promise<void> {
@@ -83,7 +85,8 @@ class CoalesceDemo {
 
     const factory = (): Promise<number> => {
       callCount += 1;
-      return Promise.resolve(callCount);
+      const result = Promise.resolve(callCount);
+      return result;
     };
 
     // Sequential calls — no in-flight overlap — each invokes factory

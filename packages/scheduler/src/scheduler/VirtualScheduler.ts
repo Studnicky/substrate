@@ -30,7 +30,8 @@ class VirtualSchedulerInstance {
     constructor: VirtualSchedulerSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 

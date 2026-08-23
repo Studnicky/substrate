@@ -21,7 +21,8 @@ class ContextInstance {
     constructor: ContextSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -72,12 +73,8 @@ export class Context implements ContextInterface {
     this: ContextSubclassInterface<TInstance>,
     config: ContextConfigEntity.Type
   ): TInstance {
-    const resolveSubclassConstructor = (): ContextSubclassInterface<TInstance> => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
-    if (!ContextInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    const result: unknown = Reflect.construct(this, [config]);
+    if (!ContextInstance.belongsTo(this, result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -168,7 +165,7 @@ export class Context implements ContextInterface {
    * Subclasses override to implement lenient-mode or logging behavior.
    */
   protected onMissingContext(_key?: string): boolean {
-    const result = false;
+    const result = _key === undefined && false;
     return result;
   }
 
@@ -262,8 +259,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   has(key: string): boolean {
-    const result = this.#getStore().has(key);
-    return result;
+    if (this.#getStore().has(key)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -299,7 +298,8 @@ export class Context implements ContextInterface {
    * @returns true if within an active context
    */
   isActive(): boolean {
-    return this.#storage.getStore() !== undefined;
+    const result = this.#storage.getStore() !== undefined;
+    return result;
   }
 
   /**

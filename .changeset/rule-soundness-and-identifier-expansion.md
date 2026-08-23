@@ -101,6 +101,39 @@ MAX_PRECISION                  -> MAXIMUM_PRECISION
 Consumers importing any of these must update both the imported name and, where they
 deep-import, the module path.
 
+## `@studnicky/predicates` removes `satisfiesConst`
+
+`Predicates.satisfiesConst` is removed. It forwarded 1:1 to `DataType.deepEqual` and added no
+behaviour of its own — the JSON Schema `const` keyword IS deep equality.
+
+Consumers call `DataType.deepEqual(value, constantValue)` from `@studnicky/json` directly, which
+requires declaring `@studnicky/json` as a dependency; `@studnicky/predicates` does not re-export
+it. The semantics are unchanged, and `@studnicky/json` already owns the tests for them.
+
+The rest of the `satisfies*` family — `satisfiesEnum`, `satisfiesMinimum`, `satisfiesContains`
+and the others — is unaffected. Each of those applies logic of its own beyond a forward.
+
+## `@studnicky/errors` cause installation
+
+`BaseError` installs an own `cause` property only when a cause is actually supplied. `Error`
+installs `cause` whenever the options object HAS the key, regardless of its value, so passing
+`{ 'cause': undefined }` created an own `cause` holding `undefined`. Both spellings leave
+`error.cause === undefined` and no consumer can read them apart, but the first forced any
+subclass wanting a cause-free instance to `delete` the property — which drops every instance of
+that subclass into dictionary mode.
+
+Measured at 2,000,000 instances: the deletion costs 7.2x on property reads (300.6ms against
+41.8ms) and `%HasFastProperties` reports false. Constructing the options object conditionally
+splits the error family into two hidden classes, which measures free (13.8ms bimorphic against
+15.2ms monomorphic) because inline caches stay polymorphic well past two shapes.
+
+`RetryError` consequently drops its `Reflect.deleteProperty(this, 'cause')`, keeping its
+detached-projection contract with no property to remove.
+
+Consumers reading `error.cause` are unaffected. Code testing for the property's PRESENCE —
+`'cause' in error` or `Object.hasOwn(error, 'cause')` — now reports `false` on an error
+constructed without a cause, where it previously reported `true`.
+
 ## `@studnicky/worker-pool` path resolution
 
 Worker paths were built with `new URL(path, import.meta.url).pathname`, which returns the
@@ -118,3 +151,19 @@ any path containing a space, which is routine on macOS.
 All 17 outstanding advisories are cleared. The one reaching consumers was `undici`
 8.8.0 to 8.10.0, a runtime dependency of `@studnicky/fetch` carrying one high and four
 moderate advisories.
+
+`pnpm.overrides` carries one entry where it previously carried seven. An override applies to
+every resolution in the graph regardless of what a dependent declares, so it is kept only where
+no dependency bump reaches the fix. Six were removed after verifying, against GitHub's advisory
+database at the exact version natural resolution selects, that each resolves clean without the
+pin: `brace-expansion` 5.0.9, `dompurify` 3.4.14, `fast-uri` 3.1.6, `nanoid` 3.3.18, `postcss`
+8.5.26, and `esbuild`.
+
+The `esbuild` pin was also incorrect. `tsx` declares `~0.28.0`, and the unconditional override
+served it 0.25.12 — three minors below its own declared floor, in the loader the whole test
+suite runs under. Both `tsx` and `vite` now resolve inside their declared ranges.
+
+`vite: ^6.4.3` remains, and `SECURITY.md` records why: `vitepress` 1.6.4 is the latest stable
+release, it declares `vite: ^5.4.14`, and the vite 5.x line carries an unfixed HIGH
+(GHSA-fx2h-pf6j-xcff) whose fix ships only in 6.4.3. None of this affects published package
+contents — the toolchain is a docs-build devDependency.

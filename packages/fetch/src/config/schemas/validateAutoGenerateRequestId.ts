@@ -8,10 +8,10 @@ export class ValidateAutoGenerateRequestId extends FetchConfigValidation {
   /**
    * Validates autoGenerateRequestId boolean flag
    *
-   * @param val - Value to validate
+   * @param value - Value to validate
    * @throws ConfigurationError if validation fails
    */
-  public static validate(val: unknown): void {
-    this.assertBoolean(val, 'autoGenerateRequestId');
+  public static validate(value: unknown): void {
+    this.assertBoolean(value, 'autoGenerateRequestId');
   }
 }

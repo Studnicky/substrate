@@ -14,7 +14,7 @@ import {
 
 const DEFAULT_CONFIG: MutexConfigEntity.Type = {
   'enableCoalescing': false,
-  'maxQueueSize': UNLIMITED_QUEUE_SIZE,
+  'maximumQueueSize': UNLIMITED_QUEUE_SIZE,
   'timeout': DEFAULT_TIMEOUT
 };
 
@@ -25,7 +25,7 @@ class ConfigValidator {
   static validate(userConfig?: Partial<MutexConfigEntity.Type>): MutexConfigEntity.Type {
     try {
       if (userConfig !== undefined) {
-        const configObj: Record<string, unknown> = {};
+        const configObject: Record<string, unknown> = {};
         const userConfigKeys = Object.keys(userConfig);
         const userConfigKeysLength = userConfigKeys.length;
 
@@ -36,19 +36,19 @@ class ConfigValidator {
             continue;
           }
 
-          Reflect.set(configObj, key, Reflect.get(userConfig, key));
+          Reflect.set(configObject, key, Reflect.get(userConfig, key));
         }
 
-        ConfigValidation.assertNoUnknownKeys(configObj, MUTEX_CONFIG_KEYS);
-        ConfigValidation.assertBoolean(configObj.enableCoalescing, 'enableCoalescing');
-        ConfigValidation.assertNumber(configObj.maxQueueSize, 'maxQueueSize');
-        ConfigValidation.assertFinite(configObj.maxQueueSize, 'maxQueueSize');
-        ConfigValidation.assertInteger(configObj.maxQueueSize, 'maxQueueSize');
-        ConfigValidation.assertNonNegative(configObj.maxQueueSize, 'maxQueueSize');
-        ConfigValidation.assertNumber(configObj.timeout, 'timeout');
-        ConfigValidation.assertFinite(configObj.timeout, 'timeout');
-        ConfigValidation.assertInteger(configObj.timeout, 'timeout');
-        ConfigValidation.assertNonNegative(configObj.timeout, 'timeout');
+        ConfigValidation.assertNoUnknownKeys(configObject, MUTEX_CONFIG_KEYS);
+        ConfigValidation.assertBoolean(configObject.enableCoalescing, 'enableCoalescing');
+        ConfigValidation.assertNumber(configObject.maximumQueueSize, 'maximumQueueSize');
+        ConfigValidation.assertFinite(configObject.maximumQueueSize, 'maximumQueueSize');
+        ConfigValidation.assertInteger(configObject.maximumQueueSize, 'maximumQueueSize');
+        ConfigValidation.assertNonNegative(configObject.maximumQueueSize, 'maximumQueueSize');
+        ConfigValidation.assertNumber(configObject.timeout, 'timeout');
+        ConfigValidation.assertFinite(configObject.timeout, 'timeout');
+        ConfigValidation.assertInteger(configObject.timeout, 'timeout');
+        ConfigValidation.assertNonNegative(configObject.timeout, 'timeout');
       }
 
       const config: MutexConfigEntity.Type = { ...DEFAULT_CONFIG };
@@ -57,8 +57,8 @@ class ConfigValidator {
         if (userConfig.enableCoalescing !== undefined) {
           config.enableCoalescing = userConfig.enableCoalescing;
         }
-        if (userConfig.maxQueueSize !== undefined) {
-          config.maxQueueSize = userConfig.maxQueueSize;
+        if (userConfig.maximumQueueSize !== undefined) {
+          config.maximumQueueSize = userConfig.maximumQueueSize;
         }
         if (userConfig.timeout !== undefined) {
           config.timeout = userConfig.timeout;

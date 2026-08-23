@@ -14,7 +14,8 @@ export class Guard {
    * `undefined`.
    */
   public static asNumber(value: unknown): number | undefined {
-    return typeof value === 'number' ? value : undefined;
+    const result = typeof value === 'number' ? value : undefined;
+    return result;
   }
 
   /**
@@ -25,7 +26,8 @@ export class Guard {
     if (value === null) {
       return null;
     }
-    return typeof value === 'string' ? value : undefined;
+    const result = typeof value === 'string' ? value : undefined;
+    return result;
   }
 
   /**
@@ -44,30 +46,43 @@ export class Guard {
     const result: Record<string, unknown>[] = [];
     const length = value.length;
 
-    for (let idx = 0; idx < length; idx += 1) {
-      const item: unknown = value[idx];
+    for (let index = 0; index < length; index += 1) {
+      const item: unknown = value[index];
       if (this.isObject(item)) {
         result.push(item);
       }
     }
 
-    return result.length > 0 ? result : undefined;
+    const recordArray = result.length > 0 ? result : undefined;
+    return recordArray;
   }
 
   public static isString(value: unknown): value is string {
-    return typeof value === 'string';
+    if (typeof value === 'string') {
+      return true;
+    }
+    return false;
   }
 
   public static isNumber(value: unknown): value is number {
-    return typeof value === 'number' && !Number.isNaN(value);
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+      return true;
+    }
+    return false;
   }
 
   public static isBoolean(value: unknown): value is boolean {
-    return typeof value === 'boolean';
+    if (typeof value === 'boolean') {
+      return true;
+    }
+    return false;
   }
 
-  public static isFunction(value: unknown): value is (...args: unknown[]) => unknown {
-    return typeof value === 'function';
+  public static isFunction(value: unknown): value is (...argumentList: unknown[]) => unknown {
+    if (typeof value === 'function') {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -83,20 +98,23 @@ export class Guard {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return false;
     }
-    return !(value instanceof Map) && !(value instanceof Set);
+    const result = !(value instanceof Map) && !(value instanceof Set);
+    return result;
   }
 
   /**
    * Type guard for non-negative integers (>= 0).
    */
   public static isNonNegativeInteger(value: unknown): value is number {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+    const result = typeof value === 'number' && Number.isInteger(value) && value >= 0;
+    return result;
   }
 
   /**
    * Type guard for positive integers (> 0).
    */
   public static isPositiveInteger(value: unknown): value is number {
-    return typeof value === 'number' && Number.isInteger(value) && value > 0;
+    const result = typeof value === 'number' && Number.isInteger(value) && value > 0;
+    return result;
   }
 }

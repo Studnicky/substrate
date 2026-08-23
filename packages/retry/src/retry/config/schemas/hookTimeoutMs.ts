@@ -8,10 +8,10 @@ import { ConfigValidation } from '@studnicky/config';
  * Internal validator for the hookTimeoutMs configuration parameter.
  */
 class HookTimeoutMsValidator {
-  static validate(val: unknown): void {
-    ConfigValidation.assertNumber(val, 'hookTimeoutMs');
-    ConfigValidation.assertInteger(val, 'hookTimeoutMs');
-    ConfigValidation.assertPositive(val, 'hookTimeoutMs');
+  static validate(value: unknown): void {
+    ConfigValidation.assertNumber(value, 'hookTimeoutMs');
+    ConfigValidation.assertInteger(value, 'hookTimeoutMs');
+    ConfigValidation.assertPositive(value, 'hookTimeoutMs');
   }
 }
 

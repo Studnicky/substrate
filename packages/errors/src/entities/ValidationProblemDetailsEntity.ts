@@ -32,16 +32,17 @@ export namespace ValidationProblemDetailsEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.detail !== 'string') { return false; }
     if (typeof candidate.status !== 'number') { return false; }
     if (typeof candidate.title !== 'string') { return false; }
     if (typeof candidate.type !== 'string') { return false; }
     if (!Array.isArray(candidate.errors)) { return false; }
-    for (const item of candidate.errors) {
-      if (!ValidationViolationEntity.validate(item)) { return false; }
+    const errorsLength = candidate.errors.length;
+    for (let errorIndex = 0; errorIndex < errorsLength; errorIndex += 1) {
+      if (!ValidationViolationEntity.validate(Reflect.get(candidate.errors, errorIndex))) { return false; }
     }
     return true;
-  }
+  };
 }

@@ -17,7 +17,12 @@ export class Clone {
 
   /** Clone an array element-by-element. */
   protected static cloneArray(value: unknown[]): unknown[] {
-    const result = value.map((item) => { const result = this.deep(item); return result; });
+    const result: unknown[] = [];
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = value[index];
+      result.push(this.deep(item));
+    }
     return result;
   }
 
@@ -57,10 +62,13 @@ export class Clone {
     const cloned: Record<string, unknown> = {};
 
     const keys = Object.keys(value);
-    const keysLen = keys.length;
-    for (let i = 0; i < keysLen; i += 1) {
-      const key = keys[i]!;
-      cloned[key] = this.deep(value[key]);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
+      Reflect.set(cloned, key, this.deep(Reflect.get(value, key)));
     }
 
     return cloned;
@@ -86,23 +94,28 @@ export class Clone {
     }
 
     if (Array.isArray(value)) {
-      return this.cloneArray(value);
+      const result = this.cloneArray(value);
+      return result;
     }
 
     if (value instanceof Map) {
-      return this.cloneMap(value);
+      const result = this.cloneMap(value);
+      return result;
     }
 
     if (value instanceof Set) {
-      return this.cloneSet(value);
+      const result = this.cloneSet(value);
+      return result;
     }
 
     if (value instanceof Date) {
-      return this.cloneDate(value);
+      const result = this.cloneDate(value);
+      return result;
     }
 
     if (DataType.isRecord(value)) {
-      return this.cloneObject(value);
+      const result = this.cloneObject(value);
+      return result;
     }
 
     return value;

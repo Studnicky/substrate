@@ -8,21 +8,21 @@ import { GuardAccessorsFixtures } from './fixtures/GuardAccessorsFixtures.js';
 
 // ── Guard.isObject ───────────────────────────────────────────────────────────
 
-const plainObj = Guard.isObject({ 'a': 1 });
-const arrIsRecord = Guard.isObject([1, 2, 3]);
+const plainObject = Guard.isObject({ 'a': 1 });
+const arrayIsRecord = Guard.isObject([1, 2, 3]);
 const nullIsRecord = Guard.isObject(null);
 
-console.log('Guard.isObject({ a: 1 }):', plainObj);
-console.log('Guard.isObject([1,2,3]):', arrIsRecord);
+console.log('Guard.isObject({ a: 1 }):', plainObject);
+console.log('Guard.isObject([1,2,3]):', arrayIsRecord);
 console.log('Guard.isObject(null):', nullIsRecord);
 
 // ── Guard.asNumber / asStringOrNull ─────────────────────────────────────────
 
-const numResult = Guard.asNumber(3.14);
-const strOrNull = Guard.asStringOrNull(null);
+const numberResult = Guard.asNumber(3.14);
+const stringOrNull = Guard.asStringOrNull(null);
 
-console.log('Guard.asNumber(3.14):', numResult);
-console.log('Guard.asStringOrNull(null):', strOrNull);
+console.log('Guard.asNumber(3.14):', numberResult);
+console.log('Guard.asStringOrNull(null):', stringOrNull);
 
 // ── Guard.asRecordArray ─────────────────────────────────────────────────────
 
@@ -43,25 +43,28 @@ console.log('Guard.isPositiveInteger(0):', Guard.isPositiveInteger(0));
 
 class StrictGuard extends Guard {
   public static override isObject(value: unknown): value is Record<string, unknown> {
-    return super.isObject(value) && !Array.isArray(value);
+    if (super.isObject(value) && !Array.isArray(value)) {
+      return true;
+    }
+    return false;
   }
 }
 
-const strictArr = StrictGuard.asRecordArray([{ 'a': 1 }, 99, { 'b': 2 }]);
+const strictArray = StrictGuard.asRecordArray([{ 'a': 1 }, 99, { 'b': 2 }]);
 
-console.log('StrictGuard.asRecordArray([{a:1},99,{b:2}]):', strictArr);
+console.log('StrictGuard.asRecordArray([{a:1},99,{b:2}]):', strictArray);
 
 // ── Empty producers ─────────────────────────────────────────────────────────
 
-const emptyStr = Empty.string();
-const emptyObj = Empty.object();
-const emptyArr = Empty.array<number>();
+const emptyString = Empty.string();
+const emptyObject = Empty.object();
+const emptyArray = Empty.array<number>();
 const emptyMap = Empty.map<string, number>();
 const emptySet = Empty.set<string>();
 
-console.log('Empty.string():', JSON.stringify(emptyStr));
-console.log('Empty.object():', emptyObj);
-console.log('Empty.array<number>():', emptyArr);
+console.log('Empty.string():', JSON.stringify(emptyString));
+console.log('Empty.object():', emptyObject);
+console.log('Empty.array<number>():', emptyArray);
 console.log('Empty.map<string,number>().size:', emptyMap.size);
 console.log('Empty.set<string>().size:', emptySet.size);
 
@@ -81,15 +84,15 @@ console.log('value:', JSON.stringify(value));
 // #endregion usage
 
 // Guard assertions
-assert.equal(plainObj, true, 'plain object is a record');
-assert.equal(arrIsRecord, false, 'array is not a record');
+assert.equal(plainObject, true, 'plain object is a record');
+assert.equal(arrayIsRecord, false, 'array is not a record');
 assert.equal(nullIsRecord, false, 'null is not a record');
 assert.equal(Guard.isObject('hello'), false, 'string is not a record');
 
-assert.equal(numResult, 3.14);
+assert.equal(numberResult, 3.14);
 assert.equal(Guard.asNumber('3'), undefined, 'string is not a number');
 assert.equal(Guard.asNumber(Number.NaN), Number.NaN, 'NaN passes typeof check');
-assert.equal(strOrNull, null, 'null returns null');
+assert.equal(stringOrNull, null, 'null returns null');
 assert.equal(Guard.asStringOrNull('hello'), 'hello');
 assert.equal(Guard.asStringOrNull(42), undefined, 'number returns undefined');
 
@@ -116,12 +119,12 @@ assert.equal(Guard.isPositiveInteger(0), false);
 
 assert.equal(StrictGuard.isObject({ 'x': 1 }), true, 'StrictGuard accepts plain objects');
 assert.equal(StrictGuard.isObject([]), false, 'StrictGuard rejects arrays');
-assert.ok(strictArr !== undefined);
-assert.equal(strictArr?.length, 2);
+assert.ok(strictArray !== undefined);
+assert.equal(strictArray?.length, 2);
 
-assert.equal(emptyStr, '', 'Empty.string() returns empty string');
-assert.deepEqual(emptyObj, {}, 'Empty.object() returns empty object');
-assert.deepEqual(emptyArr, [], 'Empty.array() returns empty array');
+assert.equal(emptyString, '', 'Empty.string() returns empty string');
+assert.deepEqual(emptyObject, {}, 'Empty.object() returns empty object');
+assert.deepEqual(emptyArray, [], 'Empty.array() returns empty array');
 assert.equal(emptyMap.size, 0, 'Empty.map() returns empty map');
 assert.equal(emptySet.size, 0, 'Empty.set() returns empty set');
 

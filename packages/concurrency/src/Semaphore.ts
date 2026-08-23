@@ -26,7 +26,8 @@ class SemaphoreInstance {
     constructor: SemaphoreSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -43,7 +44,8 @@ export class Semaphore {
     if (!SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Semaphore.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   static #validate(options: SemaphoreOptionsEntity.Type): void {
@@ -86,7 +88,8 @@ export class Semaphore {
         await this.#grantReadyWaiters();
         throw error;
       }
-      return this.#buildRelease();
+      const release = this.#buildRelease();
+      return release;
     }
     const waiterResult = Promise.withResolvers<() => Promise<void>>();
     const waiter: SemaphoreWaiterInterface = {

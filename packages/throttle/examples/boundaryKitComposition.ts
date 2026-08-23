@@ -13,19 +13,13 @@ import { Throttle } from '../src/index.js';
 
 // One Retry/CircuitBreaker pair per protected dependency; one Throttle shared across every
 // call made to that dependency, bounding how much concurrent load it ever sees.
-const retry = Retry.create({ 'maxRetries': 2 });
+const retry = Retry.create({ 'maximumRetries': 2 });
 const circuitBreaker = CircuitBreaker.create({ 'failureThreshold': 3, 'resetTimeoutMs': 60_000 });
 const throttle = Throttle.create({ 'concurrencyLimit': 2 });
 
 // The kit's entire value-add would have been this composition order — nothing here is
 // hidden: retry, circuitBreaker, and throttle stay reachable as plain local variables,
 // each with its own hooks and getStats()/state behavior.
-class ThroughBoundary {
-  static run<T>(fn: () => Promise<T>): Promise<T | undefined> {
-    const result = throttle.execute(() => { const result = circuitBreaker.execute(() => { const result = retry.execute(fn); return result; }); return result; });
-    return result;
-  }
-}
 // #endregion usage
 
 // --- Scenario A: transient failures are absorbed by retry; the circuit breaker never
@@ -39,14 +33,63 @@ class FlakyTask {
         remaining -= 1;
         throw new Error('transient failure');
       }
-      return Promise.resolve('ok');
+      const result = Promise.resolve('ok');
+      return result;
     };
   }
 }
 
-const flakyOutcomes = await Promise.all(
-  [0, 1, 2, 0, 1, 0].map((failures) => { const result = ThroughBoundary.run(FlakyTask.make(failures)); return result; })
-);
+class PermanentlyFailingTask {
+  static async execute(): Promise<never> {
+    await Promise.resolve();
+    throw new Error('permanent failure');
+  }
+}
+
+const flakyOutcomes = await Promise.all([
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(0));
+      return retryResult;
+    });
+    return breakerResult;
+  }),
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(1));
+      return retryResult;
+    });
+    return breakerResult;
+  }),
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(2));
+      return retryResult;
+    });
+    return breakerResult;
+  }),
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(0));
+      return retryResult;
+    });
+    return breakerResult;
+  }),
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(1));
+      return retryResult;
+    });
+    return breakerResult;
+  }),
+  throttle.execute(() => {
+    const breakerResult = circuitBreaker.execute(() => {
+      const retryResult = retry.execute(FlakyTask.make(0));
+      return retryResult;
+    });
+    return breakerResult;
+  })
+]);
 
 console.log('Flaky outcomes:', flakyOutcomes);
 console.log('CircuitBreaker state after transient failures:', circuitBreaker.state);
@@ -60,26 +103,43 @@ assert.equal(retry.getStats().totalRetries, 4);
 // failureThreshold consecutive failures — the 4th call fast-rejects without ever
 // reaching retry. ---
 
-const badRetry = Retry.create({ 'maxRetries': 1 });
+const badRetry = Retry.create({ 'maximumRetries': 1 });
 const badBreaker = CircuitBreaker.create({ 'failureThreshold': 3, 'resetTimeoutMs': 60_000 });
 const badThrottle = Throttle.create({ 'concurrencyLimit': 5 });
 
-class BadBoundary {
-  static run<T>(fn: () => Promise<T>): Promise<T | undefined> {
-    const result = badThrottle.execute(() => { const result = badBreaker.execute(() => { const result = badRetry.execute(fn); return result; }); return result; });
-    return result;
-  }
-}
-
-for (let i = 0; i < 3; i++) {
-  await BadBoundary.run(async (): Promise<never> => { await Promise.resolve(); throw new Error('permanent failure'); }).catch(() => { /* expected: MaxRetriesExceededError bubbles through the breaker */ });
-}
+await badThrottle.execute(() => {
+  const breakerResult = badBreaker.execute(() => {
+    const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
+    return retryResult;
+  });
+  return breakerResult;
+}).catch(() => { /* expected: MaximumRetriesExceededError bubbles through the breaker */ });
+await badThrottle.execute(() => {
+  const breakerResult = badBreaker.execute(() => {
+    const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
+    return retryResult;
+  });
+  return breakerResult;
+}).catch(() => { /* expected: MaximumRetriesExceededError bubbles through the breaker */ });
+await badThrottle.execute(() => {
+  const breakerResult = badBreaker.execute(() => {
+    const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
+    return retryResult;
+  });
+  return breakerResult;
+}).catch(() => { /* expected: MaximumRetriesExceededError bubbles through the breaker */ });
 
 console.log('CircuitBreaker state after 3 exhausted calls:', badBreaker.state);
 
 let fastRejected = false;
 
-await BadBoundary.run(async (): Promise<never> => { await Promise.resolve(); throw new Error('permanent failure'); }).catch((error: unknown) => {
+await badThrottle.execute(() => {
+  const breakerResult = badBreaker.execute(() => {
+    const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
+    return retryResult;
+  });
+  return breakerResult;
+}).catch((error: unknown) => {
   fastRejected = error instanceof CircuitBreakerOpenError;
 });
 

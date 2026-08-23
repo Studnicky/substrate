@@ -17,7 +17,7 @@ type ScenarioShape =
   | 'total-retries-counted';
 
 type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: { calls?: string[]; classifier: RetryClassifierMode; errorMessage?: string; mutatedTotalRequests?: number; result?: string; retry?: { maxRetries: number } }; shape: ScenarioShape; name: string };
+  | { description: string; expected: Record<string, unknown>; input: { calls?: string[]; classifier: RetryClassifierMode; errorMessage?: string; mutatedTotalRequests?: number; result?: string; retry?: { maximumRetries: number } }; shape: ScenarioShape; name: string };
 
 const retryFactoryMap: Record<RetryClassifierMode, (input: ScenarioCase['input']) => Retry> = {
   'default': (input) => Retry.create(input.retry),

@@ -80,7 +80,7 @@ function memoizeOptions<TArgs extends unknown[]>(
 ): MemoizeOptionsInterface<TArgs> {
   return {
     capacity: config.capacity,
-    keyFn,
+    'keyDeriver': keyFn,
     ...(config.staleMs === undefined ? {} : { staleMs: config.staleMs }),
     ...(config.ttlMs === undefined ? {} : { ttlMs: config.ttlMs })
   };

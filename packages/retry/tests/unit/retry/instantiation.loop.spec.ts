@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 
 import {
-  MaxRetriesExceededError,
+  MaximumRetriesExceededError,
   NonRetryableError,
   RetryError
 } from '../../../src/errors/index.js';
@@ -14,7 +14,7 @@ import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' 
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
-  retry?: Partial<Pick<RetryConfigInterface, 'maxRetries'>>;
+  retry?: Partial<Pick<RetryConfigInterface, 'maximumRetries'>>;
 };
 
 type ScenarioCase =
@@ -79,7 +79,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'derived-errors-expose-detached-diagnostics': (scenario) => {
     const { expected, input } = scenario;
     const source = new Error(String(input.sourceMessage));
-    const exhausted = new MaxRetriesExceededError(String(input.exhaustedMessage), Number(input.attemptNumber), Number(input.retries), [source]);
+    const exhausted = new MaximumRetriesExceededError(String(input.exhaustedMessage), Number(input.attemptNumber), Number(input.retries), [source]);
     const nonRetryable = new NonRetryableError(String(input.rejectedMessage), source, String(input.fatalReason), Number(input.attemptNumber));
 
     assert.notStrictEqual(exhausted.errors[0], source);
@@ -111,10 +111,10 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'max-retries-empty-errors-fallback': (scenario) => {
     const { input } = scenario;
-    const error = new MaxRetriesExceededError(String(input.failedMessage), Number(input.retries), Number(input.attemptNumber), []);
+    const error = new MaximumRetriesExceededError(String(input.failedMessage), Number(input.retries), Number(input.attemptNumber), []);
     assert.ok(error.cause instanceof Error);
     assert.equal(error.cause.message, String(input.fallbackMessage));
-    assert.equal(error.maxRetries, Number(input.retries));
+    assert.equal(error.maximumRetries, Number(input.retries));
   },
   'non-retryable-original-error-fallback': (scenario) => {
     const { input } = scenario;

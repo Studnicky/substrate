@@ -19,7 +19,8 @@ class DefaultHttpErrorClassifierInstance {
     constructor: DefaultHttpErrorClassifierSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -78,39 +79,48 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
       const status = error.status;
 
       if (status === HttpStatus.TOO_MANY_REQUESTS) {
-        return this.retryable('Rate limited');
+        const result = this.retryable('Rate limited');
+        return result;
       }
 
       if (this.hasProperty(error, 'status', matchers.http.isGatewayError)) {
-        return this.retryable(`Gateway error (${status})`);
+        const result = this.retryable(`Gateway error (${status})`);
+        return result;
       }
 
       if (this.hasProperty(error, 'status', matchers.http.isServerError)) {
-        return this.retryable(`Server error (${status})`);
+        const result = this.retryable(`Server error (${status})`);
+        return result;
       }
 
       if (status === HTTP_REQUEST_TIMEOUT) {
-        return this.retryable('Request timeout');
+        const result = this.retryable('Request timeout');
+        return result;
       }
 
       if (this.hasProperty(error, 'status', matchers.http.isClientError)) {
-        return this.nonRetryable(`Client error (${status})`);
+        const result = this.nonRetryable(`Client error (${status})`);
+        return result;
       }
     }
 
     if (this.hasProperty(error, 'code', matchers.network.isConnectionError)
         || this.hasProperty(error, 'code', matchers.network.isTimeout)) {
-      return this.retryable('Network error');
+      const result = this.retryable('Network error');
+      return result;
     }
 
     if (this.messageContains(error, 'timeout', 'network', 'connection refused', 'socket hang up')) {
-      return this.retryable('Network error');
+      const result = this.retryable('Network error');
+      return result;
     }
 
     if (attemptNumber < EARLY_RETRY_THRESHOLD) {
-      return this.retryable('Unknown error (will retry)');
+      const result = this.retryable('Unknown error (will retry)');
+      return result;
     }
 
-    return this.nonRetryable('Unknown error');
+    const result = this.nonRetryable('Unknown error');
+    return result;
   }
 }

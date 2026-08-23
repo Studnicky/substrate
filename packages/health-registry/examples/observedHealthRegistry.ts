@@ -45,14 +45,16 @@ registry.register('cache', async () => {
 });
 
 registry.register('downstream-api', async () => {
-  await new Promise((resolve) => { const result = setTimeout(resolve, 200); return result; });
+  await new Promise((resolve) => {
+    setTimeout(resolve, 200);
+  });
   return { 'status': 'healthy' };
 }, { 'timeoutMs': 20 });
 
 const evaluation = await registry.evaluate();
 
 console.log('Overall status:', evaluation.status);
-console.log('Per-check results:', Object.fromEntries(evaluation.results));
+console.log('Per-check results:', evaluation.results);
 // #endregion usage
 
 // worst-status-wins: the timed-out 'downstream-api' check makes the overall status unhealthy

@@ -151,7 +151,7 @@ for await (const entry of retryGen.generate()) {
 
 ## Declaration boundaries
 
-Entity namespaces own serializable configuration and state, including `CircuitStateEntity.Type`, `CircuitBreakerOptionsEntity.Type`, `TokenBucketOptionsEntity.Type`, `DeadLetterQueueOptionsEntity.Type`, `DeadLetterQueueRetryGeneratorOptionsEntity.Type`, and `DlqEntryMetadataEntity.Type`. `DlqEntryInterface` indexes its enqueue timestamp, identifier, and reason from `DlqEntryMetadataEntity` while retaining caller-owned payload and `Error` contracts. Other interfaces add runtime contracts such as clocks, classifiers, signals, and live queues.
+Entity namespaces own serializable configuration and state, including `CircuitStateEntity.Type`, `CircuitBreakerOptionsEntity.Type`, `TokenBucketOptionsEntity.Type`, `DeadLetterQueueOptionsEntity.Type`, `DeadLetterQueueRetryGeneratorOptionsEntity.Type`, and `DeadLetterQueueEntryMetadataEntity.Type`. `DeadLetterQueueEntryInterface` indexes its enqueue timestamp, identifier, and reason from `DeadLetterQueueEntryMetadataEntity` while retaining caller-owned payload and `Error` contracts. Other interfaces add runtime contracts such as clocks, classifiers, signals, and live queues.
 
 Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both owner packages are direct dependencies of `@studnicky/resilience`; dependency-owned declarations are not proxy-exported through another substrate package.
 

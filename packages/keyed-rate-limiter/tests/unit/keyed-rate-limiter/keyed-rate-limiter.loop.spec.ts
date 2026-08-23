@@ -108,7 +108,7 @@ function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): Key
     requestsPerSecond: Number(raw.requestsPerSecond)
   };
 
-  if (raw.maxKeys !== undefined) { config.maxKeys = Number(raw.maxKeys); }
+  if (raw.maximumKeys !== undefined) { config.maximumKeys = Number(raw.maximumKeys); }
   if (raw.keyIdleTtlMs !== undefined) { config.keyIdleTtlMs = Number(raw.keyIdleTtlMs); }
   if (clock !== undefined) { config.clock = clock; }
 
@@ -213,7 +213,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
           creations.set(key, (creations.get(key) ?? 0) + 1);
           return new FakeFixedAllowance(Number(keyedRateLimiter.allowance));
         },
-        maxKeys: Number(keyedRateLimiter.maxKeys)
+        maximumKeys: Number(keyedRateLimiter.maximumKeys)
       });
       limiter.consume('user-a');
       limiter.consume('user-b');

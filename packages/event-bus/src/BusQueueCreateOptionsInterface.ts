@@ -5,7 +5,7 @@ import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js'
 export interface BusQueueCreateOptionsInterface<T> extends BusQueueOptionsEntity.Type {
   'handler': (item: T) => Promise<void>;
   /** Drain-loop-level catch-all for uncaught handler errors — distinct from the per-event lifecycle hooks below, which are overridden on a subclass instead of passed as callbacks. */
-  'onError'?: (err: unknown) => void;
+  'onError'?: (error: unknown) => void;
   /** Runtime AbortSignal — not JSON-serializable, omitted from schema. */
   'signal'?: AbortSignal;
 }

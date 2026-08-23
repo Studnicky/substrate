@@ -17,7 +17,8 @@ class TokenBucketInstance {
     constructor: TokenBucketSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -56,7 +57,7 @@ export class TokenBucket {
     if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;
     this.#burstSize = options.burstSize;
-    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+    this.#clock = options.clock ?? Date.now;
     this.#tokens = options.burstSize;
     this.#lastRefill = this.#clock();
   }
@@ -141,10 +142,10 @@ export class TokenBucket {
     const now = this.#clock();
     const elapsed = now - this.#lastRefill;
     const newTokens = (elapsed / 1000) * this.#requestsPerSecond;
-    const prev = this.#tokens;
+    const previousTokens = this.#tokens;
     this.#tokens = Math.min(this.#burstSize, this.#tokens + newTokens);
     this.#lastRefill = now;
-    const added = this.#tokens - prev;
+    const added = this.#tokens - previousTokens;
     if (added > 0) {
       this.hooks.invoke('onRefill', () => {
         const result = this.onRefill(added);

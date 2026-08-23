@@ -1,16 +1,17 @@
 /** arrayAndObject — array constraints, object property rules, enum/const, and content validation. Run: npx tsx examples/arrayAndObject.ts */
 
+// #region usage
+import { DataType } from '@studnicky/json';
 import assert from 'node:assert/strict';
 
-// #region usage
 import { Predicates } from '../src/index.js';
 
 // #region array
-// satisfiesMinItems / satisfiesMaxItems test array length
-console.log('satisfiesMinItems [1,2,3] 3:', Predicates.satisfiesMinItems([1, 2, 3], 3));  // true
-console.log('satisfiesMinItems [1,2] 3:', Predicates.satisfiesMinItems([1, 2], 3));        // false
-console.log('satisfiesMaxItems [1,2] 3:', Predicates.satisfiesMaxItems([1, 2], 3));        // true
-console.log('satisfiesMaxItems [1,2,3,4] 3:', Predicates.satisfiesMaxItems([1, 2, 3, 4], 3)); // false
+// satisfiesMinimumItems / satisfiesMaximumItems test array length
+console.log('satisfiesMinimumItems [1,2,3] 3:', Predicates.satisfiesMinimumItems([1, 2, 3], 3));  // true
+console.log('satisfiesMinimumItems [1,2] 3:', Predicates.satisfiesMinimumItems([1, 2], 3));        // false
+console.log('satisfiesMaximumItems [1,2] 3:', Predicates.satisfiesMaximumItems([1, 2], 3));        // true
+console.log('satisfiesMaximumItems [1,2,3,4] 3:', Predicates.satisfiesMaximumItems([1, 2, 3, 4], 3)); // false
 
 // satisfiesUniqueItems uses deep equality for each pair
 console.log('satisfiesUniqueItems [1,2,3]:', Predicates.satisfiesUniqueItems([1, 2, 3]));        // true
@@ -18,9 +19,9 @@ console.log('satisfiesUniqueItems [1,2,1]:', Predicates.satisfiesUniqueItems([1,
 console.log('satisfiesUniqueItems [{a:1},{a:1}]:', Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 1 }])); // false
 
 // satisfiesContains validates minContains/maxContains bounds against a pre-counted match total
-console.log('satisfiesContains 2 1 3:', Predicates.satisfiesContains(2, 1, 3));              // true
-console.log('satisfiesContains 0 1 3:', Predicates.satisfiesContains(0, 1, 3));              // false
-console.log('satisfiesContains 1 undef undef:', Predicates.satisfiesContains(1, undefined, undefined)); // true
+console.log('satisfiesContains 2 1 3:', Predicates.satisfiesContains(2, { 'maximumContains': 3, 'minimumContains': 1 }));              // true
+console.log('satisfiesContains 0 1 3:', Predicates.satisfiesContains(0, { 'maximumContains': 3, 'minimumContains': 1 }));              // false
+console.log('satisfiesContains 1 undef undef:', Predicates.satisfiesContains(1)); // true
 // #endregion array
 
 // #region object
@@ -32,9 +33,9 @@ console.log('hasAllRequiredProperties {a} [a,b]:', Predicates.hasAllRequiredProp
 console.log('hasNoAdditionalProperties {a} Set[a,b]:', Predicates.hasNoAdditionalProperties({ 'a': 1 }, new Set(['a', 'b']))); // true
 console.log('hasNoAdditionalProperties {a,c} Set[a,b]:', Predicates.hasNoAdditionalProperties({ 'a': 1, 'c': 3 }, new Set(['a', 'b']))); // false
 
-// satisfiesMinProperties / satisfiesMaxProperties count own enumerable keys
-console.log('satisfiesMinProperties {a,b} 2:', Predicates.satisfiesMinProperties({ 'a': 1, 'b': 2 }, 2)); // true
-console.log('satisfiesMaxProperties {a,b,c} 2:', Predicates.satisfiesMaxProperties({ 'a': 1, 'b': 2, 'c': 3 }, 2)); // false
+// satisfiesMinimumProperties / satisfiesMaximumProperties count own enumerable keys
+console.log('satisfiesMinimumProperties {a,b} 2:', Predicates.satisfiesMinimumProperties({ 'a': 1, 'b': 2 }, 2)); // true
+console.log('satisfiesMaximumProperties {a,b,c} 2:', Predicates.satisfiesMaximumProperties({ 'a': 1, 'b': 2, 'c': 3 }, 2)); // false
 // #endregion object
 
 // #region enum
@@ -43,9 +44,9 @@ console.log('satisfiesEnum red:', Predicates.satisfiesEnum('red', ['red', 'green
 console.log('satisfiesEnum yellow:', Predicates.satisfiesEnum('yellow', ['red', 'green', 'blue']));   // false
 console.log('satisfiesEnum {x:1}:', Predicates.satisfiesEnum({ 'x': 1 }, [{ 'x': 1 }, { 'x': 2 }])); // true
 
-// satisfiesConst uses deep equality for a single fixed value
-console.log('satisfiesConst {x:1} {x:1}:', Predicates.satisfiesConst({ 'x': 1 }, { 'x': 1 })); // true
-console.log('satisfiesConst {x:1} {x:2}:', Predicates.satisfiesConst({ 'x': 1 }, { 'x': 2 })); // false
+// The JSON Schema `const` keyword is deep equality — use DataType.deepEqual directly
+console.log('deepEqual {x:1} {x:1}:', DataType.deepEqual({ 'x': 1 }, { 'x': 1 })); // true
+console.log('deepEqual {x:1} {x:2}:', DataType.deepEqual({ 'x': 1 }, { 'x': 2 })); // false
 // #endregion enum
 
 // #region content
@@ -62,20 +63,20 @@ console.log('satisfiesContentMediaType text/plain:', Predicates.satisfiesContent
 // #endregion content
 // #endregion usage
 
-assert.equal(Predicates.satisfiesMinItems([1, 2, 3], 3), true);
-assert.equal(Predicates.satisfiesMinItems([1, 2], 3), false);
-assert.equal(Predicates.satisfiesMaxItems([1, 2], 3), true);
-assert.equal(Predicates.satisfiesMaxItems([1, 2, 3, 4], 3), false);
+assert.equal(Predicates.satisfiesMinimumItems([1, 2, 3], 3), true);
+assert.equal(Predicates.satisfiesMinimumItems([1, 2], 3), false);
+assert.equal(Predicates.satisfiesMaximumItems([1, 2], 3), true);
+assert.equal(Predicates.satisfiesMaximumItems([1, 2, 3, 4], 3), false);
 
 assert.equal(Predicates.satisfiesUniqueItems([1, 2, 3]), true);
 assert.equal(Predicates.satisfiesUniqueItems([1, 2, 1]), false);
 assert.equal(Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 2 }]), true);
 assert.equal(Predicates.satisfiesUniqueItems([{ 'a': 1 }, { 'a': 1 }]), false);
 
-assert.equal(Predicates.satisfiesContains(2, 1, 3), true);
-assert.equal(Predicates.satisfiesContains(0, 1, 3), false);
-assert.equal(Predicates.satisfiesContains(4, 1, 3), false);
-assert.equal(Predicates.satisfiesContains(1, undefined, undefined), true);
+assert.equal(Predicates.satisfiesContains(2, { 'maximumContains': 3, 'minimumContains': 1 }), true);
+assert.equal(Predicates.satisfiesContains(0, { 'maximumContains': 3, 'minimumContains': 1 }), false);
+assert.equal(Predicates.satisfiesContains(4, { 'maximumContains': 3, 'minimumContains': 1 }), false);
+assert.equal(Predicates.satisfiesContains(1), true);
 
 assert.equal(Predicates.hasAllRequiredProperties({ 'a': 1, 'b': 2 }, ['a', 'b']), true);
 assert.equal(Predicates.hasAllRequiredProperties({ 'a': 1 }, ['a', 'b']), false);
@@ -84,19 +85,19 @@ assert.equal(Predicates.hasAllRequiredProperties({}, []), true);
 assert.equal(Predicates.hasNoAdditionalProperties({ 'a': 1 }, new Set(['a', 'b'])), true);
 assert.equal(Predicates.hasNoAdditionalProperties({ 'a': 1, 'c': 3 }, new Set(['a', 'b'])), false);
 
-assert.equal(Predicates.satisfiesMinProperties({ 'a': 1, 'b': 2 }, 2), true);
-assert.equal(Predicates.satisfiesMinProperties({ 'a': 1 }, 2), false);
-assert.equal(Predicates.satisfiesMaxProperties({ 'a': 1, 'b': 2 }, 3), true);
-assert.equal(Predicates.satisfiesMaxProperties({ 'a': 1, 'b': 2, 'c': 3 }, 2), false);
+assert.equal(Predicates.satisfiesMinimumProperties({ 'a': 1, 'b': 2 }, 2), true);
+assert.equal(Predicates.satisfiesMinimumProperties({ 'a': 1 }, 2), false);
+assert.equal(Predicates.satisfiesMaximumProperties({ 'a': 1, 'b': 2 }, 3), true);
+assert.equal(Predicates.satisfiesMaximumProperties({ 'a': 1, 'b': 2, 'c': 3 }, 2), false);
 
 assert.equal(Predicates.satisfiesEnum('red', ['red', 'green', 'blue']), true);
 assert.equal(Predicates.satisfiesEnum('yellow', ['red', 'green', 'blue']), false);
 assert.equal(Predicates.satisfiesEnum({ 'x': 1 }, [{ 'x': 1 }, { 'x': 2 }]), true);
 assert.equal(Predicates.satisfiesEnum(null, ['red', null]), true);
 
-assert.equal(Predicates.satisfiesConst({ 'x': 1 }, { 'x': 1 }), true);
-assert.equal(Predicates.satisfiesConst({ 'x': 1 }, { 'x': 2 }), false);
-assert.equal(Predicates.satisfiesConst(null, null), true);
+assert.equal(DataType.deepEqual({ 'x': 1 }, { 'x': 1 }), true);
+assert.equal(DataType.deepEqual({ 'x': 1 }, { 'x': 2 }), false);
+assert.equal(DataType.deepEqual(null, null), true);
 
 assert.equal(Predicates.satisfiesContentEncoding('aGVsbG8=', 'base64'), true);
 assert.equal(Predicates.satisfiesContentEncoding('not-base64!!!', 'base64'), false);

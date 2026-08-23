@@ -3,7 +3,7 @@ import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
-import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
+import { ResolveMinimumLevel } from '../modules/ResolveMinimumLevel.js';
 import { SafeStringify } from '../modules/safeStringify.js';
 
 interface ConsoleFunctionInterface {
@@ -18,11 +18,36 @@ interface ConsoleFunctionInterface {
  * All other modules route output through this transport.
  */
 const consoleDispatch = new Map<number, ConsoleFunctionInterface>([
-  [LOG_LEVEL.DEBUG, (msg, rec) => { console.debug(msg, rec); }],
-  [LOG_LEVEL.ERROR, (msg, rec) => { console.error(msg, rec); }],
-  [LOG_LEVEL.INFO, (msg, rec) => { console.info(msg, rec); }],
-  [LOG_LEVEL.TRACE, (msg, rec) => { console.trace(msg, rec); }],
-  [LOG_LEVEL.WARN, (msg, rec) => { console.warn(msg, rec); }]
+  [
+    LOG_LEVEL.DEBUG,
+    (message, rec) => {
+      console.debug(message, rec);
+    }
+  ],
+  [
+    LOG_LEVEL.ERROR,
+    (message, rec) => {
+      console.error(message, rec);
+    }
+  ],
+  [
+    LOG_LEVEL.INFO,
+    (message, rec) => {
+      console.info(message, rec);
+    }
+  ],
+  [
+    LOG_LEVEL.TRACE,
+    (message, rec) => {
+      console.trace(message, rec);
+    }
+  ],
+  [
+    LOG_LEVEL.WARN,
+    (message, rec) => {
+      console.warn(message, rec);
+    }
+  ]
 ]);
 
 interface ConsoleTransportSubclassInterface<TInstance> extends Function {
@@ -34,7 +59,9 @@ class ConsoleTransportInstance {
     constructor: ConsoleTransportSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 }
 
@@ -64,16 +91,18 @@ export class ConsoleTransport implements TransportInterface {
     options: ConsoleTransportOptionsEntity.Type = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
+
     if (!ConsoleTransportInstance.belongsTo(this, result)) {
       throw new TypeError('ConsoleTransport.create() did not construct the requested subclass.');
     }
+
     return result;
   }
 
-  readonly #minLevel: number;
+  readonly #minimumLevel: number;
 
   protected constructor(options: ConsoleTransportOptionsEntity.Type = {}) {
-    this.#minLevel = ResolveMinLevel.from(options);
+    this.#minimumLevel = ResolveMinimumLevel.from(options);
   }
 
   /**
@@ -82,15 +111,15 @@ export class ConsoleTransport implements TransportInterface {
    * @param record - Assembled log record from the Logger core
    */
   write(record: LogRecordEntity.Type): void {
-    if (record.level < this.#minLevel) {
+    if (record.level < this.#minimumLevel) {
       return;
     }
 
-    const metaStr = Object.keys(record.metadata).length > 0
+    const metadataString = Object.keys(record.metadata).length > 0
       ? `${SafeStringify.stringify(record.metadata)} `
       : '';
 
-    const message = `${metaStr}${record.data.message}`;
+    const message = `${metadataString}${record.data.message}`;
     const dispatch = consoleDispatch.get(record.level);
 
     if (dispatch !== undefined) {

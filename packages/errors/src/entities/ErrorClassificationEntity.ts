@@ -35,10 +35,10 @@ export namespace ErrorClassificationEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.retryable !== 'boolean') { return false; }
     if (candidate.reason !== undefined && typeof candidate.reason !== 'string') { return false; }
     return true;
-  }
+  };
 }

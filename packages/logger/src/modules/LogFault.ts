@@ -27,6 +27,7 @@ export class LogFault {
       ...(config.stack !== undefined && { 'stack': config.stack })
     };
 
-    return ImmutableSnapshot.from(result);
+    const snapshot = ImmutableSnapshot.from(result);
+    return snapshot;
   }
 }

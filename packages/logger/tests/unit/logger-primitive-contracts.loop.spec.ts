@@ -417,7 +417,7 @@ const runnerMap: RunnerMap = {
     assert.equal(LogDataEntity.validate(body), scenarioCase.expected.logDataValid);
     assert.equal(CloudWatchLogSchemaFieldsEntity.validate({
       level: 2,
-      msg: 'complete',
+      message: 'complete',
       service: 'api',
       time: '2026-07-19T00:00:00.000Z'
     }), scenarioCase.expected.cloudwatchValid);

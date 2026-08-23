@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import { MaxRetriesExceededError, Retry, type RetryConfigInterface } from '@studnicky/retry';
+import { MaximumRetriesExceededError, Retry, type RetryConfigInterface } from '@studnicky/retry';
 import { Throttle, type ThrottleConfigEntity } from '@studnicky/throttle';
 
 import { BoundaryKit, type BoundaryKitConfigInterface } from '../../../src/index.js';
@@ -17,7 +17,7 @@ type RetryClassifierDescriptor = {
 
 type RetryConfigDescriptor = {
   errorClassifier?: RetryClassifierDescriptor;
-  maxRetries?: number;
+  maximumRetries?: number;
 };
 
 type BoundaryKitConfigDescriptor = {
@@ -293,11 +293,11 @@ const runnerMap: RunnerMap = {
       throw new Error('always fails');
     };
 
-    await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
+    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
     assert.equal(callCount, scenarioCase.expected.callCount);
     assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterFirst);
 
-    await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
+    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
     assert.equal(callCount, scenarioCase.expected.callCount * 2);
     assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterSecond);
 

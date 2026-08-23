@@ -8,7 +8,7 @@
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.create({ 'maxEvents': 100 });
+ * const timing = Timing.create({ 'maximumEvents': 100 });
  *
  * // Record immutable event data
  * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
 import { Worker } from 'node:worker_threads';
@@ -71,7 +72,7 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
 }
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
@@ -215,6 +216,14 @@ const runnerMap: RunnerMap = {
 
       assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
       assert.deepStrictEqual(observedErrors.map(({ error, index }) => ({ index, message: error.message })), scenarioCase.expected.observedErrors);
+      // Reference identity, not merely message equality: `onWorkerError` receives the SAME Error
+      // instance the terminate mock rejected with. Comparing `.message` alone also passes when a
+      // different Error carrying identical text is substituted, which would hide the pool
+      // re-wrapping or reconstructing the failure rather than propagating it.
+      assert.ok(
+        observedErrors.some(({ error, index }) => error === terminationFailure && index === 0),
+        'onWorkerError receives the original termination Error instance at index 0'
+      );
       assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
     } finally {
       terminateMock.mock.restore();

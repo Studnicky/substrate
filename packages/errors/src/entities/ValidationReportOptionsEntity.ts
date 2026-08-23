@@ -33,11 +33,11 @@ export namespace ValidationReportOptionsEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (candidate.status !== undefined && typeof candidate.status !== 'number') { return false; }
     if (candidate.title !== undefined && typeof candidate.title !== 'string') { return false; }
     if (candidate.type !== undefined && typeof candidate.type !== 'string') { return false; }
     return true;
-  }
+  };
 }

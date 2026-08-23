@@ -63,8 +63,8 @@ export class AsyncIter {
     };
 
     let active = sources.length;
-    const sourcesLen = sources.length;
-    for (let i = 0; i < sourcesLen; i += 1) {
+    const sourceLength = sources.length;
+    for (let i = 0; i < sourceLength; i += 1) {
       const source = sources.at(i);
       if (source !== undefined) { void MergeQueue.drainSource(sink, source); }
     }

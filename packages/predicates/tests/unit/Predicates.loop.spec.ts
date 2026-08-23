@@ -159,8 +159,8 @@ const predicateRunners: Record<string, PredicateRunner> = {
   },
   minMaxProperties: (input, expected) => {
     const runners: Record<string, () => boolean> = {
-      max: () => Predicates.satisfiesMaxProperties(recordField(input, 'obj'), numberField(input, 'limit')),
-      min: () => Predicates.satisfiesMinProperties(recordField(input, 'obj'), numberField(input, 'limit'))
+      max: () => Predicates.satisfiesMaximumProperties(recordField(input, 'obj'), numberField(input, 'limit')),
+      min: () => Predicates.satisfiesMinimumProperties(recordField(input, 'obj'), numberField(input, 'limit'))
     };
     const method = stringField(input, 'method');
     const runner = runners[method];
@@ -169,15 +169,14 @@ const predicateRunners: Record<string, PredicateRunner> = {
     }
     assert.equal(runner(), expected.result);
   },
-  satisfiesConst: (input, expected) => {
-    assert.equal(Predicates.satisfiesConst(input.value, input.constValue), expected.result);
-  },
   satisfiesContains: (input, expected) => {
     assert.equal(
       Predicates.satisfiesContains(
         numberField(input, 'matchCount'),
-        optionalNumberField(input, 'minContains'),
-        optionalNumberField(input, 'maxContains')
+        {
+          'maximumContains': optionalNumberField(input, 'maxContains'),
+          'minimumContains': optionalNumberField(input, 'minContains')
+        }
       ),
       expected.result
     );
@@ -201,17 +200,17 @@ const predicateRunners: Record<string, PredicateRunner> = {
   satisfiesEnum: (input, expected) => {
     assert.equal(Predicates.satisfiesEnum(input.value, arrayField(input, 'enumValues')), expected.result);
   },
-  satisfiesMaxItems: (input, expected) => {
-    assert.equal(Predicates.satisfiesMaxItems(arrayField(input, 'items'), numberField(input, 'maximum')), expected.result);
+  satisfiesMaximumItems: (input, expected) => {
+    assert.equal(Predicates.satisfiesMaximumItems(arrayField(input, 'items'), numberField(input, 'maximum')), expected.result);
   },
-  satisfiesMaxLength: (input, expected) => {
-    assert.equal(Predicates.satisfiesMaxLength(stringField(input, 'value'), numberField(input, 'maxLength')), expected.result);
+  satisfiesMaximumLength: (input, expected) => {
+    assert.equal(Predicates.satisfiesMaximumLength(stringField(input, 'value'), numberField(input, 'maxLength')), expected.result);
   },
-  satisfiesMinItems: (input, expected) => {
-    assert.equal(Predicates.satisfiesMinItems(arrayField(input, 'items'), numberField(input, 'minimum')), expected.result);
+  satisfiesMinimumItems: (input, expected) => {
+    assert.equal(Predicates.satisfiesMinimumItems(arrayField(input, 'items'), numberField(input, 'minimum')), expected.result);
   },
-  satisfiesMinLength: (input, expected) => {
-    assert.equal(Predicates.satisfiesMinLength(stringField(input, 'value'), numberField(input, 'minLength')), expected.result);
+  satisfiesMinimumLength: (input, expected) => {
+    assert.equal(Predicates.satisfiesMinimumLength(stringField(input, 'value'), numberField(input, 'minLength')), expected.result);
   },
   satisfiesUniqueItems: (input, expected) => {
     assert.equal(Predicates.satisfiesUniqueItems(arrayField(input, 'items')), expected.result);

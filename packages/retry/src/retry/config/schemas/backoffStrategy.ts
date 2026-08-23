@@ -9,17 +9,17 @@ import { Guard } from '@studnicky/types';
  * Internal validator for the backoffStrategy configuration parameter.
  */
 class BackoffStrategyValidator {
-  static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
-    if (!Guard.isObject(val)) {
+    if (!Guard.isObject(value)) {
       throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
     }
-    if (!Guard.isFunction(val.strategy)) {
+    if (!Guard.isFunction(value.strategy)) {
       throw ConfigurationError.create('backoffStrategy.strategy must be a function');
     }
-    if (!Guard.isNumber(val.baseDelayMs)) {
+    if (!Guard.isNumber(value.baseDelayMs)) {
       throw ConfigurationError.create('backoffStrategy.baseDelayMs must be a number');
     }
   }

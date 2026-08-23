@@ -12,11 +12,11 @@ export namespace CloudWatchLogSchemaFieldsEntity {
     'additionalProperties': false,
     'properties': {
       'level': LogLevelEntity.Schema,
-      'msg': LogBodyDataEntity.Schema.properties.message,
+      'message': LogBodyDataEntity.Schema.properties.message,
       'service': { 'minLength': 1, 'type': 'string' },
       'time': { 'minLength': 1, 'type': 'string' }
     },
-    'required': ['level', 'msg', 'service', 'time'],
+    'required': ['level', 'message', 'service', 'time'],
     'type': 'object'
   } as const satisfies JSONSchema;
 

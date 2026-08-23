@@ -15,9 +15,9 @@ class AppConfigValidation extends ConfigValidation {
 let caughtString: Error | undefined;
 try {
   AppConfigValidation.assertString(123, 'apiKey');
-} catch (err) {
-  if (err instanceof Error) {
-    caughtString = err;
+} catch (error) {
+  if (error instanceof Error) {
+    caughtString = error;
   }
 }
 
@@ -25,9 +25,9 @@ try {
 let caughtNumber: Error | undefined;
 try {
   AppConfigValidation.assertNumber('oops', 'timeout');
-} catch (err) {
-  if (err instanceof Error) {
-    caughtNumber = err;
+} catch (error) {
+  if (error instanceof Error) {
+    caughtNumber = error;
   }
 }
 
@@ -35,9 +35,9 @@ try {
 let caughtBoolean: Error | undefined;
 try {
   AppConfigValidation.assertBoolean(1, 'enabled');
-} catch (err) {
-  if (err instanceof Error) {
-    caughtBoolean = err;
+} catch (error) {
+  if (error instanceof Error) {
+    caughtBoolean = error;
   }
 }
 

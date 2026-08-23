@@ -10,10 +10,16 @@ interface LruCacheNodeInterface<K, V> {
   'expiresAt': LruCacheNodeTimingEntity.Type['expiresAt'];
   'key': K;
   'next': LruCacheNodeInterface<K, V> | undefined;
-  'prev': LruCacheNodeInterface<K, V> | undefined;
+  'previous': LruCacheNodeInterface<K, V> | undefined;
   /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
   'staleAt': LruCacheNodeTimingEntity.Type['staleAt'];
   'value': V;
+}
+
+interface LruCacheFunctionInterface extends Function {}
+
+interface LruCacheConstructorInterface<TInstance> {
+  readonly 'prototype': TInstance;
 }
 
 const noExpiry = 0;
@@ -60,9 +66,10 @@ export class LruCache<K, V> {
 
   private static isConstructed<TInstance>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: LruCacheConstructorInterface<TInstance> & LruCacheFunctionInterface
   ): value is TInstance {
-    return value instanceof constructor;
+    const isInstance = value instanceof constructor;
+    return isInstance;
   }
 
   static create<
@@ -70,7 +77,7 @@ export class LruCache<K, V> {
     V = unknown,
     TInstance extends LruCache<K, V> = LruCache<K, V>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: LruCacheConstructorInterface<TInstance> & LruCacheFunctionInterface,
     options: LruCacheOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
@@ -83,7 +90,10 @@ export class LruCache<K, V> {
   protected constructor(options: LruCacheOptionsEntity.Type) {
     if (!LruCacheOptionsEntity.validate(options)) {
       const messages = (LruCacheOptionsEntity.validate.errors ?? [])
-        .map((error) => { return error.message ?? String(error); })
+        .map((error) => {
+          const message = error.message ?? String(error);
+          return message;
+        })
         .join('; ');
       throw new CacheConfigError(messages.length > 0 ? messages : 'invalid options');
     }
@@ -212,10 +222,10 @@ export class LruCache<K, V> {
   }
 
   /** Stores value; promotes existing key to MRU or evicts LRU tail if at capacity. */
-  public set(key: K, value: V, opts?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
-    const effectiveTtl = opts?.ttlMs ?? this.#defaultTtlMs;
+  public set(key: K, value: V, options?: { 'staleMs'?: number; 'ttlMs'?: number }): void {
+    const effectiveTtl = options?.ttlMs ?? this.#defaultTtlMs;
     const expiresAt = effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
-    const effectiveStale = opts?.staleMs ?? this.#defaultStaleMs;
+    const effectiveStale = options?.staleMs ?? this.#defaultStaleMs;
     const staleAt = effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
 
     const existing = this.#nodes.get(key);
@@ -240,7 +250,7 @@ export class LruCache<K, V> {
       'expiresAt': expiresAt,
       'key': key,
       'next': undefined,
-      'prev': undefined,
+      'previous': undefined,
       'staleAt': staleAt,
       'value': value
     };
@@ -301,8 +311,7 @@ export class LruCache<K, V> {
       if (predicate(key, node.value)) {
         this.removeEntry(key);
         this.hooks.invoke('onDelete', () => {
-          const result = this.onDelete(key);
-          return result;
+          this.onDelete(key);
         });
         removed += 1;
       }
@@ -327,15 +336,16 @@ export class LruCache<K, V> {
       return false;
     }
 
-    return Date.now() > node.expiresAt;
+    const isExpired = Date.now() > node.expiresAt;
+    return isExpired;
   }
 
   private insertAtHead(node: LruCacheNodeInterface<K, V>): void {
     node.next = this.#head;
-    node.prev = undefined;
+    node.previous = undefined;
 
     if (this.#head !== undefined) {
-      this.#head.prev = node;
+      this.#head.previous = node;
     }
 
     this.#head = node;
@@ -352,25 +362,25 @@ export class LruCache<K, V> {
 
     this.unlinkNode(node);
     node.next = undefined;
-    node.prev = undefined;
+    node.previous = undefined;
     this.insertAtHead(node);
   }
 
   private unlinkNode(node: LruCacheNodeInterface<K, V>): void {
-    if (node.prev !== undefined) {
-      node.prev.next = node.next;
+    if (node.previous !== undefined) {
+      node.previous.next = node.next;
     } else {
       this.#head = node.next;
     }
 
     if (node.next !== undefined) {
-      node.next.prev = node.prev;
+      node.next.previous = node.previous;
     } else {
-      this.#tail = node.prev;
+      this.#tail = node.previous;
     }
 
     node.next = undefined;
-    node.prev = undefined;
+    node.previous = undefined;
   }
 
   private removeEntry(key: K): void {

@@ -35,7 +35,7 @@ The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice 
 
 ## Public API
 
-Import `Retry`, `BackoffStrategy`, the retry entities and guards, `MaxRetriesExceededError`, `NonRetryableError`, `RetryError`, and the public retry interfaces from `@studnicky/retry`. The package root is the only public code entrypoint; algorithm constants are implementation details.
+Import `Retry`, `BackoffStrategy`, the retry entities and guards, `MaximumRetriesExceededError`, `NonRetryableError`, `RetryError`, and the public retry interfaces from `@studnicky/retry`. The package root is the only public code entrypoint; algorithm constants are implementation details.
 
 ## Custom error classification
 

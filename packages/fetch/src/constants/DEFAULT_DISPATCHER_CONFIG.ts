@@ -6,7 +6,7 @@
  * - headersTimeout: 30000 (30 seconds) - Time to receive complete HTTP headers
  * - bodyTimeout: 30000 (30 seconds) - Time between receiving body data chunks
  * - keepAliveTimeout: 4000 (4 seconds) - Idle time before connection closes
- * - keepAliveMaxTimeout: 600000 (10 minutes) - Maximum keep-alive from server hints
+ * - keepAliveMaximumTimeout: 600000 (10 minutes) - Maximum keep-alive from server hints
  * - keepAliveTimeoutThreshold: 1000 (1 second) - Buffer for timing inaccuracies
  *
  * Connection pooling defaults:
@@ -15,8 +15,8 @@
  * - enabled: false - Connection pooling disabled by default
  *
  * Size limits:
- * - maxHeaderSize: 16384 (16 KB) - Maximum request header size
- * - maxResponseSize: -1 (unlimited) - No response body size limit
+ * - maximumHeaderSize: 16384 (16 KB) - Maximum request header size
+ * - maximumResponseSize: -1 (unlimited) - No response body size limit
  *
  * Note: For long-running operations (e.g., SPARQL queries, large file downloads),
  * explicitly configure longer timeouts:
@@ -37,12 +37,12 @@ export const DEFAULT_DISPATCHER_CONFIG = {
   'connectTimeout': 10_000,
   'enabled': false,
   'headersTimeout': 30_000,
-  'keepAliveMaxTimeout': 600_000,
+  'keepAliveMaximumTimeout': 600_000,
   'keepAliveTimeout': 4000,
   'keepAliveTimeoutThreshold': 1000,
-  'maxConcurrentStreams': 100,
-  'maxHeaderSize': 16_384,
-  'maxResponseSize': -1,
+  'maximumConcurrentStreams': 100,
+  'maximumHeaderSize': 16_384,
+  'maximumResponseSize': -1,
   'pipelining': 1,
   'strictContentLength': true
 } as const;

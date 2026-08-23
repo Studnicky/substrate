@@ -7,7 +7,8 @@ import { SlidingWindowLimiter } from '../src/index.js';
 // #region usage
 class DefaultClockLimiter extends SlidingWindowLimiter {
   hasNoHookErrors(): boolean {
-    return this.getHookErrors().length === 0;
+    const result = this.getHookErrors().length === 0;
+    return result;
   }
 }
 

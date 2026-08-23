@@ -4,7 +4,7 @@
       "name": "fsm-immediate-success",
       "description": "attempting transitions directly to succeeded on immediate success",
       "shape": "immediate-success",
-      "input": { "maxRetries": 3, "result": "ok" },
+      "input": { "maximumRetries": 3, "result": "ok" },
       "expected": {
         "result": "ok",
         "transitions": [{ "from": "attempting", "to": "succeeded" }]
@@ -14,7 +14,7 @@
       "name": "fsm-retryable-failure-then-success",
       "description": "attempting → waiting → attempting → succeeded on one retryable failure then success",
       "shape": "retryable-failure-then-success",
-      "input": { "maxRetries": 3, "batch": { "failureCountBeforeSuccess": 1 }, "errorMessage": "transient failure", "result": "recovered" },
+      "input": { "maximumRetries": 3, "batch": { "failureCountBeforeSuccess": 1 }, "errorMessage": "transient failure", "result": "recovered" },
       "expected": {
         "result": "recovered",
         "transitions": [
@@ -28,7 +28,7 @@
       "name": "fsm-non-retryable-error",
       "description": "attempting → failed on non-retryable error and surfaces NonRetryableError",
       "shape": "non-retryable-error",
-      "input": { "maxRetries": 3 },
+      "input": { "maximumRetries": 3 },
       "expected": {
         "errorName": "NonRetryableError",
         "transitions": [{ "from": "attempting", "to": "failed" }]
@@ -38,7 +38,7 @@
       "name": "fsm-aborted-by-hook",
       "description": "waiting → aborted via lifecycle hook abort signal",
       "shape": "aborted-by-hook",
-      "input": { "maxRetries": 3 },
+      "input": { "maximumRetries": 3 },
       "expected": {
         "transitions": [
           { "from": "attempting", "to": "waiting" },
@@ -50,7 +50,7 @@
       "name": "fsm-exhausted-after-max-retries",
       "description": "waiting → exhausted when budget is gone",
       "shape": "exhausted-after-max-retries",
-      "input": { "maxRetries": 1 },
+      "input": { "maximumRetries": 1 },
       "expected": {
         "exhausted": { "from": "waiting", "to": "exhausted" }
       }
@@ -59,7 +59,7 @@
       "name": "fsm-exhausted-after-max-elapsed",
       "description": "waiting → exhausted when elapsed-time budget is already exhausted",
       "shape": "exhausted-after-max-elapsed",
-      "input": { "maxElapsedMs": 0, "maxRetries": 3 },
+      "input": { "maximumElapsedMs": 0, "maximumRetries": 3 },
       "expected": {
         "exhausted": { "from": "waiting", "to": "exhausted" }
       }
@@ -68,7 +68,7 @@
       "name": "fsm-illegal-transition",
       "description": "guardCall rejection preserves the illegal state transition message chain",
       "shape": "illegal-transition",
-      "input": { "maxRetries": 3, "rejectedTransition": { "from": "attempting", "to": "succeeded" } },
+      "input": { "maximumRetries": 3, "rejectedTransition": { "from": "attempting", "to": "succeeded" } },
       "expected": {
         "errorMessageIncludes": "Illegal state transition"
       }

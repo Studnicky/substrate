@@ -349,13 +349,13 @@
       }
     },
     {
-      "name": "request-without-timeout-baseurl-params",
-      "description": "FetchClient builds URLs from baseURL and params without timeout",
+      "name": "request-without-timeout-baseurl-parameters",
+      "description": "FetchClient builds URLs from baseURL and parameters without timeout",
       "input": {
         "request": {
           "client": {
             "baseURL": "https://example.test/",
-            "params": {
+            "parameters": {
               "page": 1,
               "tag": "alpha"
             }

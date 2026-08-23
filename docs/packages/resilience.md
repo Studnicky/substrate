@@ -77,7 +77,7 @@ Subclass any primitive and override protected hooks to add logging, metrics, or 
 
 | Hook | When it fires | Args |
 |------|--------------|------|
-| `onYield(entry)` | Immediately before each entry is yielded from `generate()` | `entry: DlqEntryInterface<T>` |
+| `onYield(entry)` | Immediately before each entry is yielded from `generate()` | `entry: DeadLetterQueueEntryInterface<T>` |
 | `onWait(intervalMs)` | Before each inter-entry delay | `intervalMs: number` |
 | `onDone()` | When the generator finishes (DLQ closed or aborted) | — |
 
@@ -107,15 +107,15 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 | `TokenBucketOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable token-bucket options |
 | `TokenBucketOptionsInterface` | interface | Token-bucket options plus the runtime `clock` contract |
 | `DeadLetterQueue<T>` | class | Bounded FIFO DLQ with async-generator drain |
-| `DlqEntryInterface<T>` | interface | Runtime queue entry containing caller-owned `T` and an `Error \| undefined` value |
+| `DeadLetterQueueEntryInterface<T>` | interface | Runtime queue entry containing caller-owned `T` and an `Error \| undefined` value |
 | `DeadLetterQueueOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for serializable queue options |
 | `DeadLetterQueueOptionsInterface` | interface | Queue options plus runtime `clock` and `AbortSignal` contracts |
 | `DeadLetterQueueRetryGenerator<T>` | class | Re-yields DLQ entries with a configurable pause |
 | `DeadLetterQueueRetryGeneratorOptionsEntity` | namespace | JSON Schema, derived `Type`, and validator for `intervalMs` |
 | `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | interface | Retry timing options plus the live `DeadLetterQueue<T>` instance |
-| `DlqFullError` | class | Thrown by `enqueue` when at capacity |
-| `DlqClosedError` | class | Thrown by `enqueue` after `close()` |
-| `DlqAbortedError` | class | Thrown by `enqueue` after signal abort |
+| `DeadLetterQueueFullError` | class | Thrown by `enqueue` when at capacity |
+| `DeadLetterQueueClosedError` | class | Thrown by `enqueue` after `close()` |
+| `DeadLetterQueueAbortedError` | class | Thrown by `enqueue` after signal abort |
 | `ResilienceConfigError` | class | Thrown when resilience configuration is invalid |
 | `ResilienceError` | class | Base error for the package |
 
@@ -123,7 +123,7 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 
 Entity namespaces own JSON-compatible data. Each entity exposes `Schema`, a schema-derived `Type`, and `validate`. `CircuitStateEntity.Type` is the canonical circuit-state data type.
 
-Interfaces describe contracts that include runtime values or access policy. `DlqEntryInterface<T>` remains a runtime contract because the payload is caller-defined and `error` is an `Error` instance. Retry-generator options compose the schema-owned `DeadLetterQueueRetryGeneratorOptionsEntity.Type` with a live queue through `DeadLetterQueueRetryGeneratorOptionsInterface<T>`.
+Interfaces describe contracts that include runtime values or access policy. `DeadLetterQueueEntryInterface<T>` remains a runtime contract because the payload is caller-defined and `error` is an `Error` instance. Retry-generator options compose the schema-owned `DeadLetterQueueRetryGeneratorOptionsEntity.Type` with a live queue through `DeadLetterQueueRetryGeneratorOptionsInterface<T>`.
 
 Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. `@studnicky/resilience` declares both owner packages directly and does not acquire dependency-owned declarations through a substrate proxy export.
 
@@ -151,7 +151,7 @@ All classes, errors, entity namespaces, and type-only interfaces listed above ar
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `enqueue` | `(item, reason, error?) => void` | Adds item; throws on full, closed, or aborted |
-| `drain` | `() => AsyncGenerator<DlqEntryInterface<T>>` | Yields all entries; suspends when queue is empty |
+| `drain` | `() => AsyncGenerator<DeadLetterQueueEntryInterface<T>>` | Yields all entries; suspends when queue is empty |
 | `close` | `() => void` | Signals drain to stop after the current entries |
 | `abort` | `() => void` | Immediately stops drain |
 | `size` | `get size(): number` | Current entry count |

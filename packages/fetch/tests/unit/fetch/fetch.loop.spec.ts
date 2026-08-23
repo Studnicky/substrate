@@ -36,7 +36,7 @@ type ScenarioCase = {
       args?: readonly [RuntimeValue?] | readonly [RuntimeValue?, Record<string, unknown>?];
       client?: {
         baseURL?: string;
-        params?: Record<string, RuntimeValue>;
+        parameters?: Record<string, RuntimeValue>;
       };
       options?: {
         headers?: Record<string, string>;
@@ -190,7 +190,7 @@ function createClient(request: ScenarioCase['input']['request']): FetchClient {
 
   return FetchClient.create({
     ...(request.client.baseURL === undefined ? {} : { baseURL: request.client.baseURL }),
-    ...(request.client.params === undefined ? {} : { params: materializeRuntimeValue(request.client.params) as Record<string, string | number | boolean | null> })
+    ...(request.client.parameters === undefined ? {} : { parameters: materializeRuntimeValue(request.client.parameters) as Record<string, string | number | boolean | null> })
   });
 }
 

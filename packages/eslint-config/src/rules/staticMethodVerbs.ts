@@ -10,6 +10,8 @@ import {
   DEFAULT_MODE, TRIVIAL_OPTIONS
 } from './constants/StaticMethodVerbsConstants.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
+import { ParameterNames } from './shared/ParameterNames.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
 namespace StaticMethodVerbsOptionsEntity {
@@ -250,7 +252,7 @@ class AstHelpers {
   }
 
   /** Structural-mode trivia check: block body with a single trivial ReturnStatement, or a trivial expression-bodied arrow. */
-  public static isBlockBodyTrivial(body: readonly unknown[]): boolean {
+  public static isBlockBodyTrivial(body: readonly unknown[], parameterNames: ReadonlySet<string>, context: Rule.RuleContext): boolean {
     if (body.length !== 1) {
       return false;
     }
@@ -265,28 +267,48 @@ class AstHelpers {
       return false;
     }
     const argument = statement.argument;
-    const result = TrivialExpression.isTrivial(argument, TRIVIAL_OPTIONS);
+    const result = TrivialExpression.isTrivial(argument, TRIVIAL_OPTIONS, parameterNames, context);
 
     return result;
   }
 
-  public static isStructurallyExempt(node: unknown): boolean {
+  public static isStructurallyExempt(node: unknown, context: Rule.RuleContext): boolean {
     if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.body)) {
       return false;
     }
     const { body } = node;
+    const parameterNames = ParameterNames.of(node);
 
     if (body.type === 'BlockStatement') {
-      const result = AstHelpers.isBlockBodyTrivial(Array.isArray(body.body) ? body.body : []);
+      const result = AstHelpers.isBlockBodyTrivial(Array.isArray(body.body) ? body.body : [], parameterNames, context);
 
       return result;
     }
-    const result = TrivialExpression.isTrivial(body, TRIVIAL_OPTIONS);
+    const result = TrivialExpression.isTrivial(body, TRIVIAL_OPTIONS, parameterNames, context);
 
     return result;
   }
 }
 
+// THE CANONICAL ENTITY `validate` TYPE GUARD IS EXEMPT. DO NOT REMOVE THIS.
+//
+// `folder-content-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
+// type guard — its own message names the two accepted spellings:
+//
+//     export const validate = SchemaValidator.compile<Type>(Schema)        (preferred)
+//     export function validate(candidate: unknown): candidate is Type      (also accepted)
+//
+// This rule treats a `TSModuleBlock` as transparent, so both spellings read as a
+// freestanding module-scope function and were reported — across 27 entity files. That is a
+// genuine contradiction: one rule mandates the exact declaration the other forbids, and no
+// third spelling exists, so there was no compliant program.
+//
+// The namespace transparency itself is CORRECT and stays — `namespace Utils { export
+// function f() {} }` really is a freestanding function in disguise, and closing that
+// bypass was the point. Only the entity type-guard shape is carved out, and it is
+// recognised by the SAME predicate `folder-content-shape` uses to require it
+// (`SchemaMemberGuards.isValidateTypeGuard`), imported rather than re-implemented, so the
+// two rules cannot drift back into disagreement.
 export const staticMethodVerbs: Rule.RuleModule = {
   'create': (context) => {
     const rawOptions: unknown = context.options.at(0);
@@ -315,7 +337,7 @@ export const staticMethodVerbs: Rule.RuleModule = {
         return true;
       }
       if (mode === 'structural') {
-        const result = !AstHelpers.isStructurallyExempt(node);
+        const result = !AstHelpers.isStructurallyExempt(node, context);
 
         return result;
       }
@@ -336,6 +358,9 @@ export const staticMethodVerbs: Rule.RuleModule = {
     };
 
     const onFunctionDeclaration: NonNullable<Rule.RuleListener['FunctionDeclaration']> = (node) => {
+      if (SchemaMemberGuards.isValidateTypeGuard(node)) {
+        return;
+      }
       if (!AstHelpers.isModuleScopeContainer(node.parent)) {
         return;
       }
@@ -351,6 +376,9 @@ export const staticMethodVerbs: Rule.RuleModule = {
     };
 
     const onVariableDeclaration: NonNullable<Rule.RuleListener['VariableDeclaration']> = (node) => {
+      if (SchemaMemberGuards.isValidateTypeGuard(node)) {
+        return;
+      }
       if (!AstHelpers.isModuleScopeContainer(node.parent)) {
         return;
       }

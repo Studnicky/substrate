@@ -61,7 +61,8 @@ class CircularBufferInstance {
     constructor: CircularBufferSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 

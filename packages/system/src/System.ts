@@ -23,29 +23,32 @@ export class System {
     const arch = PROVIDER.arch();
     const { logicalCount, model, physicalCount } = PROVIDER.cpuInfo();
 
-    return {
+    const result: CpuInfoEntity.Type = {
       'arch': arch,
       'logicalCount': logicalCount,
       'model': model,
       'physicalCount': physicalCount
     };
+    return result;
   }
 
   static get memory(): MemoryInfoEntity.Type {
-    return {
+    const result: MemoryInfoEntity.Type = {
       'freeMb': PROVIDER.freeMb(),
       'totalMb': PROVIDER.totalMb()
     };
+    return result;
   }
 
   static get platform(): PlatformInfoEntity.Type {
-    const platformStr = PROVIDER.platform();
+    const platformString = PROVIDER.platform();
 
-    return {
-      'isAppleSilicon': System.#isAppleSilicon(platformStr),
+    const result: PlatformInfoEntity.Type = {
+      'isAppleSilicon': platformString === 'darwin' && PROVIDER.arch() === 'arm64',
       'nodeVersion': PROVIDER.runtimeVersion(),
-      'os': platformStr
+      'os': platformString
     };
+    return result;
   }
 
   static gpu(): GpuInfoEntity.Type | null {
@@ -54,17 +57,14 @@ export class System {
       System.#gpuState = GPU_CACHE_MACHINE.transition(System.#gpuState, { 'detected': detected, 'type': 'computed' }).state;
     }
 
-    return System.#gpuState.variant === 'computed-value' ? { ...System.#gpuState.gpu } : null;
-  }
-
-  static get optimalWorkerCount(): number {
-    const result = Math.max(1, PROVIDER.logicalCpuCount() - 1);
+    const result: GpuInfoEntity.Type | null = System.#gpuState.variant === 'computed-value' ? { ...System.#gpuState.gpu } : null;
     return result;
   }
 
-  static #isAppleSilicon(platformStr: string): boolean {
-    const arch = PROVIDER.arch();
-    return platformStr === 'darwin' && arch === 'arm64';
+  static get optimalWorkerCount(): number {
+    const remainingWorkerCount = PROVIDER.logicalCpuCount() - 1;
+    const result = Math.max(1, remainingWorkerCount);
+    return result;
   }
 
 }

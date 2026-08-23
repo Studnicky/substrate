@@ -56,7 +56,8 @@ class JobProcess extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, 
 
   // Once settled, further transitions are rejected outright — reduce() is never called.
   protected override isTerminated(state: JobStateEntity.Type): boolean {
-    return state.variant === 'completed' || state.variant === 'cancelled';
+    const result = state.variant === 'completed' || state.variant === 'cancelled';
+    return result;
   }
 }
 
@@ -66,21 +67,21 @@ const scheduler = VirtualScheduler.create({ 'counter': counter });
 
 class Job {
   static make(): {
-    'getScheduledTask': () => ScheduledTaskInterface | undefined;
     'interpreter': EffectInterpreter<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>;
+    'scheduledTaskReference': { 'current': ScheduledTaskInterface | undefined };
     'waitForScheduledDispatch': () => Promise<void>;
   } {
-    const scheduledTaskRef: { 'current': ScheduledTaskInterface | undefined } = { 'current': undefined };
-    const scheduledDispatchRef: { 'current': Promise<void> | undefined } = { 'current': undefined };
+    const scheduledTaskReference: { 'current': ScheduledTaskInterface | undefined } = { 'current': undefined };
+    const scheduledDispatchReference: { 'current': Promise<void> | undefined } = { 'current': undefined };
     const handler: EffectHandlerInterface<JobEffectEntity.Type, JobEventEntity.Type> = (effect, dispatch) => {
       if (effect.variant === 'requestAck') {
         dispatch({ 'type': 'acknowledge' });
         return;
       }
-      scheduledTaskRef.current = scheduler.scheduleAt(counter.nowMs() + effect.delayMs, () => {
-        scheduledTaskRef.current = undefined;
+      scheduledTaskReference.current = scheduler.scheduleAt(counter.nowMs() + effect.delayMs, () => {
+        scheduledTaskReference.current = undefined;
         const scheduledDispatch = interpreter.send({ 'type': 'advance' });
-        scheduledDispatchRef.current = scheduledDispatch;
+        scheduledDispatchReference.current = scheduledDispatch;
         return scheduledDispatch;
       });
     };
@@ -90,13 +91,8 @@ class Job {
       'machine': JobProcess.make()
     });
 
-    const getScheduledTaskFn = (): ScheduledTaskInterface | undefined => {
-      const result = scheduledTaskRef.current;
-      return result;
-    };
-
-    const waitForScheduledDispatchFn = (): Promise<void> => {
-      const scheduledDispatch = scheduledDispatchRef.current;
+    const waitForScheduledDispatch = (): Promise<void> => {
+      const scheduledDispatch = scheduledDispatchReference.current;
       if (scheduledDispatch === undefined) {
         throw new Error('Scheduled dispatch has not started');
       }
@@ -104,9 +100,9 @@ class Job {
     };
 
     return {
-      'getScheduledTask': getScheduledTaskFn,
       'interpreter': interpreter,
-      'waitForScheduledDispatch': waitForScheduledDispatchFn
+      'scheduledTaskReference': scheduledTaskReference,
+      'waitForScheduledDispatch': waitForScheduledDispatch
     };
   }
 }
@@ -116,16 +112,17 @@ class Job {
 class CancellationWiring {
   static wire(
     interpreter: EffectInterpreter<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>,
-    getScheduledTask: () => ScheduledTaskInterface | undefined,
+    scheduledTaskReference: { 'current': ScheduledTaskInterface | undefined },
     abortSignal: AbortSignal
   ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+    const result = new Promise<void>((resolve, reject) => {
       abortSignal.addEventListener('abort', () => {
-        const pending = getScheduledTask();
+        const pending = scheduledTaskReference.current;
         if (pending !== undefined) { pending.cancel(); }
         interpreter.send({ 'type': 'cancel' }).then(resolve, reject);
       }, { 'once': true });
     });
+    return result;
   }
 }
 // #endregion usage
@@ -153,12 +150,12 @@ console.log('Job A final state:', jobA.interpreter.getState().variant);
 const jobB = Job.make();
 const controllerB = new AbortController();
 const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
-const cancellationB = CancellationWiring.wire(jobB.interpreter, jobB.getScheduledTask, composedSignalB);
+const cancellationB = CancellationWiring.wire(jobB.interpreter, jobB.scheduledTaskReference, composedSignalB);
 
 jobB.interpreter.start();
 await jobB.interpreter.send({ 'type': 'start' });
 assert.equal(jobB.interpreter.getState().variant, 'acknowledged');
-assert.notEqual(jobB.getScheduledTask(), undefined, 'a scheduled advance must be pending while acknowledged');
+assert.notEqual(jobB.scheduledTaskReference.current, undefined, 'a scheduled advance must be pending while acknowledged');
 
 controllerB.abort();
 await cancellationB;

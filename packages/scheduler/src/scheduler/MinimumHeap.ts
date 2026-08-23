@@ -9,7 +9,8 @@ class MinimumHeapInstance {
     constructor: MinimumHeapSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -57,7 +58,8 @@ export class MinimumHeap {
 
   public peekAtMs(): number | undefined {
     const [top] = this.#heap;
-    return top !== undefined ? top.atMs : undefined;
+    const result = top !== undefined ? top.atMs : undefined;
+    return result;
   }
 
   #bubbleUp(index: number): void {

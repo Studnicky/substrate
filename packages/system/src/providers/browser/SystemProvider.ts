@@ -91,7 +91,8 @@ export class SystemProvider implements SystemProviderInterface {
    * over-estimating available parallelism with an unreliable heuristic.
    */
   physicalCpuCount(): number {
-    const result = this.logicalCpuCount();
+    const snapshot = this.cpuInfo();
+    const result = snapshot.physicalCount;
     return result;
   }
 

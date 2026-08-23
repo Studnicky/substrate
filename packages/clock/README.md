@@ -86,7 +86,7 @@ console.log(clock.now());    // 42
 console.log(clock.hrtime()); // 42000000n
 ```
 
-`Clock` also exposes protected override seams — `readNow()` and `readHrtime()` — for subclasses that need to intercept or transform values before monotonicity clamping is applied.
+Use `ClockProviderInterface` to inject custom time sources before monotonicity clamping is applied.
 
 ## Documentation
 

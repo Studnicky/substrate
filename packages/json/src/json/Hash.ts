@@ -21,18 +21,26 @@ export class Hash {
   protected static fnv1a32(input: string): number {
     let hash: number = FNV_OFFSET_BASIS;
 
-    const inputLen = input.length;
-    for (let i = 0; i < inputLen; i++) {
-      hash ^= input.charCodeAt(i);
+    const length = input.length;
+    for (let index = 0; index < length; index += 1) {
+      hash ^= input.charCodeAt(index);
       hash = Math.imul(hash, FNV_PRIME) >>> 0;
     }
 
-    return hash & UINT32_MASK;
+    const result = hash & UINT32_MASK;
+    return result;
   }
 
   /** Encode a 32-bit unsigned integer as an 8-character lowercase hex string. */
   protected static toHex32(n: number): string {
-    const result = (n >>> 0).toString(16).padStart(8, '0');
+    const unsignedInteger = n >>> 0;
+    const hexadecimal = unsignedInteger.toString(16);
+
+    if (hexadecimal.length === 8) {
+      return hexadecimal;
+    }
+
+    const result = hexadecimal.padStart(8, '0');
     return result;
   }
 
@@ -45,7 +53,8 @@ export class Hash {
       return 'null';
     }
     if (typeof value === 'boolean') {
-      return value ? 'true' : 'false';
+      const result = value ? 'true' : 'false';
+      return result;
     }
     if (typeof value === 'number') {
       return `n:${String(value)}`;
@@ -75,7 +84,7 @@ export class Hash {
     }
     if (DataType.isRecord(value)) {
       const keys = Object.keys(value).sort();
-      const parts = keys.map((k) => { const result = `${k}:${this.hashValue(value[k])}`; return result; });
+      const parts = keys.map((key) => { const result = `${key}:${this.hashValue(Reflect.get(value, key))}`; return result; });
 
       return `{${parts.join(',')}}`;
     }
@@ -96,6 +105,7 @@ export class Hash {
   public static value(input: unknown): string {
     const serialised = this.hashValue(input);
 
-    return this.toHex32(this.fnv1a32(serialised));
+    const result = this.toHex32(this.fnv1a32(serialised));
+    return result;
   }
 }

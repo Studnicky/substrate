@@ -121,7 +121,7 @@ type ScenarioCase =
   | {
       description: string;
       expected: { accepted: true };
-      input: { timing: { maxEvents: number; precision: { ms: number } } };
+      input: { timing: { maximumEvents: number; precision: { ms: number } } };
       shape: 'accepts-all-options';
       name: string;
     }
@@ -142,7 +142,7 @@ const runnerMap: RunnerMap = {
   'accepts-valid-max-events': (scenarioCase) => {
     for (const value of scenarioCase.input.values) {
       assert.doesNotThrow(() => {
-        Timing.create({ maxEvents: value });
+        Timing.create({ maximumEvents: value });
       });
     }
     assert.doesNotThrow(() => {
@@ -155,7 +155,7 @@ const runnerMap: RunnerMap = {
     const errorNames: string[] = [];
     for (const value of scenarioCase.input.values) {
       assert.throws(() => {
-        TimingValidator.validateMaxEvents(value);
+        TimingValidator.validateMaximumEvents(value);
       }, ConfigurationError);
       errorNames.push('ConfigurationError');
     }
@@ -183,14 +183,14 @@ const runnerMap: RunnerMap = {
 
   'accepts-null-max-events': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      TimingValidator.validateMaxEvents(null);
+      TimingValidator.validateMaximumEvents(null);
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },
 
   'accepts-undefined-max-events': (scenarioCase) => {
     assert.doesNotThrow(() => {
-      TimingValidator.validateMaxEvents(undefined);
+      TimingValidator.validateMaximumEvents(undefined);
     });
     assert.equal(scenarioCase.expected.accepted, true);
   },
@@ -239,12 +239,12 @@ const runnerMap: RunnerMap = {
     const timer = Timing.create(scenarioCase.input.timing);
     timer.event(createTimingEvent(scenarioCase.input.event));
     const events = timer.getEvents();
-    assert.ok(events.initialize !== undefined);
-    const valueStr = events.initialize.toString();
+    assert.ok(events.get('initialize') !== undefined);
+    const valueStr = (events.get('initialize') ?? 0).toString();
     const decimalPart = valueStr.split('.')[1];
     const maxDecimalPlaces = decimalPart === undefined ? 0 : decimalPart.length;
     assert.equal(maxDecimalPlaces <= scenarioCase.expected.maxDecimalPlaces, true);
-    assert.equal(events.initialize !== undefined, scenarioCase.expected.hasInitialize);
+    assert.equal(events.get('initialize') !== undefined, scenarioCase.expected.hasInitialize);
   },
 
   'accepts-all-options': (scenarioCase) => {
@@ -258,8 +258,8 @@ const runnerMap: RunnerMap = {
     assert.equal(scenarioCase.input.hasInitialize, scenarioCase.expected.hasInitialize);
     const timer = Timing.create();
     const events = timer.getEvents();
-    assert.ok(events.initialize !== undefined);
-    assert.equal(events.initialize !== undefined, scenarioCase.expected.hasInitialize);
+    assert.ok(events.get('initialize') !== undefined);
+    assert.equal(events.get('initialize') !== undefined, scenarioCase.expected.hasInitialize);
   }
 };
 

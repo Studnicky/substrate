@@ -24,7 +24,7 @@ class TracedBreaker extends CircuitBreaker {
 }
 
 // --- Observed DeadLetterQueue ---
-class TracedDlq<T> extends DeadLetterQueue<T> {
+class TracedDeadLetterQueue<T> extends DeadLetterQueue<T> {
   constructor(options?: DeadLetterQueueOptionsInterface) { super(options); }
   protected override onEnqueue(item: T): void { console.log(`[resilience:dlq] onEnqueue — item=${String(item)}`); }
   protected override onDequeue(item: T): void { console.log(`[resilience:dlq] onDequeue — item=${String(item)}`); }
@@ -38,24 +38,24 @@ const events: string[] = [];
 // Scenario: breaker trips open → half-open → closes; rejected calls go to DLQ
 let time = 0;
 class Clock {
-  static now(): number { const result = time; return result; }
+  static now(): number { const result = time + 0; return result; }
 }
 
-const cb = new TracedBreaker({ 'clock': Clock.now, 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 });
-const dlq = new TracedDlq<string>({ 'capacity': 10 });
+const circuitBreaker = new TracedBreaker({ 'clock': Clock.now, 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 });
+const deadLetterQueue = new TracedDeadLetterQueue<string>({ 'capacity': 10 });
 
 // Trip the breaker open with 2 failures
 console.log('\n--- Tripping open ---');
-try { await cb.execute(() => { throw new Error('service down'); }); } catch { dlq.enqueue('msg-1', 'service-failure'); events.push('failure-1'); }
-try { await cb.execute(() => { throw new Error('service down'); }); } catch { dlq.enqueue('msg-2', 'service-failure'); events.push('failure-2'); }
+try { await circuitBreaker.execute(() => { throw new Error('service down'); }); } catch { deadLetterQueue.enqueue('msg-1', 'service-failure'); events.push('failure-1'); }
+try { await circuitBreaker.execute(() => { throw new Error('service down'); }); } catch { deadLetterQueue.enqueue('msg-2', 'service-failure'); events.push('failure-2'); }
 
 // Call while open — should be rejected and sent to DLQ
 console.log('\n--- Rejecting while open ---');
 try {
-  await cb.execute(() => { const result = Promise.resolve('ok'); return result; });
-} catch (e) {
-  if (e instanceof CircuitBreakerOpenError) {
-    dlq.enqueue('msg-3', 'circuit-open');
+  await circuitBreaker.execute(() => { const result = Promise.resolve('ok'); return result; });
+} catch (error) {
+  if (error instanceof CircuitBreakerOpenError) {
+    deadLetterQueue.enqueue('msg-3', 'circuit-open');
     events.push('rejected');
   }
 }
@@ -63,13 +63,13 @@ try {
 // Advance clock past resetTimeoutMs → half-open
 console.log('\n--- Half-open probe ---');
 time = 100;
-await cb.execute(() => { const result = Promise.resolve('ok'); return result; }); // half-open → closed
+await circuitBreaker.execute(() => { const result = Promise.resolve('ok'); return result; }); // half-open → closed
 events.push('recovered');
 
 // Drain the DLQ
 console.log('\n--- Draining DLQ ---');
-dlq.close();
-for await (const entry of dlq.drain()) {
+deadLetterQueue.close();
+for await (const entry of deadLetterQueue.drain()) {
   events.push(`drain:${entry.item}`);
 }
 // #endregion usage

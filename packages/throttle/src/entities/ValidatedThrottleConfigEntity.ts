@@ -23,10 +23,10 @@ export namespace ValidatedThrottleConfigEntity {
 
   const compiledValidate = SchemaValidator.compile<Type>(Schema);
 
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!compiledValidate(candidate)) {
       throw ConfigurationError.create(SchemaValidator.formatErrors(compiledValidate.errors));
     }
     return true;
-  }
+  };
 }

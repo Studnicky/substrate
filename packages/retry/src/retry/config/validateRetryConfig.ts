@@ -7,16 +7,16 @@ import {
   backoffStrategy,
   errorClassifier,
   hookTimeoutMs,
-  maxElapsedMs,
-  maxRetries
+  maximumElapsedMs,
+  maximumRetries
 } from './schemas/index.js';
 
-const propertyValidators: Record<string, (val: unknown) => void> = {
+const propertyValidators: Record<string, (value: unknown) => void> = {
   'backoffStrategy': backoffStrategy.validateBackoffStrategy,
   'errorClassifier': errorClassifier.validateErrorClassifier,
   'hookTimeoutMs': hookTimeoutMs.validateHookTimeoutMs,
-  'maxElapsedMs': maxElapsedMs.validateMaxElapsedMs,
-  'maxRetries': maxRetries.validateMaxRetries
+  'maximumElapsedMs': maximumElapsedMs.validateMaximumElapsedMs,
+  'maximumRetries': maximumRetries.validateMaximumRetries
 };
 
 /**
@@ -29,16 +29,22 @@ class RetryConfigValidator {
   static validate(config?: RetryConfigInterface): RetryConfigInterface {
     try {
       const userConfig = config ?? {};
-      const configObj: Record<string, unknown> = {};
-      for (const key of Object.keys(userConfig)) {
-        configObj[key] = Reflect.get(userConfig, key);
+      const configObject: Record<string, unknown> = {};
+      const userConfigKeys = Object.keys(userConfig);
+      const userConfigKeysLength = userConfigKeys.length;
+      for (let keyIndex = 0; keyIndex < userConfigKeysLength; keyIndex += 1) {
+        const key = userConfigKeys[keyIndex]!;
+        Reflect.set(configObject, key, Reflect.get(userConfig, key));
       }
 
-      ConfigValidation.assertNoUnknownKeys(configObj, RETRY_CONFIG_KEYS);
+      ConfigValidation.assertNoUnknownKeys(configObject, RETRY_CONFIG_KEYS);
 
-      for (const [key, validator] of Object.entries(propertyValidators)) {
+      const validatorEntries = Object.entries(propertyValidators);
+      const validatorEntriesLength = validatorEntries.length;
+      for (let validatorIndex = 0; validatorIndex < validatorEntriesLength; validatorIndex += 1) {
+        const [key, validator] = validatorEntries[validatorIndex]!;
         if (key in userConfig) {
-          validator(configObj[key]);
+          validator(Reflect.get(configObject, key));
         }
       }
 

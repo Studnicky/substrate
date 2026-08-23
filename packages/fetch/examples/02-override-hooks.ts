@@ -30,12 +30,14 @@ class AuthClient extends FetchClient {
         }
       }
     };
-    return Promise.resolve(result);
+    const response = Promise.resolve(result);
+    return response;
   }
 
   protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     this.responseLog.push(context.response.status);
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 }
 
@@ -44,13 +46,14 @@ await (async function runOverrideHooksExample(): Promise<void> {
   globalThis.fetch = (_input, init) => {
     const echoed: Record<string, string> = {};
     for (const [name, value] of new Headers(init?.headers).entries()) {
-      echoed[name] = value;
+      Reflect.set(echoed, name, value);
     }
 
-    return Promise.resolve(new Response(JSON.stringify({ 'echoed': echoed }), {
+    const result = Promise.resolve(new Response(JSON.stringify({ 'echoed': echoed }), {
       'headers': { 'Content-Type': 'application/json' },
       'status': 200
     }));
+    return result;
   };
 
   const client = AuthClient.create({ 'baseURL': 'https://example.test' });

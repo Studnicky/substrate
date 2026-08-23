@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  describe, it
+  describe, it, mock
 } from 'node:test';
 
 import { HookInvocationError } from '@studnicky/errors';
@@ -158,6 +158,54 @@ function createVirtualClock(input: VirtualTimeCounterOptionsInput): Clock {
 
 function readVirtualTimeCounterStartMs(input: VirtualTimeCounterOptionsInput): number {
   return materializeVirtualTimeCounterOptions(input)?.startMs ?? 0;
+}
+
+interface RealTimeMockInterface {
+  restore(): void;
+}
+
+function mockRealTime(rawTime: number): RealTimeMockInterface {
+  const dateNowMock = mock.method(Date, 'now', Number.prototype.valueOf.bind(rawTime));
+  const performanceNowMock = mock.method(performance, 'now', Number.prototype.valueOf.bind(rawTime));
+  const result: RealTimeMockInterface = {
+    restore(): void {
+      dateNowMock.mock.restore();
+      performanceNowMock.mock.restore();
+    }
+  };
+  return result;
+}
+
+class MeteredClockProvider implements ClockProviderInterface {
+  readonly #counter: VirtualTimeCounter;
+  #hrtimeCallCount: number;
+  #nowCallCount: number;
+
+  public constructor(counter: VirtualTimeCounter) {
+    this.#counter = counter;
+    this.#hrtimeCallCount = 0;
+    this.#nowCallCount = 0;
+  }
+
+  public get hrtimeCallCount(): number {
+    return this.#hrtimeCallCount;
+  }
+
+  public hrtime(): bigint {
+    this.#hrtimeCallCount += 1;
+    const result = BigInt(this.#counter.nowMs()) * NS_PER_MS;
+    return result;
+  }
+
+  public get nowCallCount(): number {
+    return this.#nowCallCount;
+  }
+
+  public now(): number {
+    this.#nowCallCount += 1;
+    const result = this.#counter.nowMs();
+    return result;
+  }
 }
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
@@ -349,16 +397,18 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const counter = createVirtualTimeCounter(input.counterOptions);
     const lowerCounter = createVirtualTimeCounter(input.lowerCounterOptions);
     let readCount = 0;
-
-    class BackwardsJumpClock extends Clock {
-      public constructor(provider: ClockProviderInterface) { super(provider); }
-      protected override readNow(): number {
+    const provider: ClockProviderInterface = {
+      hrtime(): bigint {
+        const result = BigInt(counter.nowMs()) * NS_PER_MS;
+        return result;
+      },
+      now(): number {
         readCount += 1;
-        return readCount === 1 ? counter.nowMs() : lowerCounter.nowMs();
+        const result = readCount === 1 ? counter.nowMs() : lowerCounter.nowMs();
+        return result;
       }
-    }
-
-    const clock = new BackwardsJumpClock(VirtualClockProvider.create(counter));
+    };
+    const clock = Clock.create(provider);
     const first = clock.now();
     const second = clock.now();
     assert.ok(first >= 0);
@@ -529,16 +579,19 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawMs(): number { return input.rawMs; }
-      protected override readRawHrtimeMs(): number { return input.rawMs; }
       protected override onNow(timestamp: number): void { this.nowEvents.push(timestamp); }
       protected override onHrtime(value: bigint): void { this.hrtimeEvents.push(value); }
     }
 
-    const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    const result = provider.now();
-    assert.deepStrictEqual(provider.nowEvents, expected.nowEvents);
-    assert.strictEqual(result, expected.result);
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      const result = provider.now();
+      assert.deepStrictEqual(provider.nowEvents, expected.nowEvents);
+      assert.strictEqual(result, expected.result);
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -550,13 +603,17 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class HookedRealProvider extends RealTimeClockProvider {
       readonly nowEvents: number[] = [];
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawMs(): number { return input.rawMs; }
       protected override onNow(timestamp: number): void { this.nowEvents.push(timestamp); }
     }
 
-    const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    provider.now();
-    assert.deepStrictEqual(provider.nowEvents, expected.nowEvents);
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      provider.now();
+      assert.deepStrictEqual(provider.nowEvents, expected.nowEvents);
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -568,14 +625,18 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class HookedRealProvider extends RealTimeClockProvider {
       readonly hrtimeEvents: bigint[] = [];
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawHrtimeMs(): number { return input.rawMs; }
       protected override onHrtime(value: bigint): void { this.hrtimeEvents.push(value); }
     }
 
-    const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    const result = provider.hrtime();
-    assert.deepStrictEqual(provider.hrtimeEvents.map((value) => Number(value)), expected.hrtimeEvents.map(Number));
-    assert.strictEqual(result, BigInt(String(expected.result)));
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new HookedRealProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      const result = provider.hrtime();
+      assert.deepStrictEqual(provider.hrtimeEvents.map((value) => Number(value)), expected.hrtimeEvents.map(Number));
+      assert.strictEqual(result, BigInt(String(expected.result)));
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -670,19 +731,23 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingRealNowProvider extends RealTimeClockProvider {
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawMs(): number { return input.rawMs; }
       protected override onNow(): void { throw new Error('provider onNow boom'); }
     }
 
-    const provider = new ThrowingRealNowProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    assert.throws(() => { provider.now(); }, (thrown: unknown) => {
-      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
-      assert.ok(thrown instanceof HookInvocationError);
-      assert.strictEqual(thrown.hookName, 'onNow');
-      assert.ok(thrown.cause instanceof Error);
-      assert.strictEqual(thrown.cause.message, 'provider onNow boom');
-      return true;
-    });
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new ThrowingRealNowProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      assert.throws(() => { provider.now(); }, (thrown: unknown) => {
+        assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+        assert.ok(thrown instanceof HookInvocationError);
+        assert.strictEqual(thrown.hookName, 'onNow');
+        assert.ok(thrown.cause instanceof Error);
+        assert.strictEqual(thrown.cause.message, 'provider onNow boom');
+        return true;
+      });
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -693,17 +758,21 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawHrtimeMs(): number { return input.rawMs; }
       protected override onHrtime(): void { throw new Error('provider onHrtime boom'); }
     }
 
-    const provider = new ThrowingRealHrtimeProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
-      assert.equal(thrown instanceof HookInvocationError, expected.hookError);
-      assert.ok(thrown instanceof HookInvocationError);
-      assert.strictEqual(thrown.hookName, 'onHrtime');
-      return true;
-    });
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new ThrowingRealHrtimeProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      assert.throws(() => { provider.hrtime(); }, (thrown: unknown) => {
+        assert.equal(thrown instanceof HookInvocationError, expected.hookError);
+        assert.ok(thrown instanceof HookInvocationError);
+        assert.strictEqual(thrown.hookName, 'onHrtime');
+        return true;
+      });
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -938,30 +1007,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { now: number };
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
-    class MeteredClock extends Clock {
-      #nowCallCount = 0;
-      #hrtimeCallCount = 0;
-      public constructor(provider: ClockProviderInterface) { super(provider); }
-      public get nowCallCount(): number { return this.#nowCallCount; }
-      public get hrtimeCallCount(): number { return this.#hrtimeCallCount; }
-      protected override readNow(): number {
-        this.#nowCallCount += 1;
-        return super.readNow();
-      }
-      protected override readHrtime(): bigint {
-        this.#hrtimeCallCount += 1;
-        return super.readHrtime();
-      }
-    }
-
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new MeteredClock(VirtualClockProvider.create(counter));
+    const provider = new MeteredClockProvider(counter);
+    const clock = Clock.create(provider);
     const first = clock.now();
     assert.strictEqual(first, expected.now);
     counter.advance(input.advanceMs);
     const second = clock.now();
-    assert.ok(clock.nowCallCount > 0);
-    assert.strictEqual(clock.nowCallCount, 2);
+    assert.ok(provider.nowCallCount > 0);
+    assert.strictEqual(provider.nowCallCount, 2);
     assert.ok(first <= second);
     return;
   },
@@ -971,29 +1025,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { hrtime: string };
       input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
     };
-    class MeteredClock extends Clock {
-      #nowCallCount = 0;
-      #hrtimeCallCount = 0;
-      public constructor(provider: ClockProviderInterface) { super(provider); }
-      public get nowCallCount(): number { return this.#nowCallCount; }
-      public get hrtimeCallCount(): number { return this.#hrtimeCallCount; }
-      protected override readNow(): number {
-        this.#nowCallCount += 1;
-        return super.readNow();
-      }
-      protected override readHrtime(): bigint {
-        this.#hrtimeCallCount += 1;
-        return super.readHrtime();
-      }
-    }
-
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const clock = new MeteredClock(VirtualClockProvider.create(counter));
+    const provider = new MeteredClockProvider(counter);
+    const clock = Clock.create(provider);
     assert.strictEqual(clock.hrtime(), BigInt(expected.hrtime));
     counter.advance(input.advanceMs);
     clock.hrtime();
-    assert.ok(clock.hrtimeCallCount > 0);
-    assert.strictEqual(clock.hrtimeCallCount, 2);
+    assert.ok(provider.hrtimeCallCount > 0);
+    assert.strictEqual(provider.hrtimeCallCount, 2);
     return;
   },
 
@@ -1002,13 +1041,13 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { now: number };
       input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
     };
-    class OffsetRealTimeClockProvider extends RealTimeClockProvider {
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawMs(): number { return input.rawMs; }
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      assert.strictEqual(provider.now(), expected.now);
+    } finally {
+      realTimeMock.restore();
     }
-
-    const provider = new OffsetRealTimeClockProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    assert.strictEqual(provider.now(), expected.now);
     return;
   },
 
@@ -1019,16 +1058,20 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class OffsetRealTimeClockProvider extends RealTimeClockProvider {
       public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawMs(): number { return input.rawMs; }
       // Exposes the protected `offsetMs` getter so the subclass-access claim in
       // this scenario's description is actually exercised.
       public get exposedOffsetMs(): number { return this.offsetMs; }
     }
 
-    const provider = new OffsetRealTimeClockProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
-    const expectedOffsetMs = materializeRealTimeClockProviderOptions(input.realProviderOptions)?.offsetMs ?? 0;
-    assert.strictEqual(provider.exposedOffsetMs, expectedOffsetMs);
-    assert.strictEqual(provider.now(), expected.now);
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = new OffsetRealTimeClockProvider(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      const expectedOffsetMs = materializeRealTimeClockProviderOptions(input.realProviderOptions)?.offsetMs ?? 0;
+      assert.strictEqual(provider.exposedOffsetMs, expectedOffsetMs);
+      assert.strictEqual(provider.now(), expected.now);
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   },
 
@@ -1037,13 +1080,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { now: number };
       input: { counterOptions: VirtualTimeCounterOptionsInput; virtualMs: number };
     };
-    class TracedVirtualClockProvider extends VirtualClockProvider {
-      public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
-      protected override readVirtualMs(): number { return input.virtualMs; }
-    }
-
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const provider = new TracedVirtualClockProvider(counter);
+    counter.advance(input.virtualMs - counter.nowMs());
+    const provider = VirtualClockProvider.create(counter);
     assert.strictEqual(provider.now(), expected.now);
     return;
   },
@@ -1053,13 +1092,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { hrtime: string };
       input: { counterOptions: VirtualTimeCounterOptionsInput; virtualMs: number };
     };
-    class TracedVirtualClockProvider extends VirtualClockProvider {
-      public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
-      protected override readVirtualMs(): number { return input.virtualMs; }
-    }
-
     const counter = createVirtualTimeCounter(input.counterOptions);
-    const provider = new TracedVirtualClockProvider(counter);
+    counter.advance(input.virtualMs - counter.nowMs());
+    const provider = VirtualClockProvider.create(counter);
     assert.strictEqual(provider.hrtime(), BigInt(expected.hrtime));
     return;
   },
@@ -1069,14 +1104,6 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       expected: { precise: boolean };
       input: { rawMs: number; realProviderOptions: RealTimeClockProviderOptionsInput };
     };
-    class LongUptimeRealTimeClockProvider extends RealTimeClockProvider {
-      public constructor(options: RealTimeClockProviderOptionsEntity.Type = {}) { super(options); }
-      protected override readRawHrtimeMs(): number { return input.rawMs; }
-    }
-
-    const provider = new LongUptimeRealTimeClockProvider(
-      materializeRealTimeClockProviderOptions(input.realProviderOptions)
-    );
     // Derive the expected nanosecond value independently of the production
     // trunc/multiply/round split used by RealTimeClockProvider.hrtime(): format
     // the raw ms value as a fixed-point decimal string with microsecond
@@ -1086,9 +1113,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const [wholeMsText, fractionalNsText] = input.rawMs.toFixed(6).split('.');
     const expectedNs = BigInt(wholeMsText!) * NS_PER_MS + BigInt(fractionalNsText!);
     const lossyNs = BigInt(Math.round(input.rawMs * Number(NS_PER_MS)));
-    const result = provider.hrtime();
-    const precise = result === expectedNs && result !== lossyNs;
-    assert.equal(precise, expected.precise);
+    const realTimeMock = mockRealTime(input.rawMs);
+    try {
+      const provider = RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input.realProviderOptions));
+      const result = provider.hrtime();
+      const precise = result === expectedNs && result !== lossyNs;
+      assert.equal(precise, expected.precise);
+    } finally {
+      realTimeMock.restore();
+    }
     return;
   }
 };

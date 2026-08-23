@@ -14,7 +14,7 @@ ConfigValidation.assertNoUnknownKeys(config, ValidateConfigFixtures.knownKeys);
 ConfigValidation.assertString(config.host, 'host');
 ConfigValidation.assertNumber(config.port, 'port');
 ConfigValidation.assertBoolean(config.debug, 'debug');
-ConfigValidation.assertPositive(config.maxRetries, 'maxRetries');
+ConfigValidation.assertPositive(config.maximumRetries, 'maximumRetries');
 
 console.log('Config validated:', config);
 
@@ -35,27 +35,27 @@ ConfigValidation.assertBoolean(undefined, 'optionalFlag');
 let caughtString: ConfigurationError | undefined;
 try {
   ConfigValidation.assertString(42, 'host');
-} catch (err) {
-  if (err instanceof ConfigurationError) {
-    caughtString = err;
+} catch (error) {
+  if (error instanceof ConfigurationError) {
+    caughtString = error;
   }
 }
 
 let caughtNumber: ConfigurationError | undefined;
 try {
   ConfigValidation.assertNumber('not-a-number', 'port');
-} catch (err) {
-  if (err instanceof ConfigurationError) {
-    caughtNumber = err;
+} catch (error) {
+  if (error instanceof ConfigurationError) {
+    caughtNumber = error;
   }
 }
 
 let caughtUnknownKey: ConfigurationError | undefined;
 try {
   ConfigValidation.assertNoUnknownKeys({ 'host': 'localhost', 'unknownKey': true }, ValidateConfigFixtures.knownKeys);
-} catch (err) {
-  if (err instanceof ConfigurationError) {
-    caughtUnknownKey = err;
+} catch (error) {
+  if (error instanceof ConfigurationError) {
+    caughtUnknownKey = error;
   }
 }
 

@@ -22,12 +22,14 @@ class TelemetryFetchClient extends FetchClient {
   protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     console.log(`[fetch] ${context.metadata.method} ${context.metadata.path}`);
     this.requestPaths.push(context.metadata.path);
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 
   protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     console.log(`[fetch] <- ${context.response.status}`);
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 }
 
@@ -120,7 +122,7 @@ if (address === null || typeof address !== 'object') {
 
 // #region usage
 const fetchClient = TelemetryFetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
-const retry = new TelemetryRetry({ 'maxRetries': 3 });
+const retry = new TelemetryRetry({ 'maximumRetries': 3 });
 
 const executor = ReportingRequestExecutor.tracked(fetchClient, retry);
 

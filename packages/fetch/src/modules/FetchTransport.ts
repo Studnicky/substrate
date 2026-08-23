@@ -14,7 +14,7 @@ export class FetchTransport {
     if (dispatcher !== undefined && dispatcher !== null && typeof dispatcher === 'object') {
       const maybeTestTransport = dispatcher as Record<string, unknown>;
 
-      if (maybeTestTransport[TEST_TRANSPORT_MARKER] === true && typeof maybeTestTransport.fetch === 'function') {
+      if (Reflect.get(maybeTestTransport, TEST_TRANSPORT_MARKER) === true && typeof maybeTestTransport.fetch === 'function') {
         return (await maybeTestTransport.fetch(url, init)) as Response;
       }
     }

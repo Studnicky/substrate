@@ -31,11 +31,11 @@ export namespace ValidationAggregateViewEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
+  export const validate = (candidate: unknown): candidate is Type => {
     if (!Guard.isObject(candidate)) { return false; }
     if (typeof candidate.count !== 'number') { return false; }
-    if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((k) => { return typeof k === 'string'; })) { return false; }
-    if (!Array.isArray(candidate.paths) || !candidate.paths.every((p) => { return typeof p === 'string'; })) { return false; }
+    if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((keyword) => { const result = typeof keyword === 'string'; return result; })) { return false; }
+    if (!Array.isArray(candidate.paths) || !candidate.paths.every((path) => { const result = typeof path === 'string'; return result; })) { return false; }
     return true;
-  }
+  };
 }

@@ -30,7 +30,7 @@ export class TimingBuildError extends BaseError {
     return result;
   }
 
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
   }
 }

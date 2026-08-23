@@ -21,16 +21,16 @@ export namespace ThrottleStatsEntity {
           'adjustmentCount': { 'minimum': 0, 'type': 'integer' },
           'enabled': { 'type': 'boolean' },
           'lastAdjustmentTime': { 'minimum': 0, 'type': 'integer' },
-          'maxConcurrency': { 'minimum': 1, 'type': 'integer' },
-          'minConcurrency': { 'minimum': 1, 'type': 'integer' },
+          'maximumConcurrency': { 'minimum': 1, 'type': 'integer' },
+          'minimumConcurrency': { 'minimum': 1, 'type': 'integer' },
           'targetLatencyMs': { 'exclusiveMinimum': 0, 'type': 'number' }
         },
         'required': [
           'adjustmentCount',
           'enabled',
           'lastAdjustmentTime',
-          'maxConcurrency',
-          'minConcurrency',
+          'maximumConcurrency',
+          'minimumConcurrency',
           'targetLatencyMs'
         ],
         'type': 'object'

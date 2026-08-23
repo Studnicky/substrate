@@ -9,7 +9,10 @@ export class ImmutableSnapshot {
     if (value === null || typeof value !== 'object' || visited.has(value)) { return; }
 
     visited.add(value);
-    for (const nested of Object.values(value)) {
+    const nestedValues: readonly unknown[] = Object.values(value);
+    const length = nestedValues.length;
+    for (let index = 0; index < length; index += 1) {
+      const nested = nestedValues[index];
       ImmutableSnapshot.#freeze(nested, visited);
     }
     Object.freeze(value);

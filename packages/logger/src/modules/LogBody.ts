@@ -23,6 +23,7 @@ export class LogBody {
       ...(config.durationMs !== undefined && { 'durationMs': config.durationMs })
     };
 
-    return ImmutableSnapshot.from(result);
+    const snapshot = ImmutableSnapshot.from(result);
+    return snapshot;
   }
 }

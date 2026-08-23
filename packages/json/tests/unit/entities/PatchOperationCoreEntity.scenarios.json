@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "description": "validates canonical RFC-6902 core fields",
+      "expected": {
+        "valid": true
+      },
+      "input": {
+        "operation": {
+          "op": "replace",
+          "path": "/name"
+        }
+      },
+      "shape": "valid-operation",
+      "name": "valid-operation"
+    },
+    {
+      "description": "rejects an unknown operation variant",
+      "expected": {
+        "valid": false
+      },
+      "input": {
+        "operation": {
+          "op": "merge",
+          "path": "/name"
+        }
+      },
+      "shape": "invalid-operation-variant",
+      "name": "invalid-operation-variant"
+    },
+    {
+      "description": "rejects an operation without a path",
+      "expected": {
+        "valid": false
+      },
+      "input": {
+        "operation": {
+          "op": "remove"
+        }
+      },
+      "shape": "invalid-missing-path",
+      "name": "invalid-missing-path"
+    }
+  ]
+}

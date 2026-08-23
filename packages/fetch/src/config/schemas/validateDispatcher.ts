@@ -2,10 +2,8 @@
  * Dispatcher configuration validation
  */
 
-import type { ValidatorFnInterface } from '../../interfaces/ValidatorFnInterface.js';
-
 import {
-  MAX_DISPATCHER_CONNECTIONS, MAX_PIPELINING
+  MAXIMUM_DISPATCHER_CONNECTIONS, MAXIMUM_PIPELINING
 } from '../../constants/index.js';
 import { ConfigurationError } from '../../errors/index.js';
 
@@ -50,15 +48,15 @@ class DispatcherValidator {
   /**
    * Validates a required positive integer with max constraint
    */
-  static positiveIntegerWithMax(value: unknown, path: string, max: number): void {
+  static positiveIntegerWithMaximum(value: unknown, path: string, maximum: number): void {
     if (typeof value !== 'number') {
       throw new ConfigurationError(`${path} must be a number`);
     }
     if (value < 1) {
       throw new ConfigurationError(`${path} must be at least 1`);
     }
-    if (value > max) {
-      throw new ConfigurationError(`${path} must not exceed ${max}`);
+    if (value > maximum) {
+      throw new ConfigurationError(`${path} must not exceed ${maximum}`);
     }
     if (!Number.isInteger(value)) {
       throw new ConfigurationError(`${path} must be an integer`);
@@ -72,7 +70,7 @@ class DispatcherValidator {
     if (value === undefined || value === null) {
       return;
     }
-    DispatcherValidator.positiveIntegerWithMax(value, path, MAX_DISPATCHER_CONNECTIONS);
+    DispatcherValidator.positiveIntegerWithMaximum(value, path, MAXIMUM_DISPATCHER_CONNECTIONS);
   }
 
   /**
@@ -125,8 +123,8 @@ class DispatcherValidator {
     if (value < 0) {
       throw new ConfigurationError(`${path} must be non-negative`);
     }
-    if (value > MAX_PIPELINING) {
-      throw new ConfigurationError(`${path} must not exceed ${MAX_PIPELINING}`);
+    if (value > MAXIMUM_PIPELINING) {
+      throw new ConfigurationError(`${path} must not exceed ${MAXIMUM_PIPELINING}`);
     }
     if (!Number.isInteger(value)) {
       throw new ConfigurationError(`${path} must be an integer`);
@@ -134,9 +132,9 @@ class DispatcherValidator {
   }
 
   /**
-   * Validates maxResponseSize (-1 for unlimited or positive integer)
+   * Validates maximumResponseSize (-1 for unlimited or positive integer)
    */
-  static maxResponseSize(value: unknown, path: string): void {
+  static maximumResponseSize(value: unknown, path: string): void {
     if (typeof value !== 'number') {
       throw new ConfigurationError(`${path} must be a number`);
     }
@@ -150,26 +148,33 @@ class DispatcherValidator {
 
   /**
    * Validates dispatcher configuration object
-   * @param val - Dispatcher configuration to validate
+   * @param value - Dispatcher configuration to validate
    * @throws ConfigurationError if validation fails
    */
-  static validate(val: unknown): void {
-    if (val === undefined || val === null) {
+  static validate(value: unknown): void {
+    if (value === undefined || value === null) {
       return;
     }
 
-    if (typeof val !== 'object' || Array.isArray(val)) {
+    if (typeof value !== 'object' || Array.isArray(value)) {
       throw new ConfigurationError('dispatcher must be an object');
     }
 
-    for (const key of Object.keys(val)) {
-      const value: unknown = Reflect.get(val, key);
-      const validator = VALIDATORS[key];
+    const propertyNames = Object.keys(value);
+    const propertyNameLength = propertyNames.length;
+    for (let index = 0; index < propertyNameLength; index += 1) {
+      const key = propertyNames[index];
+      if (key === undefined) {
+        continue;
+      }
+      const propertyValue: unknown = Reflect.get(value, key);
+      const validatorEntry = VALIDATORS.get(key);
 
-      if (validator === undefined) {
+      if (validatorEntry === undefined) {
         throw new ConfigurationError(`"dispatcher.${key}" is not declared in the schema`);
       }
-      validator(value);
+      const [validator, path] = validatorEntry;
+      validator(propertyValue, path);
     }
   }
 }
@@ -177,87 +182,27 @@ class DispatcherValidator {
 /**
  * Dispatcher property validators dispatch map
  */
-const VALIDATORS: Record<string, ValidatorFnInterface> = {
-  'allowH2': (value: unknown) => {
-    const result = DispatcherValidator.boolean(value, 'dispatcher.allowH2');
-    return result;
-  },
-  'autoSelectFamily': (value: unknown) => {
-    const result = DispatcherValidator.boolean(value, 'dispatcher.autoSelectFamily');
-    return result;
-  },
-  'autoSelectFamilyAttemptTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.autoSelectFamilyAttemptTimeout');
-    return result;
-  },
-  'bodyTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.bodyTimeout');
-    return result;
-  },
-  'clientTtl': (value: unknown) => {
-    const result = DispatcherValidator.optionalNonNegativeNumber(value, 'dispatcher.clientTtl');
-    return result;
-  },
-  'connections': (value: unknown) => {
-    const result = DispatcherValidator.connections(value, 'dispatcher.connections');
-    return result;
-  },
-  'connectTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.connectTimeout');
-    return result;
-  },
-  'enabled': (value: unknown) => {
-    const result = DispatcherValidator.boolean(value, 'dispatcher.enabled');
-    return result;
-  },
-  'headersTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.headersTimeout');
-    return result;
-  },
-  'keepAliveMaxTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.keepAliveMaxTimeout');
-    return result;
-  },
-  'keepAliveTimeout': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.keepAliveTimeout');
-    return result;
-  },
-  'keepAliveTimeoutThreshold': (value: unknown) => {
-    const result = DispatcherValidator.nonNegativeNumber(value, 'dispatcher.keepAliveTimeoutThreshold');
-    return result;
-  },
-  'localAddress': (value: unknown) => {
-    const result = DispatcherValidator.optionalNonEmptyString(value, 'dispatcher.localAddress');
-    return result;
-  },
-  'maxConcurrentStreams': (value: unknown) => {
-    const result = DispatcherValidator.positiveInteger(value, 'dispatcher.maxConcurrentStreams');
-    return result;
-  },
-  'maxHeaderSize': (value: unknown) => {
-    const result = DispatcherValidator.positiveInteger(value, 'dispatcher.maxHeaderSize');
-    return result;
-  },
-  'maxOrigins': (value: unknown) => {
-    const result = DispatcherValidator.optionalPositiveInteger(value, 'dispatcher.maxOrigins');
-    return result;
-  },
-  'maxRequestsPerClient': (value: unknown) => {
-    const result = DispatcherValidator.optionalPositiveInteger(value, 'dispatcher.maxRequestsPerClient');
-    return result;
-  },
-  'maxResponseSize': (value: unknown) => {
-    const result = DispatcherValidator.maxResponseSize(value, 'dispatcher.maxResponseSize');
-    return result;
-  },
-  'pipelining': (value: unknown) => {
-    const result = DispatcherValidator.pipelining(value, 'dispatcher.pipelining');
-    return result;
-  },
-  'strictContentLength': (value: unknown) => {
-    const result = DispatcherValidator.boolean(value, 'dispatcher.strictContentLength');
-    return result;
-  }
-};
+const VALIDATORS = new Map<string, readonly [(value: unknown, path: string) => void, string]>([
+  ['allowH2', [DispatcherValidator.boolean, 'dispatcher.allowH2']],
+  ['autoSelectFamily', [DispatcherValidator.boolean, 'dispatcher.autoSelectFamily']],
+  ['autoSelectFamilyAttemptTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.autoSelectFamilyAttemptTimeout']],
+  ['bodyTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.bodyTimeout']],
+  ['clientTtl', [DispatcherValidator.optionalNonNegativeNumber, 'dispatcher.clientTtl']],
+  ['connections', [DispatcherValidator.connections, 'dispatcher.connections']],
+  ['connectTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.connectTimeout']],
+  ['enabled', [DispatcherValidator.boolean, 'dispatcher.enabled']],
+  ['headersTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.headersTimeout']],
+  ['keepAliveMaximumTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.keepAliveMaximumTimeout']],
+  ['keepAliveTimeout', [DispatcherValidator.nonNegativeNumber, 'dispatcher.keepAliveTimeout']],
+  ['keepAliveTimeoutThreshold', [DispatcherValidator.nonNegativeNumber, 'dispatcher.keepAliveTimeoutThreshold']],
+  ['localAddress', [DispatcherValidator.optionalNonEmptyString, 'dispatcher.localAddress']],
+  ['maximumConcurrentStreams', [DispatcherValidator.positiveInteger, 'dispatcher.maximumConcurrentStreams']],
+  ['maximumHeaderSize', [DispatcherValidator.positiveInteger, 'dispatcher.maximumHeaderSize']],
+  ['maximumOrigins', [DispatcherValidator.optionalPositiveInteger, 'dispatcher.maximumOrigins']],
+  ['maximumRequestsPerClient', [DispatcherValidator.optionalPositiveInteger, 'dispatcher.maximumRequestsPerClient']],
+  ['maximumResponseSize', [DispatcherValidator.maximumResponseSize, 'dispatcher.maximumResponseSize']],
+  ['pipelining', [DispatcherValidator.pipelining, 'dispatcher.pipelining']],
+  ['strictContentLength', [DispatcherValidator.boolean, 'dispatcher.strictContentLength']]
+]);
 
-export const validateDispatcher: (val: unknown) => void = DispatcherValidator.validate;
+export const validateDispatcher: (value: unknown) => void = DispatcherValidator.validate;

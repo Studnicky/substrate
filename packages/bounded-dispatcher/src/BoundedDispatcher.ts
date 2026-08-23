@@ -17,6 +17,10 @@ interface BoundedDispatcherDepsInterface<TTopicMap extends BoundedDispatcherTopi
   readonly 'semaphore': Semaphore;
 }
 
+interface BoundedDispatcherSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
 /**
  * Composes `@studnicky/concurrency`'s `Semaphore`, `@studnicky/event-bus`'s `EventBus`, and
  * `@studnicky/scheduler` into the "bounded work dispatch" pattern: `dispatch()` acquires a
@@ -57,36 +61,30 @@ export class BoundedDispatcher<
    */
   private static isConstructed<TInstance>(
     value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    constructor: BoundedDispatcherSubclassInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<
     TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface,
     TInstance extends BoundedDispatcher<TTopicMap> = BoundedDispatcher<TTopicMap>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: BoundedDispatcherSubclassInterface<TInstance>,
     config: BoundedDispatcherConfigInterface<TTopicMap> = {}
   ): TInstance {
+    const bus = config.bus instanceof EventBus
+      ? config.bus
+      : EventBus.create<TTopicMap>(config.bus ?? {});
     const result: unknown = Reflect.construct(this, [{
-      'bus': BoundedDispatcher.#resolveBus<TTopicMap>(config.bus),
+      'bus': bus,
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
     }]);
     if (!BoundedDispatcher.isConstructed<TInstance>(result, this)) {
       throw new TypeError('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
-    return result;
-  }
-
-  static #resolveBus<TTopicMap extends BoundedDispatcherTopicMapInterface>(
-    value: BoundedDispatcherConfigInterface<TTopicMap>['bus']
-  ): EventBus<TTopicMap> {
-    if (value instanceof EventBus) {
-      return value;
-    }
-    const result = EventBus.create<TTopicMap>(value ?? {});
     return result;
   }
 
@@ -116,7 +114,7 @@ export class BoundedDispatcher<
    * @param fn - The work to run while holding a permit
    * @returns The result of `fn`
    */
-  async dispatch<T>(fn: () => Promise<T> | T): Promise<T> {
+  async dispatch<T>(callback: () => Promise<T> | T): Promise<T> {
     const result = await this.#semaphore.withPermit(async () => {
       this.#publicationHooks.invoke(
         'publishDispatchStart',
@@ -127,7 +125,7 @@ export class BoundedDispatcher<
       );
 
       try {
-        const value = await fn();
+        const value = await callback();
         this.#publicationHooks.invoke(
           'publishDispatchSuccess',
           (): unknown => {
@@ -158,7 +156,7 @@ export class BoundedDispatcher<
 
   /** Returns detached diagnostics for every rejected lifecycle publication. */
   getHookErrors(): readonly HookInvocationError[] {
-    const result = this.#publicationHooks.getHookErrors();
+    const result = [...this.#publicationHooks.getHookErrors()];
     return result;
   }
 
@@ -170,8 +168,8 @@ export class BoundedDispatcher<
    * @param fn - The work to dispatch once `atMs` is reached
    * @returns The scheduler's `ScheduledTaskInterface` handle
    */
-  scheduleDispatch<T>(atMs: number, fn: () => Promise<T> | T): ScheduledTaskInterface {
-    const result = this.#scheduler.scheduleAt(atMs, async () => { await this.dispatch(fn); });
+  scheduleDispatch<T>(atMs: number, callback: () => Promise<T> | T): ScheduledTaskInterface {
+    const result = this.#scheduler.scheduleAt(atMs, async () => { await this.dispatch(callback); });
     return result;
   }
 

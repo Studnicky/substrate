@@ -11,7 +11,8 @@ class NoOpTimingInstance {
     constructor: NoOpTimingSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -88,8 +89,8 @@ export class NoOpTiming implements TimingInterface {
    *
    * @returns Empty events with zero duration
    */
-  getEvents(): Record<string, number> {
-    const events: Record<string, number> = { 'durationMs': 0 };
+  getEvents(): ReadonlyMap<string, number> {
+    const events = new Map<string, number>([['durationMs', 0]]);
     return events;
   }
 }

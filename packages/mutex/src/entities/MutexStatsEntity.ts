@@ -9,7 +9,7 @@ export namespace MutexStatsEntity {
     'properties': {
       'activeLocksCount': { 'minimum': 0, 'type': 'integer' },
       'coalescedCount': { 'minimum': 0, 'type': 'integer' },
-      'maxQueueSize': { 'minimum': 0, 'type': 'integer' },
+      'maximumQueueSize': { 'minimum': 0, 'type': 'integer' },
       'queuedCount': { 'minimum': 0, 'type': 'integer' },
       'timeout': { 'minimum': 0, 'type': 'integer' },
       'totalExecuted': { 'minimum': 0, 'type': 'integer' }
@@ -17,7 +17,7 @@ export namespace MutexStatsEntity {
     'required': [
       'activeLocksCount',
       'coalescedCount',
-      'maxQueueSize',
+      'maximumQueueSize',
       'queuedCount',
       'timeout',
       'totalExecuted'

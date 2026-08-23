@@ -35,7 +35,7 @@ class RetryContextGuard {
       return false;
     }
 
-    if (!Guard.isNonNegativeInteger(value.maxRetries)) {
+    if (!Guard.isNonNegativeInteger(value.maximumRetries)) {
       return false;
     }
 
