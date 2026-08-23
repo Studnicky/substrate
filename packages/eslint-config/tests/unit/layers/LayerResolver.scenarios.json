@@ -136,16 +136,16 @@
         "from": "domain",
         "to": "application",
         "options": {
-          "aliasPrefixes": {
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
           "allowedImports": {
             "domain": [
               "domain",
               "application"
             ]
           },
+          "bindings": [
+            { "kind": "module", "pattern": "@domain/", "layer": "domain" },
+            { "kind": "module", "pattern": "@ports/", "layer": "ports" }
+          ],
           "layers": [
             "domain",
             "ports",
@@ -245,6 +245,232 @@
         "options": {
           "layers": ["atoms", "molecules", "organisms", "templates", "pages"],
           "sourceRoot": "src"
+        }
+      },
+      "expected": {
+        "output": true
+      }
+    },
+    {
+      "name": "'package' kind: segment after sourceRoot resolves through a package binding rather than being required to equal a layer name (substrate flat-monorepo shape)",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/packages/retry/src/retry/Retry.ts",
+        "options": {
+          "bindings": [
+            { "kind": "package", "pattern": "errors", "layer": "foundation" },
+            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+          ],
+          "layers": ["foundation", "primitive", "capability", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "coordinator"
+      }
+    },
+    {
+      "name": "'package' kind: a package with no binding resolves to undefined, a silent pass",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/packages/unmapped-package/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "package", "pattern": "errors", "layer": "foundation" },
+            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+          ],
+          "layers": ["foundation", "primitive", "capability", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": null
+      }
+    },
+    {
+      "name": "'package' kind: a binding naming a layer absent from the configured layers array resolves to undefined, same as any other typo",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/packages/retry/src/retry/Retry.ts",
+        "options": {
+          "bindings": [
+            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+          ],
+          "layers": ["foundation", "primitive", "capability"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": null
+      }
+    },
+    {
+      "name": "'package' kind D7: continues scanning past a non-bound occurrence of sourceRoot instead of giving up (vendored nested packages/ directory)",
+      "operation": "layerForPath",
+      "input": {
+        "path": "/repo/packages/vendor-nested/packages/retry/src/retry/Retry.ts",
+        "options": {
+          "bindings": [
+            { "kind": "package", "pattern": "errors", "layer": "foundation" },
+            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+          ],
+          "layers": ["foundation", "primitive", "capability", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "coordinator"
+      }
+    },
+    {
+      "name": "'module' kind: a bare workspace specifier (not merely a path-alias prefix) resolves directly",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "@studnicky/errors",
+        "importingFile": "/repo/packages/retry/src/retry/Retry.ts",
+        "options": {
+          "bindings": [
+            { "kind": "module", "pattern": "@studnicky/errors", "layer": "foundation" },
+            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+          ],
+          "layers": ["foundation", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "foundation"
+      }
+    },
+    {
+      "name": "'dependency' kind: an external npm package resolves to its bound layer, making it constrainable by a boundary rule",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "undici",
+        "importingFile": "/repo/packages/fetch/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "dependency", "pattern": "undici", "layer": "external" },
+            { "kind": "package", "pattern": "fetch", "layer": "capability" }
+          ],
+          "layers": ["external", "capability"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "external"
+      }
+    },
+    {
+      "name": "'dependency' kind: an UNBOUND external specifier still resolves to undefined -- a silent pass, not a default deny",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "zod",
+        "importingFile": "/repo/packages/fetch/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "dependency", "pattern": "undici", "layer": "external" },
+            { "kind": "package", "pattern": "fetch", "layer": "capability" }
+          ],
+          "layers": ["external", "capability"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": null
+      }
+    },
+    {
+      "name": "'builtin' kind: a bare Node builtin specifier resolves to the bound group layer",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "fs",
+        "importingFile": "/repo/packages/file-lock/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "builtin", "layer": "external" }
+          ],
+          "layers": ["external", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "external"
+      }
+    },
+    {
+      "name": "'builtin' kind: the node:-prefixed spelling of the same builtin resolves to the SAME group layer, one binding covers both spellings",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "node:fs",
+        "importingFile": "/repo/packages/file-lock/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "builtin", "layer": "external" }
+          ],
+          "layers": ["external", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": "external"
+      }
+    },
+    {
+      "name": "'builtin' kind: a non-builtin specifier does not match the builtin group",
+      "operation": "layerForImport",
+      "input": {
+        "specifier": "undici",
+        "importingFile": "/repo/packages/file-lock/src/index.ts",
+        "options": {
+          "bindings": [
+            { "kind": "builtin", "layer": "external" }
+          ],
+          "layers": ["external", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": null
+      }
+    },
+    {
+      "name": "band taxonomy (allowedImports override): capability importing coordinator is UPWARD and forbidden",
+      "operation": "canImport",
+      "input": {
+        "from": "capability",
+        "to": "coordinator",
+        "options": {
+          "allowedImports": {
+            "foundation": ["foundation"],
+            "primitive": ["foundation", "primitive"],
+            "capability": ["foundation", "primitive", "capability"],
+            "coordinator": ["foundation", "primitive", "capability", "coordinator"]
+          },
+          "bindings": [],
+          "layers": ["foundation", "primitive", "capability", "coordinator"],
+          "sourceRoot": "packages"
+        }
+      },
+      "expected": {
+        "output": false
+      }
+    },
+    {
+      "name": "band taxonomy (allowedImports override): coordinator importing capability is DOWNWARD and allowed",
+      "operation": "canImport",
+      "input": {
+        "from": "coordinator",
+        "to": "capability",
+        "options": {
+          "allowedImports": {
+            "foundation": ["foundation"],
+            "primitive": ["foundation", "primitive"],
+            "capability": ["foundation", "primitive", "capability"],
+            "coordinator": ["foundation", "primitive", "capability", "coordinator"]
+          },
+          "bindings": [],
+          "layers": ["foundation", "primitive", "capability", "coordinator"],
+          "sourceRoot": "packages"
         }
       },
       "expected": {

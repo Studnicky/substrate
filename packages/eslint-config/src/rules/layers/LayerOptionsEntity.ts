@@ -1,17 +1,16 @@
 import type { ValidateFunction } from 'ajv';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type {
+  FromSchema, JSONSchema
+} from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+
+import { LayerBindingEntity } from './LayerBindingEntity.js';
 
 export namespace LayerOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'aliasPrefixes': {
-        'additionalProperties': { 'type': 'string' },
-        'description': 'Map of path-alias prefixes (e.g. "@domain/") to their layer name.',
-        'type': 'object'
-      },
       'allowedImports': {
         'additionalProperties': {
           'items': { 'type': 'string' },
@@ -20,17 +19,26 @@ export namespace LayerOptionsEntity {
         'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.',
         'type': 'object'
       },
+      'bindings': {
+        'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose kind applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.',
+        'items': LayerBindingEntity.Schema,
+        'type': 'array'
+      },
       'layers': {
         'description': 'Ordered list of enforced layer names, e.g. ["domain", "ports", "application", "adapters", "infrastructure"].',
         'items': { 'type': 'string' },
         'type': 'array'
       },
       'sourceRoot': {
-        'description': 'Path segment(s) after which the layer name appears, e.g. "src".',
+        'description': 'Path segment(s) after which a folder/package binding\'s candidate segment appears, e.g. "src" or "packages".',
         'type': 'string'
       }
     },
-    'required': ['layers', 'sourceRoot'],
+    'required': [
+      'bindings',
+      'layers',
+      'sourceRoot'
+    ],
     'type': 'object'
   } as const satisfies JSONSchema;
 

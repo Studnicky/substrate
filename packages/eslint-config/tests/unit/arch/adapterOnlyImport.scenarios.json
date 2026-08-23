@@ -6,9 +6,46 @@
       "name": "adapters-layer file importing an adapter-only package - allowed, adapters are exempt",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -18,9 +55,46 @@
       "name": "domain-layer file importing something not in adapterOnlyImports - not flagged",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -30,9 +104,46 @@
       "name": "file outside the configured layer tree - out of scope for this rule",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -43,9 +154,46 @@
       "options": [
         {
           "adapterLayerName": "implementations",
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "implementations", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "implementations",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "implementations",
+              "layer": "implementations"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }
@@ -62,9 +210,46 @@
       "name": "domain-layer file importing an adapter-only package - forbidden",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -79,9 +264,46 @@
       "name": "application-layer file importing an adapter-only package - forbidden",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -96,9 +318,46 @@
       "name": "infrastructure-layer file importing an adapter-only package - forbidden despite being able to import any layer",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -113,9 +372,46 @@
       "name": "domain-layer file importing a submodule of an adapter-only root - forbidden, exercises prefix match",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -130,9 +426,46 @@
       "name": "implementations-layer file importing an adapter-only package without adapterLayerName configured - flagged, default \"adapters\" name does not match \"implementations\"",
       "options": [
         {
-          "adapterOnlyImports": ["express", "pg", "axios"],
-          "layers": ["domain", "ports", "application", "implementations", "infrastructure"],
-          "sourceRoot": "src"
+          "adapterOnlyImports": [
+            "express",
+            "pg",
+            "axios"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "implementations",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "implementations",
+              "layer": "implementations"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }

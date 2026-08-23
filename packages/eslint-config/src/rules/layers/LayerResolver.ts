@@ -1,7 +1,9 @@
+import { isBuiltin } from 'node:module';
 import {
   dirname, resolve
 } from 'node:path';
 
+import type { LayerBindingEntity } from './LayerBindingEntity.js';
 import type { LayerOptionsEntity } from './LayerOptionsEntity.js';
 
 import {
@@ -39,27 +41,119 @@ class PathSegments {
   }
 }
 
+// BINDING RESOLUTION: THE SAME ORDERED LIST ANSWERS BOTH "WHAT LAYER IS THIS FILE IN" AND
+// "WHAT LAYER IS THIS IMPORT TARGET IN".
+//
+// `forSegment` considers only `'folder'`/`'package'` bindings (a path resolution question);
+// `forSpecifier` considers only `'module'`/`'dependency'`/`'builtin'` bindings (an import
+// resolution question). Each walks `bindings` in ARRAY ORDER and returns the first entry whose
+// kind applies and whose pattern matches — the config author's own declared order IS the
+// precedence, not an implicit "most specific wins" this resolver would otherwise have to
+// define. A binding whose `layer` is not in the configured `layers` set never matches, the
+// same as any other typo — see `LayerBindingEntity`'s own module comment for why 'folder' and
+// 'package' (both exact path-segment equality) and 'module' and 'dependency' (both specifier-
+// prefix matching) share their matching mechanics while staying distinct `kind` values.
+class BindingResolution {
+  public static forSegment(
+    candidate: string | undefined,
+    layerSet: ReadonlySet<string>,
+    bindings: readonly LayerBindingEntity.Type[]
+  ): string | undefined {
+    if (candidate === undefined) {
+      return undefined;
+    }
+
+    const bindingCount = bindings.length;
+
+    for (let index = 0; index < bindingCount; index += 1) {
+      const binding = bindings.at(index);
+
+      if (binding === undefined) {
+        continue;
+      }
+      if (binding.kind !== 'folder' && binding.kind !== 'package') {
+        continue;
+      }
+      if (binding.pattern !== candidate) {
+        continue;
+      }
+      if (!layerSet.has(binding.layer)) {
+        continue;
+      }
+
+      return binding.layer;
+    }
+
+    return undefined;
+  }
+
+  public static forSpecifier(
+    specifier: string,
+    layerSet: ReadonlySet<string>,
+    bindings: readonly LayerBindingEntity.Type[]
+  ): string | undefined {
+    const bindingCount = bindings.length;
+
+    for (let index = 0; index < bindingCount; index += 1) {
+      const binding = bindings.at(index);
+
+      if (binding === undefined) {
+        continue;
+      }
+      if (!layerSet.has(binding.layer)) {
+        continue;
+      }
+
+      if (binding.kind === 'builtin') {
+        if (isBuiltin(specifier)) {
+          return binding.layer;
+        }
+
+        continue;
+      }
+
+      if (binding.kind !== 'module' && binding.kind !== 'dependency') {
+        continue;
+      }
+      if (binding.pattern === undefined || !specifier.startsWith(binding.pattern)) {
+        continue;
+      }
+
+      return binding.layer;
+    }
+
+    return undefined;
+  }
+}
+
 class LayerAfterRoot {
   /**
-   * Finds the configured layer immediately after the FIRST occurrence of `rootSegments` in
-   * `fileSegments` whose next segment is actually a configured layer — scanning past any earlier
-   * occurrence whose next segment is not, rather than giving up at the first occurrence outright.
+   * Finds the layer bound to the candidate segment immediately after the FIRST occurrence of
+   * `rootSegments` in `fileSegments` that actually resolves to a configured layer — scanning
+   * past any earlier occurrence whose candidate does not, rather than giving up at the first
+   * occurrence outright.
    *
    * D7 (see the eslint-config objectives): a prior revision returned `undefined` the instant it
    * found ANY occurrence of `sourceRoot`, even when that occurrence's next segment was not a
-   * layer. `sourceRoot` is typically a common segment name (`'src'`), which can legitimately
-   * recur — e.g. a vendored dependency copied in with its own nested `src/` tree:
+   * layer. `sourceRoot` is typically a common segment name (`'src'`, `'packages'`), which can
+   * legitimately recur — e.g. a vendored dependency copied in with its own nested tree:
    * `…/src/vendor/x/src/domain/Foo.ts` matches `sourceRoot` `'src'` at the OUTER occurrence
-   * first, whose next segment `'vendor'` is not a configured layer. Every arch rule built on this
+   * first, whose next segment `'vendor'` binds to no layer. Every arch rule built on this
    * resolver treats "no layer" as a silent pass (there is nothing to check an unrecognized file
    * against), so returning `undefined` here does not mean "this file has no layer" — it means a
    * genuine `domain/` file three segments deeper escapes every architecture rule entirely.
    * PROVEN via a direct unit probe against `LayerResolver.layerForPath`
-   * (`tests/unit/layers/LayerResolver.scenarios.json`, cases prefixed "D7:") — UNPROVEN end-to-end
-   * through `npx eslint`, since the four `arch/*` rules that consume this resolver are not yet
-   * enabled (see C3-C6).
+   * (`tests/unit/layers/LayerResolver.scenarios.json`, cases prefixed "D7:"). The four `arch/*`
+   * rules that consume this resolver are not yet wired into `eslint.config.mjs`, so end-to-end
+   * verification through `npx eslint` remains a separate, later step; this resolver's own
+   * behavior is fully covered at the unit level regardless.
    */
-  public static find(fileSegments: readonly string[], rootSegments: readonly string[], layers: readonly string[]): string | undefined {
+  public static find(
+    fileSegments: readonly string[],
+    rootSegments: readonly string[],
+    layers: readonly string[],
+    bindings: readonly LayerBindingEntity.Type[]
+  ): string | undefined {
     if (rootSegments.length === 0) {
       return undefined;
     }
@@ -81,9 +175,10 @@ class LayerAfterRoot {
       }
 
       const candidate = fileSegments.at(start + rootSegmentCount);
+      const resolved = BindingResolution.forSegment(candidate, layerSet, bindings);
 
-      if (candidate !== undefined && layerSet.has(candidate)) {
-        return candidate;
+      if (resolved !== undefined) {
+        return resolved;
       }
     }
 
@@ -151,29 +246,30 @@ export class LayerResolver {
     const fileSegments = PathSegments.normalize(filePath);
     const rootSegments = PathSegments.normalize(options.sourceRoot);
 
-    const result = LayerAfterRoot.find(fileSegments, rootSegments, options.layers);
+    const result = LayerAfterRoot.find(fileSegments, rootSegments, options.layers, options.bindings);
 
     return result;
   }
 
+  /**
+   * Resolves what layer an import TARGET is in — the specifier side of the same vocabulary
+   * `layerForPath` resolves the file side with. `'module'`/`'dependency'`/`'builtin'` bindings
+   * are tried first, against the specifier text itself: this is what makes an external
+   * dependency (an npm package, a Node builtin) bindable to a layer at all, so a boundary rule
+   * can constrain it — previously a non-relative specifier matching no alias prefix resolved to
+   * `undefined` unconditionally, making the entire external dependency surface invisible to
+   * every architecture rule. A relative specifier (`./`, `../`) that matches no specifier
+   * binding resolves through the file it points at, via `layerForPath` — the same `'folder'`/
+   * `'package'` bindings used for the importing file itself. An import matching NEITHER still
+   * resolves to `undefined` and stays a silent pass: an unbound external import is not an
+   * implicit violation, only a bound one is checkable at all.
+   */
   public static layerForImport(importSpecifier: string, importingFilePath: string, options: LayerOptionsEntity.Type): string | undefined {
-    const aliasPrefixes = options.aliasPrefixes;
+    const layerSet = new Set(options.layers);
+    const specifierMatch = BindingResolution.forSpecifier(importSpecifier, layerSet, options.bindings);
 
-    if (aliasPrefixes !== undefined) {
-      const prefixes = Object.keys(aliasPrefixes);
-      const prefixCount = prefixes.length;
-
-      for (let pi = 0; pi < prefixCount; pi += 1) {
-        const prefix = prefixes.at(pi);
-
-        if (prefix !== undefined && importSpecifier.startsWith(prefix)) {
-          const layer: unknown = Reflect.get(aliasPrefixes, prefix);
-
-          const result = typeof layer === 'string' ? layer : undefined;
-
-          return result;
-        }
-      }
+    if (specifierMatch !== undefined) {
+      return specifierMatch;
     }
 
     const isRelative = importSpecifier.startsWith('./') || importSpecifier.startsWith('../');

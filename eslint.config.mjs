@@ -6,7 +6,151 @@ import regexp from 'eslint-plugin-regexp';
 import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
+// Architectural bands, derived from the measured `@studnicky/*` dependency DAG rather than a
+// borrowed hexagonal vocabulary: a package's band is the depth of its longest internal
+// dependency chain. Each band may import its own band and any band below it, never above. That
+// invariant already holds — the graph carries zero upward dependencies — so these rules codify
+// what the code does rather than imposing a new constraint.
+//
+// `package` bindings resolve the band of the FILE being linted: in a flat monorepo the
+// layer-bearing unit is the package, whose directory name sits after `sourceRoot` and before
+// `src`. `module` bindings resolve the band of an IMPORT, so a cross-package specifier lands on
+// the same band as the file it points at. `allowedImports` is stated explicitly rather than left
+// to the positional default, which encodes hexagonal asymmetries that do not describe a strict
+// linear-cumulative policy.
+const SUBSTRATE_LAYERS = {
+    'allowedImports': {
+        'foundation': ['foundation'],
+        'primitive': ['foundation', 'primitive'],
+        'capability': ['foundation', 'primitive', 'capability'],
+        'coordinator': ['foundation', 'primitive', 'capability', 'coordinator']
+    },
+    'bindings': [
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'batch' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'boundary-kit' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'bounded-dispatcher' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'cache' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'circular-buffer' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'clock' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'concurrency' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'config' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'context' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'entity-store' },
+        { 'kind': 'package', 'layer': 'foundation', 'pattern': 'errors' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'eslint-config' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'event-bus' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'fetch' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'file-lock' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'flag-evaluator' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'fsm' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'health-registry' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'idempotency-guard' },
+        { 'kind': 'package', 'layer': 'primitive', 'pattern': 'json' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'keyed-rate-limiter' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'keyed-work-gate' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'logger' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'memoize' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'mutex' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'paginator' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'pipeline' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'predicates' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'process-kit' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'request-executor' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'resilience' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'retry' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'sample-buffer' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'scheduler' },
+        { 'kind': 'package', 'layer': 'primitive', 'pattern': 'signal' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'sliding-window-limiter' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'system' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'throttle' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'timing' },
+        { 'kind': 'package', 'layer': 'foundation', 'pattern': 'types' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'virtual-fs' },
+        { 'kind': 'package', 'layer': 'capability', 'pattern': 'visible-range' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'worker-pool' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/batch' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/boundary-kit' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/bounded-dispatcher' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/cache' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/circular-buffer' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/clock' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/concurrency' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/config' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/context' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/entity-store' },
+        { 'kind': 'module', 'layer': 'foundation', 'pattern': '@studnicky/errors' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/eslint-config' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/event-bus' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/fetch' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/file-lock' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/flag-evaluator' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/fsm' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/health-registry' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/idempotency-guard' },
+        { 'kind': 'module', 'layer': 'primitive', 'pattern': '@studnicky/json' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-rate-limiter' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-work-gate' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/logger' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/memoize' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/mutex' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/paginator' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/pipeline' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/predicates' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/process-kit' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/request-executor' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/resilience' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/retry' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/sample-buffer' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/scheduler' },
+        { 'kind': 'module', 'layer': 'primitive', 'pattern': '@studnicky/signal' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/sliding-window-limiter' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/system' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/throttle' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/timing' },
+        { 'kind': 'module', 'layer': 'foundation', 'pattern': '@studnicky/types' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/virtual-fs' },
+        { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/visible-range' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/worker-pool' }
+    ],
+    'layers': ['foundation', 'primitive', 'capability', 'coordinator'],
+    'sourceRoot': 'packages'
+};
+
 export default [
+  {
+    // Architectural bands govern what a PUBLISHED package depends on, so this applies to `src`
+    // only. Examples and tests are consumers — like any downstream application they compose
+    // across the whole toolkit, and `packages/fsm/examples` legitimately imports
+    // `@studnicky/scheduler`, a package that depends on `fsm` in turn. Constraining them would
+    // report a boundary that does not exist in anything shipped.
+    'files': ['packages/*/src/**/*.ts'],
+    'plugins': { '@studnicky': plugin },
+    'rules': {
+      // The other three `arch/*` rules stay OFF, measured rather than assumed. All three encode
+      // "a business-logic core with a conversion boundary around it"; substrate has neither —
+      // four bands of utility and infrastructure code, no domain layer, and no intake boundary
+      // separate from where a dependency is already wrapped.
+      //
+      //   known-types-outside-adapters  587 violations at best band choice, 1144 at worst.
+      //     `unknown` is this repo's own narrowing idiom, ~1177 uses across every band, the
+      //     deliberate alternative to `any`. The heaviest packages (`json`, `errors`) sit in
+      //     bands no choice of adapter layer exempts. Defensive typing INSIDE every layer is
+      //     the toolkit's value, not a failure to convert at one edge.
+      //   adapter-only-import           0 or 3, depending which band plays "adapters".
+      //     The 3 are `fetch` importing `undici` — but `fetch` IS the adapter wrapping `undici`
+      //     for the toolkit; there is no further layer to hide it behind. One adapter-shaped
+      //     dependency exists across all 43 packages, so the rule has almost no surface here.
+      //   domain-purity                 1 violation: `BaseError`'s `Date.now()` timestamp,
+      //     which is legitimate. No band is a domain layer; `foundation` is the closest only
+      //     by being lowest, and it holds error handling and types, not business rules.
+      //
+      // `layer-import-boundary` is enabled because substrate genuinely HAS what it describes —
+      // a dependency-depth hierarchy with an enforceable upward-import ban — which is why it
+      // reports zero against real code instead of hundreds against real idioms.
+      '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS]
+    }
+  },
   { ignores: ['.claude/**'] },
   ...tseslint.config(
     {

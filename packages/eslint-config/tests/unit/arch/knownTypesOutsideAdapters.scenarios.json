@@ -13,7 +13,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -30,7 +57,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -47,7 +101,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -65,7 +146,34 @@
             "implementations",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "implementations",
+              "layer": "implementations"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -88,7 +196,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }
@@ -112,7 +247,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -134,7 +296,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -156,7 +345,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -178,7 +394,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -200,7 +443,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -225,7 +495,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -247,7 +544,34 @@
             "implementations",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "implementations",
+              "layer": "implementations"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -272,7 +596,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -297,7 +648,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }
