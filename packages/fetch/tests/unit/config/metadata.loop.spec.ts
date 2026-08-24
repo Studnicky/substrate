@@ -6,7 +6,7 @@ import { FetchClient } from '../../../src/index.js';
 import scenarioGroups from './metadata.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
-  | { __shape: 'undefined' };
+  | { shape: 'undefined' };
 
 type RuntimeValue =
   | boolean
@@ -29,12 +29,12 @@ type ScenarioCase = {
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__shape' in value;
+  return value !== null && typeof value === 'object' && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -43,7 +43,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__shape](value);
+    return runtimeTagMap[value.shape](value);
   }
 
   if (value !== null && typeof value === 'object') {

@@ -28,6 +28,10 @@ import type {
 
 import scenarioGroups from './resilience.scenarios.json' with { type: 'json' };
 
+function createErrorClassifier(retryable: boolean): () => ErrorClassificationEntity.Type {
+  return () => ({ 'retryable': retryable });
+}
+
 type ScenarioCase = (typeof scenarioGroups.cases)[number];
 
 const succeed = async (): Promise<string> => 'ok';
@@ -694,7 +698,7 @@ const scenarioHandlers = {
   },
   'cb-config-classifier-throws-original': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': true });
+    const classifier = createErrorClassifier(true);
     const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
     const thrownType = resilienceErrorTypeInput(stringInput(expected, 'thrown'));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err) => err instanceof thrownType);
@@ -711,7 +715,7 @@ const scenarioHandlers = {
     assert.equal(cb.state, 'open');
   },
   'cb-config-overrides-subclass': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const classifier = (): ErrorClassificationEntity.Type => ({ 'retryable': false });
+    const classifier = createErrorClassifier(false);
     const cb = ClassifyingBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'open');
@@ -1088,7 +1092,7 @@ const scenarioHandlers = {
     }
     dlq.close();
     let count = 0;
-    for await (const _entry of dlq.drain()) { count += 1; }
+    for await (const entry of dlq.drain()) { void entry; count += 1; }
     assert.equal(count, numberInput(expected, 'drainedCount'));
   },
   'dlq-drain-abort': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -1167,7 +1171,7 @@ const scenarioHandlers = {
     }
     dlq.close();
     await Promise.all([drainA, drainB]);
-    const combined = [...collectedA, ...collectedB].sort();
+    const combined = [...collectedA, ...collectedB].toSorted();
     assert.deepEqual(combined, stringArrayInput(expected, 'combined'));
   },
   'dlq-drain-abort-signal': async (scenarioCase: ScenarioCase, _input: ScenarioInput): Promise<void> => {
@@ -1195,7 +1199,7 @@ const scenarioHandlers = {
     const dlq = new ObservedDlq<string>();
     dlq.enqueue(stringInput(input, 'item'), stringInput(input, 'reason'));
     dlq.close();
-    for await (const _entry of dlq.drain()) {}
+    for await (const entry of dlq.drain()) { void entry; }
     assert.ok(
       dlq.events.some((e) => e.type === stringInput(expected, 'type') && e.item === stringInput(expected, 'item'))
     );
@@ -1331,7 +1335,7 @@ const scenarioHandlers = {
     doneDlq.close();
     const doneGenerator = ThrowingDoneGenerator.build(doneDlq, intervalMs);
     let count = 0;
-    for await (const _entry of doneGenerator.generate()) { count += 1; }
+    for await (const entry of doneGenerator.generate()) { void entry; count += 1; }
     assert.equal(count, 0);
     assert.equal(yielded.length > 0 && waited.length > 0 && count === 0, booleanInput(expected, 'waitYieldDone'));
   },

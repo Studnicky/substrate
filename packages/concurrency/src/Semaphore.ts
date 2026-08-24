@@ -2,6 +2,7 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
 import type { SemaphoreWaiterStateInterface } from './interfaces/SemaphoreWaiterStateInterface.js';
@@ -41,7 +42,7 @@ export class Semaphore {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (typeof result !== 'object' || result === null || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Guard.isObjectLike(result) || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Semaphore.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

@@ -21,7 +21,8 @@
  */
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
-import { JsonObject, JsonValue } from '@studnicky/types';
+import { BoundaryCycleGuard } from '@studnicky/intake-kit';
+import { Guard, JsonObject, JsonValue } from '@studnicky/types';
 
 import type { SchemaCreateFunctionInterface } from '../interfaces/SchemaCreateFunctionInterface.js';
 import type { SchemaIntakeFunctionInterface } from '../interfaces/SchemaIntakeFunctionInterface.js';
@@ -76,13 +77,14 @@ export class SchemaValidator {
       if (SchemaValidator.hasCloneCycle(input)) {
         throw new SchemaIntakeError('cyclic input is not supported', [], schemaIdentifier);
       }
-      if (!JsonValue.is(input)) {
-        throw new SchemaIntakeError(SchemaValidator.formatJsonValidityErrors(input), [], schemaIdentifier);
+      const cleaned = SchemaValidator.stripUndefinedProperties(input);
+      if (!JsonValue.is(cleaned)) {
+        throw new SchemaIntakeError(SchemaValidator.formatJsonValidityErrors(cleaned), [], schemaIdentifier);
       }
 
       let cloned: unknown;
       try {
-        cloned = structuredClone(input);
+        cloned = structuredClone(cleaned);
       } catch {
         throw new SchemaIntakeError('input is not structured-cloneable', [], schemaIdentifier);
       }
@@ -142,14 +144,14 @@ export class SchemaValidator {
   }
 
   /** Renders JSON-validity errors using the same path convention as Ajv errors. */
-  protected static formatJsonValidityErrors<T>(value: T): string {
+  protected static formatJsonValidityErrors(value: unknown): string {
     const messages = SchemaValidator.collectJsonValidityErrors(value);
     const result = messages.join('; ');
     return result;
   }
 
   /** Finds every non-JSON value in a finite, acyclic candidate. */
-  protected static collectJsonValidityErrors<T>(value: T, path = ''): string[] {
+  protected static collectJsonValidityErrors(value: unknown, path = ''): string[] {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') {
       return [];
     }
@@ -217,48 +219,38 @@ export class SchemaValidator {
     return result;
   }
 
-  /** Detects cycles that `Clone.deep` would recurse through. */
-  protected static hasCloneCycle<T>(value: T, ancestors = new WeakSet<object>()): boolean {
-    if (value === null || typeof value !== 'object') {
-      return false;
-    }
-    if (ancestors.has(value)) {
-      return true;
-    }
+  /**
+   * Detects cycles that `Clone.deep` would recurse through.
+   *
+   * Delegates to `@studnicky/intake-kit`'s `BoundaryCycleGuard` — the same `Array`/`Map`/`Set`
+   * /plain-object `WeakSet` walk this method used to hand-roll, shared with
+   * `@studnicky/errors`' `EntityIntake.clone` so the two packages' intake engines don't drift.
+   */
+  protected static hasCloneCycle(value: unknown, ancestors = new WeakSet<object>()): boolean {
+    const result = BoundaryCycleGuard.hasCycle(value, ancestors);
+    return result;
+  }
 
-    ancestors.add(value);
-    try {
-      if (Array.isArray(value)) {
-        const result = value.some((item) => {
-          const hasCycle = SchemaValidator.hasCloneCycle(item, ancestors);
-          return hasCycle;
-        });
-        return result;
-      }
-      if (value instanceof Map) {
-        for (const [key, item] of value.entries()) {
-          if (SchemaValidator.hasCloneCycle(key, ancestors) || SchemaValidator.hasCloneCycle(item, ancestors)) {
-            return true;
-          }
-        }
-        return false;
-      }
-      if (value instanceof Set) {
-        for (const item of value.values()) {
-          if (SchemaValidator.hasCloneCycle(item, ancestors)) {
-            return true;
-          }
-        }
-        return false;
-      }
-
-      const result = Object.values(value).some((item) => {
-        const hasCycle = SchemaValidator.hasCloneCycle(item, ancestors);
-        return hasCycle;
-      });
+  /** Strips undefined properties recursively. */
+  protected static stripUndefinedProperties(value: unknown): unknown {
+    if (!Guard.isObjectLike(value)) {
+      const result = value;
       return result;
-    } finally {
-      ancestors.delete(value);
     }
+    if (Array.isArray(value)) {
+      const mapped = value.map(SchemaValidator.stripUndefinedProperties);
+      return mapped;
+    }
+    const result: Record<string, unknown> = {};
+    const keys = Object.keys(value);
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index]!;
+      const item: unknown = Reflect.get(value, key);
+      if (item !== undefined) {
+        Reflect.set(result, key, SchemaValidator.stripUndefinedProperties(item));
+      }
+    }
+    const returnValue = result;
+    return returnValue;
   }
 }

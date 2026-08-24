@@ -221,13 +221,13 @@ const ArrayMatchers = Object.freeze({
   /**
    * Check if array length is in range
    */
-  'lengthInRange': (minimum: number, maximum: number) => {return <T>(value: T[]): boolean =>
+  'lengthInRange': (minimum: number, maximum: number) => {return (value: unknown[]): boolean =>
   {const result = value.length >= minimum && value.length <= maximum; return result;};},
 
   /**
    * Check if array is not empty
    */
-  'notEmpty': <T>(value: T[]): boolean => {
+  'notEmpty': (value: unknown[]): boolean => {
     const result = value.length > EMPTY_LENGTH;
     return result;
   }

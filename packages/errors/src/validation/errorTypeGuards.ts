@@ -4,7 +4,11 @@
  * These guards help consumers safely access error properties with proper type narrowing.
  * They are particularly useful when working with ErrorClassifier implementations.
  *
- * Uses Node.js 24's Error.isError() for reliable error detection.
+ * Each guard delegates to its matching entity's own `validate` — `isErrorWithStatus` and
+ * `ErrorWithStatusEntity.validate` used to be two hand-written copies of the same
+ * `typeof candidate.status === 'number'` check that could silently drift apart. The entity's
+ * schema is the single source of truth for what "has a status field" means; this file just
+ * exposes it under its established `isErrorWithX` names.
  *
  * @example
  * ```typescript
@@ -24,209 +28,71 @@
  * ```
  */
 
-import type { ErrorWithAddressEntity } from '../entities/ErrorWithAddressEntity.js';
-import type { ErrorWithCodeEntity } from '../entities/ErrorWithCodeEntity.js';
-import type { ErrorWithErrnoEntity } from '../entities/ErrorWithErrnoEntity.js';
-import type { ErrorWithHostnameEntity } from '../entities/ErrorWithHostnameEntity.js';
-import type { ErrorWithPortEntity } from '../entities/ErrorWithPortEntity.js';
-import type { ErrorWithRetryAfterEntity } from '../entities/ErrorWithRetryAfterEntity.js';
-import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
-import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
-import type { ErrorWithSyscallEntity } from '../entities/ErrorWithSyscallEntity.js';
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+import { ErrorWithAddressEntity } from '../entities/ErrorWithAddressEntity.js';
+import { ErrorWithCodeEntity } from '../entities/ErrorWithCodeEntity.js';
+import { ErrorWithErrnoEntity } from '../entities/ErrorWithErrnoEntity.js';
+import { ErrorWithHostnameEntity } from '../entities/ErrorWithHostnameEntity.js';
+import { ErrorWithPortEntity } from '../entities/ErrorWithPortEntity.js';
+import { ErrorWithRetryAfterEntity } from '../entities/ErrorWithRetryAfterEntity.js';
+import { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
+import { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
+import { ErrorWithSyscallEntity } from '../entities/ErrorWithSyscallEntity.js';
 
 /**
- * Check if value is an error or error-like object
- */
-class ErrorLikeGuard {
-  /**
-   * Check if value is an error or error-like object using Node.js 24's Error.isError()
-   * Falls back to object check for error-like objects that aren't true Error instances
-   */
-  public static isErrorOrObjectLike(value: Parameters<EntityValidateFunctionInterface<Record<string, unknown>>>[0]): value is Record<string, unknown> {
-    if (Error.isError(value)) {
-      return true;
-    }
-
-    const result = typeof value === 'object' && value !== null;
-    return result;
-  }
-}
-
-/**
- * Type guards for common error properties
+ * Type guards for common error properties, each delegating to its entity's `validate`.
  */
 class ErrorPropertyGuards {
-  /**
-   * Type guard: Check if error has status property (number)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithStatus(error)) {
-   *   console.log(error.status); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithStatus(error: Parameters<EntityValidateFunctionInterface<ErrorWithStatusEntity.Type>>[0]): error is ErrorWithStatusEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'status' in error
-      && typeof error.status === 'number'
-    );
+  /** Type guard: Check if error has status property (number). */
+  public static isErrorWithStatus(error: Parameters<typeof ErrorWithStatusEntity.validate>[0]): error is ErrorWithStatusEntity.Type {
+    const result = ErrorWithStatusEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has statusCode property (number)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithStatusCode(error)) {
-   *   console.log(error.statusCode); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithStatusCode(error: Parameters<EntityValidateFunctionInterface<ErrorWithStatusCodeEntity.Type>>[0]): error is ErrorWithStatusCodeEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'statusCode' in error
-      && typeof error.statusCode === 'number'
-    );
+  /** Type guard: Check if error has statusCode property (number). */
+  public static isErrorWithStatusCode(error: Parameters<typeof ErrorWithStatusCodeEntity.validate>[0]): error is ErrorWithStatusCodeEntity.Type {
+    const result = ErrorWithStatusCodeEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has code property (string)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithCode(error)) {
-   *   if (error.code === 'ECONNREFUSED') {
-   *     // handle connection refused
-   *   }
-   * }
-   * ```
-   */
-  public static isErrorWithCode(error: Parameters<EntityValidateFunctionInterface<ErrorWithCodeEntity.Type>>[0]): error is ErrorWithCodeEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'code' in error
-      && typeof error.code === 'string'
-    );
+  /** Type guard: Check if error has code property (string). */
+  public static isErrorWithCode(error: Parameters<typeof ErrorWithCodeEntity.validate>[0]): error is ErrorWithCodeEntity.Type {
+    const result = ErrorWithCodeEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has retryAfter property (number)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithRetryAfter(error)) {
-   *   return this.retryable('Rate limited', error.retryAfter * 1000);
-   * }
-   * ```
-   */
-  public static isErrorWithRetryAfter(error: Parameters<EntityValidateFunctionInterface<ErrorWithRetryAfterEntity.Type>>[0]): error is ErrorWithRetryAfterEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'retryAfter' in error
-      && typeof error.retryAfter === 'number'
-    );
+  /** Type guard: Check if error has retryAfter property (number). */
+  public static isErrorWithRetryAfter(error: Parameters<typeof ErrorWithRetryAfterEntity.validate>[0]): error is ErrorWithRetryAfterEntity.Type {
+    const result = ErrorWithRetryAfterEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has errno property (number)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithErrno(error)) {
-   *   console.log(error.errno); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithErrno(error: Parameters<EntityValidateFunctionInterface<ErrorWithErrnoEntity.Type>>[0]): error is ErrorWithErrnoEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'errno' in error
-      && typeof error.errno === 'number'
-    );
+  /** Type guard: Check if error has errno property (number). */
+  public static isErrorWithErrno(error: Parameters<typeof ErrorWithErrnoEntity.validate>[0]): error is ErrorWithErrnoEntity.Type {
+    const result = ErrorWithErrnoEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has syscall property (string)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithSyscall(error)) {
-   *   console.log(error.syscall); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithSyscall(error: Parameters<EntityValidateFunctionInterface<ErrorWithSyscallEntity.Type>>[0]): error is ErrorWithSyscallEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'syscall' in error
-      && typeof error.syscall === 'string'
-    );
+  /** Type guard: Check if error has syscall property (string). */
+  public static isErrorWithSyscall(error: Parameters<typeof ErrorWithSyscallEntity.validate>[0]): error is ErrorWithSyscallEntity.Type {
+    const result = ErrorWithSyscallEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has hostname property (string)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithHostname(error)) {
-   *   console.log(error.hostname); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithHostname(error: Parameters<EntityValidateFunctionInterface<ErrorWithHostnameEntity.Type>>[0]): error is ErrorWithHostnameEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'hostname' in error
-      && typeof error.hostname === 'string'
-    );
+  /** Type guard: Check if error has hostname property (string). */
+  public static isErrorWithHostname(error: Parameters<typeof ErrorWithHostnameEntity.validate>[0]): error is ErrorWithHostnameEntity.Type {
+    const result = ErrorWithHostnameEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has port property (number)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithPort(error)) {
-   *   console.log(error.port); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithPort(error: Parameters<EntityValidateFunctionInterface<ErrorWithPortEntity.Type>>[0]): error is ErrorWithPortEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'port' in error
-      && typeof error.port === 'number'
-    );
+  /** Type guard: Check if error has port property (number). */
+  public static isErrorWithPort(error: Parameters<typeof ErrorWithPortEntity.validate>[0]): error is ErrorWithPortEntity.Type {
+    const result = ErrorWithPortEntity.validate(error);
     return result;
   }
 
-  /**
-   * Type guard: Check if error has address property (string)
-   *
-   * @example
-   * ```typescript
-   * if (isErrorWithAddress(error)) {
-   *   console.log(error.address); // type-safe access
-   * }
-   * ```
-   */
-  public static isErrorWithAddress(error: Parameters<EntityValidateFunctionInterface<ErrorWithAddressEntity.Type>>[0]): error is ErrorWithAddressEntity.Type {
-    const result = (
-      ErrorLikeGuard.isErrorOrObjectLike(error)
-      && 'address' in error
-      && typeof error.address === 'string'
-    );
+  /** Type guard: Check if error has address property (string). */
+  public static isErrorWithAddress(error: Parameters<typeof ErrorWithAddressEntity.validate>[0]): error is ErrorWithAddressEntity.Type {
+    const result = ErrorWithAddressEntity.validate(error);
     return result;
   }
 }

@@ -16,8 +16,8 @@ export class QueueSizeExceededError<K extends PropertyKey> extends MutexError {
     const fields = { 'key': key, 'maximumQueueSize': maximumQueueSize };
     super(DomainErrorArgumentList.build(fields, {
       'code': 'mutex.queueSizeExceeded',
-      'message': (fields: Readonly<{ 'key': K; 'maximumQueueSize': number }>): string => {
-        const result = `Queue size exceeded for key "${String(fields.key)}". Maximum queue size is ${fields.maximumQueueSize}.`;
+      'message': (messageFields: Readonly<{ 'key': K; 'maximumQueueSize': number }>): string => {
+        const result = `Queue size exceeded for key "${String(messageFields.key)}". Maximum queue size is ${messageFields.maximumQueueSize}.`;
         return result;
       },
       'retryable': false

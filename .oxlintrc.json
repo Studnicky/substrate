@@ -1,7 +1,15 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "env": { "node": true, "es2024": true },
-  "plugins": ["typescript", "import", "unicorn", "oxc"],
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "plugins": [
+    "typescript",
+    "import",
+    "unicorn",
+    "oxc"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "off",
@@ -14,7 +22,13 @@
   "rules": {
     "no-var": "error",
     "prefer-const": "error",
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "no-eval": "error",
     "no-implied-eval": "error",
     "import/no-cycle": "error",
@@ -22,12 +36,14 @@
     "import/no-duplicates": "error",
     "typescript/no-this-alias": "error",
     "no-unused-vars": "error",
-
-    "typescript/no-extraneous-class": "off",
-    "no-underscore-dangle": "off",
-    "no-shadow": "off",
-    "unicorn/consistent-function-scoping": "off",
-    "unicorn/no-array-sort": "off"
+    "no-underscore-dangle": "error",
+    "no-shadow": "error",
+    "unicorn/consistent-function-scoping": "error",
+    "unicorn/no-array-sort": "error"
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts"
+  ]
 }

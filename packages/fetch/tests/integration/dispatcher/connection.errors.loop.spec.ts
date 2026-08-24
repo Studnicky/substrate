@@ -17,8 +17,8 @@ import {
 import scenarioGroups from './connection.errors.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
-  | { __shape: 'infinity' }
-  | { __shape: 'nan' };
+  | { shape: 'infinity' }
+  | { shape: 'nan' };
 
 type RuntimeValue =
   | null
@@ -85,7 +85,7 @@ void after(async () => {
 });
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -99,10 +99,10 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      if (value.__shape === 'infinity') {
+      if (value.shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
-      if (value.__shape === 'nan') {
+      if (value.shape === 'nan') {
         return Number.NaN;
       }
       const exhaustiveCheck: never = value;

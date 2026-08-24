@@ -1,6 +1,7 @@
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
+import type * as ts from 'typescript';
 
 import {
   type ConditionalTypeNode,
@@ -58,7 +59,6 @@ import {
   type Symbol,
   SymbolFlags,
   SyntaxKind,
-  type Type,
   type TypeAliasDeclaration,
   type TypeChecker,
   type TypeElement,
@@ -1025,7 +1025,7 @@ export class TypeContractClassification {
    * type argument at the reference site and there is no longer a declared `TypeNode` to recurse
    * into syntactically.
    */
-  private classifyCallabilityFromResolvedType(type: Type, seen: Set<Type>): CallabilityFlagsInterface {
+  private classifyCallabilityFromResolvedType(type: ts.Type, seen: Set<ts.Type>): CallabilityFlagsInterface {
     if (seen.has(type)) {
       return {
         'hasCallable': false, 'hasData': false
@@ -2690,9 +2690,9 @@ export class TypeContractClassification {
   }
 
   private findResolvedTypeContract(
-    type: Type,
+    type: ts.Type,
     evidenceNode: Node,
-    seen: Set<Type>,
+    seen: Set<ts.Type>,
     depth: number
   ): ContractEvidenceInterface | undefined {
     if (seen.has(type)) {
@@ -2845,9 +2845,9 @@ export class TypeContractClassification {
       const sourceFile = declaration.getSourceFile();
       const filename = sourceFile.fileName.split('\\').join('/');
 
-      const result = sourceFile.isDeclarationFile && filename.includes('/lib.') && filename.endsWith('.d.ts');
+      const isLibDeclaration = sourceFile.isDeclarationFile && filename.includes('/lib.') && filename.endsWith('.d.ts');
 
-      return result;
+      return isLibDeclaration;
     });
 
     return result;
@@ -3245,10 +3245,10 @@ export class TypeContractClassification {
     const declarations = derivingSymbol.getDeclarations() ?? [];
 
     const result = declarations.some((declaration) => {
-      const result = (isTypeAliasDeclaration(declaration) && (declaration.typeParameters?.length ?? 0) > 0)
+      const isGenericOrDeclarationFile = (isTypeAliasDeclaration(declaration) && (declaration.typeParameters?.length ?? 0) > 0)
       || declaration.getSourceFile().isDeclarationFile;
 
-      return result;
+      return isGenericOrDeclarationFile;
     });
 
     return result;

@@ -1,9 +1,8 @@
 import type { Rule } from 'eslint';
 
-import { type Node, type Program, TypeFlags } from 'typescript';
-
 import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
 import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { ResolvedType } from '../shared/ResolvedType.js';
 import { EntityIntake } from './EntityIntake.js';
 import { ExemptPackage } from './ExemptPackage.js';
 
@@ -18,31 +17,6 @@ import { ExemptPackage } from './ExemptPackage.js';
 // application data; 76 of the repository's 83 assertions describe those foreign shapes. Neither
 // package should be forced into application entities.
 
-interface NodeMapInterface {
-  readonly 'get': (node: unknown) => Node | undefined;
-}
-
-interface ParserServicesInterface {
-  readonly 'esTreeNodeToTSNodeMap': NodeMapInterface;
-  readonly 'program': Program;
-}
-
-class ParserServices {
-  public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
-      return false;
-    }
-
-    const nodeMap = value.esTreeNodeToTSNodeMap;
-    const program = value.program;
-    const result = ObjectGuard.isObject(nodeMap)
-      && typeof nodeMap.get === 'function'
-      && ObjectGuard.isObject(program)
-      && typeof program.getTypeChecker === 'function';
-    return result;
-  }
-}
-
 class AssertionShape {
   public static source(node: Rule.Node): Rule.Node | undefined {
     const raw = node as unknown as Record<string, unknown>;
@@ -55,21 +29,6 @@ class AssertionShape {
     const raw = node as unknown as Record<string, unknown>;
     const typeAnnotation: unknown = raw.typeAnnotation;
     const result = ObjectGuard.isObject(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
-    return result;
-  }
-}
-
-class UnparsedSource {
-  public static is(node: Rule.Node, services: ParserServicesInterface): boolean {
-    const typeScriptNode = services.esTreeNodeToTSNodeMap.get(node);
-
-    if (typeScriptNode === undefined) {
-      return false;
-    }
-
-    const checker = services.program.getTypeChecker();
-    const type = checker.getTypeAtLocation(typeScriptNode);
-    const result = (type.flags & (TypeFlags.Any | TypeFlags.Unknown)) !== 0;
     return result;
   }
 }
@@ -88,12 +47,6 @@ export const noUnparsedAssertion: Rule.RuleModule = {
       return {};
     }
 
-    const services: unknown = context.sourceCode.parserServices;
-
-    if (!ParserServices.hasTypeInformation(services)) {
-      return {};
-    }
-
     const inspect = (node: Rule.Node): void => {
       if (!AssertionShape.hasNamedTarget(node) || EntityIntake.contains(node)) {
         return;
@@ -101,7 +54,7 @@ export const noUnparsedAssertion: Rule.RuleModule = {
 
       const source = AssertionShape.source(node);
 
-      if (source === undefined || !UnparsedSource.is(source, services)) {
+      if (source === undefined || !ResolvedType.isUnparsed(context, source)) {
         return;
       }
 

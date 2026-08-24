@@ -196,7 +196,7 @@ export class ContextScope implements ContextScopeInterface {
    *
    * @param _error - The error thrown by the wrapped function
    */
-  protected onError<TError>(_error: TError): void {}
+  protected onError(_error: unknown): void {}
 
   /**
    * Hook called in `terminate()` after the internal store is cleared.

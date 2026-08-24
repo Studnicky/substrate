@@ -25,8 +25,8 @@ export class VirtualFileSystemError extends BaseError {
       'cause': argumentList?.cause,
       'code': 'virtualFs.error',
       'correlationId': argumentList?.correlationId,
-      'message': (fields: Readonly<{ 'message': string }>): string => {
-        return fields.message;
+      'message': (messageFields: Readonly<{ 'message': string }>): string => {
+        return messageFields.message;
       },
       'metadata': argumentList?.metadata,
       'retryable': argumentList?.retryable ?? false

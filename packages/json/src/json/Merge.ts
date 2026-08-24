@@ -1,148 +1,105 @@
-/** Deep merging for parsed JSON values. */
+/** Deep merging for arbitrary in-memory values. */
 
-import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
-import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
-
+import { Clone } from './Clone.js';
 import { DataType } from './DataType.js';
 
 export class Merge {
-  /** Return whether a parsed JSON value is a mergeable object. */
-  protected static isMergeable(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
+  /** Return whether a value is a mergeable plain object. */
+  protected static isMergeable<T>(value: T): value is Readonly<Record<string, unknown>> & T {
     const result = DataType.isPlainObject(value);
     return result;
   }
 
   /** Return the sorted union of keys from `base` and `overlay`. */
-  protected static unionKeys(
-    base: JsonObjectEntity.Type,
-    overlay: JsonObjectEntity.Type
-  ): readonly string[] {
+  protected static unionKeys(base: Readonly<Record<string, unknown>>, overlay: Readonly<Record<string, unknown>>): readonly string[] {
     const seenKeys: Record<string, true> = {};
-
     const baseKeys = Object.keys(base);
-    const baseLength = baseKeys.length;
-    for (let index = 0; index < baseLength; index += 1) {
-      const baseKey = baseKeys[index];
-      if (baseKey === undefined) {
-        continue;
+    const baseKeyLength = baseKeys.length;
+    for (let index = 0; index < baseKeyLength; index += 1) {
+      const key = baseKeys[index];
+      if (key !== undefined) {
+        Reflect.set(seenKeys, key, true);
       }
-      Reflect.set(seenKeys, baseKey, true);
     }
     const overlayKeys = Object.keys(overlay);
-    const overlayLength = overlayKeys.length;
-    for (let index = 0; index < overlayLength; index += 1) {
-      const overlayKey = overlayKeys[index];
-      if (overlayKey === undefined) {
-        continue;
+    const overlayKeyLength = overlayKeys.length;
+    for (let index = 0; index < overlayKeyLength; index += 1) {
+      const key = overlayKeys[index];
+      if (key !== undefined) {
+        Reflect.set(seenKeys, key, true);
       }
-      Reflect.set(seenKeys, overlayKey, true);
     }
-
-    const result = Object.keys(seenKeys).sort();
+    const result = Object.keys(seenKeys).toSorted();
     return result;
   }
 
-  /**
-   * Merge two arrays.
-   *
-   * Default: overlay replaces base atomically.
-   * Override to union, concat, or otherwise combine arrays.
-   */
-  protected static mergeArrays(
-    _base: JsonValueEntity.Type[],
-    overlay: JsonValueEntity.Type[]
-  ): JsonValueEntity.Type[] {
+  /** Merge two arrays. Default behaviour replaces the base atomically. */
+  protected static mergeArrays<T>(_: T[], overlay: T[]): T[] {
     const result = overlay;
     return result;
   }
 
-  /** Return a detached snapshot for JSON containers while preserving atomic values. */
-  protected static snapshot(value: JsonValueEntity.Type): JsonValueEntity.Type {
+  /** Return a detached snapshot for arrays and plain objects, preserving atomic values. */
+  protected static snapshot<T>(value: T): T {
     if (Array.isArray(value)) {
-      const snapshot: JsonValueEntity.Type[] = [];
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const item = value.at(index);
-        if (item !== undefined) {
-          snapshot.push(this.snapshot(item));
-        }
-      }
-      return snapshot;
-    }
-
-    if (!DataType.isPlainObject(value)) {
-      return value;
-    }
-
-    const snapshot: JsonObjectEntity.Type = {};
-    const entries = Object.entries(value).sort(([leftKey], [rightKey]) => {
-      const result = leftKey.localeCompare(rightKey);
+      const result = Clone.deep(value);
       return result;
-    });
-    for (let index = 0; index < entries.length; index += 1) {
-      const entry = entries[index];
-      if (entry === undefined) {
-        continue;
-      }
-      const [key, item] = entry;
-      if (item !== undefined) {
+    }
+    if (!DataType.isPlainObject(value)) {
+      const result = value;
+      return result;
+    }
+    const snapshot = Clone.shallow(value);
+    const keys = Object.keys(snapshot);
+    const keyLength = keys.length;
+    for (let index = 0; index < keyLength; index += 1) {
+      const key = keys[index];
+      if (key !== undefined) {
+        const item: unknown = Reflect.get(snapshot, key);
         Reflect.set(snapshot, key, this.snapshot(item));
       }
     }
-    return snapshot;
+    const result = snapshot;
+    return result;
   }
 
   /** Merge two plain objects key-by-key in alphabetical union order. */
-  protected static mergeObjects(
-    base: JsonObjectEntity.Type,
-    overlay: JsonObjectEntity.Type
-  ): JsonObjectEntity.Type {
-    const merged: JsonObjectEntity.Type = {};
-    const baseValues = new Map(Object.entries(base));
-    const overlayValues = new Map(Object.entries(overlay));
-
-    const keys = this.unionKeys(base, overlay);
-    for (let index = 0; index < keys.length; index += 1) {
+  protected static mergeObjects<TBase extends Record<string, unknown>>(base: TBase, overlay: Record<string, unknown>): TBase {
+    const merged = this.snapshot(base);
+    const keys = Object.keys(merged);
+    const keyLength = keys.length;
+    for (let index = 0; index < keyLength; index += 1) {
       const key = keys[index];
-      if (key === undefined) {
-        continue;
-      }
-      const baseValue = baseValues.get(key);
-      const overlayValue = overlayValues.get(key);
-      if (baseValue === undefined && overlayValue !== undefined) {
-        Reflect.set(merged, key, this.snapshot(overlayValue));
-      } else if (baseValue !== undefined && overlayValue === undefined) {
-        Reflect.set(merged, key, this.snapshot(baseValue));
-      } else if (baseValue !== undefined && overlayValue !== undefined) {
-        Reflect.set(merged, key, this.deep(baseValue, overlayValue));
+      if (key !== undefined) {
+        Reflect.deleteProperty(merged, key);
       }
     }
-
+    const unionKeys = this.unionKeys(base, overlay);
+    const unionKeyLength = unionKeys.length;
+    for (let index = 0; index < unionKeyLength; index += 1) {
+      const key = unionKeys[index];
+      if (key !== undefined) {
+        const baseItem: unknown = Reflect.get(base, key);
+        const overlayItem: unknown = Reflect.get(overlay, key);
+        Reflect.set(merged, key, this.deep(baseItem, overlayItem));
+      }
+    }
     return merged;
   }
 
-  /**
-   * Deeply merge `overlayValue` onto `baseValue` and return a new value.
-   *
-   * Overlay wins on conflicting primitives. Arrays replaced atomically.
-   * Plain objects merged key-wise in alphabetical union order (monomorphic).
-   */
-  public static deep(
-    baseValue: JsonObjectEntity.Type,
-    overlayValue: JsonObjectEntity.Type
-  ): JsonObjectEntity.Type;
-  public static deep(
-    baseValue: JsonValueEntity.Type[],
-    overlayValue: JsonValueEntity.Type[]
-  ): JsonValueEntity.Type[];
-  public static deep(
-    baseValue: JsonValueEntity.Type,
-    overlayValue: JsonValueEntity.Type
-  ): JsonValueEntity.Type;
-  public static deep(
-    baseValue: JsonValueEntity.Type,
-    overlayValue: JsonValueEntity.Type
-  ): JsonValueEntity.Type {
+  /** Deeply merge `overlayValue` onto `baseValue` and return a detached result. */
+  public static deep<TBase extends object, TOverlay extends object>(baseValue: TBase, overlayValue: TOverlay): TBase & TOverlay;
+  public static deep<T>(baseValue: T, overlayValue: T): T;
+  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): TBase | TOverlay;
+  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): unknown {
+    if (overlayValue === undefined) {
+      const result = this.snapshot(baseValue);
+      return result;
+    }
+    if (baseValue === undefined) {
+      const result = this.snapshot(overlayValue);
+      return result;
+    }
     if (Array.isArray(overlayValue)) {
       if (Array.isArray(baseValue)) {
         const result = this.snapshot(this.mergeArrays(baseValue, overlayValue));
@@ -151,22 +108,14 @@ export class Merge {
       const result = this.snapshot(overlayValue);
       return result;
     }
-
     if (Array.isArray(baseValue)) {
       const result = this.snapshot(overlayValue);
       return result;
     }
-
-    if (!this.isMergeable(overlayValue)) {
+    if (!this.isMergeable(overlayValue) || !this.isMergeable(baseValue)) {
       const result = this.snapshot(overlayValue);
       return result;
     }
-
-    if (!this.isMergeable(baseValue)) {
-      const result = this.snapshot(overlayValue);
-      return result;
-    }
-
     const result = this.mergeObjects(baseValue, overlayValue);
     return result;
   }

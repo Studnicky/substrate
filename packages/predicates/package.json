@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@studnicky/cache": "workspace:*",
-    "@studnicky/json": "workspace:*"
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

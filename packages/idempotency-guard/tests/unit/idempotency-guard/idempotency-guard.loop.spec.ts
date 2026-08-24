@@ -18,6 +18,9 @@ import { IdempotencyGuardEntryMetadataEntity, IdempotencyPayloadEntity } from '.
 
 import scenarioGroups from './idempotency-guard.scenarios.json' with { type: 'json' };
 
+// Shared placeholder for a deferred-promise resolver that is always reassigned before use.
+const NOOP_STRING_RESOLVER: (value: string) => void = () => {};
+
 type ScenarioFixture = (typeof scenarioGroups.cases)[number];
 type GuardOptions = ScenarioFixture['input']['idempotencyGuard'];
 type GuardFactory<TResult> = () => TResult | Promise<TResult>;
@@ -697,7 +700,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -886,7 +889,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     assertScenarioHooksCoalesceFollower(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -926,7 +929,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const executions = scenario.input.batch.factoryResults.map((result): IsolatedExecution => {
       let calls = 0;
-      let resolveFactory: (value: string) => void = () => {};
+      let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
       const pending = new Promise<string>((resolve) => {
         resolveFactory = resolve;
       });
@@ -1098,7 +1101,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const guard = ThrowingCoalesceGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -1151,7 +1154,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const guard = AsyncRejectingHooksGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -1192,7 +1195,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const input = scenario.input;
     let leaderCalls = 0;
     let followerCalls = 0;
-    let resolveLeader: (value: string) => void = () => {};
+    let resolveLeader: (value: string) => void = NOOP_STRING_RESOLVER;
     const gate = new Promise<string>((resolve) => {
       resolveLeader = resolve;
     });

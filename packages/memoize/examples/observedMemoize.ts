@@ -8,16 +8,17 @@ import { Memoize } from '../src/index.js';
 class TelemetryMemoize extends Memoize<[string], { 'chargeId': string }> {
   readonly events: string[] = [];
 
+  private static chargeIdKeyDeriver(id: string): string {
+    if (id.length === 0 || id.trim().length === 0) {
+      throw new Error('Charge ID cannot be empty');
+    }
+    return `charge:${id}`;
+  }
+
   static tracked(callback: (id: string) => Promise<{ 'chargeId': string }>): TelemetryMemoize {
-    const keyDeriver = (id: string): string => {
-      if (id.length === 0 || id.trim().length === 0) {
-        throw new Error('Charge ID cannot be empty');
-      }
-      return `charge:${id}`;
-    };
     const result = TelemetryMemoize.create(callback, {
       'capacity': 1000,
-      'keyDeriver': keyDeriver,
+      'keyDeriver': TelemetryMemoize.chargeIdKeyDeriver,
       'ttlMs': 60_000
     });
     return result;

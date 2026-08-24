@@ -1,5 +1,7 @@
 /** Deep cloning for JavaScript values. */
 
+import { Guard } from '@studnicky/types';
+
 export class Clone {
   /** Clone an array element-by-element. */
   protected static cloneArray(value: (PropertyKey | bigint | boolean | object | null | undefined)[]): (PropertyKey | bigint | boolean | object | null | undefined)[] {
@@ -66,7 +68,7 @@ export class Clone {
 
   /** Implement `deep` across the full JavaScript value domain. */
   protected static clone(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
-    if (value === null || typeof value !== 'object') {
+    if (!Guard.isObjectLike(value)) {
       return value;
     }
 

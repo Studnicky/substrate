@@ -270,22 +270,22 @@ interface ScenarioCaseByShape {
   };
 }
 
-let _clockMs = 1000;
+let clockMs = 1000;
 const mockClock = {
   hrtime: () => {
-    return BigInt(_clockMs) * 1_000_000n;
+    return BigInt(clockMs) * 1_000_000n;
   },
   now: () => {
-    return _clockMs;
+    return clockMs;
   },
 };
 
 function advanceClock(ms: number): void {
-  _clockMs += ms;
+  clockMs += ms;
 }
 
 function resetClock(): void {
-  _clockMs = 1000;
+  clockMs = 1000;
 }
 
 function createSeedMap(seed: SeedInput): Map<string, string> {
@@ -316,7 +316,7 @@ const scenarioHandlers: ScenarioHandlers = {
   "create-clock-deterministic": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     resetClock();
-    _clockMs = input.clockMs;
+    clockMs = input.clockMs;
     const fs = VirtualFileSystem.create({ clock: mockClock });
     fs.writeFileSync(input.path, input.content, input.encoding);
     const stat = fs.statSync(input.path);
@@ -662,7 +662,7 @@ const scenarioHandlers: ScenarioHandlers = {
   "stat-mtime-clock": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     resetClock();
-    _clockMs = input.initialClockMs;
+    clockMs = input.initialClockMs;
     const fs = VirtualFileSystem.create({ clock: mockClock });
     advanceClock(input.advanceMs);
     fs.writeFileSync(input.path, input.content, input.encoding);

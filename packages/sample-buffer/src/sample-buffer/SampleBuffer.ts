@@ -3,6 +3,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
 
@@ -73,7 +74,7 @@ export class SampleBuffer implements SampleBufferInterface {
     options: SampleBufferOptionsEntity.Type
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
-    if (typeof constructed !== 'object' || constructed === null) {
+    if (!Guard.isObjectLike(constructed)) {
       throw new TypeError(
         'SampleBuffer.create() must construct a SampleBuffer instance'
       );

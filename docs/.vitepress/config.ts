@@ -99,7 +99,7 @@ const STATEFUL = [
 ] as const;
 
 const STATELESS = [
-  'config', 'errors', 'eslint-config', 'fetch', 'json', 'predicates',
+  'config', 'errors', 'eslint-config', 'fetch', 'intake-kit', 'json', 'predicates',
   'signal', 'system', 'types'
 ] as const;
 

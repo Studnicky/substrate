@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
@@ -57,7 +59,7 @@ export class FunctionTransport implements TransportInterface {
       options
     ]);
 
-    if (result === null || typeof result !== 'object' || !FunctionTransportInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !FunctionTransportInstance.belongsTo(this, result)) {
       throw new TypeError('FunctionTransport.create() did not construct the requested subclass.');
     }
 

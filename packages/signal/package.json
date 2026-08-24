@@ -51,6 +51,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@studnicky/errors": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

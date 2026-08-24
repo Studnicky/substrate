@@ -30,9 +30,9 @@ console.log('Path.get __proto__:', Path.get(document, '__proto__'));
 // Sort.natural — numeric substrings sorted as numbers
 // ---------------------------------------------------------------------------
 
-const files = ['file10', 'file2', 'file1'].sort(Sort.natural);
-const byLength = ['id', 'type', 'description'].sort(Sort.longestFirst);
-const byLengthAsc = ['description', 'id', 'type'].sort(Sort.shortestFirst);
+const files = ['file10', 'file2', 'file1'].toSorted(Sort.natural);
+const byLength = ['id', 'type', 'description'].toSorted(Sort.longestFirst);
+const byLengthAsc = ['description', 'id', 'type'].toSorted(Sort.shortestFirst);
 
 console.log('natural sort:', files);
 console.log('longestFirst:', byLength);

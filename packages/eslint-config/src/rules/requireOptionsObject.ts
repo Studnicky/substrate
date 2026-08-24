@@ -45,8 +45,8 @@ class ParamInspector {
     if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
     const typeAnnotation = ann.typeAnnotation;
     if (typeAnnotation.type !== 'TSUnionType' || !Array.isArray(typeAnnotation.types)) { return false; }
-    const result = typeAnnotation.types.some((member) => {const result = ObjectGuard.isObject(member) && member.type === 'TSUndefinedKeyword';
-      return result;});
+    const result = typeAnnotation.types.some((member) => {const isUndefinedMember = ObjectGuard.isObject(member) && member.type === 'TSUndefinedKeyword';
+      return isUndefinedMember;});
     return result;
   }
 
@@ -103,8 +103,8 @@ class ParamInspector {
       if (typeAnnotation.type !== 'TSTypeLiteral' || !Array.isArray(typeAnnotation.members)) { return false; }
       // An empty `{}` or a pure index-signature literal (`{ [key: string]: unknown }`) carries
       // none of a real options object's type safety — require at least one named member.
-      const result = typeAnnotation.members.some((member) => {const result = ObjectGuard.isObject(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
-        return result;});
+      const result = typeAnnotation.members.some((member) => {const isNamedMember = ObjectGuard.isObject(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
+        return isNamedMember;});
       return result;
     }
     return false;

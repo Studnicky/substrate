@@ -2,80 +2,114 @@
   "valid": [
     {
       "code": "declare namespace RecordEntity { function intake(input: unknown): Type; }",
-      "filename": "/repo/packages/records/src/RecordEntity.ts",
       "name": "entity namespace intake declaration accepts unknown input"
     },
     {
       "code": "function handle(payload: string): string { return payload; }",
-      "filename": "/repo/packages/records/src/handler.ts",
       "name": "function with no unknown or any parameters is not reported"
     },
     {
-      "code": "export function isObject(value: unknown): boolean { return typeof value === 'object'; }",
-      "filename": "/repo/packages/types/src/Guard.ts",
-      "name": "unknown parameter in package whose nearest package.json name is exempt is not reported"
-    },
-    {
       "code": "namespace RecordEntity { export function intake(input: unknown): Type { return Guard.isObject(input) ? {} : {}; } }",
-      "filename": "/repo/packages/records/src/RecordEntity.ts",
       "name": "Guard.isObject call inside an entity intake body is not a declaration"
     },
     {
       "code": "namespace RecordEntity { export const intake = (input: unknown): Type => ({}); }",
-      "filename": "/repo/packages/records/src/RecordEntity.ts",
       "name": "arrow function assigned to entity intake accepts unknown input"
+    },
+    {
+      "code": "function log(value: unknown): void { console.log(value); }",
+      "name": "an unknown value only forwarded to a call, never inspected, is opaque"
+    },
+    {
+      "code": "function remember(value: unknown, store: Map<string, unknown>): void { store.set('key', value); }",
+      "name": "an unknown value only stored, never inspected, is opaque"
+    },
+    {
+      "code": "function walk(value: unknown): void { if (typeof value === 'object' && value !== null) { for (const key of Object.keys(value)) { console.log(Reflect.get(value, key)); } } }",
+      "name": "a variable-keyed Reflect.get walk over an unknown value is opaque"
+    },
+    {
+      "code": "namespace RecordEntity { class Helper { static parse(input: unknown): Type { if (typeof input === 'object' && input !== null) { return input as Type; } return {} as Type; } } export const intake = Helper.parse; }",
+      "name": "a private helper class nested in an entity namespace shares the intake boundary"
+    },
+    {
+      "code": "namespace RecordEntity { export class Boundary { private static parse(input: unknown): Type { return input as Type; } public static intake(input: unknown): Type { return Boundary.parse(input); } } }",
+      "name": "a private static method on an exported entity class shares the intake boundary"
+    },
+    {
+      "code": "function isThenable(value: unknown): boolean { return (typeof value === 'object' || typeof value === 'function') && value !== null && 'then' in value && typeof value.then === 'function'; }",
+      "name": "checking the thenable protocol's own 'then' member is opaque, not a domain field"
+    },
+    {
+      "code": "function readType(value: unknown): void { if (typeof value === 'object' && value !== null) { console.log(value.type); } }",
+      "name": "a consumer-configured structuralProperties entry (Blob.type) is opaque",
+      "options": [{ "structuralProperties": ["type"] }]
     }
   ],
   "invalid": [
     {
-      "code": "namespace RecordEntity { export function validate(value: unknown): value is Type { return true; } }",
+      "code": "namespace RecordEntity { export function validate(value: unknown): value is Type { return typeof value === 'object' && value !== null && 'id' in value; } }",
       "errors": [
         {
           "messageId": "unparsedOutsideIntake"
         }
       ],
-      "filename": "/repo/packages/records/src/RecordEntity.ts",
       "name": "entity validate predicate is not intake and is reported"
     },
     {
-      "code": "function handle(payload: unknown): void {}",
+      "code": "function handle(payload: unknown): void { if (typeof payload === 'object' && payload !== null && 'ready' in payload) { return; } }",
       "errors": [
         {
           "messageId": "unparsedOutsideIntake"
         }
       ],
-      "filename": "/repo/packages/handlers/src/handle.ts",
       "name": "plain function in a non-entity file is reported"
     },
     {
-      "code": "function handle(payload: any): void {}",
+      "code": "function handle(payload: any): void { console.log(payload.ready); }",
       "errors": [
         {
           "messageId": "unparsedOutsideIntake"
         }
       ],
-      "filename": "/repo/packages/handlers/src/handle.ts",
       "name": "function parameter typed any is reported"
     },
     {
-      "code": "namespace Record { export function intake(input: unknown): Type { return {}; } }",
+      "code": "namespace Record { export function intake(input: unknown): Type { if (typeof input === 'object' && input !== null && 'id' in input) { return {}; } return {}; } }",
       "errors": [
         {
           "messageId": "unparsedOutsideIntake"
         }
       ],
-      "filename": "/repo/packages/records/src/Record.ts",
       "name": "intake in a namespace not ending in Entity is reported"
     },
     {
-      "code": "export function intake(input: unknown): Type { return {}; }",
+      "code": "export function intake(input: unknown): Type { if (typeof input === 'object' && input !== null && 'id' in input) { return {}; } return {}; }",
       "errors": [
         {
           "messageId": "unparsedOutsideIntake"
         }
       ],
-      "filename": "/repo/packages/records/src/intake.ts",
       "name": "intake outside an entity namespace is reported"
+    },
+    {
+      "code": "namespace RecordEntity { export class Boundary { static parse(input: unknown): Type { return input as Type; } public static intake(input: unknown): Type { return Boundary.parse(input); } } }",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "name": "a public static method on an exported entity class is externally reachable and is reported"
+    },
+    {
+      "code": "function reportLength(value: unknown): number { if (Array.isArray(value)) { return value.length; } return 0; }",
+      "errors": [
+        {
+          "messageId": "unparsedOutsideIntake"
+        }
+      ],
+      "name": "custom structuralProperties replaces rather than merges with the default, so .length stops being opaque",
+      "options": [{ "structuralProperties": ["type"] }]
     }
   ]
 }

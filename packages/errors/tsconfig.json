@@ -13,6 +13,7 @@
     "dist"
   ],
   "references": [
+    { "path": "../intake-kit" },
     { "path": "../types" }
   ]
 }

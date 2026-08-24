@@ -1,226 +1,84 @@
-/**
- * Path — JSON Pointer utilities and dot-path access.
- *
- * - `toAccess`: JSON Pointer → JS access notation.
- * - `get`: proto-pollution-safe dot-path read with `[*]` wildcard support and maximumDepth.
- *
- * Subclass `Path` and override `protected static isSafeProperty` to customise the
- * property deny-list.
- */
+/** JSON Pointer utilities and safe dot-path access for arbitrary values. */
 
-import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
+import { Guard } from '@studnicky/types';
+
+import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
 import type { PathWildcardResultInterface } from '../interfaces/PathWildcardResultInterface.js';
 
 import { BRACKET_QUOTED_KEY_PATTERN, DANGEROUS_PROPERTIES, NUMERIC_SEGMENT_PATTERN, VALID_IDENTIFIER } from '../constants/PathConstants.js';
-import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 
 export class Path {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise safety policy
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Return `true` when `name` is safe to use as a property access key.
-   *
-   * Override this method to extend or restrict the deny-list. The base
-   * implementation blocks `DANGEROUS_PROPERTIES`, double-underscore prefixes,
-   * path-traversal sequences, and embedded spaces.
-   */
+  /** Return whether `name` is safe to use as a property access key. */
   protected static isSafeProperty(name: string): boolean {
-    if (DANGEROUS_PROPERTIES.has(name)) {
-      return false;
-    }
-    // Block any double-underscore prefix
-    if (name.startsWith('__')) {
-      return false;
-    }
-    // Block traversal attempts
-    if (name.includes('../') || name.includes('..\\')) {
-      return false;
-    }
-    // Block spaces
-    if (name.includes(' ')) {
-      return false;
-    }
-
-    return true;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Convert a JSON Pointer (`/items/0/quantity`) to JS access form
-   * (`items[0].quantity`). Root pointer (`""` or `"/"`) returns `""`.
-   */
-  public static toAccess(jsonPointer: string): string {
-    if (jsonPointer === '' || jsonPointer === '/') {
-      return '';
-    }
-
-    const segments = jsonPointer
-      .split('/')
-      .slice(1)
-      .map((seg) => { const result = seg.replaceAll('~1', '/').replaceAll('~0', '~'); return result; });
-
-    let result = '';
-
-    const length = segments.length;
-    for (let index = 0; index < length; index += 1) {
-      const segment = segments[index];
-      if (segment === undefined) {
-        continue;
-      }
-
-      if (NUMERIC_SEGMENT_PATTERN.test(segment)) {
-        result += `[${segment}]`;
-      } else if (VALID_IDENTIFIER.test(segment)) {
-        result += result === '' ? segment : `.${segment}`;
-      } else {
-        result += `["${segment}"]`;
-      }
-    }
-
+    const result = !DANGEROUS_PROPERTIES.has(name) && !name.startsWith('__') && !name.includes('../') && !name.includes('..\\') && !name.includes(' ');
     return result;
   }
 
-  /**
-   * Extract a value from `object` using a dot-path string.
-   *
-   * Supports array indexing (`items[0]`) and wildcard (`items[*]`).
-   * Proto-pollution safe — returns `undefined` for dangerous property names.
-   *
-   * When `[*]` is encountered, returns a `PathWildcardResultInterface` sentinel
-   * describing the matched array and any remaining path suffix.
-   *
-   * @param object - The parsed JSON object to traverse.
-   * @param path - Dot-separated path (e.g. `"user.address.city"`).
-   * @param options - Optional `maximumDepth` to limit traversal depth.
-   */
-  public static get(
-    object: JsonObjectEntity.Type,
-    path: string,
-    options?: PathGetOptionsEntity.Type
-  ): JsonValueEntity.Type | PathWildcardResultInterface | undefined {
-    if (path === '') {
-      return object;
+  /** Convert a JSON Pointer to JavaScript access notation. */
+  public static toAccess(jsonPointer: string): string {
+    if (jsonPointer === '' || jsonPointer === '/') {return '';}
+    let result = '';
+    const rawSegments = jsonPointer.split('/');
+    const rawSegmentLength = rawSegments.length;
+    for (let index = 1; index < rawSegmentLength; index += 1) {
+      const rawSegment = rawSegments[index];
+      if (rawSegment === undefined) {
+        continue;
+      }
+      const segment = rawSegment.replaceAll('~1', '/').replaceAll('~0', '~');
+      if (NUMERIC_SEGMENT_PATTERN.test(segment)) {result += `[${segment}]`;}
+      else if (VALID_IDENTIFIER.test(segment)) {result += result === '' ? segment : `.${segment}`;}
+      else {result += `["${segment}"]`;}
     }
+    return result;
+  }
 
-    // Bracket-quoted key syntax: ["special.key"]
+  /** Extract a value from `object` using a proto-safe dot-path expression. */
+  public static get(object: JsonValueEntity.Type, path: string, options?: PathGetOptionsEntity.Type): unknown {
+    if (path === '') {return object;}
     if (path.startsWith('[') && path.includes('"]')) {
       const matches = [...path.matchAll(BRACKET_QUOTED_KEY_PATTERN)];
-
       if (matches.length > 0) {
-        let current: JsonValueEntity.Type = object;
-
-        const length = matches.length;
-        for (let index = 0; index < length; index += 1) {
+        let current: unknown = object;
+        const matchLength = matches.length;
+        for (let index = 0; index < matchLength; index += 1) {
           const match = matches[index];
           if (match === undefined) {
             continue;
           }
           const key = match[0].slice(2, -2);
-
-          if (!this.isSafeProperty(key)) {
-            return undefined;
-          }
-
-          if (current === null || typeof current !== 'object') {
-            return undefined;
-          }
-          const rawValue: unknown = Reflect.get(current, key);
-          if (!JsonValueEntity.validate(rawValue)) {
-            return undefined;
-          }
-          current = rawValue;
+          if (!this.isSafeProperty(key) || !Guard.isObjectLike(current)) {return undefined;}
+          current = Reflect.get(current, key);
         }
-
         return current;
       }
     }
 
     const parts = path.split('.');
-
-    if (options?.maximumDepth !== undefined && parts.length > options.maximumDepth) {
-      return undefined;
-    }
-
-    let current: JsonValueEntity.Type = object;
-    const length = parts.length;
-
-    for (let index = 0; index < length; index += 1) {
+    if (options?.maximumDepth !== undefined && parts.length > options.maximumDepth) {return undefined;}
+    let current: unknown = object;
+    for (let index = 0; index < parts.length; index += 1) {
       const part = parts[index];
-
-      if (part === undefined || part === '') {
-        continue;
-      }
-
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-
+      if (part === undefined || part === '') {continue;}
+      if (current === null || current === undefined) {return undefined;}
       if (part.includes('[') && part.includes(']')) {
         const bracketIndex = part.indexOf('[');
         const fieldName = part.slice(0, bracketIndex);
         const arrayIndex = part.slice(bracketIndex + 1, -1);
-
-        if (!this.isSafeProperty(fieldName)) {
-          return undefined;
-        }
-
-        if (typeof current !== 'object') {
-          return undefined;
-        }
-
-        const rawArrayValue: unknown = Reflect.get(current, fieldName);
-        if (!JsonValueEntity.validate(rawArrayValue)) {
-          return undefined;
-        }
-        const arrayValue = rawArrayValue;
-
-        if (!Array.isArray(arrayValue)) {
-          return undefined;
-        }
-
+        if (!this.isSafeProperty(fieldName) || !Guard.isObjectLike(current)) {return undefined;}
+        const arrayValue: unknown = Reflect.get(current, fieldName);
+        if (!Array.isArray(arrayValue)) {return undefined;}
         if (arrayIndex === '*') {
-          const remaining = parts.slice(index + 1);
-
-          return {
-            'array': arrayValue,
-            'isWildcard': true,
-            'remainingPath': remaining
-          } satisfies PathWildcardResultInterface;
+          return { 'array': arrayValue, 'isWildcard': true, 'remainingPath': parts.slice(index + 1) } satisfies PathWildcardResultInterface;
         }
-
-        if (!NUMERIC_SEGMENT_PATTERN.test(arrayIndex)) {
-          return undefined;
-        }
-
-        const arrayIndexNumber = Number(arrayIndex);
-
-        const rawIndexedValue: unknown = Reflect.get(arrayValue, arrayIndexNumber);
-        if (!JsonValueEntity.validate(rawIndexedValue)) {
-          return undefined;
-        }
-        current = rawIndexedValue;
-      } else {
-        if (!this.isSafeProperty(part)) {
-          return undefined;
-        }
-        if (typeof current !== 'object') {
-          return undefined;
-        }
-
-        const rawValue: unknown = Reflect.get(current, part);
-        if (!JsonValueEntity.validate(rawValue)) {
-          return undefined;
-        }
-        current = rawValue;
+        if (!NUMERIC_SEGMENT_PATTERN.test(arrayIndex)) {return undefined;}
+        current = arrayValue[Number(arrayIndex)];
+        continue;
       }
+      if (!this.isSafeProperty(part) || !Guard.isObjectLike(current)) {return undefined;}
+      current = Reflect.get(current, part);
     }
-
     return current;
   }
 }

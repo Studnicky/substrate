@@ -6,6 +6,10 @@ import { Coalesce } from '../../src/Coalesce.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 import scenarioGroups from './Coalesce.scenarios.json' with { type: 'json' };
 
+function delayedStringFactory(): Promise<string> {
+  return new Promise((resolve) => setTimeout(() => resolve('v'), 10));
+}
+
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'shared-factory'; name: string }
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'independent-keys'; name: string }
@@ -138,8 +142,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string };
     const expected = scenarioCase.expected as { joinCount: number; startCount: number };
     const c = ObservedCoalesce.create();
-    const factory = (): Promise<string> => new Promise((resolve) => setTimeout(() => resolve('v'), 10));
-    await Promise.all([c.run(input.key, factory), c.run(input.key, factory), c.run(input.key, factory)]);
+    await Promise.all([c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory)]);
     assert.equal(c.startEvents.length, expected.startCount);
     assert.equal(c.joinEvents.length, expected.joinCount);
     assert.deepEqual(c.startEvents, [input.key]);

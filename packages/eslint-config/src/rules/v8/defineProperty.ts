@@ -255,9 +255,9 @@ class DescriptorClassification {
 
       const keyName = PropertyKeyName.resolve(prop.key, prop.computed === true);
 
-      const result = keyName === 'get' || keyName === 'set';
+      const isAccessorKey = keyName === 'get' || keyName === 'set';
 
-      return result;
+      return isAccessorKey;
     });
 
     return result;

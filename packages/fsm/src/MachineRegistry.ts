@@ -50,8 +50,8 @@ export class MachineRegistry<
     const result = this.#registry.get(name);
     if (result === undefined) {
       this.hooks.invoke('onResolveMiss', () => {
-        const result = this.onResolveMiss(name);
-        return result;
+        const resolveMissResult = this.onResolveMiss(name);
+        return resolveMissResult;
       });
     }
     return result;

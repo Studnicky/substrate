@@ -1,6 +1,7 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
@@ -107,7 +108,7 @@ export class FileLock {
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
       { 'fs': fs, 'lockPath': lockPath, 'originalPath': path }
     ]);
-    if (typeof constructed !== 'object' || constructed === null || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
+    if (!Guard.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
       throw new TypeError('FileLock.create() did not construct the requested subclass.');
     }
 
@@ -174,8 +175,8 @@ export class FileLock {
           this.#fs.renameSync(path, lockPath);
           this.#state = FileLock.#machine.transition(this.#state, { 'type': 'acquired' }).state;
           this.hooks.invoke('onAcquire', () => {
-            const result = this.onAcquire(path);
-            return result;
+            const acquireResult = this.onAcquire(path);
+            return acquireResult;
           });
           resolve();
         } catch (error) {
@@ -185,8 +186,8 @@ export class FileLock {
           const actualError = error instanceof Error ? error : new Error(String(error));
           if (!FileLock.#isContentionError(actualError)) {
             this.hooks.invoke('onError', () => {
-              const result = this.onError(path, actualError);
-              return result;
+              const errorResult = this.onError(path, actualError);
+              return errorResult;
             });
             reject(actualError);
             return;
@@ -194,22 +195,22 @@ export class FileLock {
 
           if (Date.now() >= deadline) {
             this.hooks.invoke('onTimeout', () => {
-              const result = this.onTimeout(path);
-              return result;
+              const timeoutResult = this.onTimeout(path);
+              return timeoutResult;
             });
             reject(new FileLockTimeoutError(path, timeoutMs));
             return;
           }
 
           this.hooks.invoke('onContended', () => {
-            const result = this.onContended(path);
-            return result;
+            const contendedResult = this.onContended(path);
+            return contendedResult;
           });
 
           attempt += 1;
           this.hooks.invoke('onAcquireWait', () => {
-            const result = this.onAcquireWait(path, attempt);
-            return result;
+            const acquireWaitResult = this.onAcquireWait(path, attempt);
+            return acquireWaitResult;
           });
           setTimeout(poll, pollMs);
         }

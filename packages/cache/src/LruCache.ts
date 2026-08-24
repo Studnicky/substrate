@@ -1,4 +1,5 @@
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
 
@@ -82,7 +83,7 @@ export class LruCache<K, V> {
     options: LruCacheOptionsEntity.Type
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
-    if (typeof constructed !== 'object' || constructed === null) {
+    if (!Guard.isObjectLike(constructed)) {
       throw new TypeError(
         'LruCache.create() must construct a LruCache instance'
       );

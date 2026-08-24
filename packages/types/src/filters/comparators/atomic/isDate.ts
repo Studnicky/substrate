@@ -1,0 +1,11 @@
+/**
+ * Checks if a value is a Date instance
+ *
+ * @param value - The value to test for Date instance
+ * @returns true if the value is a Date instance, false otherwise
+ */
+
+
+export function isDate(value: unknown): value is Date {
+  return value instanceof Date;
+}

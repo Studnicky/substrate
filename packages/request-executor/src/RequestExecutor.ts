@@ -172,8 +172,8 @@ export class RequestExecutor {
 
     try {
       const result = await scope.execute((): Promise<T> => {
-        const result = runObserved();
-        return result;
+        const observedResult = runObserved();
+        return observedResult;
       });
       return result;
     } finally {
@@ -195,7 +195,7 @@ export class RequestExecutor {
    * Fires after the retry loop resolves, immediately before `execute()` returns.
    * `result` is the value `execute()` is about to resolve with.
    */
-  protected onExecuteComplete<T>(_result: T): void {}
+  protected onExecuteComplete(_result: unknown): void {}
 
   /**
    * Fires once the retry loop's final attempt has failed, immediately before `execute()`

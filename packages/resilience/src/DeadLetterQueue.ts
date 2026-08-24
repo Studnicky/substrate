@@ -1,6 +1,7 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
@@ -68,7 +69,7 @@ export class DeadLetterQueue<T> {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (typeof result !== 'object' || result === null || !DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Guard.isObjectLike(result) || !DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('DeadLetterQueue.create() did not construct the requested subclass.');
     }
     return result;

@@ -7,11 +7,9 @@ import {
   SchemaIntakeError,
   SchemaValidator
 } from '../../../src/index.js';
-import { JsonObjectEntity } from '../../../src/entities/index.js';
-import type { JSONSchema7Type } from 'json-schema';
-import rawScenarioGroups from './SchemaValidatorIntake.scenarios.json' with { type: 'json' };
+import scenarioGroups from './SchemaValidatorIntake.scenarios.json' with { type: 'json' };
 
-type JsonObject = JsonObjectEntity.Type;
+type JsonObject = Record<string, unknown>;
 type ScenarioCase = JsonObject;
 type ScenarioShape =
   | 'assert-isolated'
@@ -22,8 +20,6 @@ type ScenarioShape =
   | 'intake-transforms'
   | 'separate-registries';
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-const scenarioGroups = JsonObjectEntity.create(rawScenarioGroups);
 
 const scenarioRunnerMap = {
   'intake-transforms': (scenarioCase) => {
@@ -175,7 +171,7 @@ function isScenarioShape(value: string): value is ScenarioShape {
   return Object.hasOwn(scenarioRunnerMap, value);
 }
 
-function requireObject(value: JSONSchema7Type, context: string): JsonObject {
+function requireObject<T>(value: T, context: string): JsonObject {
   if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
     const result: JsonObject = {};
     for (const [key, item] of Object.entries(value)) {
@@ -188,7 +184,7 @@ function requireObject(value: JSONSchema7Type, context: string): JsonObject {
   throw new TypeError(`Expected object for ${context}`);
 }
 
-function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[] {
+function requireArray<T>(value: T, context: string): unknown[] {
   if (Array.isArray(value)) {
     return value;
   }
@@ -196,7 +192,7 @@ function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[
   throw new TypeError(`Expected array for ${context}`);
 }
 
-function requireString(value: JSONSchema7Type, context: string): string {
+function requireString<T>(value: T, context: string): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -204,7 +200,7 @@ function requireString(value: JSONSchema7Type, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
-function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
+function requiredValue(record: JsonObject, key: string): unknown {
   if (Reflect.has(record, key)) {
     return Reflect.get(record, key);
   }
@@ -259,6 +255,80 @@ void describe('SchemaValidator intake and create', () => {
     assertSchemaIntakeMessage(
       () => intake({ 'function': () => undefined, 'symbol': Symbol('invalid') }),
       '/function: function is not valid JSON data; /symbol: symbol is not valid JSON data'
+    );
+  });
+
+  void it('schema-intake-optional-undefined-succeeds-and-absent', () => {
+    const intake = SchemaValidator.compileIntake<{ optional?: string }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-optional-undefined',
+      'properties': { 'optional': { 'type': 'string' } },
+      'type': 'object'
+    });
+
+    const result = intake({ 'optional': undefined });
+    assert.deepEqual(result, {});
+    assert.ok(!Reflect.has(result, 'optional'));
+  });
+
+  void it('schema-intake-required-undefined-throws-naming-path', () => {
+    const intake = SchemaValidator.compileIntake<{ required: string }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-required-undefined',
+      'properties': { 'required': { 'type': 'string' } },
+      'required': ['required'],
+      'type': 'object'
+    });
+
+    try {
+      intake({ 'required': undefined });
+      assert.fail('Expected intake to throw for missing required property');
+    } catch (error) {
+      if (!(error instanceof SchemaIntakeError)) {
+        throw error;
+      }
+      assert.match(error.message, /required/u);
+      assert.match(error.message, /root/u);
+    }
+  });
+
+  void it('schema-intake-nested-undefined-succeeds-and-absent', () => {
+    const intake = SchemaValidator.compileIntake<{ a: { b?: string } }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-nested-undefined',
+      'properties': {
+        'a': {
+          'properties': { 'b': { 'type': 'string' } },
+          'type': 'object'
+        }
+      },
+      'type': 'object'
+    });
+
+    const result = intake({ 'a': { 'b': undefined } });
+    assert.deepEqual(result, { 'a': {} });
+    assert.ok(!Reflect.has(result.a, 'b'));
+  });
+
+  void it('schema-intake-undefined-in-array-throws-naming-index', () => {
+    const intake = SchemaValidator.compileIntake<unknown[]>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-undefined-in-array',
+      'type': 'array'
+    });
+
+    assertSchemaIntakeMessage(
+      () => intake([undefined]),
+      '/0: undefined is not valid JSON data'
+    );
+  });
+
+  void it('schema-intake-nan-in-object-throws-naming-path', () => {
+    const intake = SchemaValidator.compileIntake<{ x: number }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-nan-in-object',
+      'properties': { 'x': { 'type': 'number' } },
+      'type': 'object'
+    });
+
+    assertSchemaIntakeMessage(
+      () => intake({ 'x': Number.NaN }),
+      '/x: NaN is not valid JSON data'
     );
   });
 });

@@ -59,7 +59,7 @@
           "invoke": "apply-get",
           "args": [
             {
-              "__shape": "undefined"
+              "shape": "undefined"
             }
           ]
         }
@@ -121,7 +121,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "nan"
+            "shape": "nan"
           }
         }
       },
@@ -138,7 +138,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -155,7 +155,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "negative-infinity"
+            "shape": "negative-infinity"
           }
         }
       },

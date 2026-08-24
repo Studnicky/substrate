@@ -60,9 +60,9 @@ class DeclaredFunctionVariable {
       const declared = context.sourceCode.getDeclaredVariables(functionNode);
 
       const result = declared.find((variable) => {
-        const result = variable.name === name;
+        const isMatchingName = variable.name === name;
 
-        return result;
+        return isMatchingName;
       });
 
       return result;
@@ -85,9 +85,9 @@ class DeclaredFunctionVariable {
       const declared = context.sourceCode.getDeclaredVariables(parent);
 
       const result = declared.find((variable) => {
-        const result = variable.name === id.name;
+        const isMatchingId = variable.name === id.name;
 
-        return result;
+        return isMatchingId;
       });
 
       return result;
@@ -138,9 +138,9 @@ class DefaultParameterReachability {
         return false;
       }
 
-      const result = LoopContext.isPerIteration(parent as unknown as Rule.Node, context);
+      const isPerIterationCall = LoopContext.isPerIteration(parent as unknown as Rule.Node, context);
 
-      return result;
+      return isPerIterationCall;
     });
 
     return result;

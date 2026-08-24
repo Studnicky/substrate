@@ -8,10 +8,10 @@ import {
 } from '../../../src/index.js';
 
 type RuntimeTag =
-  | { __shape: 'infinity' }
-  | { __shape: 'nan' }
-  | { __shape: 'negative-infinity' }
-  | { __shape: 'undefined' };
+  | { shape: 'infinity' }
+  | { shape: 'nan' }
+  | { shape: 'negative-infinity' }
+  | { shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -93,7 +93,7 @@ function assertMessagePattern(message: string, pattern: string): void {
 }
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -103,19 +103,19 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      if (value.__shape === 'undefined') {
+      if (value.shape === 'undefined') {
         return undefined;
       }
 
-      if (value.__shape === 'infinity') {
+      if (value.shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
 
-      if (value.__shape === 'negative-infinity') {
+      if (value.shape === 'negative-infinity') {
         return Number.NEGATIVE_INFINITY;
       }
 
-      if (value.__shape === 'nan') {
+      if (value.shape === 'nan') {
         return Number.NaN;
       }
 

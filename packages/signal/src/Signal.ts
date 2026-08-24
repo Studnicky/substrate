@@ -1,19 +1,22 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import { SignalError } from './errors/SignalError.js';
 
 class SignalInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
-    if (typeof result !== 'object' || result === null) {
+    if (!Guard.isObjectLike(result)) {
       throw new TypeError('Signal.create() did not construct an object.');
     }
     return result;
   }
 
-  static belongsTo<TInstance extends object>(constructor: Function, value: object): value is TInstance {
+  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
+  // from the constructor rather than being a phantom generic supplied only at the call site.
+  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
     const result = value instanceof constructor;
     return result;
   }

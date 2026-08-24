@@ -25,13 +25,7 @@ Deep merge nested objects: overlay wins on conflict, base keys are preserved, an
 
 The output shows overlay keys winning on conflict, base keys preserved, arrays replaced atomically by default, and `ConcatMerge` demonstrating the static-override subclass pattern.
 
-`Merge.deep` exposes return types that match the runtime branches:
-
-- Two plain-object inputs return `Record<string, unknown>`.
-- Two array inputs return `readonly unknown[]`.
-- Mixed shapes, primitives, and otherwise unknown inputs return `unknown`.
-
-Callers narrow or validate the `unknown` result when the input shapes do not select the object or array overload. The API does not claim a recursively inferred merged type.
+`Merge.deep` uses generic overloads that preserve the caller's value domain: two object inputs return their intersection, same-type inputs retain that type, and mixed inputs return the input union. Runtime merging remains limited to arrays and plain objects; `Date`, `Map`, `Set`, regular expressions, class instances, and other non-plain objects remain atomic values.
 
 ## Patch, DataType, and Frozen
 
@@ -58,7 +52,7 @@ The remaining public interfaces describe operation results and path wildcards:
 
 ## Path, Sort, Hash, and StructuralHash
 
-Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, sort arrays naturally, and produce deterministic FNV-1a hashes. `StructuralHash` strips annotation-only keys (`$id`, `title`, `description`) before hashing:
+Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, sort arrays naturally, and produce deterministic FNV-1a hashes for arbitrary in-memory values. `Hash` encodes `Date`, `Map`, and `Set` values deterministically; `StructuralHash` strips annotation-only keys (`$id`, `title`, `description`) before hashing:
 
 <<< ../../packages/json/examples/path-sort-hash.ts#usage
 

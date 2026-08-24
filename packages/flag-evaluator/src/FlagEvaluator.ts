@@ -2,6 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
+import { Guard } from '@studnicky/types';
 
 import type { FlagContextInterface } from './interfaces/FlagContextInterface.js';
 
@@ -59,9 +60,11 @@ export class FlagEvaluator {
     return result;
   }
 
+  // `TInstance` is supplied explicitly at the call site and flows into BOTH the constructor
+  // parameter and the type predicate, so it is load-bearing rather than a phantom generic.
   private static isConstructed<TInstance extends FlagEvaluator>(
     value: object,
-    constructor: Function
+    constructor: FlagEvaluatorConstructorInterface<TInstance> & Function
   ): value is TInstance {
     const result = value instanceof constructor;
     return result;
@@ -79,7 +82,7 @@ export class FlagEvaluator {
       throw new TypeError('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (typeof result !== 'object' || result === null || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
+    if (!Guard.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
       throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;

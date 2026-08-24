@@ -84,8 +84,8 @@ class Scenarios {
         await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
         const result = await mutex.runExclusive(
           'resource-3-patient-marker',
-          async () => { await Promise.resolve(); const result = 'patient-marker'; return result; },
-          (value): value is string => { const result = typeof value === 'string'; return result; }
+          async () => { await Promise.resolve(); const markerValue = 'patient-marker'; return markerValue; },
+          (value): value is string => { const isStringValue = typeof value === 'string'; return isStringValue; }
         );
         return result;
       })()

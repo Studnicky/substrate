@@ -6,11 +6,11 @@ import { FetchClient } from '../../../src/index.js';
 import scenarioGroups from './request-id-generator.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
-  | { __shape: 'undefined' }
-  | { __shape: 'null' }
-  | { __shape: 'function-return-string'; value: string }
-  | { __shape: 'function-return-value'; value: unknown }
-  | { __shape: 'function-throws'; message: string };
+  | { shape: 'undefined' }
+  | { shape: 'null' }
+  | { shape: 'function-return-string'; value: string }
+  | { shape: 'function-return-value'; value: unknown }
+  | { shape: 'function-throws'; message: string };
 
 type RuntimeValue =
   | boolean
@@ -33,7 +33,7 @@ type ScenarioCase = {
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   'function-return-string': (value) => {
     if ('value' in value) {
       return () => value.value;
@@ -60,7 +60,7 @@ const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__shape' in value;
+  return value !== null && typeof value === 'object' && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -69,7 +69,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__shape](value);
+    return runtimeTagMap[value.shape](value);
   }
 
   if (value !== null && typeof value === 'object') {

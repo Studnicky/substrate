@@ -1,114 +1,144 @@
-/** JSON-value type guards, cycle detection, and structural equality. */
+/** Value type guards, cycle detection, and structural equality. */
 
-import type { JsonObjectEntity } from '../entities/JsonObjectEntity.js';
-import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
+import { Guard } from '@studnicky/types';
 
 export class DataType {
-  /** Walk the parsed JSON value graph for cycles. */
-  protected static walkForCycle(value: JsonValueEntity.Type, seen: WeakSet<object>): boolean {
-    if (value === null || typeof value !== 'object') {
+  protected static walkForCycle(value: unknown, seen: WeakSet<object>): boolean {
+    if (!Guard.isObjectLike(value)) {
       return false;
     }
     if (seen.has(value)) {
       return true;
     }
     seen.add(value);
-
     if (Array.isArray(value)) {
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        const item = value.at(index);
-        if (item !== undefined && this.walkForCycle(item, seen)) {
+        const item: unknown = value.at(index);
+        if (this.walkForCycle(item, seen)) {
           return true;
         }
       }
       seen.delete(value);
-
       return false;
     }
-
     if (this.isPlainObject(value)) {
       const children = Object.values(value);
       const length = children.length;
       for (let index = 0; index < length; index += 1) {
-        const item = children.at(index);
-        if (item !== undefined && this.walkForCycle(item, seen)) {
+        const child = children.at(index);
+        if (this.walkForCycle(child, seen)) {
           return true;
         }
       }
     }
     seen.delete(value);
-
     return false;
   }
 
-  /** Compare two parsed JSON objects key-by-key. */
-  protected static compareObjects(
-    left: JsonObjectEntity.Type,
-    right: JsonObjectEntity.Type
-  ): boolean {
-    const leftKeys = Object.keys(left);
-    const rightKeys = Object.keys(right);
-
-    if (leftKeys.length !== rightKeys.length) {
+  protected static compareMaps(left: Map<unknown, unknown>, right: Map<unknown, unknown>): boolean {
+    if (left.size !== right.size) {
       return false;
     }
-
-    const rightValues = new Map(Object.entries(right));
-    const leftEntries = Object.entries(left);
-    for (let index = 0; index < leftEntries.length; index += 1) {
-      const entry = leftEntries[index];
-      if (entry === undefined) {
-        continue;
-      }
-      const [key, leftValue] = entry;
-      const rightValue = rightValues.get(key);
-      if (leftValue === undefined || rightValue === undefined) {
+    for (const [key, leftValue] of left.entries()) {
+      if (!right.has(key)) {
         return false;
       }
+      const rightValue = right.get(key);
       if (!this.deepEqual(leftValue, rightValue)) {
         return false;
       }
     }
-
     return true;
   }
 
-  /** Structural deep equality for parsed JSON values. */
-  public static deepEqual(left: JsonValueEntity.Type, right: JsonValueEntity.Type): boolean {
-    // NaN self-equality
-    if (typeof left === 'number' && typeof right === 'number') {
-      if (Number.isNaN(left) && Number.isNaN(right)) {
-        return true;
+  protected static compareSets(left: Set<unknown>, right: Set<unknown>): boolean {
+    if (left.size !== right.size) {
+      return false;
+    }
+    for (const item of left.values()) {
+      if (!right.has(item)) {
+        return false;
       }
     }
+    return true;
+  }
 
-    if (left === right) {
+  protected static compareObjects(left: object, right: object): boolean {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+    const length = leftKeys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = leftKeys.at(index);
+      if (key === undefined) {
+        continue;
+      }
+      if (!(key in right)) {
+        return false;
+      }
+      const leftValue: unknown = Reflect.get(left, key);
+      const rightValue: unknown = Reflect.get(right, key);
+      if (!this.deepEqual(leftValue, rightValue)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Structural equality for arbitrary JavaScript values. */
+  public static deepEqual(left: unknown, right: unknown): boolean {
+    if (typeof left === 'number' && typeof right === 'number' && Number.isNaN(left) && Number.isNaN(right)) {
       return true;
     }
-
-    if (left === null || right === null) {
+    if (Object.is(left, right) || (typeof left === 'number' && typeof right === 'number' && Number(left) === Number(right))) {
+      return true;
+    }
+    if (left === null || right === null || typeof left !== typeof right) {
       return false;
     }
-
-    if (typeof left !== typeof right) {
+    if (!Guard.isObjectLike(left) || !Guard.isObjectLike(right)) {
       return false;
     }
-
-    if (typeof left !== 'object' || typeof right !== 'object') {
+    if (left instanceof Date && right instanceof Date) {
+      const result = left.getTime() === right.getTime();
+      return result;
+    }
+    if (left instanceof Date || right instanceof Date) {
       return false;
     }
-
-    // Arrays
+    if (left instanceof RegExp && right instanceof RegExp) {
+      const result = left.toString() === right.toString();
+      return result;
+    }
+    if (left instanceof RegExp || right instanceof RegExp) {
+      return false;
+    }
+    if (left instanceof Set && right instanceof Set) {
+      const result = this.compareSets(left, right);
+      return result;
+    }
+    if (left instanceof Set || right instanceof Set) {
+      return false;
+    }
+    if (left instanceof Map && right instanceof Map) {
+      const result = this.compareMaps(left, right);
+      return result;
+    }
+    if (left instanceof Map || right instanceof Map) {
+      return false;
+    }
     if (Array.isArray(left) && Array.isArray(right)) {
       if (left.length !== right.length) {
         return false;
       }
       const length = left.length;
       for (let index = 0; index < length; index += 1) {
-        const leftItem = left.at(index);
-        const rightItem = right.at(index);
-        if (leftItem === undefined || rightItem === undefined || !this.deepEqual(leftItem, rightItem)) {
+        const leftItem: unknown = left.at(index);
+        const rightItem: unknown = right.at(index);
+        if (!this.deepEqual(leftItem, rightItem)) {
           return false;
         }
       }
@@ -117,40 +147,25 @@ export class DataType {
     if (Array.isArray(left) || Array.isArray(right)) {
       return false;
     }
-
-    // Plain objects
-    if (this.isPlainObject(left) && this.isPlainObject(right)) {
+    if (this.isRecord(left) && this.isRecord(right)) {
       const result = this.compareObjects(left, right);
       return result;
     }
-
     return false;
   }
 
-  /**
-   * Detect whether the value graph reachable from `value` contains a cycle.
-   *
-   * Walks parsed JSON plain objects and arrays only.
-   */
-  public static hasCycle(value: JsonValueEntity.Type): boolean {
+  public static hasCycle(value: unknown): boolean {
     const result = this.walkForCycle(value, new WeakSet());
     return result;
   }
 
-  /** Type guard for parsed JSON objects whose prototype is standard or null. */
-  public static isPlainObject(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-      return false;
-    }
-    const proto: unknown = Object.getPrototypeOf(value);
-
-    const result = proto === Object.prototype || proto === null;
+  public static isPlainObject<T>(value: T): value is Record<string, unknown> & T {
+    const result = Guard.isPlainObject(value);
     return result;
   }
 
-  /** Type guard for parsed non-null, non-array JSON objects. */
-  public static isRecord(value: JsonValueEntity.Type): value is JsonObjectEntity.Type {
-    const result = typeof value === 'object' && value !== null && !Array.isArray(value);
+  public static isRecord<T>(value: T): value is Record<string, unknown> & T {
+    const result = Guard.isRecord(value);
     return result;
   }
 }

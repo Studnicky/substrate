@@ -199,7 +199,7 @@ const runnerMap = {
     assert.strictEqual(typeof scope.execute, 'function');
     assert.strictEqual(typeof scope.terminate, 'function');
     scope.execute(() => {
-      assert.deepStrictEqual(context.keys().sort(), expectedStringArray(scenarioCase, 'keys').sort());
+      assert.deepStrictEqual(context.keys().toSorted(), expectedStringArray(scenarioCase, 'keys').toSorted());
       if (initial !== undefined) {
         for (const [key, value] of Object.entries(initial)) {
           assert.deepStrictEqual(context.get(key), value);
@@ -390,7 +390,7 @@ const runnerMap = {
     const scope = context.initialize(scopeInitial(scenarioCase));
     scope.execute(() => {
       const keys = context.keys();
-      assert.deepStrictEqual(keys.sort(), ['a', 'b', 'c']);
+      assert.deepStrictEqual(keys.toSorted(), ['a', 'b', 'c']);
     });
     return;
   },

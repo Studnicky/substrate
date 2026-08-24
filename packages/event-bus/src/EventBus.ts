@@ -1,6 +1,7 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
@@ -90,7 +91,7 @@ export class EventBus<TTopicMap extends object> {
       return result;
     }
 
-    protected override onHandlerError<TError>(error: TError): Promise<void> {
+    protected override onHandlerError(error: unknown): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
       const result = owner.hooks.invokeAsync('onHandlerError', () => { const invocationResult = owner.onHandlerError(topic, error); return invocationResult; });
@@ -117,7 +118,7 @@ export class EventBus<TTopicMap extends object> {
     const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [config]);
-    if (typeof result !== 'object' || result === null || !EventBusInstance.belongsTo(constructor, result)) {
+    if (!Guard.isObjectLike(result) || !EventBusInstance.belongsTo(constructor, result)) {
       throw new TypeError('EventBus.create() did not construct the requested subclass.');
     }
     return result;
@@ -229,29 +230,29 @@ export class EventBus<TTopicMap extends object> {
   protected onPublish<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void | Promise<void> {}
 
   /** Fires when a subscriber is registered for a topic. */
-  protected onSubscribe<K extends keyof TTopicMap>(_topic: K): void {}
+  protected onSubscribe(_topic: keyof TTopicMap): void {}
 
   /** Fires when a subscriber is removed (unsubscribe fn called or signal aborted). */
-  protected onUnsubscribe<K extends keyof TTopicMap>(_topic: K): void {}
+  protected onUnsubscribe(_topic: keyof TTopicMap): void {}
 
   /** Fires after each individual event delivery to a handler (per-queue, per-event). */
   protected onDeliver<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void | Promise<void> {}
 
   /** Fires when a subscriber handler throws an error. */
-  protected onHandlerError<K extends keyof TTopicMap, TError>(_topic: K, _error: TError): void | Promise<void> {}
+  protected onHandlerError(_topic: keyof TTopicMap, _error: unknown): void | Promise<void> {}
 
   /** Fires when the bus is closed (bus.close() called). */
   protected onDispose(): void | Promise<void> {}
 
   /** Fires when an event is enqueued to a subscriber queue. */
-  protected onEnqueue<K extends keyof TTopicMap>(_topic: K): void | Promise<void> {}
+  protected onEnqueue(_topic: keyof TTopicMap): void | Promise<void> {}
 
   /** Fires when an event is dequeued from a subscriber queue for delivery. */
-  protected onDequeue<K extends keyof TTopicMap>(_topic: K): void | Promise<void> {}
+  protected onDequeue(_topic: keyof TTopicMap): void | Promise<void> {}
 
   /** Fires when an event is dropped (queue aborted / subscriber gone). */
-  protected onDrop<K extends keyof TTopicMap>(_topic: K): void | Promise<void> {}
+  protected onDrop(_topic: keyof TTopicMap): void | Promise<void> {}
 
   /** Fires when overflow/backpressure begins on a subscriber queue. */
-  protected onOverflow<K extends keyof TTopicMap>(_topic: K, _depth: number): void | Promise<void> {}
+  protected onOverflow(_topic: keyof TTopicMap, _depth: number): void | Promise<void> {}
 }

@@ -5,6 +5,7 @@
 import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
 import { Throttle } from '@studnicky/throttle';
+import { Guard } from '@studnicky/types';
 
 import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
 import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';
@@ -81,7 +82,7 @@ export class BoundaryKit {
       'retry': BoundaryKit.#resolveRetry(config.retry),
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
     }]);
-    if (typeof result !== 'object' || result === null) {
+    if (!Guard.isObjectLike(result)) {
       throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
     }
     if (!BoundaryKit.isConstructed(result, this)) {

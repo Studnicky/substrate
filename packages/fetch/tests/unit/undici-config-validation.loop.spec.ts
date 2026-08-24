@@ -13,8 +13,8 @@ type RuntimeValue =
   | { [key: string]: RuntimeValue };
 
 type RuntimeTag =
-  | { __shape: 'infinity' }
-  | { __shape: 'undefined' };
+  | { shape: 'infinity' }
+  | { shape: 'undefined' };
 
 type ExpectedOutcome =
   | { shape: 'ok'; messageIncludes?: readonly string[] }
@@ -34,13 +34,13 @@ import scenarioGroups from './undici-config-validation.scenarios.json' with { ty
 type ExpectedOutcomeRunner = (config: unknown, expected: ExpectedOutcome) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   infinity: () => Number.POSITIVE_INFINITY,
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__shape' in value;
+  return value !== null && typeof value === 'object' && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -49,7 +49,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__shape](value);
+    return runtimeTagMap[value.shape](value);
   }
 
   if (value !== null && typeof value === 'object') {

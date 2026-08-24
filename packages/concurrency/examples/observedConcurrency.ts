@@ -84,6 +84,12 @@ class ObservedCoalesce<T> extends Coalesce<T> {
 }
 
 class ObservedConcurrencyDemo {
+  private static resolveImmediatelyFactory(): Promise<string> {
+    return new Promise<string>((resolve) => {
+      setImmediate(() => { resolve('v'); });
+    });
+  }
+
   static async runSemaphore(): Promise<ObservedSemaphore> {
     console.log('\n=== Semaphore ===');
     const sem = new ObservedSemaphore(1);
@@ -130,20 +136,14 @@ class ObservedConcurrencyDemo {
     const coalesce: ObservedCoalesce<string> = new ObservedCoalesce<string>();
 
     // 3 concurrent calls for same key: 1 leader + 2 joiners
-    const factory = (): Promise<string> => {
-      return new Promise<string>((resolve) => {
-        setImmediate(() => { resolve('v'); });
-      });
-    };
-
     await Promise.all([
-      coalesce.run('batch', factory),
-      coalesce.run('batch', factory),
-      coalesce.run('batch', factory)
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory),
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory),
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory)
     ]);
 
     // Sequential call: new leader
-    await coalesce.run('batch', factory);
+    await coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory);
     return coalesce;
   }
 }

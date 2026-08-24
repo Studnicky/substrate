@@ -6,6 +6,7 @@ import type { Agent } from 'undici';
 
 import { HookInvoker } from '@studnicky/errors';
 import { Clone, SchemaIntakeError } from '@studnicky/json';
+import { Guard } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
@@ -757,13 +758,13 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
-    if (config === null || typeof config !== 'object' || Array.isArray(config)) {
+    if (!Guard.isObjectLike(config) || Guard.isArray(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
     const {
       'options': configuredOptions,
-      'requestIdGenerator': requestIdGenerator,
+      requestIdGenerator,
       ...configData
     } = config;
     const intakeData: object = {};
@@ -779,7 +780,7 @@ export class FetchClient implements FetchClientInterface {
         Reflect.set(intakeData, key, value);
       }
     }
-    if (configData.hookTimeoutMs !== undefined && configData.hookTimeoutMs !== null && typeof configData.hookTimeoutMs !== 'number') {
+    if (!Guard.isNullish(configData.hookTimeoutMs) && typeof configData.hookTimeoutMs !== 'number') {
       throw new ConfigurationError('hookTimeoutMs must be a number');
     }
     if (typeof configData.hookTimeoutMs === 'number' && configData.hookTimeoutMs <= 0) {
@@ -788,7 +789,7 @@ export class FetchClient implements FetchClientInterface {
     if (typeof configData.hookTimeoutMs === 'number' && !Number.isFinite(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be finite');
     }
-    if (configData.timeout !== undefined && configData.timeout !== null && typeof configData.timeout !== 'number') {
+    if (!Guard.isNullish(configData.timeout) && typeof configData.timeout !== 'number') {
       throw new ConfigurationError('timeout must be a number');
     }
     if (typeof configData.timeout === 'number' && configData.timeout <= 0) {
@@ -797,7 +798,7 @@ export class FetchClient implements FetchClientInterface {
     if (typeof configData.timeout === 'number' && !Number.isFinite(configData.timeout)) {
       throw new ConfigurationError('timeout must be finite');
     }
-    if (configuredOptions !== undefined && configuredOptions !== null && (typeof configuredOptions !== 'object' || Array.isArray(configuredOptions))) {
+    if (!Guard.isNullish(configuredOptions) && (!Guard.isObjectLike(configuredOptions) || Guard.isArray(configuredOptions))) {
       throw new ConfigurationError('options must be an object');
     }
     const {
@@ -817,13 +818,13 @@ export class FetchClient implements FetchClientInterface {
     if (normalizedOptionData.referrer !== undefined && typeof normalizedOptionData.referrer !== 'string') {
       throw new ConfigurationError('referrer must be a string');
     }
-    if (optionTimeout !== undefined && optionTimeout !== null && typeof optionTimeout !== 'number') {
+    if (!Guard.isNullish(optionTimeout) && typeof optionTimeout !== 'number') {
       throw new ConfigurationError('timeout must be a number');
     }
-    if (signal !== undefined && signal !== null && !(signal instanceof AbortSignal)) {
+    if (!Guard.isNullish(signal) && !Guard.isAbortSignal(signal)) {
       throw new ConfigurationError('signal must be an AbortSignal instance');
     }
-    const input = configuredOptions === undefined || configuredOptions === null
+    const input = Guard.isNullish(configuredOptions)
       ? intakeData
       : { ...intakeData, 'options': normalizedOptionData };
 
@@ -837,7 +838,7 @@ export class FetchClient implements FetchClientInterface {
       throw error;
     }
 
-    if (requestIdGenerator !== undefined && requestIdGenerator !== null) {
+    if (!Guard.isNullish(requestIdGenerator)) {
       FetchClient.assertRequestIdGenerator(requestIdGenerator);
     }
 
@@ -855,7 +856,7 @@ export class FetchClient implements FetchClientInterface {
     const result: ClientConfigInterface = {
       ...parsed,
       ...(options === undefined ? {} : { 'options': options }),
-      ...(requestIdGenerator === undefined || requestIdGenerator === null ? {} : { 'requestIdGenerator': requestIdGenerator })
+      ...(Guard.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator })
     };
     return result;
   }

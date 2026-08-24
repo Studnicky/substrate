@@ -57,8 +57,8 @@ const result = await retry.execute(() => {
   if (attemptNumber <= CustomClassifierFixtures.failUntil) {
     throw new DatabaseError(`Deadlock on attempt ${attemptNumber}`, true);
   }
-  const result = Promise.resolve(`query succeeded on attempt ${attemptNumber}`);
-  return result;
+  const attemptResult = Promise.resolve(`query succeeded on attempt ${attemptNumber}`);
+  return attemptResult;
 });
 
 console.log(`Result: ${result}`);

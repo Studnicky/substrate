@@ -43,38 +43,60 @@
     {
       "name": "index loop over an array - the fast path for-of-arrays mandates, 3.9ms vs 26.9ms at 5M",
       "code": "declare const values: readonly number[]; let total = 0; const length = values.length; for (let index = 0; index < length; index += 1) { total += values[index] ?? 0; }"
+    },
+    {
+      "name": "variable key read on a plain object - a read cannot enter dictionary mode",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; const value = record[key];"
+    },
+    {
+      "name": "read: variable key on a plain object inside a loop",
+      "code": "declare const record: Record<string, unknown>; declare const keys: readonly string[]; const length = keys.length; for (let index = 0; index < length; index += 1) { const key = keys[index] ?? ''; const value = record[key]; }"
+    },
+    {
+      "name": "read: variable key on an interface-typed object",
+      "code": "interface ShapeInterface { readonly alpha: number; readonly beta: number; } declare const shape: ShapeInterface; declare const key: 'alpha' | 'beta'; const value = shape[key];"
+    },
+    {
+      "name": "read: computed access on a plain object nested inside an object literal",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; const wrapper = { 'value': record[key] };"
     }
   ],
   "invalid": [
     {
-      "name": "variable key read on a plain object - the dictionary-mode hazard",
-      "code": "declare const record: Record<string, unknown>; declare const key: string; const value = record[key];",
-      "errors": [{ "messageId": "forbidden" }]
-    },
-    {
       "name": "variable key assignment on a plain object - drives it out of fast properties",
       "code": "declare const record: Record<string, unknown>; declare const key: string; record[key] = 1;",
-      "errors": [{ "messageId": "forbidden" }]
-    },
-    {
-      "name": "variable key on a plain object inside a loop",
-      "code": "declare const record: Record<string, unknown>; declare const keys: readonly string[]; const length = keys.length; for (let index = 0; index < length; index += 1) { const key = keys[index] ?? ''; const value = record[key]; }",
-      "errors": [{ "messageId": "forbidden" }]
-    },
-    {
-      "name": "variable key on an interface-typed object",
-      "code": "interface ShapeInterface { readonly alpha: number; readonly beta: number; } declare const shape: ShapeInterface; declare const key: 'alpha' | 'beta'; const value = shape[key];",
-      "errors": [{ "messageId": "forbidden" }]
-    },
-    {
-      "name": "computed access on a plain object nested inside an object literal",
-      "code": "declare const record: Record<string, unknown>; declare const key: string; const wrapper = { 'value': record[key] };",
-      "errors": [{ "messageId": "forbidden" }]
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ]
     },
     {
       "name": "post-creation bracket assignment with a variable key",
       "code": "declare const key: string; const created: Record<string, number> = {}; created[key] = 1;",
-      "errors": [{ "messageId": "forbidden" }]
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ]
+    },
+    {
+      "code": "declare const record: Record<string, unknown>; declare const key: string; record[key] += 1;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "compound assignment with a variable key mutates the receiver"
+    },
+    {
+      "code": "declare const record: Record<string, unknown>; declare const key: string; delete record[key];",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete with a variable key mutates the receiver"
     }
   ]
 }

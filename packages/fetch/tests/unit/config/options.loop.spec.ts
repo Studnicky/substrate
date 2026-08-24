@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { FetchClient } from '../../../src/index.js';
 
 type RuntimeTag =
-  | { __shape: 'abort-signal' }
-  | { __shape: 'undefined' };
+  | { shape: 'abort-signal' }
+  | { shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -30,13 +30,13 @@ import scenarioGroups from './options.scenarios.json' with { type: 'json' };
 type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
 type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
 
-const runtimeTagMap: Record<RuntimeTag['__shape'], RuntimeTagMaterializer> = {
+const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   'abort-signal': () => new AbortController().signal,
   undefined: () => undefined
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && '__shape' in value;
+  return value !== null && typeof value === 'object' && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -45,7 +45,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.__shape](value);
+    return runtimeTagMap[value.shape](value);
   }
 
   if (value !== null && typeof value === 'object') {

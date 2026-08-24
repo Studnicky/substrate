@@ -1,4 +1,5 @@
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
@@ -74,7 +75,7 @@ export class Context implements ContextInterface {
     config: ContextConfigEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (typeof result !== 'object' || result === null || !ContextInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -191,7 +192,7 @@ export class Context implements ContextInterface {
    * @param _key - The key that was set
    * @param _value - The value that was stored
    */
-  protected onSet<TValue>(_key: string, _value: TValue): void {}
+  protected onSet(_key: string, _value: unknown): void {}
 
   /**
    * Hook called after a successful `get()` retrieval.
@@ -202,7 +203,7 @@ export class Context implements ContextInterface {
    * @param _key - The key that was retrieved
    * @param _value - The value that was returned
    */
-  protected onGet<TValue>(_key: string, _value: TValue): void {}
+  protected onGet(_key: string, _value: unknown): void {}
 
   /**
    * Hook called after `delete()` removes (or attempts to remove) a key.
@@ -321,7 +322,7 @@ export class Context implements ContextInterface {
    * @param value - The value to store
    * @throws {ContextError} If no context is active
    */
-  set<T>(key: string, value: T): void {
+  set(key: string, value: unknown): void {
     this.getMutableStore().set(key, value);
     this.hooks.invoke('onSet', () => {
       const hookResult = this.onSet(key, value);

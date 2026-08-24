@@ -2,6 +2,7 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
@@ -71,7 +72,7 @@ export class Channel<T> {
     const currentConstructor = getCurrentConstructor();
 
     const result: unknown = Reflect.construct(currentConstructor, [options]);
-    if (typeof result !== 'object' || result === null || !ChannelInstance.belongsTo(currentConstructor, result)) {
+    if (!Guard.isObjectLike(result) || !ChannelInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('Channel.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

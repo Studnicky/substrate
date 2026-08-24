@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 
 interface MinimumHeapSubclassInterface<TInstance> extends Function {
@@ -21,7 +23,7 @@ export class MinimumHeap {
     this: MinimumHeapSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (typeof result !== 'object' || result === null || !MinimumHeapInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !MinimumHeapInstance.belongsTo(this, result)) {
       throw new TypeError('MinimumHeap.create() did not construct the requested subclass.');
     }
     return result;

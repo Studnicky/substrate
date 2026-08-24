@@ -113,6 +113,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
@@ -137,6 +140,9 @@ importers:
       '@studnicky/throttle':
         specifier: workspace:*
         version: link:../throttle
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/bounded-dispatcher:
     dependencies:
@@ -149,9 +155,15 @@ importers:
       '@studnicky/event-bus':
         specifier: workspace:*
         version: link:../event-bus
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
@@ -168,6 +180,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -183,6 +198,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
@@ -201,6 +219,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -222,6 +243,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -265,6 +289,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -289,6 +316,9 @@ importers:
 
   packages/errors:
     dependencies:
+      '@studnicky/intake-kit':
+        specifier: workspace:*
+        version: link:../intake-kit
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -371,6 +401,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -380,9 +413,6 @@ importers:
 
   packages/fetch:
     dependencies:
-      '@studnicky/config':
-        specifier: workspace:*
-        version: link:../config
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
@@ -413,6 +443,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@studnicky/virtual-fs':
         specifier: workspace:*
         version: link:../virtual-fs
@@ -431,6 +464,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -474,6 +510,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -495,6 +534,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -502,11 +544,20 @@ importers:
         specifier: ^3.1.1
         version: 3.1.1
 
+  packages/intake-kit:
+    dependencies:
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/json:
     dependencies:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/intake-kit':
+        specifier: workspace:*
+        version: link:../intake-kit
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -537,6 +588,9 @@ importers:
       '@studnicky/resilience':
         specifier: workspace:*
         version: link:../resilience
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -564,6 +618,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -585,6 +642,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -606,6 +666,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -628,6 +691,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -658,6 +724,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/process-kit:
     dependencies:
@@ -767,6 +836,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
@@ -791,6 +863,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -803,6 +878,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/sliding-window-limiter:
     dependencies:
@@ -818,6 +896,9 @@ importers:
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -833,6 +914,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -897,6 +981,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -921,6 +1008,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
@@ -939,6 +1029,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
@@ -969,6 +1062,9 @@ importers:
       '@studnicky/system':
         specifier: workspace:*
         version: link:../system
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0

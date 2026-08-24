@@ -8,6 +8,8 @@
 
 import type { HookInvoker } from '@studnicky/errors';
 
+import { Guard } from '@studnicky/types';
+
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
 import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -65,7 +67,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (typeof result !== 'object' || result === null || !RealTimeSchedulerInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -239,8 +241,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
         } catch (error) {
           const taskError = error instanceof Error ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, taskError);
-            return result;
+            const fireErrorResult = this.onFireError(id, taskError);
+            return fireErrorResult;
           });
           return;
         }
@@ -249,8 +251,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
           result.catch((error) => {
             const taskError = error instanceof Error ? error : new Error(String(error));
             this.hooks.invoke('onFireError', () => {
-              const result = this.onFireError(id, taskError);
-              return result;
+              const fireErrorResult = this.onFireError(id, taskError);
+              return fireErrorResult;
             });
           });
         }
@@ -309,8 +311,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
       } catch (error) {
         const taskError = error instanceof Error ? error : new Error(String(error));
         this.hooks.invoke('onFireError', () => {
-          const result = this.onFireError(id, taskError);
-          return result;
+          const fireErrorResult = this.onFireError(id, taskError);
+          return fireErrorResult;
         });
         return;
       }
@@ -319,8 +321,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
         result.catch((error) => {
           const taskError = error instanceof Error ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, taskError);
-            return result;
+            const fireErrorResult = this.onFireError(id, taskError);
+            return fireErrorResult;
           });
         });
       }

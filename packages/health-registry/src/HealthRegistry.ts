@@ -3,6 +3,7 @@
 import {
   type HookInvocationError, HookInvoker
 } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
@@ -63,7 +64,7 @@ export class HealthRegistry {
   static create<TInstance extends HealthRegistry>(this: Function & { readonly 'prototype': TInstance }): TInstance {
     const result: unknown = Reflect.construct(this, []);
 
-    if (typeof result !== 'object' || result === null) {
+    if (!Guard.isObjectLike(result)) {
       throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
     }
     if (!HealthRegistry.isConstructed<TInstance>(result, this)) {

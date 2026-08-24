@@ -81,6 +81,10 @@ type BlockedPairInput = {
   queuedResult: string;
 };
 
+function throwActiveNotStarted(): never {
+  throw new Error('active operation was not started');
+}
+
 async function settleLoop(ms: number): Promise<void> {
   await new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 }
@@ -95,7 +99,7 @@ function createBlockedPair(
   releaseActive: () => void;
 } {
   let queuedStarted = false;
-  let releaseActive = (): void => { throw new Error('active operation was not started'); };
+  let releaseActive: () => void = throwActiveNotStarted;
   const blocker = new Promise<void>((resolve) => { releaseActive = resolve; });
   const active = throttle.execute(async () => {
     await blocker;

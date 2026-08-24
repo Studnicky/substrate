@@ -26,8 +26,8 @@ export class BatchError extends BaseError {
       'cause': argumentList?.cause,
       'code': 'batch.invalidConfig',
       'correlationId': argumentList?.correlationId,
-      'message': (fields: Readonly<{ 'message': string }>): string => {
-        const result = fields.message;
+      'message': (messageFields: Readonly<{ 'message': string }>): string => {
+        const result = messageFields.message;
         return result;
       },
       'metadata': argumentList?.metadata,

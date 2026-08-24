@@ -30,7 +30,7 @@ console.log('All results:', allResults);
 assert.equal(allResults.length, 5, 'Expected 5 results');
 
 // Results must match expected doubled values (order preserved within each batch).
-const sortedResults = allResults.sort((a, b) => { const result = a - b; return result; });
+const sortedResults = allResults.toSorted((a, b) => { const result = a - b; return result; });
 assert.deepEqual(sortedResults, BasicProcessingFixture.ExpectedDoubled);
 
 console.log('basic-processing: all assertions passed');

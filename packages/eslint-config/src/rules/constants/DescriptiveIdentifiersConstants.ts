@@ -62,3 +62,13 @@ export const EXTERNAL_VOCABULARY_KEYS: ReadonlySet<string> = new Set([
   'minLength', 'minProperties', 'multipleOf', 'patternProperties',
   'propertyNames', 'unevaluatedItems', 'unevaluatedProperties', 'uniqueItems'
 ]);
+
+/**
+ * Global platform class names an identifier is allowed to end with even when a camelCase token
+ * inside that name matches a banned shortening — `URLSearchParams` is the actual runtime class
+ * (`instanceof URLSearchParams`), not an author-chosen abbreviation of "parameters", and
+ * `isURLSearchParams`/the type reference `URLSearchParams` have no compliant rewrite: renaming
+ * either breaks the reference to the real global. Same reasoning as `EXTERNAL_VOCABULARY_KEYS` —
+ * a name that belongs to someone else's vocabulary is a reference, not an identifier choice.
+ */
+export const EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES: readonly string[] = ['URLSearchParams'];

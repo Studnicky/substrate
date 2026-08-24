@@ -82,14 +82,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.process(input.items as number[], async (n) => n));
     assert.strictEqual(rec.itemStartArgs.length, Number(expected.itemStartCount));
-    assert.deepStrictEqual(rec.itemStartArgs.slice().sort((a, b) => a - b), expected.sortedIndices);
+    assert.deepStrictEqual(rec.itemStartArgs.slice().toSorted((a, b) => a - b), expected.sortedIndices);
   },
 
   'on-item-success': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.process(input.items as number[], async (n) => n * 2));
     assert.strictEqual(rec.itemSuccessArgs.length, Number(expected.itemSuccessCount));
-    const sorted = rec.itemSuccessArgs.slice().sort((a, b) => a[0] - b[0]);
+    const sorted = rec.itemSuccessArgs.slice().toSorted((a, b) => a[0] - b[0]);
     assert.deepStrictEqual(sorted.map((entry) => entry[1]), expected.sortedResults);
   },
 
@@ -228,9 +228,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-settled-indices': async ({ expected, input }) => {
     const rec = createRecordingBatch<string>(input);
     await collectBatches(rec.processSettled(input.items as string[], async (value) => value.toUpperCase()));
-    assert.deepStrictEqual(rec.itemStartArgs.slice().sort((a, b) => a - b), expected.sortedIndices);
-    assert.deepStrictEqual(rec.itemSettledArgs.slice().sort((a, b) => a - b), expected.sortedSettledIndices);
-    assert.deepStrictEqual(rec.itemSuccessArgs.slice().sort((a, b) => a[0] - b[0]).map((entry) => entry[1]), expected.sortedResults);
+    assert.deepStrictEqual(rec.itemStartArgs.slice().toSorted((a, b) => a - b), expected.sortedIndices);
+    assert.deepStrictEqual(rec.itemSettledArgs.slice().toSorted((a, b) => a - b), expected.sortedSettledIndices);
+    assert.deepStrictEqual(rec.itemSuccessArgs.slice().toSorted((a, b) => a[0] - b[0]).map((entry) => entry[1]), expected.sortedResults);
   },
 
   'process-settled-all-fail': async ({ expected, input }) => {

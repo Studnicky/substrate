@@ -71,7 +71,7 @@ class SettledProcessingExample {
       const fulfilledResult = fulfilled[index]!;
       fulfilledValues.push(fulfilledResult.value);
     }
-    const sortedFulfilledValues = fulfilledValues.sort((a, b) => { const result = a.id - b.id; return result; });
+    const sortedFulfilledValues = fulfilledValues.toSorted((a, b) => { const result = a.id - b.id; return result; });
     assert.deepEqual(sortedFulfilledValues, [
       new Result(1, 'processed-1'),
       new Result(3, 'processed-3'),

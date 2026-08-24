@@ -5,6 +5,7 @@ import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { MachineTerminatedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
 import { System } from '@studnicky/system';
+import { Guard } from '@studnicky/types';
 import { Worker } from 'node:worker_threads';
 
 import type { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
@@ -168,7 +169,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
     }]);
-    if (typeof result !== 'object' || result === null || !WorkerPool.isConstructed(result, this)) {
+    if (!Guard.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
       throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
     }
     return result;
@@ -181,6 +182,11 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   readonly #signal: Signal;
 
   protected readonly hooks: HookInvoker;
+
+  private static errorWithReason(message: string, reason: Error): Error {
+    const result = reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
+    return result;
+  }
 
   protected constructor(deps: WorkerPoolDepsInterface) {
     this.hooks = new WorkerPool.#OwnedHookInvoker();
@@ -214,11 +220,6 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     const pendingQueue: PendingEntryInterface<TMessage, TResult>[] = [];
     let spawnedCount = 0;
     let shuttingDown = false;
-
-    const errorWithReason = (message: string, reason: Error): Error => {
-      const result = reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
-      return result;
-    };
 
     const invokeWorkerErrorHook = (effect: FireOnWorkerErrorEffectInterface): void => {
       this.hooks.invoke('onWorkerError', () => {
@@ -344,27 +345,27 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         'unregisterTimeout': WorkerPool.#noopUnregisterTimeout
       };
 
-      const terminateAfterAbort = (context: TaskContextInterface<TMessage, TResult>): void => {
+      const terminateAfterAbort = (taskContext: TaskContextInterface<TMessage, TResult>): void => {
         worker.terminate().catch((cause: Error) => {
           const terminationError = cause instanceof Error
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
-          reportWorkerError(terminationError, context.index);
+          reportWorkerError(terminationError, taskContext.index);
         });
       };
 
       // Fires when a task is in flight and its timeout signal aborts mid-run — a genuine timeout.
       const onTimeoutAbort = (): void => {
-        settleTask(worker, (context) => {
+        settleTask(worker, (taskContext) => {
           this.hooks.invoke('onWorkerTimeout', () => {
-            const result = this.onWorkerTimeout(context.index);
+            const result = this.onWorkerTimeout(taskContext.index);
             return result;
           });
-          context.reject(errorWithReason(
-            `WorkerPool: task at index ${String(context.index)} exceeded its timeout`,
+          taskContext.reject(WorkerPool.errorWithReason(
+            `WorkerPool: task at index ${String(taskContext.index)} exceeded its timeout`,
             timeoutSignal?.reason
           ));
-          terminateAfterAbort(context);
+          terminateAfterAbort(taskContext);
         });
       };
 
@@ -372,14 +373,14 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       // worker. The task never ran, so this is not a timeout: it fires onWorkerError, not
       // onWorkerTimeout, and the message states plainly that dispatch never happened.
       const onPreDispatchAbort = (): void => {
-        settleTask(worker, (context) => {
-          const error = errorWithReason(
-            `WorkerPool: task at index ${String(context.index)} was not dispatched because its signal was already aborted`,
+        settleTask(worker, (taskContext) => {
+          const error = WorkerPool.errorWithReason(
+            `WorkerPool: task at index ${String(taskContext.index)} was not dispatched because its signal was already aborted`,
             timeoutSignal?.reason
           );
-          reportWorkerError(error, context.index);
-          context.reject(error);
-          terminateAfterAbort(context);
+          reportWorkerError(error, taskContext.index);
+          taskContext.reject(error);
+          terminateAfterAbort(taskContext);
         });
       };
 

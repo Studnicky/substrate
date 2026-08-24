@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Draft, Patch, Path } from '../../../src/index.js';
-import { JsonObjectEntity, PatchOperationsEntity } from '../../../src/entities/index.js';
-import { PatchError, SchemaIntakeError } from '../../../src/index.js';
-import type { JSONSchema7Type } from 'json-schema';
+import { Draft, Patch, Path, PatchError, SchemaIntakeError } from '../../../src/index.js';
+import { JsonValueEntity, PatchOperationsEntity } from '../../../src/entities/index.js';
 
-import rawScenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
+import scenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'draft-array-index'
@@ -48,7 +46,8 @@ type ScenarioShape =
   | 'path-get'
   | 'path-subclass';
 
-type JsonObject = JsonObjectEntity.Type;
+type JsonObject = Record<string, unknown>;
+type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
 type ScenarioCase = {
   description: string;
   expected: JsonObject;
@@ -58,7 +57,6 @@ type ScenarioCase = {
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const scenarioGroups = JsonObjectEntity.create(rawScenarioGroups);
 type InvalidPatchValueShape = 'bigint' | 'cycle' | 'function' | 'infinity' | 'nan' | 'symbol';
 
 class StrictPatch extends Patch {
@@ -128,22 +126,27 @@ const scenarioRunnerMap = {
   'draft-array-push': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft array push base');
-    assert.throws(() => Draft.produce(base, (draft) => {
+    const next = Draft.produce(base, (draft) => {
       requireArray(Reflect.get(draft, 'items'), 'draft array push items').push(requiredValue(input, 'pushValue'));
-    }), TypeError);
+    });
+    assert.deepEqual(Reflect.get(next, 'items'), requireJsonObject(scenarioCase.expected.next, 'draft array push next').items);
+    assert.notStrictEqual(Reflect.get(next, 'items'), Reflect.get(base, 'items'));
+    assert.deepEqual(base, scenarioCase.expected.base);
   },
 
   'draft-array-splice': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft array splice base');
     const splice = requireJsonObject(requiredValue(input, 'splice'), 'draft array splice config');
-    assert.throws(() => Draft.produce(base, (draft) => {
+    const next = Draft.produce(base, (draft) => {
       requireArray(Reflect.get(draft, 'items'), 'draft array splice items').splice(
         requireNumber(requiredValue(splice, 'start'), 'draft array splice start'),
         requireNumber(requiredValue(splice, 'deleteCount'), 'draft array splice deleteCount'),
         ...requireArray(requiredValue(splice, 'values'), 'draft array splice values')
       );
-    }), TypeError);
+    });
+    assert.deepEqual(next, scenarioCase.expected.next);
+    assert.deepEqual(base, input.base);
   },
 
   'draft-array-index': (scenarioCase) => {
@@ -278,10 +281,13 @@ const scenarioRunnerMap = {
   'draft-proxy-reflection': (scenarioCase) => {
     const input = readJson(scenarioCase);
     const base = cloneJsonObject(requiredValue(input, 'base'), 'draft proxy reflection base');
-    assert.throws(() => Draft.produce(base, (draft) => {
+    const next = Draft.produce(base, (draft) => {
       const items = requireArray(Reflect.get(draft, 'items'), 'draft proxy reflection items');
-      Reflect.get(items, Symbol.iterator);
-    }), TypeError);
+      assert.equal(Reflect.get(items, Symbol.iterator), Array.prototype[Symbol.iterator]);
+      Reflect.set(requireJsonObject(Reflect.get(draft, 'nested'), 'draft proxy reflection nested'), 'value', requiredValue(input, 'nextNestedValue'));
+    });
+    const nested = requireJsonObject(Reflect.get(next, 'nested'), 'draft proxy reflection result');
+    assert.equal(Reflect.get(nested, 'value'), requiredValue(input, 'nextNestedValue'));
   },
 
   'draft-patch-invalid-value': (scenarioCase) => {
@@ -291,7 +297,7 @@ const scenarioRunnerMap = {
       () => Draft.producePatch({ a: 1 }, (draft: Record<string, unknown>) => {
         draft.invalid = invalidPatchValueByShape[invalidValueShape]();
       }),
-      TypeError
+      SchemaIntakeError
     );
   },
 
@@ -299,7 +305,7 @@ const scenarioRunnerMap = {
     const input = readJson(scenarioCase);
     const base = requireJsonObject(requiredValue(input, 'base'), 'draft patch escaped base');
     const mutations = requireJsonObject(requiredValue(input, 'mutations'), 'draft patch escaped mutations');
-    const { patch } = Draft.producePatch(base, (draft: Record<string, number>) => {
+    const { patch } = Draft.producePatch(base, (draft) => {
       for (const [key, value] of Object.entries(mutations)) {
         draft[key] = requireNumber(value, `draft patch escaped mutation ${key}`);
       }
@@ -413,7 +419,11 @@ const scenarioRunnerMap = {
     Reflect.set(requireJsonObject(Reflect.get(value, 'nested'), 'patch operations nested'), 'count', 2);
     Reflect.set(requireJsonObject(operations[0], 'patch operations first operation'), 'path', '/changed');
     const first = patch.operations;
-    const firstValue = first[0]?.value;
+    const firstOperation = first[0];
+    if (firstOperation === undefined || !('value' in firstOperation)) {
+      throw new Error('Expected patch operation with a value');
+    }
+    const firstValue = firstOperation.value;
     assert.ok(firstValue !== null && typeof firstValue === 'object' && !Array.isArray(firstValue));
     Reflect.set(requireJsonObject(Reflect.get(firstValue, 'nested'), 'patch operations first value nested'), 'count', 3);
     const target: Record<string, unknown> = {};
@@ -499,6 +509,7 @@ const scenarioRunnerMap = {
 
   'path-get': (scenarioCase) => {
     const obj = requireJsonObject(requiredValue(readJson(scenarioCase), 'object'), 'path get object');
+    const objJson = JsonValueEntity.intake(obj);
     const getScenarios: Array<[string, unknown]> = [
       ['user', obj.user],
       ['user.name', 'Alice'],
@@ -509,48 +520,48 @@ const scenarioRunnerMap = {
       ['missing.path', undefined],
       ['__proto__', undefined],
       ['constructor', undefined],
-      ['', obj]
+      ['', objJson]
     ];
     for (const [path, expected] of getScenarios) {
-      assert.deepEqual(Path.get(obj, path), expected);
+      assert.deepEqual(Path.get(objJson, path), expected);
     }
-    assert.equal(Path.get(obj, 'user.address.city', { maximumDepth: 1 }), undefined);
-    const result = Path.get(obj, 'items[*]');
+    assert.equal(Path.get(objJson, 'user.address.city', { maximumDepth: 1 }), undefined);
+    const result = Path.get(objJson, 'items[*]');
     assert.ok(result !== null && typeof result === 'object');
     assert.equal(Reflect.get(result, 'isWildcard'), scenarioCase.expected.wildcard);
     assert.deepEqual(Reflect.get(result, 'array'), obj.items);
     const target: Record<string, unknown> = {};
-    assert.equal(Path.get(target, '["__proto__"]["polluted"]'), undefined);
-    assert.equal(Path.get(target, '["constructor"]["prototype"]'), undefined);
-    assert.equal(Path.get(target, '["prototype"]'), undefined);
+    const targetJson = JsonValueEntity.intake(target);
+    assert.equal(Path.get(targetJson, '["__proto__"]["polluted"]'), undefined);
+    assert.equal(Path.get(targetJson, '["constructor"]["prototype"]'), undefined);
+    assert.equal(Path.get(targetJson, '["prototype"]'), undefined);
     const safe = { 'special.key': { nested: 'value' } };
-    assert.equal(Path.get(safe, '["special.key"]["nested"]'), 'value');
-    assert.equal(Path.get(obj, 'user.tags[oops]'), undefined);
-    assert.equal(Path.get(obj, 'user.tags[1.5]'), undefined);
-    assert.equal(Path.get(obj, 'user.tags[-1]'), undefined);
-    assert.equal(Path.get(obj, 'user.tags[0]'), 'admin');
+    assert.equal(Path.get(JsonValueEntity.intake(safe), '["special.key"]["nested"]'), 'value');
+    assert.equal(Path.get(objJson, 'user.tags[oops]'), undefined);
+    assert.equal(Path.get(objJson, 'user.tags[1.5]'), undefined);
+    assert.equal(Path.get(objJson, 'user.tags[-1]'), undefined);
+    assert.equal(Path.get(objJson, 'user.tags[0]'), 'admin');
   },
 
   'path-subclass': (scenarioCase) => {
     const obj = cloneJsonObject(requiredValue(readJson(scenarioCase), 'object'), 'path subclass object');
-    assert.equal(Path.get(obj, '__secret'), undefined);
-    assert.equal(OpenPath.get(obj, '__secret'), obj.__secret);
-    assert.equal(Path.get(obj, 'layer.__inner'), undefined);
-    assert.equal(OpenPath.get(obj, 'layer.__inner'), requireJsonObject(obj.layer, 'path subclass layer').__inner);
+    const objJson = JsonValueEntity.intake(obj);
+    assert.equal(Path.get(objJson, '__secret'), undefined);
+    assert.equal(OpenPath.get(objJson, '__secret'), obj['__secret']);
+    assert.equal(Path.get(objJson, 'layer.__inner'), undefined);
+    assert.equal(OpenPath.get(objJson, 'layer.__inner'), requireJsonObject(obj.layer, 'path subclass layer')['__inner']);
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
-const scenarioCases = requireArray(scenarioGroups.cases, 'json behavior scenarios').map((scenarioValue) => {
-  return normalizeScenarioCase(requireJsonObject(scenarioValue, 'json behavior scenario'));
-});
+const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
 
-function normalizeScenarioCase(scenarioCase: JsonObject): ScenarioCase {
+function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase {
   return {
-    description: requireString(scenarioCase.description, 'json behavior scenario description'),
-    expected: requireJsonObject(scenarioCase.expected, 'json behavior scenario expected'),
-    input: { 'json': requireJsonObject(requireJsonObject(scenarioCase.input, 'json behavior scenario input').json, 'json behavior scenario input json') },
+    description: scenarioCase.description,
+    expected: scenarioCase.expected,
+    input: scenarioCase.input,
     shape: requireScenarioShape(scenarioCase.shape),
-    name: requireString(scenarioCase.name, 'json behavior scenario name')
+    name: scenarioCase.name
   };
 }
 
@@ -570,11 +581,11 @@ function readJson(scenarioCase: ScenarioCase): JsonObject {
   return scenarioCase.input.json;
 }
 
-function isJsonObject(value: JSONSchema7Type): value is JsonObject {
+function isJsonObject<T>(value: T): value is T & JsonObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function requireJsonObject(value: JSONSchema7Type, context: string): JsonObject {
+function requireJsonObject<T>(value: T, context: string): JsonObject {
   if (isJsonObject(value)) {
     return value;
   }
@@ -582,11 +593,11 @@ function requireJsonObject(value: JSONSchema7Type, context: string): JsonObject 
   throw new TypeError(`Expected object for ${context}`);
 }
 
-function cloneJsonObject(value: JSONSchema7Type, context: string): JsonObject {
+function cloneJsonObject<T>(value: T, context: string): JsonObject {
   return structuredClone(requireJsonObject(value, context));
 }
 
-function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[] {
+function requireArray<T>(value: T, context: string): unknown[] {
   if (Array.isArray(value)) {
     return value;
   }
@@ -594,7 +605,7 @@ function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[
   throw new TypeError(`Expected array for ${context}`);
 }
 
-function requireString(value: JSONSchema7Type, context: string): string {
+function requireString<T>(value: T, context: string): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -602,7 +613,7 @@ function requireString(value: JSONSchema7Type, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
-function requireNumber(value: JSONSchema7Type, context: string): number {
+function requireNumber<T>(value: T, context: string): number {
   if (typeof value === 'number') {
     return value;
   }
@@ -610,7 +621,7 @@ function requireNumber(value: JSONSchema7Type, context: string): number {
   throw new TypeError(`Expected number for ${context}`);
 }
 
-function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
+function requiredValue(record: JsonObject, key: string): unknown {
   if (Reflect.has(record, key)) {
     return Reflect.get(record, key);
   }
@@ -629,22 +640,18 @@ function applyJsonMutation(target: JsonObject, mutation: JsonObject): void {
   }
 }
 
-function requireInvalidPatchValueShape(value: JSONSchema7Type): InvalidPatchValueShape {
-  if (
-    value === 'bigint'
-    || value === 'cycle'
-    || value === 'function'
-    || value === 'infinity'
-    || value === 'nan'
-    || value === 'symbol'
-  ) {
-    return value;
-  }
+function requireInvalidPatchValueShape<T>(value: T): InvalidPatchValueShape {
+  if (value === 'bigint') return 'bigint';
+  if (value === 'cycle') return 'cycle';
+  if (value === 'function') return 'function';
+  if (value === 'infinity') return 'infinity';
+  if (value === 'nan') return 'nan';
+  if (value === 'symbol') return 'symbol';
 
   throw new TypeError(`Unknown invalid patch value shape: ${String(value)}`);
 }
 
-function assertContainsAll(text: string, expectedValues: JSONSchema7Type, context: string): void {
+function assertContainsAll<T>(text: string, expectedValues: T, context: string): void {
   for (const expectedText of requireArray(expectedValues, context)) {
     assert.ok(text.includes(requireString(expectedText, context)));
   }
@@ -660,4 +667,21 @@ void describe('JSON behavior', () => {
       await runCase(scenarioCase);
     });
   }
+});
+
+void describe('Draft runtime value pass-through', () => {
+  void it('preserves Date, Map, Set, and class instance references while drafting a sibling', () => {
+    const createdAt = new Date(1);
+    const tags = new Set(['primary']);
+    const attributes = new Map([['status', 'active']]);
+    const widget = new Widget('widget-1');
+    const next = Draft.produce({ attributes, createdAt, tags, widget, 'label': 'before' }, (draft) => {
+      draft.label = 'after';
+    });
+    assert.strictEqual(next.createdAt, createdAt);
+    assert.strictEqual(next.tags, tags);
+    assert.strictEqual(next.attributes, attributes);
+    assert.strictEqual(next.widget, widget);
+    assert.equal(next.label, 'after');
+  });
 });

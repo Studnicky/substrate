@@ -3,6 +3,7 @@ import { ConfigurationError } from '@studnicky/config';
 import { HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { SampleBuffer } from '@studnicky/sample-buffer';
+import { Guard } from '@studnicky/types';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
@@ -190,7 +191,7 @@ export class Throttle implements ThrottleInterface {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
-    if (typeof result !== 'object' || result === null || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Guard.isObjectLike(result) || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Throttle.create() did not construct the requested subclass.');
     }
     return result;
@@ -704,7 +705,7 @@ export class Throttle implements ThrottleInterface {
           // appended .catch(rejectExecute) is the safety net so that failure
           // rejects execute() instead of becoming an unhandled rejection.
           callback().then(
-            (result) => { this.handleOperationSuccess(operation, result, operationStartTime, resolveExecute); },
+            (successResult) => { this.handleOperationSuccess(operation, successResult, operationStartTime, resolveExecute); },
             (error) => { this.handleOperationError(operation, error instanceof Error ? error : new Error(String(error)), rejectExecute); }
           ).catch(rejectExecute);
         } catch (error) {

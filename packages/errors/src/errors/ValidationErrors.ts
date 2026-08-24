@@ -136,8 +136,8 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     }
     const result: ValidationAggregateViewEntity.Type = {
       'count': this.#items.length,
-      'keywords': [...keywordSet].sort(),
-      'paths': [...pathSet].sort()
+      'keywords': [...keywordSet].toSorted(),
+      'paths': [...pathSet].toSorted()
     };
     return result;
   }

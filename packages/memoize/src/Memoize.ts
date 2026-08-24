@@ -5,6 +5,7 @@
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
 import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
@@ -171,7 +172,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     };
     const result: unknown = Reflect.construct(this, [deps]);
 
-    if (typeof result !== 'object' || result === null || !MemoizeInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !MemoizeInstance.belongsTo(this, result)) {
       throw new TypeError('Memoize.create() did not construct the requested subclass.');
     }
 
@@ -231,8 +232,8 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     try {
       const result = await this.#coalesce.run(key, () => {
         const value = this.#callback(...argumentList);
-        const result = Promise.resolve(value);
-        return result;
+        const resolvedValue = Promise.resolve(value);
+        return resolvedValue;
       });
 
       this.#cache.set(key, result);

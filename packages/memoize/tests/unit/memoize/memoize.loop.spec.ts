@@ -130,13 +130,15 @@ function readBatchCallCount(scenarioCase: ScenarioCase): number {
   return value;
 }
 
+function noop<T>(_value: T): void {}
+
 function createPendingValue<T>(): {
   promise: Promise<T>;
   reject: (error: Error) => void;
   resolve: (value: T) => void;
 } {
-  let resolve: (value: T) => void = () => {};
-  let reject: (error: Error) => void = () => {};
+  let resolve: (value: T) => void = noop;
+  let reject: (error: Error) => void = noop;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
     reject = promiseReject;

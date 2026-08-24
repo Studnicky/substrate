@@ -149,7 +149,7 @@ class AsyncIterDemo {
     // 6 → enriched { n:6, tier:'high' }
     // 9 → enriched { n:9, tier:'high' }
     // merge() yields in arrival order across concurrent sources — sort for stable assertions
-    const sorted = [...results].sort((a, b) => {
+    const sorted = [...results].toSorted((a, b) => {
       const nA = typeof a === 'number' ? a : a.n;
       const nB = typeof b === 'number' ? b : b.n;
       const result = nA - nB;

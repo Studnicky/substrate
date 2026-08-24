@@ -81,7 +81,7 @@ class ObservedBatchExample {
     // onItemStart fired for all 5 items; indices cover 0–4
     assert.strictEqual(observed.capturedItemStarts.length, 5, 'onItemStart must fire for every item');
     assert.deepStrictEqual(
-      observed.capturedItemStarts.slice().sort((a, b) => { const result = a - b; return result; }),
+      observed.capturedItemStarts.slice().toSorted((a, b) => { const result = a - b; return result; }),
       [0, 1, 2, 3, 4]
     );
 

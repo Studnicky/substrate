@@ -8,7 +8,7 @@
       },
       "input": {
         "dispatcher": {
-          "__shape": "undefined"
+          "shape": "undefined"
         }
       }
     },
@@ -117,7 +117,7 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -302,7 +302,7 @@
       "input": {
         "dispatcher": {
           "connectTimeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -361,7 +361,7 @@
       "input": {
         "dispatcher": {
           "bodyTimeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -420,7 +420,7 @@
       "input": {
         "dispatcher": {
           "headersTimeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -479,7 +479,7 @@
       "input": {
         "dispatcher": {
           "keepAliveTimeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -538,7 +538,7 @@
       "input": {
         "dispatcher": {
           "keepAliveMaximumTimeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -597,7 +597,7 @@
       "input": {
         "dispatcher": {
           "keepAliveTimeoutThreshold": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -806,7 +806,7 @@
       "input": {
         "dispatcher": {
           "maximumRequestsPerClient": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -859,7 +859,7 @@
       "input": {
         "dispatcher": {
           "clientTtl": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -939,7 +939,7 @@
       "input": {
         "dispatcher": {
           "localAddress": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -1061,7 +1061,7 @@
       "input": {
         "dispatcher": {
           "maximumOrigins": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },

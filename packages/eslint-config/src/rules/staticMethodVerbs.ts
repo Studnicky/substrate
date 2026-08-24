@@ -4,8 +4,9 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 import type {
-  Program, Symbol, Type
+  Program, Symbol
 } from 'typescript';
+import type * as ts from 'typescript';
 
 import { SchemaValidator } from '@studnicky/json';
 
@@ -41,7 +42,7 @@ namespace StaticMethodVerbsOptionsEntity {
 
 interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
-  readonly 'getTypeAtLocation': (node: unknown) => Type;
+  readonly 'getTypeAtLocation': (node: unknown) => ts.Type;
   readonly 'program': Program;
 }
 
@@ -240,7 +241,7 @@ class AstHelpers {
     return [];
   }
 
-  public static isNamedType(type: Type): boolean {
+  public static isNamedType(type: ts.Type): boolean {
     if (type.aliasSymbol !== undefined) {
       return true;
     }

@@ -5,6 +5,7 @@
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
@@ -107,7 +108,7 @@ export class IdempotencyGuard<TResult = unknown> {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (typeof result !== 'object' || result === null) {
+    if (!Guard.isObjectLike(result)) {
       throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 
@@ -149,7 +150,7 @@ export class IdempotencyGuard<TResult = unknown> {
     payload: IdempotencyPayloadEntity.Type,
     factory: () => TResult | Promise<TResult>
   ): Promise<TResult> {
-    const payloadEntries = Object.entries(payload).sort(([leftKey], [rightKey]) => {
+    const payloadEntries = Object.entries(payload).toSorted(([leftKey], [rightKey]) => {
       const result = leftKey.localeCompare(rightKey);
       return result;
     });

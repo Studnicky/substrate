@@ -26,8 +26,8 @@ export class SampleBufferError extends BaseError {
       'cause': argumentList?.cause,
       'code': 'sampleBuffer.invalidConfig',
       'correlationId': argumentList?.correlationId,
-      'message': (fields: Readonly<{ 'message': string }>): string => {
-        return fields.message;
+      'message': (messageFields: Readonly<{ 'message': string }>): string => {
+        return messageFields.message;
       },
       'metadata': argumentList?.metadata,
       'retryable': argumentList?.retryable ?? false

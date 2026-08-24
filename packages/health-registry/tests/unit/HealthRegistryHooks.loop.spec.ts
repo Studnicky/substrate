@@ -8,6 +8,10 @@ import type { HealthStatusEntity } from '../../src/entities/HealthStatusEntity.j
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
 import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { type: 'json' };
 
+function createUnhandledRejectionAssertion(message: string): () => void {
+  return () => { assert.fail(message); };
+}
+
 type ScenarioCase =
   | {
       description: string;
@@ -148,7 +152,7 @@ const runnerMap: RunnerMap = {
         }
       }
 
-    const onUnhandledRejection = (): void => { assert.fail('asynchronous aggregate hook produced an unhandled rejection'); };
+    const onUnhandledRejection = createUnhandledRejectionAssertion('asynchronous aggregate hook produced an unhandled rejection');
       process.on('unhandledRejection', onUnhandledRejection);
 
       try {

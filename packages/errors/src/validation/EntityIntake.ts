@@ -1,9 +1,23 @@
+import { BoundaryCycleGuard, IntakeCompiler } from '@studnicky/intake-kit';
 import { Guard } from '@studnicky/types';
 
 import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 
 import { ValidationError } from '../errors/ValidationError.js';
+
+// WHY THIS DELEGATES TO `@studnicky/intake-kit`.
+//
+// `@studnicky/errors` cannot depend on `@studnicky/json`'s Ajv-backed `SchemaValidator` — `json`
+// already depends on `errors` for `BaseError`, so the reverse edge would be circular. Every
+// schema-backed error entity used to work around that by inheriting a hand-rolled copy of the
+// generic `{create, intake}` wrapping and cycle-detection logic that lived entirely in this file.
+// `@studnicky/intake-kit` has no dependency on either package — it factors out exactly that
+// generic orchestration — so this file now supplies its own error type and clone strategy to
+// `IntakeCompiler`/`BoundaryCycleGuard` instead of re-deriving them. The wrapping semantics
+// (`intake` clones-then-coerces-and-strips-unknown; `create` clones-then-fills-defaults) are
+// unchanged, and every one of the entities that call `EntityIntake.compile*` below keeps its
+// existing call signature.
 
 export namespace EntityIntake {
   export interface ParseOptionsInterface {
@@ -18,28 +32,17 @@ export namespace EntityIntake {
 
 /** Shared untrusted-input boundary for schema-backed error entities. */
 export class EntityIntake {
-  private static create<TEntity>(
-    input: Parameters<EntityIntakeFunctionInterface<never>>[0],
-    parser: EntityIntake.ParserInterface<TEntity>,
-    entityName: string
-  ): TEntity {
-    const candidate = EntityIntake.clone(input, entityName);
-    const result = EntityIntake.parse(candidate, parser, entityName, {
-      'coerce': false,
-      'rejectUnknownProperties': true
-    });
-    return result;
-  }
+  private static readonly BOUNDARY_CONFIG: IntakeCompiler.BoundaryConfigInterface = {
+    'clone': EntityIntake.clone,
+    'onInvalidCandidate': EntityIntake.fail
+  };
 
   public static compileCreate<TEntity>(
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): EntityCreateFunctionInterface<TEntity> {
-    const create: EntityCreateFunctionInterface<TEntity> = (partial = {}) => {
-      const result = EntityIntake.create(partial, parser, entityName);
-      return result;
-    };
-    return create;
+    const result = IntakeCompiler.compileCreate(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
+    return result;
   }
 
   public static compile<TEntity>(
@@ -49,9 +52,7 @@ export class EntityIntake {
     readonly 'create': EntityCreateFunctionInterface<TEntity>;
     readonly 'intake': EntityIntakeFunctionInterface<TEntity>;
   } {
-    const create = EntityIntake.compileCreate(parser, entityName);
-    const intake = EntityIntake.compileIntake(parser, entityName);
-    const result = { 'create': create, 'intake': intake };
+    const result = IntakeCompiler.compile(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
     return result;
   }
 
@@ -59,19 +60,7 @@ export class EntityIntake {
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): EntityIntakeFunctionInterface<TEntity> {
-    const intake: EntityIntakeFunctionInterface<TEntity> = (input) => {
-      const result = EntityIntake.intake(input, parser, entityName);
-      return result;
-    };
-    return intake;
-  }
-
-  private static intake<TEntity>(input: Parameters<EntityIntakeFunctionInterface<never>>[0], parser: EntityIntake.ParserInterface<TEntity>, entityName: string): TEntity {
-    const candidate = EntityIntake.clone(input, entityName);
-    const result = EntityIntake.parse(candidate, parser, entityName, {
-      'coerce': true,
-      'rejectUnknownProperties': false
-    });
+    const result = IntakeCompiler.compileIntake(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
     return result;
   }
 
@@ -132,66 +121,60 @@ export class EntityIntake {
     return undefined;
   }
 
+  /** Deep-clones `value`, rejecting a cyclic graph before attempting to walk it. */
   private static clone(value: Parameters<EntityIntakeFunctionInterface<never>>[0], entityName: string): Parameters<EntityIntakeFunctionInterface<never>>[0] {
-    const result = EntityIntake.cloneValue(value, new WeakSet<object>(), entityName);
-    return result;
-  }
-
-  private static cloneValue(value: Parameters<EntityIntakeFunctionInterface<never>>[0], ancestors: WeakSet<object>, entityName: string): Parameters<EntityIntakeFunctionInterface<never>>[0] {
-    if (value === null || typeof value !== 'object') {
-      return value;
-    }
-    if (ancestors.has(value)) {
+    if (BoundaryCycleGuard.hasCycle(value)) {
       EntityIntake.fail(entityName, 'cyclic input is not supported');
     }
 
-    ancestors.add(value);
-    try {
-      if (Array.isArray(value)) {
-        const result: unknown[] = [];
-        const length = value.length;
-        for (let index = 0; index < length; index += 1) {
-          const item: unknown = value[index];
-          result.push(EntityIntake.cloneValue(item, ancestors, entityName));
-        }
-        return result;
-      }
-      if (value instanceof Map) {
-        const cloned = new Map<unknown, unknown>();
-        for (const [key, item] of value.entries()) {
-          cloned.set(
-            EntityIntake.cloneValue(key, ancestors, entityName),
-            EntityIntake.cloneValue(item, ancestors, entityName)
-          );
-        }
-        return cloned;
-      }
-      if (value instanceof Set) {
-        const cloned = new Set<unknown>();
-        for (const item of value.values()) {
-          cloned.add(EntityIntake.cloneValue(item, ancestors, entityName));
-        }
-        return cloned;
-      }
-      if (value instanceof Date) {
-        const result = new Date(value.getTime());
-        return result;
-      }
-      if (Guard.isObject(value)) {
-        const cloned: Record<string, unknown> = {};
-        const keys = Object.keys(value);
-        const keysLength = keys.length;
-        for (let keyIndex = 0; keyIndex < keysLength; keyIndex += 1) {
-          const key = keys[keyIndex];
-          if (key === undefined) { continue; }
-          Reflect.set(cloned, key, EntityIntake.cloneValue(Reflect.get(value, key), ancestors, entityName));
-        }
-        return cloned;
-      }
+    const result = EntityIntake.cloneValue(value);
+    return result;
+  }
+
+  /** Recursively clones an already-verified-acyclic value. */
+  private static cloneValue(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): Parameters<EntityIntakeFunctionInterface<never>>[0] {
+    if (!Guard.isObjectLike(value)) {
       return value;
-    } finally {
-      ancestors.delete(value);
     }
+    if (Array.isArray(value)) {
+      const result: unknown[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value[index];
+        result.push(EntityIntake.cloneValue(item));
+      }
+      return result;
+    }
+    if (value instanceof Map) {
+      const cloned = new Map<unknown, unknown>();
+      for (const [key, item] of value.entries()) {
+        cloned.set(EntityIntake.cloneValue(key), EntityIntake.cloneValue(item));
+      }
+      return cloned;
+    }
+    if (value instanceof Set) {
+      const cloned = new Set<unknown>();
+      for (const item of value.values()) {
+        cloned.add(EntityIntake.cloneValue(item));
+      }
+      return cloned;
+    }
+    if (value instanceof Date) {
+      const result = new Date(value.getTime());
+      return result;
+    }
+    if (Guard.isObject(value)) {
+      const cloned: Record<string, unknown> = {};
+      const keys = Object.keys(value);
+      const keysLength = keys.length;
+      for (let keyIndex = 0; keyIndex < keysLength; keyIndex += 1) {
+        const key = keys[keyIndex];
+        if (key === undefined) { continue; }
+        Reflect.set(cloned, key, EntityIntake.cloneValue(Reflect.get(value, key)));
+      }
+      return cloned;
+    }
+    return value;
   }
 
   private static fail(entityName: string, message: string): never {
@@ -199,23 +182,5 @@ export class EntityIntake {
       'message': message,
       'path': entityName
     });
-  }
-
-  private static parse<TEntity>(
-    candidate: Parameters<EntityIntakeFunctionInterface<never>>[0],
-    parser: EntityIntake.ParserInterface<TEntity>,
-    entityName: string,
-    options: EntityIntake.ParseOptionsInterface
-  ): TEntity {
-    if (!Guard.isObject(candidate)) {
-      const result = EntityIntake.fail(entityName, 'must be an object');
-      return result;
-    }
-    const result = parser(candidate, options);
-    if (result === undefined) {
-      const failure = EntityIntake.fail(entityName, 'does not match the declared schema');
-      return failure;
-    }
-    return result;
   }
 }

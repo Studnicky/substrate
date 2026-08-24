@@ -1,14 +1,12 @@
-import { Guard } from '@studnicky/types';
-
-import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+import { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 
 /**
  * Type guard for ErrorClassificationEntity.Type
  */
 class ErrorClassificationGuard {
   /**
-   * Validates ErrorClassificationEntity.Type structure and types.
+   * Validates ErrorClassificationEntity.Type structure and types, delegating to the entity's own
+   * `validate` so this check and the schema it mirrors can't drift apart.
    *
    * @param value - Value to check
    * @returns True if value is a valid ErrorClassificationEntity.Type
@@ -22,20 +20,9 @@ class ErrorClassificationGuard {
    * }
    * ```
    */
-  public static isErrorClassification(value: Parameters<EntityValidateFunctionInterface<ErrorClassificationEntity.Type>>[0]): value is ErrorClassificationEntity.Type {
-    if (!Guard.isObject(value)) {
-      return false;
-    }
-
-    if (typeof value.retryable !== 'boolean') {
-      return false;
-    }
-
-    if (value.reason !== undefined && typeof value.reason !== 'string') {
-      return false;
-    }
-
-    return true;
+  public static isErrorClassification(value: Parameters<typeof ErrorClassificationEntity.validate>[0]): value is ErrorClassificationEntity.Type {
+    const result = ErrorClassificationEntity.validate(value);
+    return result;
   }
 }
 

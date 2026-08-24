@@ -805,9 +805,9 @@ class ModuleShape {
     }
 
     const result = declarations.every((declarator) => {
-      const result = !DeclaratorName.isNonDataConstantInit(declarator);
+      const isDataConstant = !DeclaratorName.isNonDataConstantInit(declarator);
 
-      return result;
+      return isDataConstant;
     });
 
     return result;
@@ -918,9 +918,9 @@ class ModuleShape {
 
       const name = FolderShapeHelpers.getIdName(decl);
 
-      const result = typeof name === 'string' && name.endsWith('Entity');
+      const isEntityNamed = typeof name === 'string' && name.endsWith('Entity');
 
-      return result;
+      return isEntityNamed;
     });
 
     return result;

@@ -74,9 +74,9 @@ class DeclaredFunctionVariable {
       const declared = context.sourceCode.getDeclaredVariables(functionNode);
 
       const result = declared.find((variable) => {
-        const result = variable.name === name;
+        const isMatchingName = variable.name === name;
 
-        return result;
+        return isMatchingName;
       });
 
       return result;
@@ -99,9 +99,9 @@ class DeclaredFunctionVariable {
       const declared = context.sourceCode.getDeclaredVariables(parent);
 
       const result = declared.find((variable) => {
-        const result = variable.name === id.name;
+        const isMatchingId = variable.name === id.name;
 
-        return result;
+        return isMatchingId;
       });
 
       return result;
@@ -151,9 +151,9 @@ class CallSiteAnalysis {
       }
       const callExpression = (reference.identifier as unknown as { readonly 'parent': Rule.Node }).parent;
 
-      const result = LoopContext.isPerIteration(callExpression, context);
+      const isPerIterationCall = LoopContext.isPerIteration(callExpression, context);
 
-      return result;
+      return isPerIterationCall;
     });
 
     return result;

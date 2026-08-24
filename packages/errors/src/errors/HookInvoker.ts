@@ -3,6 +3,8 @@
  *
  * @module
  */
+import { Guard } from '@studnicky/types';
+
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
 import { HookTimeoutError } from './HookTimeoutError.js';
@@ -12,7 +14,7 @@ import { ValidationError } from './ValidationError.js';
 /** Builds detached diagnostic graphs while preserving canonical hook-error classes. */
 class HookDiagnosticSnapshot {
   static value(value: unknown, seen: WeakMap<object, unknown>): unknown {
-    if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    if (!(Guard.isObjectLike(value) || Guard.isFunction(value))) {
       return value;
     }
 
@@ -311,7 +313,7 @@ export class HookInvoker {
   }
 
   static #isThenable(value: unknown): value is PromiseLike<unknown> {
-    const result = (typeof value === 'object' || typeof value === 'function') && value !== null && 'then' in value && typeof value.then === 'function';
+    const result = Guard.isThenable(value);
     return result;
   }
 

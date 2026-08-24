@@ -14,13 +14,11 @@ import {
 } from '../../../src/index.js';
 import {
   DraftNodeStateEntity,
-  JsonObjectEntity,
   PatchApplyResultStatusEntity,
   PathWildcardResultEntity
 } from '../../../src/entities/index.js';
-import type { JSONSchema7Type } from 'json-schema';
 
-import rawScenarioGroups from './json-core.scenarios.json' with { type: 'json' };
+import scenarioGroups from './json-core.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
   | 'clone-deep-array'
@@ -69,7 +67,8 @@ type ScenarioShape =
   | 'structural-hash-different'
   | 'structural-hash-metadata';
 
-type JsonObject = JsonObjectEntity.Type;
+type JsonObject = Record<string, unknown>;
+type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
 type ScenarioCase = {
   description: string;
   expected: JsonObject;
@@ -79,10 +78,10 @@ type ScenarioCase = {
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const scenarioGroups = JsonObjectEntity.create(rawScenarioGroups);
+type CloneValue = PropertyKey | bigint | boolean | object | null | undefined;
 
 class TaggedClone extends Clone {
-  protected static override cloneObject(value: Record<string, unknown>): Record<string, unknown> {
+  protected static override cloneObject(value: Record<string, CloneValue>): Record<string, CloneValue> {
     const base = super.cloneObject(value);
     return { ...base, '__tag': 'cloned' };
   }
@@ -95,14 +94,19 @@ class SelectiveFrozen extends Frozen {
 }
 
 const runtimeValueByShape = {
-  array: (): JSONSchema7Type[] => [1, 2],
+  array: (): unknown[] => [1, 2],
+  date: (): Date => new Date(0),
   false: (): boolean => false,
+  function: (): (() => string) => () => 'hashable',
+  map: (): Map<string, number> => new Map([['a', 1]]),
   null: (): null => null,
   number: (): number => 1,
-  object: (): Record<string, JSONSchema7Type> => ({}),
+  object: (): Record<string, never> => ({}),
+  set: (): Set<string> => new Set(['a']),
   string: (): string => 'value',
   true: (): boolean => true,
-} satisfies Record<string, () => JSONSchema7Type>;
+  undefined: (): undefined => undefined
+} satisfies Record<string, () => unknown>;
 
 const scenarioRunnerMap = {
   'clone-deep-number': (scenarioCase) => {
@@ -121,7 +125,7 @@ const scenarioRunnerMap = {
     const original = readJson(scenarioCase).value;
     const cloned = Clone.deep(original);
     assert.deepEqual(cloned, scenarioCase.expected.cloned);
-    assert.equal(cloned !== original, scenarioCase.expected.distinct);
+    assert.notStrictEqual(cloned, original);
     assert.notStrictEqual(requireArray(cloned, 'clone array result')[1], requireArray(original, 'clone array input')[1]);
   },
 
@@ -134,24 +138,26 @@ const scenarioRunnerMap = {
   },
 
   'clone-deep-map': (scenarioCase) => {
-    const original = requireJsonObject(readJson(scenarioCase).value, 'clone map descriptor input');
-    const cloned = requireJsonObject(Clone.deep(original), 'clone map descriptor result');
+    const original = materializeMap(readJson(scenarioCase).value);
+    const cloned = requireMap(Clone.deep(original), 'clone map result');
     assert.equal(cloned !== original, scenarioCase.expected.distinct);
-    assert.notStrictEqual(cloned.entries, original.entries);
+    assert.equal(cloned.size, scenarioCase.expected.size);
     assert.deepEqual(cloned, original);
   },
 
   'clone-deep-set': (scenarioCase) => {
-    const original = requireJsonObject(readJson(scenarioCase).value, 'clone set descriptor input');
-    const cloned = requireJsonObject(Clone.deep(original), 'clone set descriptor result');
+    const original = materializeSet(readJson(scenarioCase).value);
+    const cloned = requireSet(Clone.deep(original), 'clone set result');
     assert.equal(cloned !== original, scenarioCase.expected.distinct);
-    assert.notStrictEqual(cloned.values, original.values);
+    for (const value of requireArray(scenarioCase.expected.has, 'clone set expected values')) assert.ok(cloned.has(value));
     assert.deepEqual(cloned, original);
   },
 
   'clone-deep-date': (scenarioCase) => {
-    const original = requireString(readJson(scenarioCase).value, 'clone date text input');
-    assert.equal(Clone.deep(original), original);
+    const original = new Date(requireString(readJson(scenarioCase).value, 'clone date input'));
+    const cloned = requireDate(Clone.deep(original), 'clone date result');
+    assert.notStrictEqual(cloned, original);
+    assert.equal(cloned.getTime(), original.getTime());
   },
 
   'clone-deep-isolation': (scenarioCase) => {
@@ -427,14 +433,14 @@ const scenarioRunnerMap = {
   },
 
   'sort-functions': (scenarioCase) => {
-    assert.deepEqual(['file1', 'file10', 'file2', 'file20'].sort(Sort.natural), ['file1', 'file2', 'file10', 'file20']);
-    assert.deepEqual(['banana', 'apple', 'cherry'].sort(Sort.natural), ['apple', 'banana', 'cherry']);
-    assert.deepEqual(['property', 'id', 'type', 'name'].sort(Sort.shortestFirst), ['id', 'name', 'type', 'property']);
+    assert.deepEqual(['file1', 'file10', 'file2', 'file20'].toSorted(Sort.natural), ['file1', 'file2', 'file10', 'file20']);
+    assert.deepEqual(['banana', 'apple', 'cherry'].toSorted(Sort.natural), ['apple', 'banana', 'cherry']);
+    assert.deepEqual(['property', 'id', 'type', 'name'].toSorted(Sort.shortestFirst), ['id', 'name', 'type', 'property']);
     assert.equal(Sort.shortestFirst('abc', 'abc'), 0);
-    assert.deepEqual(['id', 'type', 'property', 'name'].sort(Sort.longestFirst), ['property', 'type', 'name', 'id']);
+    assert.deepEqual(['id', 'type', 'property', 'name'].toSorted(Sort.longestFirst), ['property', 'type', 'name', 'id']);
     assert.equal(Sort.longestFirst('abc', 'de'), Sort.shortestFirst('de', 'abc'));
-    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').sort((left, right) => Number(left) - Number(right)), scenarioCase.expected.ascending);
-    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').sort((left, right) => Number(right) - Number(left)), scenarioCase.expected.descending);
+    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').toSorted((left, right) => Number(left) - Number(right)), scenarioCase.expected.ascending);
+    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').toSorted((left, right) => Number(right) - Number(left)), scenarioCase.expected.descending);
   },
 
   'entities-core': (scenarioCase) => {
@@ -468,17 +474,15 @@ const scenarioRunnerMap = {
   }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
-const scenarioCases = requireArray(scenarioGroups.cases, 'json core scenarios').map((scenarioValue) => {
-  return normalizeScenarioCase(requireJsonObject(scenarioValue, 'json core scenario'));
-});
+const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
 
-function normalizeScenarioCase(scenarioCase: JsonObject): ScenarioCase {
+function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase {
   return {
-    description: requireString(scenarioCase.description, 'json core scenario description'),
-    expected: requireJsonObject(scenarioCase.expected, 'json core scenario expected'),
-    input: { 'json': requireJsonObject(requireJsonObject(scenarioCase.input, 'json core scenario input').json, 'json core scenario input json') },
+    description: scenarioCase.description,
+    expected: scenarioCase.expected,
+    input: scenarioCase.input,
     shape: requireScenarioShape(scenarioCase.shape),
-    name: requireString(scenarioCase.name, 'json core scenario name')
+    name: scenarioCase.name
   };
 }
 
@@ -498,11 +502,11 @@ function readJson(scenarioCase: ScenarioCase): JsonObject {
   return scenarioCase.input.json;
 }
 
-function isJsonObject(value: JSONSchema7Type): value is JsonObject {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+function isJsonObject<T>(value: T): value is T & JsonObject {
+  return DataType.isRecord(value);
 }
 
-function requireJsonObject(value: JSONSchema7Type, context: string): JsonObject {
+function requireJsonObject<T>(value: T, context: string): JsonObject {
   if (isJsonObject(value)) {
     return value;
   }
@@ -510,11 +514,11 @@ function requireJsonObject(value: JSONSchema7Type, context: string): JsonObject 
   throw new TypeError(`Expected object for ${context}`);
 }
 
-function cloneJsonObject(value: JSONSchema7Type, context: string): JsonObject {
+function cloneJsonObject<T>(value: T, context: string): JsonObject {
   return structuredClone(requireJsonObject(value, context));
 }
 
-function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[] {
+function requireArray<T>(value: T, context: string): unknown[] {
   if (Array.isArray(value)) {
     return value;
   }
@@ -522,7 +526,7 @@ function requireArray(value: JSONSchema7Type, context: string): JSONSchema7Type[
   throw new TypeError(`Expected array for ${context}`);
 }
 
-function requireString(value: JSONSchema7Type, context: string): string {
+function requireString<T>(value: T, context: string): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -530,7 +534,7 @@ function requireString(value: JSONSchema7Type, context: string): string {
   throw new TypeError(`Expected string for ${context}`);
 }
 
-function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
+function requiredValue(record: JsonObject, key: string): unknown {
   if (Reflect.has(record, key)) {
     return Reflect.get(record, key);
   }
@@ -538,7 +542,7 @@ function requiredValue(record: JsonObject, key: string): JSONSchema7Type {
   throw new TypeError(`Missing scenario value: ${key}`);
 }
 
-function requireMap(value: Map<JSONSchema7Type, JSONSchema7Type>, context: string): Map<JSONSchema7Type, JSONSchema7Type> {
+function requireMap<T>(value: T, context: string): Map<unknown, unknown> {
   if (value instanceof Map) {
     return value;
   }
@@ -546,7 +550,7 @@ function requireMap(value: Map<JSONSchema7Type, JSONSchema7Type>, context: strin
   throw new TypeError(`Expected Map for ${context}`);
 }
 
-function requireSet(value: Set<JSONSchema7Type>, context: string): Set<JSONSchema7Type> {
+function requireSet<T>(value: T, context: string): Set<unknown> {
   if (value instanceof Set) {
     return value;
   }
@@ -554,7 +558,7 @@ function requireSet(value: Set<JSONSchema7Type>, context: string): Set<JSONSchem
   throw new TypeError(`Expected Set for ${context}`);
 }
 
-function requireDate(value: Date, context: string): Date {
+function requireDate<T>(value: T, context: string): Date {
   if (value instanceof Date) {
     return value;
   }
@@ -562,28 +566,28 @@ function requireDate(value: Date, context: string): Date {
   throw new TypeError(`Expected Date for ${context}`);
 }
 
-function toMapEntry(pair: JSONSchema7Type[]): [JSONSchema7Type, JSONSchema7Type] {
+function toMapEntry(pair: unknown[]): [unknown, unknown] {
   return [pair[0], pair[1]];
 }
 
-function materializeMap(value: JSONSchema7Type): Map<JSONSchema7Type, JSONSchema7Type> {
+function materializeMap<T>(value: T): Map<unknown, unknown> {
   const descriptor = requireJsonObject(value, 'map descriptor');
   const entries = requireArray(descriptor.entries, 'map descriptor entries');
-  const materializedEntries: Array<[JSONSchema7Type, JSONSchema7Type]> = [];
+  const materializedEntries: Array<[unknown, unknown]> = [];
   for (const entry of entries) {
     const pair = requireArray(entry, 'map descriptor entry');
-    materializedEntries.push([pair[0], structuredClone(pair[1])]);
+    materializedEntries.push(toMapEntry(pair));
   }
 
   return new Map(materializedEntries);
 }
 
-function materializeSet(value: JSONSchema7Type): Set<JSONSchema7Type> {
+function materializeSet<T>(value: T): Set<unknown> {
   const descriptor = requireJsonObject(value, 'set descriptor');
   return new Set(requireArray(descriptor.values, 'set descriptor values').map((item) => structuredClone(item)));
 }
 
-function materializeCycle(value: JSONSchema7Type): JsonObject {
+function materializeCycle<T>(value: T): JsonObject {
   const result = cloneJsonObject(value, 'cycle descriptor');
   for (const [key, child] of Object.entries(result)) {
     if (child === 'cycle') {
@@ -598,7 +602,7 @@ function isRuntimeValueShape(shape: string): shape is keyof typeof runtimeValueB
   return Object.hasOwn(runtimeValueByShape, shape);
 }
 
-function materializeRuntimeValue(shape: string): JSONSchema7Type {
+function materializeRuntimeValue(shape: string): unknown {
   if (isRuntimeValueShape(shape)) {
     return runtimeValueByShape[shape]();
   }
@@ -678,6 +682,9 @@ void describe('Clone.deep runtime containers', () => {
     const cloned = Clone.deep(original);
     const originalItem = original.root.items[0];
     const clonedItem = cloned.root.items[0];
+    if (originalItem === undefined || clonedItem === undefined) {
+      throw new Error('Expected nested clone items');
+    }
     const originalAppointment = originalItem.calendar.get('next');
     const clonedAppointment = clonedItem.calendar.get('next');
     const clonedMember = clonedItem.members.values().next().value;
@@ -710,5 +717,35 @@ void describe('Clone.deep runtime containers', () => {
     assert.equal(cloned.id, original.id);
     assert.notStrictEqual(cloned.state, original.state);
     assert.deepEqual(untrustedClone, untrustedInput);
+  });
+});
+
+void describe('restored value-utility runtime contracts', () => {
+  void it('compares NaN, Date, RegExp, Map, and Set values structurally', () => {
+    const untrusted: unknown = Number.NaN;
+    assert.equal(DataType.deepEqual(untrusted, untrusted), true);
+    assert.equal(DataType.deepEqual(Number.NaN, Number.NaN), true);
+    assert.equal(DataType.deepEqual(new Date(1), new Date(1)), true);
+    assert.equal(DataType.deepEqual(new Date(1), new Date(2)), false);
+    assert.equal(DataType.deepEqual(new Date(1), {}), false);
+    assert.equal(DataType.deepEqual(/value/giu, /value/giu), true);
+    assert.equal(DataType.deepEqual(/value/gu, /other/gu), false);
+    assert.equal(DataType.deepEqual(/value/gu, {}), false);
+    assert.equal(DataType.deepEqual(new Set(['a', 'b']), new Set(['b', 'a'])), true);
+    assert.equal(DataType.deepEqual(new Set(['a']), new Set(['b'])), false);
+    assert.equal(DataType.deepEqual(new Map([['item', { 'count': 1 }]]), new Map([['item', { 'count': 1 }]])), true);
+    assert.equal(DataType.deepEqual(new Map([['item', 1]]), new Map([['item', 2]])), false);
+  });
+
+  void it('hashes Date, Map, and Set values deterministically', () => {
+    assert.equal(Hash.value(new Date(1)), Hash.value(new Date(1)));
+    assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['b', 2], ['a', 1]])));
+    assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['b', 'a'])));
+    assert.notEqual(Hash.value(new Date(1)), Hash.value({}));
+  });
+
+  void it('keeps non-plain merge overlays atomic', () => {
+    const date = new Date(1);
+    assert.strictEqual(Merge.deep({ 'value': 1 }, date), date);
   });
 });

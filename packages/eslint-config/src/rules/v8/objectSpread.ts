@@ -204,9 +204,9 @@ class ClassMemberScope {
         return false;
       }
 
-      const result = property.name === name;
+      const isNamedMatch = property.name === name;
 
-      return result;
+      return isNamedMatch;
     });
 
     return result;

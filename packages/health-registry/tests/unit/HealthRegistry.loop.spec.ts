@@ -9,6 +9,10 @@ import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInter
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
 import scenarioGroups from './HealthRegistry.scenarios.json' with { type: 'json' };
 
+function createUnhandledRejectionAssertion(message: string): () => void {
+  return () => { assert.fail(message); };
+}
+
 type HealthStatus = 'degraded' | 'healthy' | 'unhealthy';
 
 interface HealthCheckDefinitionInterface {
@@ -258,7 +262,7 @@ const runnerMap: RunnerMap = {
   },
   'timed-out-late-rejection-owned': async (scenarioCase) => {
     const registry = HealthRegistry.create();
-    const onUnhandledRejection = (): void => { assert.fail('timed-out health check produced an unhandled rejection'); };
+    const onUnhandledRejection = createUnhandledRejectionAssertion('timed-out health check produced an unhandled rejection');
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {

@@ -40,6 +40,10 @@
       {
         "code": "const rules = { '@studnicky/v8/max-switch-cases': 'error' }; void rules;",
         "name": "quoted foreign string key (rule id, not a valid JS identifier) containing a banned substring - no report"
+      },
+      {
+        "code": "function isURLSearchParams(value) { return value instanceof URLSearchParams; }",
+        "name": "identifier ending in a real global class name (URLSearchParams) is not a banned shortening"
       }
     ],
     "invalid": [

@@ -3,8 +3,6 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { JsonValueEntity } from '../src/entities/index.js';
-
 import { Clone, Merge } from '../src/index.js';
 import { MergeCloneFixture } from './fixtures/MergeCloneFixture.js';
 
@@ -35,8 +33,8 @@ console.log('same reference?', copy === original);
 // ---------------------------------------------------------------------------
 
 class ConcatMerge extends Merge {
-  protected static override mergeArrays(base: JsonValueEntity.Type[], overlay: JsonValueEntity.Type[]): JsonValueEntity.Type[] {
-    return [...base, ...overlay];
+  protected static override mergeArrays<T>(baseArray: T[], overlayArray: T[]): T[] {
+    return [...baseArray, ...overlayArray];
   }
 }
 

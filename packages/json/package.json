@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
+    "@studnicky/intake-kit": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
     "ajv": "^8.20.0",

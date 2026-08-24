@@ -22,9 +22,9 @@ class PathSegments {
     }
 
     const result = rawPath.split(PATH_SEPARATOR_PATTERN).filter((segment) => {
-      const result = segment.length > 0;
+      const isNonEmptySegment = segment.length > 0;
 
-      return result;
+      return isNonEmptySegment;
     });
 
     if (NORMALIZE_CACHE.size >= NORMALIZE_CACHE_CAPACITY) {

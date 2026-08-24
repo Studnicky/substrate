@@ -6,7 +6,7 @@
  * - DataType   — type guards + structural deep equality (NaN/Date/RegExp/Set/Map)
  * - Draft      — Proxy-based "mutate a draft, get an immutable result" primitive
  * - Frozen     — cycle-safe deep freeze
- * - Hash       — FNV-1a 32-bit hash for JSON-compatible values
+ * - Hash       — FNV-1a 32-bit hash for arbitrary in-memory values
  * - Merge      — V8-monomorphic deep merge
  * - Patch      — RFC-6902 JSON Patch (add/remove/replace/move/copy/test)
  * - JsonError  — abstract base error for all json package errors

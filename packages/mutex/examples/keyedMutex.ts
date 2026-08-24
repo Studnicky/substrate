@@ -49,7 +49,7 @@ class KeyedMutexDemo {
     ]);
 
     console.log('Serialized counter:', counter);
-    console.log('Serialized results:', results.sort((a, b) => { const result = a - b; return result; }));
+    console.log('Serialized results:', results.toSorted((a, b) => { const result = a - b; return result; }));
   }
 
   static showStats(): void {

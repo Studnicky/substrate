@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { DispatcherHealthEntity } from '../entities/DispatcherHealthEntity.js';
@@ -153,7 +155,7 @@ export class TestDispatcher {
 
     try {
       const parsed: unknown = JSON.parse(body);
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      if (!Guard.isObject(parsed)) {
         return {};
       }
       const result: Record<string, unknown> = {};

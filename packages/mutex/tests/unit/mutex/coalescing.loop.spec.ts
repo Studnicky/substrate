@@ -6,6 +6,14 @@ import { Mutex } from '../../../src/mutex/index.js';
 
 import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
+function isNumberValue<TValue>(value: TValue): value is TValue & number {
+  return typeof value === 'number';
+}
+
+function isStringValue<TValue>(value: TValue): value is TValue & string {
+  return typeof value === 'string';
+}
+
 type MutexInput = Parameters<typeof Mutex.create>[0];
 type ScenarioInputWithMutex = { mutex?: MutexInput };
 type BatchInput = { callerCount?: number; perKeyCount?: number };
@@ -311,8 +319,8 @@ const runnerMap: {
   },
   'validates-each-caller-result': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
-    const acceptsNumber = <TValue>(value: TValue): value is TValue & number => typeof value === 'number';
-    const acceptsString = <TValue>(value: TValue): value is TValue & string => typeof value === 'string';
+    const acceptsNumber = isNumberValue;
+    const acceptsString = isStringValue;
     const numberResult = mutex.runExclusive(scenarioCase.input.key, async () => {
       await delay(scenarioCase.input.delayMs);
       return scenarioCase.input.numberResult;

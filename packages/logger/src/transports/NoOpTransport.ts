@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
@@ -39,7 +41,7 @@ export class NoOpTransport implements TransportInterface {
     this: NoOpTransportSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (result === null || typeof result !== 'object' || !NoOpTransportInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !NoOpTransportInstance.belongsTo(this, result)) {
       throw new TypeError('NoOpTransport.create() did not construct the requested subclass.');
     }
     return result;

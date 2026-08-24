@@ -2,6 +2,7 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
@@ -111,7 +112,7 @@ export class BusQueue<T> {
     const getConstructor = (): BusQueueSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [options]);
-    if (typeof result !== 'object' || result === null || !BusQueueInstance.belongsTo(constructor, result)) {
+    if (!Guard.isObjectLike(result) || !BusQueueInstance.belongsTo(constructor, result)) {
       throw new TypeError('BusQueue.create() did not construct the requested subclass.');
     }
     return result;
@@ -350,5 +351,5 @@ export class BusQueue<T> {
   protected onOverflow(_depth: number): void | Promise<void> {}
 
   /** Fires after handler throws and onError callback (if any) has been called. */
-  protected onHandlerError<TError>(_error: TError): void | Promise<void> {}
+  protected onHandlerError(_error: unknown): void | Promise<void> {}
 }

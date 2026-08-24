@@ -88,8 +88,8 @@ export class GpuDetector {
       const parts: string[] = [];
       const rawPartsLength = rawParts.length;
       for (let rawPartIndex = 0; rawPartIndex < rawPartsLength; rawPartIndex += 1) {
-        const raw = rawParts[rawPartIndex]!;
-        parts.push(raw.trim());
+        const rawPart = rawParts[rawPartIndex]!;
+        parts.push(rawPart.trim());
       }
       const name = parts[0] ?? 'Unknown NVIDIA GPU';
       const vramMbRaw = parts[1];

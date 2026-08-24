@@ -156,7 +156,7 @@ const runnerMap: RunnerMap = {
     });
 
     await assert.rejects(pool.run(items), /boom/);
-    assert.deepStrictEqual([...observedResults].sort(), [...scenarioCase.expected.observedResults].sort());
+    assert.deepStrictEqual([...observedResults].toSorted(), [...scenarioCase.expected.observedResults].toSorted());
   },
   'exit-retry': async (scenarioCase) => {
     const createdThreads: number[] = [];

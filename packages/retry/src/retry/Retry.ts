@@ -7,6 +7,7 @@ import {
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
 import { SchemaIntakeError } from '@studnicky/json';
+import { Guard } from '@studnicky/types';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
@@ -140,7 +141,7 @@ export class Retry implements RetryInterface {
     config?: RetryConfigInterface
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [config]);
-    if (constructed === null || typeof constructed !== 'object' || !Retry.isConstructed(constructed, this)) {
+    if (!Guard.isObjectLike(constructed) || !Retry.isConstructed(constructed, this)) {
       throw new TypeError('Retry.create() must construct a Retry instance');
     }
     const result = constructed;

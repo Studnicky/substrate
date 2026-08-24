@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 export class ImmutableSnapshot {
   public static from<T>(value: T): T {
     const snapshot = structuredClone(value);
@@ -5,8 +7,8 @@ export class ImmutableSnapshot {
     return snapshot;
   }
 
-  static #freeze<T>(value: T, visited: WeakSet<object>): void {
-    if (value === null || typeof value !== 'object' || visited.has(value)) { return; }
+  static #freeze(value: unknown, visited: WeakSet<object>): void {
+    if (!Guard.isObjectLike(value) || visited.has(value)) { return; }
 
     visited.add(value);
     const nestedValues: readonly unknown[] = Object.values(value);

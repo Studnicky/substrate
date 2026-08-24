@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
 
@@ -27,8 +29,8 @@ export class Frozen {
         };
       }
 
-      const result: unknown = typeof value === 'function' ? value.bind(source) : value;
-      return result;
+      const resolvedValue: unknown = typeof value === 'function' ? value.bind(source) : value;
+      return resolvedValue;
     };
     return result;
   }
@@ -46,7 +48,7 @@ export class Frozen {
    * Delegates object-freeze decision to `this.shouldFreeze`.
    */
   protected static freezeValue<T>(value: T, seen: WeakSet<object>): T {
-    if (value === null || typeof value !== 'object') {
+    if (!Guard.isObjectLike(value)) {
       return value;
     }
 

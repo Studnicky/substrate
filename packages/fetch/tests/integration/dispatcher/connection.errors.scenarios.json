@@ -85,7 +85,7 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -100,7 +100,7 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__shape": "nan"
+            "shape": "nan"
           }
         }
       },

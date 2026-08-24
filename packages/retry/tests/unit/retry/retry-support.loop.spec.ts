@@ -122,7 +122,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetrySupportIn
 function assertConfigGuard(scenarioCase: ScenarioCase): void {
   const { expected, input } = scenarioCase;
 
-  if (Boolean(expected.result)) {
+  if (expected.result === true) {
     assert.doesNotThrow(() => {
       Reflect.construct(Retry, [input.retry ?? {}]);
     });

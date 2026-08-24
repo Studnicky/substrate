@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 
 import {
-  BANNED_SHORTENINGS, EXTERNAL_VOCABULARY_KEYS, IDENTIFIER_NAME_PATTERN
+  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, EXTERNAL_VOCABULARY_KEYS, IDENTIFIER_NAME_PATTERN
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { ObjectGuard } from './shared/ObjectGuard.js';
@@ -80,6 +80,10 @@ class CamelCase {
 
 class BannedToken {
   public static find(name: string): string | undefined {
+    if (BannedToken.#endsWithExternalGlobalTypeName(name)) {
+      return undefined;
+    }
+
     const tokens = CamelCase.split(name);
     const tokensLength = tokens.length;
 
@@ -93,6 +97,20 @@ class BannedToken {
     }
 
     return undefined;
+  }
+
+  static #endsWithExternalGlobalTypeName(name: string): boolean {
+    const suffixCount = EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES.length;
+
+    for (let index = 0; index < suffixCount; index += 1) {
+      const suffix = EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES[index];
+
+      if (suffix !== undefined && name.endsWith(suffix)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 
@@ -182,15 +200,8 @@ class ViolationReporter {
 
 class DescriptiveIdentifiers {
   public static create(context: Rule.RuleContext): Rule.RuleListener {
-    function getNodeProperty(node: Rule.Node, property: string): unknown {
-      const nodeAsObject: unknown = node;
-      const result = ObjectGuard.isObject(nodeAsObject) ? Reflect.get(nodeAsObject, property) : undefined;
-
-      return result;
-    }
-
     function onNodeWithId(node: Rule.Node): void {
-      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'id'));
+      const name = AstHelpers.getIdentifierName(AstHelpers.getNodeProperty(node, 'id'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -198,7 +209,7 @@ class DescriptiveIdentifiers {
     }
 
     function onIdentifier(node: Rule.Node): void {
-      const parent: unknown = getNodeProperty(node, 'parent');
+      const parent: unknown = AstHelpers.getNodeProperty(node, 'parent');
 
       if (!ObjectGuard.isObject(parent)) {
         return;
@@ -244,7 +255,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithKey(node: Rule.Node): void {
-      const name = KeyName.extract(getNodeProperty(node, 'key'));
+      const name = KeyName.extract(AstHelpers.getNodeProperty(node, 'key'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -252,7 +263,7 @@ class DescriptiveIdentifiers {
     }
 
     function onTSTypeParameter(node: Rule.Node): void {
-      const name = AstHelpers.getIdentifierName(getNodeProperty(node, 'name'));
+      const name = AstHelpers.getIdentifierName(AstHelpers.getNodeProperty(node, 'name'));
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);

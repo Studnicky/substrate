@@ -24,11 +24,52 @@ export class AstHelpers {
     return result;
   }
 
+  /** Reads an arbitrary named property off an AST node, returning `undefined` for a non-object. */
+  public static getNodeProperty(node: unknown, property: string): unknown {
+    const result = ObjectGuard.isObject(node) ? Reflect.get(node, property) : undefined;
+    return result;
+  }
+
   public static getIdentifierName(node: unknown): string | undefined {
     if (!ObjectGuard.isObject(node)) { return undefined; }
     const name = node.name;
     const result = typeof name === 'string' ? name : undefined;
     return result;
+  }
+
+  /**
+   * Visits every descendant of `node` (not `node` itself), recursing through own-enumerable
+   * object and array properties. Skips `parent` so a node whose `.parent` back-reference has
+   * already been set by ESLint's own traversal never sends this walk back up the tree.
+   */
+  public static forEachDescendant(node: unknown, visit: (descendant: Record<string, unknown>) => void): void {
+    if (!ObjectGuard.isObject(node)) { return; }
+
+    const keys = Object.keys(node);
+    const keyCount = keys.length;
+    for (let index = 0; index < keyCount; index += 1) {
+      const key = keys[index];
+      if (key === undefined || key === 'parent') { continue; }
+
+      const value = Reflect.get(node, key);
+      AstHelpers.#visitValue(value, visit);
+    }
+  }
+
+  static #visitValue(value: unknown, visit: (descendant: Record<string, unknown>) => void): void {
+    if (ObjectGuard.isArray(value)) {
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        AstHelpers.#visitValue(value[index], visit);
+      }
+      return;
+    }
+    if (!ObjectGuard.isObject(value) || typeof value.type !== 'string') {
+      return;
+    }
+
+    visit(value);
+    AstHelpers.forEachDescendant(value, visit);
   }
 
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {

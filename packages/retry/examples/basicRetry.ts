@@ -28,8 +28,8 @@ const result = await retry.execute(() => {
   if (attempt <= BasicRetryFixtures.failCount) {
     throw new Error(`Transient failure on attempt ${attempt}`);
   }
-  const result = Promise.resolve(`success on attempt ${attempt}`);
-  return result;
+  const attemptResult = Promise.resolve(`success on attempt ${attempt}`);
+  return attemptResult;
 });
 
 console.log(`Result: ${result}`);

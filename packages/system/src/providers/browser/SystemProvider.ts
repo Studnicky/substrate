@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 import type { NavigatorCompatEntity } from '../../entities/NavigatorCompatEntity.js';
@@ -8,7 +10,7 @@ import { GpuDetector } from '../../modules/browser/GpuDetector.js';
 export class SystemProvider implements SystemProviderInterface {
   static #navigator(): NavigatorCompatEntity.Type {
     const navigatorValue: unknown = Reflect.get(globalThis, 'navigator');
-    if (typeof navigatorValue !== 'object' || navigatorValue === null) {
+    if (!Guard.isObjectLike(navigatorValue)) {
       return {
         'deviceMemory': 0,
         'hardwareConcurrency': 1,
@@ -21,7 +23,7 @@ export class SystemProvider implements SystemProviderInterface {
     const hardwareConcurrencyValue: unknown = Reflect.get(navigatorValue, 'hardwareConcurrency');
     const userAgentValue: unknown = Reflect.get(navigatorValue, 'userAgent');
     const userAgentDataValue: unknown = Reflect.get(navigatorValue, 'userAgentData');
-    const platformValue: unknown = typeof userAgentDataValue === 'object' && userAgentDataValue !== null
+    const platformValue: unknown = Guard.isObjectLike(userAgentDataValue)
       ? Reflect.get(userAgentDataValue, 'platform')
       : undefined;
 

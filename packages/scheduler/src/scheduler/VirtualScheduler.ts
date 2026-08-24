@@ -1,3 +1,6 @@
+import type { VirtualTimeCounter } from '@studnicky/clock';
+import type { HookInvoker } from '@studnicky/errors';
+
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -9,8 +12,7 @@
  *
  * @module
  */
-import type { VirtualTimeCounter } from '@studnicky/clock';
-import type { HookInvoker } from '@studnicky/errors';
+import { Guard } from '@studnicky/types';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -80,7 +82,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     options: { readonly 'counter': Readonly<VirtualTimeCounter> }
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options.counter]);
-    if (typeof result !== 'object' || result === null || !VirtualSchedulerInstance.belongsTo(this, result)) {
+    if (!Guard.isObjectLike(result) || !VirtualSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualScheduler.create() did not construct the requested subclass.');
     }
     return result;

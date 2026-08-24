@@ -52,6 +52,12 @@
       "path": "packages/idempotency-guard/tsconfig.tests.json"
     },
     {
+      "path": "packages/intake-kit"
+    },
+    {
+      "path": "packages/intake-kit/tsconfig.tests.json"
+    },
+    {
       "path": "packages/predicates"
     },
     {

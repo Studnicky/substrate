@@ -4,10 +4,13 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
 
-import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
+import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { ResolvedType } from '../shared/ResolvedType.js';
 import { EntityIntake } from './EntityIntake.js';
 import { ExemptPackage } from './ExemptPackage.js';
+import { OpaqueValueShape } from './OpaqueValueShape.js';
 
 // UNPARSED DATA HAS EXACTLY ONE WAY IN.
 //
@@ -45,22 +48,60 @@ import { ExemptPackage } from './ExemptPackage.js';
 // every downstream site re-checks. `intake` returns a NEW value whose TYPE IS THE PROOF — it
 // cannot be obtained without having crossed the boundary.
 //
+// WHY THE CHECKER AND NOT THE SYNTAX. An earlier revision matched `TSUnknownKeyword` /
+// `TSAnyKeyword` annotations directly. That made this boundary bypassable WITHOUT a suppression,
+// and it was bypassed: eight parameters across `errors` and `json` were rewritten as
+// `unknown extends unknown ? unknown : never` — a conditional type resolving to exactly `unknown`,
+// which parses as `TSConditionalType` and so escaped the match. A one-line `type Anything = unknown`
+// alias defeats a syntactic check just as easily. Detection now resolves the parameter's real type
+// through the TypeScript checker, so how the annotation is spelled stops mattering.
+//
+// The companion hole is the phantom generic — `f<T>(value: T): string`, a type parameter used once
+// in a parameter position and never in the return, semantically identical to `unknown`. The checker
+// cannot flag it without also condemning `Clone.deep<T>(value: T): T`, where the generic genuinely
+// carries the caller's type through. `@typescript-eslint/no-unnecessary-type-parameters` is enabled
+// repo-wide to catch precisely the single-use case. Both checks are required; neither alone closes
+// the boundary.
+//
 // EXEMPT PACKAGES. `@studnicky/types` holds the narrowing primitives every parser is built from
 // (`Guard.isObject`, `JsonObject.is`, and the `as*` helpers that already return a value).
 // `@studnicky/eslint-config` operates on foreign ESLint and TypeScript AST node shapes rather
-// than application data. Neither package should be forced into application entities. The
-// exemption is by package name so it is visible and cannot quietly widen to cover a package that
-// should be parsing.
+// than application data. `@studnicky/predicates` is the type coercion and matching machinery
+// parsing depends on, so requiring intake there is circular. `@studnicky/intake-kit` is the
+// generic compile-orchestration and clone engine every entity's `intake` is built from — same
+// circularity as `predicates`. None of these packages should be forced into application entities.
+// The exemption is by package name so it is visible and cannot quietly widen to cover a package
+// that should be parsing.
+//
+// OPAQUE PARAMETERS. Not every `unknown`/`any` parameter trusts a shape — see
+// `OpaqueValueShape` for the decidable, per-parameter check that exempts a value the function
+// body only stores, forwards, or walks through a variable key, without ever asserting what it
+// contains. The one part of that check with no fixed answer — which non-called property reads
+// (`.length`, `.buffer`) belong to a JS/DOM built-in surface rather than an application field —
+// is the `structuralProperties` option. It ships this package's own built-in vocabulary as its
+// default; a consumer whose code walks a different built-in (`Blob`, `FormData`, a domain
+// library) supplies their own array instead of waiting on an upstream release.
+//
+// PRIVATE HELPERS INSIDE AN ENTITY. `EntityIntake.contains` recognizes more than the literally
+// named `intake` member — see its own comment for why a non-exported helper nested in the same
+// `*Entity` namespace shares the boundary.
 
 class UntypedParameter {
-  /** Returns the first parameter annotated `unknown` or `any`, if any. */
-  public static find(parameters: readonly unknown[]): Rule.Node | undefined {
+  /**
+   * Returns the first parameter whose RESOLVED type is `unknown` or `any`.
+   *
+   * Resolution goes through the TypeScript checker rather than the annotation's syntax, so a
+   * conditional type or a type alias that evaluates to `unknown` is caught exactly like the bare
+   * keyword. See `ResolvedType` for the bypasses this closes and for the one it deliberately
+   * leaves to `@typescript-eslint/no-unnecessary-type-parameters`.
+   */
+  public static find(context: Rule.RuleContext, parameters: readonly unknown[]): Rule.Node | undefined {
     const parameterCount = parameters.length;
 
     for (let index = 0; index < parameterCount; index += 1) {
       const parameter = parameters[index];
 
-      if (UntypedParameter.#isUntyped(parameter)) {
+      if (UntypedParameter.#isUntyped(context, parameter)) {
         return parameter as Rule.Node;
       }
     }
@@ -68,7 +109,7 @@ class UntypedParameter {
     return undefined;
   }
 
-  static #isUntyped(parameter: unknown): boolean {
+  static #isUntyped(context: Rule.RuleContext, parameter: unknown): boolean {
     if (!ObjectGuard.isObject(parameter)) {
       return false;
     }
@@ -82,7 +123,7 @@ class UntypedParameter {
     if (!ObjectGuard.isObject(inner)) {
       return false;
     }
-    const result = inner.type === 'TSUnknownKeyword' || inner.type === 'TSAnyKeyword';
+    const result = ResolvedType.isUnparsed(context, inner);
 
     return result;
   }
@@ -94,6 +135,11 @@ namespace IntakeParseOnlyOptionsEntity {
     'properties': {
       'exemptPackages': {
         'default': DEFAULT_EXEMPT_PACKAGES,
+        'items': { 'type': 'string' },
+        'type': 'array'
+      },
+      'structuralProperties': {
+        'default': DEFAULT_STRUCTURAL_PROPERTIES,
         'items': { 'type': 'string' },
         'type': 'array'
       }
@@ -114,6 +160,7 @@ export const intakeParseOnly: Rule.RuleModule = {
     if (ExemptPackage.matches(context.filename, exemptPackages)) {
       return {};
     }
+    const structuralProperties = new Set(options.structuralProperties);
 
     const inspect = (node: Rule.Node): void => {
       const raw = node as unknown as Record<string, unknown>;
@@ -122,12 +169,17 @@ export const intakeParseOnly: Rule.RuleModule = {
       if (!Array.isArray(parameters)) {
         return;
       }
-      const offending = UntypedParameter.find(parameters);
+      const offending = UntypedParameter.find(context, parameters);
 
       if (offending === undefined) {
         return;
       }
       if (EntityIntake.contains(node)) {
+        return;
+      }
+
+      const parameterName = AstHelpers.getIdentifierName(offending);
+      if (parameterName !== undefined && OpaqueValueShape.isOpaque(node, parameterName, structuralProperties)) {
         return;
       }
 

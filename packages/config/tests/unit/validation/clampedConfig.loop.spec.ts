@@ -122,7 +122,7 @@ function applyWithThrowingHook(scenarioCase: ScenarioCase): Record<string, unkno
 }
 
 function sorted(values: readonly string[]): string[] {
-  return [...values].sort();
+  return [...values].toSorted();
 }
 
 function assertClampedResult(scenarioCase: ScenarioCase): void {

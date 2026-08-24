@@ -1,0 +1,8 @@
+/**
+ * Checks if a value is strictly false
+ */
+
+
+export function isFalse(value: unknown): boolean {
+  return value === false;
+}

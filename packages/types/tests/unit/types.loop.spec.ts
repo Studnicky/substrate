@@ -21,11 +21,19 @@ type OutcomeAssertion = (actual: unknown) => void;
 type ScenarioExecutor = (scenario: Scenario) => void;
 
 type MaterializeMarkers = {
+  readonly abortSignal: MarkerMaterializer;
+  readonly arrayBufferView: MarkerMaterializer;
+  readonly asyncIterable: MarkerMaterializer;
   readonly bigint: MarkerMaterializer;
+  readonly blob: MarkerMaterializer;
   readonly cyclicObject: MarkerMaterializer;
   readonly date: MarkerMaterializer;
+  readonly error: MarkerMaterializer;
+  readonly formData: MarkerMaterializer;
   readonly function: MarkerMaterializer;
+  readonly headers: MarkerMaterializer;
   readonly infinity: MarkerMaterializer;
+  readonly iterable: MarkerMaterializer;
   readonly map: MarkerMaterializer;
   readonly mapWithEntry: MarkerMaterializer;
   readonly namedFunction: MarkerMaterializer;
@@ -33,35 +41,61 @@ type MaterializeMarkers = {
   readonly negativeInfinity: MarkerMaterializer;
   readonly null: MarkerMaterializer;
   readonly nullPrototypeObject: MarkerMaterializer;
+  readonly readableStream: MarkerMaterializer;
   readonly regex: MarkerMaterializer;
+  readonly request: MarkerMaterializer;
+  readonly response: MarkerMaterializer;
   readonly set: MarkerMaterializer;
   readonly setWithEntry: MarkerMaterializer;
   readonly symbol: MarkerMaterializer;
+  readonly thenable: MarkerMaterializer;
   readonly undefined: MarkerMaterializer;
+  readonly url: MarkerMaterializer;
+  readonly urlSearchParams: MarkerMaterializer;
 };
 
+function named(): void {}
+
 const materializeMarkers = {
+  abortSignal: () => new AbortController().signal,
+  arrayBufferView: () => new Uint8Array([1, 2, 3]),
+  asyncIterable: () => ({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }) }),
   bigint: () => 9007199254740993n,
+  blob: () => new Blob(['payload']),
   cyclicObject: () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
     return cyclic;
   },
   date: () => new Date(0),
+  error: () => new Error('test error'),
+  formData: () => new FormData(),
   function: () => () => {},
+  headers: () => new Headers(),
   infinity: () => Number.POSITIVE_INFINITY,
+  iterable: () => [1, 2, 3],
   map: () => new Map(),
   mapWithEntry: () => new Map([['a', 1]]),
-  namedFunction: () => function named() {},
+  namedFunction: () => named,
   nan: () => Number.NaN,
   negativeInfinity: () => Number.NEGATIVE_INFINITY,
   null: () => null,
   nullPrototypeObject: () => Object.create(null),
+  readableStream: () => new ReadableStream(),
   regex: () => /value/u,
+  request: () => new Request('https://example.test'),
+  response: () => new Response(),
   set: () => new Set(),
   setWithEntry: () => new Set([1]),
   symbol: () => Symbol('s'),
-  undefined: () => undefined
+  thenable: () => {
+    const value: Record<string, unknown> = {};
+    Reflect.set(value, 'then', () => {});
+    return value;
+  },
+  undefined: () => undefined,
+  url: () => new URL('https://example.test'),
+  urlSearchParams: () => new URLSearchParams()
 } satisfies MaterializeMarkers;
 
 type OutcomeAssertions = {
@@ -171,7 +205,7 @@ function expectOutcome(actual: unknown, expected: unknown): void {
 
   if (isObjectRecord(expected) && !Array.isArray(expected)) {
     assert.ok(isObjectRecord(actual));
-    assert.deepStrictEqual(Object.keys(actual).sort(), Object.keys(expected).sort());
+    assert.deepStrictEqual(Object.keys(actual).toSorted(), Object.keys(expected).toSorted());
     for (const [key, value] of Object.entries(expected)) {
       expectOutcome(actual[key], value);
     }
@@ -189,13 +223,38 @@ const guardExecutors = {
   asNumber: (input) => Guard.asNumber(input),
   asRecordArray: (input) => Guard.asRecordArray(input),
   asStringOrNull: (input) => Guard.asStringOrNull(input),
+  isAbortSignal: (input) => Guard.isAbortSignal(input),
+  isArray: (input) => Guard.isArray(input),
+  isArrayBufferView: (input) => Guard.isArrayBufferView(input),
+  isAsyncIterable: (input) => Guard.isAsyncIterable(input),
+  isBigInt: (input) => Guard.isBigInt(input),
+  isBlob: (input) => Guard.isBlob(input),
   isBoolean: (input) => Guard.isBoolean(input),
+  isDate: (input) => Guard.isDate(input),
+  isError: (input) => Guard.isError(input),
+  isFormData: (input) => Guard.isFormData(input),
   isFunction: (input) => Guard.isFunction(input),
+  isHeaders: (input) => Guard.isHeaders(input),
+  isIterable: (input) => Guard.isIterable(input),
+  isMap: (input) => Guard.isMap(input),
   isNonNegativeInteger: (input) => Guard.isNonNegativeInteger(input),
+  isNullish: (input) => Guard.isNullish(input),
   isNumber: (input) => Guard.isNumber(input),
   isObject: (input) => Guard.isObject(input),
+  isObjectLike: (input) => Guard.isObjectLike(input),
+  isPlainObject: (input) => Guard.isPlainObject(input),
   isPositiveInteger: (input) => Guard.isPositiveInteger(input),
-  isString: (input) => Guard.isString(input)
+  isReadableStream: (input) => Guard.isReadableStream(input),
+  isRecord: (input) => Guard.isRecord(input),
+  isRegExp: (input) => Guard.isRegExp(input),
+  isRequest: (input) => Guard.isRequest(input),
+  isResponse: (input) => Guard.isResponse(input),
+  isSet: (input) => Guard.isSet(input),
+  isString: (input) => Guard.isString(input),
+  isSymbol: (input) => Guard.isSymbol(input),
+  isThenable: (input) => Guard.isThenable(input),
+  isURL: (input) => Guard.isURL(input),
+  isURLSearchParams: (input) => Guard.isURLSearchParams(input)
 } satisfies GuardExecutors;
 
 type EmptyExecutors = {

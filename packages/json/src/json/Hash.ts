@@ -1,35 +1,26 @@
-/** FNV-1a structural hashing for parsed JSON values. */
-
-import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
+/** FNV-1a structural hashing for arbitrary in-memory values. */
 
 import { FNV_OFFSET_BASIS, FNV_PRIME, UINT32_MASK } from '../constants/HashConstants.js';
 import { DataType } from './DataType.js';
 
 export class Hash {
-  /** Compute the raw FNV-1a 32-bit integer for a string. */
   protected static fnv1a32(input: string): number {
-    let hash: number = FNV_OFFSET_BASIS;
-
+    let hash = FNV_OFFSET_BASIS;
     const length = input.length;
     for (let index = 0; index < length; index += 1) {
       hash ^= input.charCodeAt(index);
       hash = Math.imul(hash, FNV_PRIME) >>> 0;
     }
-
     const result = hash & UINT32_MASK;
     return result;
   }
 
-  /** Encode a 32-bit unsigned integer as an 8-character lowercase hex string. */
   protected static toHex32(value: number): string {
     const result = (value >>> 0).toString(16).padStart(8, '0');
     return result;
   }
 
-  /**
-   * Recursively produce a canonical string representation of a parsed JSON value.
-   */
-  protected static hashValue(value: JsonValueEntity.Type): string {
+  protected static hashValue(value: unknown): string {
     if (value === null) {
       return 'null';
     }
@@ -41,34 +32,53 @@ export class Hash {
       return `n:${String(value)}`;
     }
     if (typeof value === 'string') {
-      return `s:${this.toHex32(this.fnv1a32(value))}`;
+      const result = `s:${this.toHex32(this.fnv1a32(value))}`;
+      return result;
+    }
+    if (value instanceof Date) {
+      const result = `date:${value.getTime()}`;
+      return result;
+    }
+    if (value instanceof Map) {
+      const parts = [...value.entries()].map(([key, item]) => {
+        const result = `${this.hashValue(key)}=${this.hashValue(item)}`;
+        return result;
+      }).toSorted();
+      const result = `map{${parts.join(',')}}`;
+      return result;
+    }
+    if (value instanceof Set) {
+      const parts = [...value.values()].map((item) => {
+        const result = this.hashValue(item);
+        return result;
+      }).toSorted();
+      const result = `set{${parts.join(',')}}`;
+      return result;
     }
     if (Array.isArray(value)) {
-      const parts = value.map((item) => { const result = this.hashValue(item); return result; });
-
-      return `[${parts.join(',')}]`;
+      const parts = value.map((item) => {
+        const result = this.hashValue(item);
+        return result;
+      });
+      const result = `[${parts.join(',')}]`;
+      return result;
     }
-    if (DataType.isPlainObject(value)) {
-      const parts = Object.entries(value)
-        .sort(([leftKey], [rightKey]) => {
-          const result = leftKey.localeCompare(rightKey);
-          return result;
-        })
-        .map(([key, item]) => {
-          const result = item === undefined ? '' : `${key}:${this.hashValue(item)}`;
-          return result;
-        });
-
-      return `{${parts.join(',')}}`;
+    if (DataType.isRecord(value)) {
+      const keys = Object.keys(value).toSorted();
+      const parts = keys.map((key) => {
+        const item: unknown = Reflect.get(value, key);
+        const result = `${key}:${this.hashValue(item)}`;
+        return result;
+      });
+      const result = `{${parts.join(',')}}`;
+      return result;
     }
-
-    return 'invalid';
+    const result = `?:${typeof value}`;
+    return result;
   }
 
-  /** Compute a deterministic FNV-1a 32-bit hash of a parsed JSON value. */
-  public static value(input: JsonValueEntity.Type): string {
+  public static value(input: unknown): string {
     const serialised = this.hashValue(input);
-
     const result = this.toHex32(this.fnv1a32(serialised));
     return result;
   }

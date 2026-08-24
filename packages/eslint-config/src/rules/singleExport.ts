@@ -2,10 +2,11 @@ import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
+import type * as ts from 'typescript';
 
 import path from 'node:path';
 import {
-  type Program, type Symbol, SymbolFlags, type Type
+  type Program, type Symbol, SymbolFlags
 } from 'typescript';
 
 import {
@@ -50,9 +51,9 @@ class CaseConverter {
         return word;
       }
 
-      const result = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      const capitalizedWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
-      return result;
+      return capitalizedWord;
     }).join('');
 
     return result;
@@ -202,9 +203,9 @@ class CaseConverter {
     candidates.add(CaseConverter.toPascalCase(exportName, false));
 
     const result = [...candidates].filter((candidate) => {
-      const result = candidate.length > 0;
+      const isNonEmpty = candidate.length > 0;
 
-      return result;
+      return isNonEmpty;
     }).toSorted(NAME_COLLATOR.compare);
 
     return result;
@@ -248,7 +249,7 @@ const ExportShape = {
 
 interface ParserServicesInterface {
   readonly 'getSymbolAtLocation': (node: unknown) => Symbol | undefined;
-  readonly 'getTypeAtLocation': (node: unknown) => Type;
+  readonly 'getTypeAtLocation': (node: unknown) => ts.Type;
   readonly 'program': Program;
 }
 
@@ -545,9 +546,9 @@ class TopologyContentVerification {
 
     if (topology === 'interfaces') {
       const result = records.some((record) => {
-        const result = record.shape === ExportShape.Interface;
+        const isInterfaceShaped = record.shape === ExportShape.Interface;
 
-        return result;
+        return isInterfaceShaped;
       });
 
       return result;
@@ -555,9 +556,9 @@ class TopologyContentVerification {
 
     if (topology === 'types') {
       const result = records.some((record) => {
-        const result = record.shape === ExportShape.Type;
+        const isTypeShaped = record.shape === ExportShape.Type;
 
-        return result;
+        return isTypeShaped;
       });
 
       return result;
@@ -568,9 +569,9 @@ class TopologyContentVerification {
       // `Type` alias — either is proof the file is genuinely entity-shaped, not an arbitrary
       // grab-bag of consts sitting under `entities/`.
       const result = records.some((record) => {
-        const result = record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;
+        const isEntityShaped = record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;
 
-        return result;
+        return isEntityShaped;
       });
 
       return result;

@@ -49,7 +49,7 @@ class Directly {
         options.onExecuteStart?.();
 
         try {
-          const attemptResult = await retry.execute(() => { const result = callback(fetchClient, composedSignal); return result; });
+          const attemptResult = await retry.execute(() => { const callbackResult = callback(fetchClient, composedSignal); return callbackResult; });
 
           options.onExecuteComplete?.(attemptResult);
 

@@ -1,6 +1,7 @@
 /** Static predicate library for JSON Schema draft 2020-12 validation. */
 
 import { DataType } from '@studnicky/json';
+import { Guard } from '@studnicky/types';
 
 import {
   MULTIPLE_OF_EPSILON_FACTOR,
@@ -13,7 +14,7 @@ export class Predicates {
     [
       'array',
       (value: unknown): unknown => {
-        const result = !Array.isArray(value) && typeof value !== 'object' ? [value] : value;
+        const result = !Guard.isArray(value) && !Guard.isObjectLike(value) ? [value] : value;
         return result;
       }
     ],

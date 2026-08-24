@@ -2,6 +2,7 @@
  * @studnicky/errors entity schemas and inferred types.
  */
 
+export { CauseNodeEntity } from './CauseNodeEntity.js';
 export { ErrorClassificationEntity } from './ErrorClassificationEntity.js';
 export { ErrorCodeDescriptorEntity } from './ErrorCodeDescriptorEntity.js';
 export { ErrorDiagnosticEntity } from './ErrorDiagnosticEntity.js';
@@ -15,6 +16,7 @@ export { ErrorWithStatusCodeEntity } from './ErrorWithStatusCodeEntity.js';
 export { ErrorWithStatusEntity } from './ErrorWithStatusEntity.js';
 export { ErrorWithSyscallEntity } from './ErrorWithSyscallEntity.js';
 export { HookInvokerOptionsEntity } from './HookInvokerOptionsEntity.js';
+export { ThrownValueEntity } from './ThrownValueEntity.js';
 export { ValidationAggregateViewEntity } from './ValidationAggregateViewEntity.js';
 export { ValidationErrorArgumentsEntity } from './ValidationErrorArgumentsEntity.js';
 export { ValidationProblemDetailsEntity } from './ValidationProblemDetailsEntity.js';

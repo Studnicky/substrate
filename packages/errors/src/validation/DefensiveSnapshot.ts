@@ -1,3 +1,5 @@
+import { Guard } from '@studnicky/types';
+
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 
 /** Builds detached projections of arrays and plain records without cloning collaborator instances. */
@@ -28,7 +30,7 @@ export class DefensiveSnapshot {
       return result;
     }
 
-    if (value === null || typeof value !== 'object') {
+    if (!Guard.isObjectLike(value)) {
       return value;
     }
 
