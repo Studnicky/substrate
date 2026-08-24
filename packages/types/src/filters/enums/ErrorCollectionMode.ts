@@ -3,9 +3,9 @@
  */
 
 
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const ErrorCollectionMode = deepFreeze({
+export const ErrorCollectionMode = DeepFreeze.deepFreeze({
   'FIRST': (errors: Error[], newError: Error): boolean => {
     if (errors.length === 0) {
       errors.push(newError);

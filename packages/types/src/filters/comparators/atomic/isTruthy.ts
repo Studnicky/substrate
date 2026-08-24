@@ -3,6 +3,8 @@
  */
 
 
-export function isTruthy(value: unknown): boolean {
-  return Boolean(value);
+export class IsTruthy {
+  static isTruthy(value: unknown): boolean   {
+    return Boolean(value);
+  }
 }

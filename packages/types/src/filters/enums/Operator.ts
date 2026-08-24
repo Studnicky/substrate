@@ -19,7 +19,7 @@ import {
   binaryStartsWith
 } from '../operators/BinaryOperators.js';
 import { ObjectOperators } from '../operators/ObjectOperators.js';
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
 // Helper function for deep equality comparison with circular reference detection
 const deepEqual = (a: unknown, b: unknown, visited?: WeakSet<object>): boolean => {
@@ -1630,7 +1630,7 @@ export interface OperatorEnum {
   };
 }
 
-export const Operator: OperatorEnum = deepFreeze({
+export const Operator: OperatorEnum = DeepFreeze.deepFreeze({
   'ARRAY': {
     'EMPTY': arrayEmpty,
     'EQUALS': arrayEquals,

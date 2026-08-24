@@ -2,9 +2,9 @@
  * Array logic operators for multi-value conditions - using Node.js array method names
  */
 
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const ArrayLogic = deepFreeze({
+export const ArrayLogic = DeepFreeze.deepFreeze({
   'CORE': {
     // All items must match (Array.every)
     'EVERY': (results: boolean[]) => {return results.every(Boolean);},

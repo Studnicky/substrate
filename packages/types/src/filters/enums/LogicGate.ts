@@ -2,9 +2,9 @@
  * Logical operators for combining criteria with direct function access
  */
 
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const LogicGate = deepFreeze({
+export const LogicGate = DeepFreeze.deepFreeze({
   'CORE': {
     'AND': (results: boolean[]) => {return results.every(Boolean);},
     'NAND': (results: boolean[]) => {return !results.every(Boolean);},

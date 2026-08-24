@@ -3,11 +3,11 @@
  * @description Conversion and transformation utility functions
  */
 
-export { parseDate } from './date.js';
-export { processDateRange } from './dateRange.js';
-export { getComparisonValue } from './getComparisonValue.js';
-export { getInclusiveFlag } from './inclusiveFlag.js';
-export { numberConverter } from './numberConverter.js';
-export { processNumericRange } from './numericRange.js';
-export { prepareStringComparison } from './stringComparison.js';
-export { extractTimeComponents } from './timeComponents.js';
+export { ComparisonValueResolver } from './getComparisonValue.js';
+export { DateParser } from './date.js';
+export { DateRangeProcessor } from './dateRange.js';
+export { InclusiveFlagResolver } from './inclusiveFlag.js';
+export { NumberConverter } from './numberConverter.js';
+export { NumericRangeProcessor } from './numericRange.js';
+export { StringComparisonPreparer } from './stringComparison.js';
+export { TimeComponentExtractor } from './timeComponents.js';

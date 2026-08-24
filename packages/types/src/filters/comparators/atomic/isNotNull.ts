@@ -3,6 +3,8 @@
  */
 
 
-export function isNotNull(value: unknown): boolean {
-  return value !== null;
+export class IsNotNull {
+  static isNotNull(value: unknown): boolean   {
+    return value !== null;
+  }
 }

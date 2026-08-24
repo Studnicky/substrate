@@ -2,9 +2,9 @@
  * Error codes for consistent error handling
  */
 
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const ErrorCodes = deepFreeze({
+export const ErrorCodes = DeepFreeze.deepFreeze({
   'CORE': {
     'BUILTIN_OVERRIDE_DENIED': 'CORE.BUILTIN_OVERRIDE_DENIED',
     'BUILTIN_REMOVAL_DENIED': 'CORE.BUILTIN_REMOVAL_DENIED',

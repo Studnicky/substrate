@@ -6,6 +6,8 @@
  */
 
 
-export function isDate(value: unknown): value is Date {
-  return value instanceof Date;
+export class IsDate {
+  static isDate(value: unknown): value is Date   {
+    return value instanceof Date;
+  }
 }

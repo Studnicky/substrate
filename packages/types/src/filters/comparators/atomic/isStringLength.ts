@@ -9,6 +9,8 @@
  * @param length - The expected length
  * @returns true if value is a string with the specified length, false otherwise
  */
-export function isStringLength(value: unknown, length: number): boolean {
-  return typeof value === 'string' && value.length === length;
+export class IsStringLength {
+  static isStringLength(value: unknown, length: number): boolean   {
+    return typeof value === 'string' && value.length === length;
+  }
 }

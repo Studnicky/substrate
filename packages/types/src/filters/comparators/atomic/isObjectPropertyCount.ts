@@ -4,10 +4,12 @@
 
 import type { FilterValue } from '../../types.js';
 
-export function isObjectPropertyCount(obj: FilterValue, expectedCount: FilterValue): boolean {
-  if (typeof obj !== 'object' || obj === null || typeof expectedCount !== 'number') {
-    return false;
-  }
+export class IsObjectPropertyCount {
+  static isObjectPropertyCount(obj: FilterValue, expectedCount: FilterValue): boolean   {
+    if (typeof obj !== 'object' || obj === null || typeof expectedCount !== 'number') {
+      return false;
+    }
 
-  return Object.keys(obj).length === expectedCount;
+    return Object.keys(obj).length === expectedCount;
+  }
 }

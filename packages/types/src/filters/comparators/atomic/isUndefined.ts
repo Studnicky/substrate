@@ -6,6 +6,8 @@
  */
 
 
-export function isUndefined(value: unknown): boolean {
-  return value === undefined;
+export class IsUndefined {
+  static isUndefined(value: unknown): boolean   {
+    return value === undefined;
+  }
 }

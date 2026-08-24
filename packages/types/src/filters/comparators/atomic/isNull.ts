@@ -6,6 +6,8 @@
  */
 
 
-export function isNull(value: unknown): boolean {
-  return value === null;
+export class IsNull {
+  static isNull(value: unknown): boolean   {
+    return value === null;
+  }
 }

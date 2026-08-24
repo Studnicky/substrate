@@ -6,6 +6,8 @@
  */
 
 
-export function isString(value: unknown): value is string {
-  return typeof value === 'string';
+export class IsString {
+  static isString(value: unknown): value is string   {
+    return typeof value === 'string';
+  }
 }

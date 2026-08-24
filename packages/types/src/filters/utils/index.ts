@@ -3,9 +3,9 @@
  * @description Utility functions for the filtering engine
  */
 
-export { deepFreeze } from './deepFreeze.js';
-export { getPathValue } from './getPathValue.js';
-export { preventBuiltInOverride } from './preventBuiltInOverride.js';
-export { preventBuiltInRemoval } from './preventBuiltInRemoval.js';
-export { validateFunction } from './validateFunction.js';
-export { validatePluginRegistration } from './validatePluginRegistration.js';
+export { DeepFreeze } from './deepFreeze.js';
+export { GetPathValue } from './getPathValue.js';
+export { PreventBuiltInOverride } from './preventBuiltInOverride.js';
+export { PreventBuiltInRemoval } from './preventBuiltInRemoval.js';
+export { ValidateFunction } from './validateFunction.js';
+export { ValidatePluginRegistration } from './validatePluginRegistration.js';

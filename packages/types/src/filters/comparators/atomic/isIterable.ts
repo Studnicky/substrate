@@ -8,6 +8,8 @@
  * @param value - The value to check
  * @returns true if value is iterable, false otherwise
  */
-export function isIterable(value: unknown): boolean {
-  return value !== null && value !== undefined && typeof (value as Record<string | symbol, unknown>)[Symbol.iterator] === 'function';
+export class IsIterable {
+  static isIterable(value: unknown): boolean   {
+    return value !== null && value !== undefined && typeof (value as Record<string | symbol, unknown>)[Symbol.iterator] === 'function';
+  }
 }

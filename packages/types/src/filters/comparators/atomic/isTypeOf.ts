@@ -9,6 +9,8 @@
  * @param type - The expected typeof result ('string', 'number', 'boolean', 'object', 'function', 'symbol', 'undefined', 'bigint')
  * @returns true if typeof value equals the specified type, false otherwise
  */
-export function isTypeOf(value: unknown, type: string): boolean {
-  return typeof value === type;
+export class IsTypeOf {
+  static isTypeOf(value: unknown, type: string): boolean   {
+    return typeof value === type;
+  }
 }

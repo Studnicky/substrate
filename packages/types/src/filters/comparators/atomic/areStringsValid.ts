@@ -3,6 +3,8 @@
  */
 
 
-export function areStringsValid(value: unknown, filterValue: unknown): value is string {
-  return typeof value === 'string' && typeof filterValue === 'string';
+export class AreStringsValid {
+  static areStringsValid(value: unknown, filterValue: unknown): value is string   {
+    return typeof value === 'string' && typeof filterValue === 'string';
+  }
 }

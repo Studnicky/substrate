@@ -1,25 +1,27 @@
 /**
- * @module getComparisonValue
+ * @module ComparisonValueResolver
  * @description Get comparison value from condition or filter value
  */
 
-import { numberConverter } from '../converters/numberConverter.js';
+import { NumberConverter } from './numberConverter.js';
 
 /**
  * Get comparison value from condition or filter value
- * @param {*} filterValue - Raw filter value
- * @param {Object} condition - condition with potential pre-computed value
- * @param {Logger} [logger] - Optional logger instance (defaults to console)
- * @returns {number} Numeric comparison value
  */
-function getComparisonValue(filterValue: unknown, condition: { 'numericValue'?: number }): number {
-  if (condition.numericValue !== undefined) {
-    return condition.numericValue;
+export class ComparisonValueResolver {
+  /**
+   * Get comparison value from condition or filter value
+   * @param {*} filterValue - Raw filter value
+   * @param {Object} condition - condition with potential pre-computed value
+   * @returns {number} Numeric comparison value
+   */
+  static getComparisonValue(filterValue: unknown, condition: { 'numericValue'?: number }): number {
+    if (condition.numericValue !== undefined) {
+      return condition.numericValue;
+    }
+
+    const result = NumberConverter.numberConverter(filterValue, NaN);
+
+    return result;
   }
-
-  const result = numberConverter(filterValue, NaN);
-
-  return result;
 }
-
-export { getComparisonValue };

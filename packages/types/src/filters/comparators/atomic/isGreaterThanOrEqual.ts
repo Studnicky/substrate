@@ -4,18 +4,20 @@
 
 import type { FilterValue } from '../../types.js';
 
-export function isGreaterThanOrEqual(value: unknown, comparison: FilterValue): boolean {
-  if (typeof value === 'number' && typeof comparison === 'number') {
-    return value >= comparison;
-  }
+export class IsGreaterThanOrEqual {
+  static isGreaterThanOrEqual(value: unknown, comparison: FilterValue): boolean   {
+    if (typeof value === 'number' && typeof comparison === 'number') {
+      return value >= comparison;
+    }
 
-  if (typeof value === 'string' && typeof comparison === 'string') {
-    return value >= comparison;
-  }
+    if (typeof value === 'string' && typeof comparison === 'string') {
+      return value >= comparison;
+    }
 
-  if (value instanceof Date && comparison instanceof Date) {
-    return value.getTime() >= comparison.getTime();
-  }
+    if (value instanceof Date && comparison instanceof Date) {
+      return value.getTime() >= comparison.getTime();
+    }
 
-  return false;
+    return false;
+  }
 }

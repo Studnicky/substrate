@@ -28,7 +28,7 @@ import {
 import { FilterEngine } from './FilterEngine.js';
 // Plugin system is now internal - no direct access needed
 // Utilities are not exported, only used internally
-import { deepFreeze } from './utils/deepFreeze.js';
+import { DeepFreeze } from './utils/deepFreeze.js';
 
 // PluginManager class removed - global registries not supported
 // Use instance-based Plugins class instead
@@ -59,7 +59,7 @@ export {
 
 
 // Export Types namespace - all enums and type-related exports
-export const Types = deepFreeze({
+export const Types = DeepFreeze.deepFreeze({
   'ArrayLogic': ArrayLogic,
   'Comparator': Comparator,
   // Internal enums (for advanced usage/tooling)
@@ -77,7 +77,7 @@ export const Types = deepFreeze({
 });
 
 // Export Errors namespace - all error classes
-export const Errors = deepFreeze({
+export const Errors = DeepFreeze.deepFreeze({
   'FilterCompilationError': FilterCompilationError,
   'FilterConfigurationError': FilterConfigurationError,
   'FilterError': FilterError,

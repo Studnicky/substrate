@@ -12,16 +12,18 @@
 
 import type { FilterValue } from '../../types.js';
 
-export function isCloseTo(value: unknown, expected: FilterValue, precision = 2): boolean {
-  if (typeof value !== 'number' || typeof expected !== 'number') {
-    return false;
+export class IsCloseTo {
+  static isCloseTo(value: unknown, expected: FilterValue, precision = 2): boolean   {
+    if (typeof value !== 'number' || typeof expected !== 'number') {
+      return false;
+    }
+
+    if (!Number.isFinite(value) || !Number.isFinite(expected)) {
+      return value === expected;
+    }
+
+    const pass = Math.abs(expected - value) < Math.pow(10, -precision) / 2;
+
+    return pass;
   }
-
-  if (!Number.isFinite(value) || !Number.isFinite(expected)) {
-    return value === expected;
-  }
-
-  const pass = Math.abs(expected - value) < Math.pow(10, -precision) / 2;
-
-  return pass;
 }

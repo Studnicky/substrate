@@ -15,9 +15,9 @@ import { isInRange } from '../comparators/composite/isInRange.js';
 import { isOutsideRange } from '../comparators/composite/isOutsideRange.js';
 import { doesValueMatchPattern } from '../comparators/composite/matchesPattern.js';
 import { doesStringContain } from '../comparators/composite/stringContains.js';
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const Comparator = deepFreeze({
+export const Comparator = DeepFreeze.deepFreeze({
   'CORE': {
     'deepEquals': areDeeplyEqual,
     'isDateLike': isDateLike,

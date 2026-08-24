@@ -5,14 +5,14 @@
 
 import { ErrorCollectionMode } from '../enums/ErrorCollectionMode.js';
 import { FilterMode } from '../enums/FilterMode.js';
-import { deepFreeze } from '../utils/deepFreeze.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
 
 /**
  * Default configuration for FilterEngine instances
  * @readonly
  * @type {Object}
  */
-const DefaultConfig = deepFreeze({
+const DefaultConfig = DeepFreeze.deepFreeze({
   // Performance options
   'cacheCompiled': true,
   'conditions': null,

@@ -4,6 +4,8 @@
  */
 
 
-export function areReferenceEqual(value: unknown, filterValue: unknown): boolean {
-  return Object.is(value, filterValue);
+export class AreReferenceEqual {
+  static areReferenceEqual(value: unknown, filterValue: unknown): boolean   {
+    return Object.is(value, filterValue);
+  }
 }

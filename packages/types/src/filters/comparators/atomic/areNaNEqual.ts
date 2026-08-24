@@ -7,16 +7,18 @@
  */
 
 
-export function areNaNEqual(value: unknown, filterValue: unknown): boolean {
-  if (Number.isNaN(value) && Number.isNaN(filterValue)) {
-    // Both are NaN, so they are deeply equal
-    return true;
-  }
-  if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-    // Only one is NaN
+export class AreNaNEqual {
+  static areNaNEqual(value: unknown, filterValue: unknown): boolean   {
+    if (Number.isNaN(value) && Number.isNaN(filterValue)) {
+      // Both are NaN, so they are deeply equal
+      return true;
+    }
+    if (Number.isNaN(value) || Number.isNaN(filterValue)) {
+      // Only one is NaN
+      return false;
+    }
+
+    // Neither is NaN
     return false;
   }
-
-  // Neither is NaN
-  return false;
 }

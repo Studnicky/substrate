@@ -3,6 +3,8 @@
  */
 
 
-export function isTrue(value: unknown): boolean {
-  return value === true;
+export class IsTrue {
+  static isTrue(value: unknown): boolean   {
+    return value === true;
+  }
 }

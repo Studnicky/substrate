@@ -8,6 +8,8 @@
  * @param value - The value to check
  * @returns true if value is a negative number, false otherwise
  */
-export function isNegative(value: unknown): boolean {
-  return typeof value === 'number' && value < 0;
+export class IsNegative {
+  static isNegative(value: unknown): boolean   {
+    return typeof value === 'number' && value < 0;
+  }
 }

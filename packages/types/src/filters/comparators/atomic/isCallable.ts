@@ -8,6 +8,8 @@
  * @param value - The value to check
  * @returns true if value is callable, false otherwise
  */
-export function isCallable(value: unknown): boolean {
-  return typeof value === 'function';
+export class IsCallable {
+  static isCallable(value: unknown): boolean   {
+    return typeof value === 'function';
+  }
 }

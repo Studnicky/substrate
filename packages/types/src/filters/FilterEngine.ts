@@ -31,8 +31,8 @@ import { ArrayLogic } from './logic/ArrayLogic.js';
 import { NumericOperators } from './operators/NumericOperators.js';
 import { Plugins } from './registries/index.js';
 import { isArrayWildcardValue, isValidFilterConfig } from './types.js';
-import { getPathValue } from './utils/getPathValue.js';
-import { validatePath } from './utils/validatePath.js';
+import { GetPathValue } from './utils/getPathValue.js';
+import { ValidatePath } from './utils/validatePath.js';
 
 // Config-like shape accepted by #validateConfiguration - both the root FilterConfig
 // and a nested FilterCondition (which reuses gate/conditions for sub-groups) satisfy it
@@ -395,7 +395,7 @@ class FilterEngine {
     for (let i = 0; i < arrayLength; i++) {
       const rawItem = array[i];
       const value = remainingPathStr
-        ? getPathValue(FilterValueEntity.intake(rawItem), remainingPathStr, this.maxPathDepth)
+        ? GetPathValue.getPathValue(FilterValueEntity.intake(rawItem), remainingPathStr, this.maxPathDepth)
         : FilterValueEntity.intake(rawItem);
 
       // Pass the wildcard level to nested evaluations
@@ -553,7 +553,7 @@ class FilterEngine {
       || condition[PropertyName.CORE.PATHWAY];
 
     // Validate path format - paths MUST be in dot notation
-    if (path && !validatePath(path)) {
+    if (path && !ValidatePath.validatePath(path)) {
       throw new FilterConfigurationError(
         `Invalid path format: "${path}". Paths must use dot notation (e.g., "user.profile.name" or "items[0].value")`,
         {
@@ -804,7 +804,7 @@ class FilterEngine {
       }
 
       // Apply converter if specified, but not for array wildcards (handled in applyArrayWildcard)
-      const value = getPathValue(data, condition[PropertyName.CORE.PATH] ?? '', this.maxPathDepth);
+      const value = GetPathValue.getPathValue(data, condition[PropertyName.CORE.PATH] ?? '', this.maxPathDepth);
 
 
       result = this.#applyOperator(
@@ -854,7 +854,7 @@ class FilterEngine {
 
       const fieldPath = condition[PropertyName.CORE.PATH] ?? '';
       // Apply converter if specified
-      const value = getPathValue(data, fieldPath, this.maxPathDepth);
+      const value = GetPathValue.getPathValue(data, fieldPath, this.maxPathDepth);
 
 
       // If the condition failed, add error details

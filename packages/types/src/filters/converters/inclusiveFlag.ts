@@ -1,15 +1,18 @@
 /**
- * @module getInclusiveFlag
+ * @module InclusiveFlagResolver
  * @description Get inclusive flag from condition
  */
 
 /**
- * Get inclusive flag from condition with default
- * @param {Object} condition - condition object
- * @returns {boolean} Whether boundaries are inclusive
+ * Get inclusive flag from condition
  */
-function getInclusiveFlag(condition?: { 'inclusive'?: boolean }): boolean {
-  return condition?.inclusive !== false;
+export class InclusiveFlagResolver {
+  /**
+   * Get inclusive flag from condition with default
+   * @param {Object} condition - condition object
+   * @returns {boolean} Whether boundaries are inclusive
+   */
+  static getInclusiveFlag(condition?: { 'inclusive'?: boolean }): boolean {
+    return condition?.inclusive !== false;
+  }
 }
-
-export { getInclusiveFlag };

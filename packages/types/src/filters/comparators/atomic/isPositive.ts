@@ -8,6 +8,8 @@
  * @param value - The value to check
  * @returns true if value is a positive number, false otherwise
  */
-export function isPositive(value: unknown): boolean {
-  return typeof value === 'number' && value > 0;
+export class IsPositive {
+  static isPositive(value: unknown): boolean   {
+    return typeof value === 'number' && value > 0;
+  }
 }
