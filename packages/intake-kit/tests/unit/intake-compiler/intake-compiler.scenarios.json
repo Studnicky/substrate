@@ -1,0 +1,81 @@
+{
+  "cases": [
+    {
+      "name": "intake-coerces-number-to-string",
+      "description": "intake coerces per the injected options",
+      "shape": "intake-coerces",
+      "input": {
+        "candidate": { "name": 42 }
+      },
+      "expected": {
+        "result": { "name": "42" }
+      }
+    },
+    {
+      "name": "create-does-not-coerce",
+      "description": "create does not coerce",
+      "shape": "create-throws",
+      "input": {
+        "candidate": { "name": 42 }
+      },
+      "expected": {
+        "message": "WidgetEntity: does not match the declared schema"
+      }
+    },
+    {
+      "name": "create-passthrough-valid",
+      "description": "create fills nothing and passes through valid trusted data",
+      "shape": "create-passthrough",
+      "input": {
+        "candidate": { "name": "gear" }
+      },
+      "expected": {
+        "result": { "name": "gear" }
+      }
+    },
+    {
+      "name": "intake-rejects-non-object-candidate",
+      "description": "intake rejects a non-object candidate through onInvalidCandidate",
+      "shape": "intake-rejects-invalid-candidate",
+      "input": {
+        "candidates": ["not an object", null, ["array"]]
+      },
+      "expected": {
+        "message": "WidgetEntity: must be an object"
+      }
+    },
+    {
+      "name": "intake-rejects-parser-undefined",
+      "description": "intake rejects when the parser returns undefined",
+      "shape": "intake-rejects-parser-undefined",
+      "input": {
+        "candidate": { "name": true }
+      },
+      "expected": {
+        "message": "WidgetEntity: does not match the declared schema"
+      }
+    },
+    {
+      "name": "clone-isolation-mutation-not-observed",
+      "description": "clones the input so the caller-held value is never mutated",
+      "shape": "clone-isolation",
+      "input": {
+        "originalName": "original"
+      },
+      "expected": {}
+    },
+    {
+      "name": "compile-independent-create-and-intake",
+      "description": "compileCreate and compileIntake produce independently callable functions",
+      "shape": "compile-independent",
+      "input": {
+        "createCandidate": { "name": "gear" },
+        "intakeCandidate": { "name": 42 }
+      },
+      "expected": {
+        "createResult": { "name": "gear" },
+        "intakeResult": { "name": "42" }
+      }
+    }
+  ]
+}
