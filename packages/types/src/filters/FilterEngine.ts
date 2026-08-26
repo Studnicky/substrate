@@ -14,6 +14,7 @@ import type {
 
 import { Predicates } from '../predicates/Predicates.js';
 import { DefaultConfig } from './config/DefaultConfig.js';
+import { MAXIMUM_HEURISTIC_PATTERN_LENGTH } from './constants/MaximumHeuristicPatternLength.js';
 import { REGEX_LIKE_PATTERN } from './constants/RegexLikePattern.js';
 import { REGEX_SPECIAL_CHARS_PATTERN } from './constants/RegexSpecialCharsPattern.js';
 import { SURROGATE_PAIR_PATTERN } from './constants/SurrogatePairPattern.js';
@@ -1296,7 +1297,7 @@ class FilterEngine {
    * @returns {boolean} True if Unicode flag is needed
    */
   #needsUnicodeFlag(pattern: unknown): boolean {
-    if (typeof pattern !== 'string') {
+    if (typeof pattern !== 'string' || pattern.length > MAXIMUM_HEURISTIC_PATTERN_LENGTH) {
       return false;
     }
 
@@ -1324,7 +1325,7 @@ class FilterEngine {
    * @returns {string} Processed regex pattern
    */
   #processMatchesPattern(pattern: string): string {
-    const isRegexPattern = REGEX_LIKE_PATTERN.test(pattern);
+    const isRegexPattern = pattern.length <= MAXIMUM_HEURISTIC_PATTERN_LENGTH && REGEX_LIKE_PATTERN.test(pattern);
 
     if (isRegexPattern) {
       return pattern;
