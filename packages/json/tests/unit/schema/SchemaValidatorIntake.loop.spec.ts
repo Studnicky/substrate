@@ -60,6 +60,7 @@ const scenarioRunnerMap = {
         throw error;
       }
 
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- expected.path is repo-authored fixture data, not attacker input
       assert.match(error.message, new RegExp(requireString(requiredValue(expected, 'path'), 'intake rejection path'), 'u'));
       assert.ok(error.errors.length > 0);
       assert.equal(error.schemaIdentifier, requireString(requiredValue(expected, 'schemaIdentifier'), 'intake rejection schema identifier'));
@@ -101,6 +102,7 @@ const scenarioRunnerMap = {
         throw error;
       }
 
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- expected.path is repo-authored fixture data, not attacker input
       assert.match(error.message, new RegExp(requireString(requiredValue(expected, 'path'), 'create no coercion path'), 'u'));
     }
   },
@@ -162,6 +164,7 @@ const scenarioRunnerMap = {
         throw error;
       }
 
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- expected.message is repo-authored fixture data, not attacker input
       assert.match(error.message, new RegExp(requireString(requiredValue(expected, 'message'), 'cyclic input message'), 'iu'));
     }
   }

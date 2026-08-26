@@ -196,6 +196,7 @@ const runnerMap: RunnerMap = {
     }
     await assert.rejects(
       () => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))),
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- errorMessage is repo-authored fixture data, not attacker input
       new RegExp(scenarioCase.expected.errorMessage)
     );
   },

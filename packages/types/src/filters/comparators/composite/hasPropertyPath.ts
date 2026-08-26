@@ -16,6 +16,8 @@ import { Predicates } from '../../../predicates/Predicates.js';
 import { ARRAY_INDEX_SEGMENT_PATTERN } from './constants/ArrayIndexSegmentPattern.js';
 import { PROPERTY_PATH_SEGMENT_DELIMITER_PATTERN } from './constants/PropertyPathSegmentDelimiterPattern.js';
 
+const UNSAFE_PATH_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export class HasPropertyPath {
   static hasPropertyPath(value: unknown, path: string): boolean {
     if (!Predicates.isRecord(value)) {
@@ -31,7 +33,7 @@ export class HasPropertyPath {
     for (let index = 0; index < segmentsLength; index++) {
       const segment = segments[index];
 
-      if (segment === undefined) {
+      if (segment === undefined || UNSAFE_PATH_SEGMENTS.has(segment)) {
         return false;
       }
 
@@ -42,12 +44,14 @@ export class HasPropertyPath {
         if (!Predicates.isArray(current) || !(arrayIndex in current)) {
           return false;
         }
+        // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop -- read-only traversal, segment is never a prototype-chain name (guarded above)
         current = current[arrayIndex];
       } else {
         // Handle object properties
-        if (!Predicates.isRecord(current) || !(segment in current)) {
+        if (!Predicates.isRecord(current) || !Object.hasOwn(current, segment)) {
           return false;
         }
+        // nosemgrep: javascript.lang.security.audit.prototype-pollution.prototype-pollution-loop.prototype-pollution-loop -- read-only traversal, segment is never a prototype-chain name (guarded above)
         current = current[segment];
       }
     }

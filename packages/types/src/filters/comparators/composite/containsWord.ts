@@ -26,6 +26,7 @@ export class ContainsWord {
     // Escape special regex characters in the word
     const escapedWord = word.replace(ESCAPE_REGEX_CHARACTERS_PATTERN, '\\$&');
     // Create regex with word boundaries
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- escapedWord has every regex metacharacter escaped above, so no quantifier can reach the pattern
     const wordBoundaryPattern = new RegExp(`\\b${escapedWord}\\b`, 'i');
 
     const result = wordBoundaryPattern.test(value);

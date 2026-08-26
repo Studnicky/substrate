@@ -151,6 +151,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     await assert.rejects(
       () => retry.execute(async () => 'should not reach caller'),
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- errorMessageIncludes is repo-authored fixture data, not attacker input
       new RegExp(String(scenarioCase.expected.errorMessageIncludes))
     );
   },

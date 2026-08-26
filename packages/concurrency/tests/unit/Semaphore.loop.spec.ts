@@ -357,6 +357,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
     const expected = scenarioCase.expected as { availableAfter: number };
     const sem = Semaphore.create(semaphoreOptions(input));
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
     await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), new RegExp(input.message));
     assert.equal(sem.available, expected.availableAfter);
   }

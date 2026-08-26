@@ -148,6 +148,7 @@ const GROUPS: Group[] = [
             class="substrate-card"
             :href="withBase(pkg.link)"
           >
+            <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -- pkg.icon is a hardcoded SVG literal in this file's own GROUPS constant, never external or user input -->
             <span class="substrate-card-icon" v-html="pkg.icon" aria-hidden="true"></span>
             <span class="substrate-card-name">{{ pkg.name }}</span>
             <span class="substrate-card-desc">{{ pkg.desc }}</span>
@@ -164,6 +165,7 @@ const GROUPS: Group[] = [
               class="substrate-card"
               :href="withBase(pkg.link)"
             >
+              <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -- pkg.icon is a hardcoded SVG literal in this file's own GROUPS constant, never external or user input -->
               <span class="substrate-card-icon" v-html="pkg.icon" aria-hidden="true"></span>
               <span class="substrate-card-name">{{ pkg.name }}</span>
               <span class="substrate-card-desc">{{ pkg.desc }}</span>

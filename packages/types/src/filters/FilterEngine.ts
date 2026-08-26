@@ -721,6 +721,7 @@ class FilterEngine {
       const needsUnicodeFlag = this.#needsUnicodeFlag(regexSource);
       const flags = (compiled.caseSensitive === true ? '' : 'i') + (needsUnicodeFlag ? 'u' : '');
 
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- compiling a caller-authored .MATCHES/.REGEX filter condition is this engine's contracted feature, not attacker-supplied input
       compiled.compiledRegex = new RegExp(regexSource, flags);
     } catch {
       compiled.regexError = true;

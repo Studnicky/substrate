@@ -18,7 +18,7 @@ const allResults: number[] = [];
 let batchIndex = 0;
 
 for await (const batch of Batch.create<number>(2).process(BasicProcessingFixture.Items, NumberItem.double)) {
-  console.log(`Batch ${batchIndex}:`, batch);
+  console.log('Batch', batchIndex, ':', batch);
   allResults.push(...batch);
   batchIndex++;
 }

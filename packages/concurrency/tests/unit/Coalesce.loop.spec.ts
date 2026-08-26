@@ -93,6 +93,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
     await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
@@ -101,6 +102,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
     await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
@@ -187,6 +189,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { success: boolean };
     const c = ObservedCoalesce.create();
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
     await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(c.settledEvents.length, 1);
     assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });

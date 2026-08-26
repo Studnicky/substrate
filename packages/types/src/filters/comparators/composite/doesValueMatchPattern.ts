@@ -64,6 +64,7 @@ export class DoesValueMatchPattern {
     const patternString = String(regex);
 
     try {
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- executePattern risk-analyzes the source against HIGH_RISK_REGEX_PATTERNS before matching
       const pattern = new RegExp(regex);
 
       return {
