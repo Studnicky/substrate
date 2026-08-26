@@ -31,6 +31,11 @@ runs:
         cache: pnpm
         registry-url: 'https://npm.pkg.github.com'
         scope: ${{ inputs.scope }}
+    # setup-node's registry-url writes a global .npmrc expecting NODE_AUTH_TOKEN
+    # as a job-wide env var, not a single step's — without this, every later
+    # pnpm invocation in the job re-warns about the unresolved placeholder.
+    - shell: bash
+      run: echo "NODE_AUTH_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
     # actions/setup-node's cache: pnpm only caches the pnpm content-addressable
     # store (avoids re-downloading packages) — pnpm still re-resolves and
     # re-links the full dependency graph into node_modules on every job. This
