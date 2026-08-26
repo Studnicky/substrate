@@ -51,6 +51,16 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       if [ -n "$base_ref" ] && [ "$local_sha" != "$empty_sha" ]; then
         check_rebased_onto_base "${base_ref#origin/}" "$local_sha" "$local_ref"
       fi
+      # chore/sync-main-to-develop's whole job is carrying main's commits into
+      # develop, so it is exempt; every other develop-bound branch is not.
+      case "$local_ref" in
+        refs/heads/release/*|refs/heads/hotfix/*|refs/heads/main|refs/heads/develop|refs/heads/chore/sync-main-to-develop) ;;
+        *)
+          if [ "$local_sha" != "$empty_sha" ]; then
+            check_no_leaked_main_commits "$local_sha" "$local_ref"
+          fi
+          ;;
+      esac
       ;;
     refs/tags/*)
       pushed_tags="$pushed_tags ${local_ref#refs/tags/}"
