@@ -1,5 +1,14 @@
 # @studnicky/virtual-fs
 
+## 11.0.1
+
+### Patch Changes
+
+- @studnicky/clock@11.0.1
+  - @studnicky/errors@11.0.1
+  - @studnicky/json@11.0.1
+  - @studnicky/types@11.0.1
+
 ## 11.0.0
 
 ### Major Changes

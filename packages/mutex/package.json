@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/mutex",
-  "version": "11.0.0",
+  "version": "11.0.1",
   "description": "Key-based async mutex for preventing race conditions in concurrent operations",
   "type": "module",
   "sideEffects": false,
