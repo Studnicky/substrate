@@ -216,7 +216,7 @@ jobs:
           MATRIX_COMMAND: ${{ matrix.command }}
         run: bash -euo pipefail -c "$MATRIX_COMMAND"
       - if: matrix.upload_docs == 'true' && inputs.upload-docs-dist
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ inputs.docs-dist-artifact }}
           path: docs/.vitepress/dist
