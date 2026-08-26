@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Empty } from '../../src/guards/Empty.js';
-import { Guard } from '../../src/guards/Guard.js';
 import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
 import { PickDefined } from '../../src/objects/PickDefined.js';
+import { Predicates } from '../../src/predicates/Predicates.js';
 
 import scenarioGroups from './types.scenarios.json' with { type: 'json' };
 
@@ -220,41 +220,41 @@ type GuardExecutors = {
 };
 
 const guardExecutors = {
-  asNumber: (input) => Guard.asNumber(input),
-  asRecordArray: (input) => Guard.asRecordArray(input),
-  asStringOrNull: (input) => Guard.asStringOrNull(input),
-  isAbortSignal: (input) => Guard.isAbortSignal(input),
-  isArray: (input) => Guard.isArray(input),
-  isArrayBufferView: (input) => Guard.isArrayBufferView(input),
-  isAsyncIterable: (input) => Guard.isAsyncIterable(input),
-  isBigInt: (input) => Guard.isBigInt(input),
-  isBlob: (input) => Guard.isBlob(input),
-  isBoolean: (input) => Guard.isBoolean(input),
-  isDate: (input) => Guard.isDate(input),
-  isError: (input) => Guard.isError(input),
-  isFormData: (input) => Guard.isFormData(input),
-  isFunction: (input) => Guard.isFunction(input),
-  isHeaders: (input) => Guard.isHeaders(input),
-  isIterable: (input) => Guard.isIterable(input),
-  isMap: (input) => Guard.isMap(input),
-  isNonNegativeInteger: (input) => Guard.isNonNegativeInteger(input),
-  isNullish: (input) => Guard.isNullish(input),
-  isNumber: (input) => Guard.isNumber(input),
-  isObject: (input) => Guard.isObject(input),
-  isObjectLike: (input) => Guard.isObjectLike(input),
-  isPlainObject: (input) => Guard.isPlainObject(input),
-  isPositiveInteger: (input) => Guard.isPositiveInteger(input),
-  isReadableStream: (input) => Guard.isReadableStream(input),
-  isRecord: (input) => Guard.isRecord(input),
-  isRegExp: (input) => Guard.isRegExp(input),
-  isRequest: (input) => Guard.isRequest(input),
-  isResponse: (input) => Guard.isResponse(input),
-  isSet: (input) => Guard.isSet(input),
-  isString: (input) => Guard.isString(input),
-  isSymbol: (input) => Guard.isSymbol(input),
-  isThenable: (input) => Guard.isThenable(input),
-  isURL: (input) => Guard.isURL(input),
-  isURLSearchParams: (input) => Guard.isURLSearchParams(input)
+  asNumber: (input) => Predicates.asNumber(input),
+  asRecordArray: (input) => Predicates.asRecordArray(input),
+  asStringOrNull: (input) => Predicates.asStringOrNull(input),
+  isAbortSignal: (input) => Predicates.isAbortSignal(input),
+  isArray: (input) => Predicates.isArray(input),
+  isArrayBufferView: (input) => Predicates.isArrayBufferView(input),
+  isAsyncIterable: (input) => Predicates.isAsyncIterable(input),
+  isBigInt: (input) => Predicates.isBigInt(input),
+  isBlob: (input) => Predicates.isBlob(input),
+  isBoolean: (input) => Predicates.isBoolean(input),
+  isDate: (input) => Predicates.isDate(input),
+  isError: (input) => Predicates.isError(input),
+  isFormData: (input) => Predicates.isFormData(input),
+  isFunction: (input) => Predicates.isFunction(input),
+  isHeaders: (input) => Predicates.isHeaders(input),
+  isIterable: (input) => Predicates.isIterable(input),
+  isMap: (input) => Predicates.isMap(input),
+  isNonNegativeInteger: (input) => Predicates.isNonNegativeInteger(input),
+  isNullish: (input) => Predicates.isNullish(input),
+  isNumber: (input) => Predicates.isNumber(input),
+  isObject: (input) => Predicates.isObject(input),
+  isObjectLike: (input) => Predicates.isObjectLike(input),
+  isPlainObject: (input) => Predicates.isPlainObject(input),
+  isPositiveInteger: (input) => Predicates.isPositiveInteger(input),
+  isReadableStream: (input) => Predicates.isReadableStream(input),
+  isRecord: (input) => Predicates.isRecord(input),
+  isRegExp: (input) => Predicates.isRegExp(input),
+  isRequest: (input) => Predicates.isRequest(input),
+  isResponse: (input) => Predicates.isResponse(input),
+  isSet: (input) => Predicates.isSet(input),
+  isString: (input) => Predicates.isString(input),
+  isSymbol: (input) => Predicates.isSymbol(input),
+  isThenable: (input) => Predicates.isThenable(input),
+  isURL: (input) => Predicates.isURL(input),
+  isURLSearchParams: (input) => Predicates.isURLSearchParams(input)
 } satisfies GuardExecutors;
 
 type EmptyExecutors = {
@@ -334,8 +334,8 @@ const jsonValueExecutors = {
 } satisfies JsonValueExecutors;
 
 for (const [groupName, groupValue] of Object.entries(scenarioGroups.guard)) {
-  const execute = getMappedValue(guardExecutors, groupName, 'Guard scenario group');
-  void describe(`Guard.${groupName}`, () => {
+  const execute = getMappedValue(guardExecutors, groupName, 'Predicates scenario group');
+  void describe(`Predicates.${groupName}`, () => {
     for (const scenario of groupValue) {
       void it(scenario.description, () => {
         const input = materialize(scenario.input);
@@ -382,22 +382,22 @@ void describe('PickDefined', () => {
   }
 });
 
-void describe('Guard subclass override', () => {
-  class LaxGuard extends Guard {
+void describe('Predicates subclass override', () => {
+  class LaxPredicates extends Predicates {
     public static override isObject(value: unknown): value is Record<string, unknown> {
       return typeof value === 'object' && value !== null;
     }
   }
 
   void it('overridden isObject accepts arrays', () => {
-    assert.equal(LaxGuard.isObject([1, 2, 3]), true);
-    assert.equal(LaxGuard.isObject(null), false);
-    assert.equal(LaxGuard.isObject({}), true);
+    assert.equal(LaxPredicates.isObject([1, 2, 3]), true);
+    assert.equal(LaxPredicates.isObject(null), false);
+    assert.equal(LaxPredicates.isObject({}), true);
   });
 
   void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {
     const input: unknown[] = [[1, 2], { a: 1 }, 'skip-me', null];
-    const result = LaxGuard.asRecordArray(input);
+    const result = LaxPredicates.asRecordArray(input);
 
     assert.ok(result !== undefined);
     assert.equal(result.length, 2);
@@ -405,7 +405,7 @@ void describe('Guard subclass override', () => {
     assert.deepEqual(result[1], { a: 1 });
   });
 
-  void it('base Guard.isObject is unchanged — arrays are not records', () => {
-    assert.equal(Guard.isObject([1, 2, 3]), false);
+  void it('base Predicates.isObject is unchanged — arrays are not records', () => {
+    assert.equal(Predicates.isObject([1, 2, 3]), false);
   });
 });

@@ -2,8 +2,7 @@
  * Checks if an object has a property with a specific value
  */
 
-import { Guard } from '../../../guards/Guard.js';
-import { DoesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 import { AreDeeplyEqual } from './areDeeplyEqual.js';
 
 export class DoesObjectContainPropertyValue {
@@ -12,7 +11,7 @@ export class DoesObjectContainPropertyValue {
     propertyName: string,
     expectedValue: unknown
   ): boolean {
-    if (!DoesObjectContainProperty.doesObjectContainProperty(value, propertyName) || !Guard.isRecord(value)) {
+    if (!Predicates.doesObjectContainProperty(value, propertyName) || !Predicates.isRecord(value)) {
       return false;
     }
 

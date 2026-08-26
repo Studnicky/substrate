@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
@@ -59,7 +59,7 @@ export namespace ThrownValueEntity {
    * circular workspace reference.
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     if (typeof candidate.kind !== 'string' || !KIND_SET.has(candidate.kind)) { return false; }
     if (typeof candidate.message !== 'string') { return false; }
     if (candidate.name !== undefined && typeof candidate.name !== 'string') { return false; }
@@ -67,7 +67,7 @@ export namespace ThrownValueEntity {
     if (candidate.causes === undefined) { return true; }
     if (!Array.isArray(candidate.causes)) { return false; }
     const result = candidate.causes.every((item) => {
-      if (!Guard.isObject(item)) { return false; }
+      if (!Predicates.isObject(item)) { return false; }
       if (typeof item.kind !== 'string' || !KIND_SET.has(item.kind)) { return false; }
       if (typeof item.message !== 'string') { return false; }
       const nameValid = item.name === undefined || typeof item.name === 'string';

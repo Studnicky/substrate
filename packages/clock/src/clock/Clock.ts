@@ -8,7 +8,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
@@ -37,7 +37,7 @@ export class Clock {
     provider: ClockProviderInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [provider]);
-    if (!Guard.isObjectLike(result) || !ClockInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !ClockInstance.belongsTo(this, result)) {
       throw new TypeError('Clock.create() did not construct the requested subclass.');
     }
     return result;

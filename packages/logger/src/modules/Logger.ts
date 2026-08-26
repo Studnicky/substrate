@@ -1,5 +1,5 @@
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
@@ -75,7 +75,7 @@ export class Logger implements LoggerInterface {
     options: LoggerOptionsInterface = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Guard.isObjectLike(result) || !LoggerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !LoggerInstance.belongsTo(this, result)) {
       throw new TypeError('Logger.create() did not construct the requested subclass.');
     }
     return result;
@@ -88,7 +88,7 @@ export class Logger implements LoggerInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: LoggerOptionsInterface = {}) {
-    if (options.metadata !== undefined && !Guard.isObject(options.metadata)) {
+    if (options.metadata !== undefined && !Predicates.isObject(options.metadata)) {
       throw new ConfigurationError('metadata must be a plain object');
     }
     const suppliedTransports: unknown = options.transports;
@@ -105,7 +105,7 @@ export class Logger implements LoggerInterface {
     const transportCount = transportInputs.length;
     for (let index = 0; index < transportCount; index += 1) {
       const candidate = transportInputs[index];
-      if (!Guard.isObjectLike(candidate) || !LoggerInstance.isTransport(candidate)) {
+      if (!Predicates.isObjectLike(candidate) || !LoggerInstance.isTransport(candidate)) {
         throw new ConfigurationError('transports must contain transport objects');
       }
       transports.push(candidate);

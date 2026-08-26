@@ -7,17 +7,7 @@ import type {
   FilterConditionInterface
 } from '../../interfaces.js';
 
-import { Guard } from '../../../guards/Guard.js';
-import { AreNaNEqual } from '../atomic/areNaNEqual.js';
-import { AreTypesSame } from '../atomic/areTypesSame.js';
-import { IsArray } from '../atomic/isArray.js';
-import { IsDate } from '../atomic/isDate.js';
-import { IsMap } from '../atomic/isMap.js';
-import { IsNull } from '../atomic/isNull.js';
-import { IsNumber } from '../atomic/isNumber.js';
-import { IsSet } from '../atomic/isSet.js';
-import { IsTypeOf } from '../atomic/isTypeOf.js';
-import { IsUndefined } from '../atomic/isUndefined.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 /**
  * Performs strict deep equality comparison like Jest's toStrictEqual
@@ -33,9 +23,9 @@ export class AreStrictlyEqual {
     condition: FilterConditionInterface = {}
   ): boolean {
     // Handle NaN
-    if (IsNumber.isNumber(value) && IsNumber.isNumber(filterValue)) {
+    if (Predicates.isNumber(value) && Predicates.isNumber(filterValue)) {
       if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-        const result = AreNaNEqual.areNaNEqual(value, filterValue);
+        const result = Predicates.areNaNEqual(value, filterValue);
         return result;
       }
     }
@@ -46,42 +36,42 @@ export class AreStrictlyEqual {
     }
 
     // Must be same type
-    if (!AreTypesSame.areTypesSame(value, filterValue)) {
+    if (!Predicates.areTypesSame(value, filterValue)) {
       return false;
     }
 
     // Handle null
-    if (IsNull.isNull(value) || IsNull.isNull(filterValue)) {
+    if (Predicates.isNull(value) || Predicates.isNull(filterValue)) {
       const result = value === filterValue;
       return result;
     }
 
     // Handle undefined explicitly
-    if (IsUndefined.isUndefined(value) || IsUndefined.isUndefined(filterValue)) {
+    if (Predicates.isUndefined(value) || Predicates.isUndefined(filterValue)) {
       const result = value === filterValue;
       return result;
     }
 
     // Arrays
-    if (IsArray.isArray(value) && IsArray.isArray(filterValue)) {
+    if (Predicates.isArray(value) && Predicates.isArray(filterValue)) {
       const result = AreStrictlyEqual.areArraysStrictlyEqual(value, filterValue, condition);
       return result;
     }
 
     // Dates
-    if (IsDate.isDate(value) && IsDate.isDate(filterValue)) {
+    if (Predicates.isDate(value) && Predicates.isDate(filterValue)) {
       const result = value.getTime() === filterValue.getTime();
       return result;
     }
 
     // RegExp
-    if (Guard.isRegExp(value) && Guard.isRegExp(filterValue)) {
+    if (Predicates.isRegExp(value) && Predicates.isRegExp(filterValue)) {
       const result = value.toString() === filterValue.toString();
       return result;
     }
 
     // Sets
-    if (IsSet.isSet(value) && IsSet.isSet(filterValue)) {
+    if (Predicates.isSet(value) && Predicates.isSet(filterValue)) {
       if (value.size !== filterValue.size) {
         return false;
       }
@@ -95,7 +85,7 @@ export class AreStrictlyEqual {
     }
 
     // Maps
-    if (IsMap.isMap(value) && IsMap.isMap(filterValue)) {
+    if (Predicates.isMap(value) && Predicates.isMap(filterValue)) {
       if (value.size !== filterValue.size) {
         return false;
       }
@@ -112,7 +102,7 @@ export class AreStrictlyEqual {
     }
 
     // Objects
-    if (IsTypeOf.isTypeOf(value, 'object') && IsTypeOf.isTypeOf(filterValue, 'object')) {
+    if (Predicates.isTypeOf(value, 'object') && Predicates.isTypeOf(filterValue, 'object')) {
       // Must be instances of the same constructor
       const valueRecord = value as Record<string, unknown>;
       const filterRecord = filterValue as Record<string, unknown>;
@@ -133,7 +123,7 @@ export class AreStrictlyEqual {
   /**
    * Checks if two arrays are strictly equal including sparse array handling
    */
-  private static areArraysStrictlyEqual(value: unknown[], filterValue: unknown[], condition: FilterConditionInterface = {}): boolean {
+  private static areArraysStrictlyEqual(value: readonly unknown[], filterValue: readonly unknown[], condition: FilterConditionInterface = {}): boolean {
     if (value.length !== filterValue.length) {
       return false;
     }

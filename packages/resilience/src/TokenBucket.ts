@@ -2,7 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { RaceTimeout } from '@studnicky/signal';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
@@ -46,7 +46,7 @@ export class TokenBucket {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Guard.isObjectLike(result) || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;

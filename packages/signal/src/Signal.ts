@@ -1,14 +1,14 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
 
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { SignalError } from './errors/SignalError.js';
 
 class SignalInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
-    if (!Guard.isObjectLike(result)) {
+    if (!Predicates.isObjectLike(result)) {
       throw new TypeError('Signal.create() did not construct an object.');
     }
     return result;

@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
@@ -37,7 +37,7 @@ export namespace ValidationAggregateViewEntity {
    * circular workspace reference.
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     if (typeof candidate.count !== 'number') { return false; }
     if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((keyword) => { const result = typeof keyword === 'string'; return result; })) { return false; }
     if (!Array.isArray(candidate.paths) || !candidate.paths.every((path) => { const result = typeof path === 'string'; return result; })) { return false; }

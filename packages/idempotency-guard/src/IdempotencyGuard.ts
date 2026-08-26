@@ -5,7 +5,7 @@
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
@@ -108,7 +108,7 @@ export class IdempotencyGuard<TResult = unknown> {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!Guard.isObjectLike(result)) {
+    if (!Predicates.isObjectLike(result)) {
       throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 

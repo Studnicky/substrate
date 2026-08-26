@@ -1,5 +1,5 @@
 import { BaseError } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 
@@ -21,7 +21,7 @@ class RetryDiagnosticSnapshot {
     if (seen.has(value)) {
       const result = seen.get(value);
 
-      if (result === undefined || !(Guard.isObjectLike(result) || Guard.isFunction(result))) {
+      if (result === undefined || !(Predicates.isObjectLike(result) || Predicates.isFunction(result))) {
         throw new TypeError('Retry diagnostic snapshot must preserve object values.');
       }
       return result;

@@ -8,7 +8,7 @@ import { Semaphore } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';
@@ -84,7 +84,7 @@ export class BoundedDispatcher<
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
     }]);
-    if (!Guard.isObjectLike(result) || !BoundedDispatcher.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !BoundedDispatcher.isConstructed<TInstance>(result, this)) {
       throw new TypeError('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;

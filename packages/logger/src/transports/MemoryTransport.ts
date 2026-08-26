@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsEntity } from '../entities/MemoryTransportOptionsEntity.js';
@@ -53,7 +53,7 @@ export class MemoryTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!Guard.isObjectLike(result) || !MemoryTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !MemoryTransportInstance.belongsTo(this, result)) {
       throw new TypeError('MemoryTransport.create() did not construct the requested subclass.');
     }
 

@@ -30,7 +30,7 @@
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { RaceTimeout, Signal } from '@studnicky/signal';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
@@ -82,7 +82,7 @@ export class SlidingWindowLimiter {
     options: SlidingWindowLimiterOptionsInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Guard.isObjectLike(result) || !SlidingWindowLimiter.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !SlidingWindowLimiter.isConstructed(result, this)) {
       throw new TypeError('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
     }
     return result;

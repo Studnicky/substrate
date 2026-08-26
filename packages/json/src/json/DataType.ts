@@ -1,10 +1,10 @@
 /** Value type guards, cycle detection, and structural equality. */
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 export class DataType {
   protected static walkForCycle(value: unknown, seen: WeakSet<object>): boolean {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return false;
     }
     if (seen.has(value)) {
@@ -99,7 +99,7 @@ export class DataType {
     if (left === null || right === null || typeof left !== typeof right) {
       return false;
     }
-    if (!Guard.isObjectLike(left) || !Guard.isObjectLike(right)) {
+    if (!Predicates.isObjectLike(left) || !Predicates.isObjectLike(right)) {
       return false;
     }
     if (left instanceof Date && right instanceof Date) {
@@ -160,12 +160,12 @@ export class DataType {
   }
 
   public static isPlainObject<T>(value: T): value is Record<string, unknown> & T {
-    const result = Guard.isPlainObject(value);
+    const result = Predicates.isPlainObject(value);
     return result;
   }
 
   public static isRecord<T>(value: T): value is Record<string, unknown> & T {
-    const result = Guard.isRecord(value);
+    const result = Predicates.isRecord(value);
     return result;
   }
 }

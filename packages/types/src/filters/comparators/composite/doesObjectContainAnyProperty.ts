@@ -4,7 +4,7 @@
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { DoesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 export class DoesObjectContainAnyProperty {
   static doesObjectContainAnyProperty(value: FilterValueEntity.Type, propertyNames: string[]): boolean {
@@ -13,7 +13,7 @@ export class DoesObjectContainAnyProperty {
     }
 
     const result = propertyNames.some((propertyName) => {
-      const hasProperty = DoesObjectContainProperty.doesObjectContainProperty(value, propertyName);
+      const hasProperty = Predicates.doesObjectContainProperty(value, propertyName);
       return hasProperty;
     });
 

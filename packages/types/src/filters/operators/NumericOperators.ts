@@ -5,8 +5,7 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
  */
 import type { FilterConditionInterface } from '../interfaces.js';
 
-import { Guard } from '../../guards/Guard.js';
-import { IsDateLike } from '../comparators/atomic/isDateLike.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { IsInRange } from '../comparators/composite/isInRange.js';
 import { IsOutsideRange } from '../comparators/composite/isOutsideRange.js';
 import { DateRangeProcessor } from '../converters/DateRangeProcessor.js';
@@ -39,7 +38,7 @@ export class NumericOperators {
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 
     // Handle date values first
-    if (IsDateLike.isDateLike(value) || IsDateLike.isDateLike(firstFilterValue)) {
+    if (Predicates.isDateLike(value) || Predicates.isDateLike(firstFilterValue)) {
       const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
 
       if (dateInfo === null) {
@@ -267,7 +266,7 @@ export class NumericOperators {
     }
 
     // Only accept object format { divisor, remainder }
-    if (!Guard.isPlainObject(filterValue)) {
+    if (!Predicates.isPlainObject(filterValue)) {
       return false;
     }
 
@@ -354,7 +353,7 @@ export class NumericOperators {
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 
     // Handle date values first
-    if (IsDateLike.isDateLike(value) || IsDateLike.isDateLike(firstFilterValue)) {
+    if (Predicates.isDateLike(value) || Predicates.isDateLike(firstFilterValue)) {
       const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
 
       if (dateInfo === null) {

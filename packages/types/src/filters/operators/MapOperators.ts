@@ -2,7 +2,7 @@
  * @module MapOperators
  * @description Map operation implementations for FilterEngine
  */
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 
 
 /**
@@ -70,7 +70,7 @@ export class MapOperators {
       return false;
     }
 
-    if (!Guard.isRecord(a) || !Guard.isRecord(b)) {
+    if (!Predicates.isRecord(a) || !Predicates.isRecord(b)) {
       return false;
     }
 
@@ -157,7 +157,7 @@ export class MapOperators {
       throw new Error(`MAP.HAS requires value to be a Map, got ${typeof value}`);
     }
 
-    const result = Guard.isString(filterValue) && value.has(filterValue);
+    const result = Predicates.isString(filterValue) && value.has(filterValue);
     return result;
   }
 
@@ -185,7 +185,7 @@ export class MapOperators {
       throw new Error(`MAP.MISSING requires value to be a Map, got ${typeof value}`);
     }
 
-    const result = !Guard.isString(filterValue) || !value.has(filterValue);
+    const result = !Predicates.isString(filterValue) || !value.has(filterValue);
     return result;
   }
 

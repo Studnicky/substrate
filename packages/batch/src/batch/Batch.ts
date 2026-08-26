@@ -1,5 +1,5 @@
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { BatchStatsEntity } from '../entities/BatchStatsEntity.js';
 
@@ -29,7 +29,7 @@ export class Batch<TResult = unknown> {
     maximumConcurrent?: number
   ): TInstance {
     const result: unknown = Reflect.construct(this, [maximumConcurrent]);
-    if (!Guard.isObjectLike(result) || !Batch.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Batch.isConstructed<TInstance>(result, this)) {
       throw new TypeError('Batch.create() must construct a Batch instance');
     }
     return result;

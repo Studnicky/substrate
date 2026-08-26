@@ -7,7 +7,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';
@@ -63,7 +63,7 @@ export class VisibleRange {
   ): TInstance {
     const resolved = VisibleRange.#resolve(config);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!Guard.isObjectLike(result) || !VisibleRange.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !VisibleRange.isConstructed<TInstance>(result, this)) {
       throw new TypeError('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;

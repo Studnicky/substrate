@@ -1,6 +1,6 @@
 /** Deep cloning for JavaScript values. */
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 export class Clone {
   /** Clone an array element-by-element. */
@@ -68,7 +68,7 @@ export class Clone {
 
   /** Implement `deep` across the full JavaScript value domain. */
   protected static clone(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
 

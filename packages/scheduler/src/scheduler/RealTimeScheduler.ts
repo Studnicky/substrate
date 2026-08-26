@@ -8,7 +8,7 @@
 
 import type { HookInvoker } from '@studnicky/errors';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
 import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';
@@ -67,7 +67,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!Guard.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;

@@ -1,4 +1,4 @@
-import { Guard } from '../guards/Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 import { ValueCoders } from './registries/ValueCoders.js';
 
 // WHY A GUARD, NOT A CAST.
@@ -25,13 +25,13 @@ export class FilterValueGuard {
     if (input === null || input === undefined) {
       return input;
     }
-    if (Guard.isString(input) || Guard.isNumber(input) || Guard.isBoolean(input)) {
+    if (Predicates.isString(input) || Predicates.isNumber(input) || Predicates.isBoolean(input)) {
       return input;
     }
     if (valueCoders.coders.get('CORE.date')?.guard(input) === true) {
       return input;
     }
-    if (Guard.isArray(input)) {
+    if (Predicates.isArray(input)) {
       const result = FilterValueGuard.intakeArray(input);
 
       return result;
@@ -46,7 +46,7 @@ export class FilterValueGuard {
 
       return result;
     }
-    if (Guard.isRecord(input)) {
+    if (Predicates.isRecord(input)) {
       const result = FilterValueGuard.intakeRecord(input);
 
       return result;

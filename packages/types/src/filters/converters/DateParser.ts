@@ -3,7 +3,7 @@
  * @description Date parsing with multiple format support
  */
 
-import { TIME_ONLY_PATTERN } from '../comparators/atomic/constants/TimeOnlyPattern.js';
+import { TIME_ONLY_PATTERN } from '../../predicates/constants/TimeOnlyPattern.js';
 import { INTEGER_STRING_PATTERN } from './constants/IntegerStringPattern.js';
 
 /**

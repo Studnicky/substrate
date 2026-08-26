@@ -14,12 +14,12 @@
  * ContainsWord.containsWord('testing', 'test'); // false (part of larger word)
  */
 
-import { IsString } from '../atomic/isString.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 import { ESCAPE_REGEX_CHARACTERS_PATTERN } from './constants/EscapeRegexCharactersPattern.js';
 
 export class ContainsWord {
   static containsWord(value: unknown, word: string): boolean {
-    if (!IsString.isString(value)) {
+    if (!Predicates.isString(value)) {
       return false;
     }
 

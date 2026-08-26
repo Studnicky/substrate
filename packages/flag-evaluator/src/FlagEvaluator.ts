@@ -2,7 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { FlagContextInterface } from './interfaces/FlagContextInterface.js';
 
@@ -82,7 +82,7 @@ export class FlagEvaluator {
       throw new TypeError('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (!Guard.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
       throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;

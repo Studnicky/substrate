@@ -4,7 +4,7 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
  * @module ArrayOperators
  * @description Array operation implementations for FilterEngine
  */
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 
 
 /**
@@ -53,7 +53,7 @@ export class ArrayOperators {
       return false;
     }
 
-    if (!Guard.isRecord(a) || !Guard.isRecord(b)) {
+    if (!Predicates.isRecord(a) || !Predicates.isRecord(b)) {
       return false;
     }
 

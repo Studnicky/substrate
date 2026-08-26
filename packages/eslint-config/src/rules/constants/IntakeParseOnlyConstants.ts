@@ -6,19 +6,19 @@
  * they must exempt the same packages or the boundary is inconsistent.
  *
  * Exemptions rationale:
- *   - `@studnicky/types`: Narrowing primitives every parser is built from (e.g. `Guard.isObject`).
+ *   - `@studnicky/types`: Narrowing primitives, coercion, and matching machinery (e.g.
+ *     `Predicates.isObject`, `Predicates.coerceValue`) that parsing depends on; requiring intake
+ *     here is circular.
  *   - `@studnicky/eslint-config`: Operates on foreign ESLint and TypeScript AST nodes.
- *   - `@studnicky/predicates`: Type predicates, coercion, and matching machinery (e.g. `coerceValue`) that parsing depends on; requiring intake here is circular.
  *   - `@studnicky/intake-kit`: The generic `{create, intake}` compile orchestration and cycle-safe
  *     clone primitives every entity's `intake` is built from (see `IntakeCompiler`,
  *     `BoundaryCycleGuard`). An engine cannot be required to go through the boundary it exists to
- *     implement, for the same reason `@studnicky/predicates` is exempt.
+ *     implement, for the same reason `@studnicky/types` is exempt.
  */
 
 export const DEFAULT_EXEMPT_PACKAGES = [
   '@studnicky/types',
   '@studnicky/eslint-config',
-  '@studnicky/predicates',
   '@studnicky/intake-kit'
 ];
 

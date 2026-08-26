@@ -1,6 +1,6 @@
 /** Schema hashing with metadata-key stripping. */
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { Hash } from './Hash.js';
@@ -25,7 +25,7 @@ export class StructuralHash {
       }
       return result;
     }
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       const result = value;
       return result;
     }

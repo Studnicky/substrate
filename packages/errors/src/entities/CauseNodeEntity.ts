@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
@@ -35,7 +35,7 @@ export namespace CauseNodeEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     if (typeof candidate.kind !== 'string' || !KIND_SET.has(candidate.kind)) { return false; }
     if (typeof candidate.message !== 'string') { return false; }
     const result = candidate.name === undefined || typeof candidate.name === 'string';

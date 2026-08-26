@@ -5,7 +5,7 @@ import type { FilterConditionInterface } from '../interfaces.js';
  * @module ObjectOperators
  * @description Object operation implementations for FilterEngine
  */
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 
 
 /**
@@ -92,7 +92,7 @@ export class ObjectOperators {
     }
 
     // Handle plain objects
-    if (!Guard.isRecord(a) || !Guard.isRecord(b)) {
+    if (!Predicates.isRecord(a) || !Predicates.isRecord(b)) {
       return false;
     }
 
@@ -126,7 +126,7 @@ export class ObjectOperators {
    * @private
    */
   static isPlainObjectValue(value: unknown): value is Record<string, FilterValueEntity.Type> {
-    const result = Guard.isRecord(value) && !(value instanceof RegExp);
+    const result = Predicates.isRecord(value) && !(value instanceof RegExp);
     return result;
   }
 

@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '../guards/Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 
 /**
  * One array-logic registry-key (EVERY/SOME/NONE/ONE, or a custom registered name) per
@@ -17,11 +17,11 @@ export namespace GroupGateNamesEntity {
   // Hand-rolled, not SchemaValidator.compile — @studnicky/json depends on @studnicky/types,
   // so importing SchemaValidator here would be circular.
   export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isArray(candidate)) {
+    if (!Predicates.isArray(candidate)) {
       return false;
     }
     const result = candidate.every((item) => {
-      const itemResult = Guard.isString(item);
+      const itemResult = Predicates.isString(item);
 
       return itemResult;
     });

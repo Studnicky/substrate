@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 
@@ -30,7 +30,7 @@ export class DefensiveSnapshot {
       return result;
     }
 
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
 

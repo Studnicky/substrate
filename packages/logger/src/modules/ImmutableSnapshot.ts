@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 export class ImmutableSnapshot {
   public static from<T>(value: T): T {
@@ -8,7 +8,7 @@ export class ImmutableSnapshot {
   }
 
   static #freeze(value: unknown, visited: WeakSet<object>): void {
-    if (!Guard.isObjectLike(value) || visited.has(value)) { return; }
+    if (!Predicates.isObjectLike(value) || visited.has(value)) { return; }
 
     visited.add(value);
     const nestedValues: readonly unknown[] = Object.values(value);

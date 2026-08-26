@@ -18,16 +18,7 @@
  * - Invalid Date objects (NaN)
  */
 
-import { IsArray } from '../atomic/isArray.js';
-import { IsDate } from '../atomic/isDate.js';
-import { IsFunction } from '../atomic/isFunction.js';
-import { IsMap } from '../atomic/isMap.js';
-import { IsNull } from '../atomic/isNull.js';
-import { IsRegExp } from '../atomic/isRegExp.js';
-import { IsSet } from '../atomic/isSet.js';
-import { IsSymbol } from '../atomic/isSymbol.js';
-import { IsTypeOf } from '../atomic/isTypeOf.js';
-import { IsUndefined } from '../atomic/isUndefined.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 export class IsSerializable {
   static isSerializable(value: unknown): boolean {
@@ -40,8 +31,8 @@ export class IsSerializable {
    */
   private static isSerializableRecursive(value: unknown, visited: WeakSet<object>): boolean {
     // Primitives are always serializable
-    if (IsNull.isNull(value) || !IsTypeOf.isTypeOf(value, 'object')) {
-      const result = !IsFunction.isFunction(value) && !IsSymbol.isSymbol(value) && !IsUndefined.isUndefined(value);
+    if (Predicates.isNull(value) || !Predicates.isTypeOf(value, 'object')) {
+      const result = !Predicates.isFunction(value) && !Predicates.isSymbol(value) && !Predicates.isUndefined(value);
       return result;
     }
 
@@ -53,7 +44,7 @@ export class IsSerializable {
     visited.add(value as object);
 
     // Arrays
-    if (IsArray.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const result = value.every((item) => {
         const itemResult = IsSerializable.isSerializableRecursive(item, visited);
         return itemResult;
@@ -63,13 +54,13 @@ export class IsSerializable {
     }
 
     // Dates are serializable
-    if (IsDate.isDate(value)) {
+    if (Predicates.isDate(value)) {
       const result = !isNaN(value.getTime());
       return result;
     }
 
     // RegExp, Map, Set, and other objects are not directly JSON serializable
-    if (IsRegExp.isRegExp(value) || IsMap.isMap(value) || IsSet.isSet(value)) {
+    if (Predicates.isRegExp(value) || Predicates.isMap(value) || Predicates.isSet(value)) {
       return false;
     }
 
@@ -94,9 +85,9 @@ export class IsSerializable {
     // Objects with toJSON method are potentially serializable
     const valueWithToJSON = value as { 'toJSON'?: () => unknown };
 
-    if (IsFunction.isFunction(valueWithToJSON.toJSON)) {
+    if (Predicates.isFunction(valueWithToJSON.toJSON)) {
       try {
-        const jsonValue = valueWithToJSON.toJSON!();
+        const jsonValue = valueWithToJSON.toJSON();
         const result = IsSerializable.isSerializableRecursive(jsonValue, visited);
 
         return result;

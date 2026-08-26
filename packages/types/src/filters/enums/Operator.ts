@@ -7,7 +7,7 @@ import type {
   FilterConditionInterface, OperatorFunctionInterface
 } from '../interfaces.js';
 
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { DateParser } from '../converters/DateParser.js';
 import { BinaryOperators } from '../operators/BinaryOperators.js';
 import { ObjectOperators } from '../operators/ObjectOperators.js';
@@ -627,7 +627,7 @@ class NumberOperators {
       throw new Error('NUMBER.BETWEEN requires filterValue to be an object with min and max properties: { min: number, max: number }');
     }
 
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       throw new Error('NUMBER.BETWEEN requires filterValue to be an object with min and max properties: { min: number, max: number }');
     }
     let minimum = Number(Reflect.get(filterValue, 'min'));
@@ -670,7 +670,7 @@ class NumberOperators {
       throw new Error('NUMBER.OUTSIDE requires filterValue to be an object with min and max properties: { min: number, max: number }');
     }
 
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       throw new Error('NUMBER.OUTSIDE requires filterValue to be an object with min and max properties: { min: number, max: number }');
     }
     let minimum = Number(Reflect.get(filterValue, 'min'));
@@ -710,7 +710,7 @@ class NumberOperators {
       throw new Error(`NUMBER.MODULO requires filter value to be an object with divisor and remainder properties, got ${typeof filterValue}`);
     }
 
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       throw new Error(`NUMBER.MODULO requires filter value to be an object with divisor and remainder properties, got ${typeof filterValue}`);
     }
 
@@ -718,7 +718,7 @@ class NumberOperators {
     const remainder: unknown = Reflect.get(filterValue, 'remainder');
 
     // Both must be numbers
-    if (!Guard.isNumber(divisor) || !Guard.isNumber(remainder)) {
+    if (!Predicates.isNumber(divisor) || !Predicates.isNumber(remainder)) {
       return false;
     }
 
@@ -832,7 +832,7 @@ class DateOperators {
       throw new Error('DATE.BETWEEN requires filterValue to be an object with min and max properties: { min: date, max: date }');
     }
 
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       throw new Error('DATE range requires filterValue to be an object with min and max properties: { min: date, max: date }');
     }
     const startDate: unknown = Reflect.get(filterValue, 'min');
@@ -879,7 +879,7 @@ class DateOperators {
       throw new Error('DATE.OUTSIDE requires filterValue to be an object with min and max properties: { min: date, max: date }');
     }
 
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       throw new Error('DATE range requires filterValue to be an object with min and max properties: { min: date, max: date }');
     }
     const startDate: unknown = Reflect.get(filterValue, 'min');
@@ -1024,7 +1024,7 @@ class SetOperators {
       throw new Error(`SET.HAS requires value to be a Set, got ${typeof value}`);
     }
 
-    const result = Guard.isString(filterValue) && value.has(filterValue);
+    const result = Predicates.isString(filterValue) && value.has(filterValue);
 
     return result;
   }
@@ -1034,7 +1034,7 @@ class SetOperators {
       throw new Error(`SET.MISSING requires value to be a Set, got ${typeof value}`);
     }
 
-    const result = !Guard.isString(filterValue) || !value.has(filterValue);
+    const result = !Predicates.isString(filterValue) || !value.has(filterValue);
 
     return result;
   }
@@ -1140,7 +1140,7 @@ class MapOperators {
       throw new Error(`MAP.HAS requires value to be a Map, got ${typeof value}`);
     }
 
-    const result = Guard.isString(filterValue) && value.has(filterValue);
+    const result = Predicates.isString(filterValue) && value.has(filterValue);
 
     return result;
   }
@@ -1150,7 +1150,7 @@ class MapOperators {
       throw new Error(`MAP.MISSING requires value to be a Map, got ${typeof value}`);
     }
 
-    const result = !Guard.isString(filterValue) || !value.has(filterValue);
+    const result = !Predicates.isString(filterValue) || !value.has(filterValue);
 
     return result;
   }
@@ -1636,12 +1636,12 @@ class CrossOperators {
     // Threshold is required for SIMILARITY operator - no defaults allowed
     const rawThreshold: unknown = condition?.threshold;
 
-    if (!Guard.isNumber(rawThreshold)) {
+    if (!Predicates.isNumber(rawThreshold)) {
       throw new Error('CROSS.SIMILARITY operator requires a numeric threshold parameter. No default threshold is allowed.');
     }
     const threshold = rawThreshold;
     const rawCaseSensitive: unknown = condition?.caseSensitive;
-    const caseSensitive = Guard.isBoolean(rawCaseSensitive) ? rawCaseSensitive : true;
+    const caseSensitive = Predicates.isBoolean(rawCaseSensitive) ? rawCaseSensitive : true;
 
     // Delegate to type-specific operators when both values are the same type
     if (typeof value === typeof filterValue) {

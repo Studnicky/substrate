@@ -63,15 +63,14 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 // repo-wide to catch precisely the single-use case. Both checks are required; neither alone closes
 // the boundary.
 //
-// EXEMPT PACKAGES. `@studnicky/types` holds the narrowing primitives every parser is built from
-// (`Guard.isObject`, `JsonObject.is`, and the `as*` helpers that already return a value).
+// EXEMPT PACKAGES. `@studnicky/types` holds the narrowing primitives, type coercion, and matching
+// machinery every parser is built from (`Predicates.isObject`, `JsonObject.is`, `Predicates.coerceValue`,
+// and the `as*` helpers that already return a value), so requiring intake there is circular.
 // `@studnicky/eslint-config` operates on foreign ESLint and TypeScript AST node shapes rather
-// than application data. `@studnicky/predicates` is the type coercion and matching machinery
-// parsing depends on, so requiring intake there is circular. `@studnicky/intake-kit` is the
-// generic compile-orchestration and clone engine every entity's `intake` is built from — same
-// circularity as `predicates`. None of these packages should be forced into application entities.
-// The exemption is by package name so it is visible and cannot quietly widen to cover a package
-// that should be parsing.
+// than application data. `@studnicky/intake-kit` is the generic compile-orchestration and clone
+// engine every entity's `intake` is built from — same circularity as `@studnicky/types`. None of
+// these packages should be forced into application entities. The exemption is by package name so
+// it is visible and cannot quietly widen to cover a package that should be parsing.
 //
 // OPAQUE PARAMETERS. Not every `unknown`/`any` parameter trusts a shape — see
 // `OpaqueValueShape` for the decidable, per-parameter check that exempts a value the function

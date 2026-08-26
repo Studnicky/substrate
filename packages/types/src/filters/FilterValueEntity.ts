@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '../guards/Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 
 /**
  * The JSON-safe value domain FilterEngine conditions and data operate over.
@@ -56,10 +56,10 @@ export namespace FilterValueEntity {
   // Hand-rolled, not SchemaValidator.compile — @studnicky/json depends on @studnicky/types,
   // so importing SchemaValidator here would be circular.
   export function validate(candidate: unknown): candidate is Type {
-    if (candidate === null || Guard.isString(candidate) || Guard.isNumber(candidate) || Guard.isBoolean(candidate)) {
+    if (candidate === null || Predicates.isString(candidate) || Predicates.isNumber(candidate) || Predicates.isBoolean(candidate)) {
       return true;
     }
-    if (Guard.isArray(candidate)) {
+    if (Predicates.isArray(candidate)) {
       const result = candidate.every((item) => {
         const itemResult = FilterValueEntity.validate(item);
 
@@ -68,7 +68,7 @@ export namespace FilterValueEntity {
 
       return result;
     }
-    if (Guard.isRecord(candidate)) {
+    if (Predicates.isRecord(candidate)) {
       const result = Object.values(candidate).every((item) => {
         const itemResult = FilterValueEntity.validate(item);
 

@@ -4,7 +4,7 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
  * @module DateOperators
  * @description Date operation implementations for FilterEngine
  */
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { DateParser } from '../converters/DateParser.js';
 
 /**
@@ -25,7 +25,7 @@ export class DateOperators {
       return false;
     }
 
-    if (!Guard.isPlainObject(filterValue)) {
+    if (!Predicates.isPlainObject(filterValue)) {
       throw new Error('DATE.BETWEEN requires filter value to be an object with min and max properties');
     }
 
@@ -122,7 +122,7 @@ export class DateOperators {
       return false;
     }
 
-    if (!Guard.isPlainObject(filterValue)) {
+    if (!Predicates.isPlainObject(filterValue)) {
       throw new Error('DATE.OUTSIDE requires filter value to be an object with min and max properties');
     }
 

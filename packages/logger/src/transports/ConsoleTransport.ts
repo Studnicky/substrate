@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { ConsoleTransportOptionsEntity } from '../entities/ConsoleTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
@@ -94,7 +94,7 @@ export class ConsoleTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!Guard.isObjectLike(result) || !ConsoleTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !ConsoleTransportInstance.belongsTo(this, result)) {
       throw new TypeError('ConsoleTransport.create() did not construct the requested subclass.');
     }
 

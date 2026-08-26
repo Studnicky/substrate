@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
@@ -12,96 +12,100 @@ import { ReentrantHookInvocationError } from './ReentrantHookInvocationError.js'
 import { ValidationError } from './ValidationError.js';
 
 /** Builds detached diagnostic graphs while preserving canonical hook-error classes. */
-class HookDiagnosticSnapshot {
-  static value(value: unknown, seen: WeakMap<object, unknown>): unknown {
-    if (!(Guard.isObjectLike(value) || Guard.isFunction(value))) {
-      return value;
-    }
-
-    const existing = seen.get(value);
-    if (existing !== undefined) {
-      return existing;
-    }
-
-    if (value instanceof Error) {
-      let snapshot: Error;
-      if (value instanceof HookInvocationError) {
-        snapshot = new HookInvocationError(value.hookName, undefined);
-      } else if (value instanceof HookTimeoutError) {
-        snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
-      } else if (value instanceof ReentrantHookInvocationError) {
-        snapshot = new ReentrantHookInvocationError(value.hookName);
-      } else {
-        snapshot = new Error(value.message, { 'cause': undefined });
+namespace HookDiagnosticSnapshotEntity {
+  class Intake {
+    static intake(value: unknown, seen: WeakMap<object, unknown>): unknown {
+      if (!(Predicates.isObjectLike(value) || Predicates.isFunction(value))) {
+        return value;
       }
-      seen.set(value, snapshot);
-      const keys = Reflect.ownKeys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
-        }
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
-      }
-      return snapshot;
-    }
 
-    if (Array.isArray(value)) {
-      const snapshot: unknown[] = [];
-      seen.set(value, snapshot);
-      const keys = Reflect.ownKeys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
-        }
-        if (key === 'length') {
-          continue;
-        }
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+      const existing = seen.get(value);
+      if (existing !== undefined) {
+        return existing;
       }
-      return snapshot;
-    }
 
-    if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
-      const snapshot: Record<string, unknown> = {};
-      seen.set(value, snapshot);
-      const keys = Reflect.ownKeys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
+      if (value instanceof Error) {
+        let snapshot: Error;
+        if (value instanceof HookInvocationError) {
+          snapshot = new HookInvocationError(value.hookName, undefined);
+        } else if (value instanceof HookTimeoutError) {
+          snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
+        } else if (value instanceof ReentrantHookInvocationError) {
+          snapshot = new ReentrantHookInvocationError(value.hookName);
+        } else {
+          snapshot = new Error(value.message, { 'cause': undefined });
         }
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
       }
-      return snapshot;
-    }
 
-    try {
-      const snapshot: object = structuredClone(value);
-      return snapshot;
-    } catch {
-      const snapshot: Record<string, unknown> = {};
-      seen.set(value, snapshot);
-      const keys = Reflect.ownKeys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
+      if (Array.isArray(value)) {
+        const snapshot: unknown[] = [];
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          if (key === 'length') {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
         }
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+        return snapshot;
       }
-      return snapshot;
+
+      if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
+        const snapshot: Record<string, unknown> = {};
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
+      }
+
+      try {
+        const snapshot: object = structuredClone(value);
+        return snapshot;
+      } catch {
+        const snapshot: Record<string, unknown> = {};
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
+      }
     }
   }
+
+  export const intake = Intake.intake;
 }
 
 /**
@@ -211,7 +215,7 @@ export class HookInvoker {
       if (error === undefined) {
         continue;
       }
-      const snapshot = HookDiagnosticSnapshot.value(error, new WeakMap());
+      const snapshot = HookDiagnosticSnapshotEntity.intake(error, new WeakMap());
       if (!(snapshot instanceof HookInvocationError)) {
         throw new TypeError('Hook diagnostic projection must preserve HookInvocationError');
       }
@@ -290,7 +294,7 @@ export class HookInvoker {
     asynchronousFailure: boolean,
     propagateTerminalFailure: boolean
   ): Promise<void> | undefined {
-    const diagnostic = HookDiagnosticSnapshot.value(
+    const diagnostic = HookDiagnosticSnapshotEntity.intake(
       new HookInvocationError(hookName, cause),
       new WeakMap()
     );
@@ -313,7 +317,7 @@ export class HookInvoker {
   }
 
   static #isThenable(value: unknown): value is PromiseLike<unknown> {
-    const result = Guard.isThenable(value);
+    const result = Predicates.isThenable(value);
     return result;
   }
 

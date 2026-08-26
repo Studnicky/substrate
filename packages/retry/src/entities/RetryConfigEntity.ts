@@ -3,7 +3,7 @@ import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaIntakeError, SchemaValidator } from '@studnicky/json';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { BackoffConfigEntity } from './BackoffConfigEntity.js';
 
@@ -51,7 +51,7 @@ export namespace RetryConfigEntity {
      * invariants are verified here because JSON Schema cannot represent functions.
      */
     static intake(input: Parameters<SchemaIntakeFunctionInterface<Type>>[0]): Type {
-      if (!Guard.isObject(input)) {
+      if (!Predicates.isObject(input)) {
         throw new SchemaIntakeError('config must be an object', [], 'RetryConfig');
       }
 
@@ -69,7 +69,7 @@ export namespace RetryConfigEntity {
 
         const value: unknown = Reflect.get(input, key);
         if (key === 'backoffStrategy') {
-          if (!Guard.isObject(value)) {
+          if (!Predicates.isObject(value)) {
             throw new SchemaIntakeError('backoffStrategy must be an object with strategy and baseDelayMs', [], 'RetryConfig');
           }
 
@@ -87,7 +87,7 @@ export namespace RetryConfigEntity {
           if (typeof value === 'function') {
             continue;
           }
-          if (!Guard.isObject(value)) {
+          if (!Predicates.isObject(value)) {
             throw new SchemaIntakeError('errorClassifier must be a function or an object with classify', [], 'RetryConfig');
           }
 

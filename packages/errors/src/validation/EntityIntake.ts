@@ -1,5 +1,5 @@
 import { BoundaryCycleGuard, IntakeCompiler } from '@studnicky/intake-kit';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
@@ -74,7 +74,7 @@ export class EntityIntake {
   }
 
   public static boolean(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): boolean | undefined {
-    if (Guard.isBoolean(value)) {
+    if (Predicates.isBoolean(value)) {
       return value;
     }
     if (!coerce) {
@@ -90,13 +90,13 @@ export class EntityIntake {
   }
 
   public static number(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): number | undefined {
-    if (Guard.isNumber(value) && Number.isFinite(value)) {
+    if (Predicates.isNumber(value) && Number.isFinite(value)) {
       return value;
     }
     if (!coerce) {
       return undefined;
     }
-    if (value === null || Guard.isBoolean(value) || (Guard.isString(value) && value !== '')) {
+    if (value === null || Predicates.isBoolean(value) || (Predicates.isString(value) && value !== '')) {
       const number = Number(value);
       const result = Number.isFinite(number) ? number : undefined;
       return result;
@@ -105,7 +105,7 @@ export class EntityIntake {
   }
 
   public static string(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): string | undefined {
-    if (Guard.isString(value)) {
+    if (Predicates.isString(value)) {
       return value;
     }
     if (!coerce) {
@@ -114,7 +114,7 @@ export class EntityIntake {
     if (value === null) {
       return '';
     }
-    if (Guard.isBoolean(value) || Guard.isNumber(value)) {
+    if (Predicates.isBoolean(value) || Predicates.isNumber(value)) {
       const result = String(value);
       return result;
     }
@@ -133,7 +133,7 @@ export class EntityIntake {
 
   /** Recursively clones an already-verified-acyclic value. */
   private static cloneValue(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): Parameters<EntityIntakeFunctionInterface<never>>[0] {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
     if (Array.isArray(value)) {
@@ -163,7 +163,7 @@ export class EntityIntake {
       const result = new Date(value.getTime());
       return result;
     }
-    if (Guard.isObject(value)) {
+    if (Predicates.isObject(value)) {
       const cloned: Record<string, unknown> = {};
       const keys = Object.keys(value);
       const keysLength = keys.length;

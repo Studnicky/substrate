@@ -3,7 +3,7 @@
  * @description Extracts values from objects using dot notation paths with security protections
  */
 
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { FilterValueGuard } from '../FilterValueGuard.js';
 import { FilterTypeGuards } from '../interfaces.js';
 import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';
@@ -55,12 +55,12 @@ export class GetPathValue {
   }
 
   /**
-   * Reads one named field off a traversal-current value, only once `Guard.isRecord` has proven it
+   * Reads one named field off a traversal-current value, only once `Predicates.isRecord` has proven it
    * holds named fields at all. Anything else reads as `undefined`, matching a missing property
    * rather than throwing.
    */
   private static readField(current: unknown, key: string): unknown {
-    const result = Guard.isRecord(current) ? current[key] : undefined;
+    const result = Predicates.isRecord(current) ? current[key] : undefined;
     return result;
   }
 
@@ -92,7 +92,7 @@ export class GetPathValue {
 
     const arrayValue = GetPathValue.readField(current, fieldName);
 
-    if (!Guard.isArray(arrayValue)) {
+    if (!Predicates.isArray(arrayValue)) {
       return {
         'isWildcard': false,
         'value': undefined

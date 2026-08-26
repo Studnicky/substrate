@@ -1,6 +1,6 @@
 /** JSON Pointer utilities and safe dot-path access for arbitrary values. */
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
@@ -48,7 +48,7 @@ export class Path {
             continue;
           }
           const key = match[0].slice(2, -2);
-          if (!this.isSafeProperty(key) || !Guard.isObjectLike(current)) {return undefined;}
+          if (!this.isSafeProperty(key) || !Predicates.isObjectLike(current)) {return undefined;}
           current = Reflect.get(current, key);
         }
         return current;
@@ -66,7 +66,7 @@ export class Path {
         const bracketIndex = part.indexOf('[');
         const fieldName = part.slice(0, bracketIndex);
         const arrayIndex = part.slice(bracketIndex + 1, -1);
-        if (!this.isSafeProperty(fieldName) || !Guard.isObjectLike(current)) {return undefined;}
+        if (!this.isSafeProperty(fieldName) || !Predicates.isObjectLike(current)) {return undefined;}
         const arrayValue: unknown = Reflect.get(current, fieldName);
         if (!Array.isArray(arrayValue)) {return undefined;}
         if (arrayIndex === '*') {
@@ -76,7 +76,7 @@ export class Path {
         current = arrayValue[Number(arrayIndex)];
         continue;
       }
-      if (!this.isSafeProperty(part) || !Guard.isObjectLike(current)) {return undefined;}
+      if (!this.isSafeProperty(part) || !Predicates.isObjectLike(current)) {return undefined;}
       current = Reflect.get(current, part);
     }
     return current;

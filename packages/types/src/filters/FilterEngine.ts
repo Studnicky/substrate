@@ -12,7 +12,7 @@ import type {
   FilterModeFunctionInterface
 } from './interfaces.js';
 
-import { Guard } from '../guards/Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 import { DefaultConfig } from './config/DefaultConfig.js';
 import { REGEX_LIKE_PATTERN } from './constants/RegexLikePattern.js';
 import { REGEX_SPECIAL_CHARS_PATTERN } from './constants/RegexSpecialCharsPattern.js';
@@ -72,19 +72,19 @@ interface ProcessedFilterErrorInterface {
 
 class FilterEngineHelpers {
   static getErrorCause(error: unknown): Error | undefined {
-    const result = Guard.isError(error) ? error : undefined;
+    const result = Predicates.isError(error) ? error : undefined;
 
     return result;
   }
 
   static getErrorMessage(error: unknown): string {
-    const result = Guard.isError(error) ? error.message : String(error);
+    const result = Predicates.isError(error) ? error.message : String(error);
 
     return result;
   }
 
   static readRangeBound(value: FilterValueEntity.Type, key: 'max' | 'min'): unknown {
-    const result = Guard.isRecord(value) ? value[key] : undefined;
+    const result = Predicates.isRecord(value) ? value[key] : undefined;
 
     return result;
   }

@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
@@ -7,7 +7,7 @@ import type { TimingInterface } from '../interfaces/TimingInterface.js';
 class NoOpTimingInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
-    if (!Guard.isObjectLike(result)) {
+    if (!Predicates.isObjectLike(result)) {
       throw new TypeError('NoOpTiming.create() did not construct an object.');
     }
     return result;

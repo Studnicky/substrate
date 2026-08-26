@@ -4,7 +4,7 @@ import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from 
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
@@ -78,7 +78,7 @@ export class CircuitBreaker {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Guard.isObjectLike(result) || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;

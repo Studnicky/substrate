@@ -4,7 +4,7 @@
 
 import type { ComparatorFunctionInterface } from '../interfaces.js';
 
-import { IsDateLike } from '../comparators/atomic/isDateLike.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { AreDeeplyEqual } from '../comparators/composite/areDeeplyEqual.js';
 import { AreStringsEqualCaseAware } from '../comparators/composite/areStringsEqualCaseAware.js';
 import { AreValuesStrictEqual } from '../comparators/composite/areValuesStrictEqual.js';
@@ -20,7 +20,7 @@ import { DeepFreeze } from '../utils/deepFreeze.js';
 export const Comparator = DeepFreeze.deepFreeze({
   'CORE': {
     'deepEquals': AreDeeplyEqual.areDeeplyEqual,
-    'isDateLike': IsDateLike.isDateLike,
+    'isDateLike': Predicates.isDateLike,
     'isEmpty': IsEmpty.isEmpty,
     'isEqual': AreValuesStrictEqual.areValuesStrictEqual,
     'isInRange': IsInRange.isInRange,

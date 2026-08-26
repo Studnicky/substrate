@@ -6,7 +6,7 @@ import type { Agent } from 'undici';
 
 import { HookInvoker } from '@studnicky/errors';
 import { Clone, SchemaIntakeError } from '@studnicky/json';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
@@ -758,7 +758,7 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
-    if (!Guard.isObjectLike(config) || Guard.isArray(config)) {
+    if (!Predicates.isObjectLike(config) || Predicates.isArray(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
@@ -780,7 +780,7 @@ export class FetchClient implements FetchClientInterface {
         Reflect.set(intakeData, key, value);
       }
     }
-    if (!Guard.isNullish(configData.hookTimeoutMs) && typeof configData.hookTimeoutMs !== 'number') {
+    if (!Predicates.isNullish(configData.hookTimeoutMs) && typeof configData.hookTimeoutMs !== 'number') {
       throw new ConfigurationError('hookTimeoutMs must be a number');
     }
     if (typeof configData.hookTimeoutMs === 'number' && configData.hookTimeoutMs <= 0) {
@@ -789,7 +789,7 @@ export class FetchClient implements FetchClientInterface {
     if (typeof configData.hookTimeoutMs === 'number' && !Number.isFinite(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be finite');
     }
-    if (!Guard.isNullish(configData.timeout) && typeof configData.timeout !== 'number') {
+    if (!Predicates.isNullish(configData.timeout) && typeof configData.timeout !== 'number') {
       throw new ConfigurationError('timeout must be a number');
     }
     if (typeof configData.timeout === 'number' && configData.timeout <= 0) {
@@ -798,7 +798,7 @@ export class FetchClient implements FetchClientInterface {
     if (typeof configData.timeout === 'number' && !Number.isFinite(configData.timeout)) {
       throw new ConfigurationError('timeout must be finite');
     }
-    if (!Guard.isNullish(configuredOptions) && (!Guard.isObjectLike(configuredOptions) || Guard.isArray(configuredOptions))) {
+    if (!Predicates.isNullish(configuredOptions) && (!Predicates.isObjectLike(configuredOptions) || Predicates.isArray(configuredOptions))) {
       throw new ConfigurationError('options must be an object');
     }
     const {
@@ -818,13 +818,13 @@ export class FetchClient implements FetchClientInterface {
     if (normalizedOptionData.referrer !== undefined && typeof normalizedOptionData.referrer !== 'string') {
       throw new ConfigurationError('referrer must be a string');
     }
-    if (!Guard.isNullish(optionTimeout) && typeof optionTimeout !== 'number') {
+    if (!Predicates.isNullish(optionTimeout) && typeof optionTimeout !== 'number') {
       throw new ConfigurationError('timeout must be a number');
     }
-    if (!Guard.isNullish(signal) && !Guard.isAbortSignal(signal)) {
+    if (!Predicates.isNullish(signal) && !Predicates.isAbortSignal(signal)) {
       throw new ConfigurationError('signal must be an AbortSignal instance');
     }
-    const input = Guard.isNullish(configuredOptions)
+    const input = Predicates.isNullish(configuredOptions)
       ? intakeData
       : { ...intakeData, 'options': normalizedOptionData };
 
@@ -838,7 +838,7 @@ export class FetchClient implements FetchClientInterface {
       throw error;
     }
 
-    if (!Guard.isNullish(requestIdGenerator)) {
+    if (!Predicates.isNullish(requestIdGenerator)) {
       FetchClient.assertRequestIdGenerator(requestIdGenerator);
     }
 
@@ -856,7 +856,7 @@ export class FetchClient implements FetchClientInterface {
     const result: ClientConfigInterface = {
       ...parsed,
       ...(options === undefined ? {} : { 'options': options }),
-      ...(Guard.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator })
+      ...(Predicates.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator })
     };
     return result;
   }

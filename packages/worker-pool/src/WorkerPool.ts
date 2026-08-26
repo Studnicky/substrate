@@ -5,7 +5,7 @@ import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { MachineTerminatedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
 import { System } from '@studnicky/system';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 import { Worker } from 'node:worker_threads';
 
 import type { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
@@ -169,7 +169,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       'timeoutMs': config.timeoutMs,
       'workerPath': config.workerPath
     }]);
-    if (!Guard.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
       throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
     }
     return result;

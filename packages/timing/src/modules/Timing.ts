@@ -1,6 +1,6 @@
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError, HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
@@ -12,7 +12,7 @@ import { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 class TimingInstance {
   static construct(constructor: Function, argumentsList: readonly object[]): object {
     const result: unknown = Reflect.construct(constructor, argumentsList);
-    if (!Guard.isObjectLike(result)) {
+    if (!Predicates.isObjectLike(result)) {
       throw new TypeError('Timing.create() did not construct an object.');
     }
     return result;

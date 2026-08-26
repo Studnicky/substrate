@@ -1,5 +1,5 @@
 /**
- * Constants for @studnicky/predicates
+ * Constants for JSON Schema draft 2020-12 predicate checks
  */
 
 /** Scaling factor applied to `Number.EPSILON` when testing `multipleOf`. */

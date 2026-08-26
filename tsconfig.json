@@ -58,12 +58,6 @@
       "path": "packages/intake-kit/tsconfig.tests.json"
     },
     {
-      "path": "packages/predicates"
-    },
-    {
-      "path": "packages/predicates/tsconfig.tests.json"
-    },
-    {
       "path": "packages/request-executor"
     },
     {

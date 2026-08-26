@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
@@ -26,7 +26,7 @@ export namespace ErrorDiagnosticEntity {
 
   /** Validates the schema-backed diagnostic fields without introducing a json-package cycle. */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     if (typeof candidate.message !== 'string' || typeof candidate.name !== 'string') { return false; }
     const result = candidate.stack === undefined || typeof candidate.stack === 'string';
     return result;

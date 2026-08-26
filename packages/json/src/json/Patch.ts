@@ -1,6 +1,6 @@
 /** RFC-6902 JSON Patch operations for arbitrary object targets. */
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
@@ -27,7 +27,7 @@ export class Patch {
   public static create<TInstance extends Patch = Patch>(this: PatchSubclassInterface<TInstance>, operations?: unknown): TInstance {
     const argumentsList = operations === undefined ? [] : [operations];
     const result: unknown = Reflect.construct(this, argumentsList);
-    if (!Guard.isObjectLike(result) || !PatchInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !PatchInstance.belongsTo(this, result)) {
       throw new TypeError('Patch.create() did not construct the requested subclass.');
     }
     return result;
@@ -112,7 +112,7 @@ export class Patch {
       if (part === undefined) {
         continue;
       }
-      if (!Guard.isObjectLike(current) || !Reflect.has(current, part)) {
+      if (!Predicates.isObjectLike(current) || !Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'getValue', path);
       }
       current = Reflect.get(current, part);
@@ -137,12 +137,12 @@ export class Patch {
     let current: unknown = target;
     for (let index = 0; index < parts.length - 1; index += 1) {
       const part = parts[index]!;
-      if (!Guard.isObjectLike(current)) {throw new PatchError(`Intermediate path not traversable: ${path}`, 'setValue', path);}
+      if (!Predicates.isObjectLike(current)) {throw new PatchError(`Intermediate path not traversable: ${path}`, 'setValue', path);}
       if (!Reflect.has(current, part)) {Reflect.set(current, part, {});}
       current = Reflect.get(current, part);
     }
     const lastPart = parts.at(-1);
-    if (lastPart === undefined || !Guard.isObjectLike(current)) {
+    if (lastPart === undefined || !Predicates.isObjectLike(current)) {
       throw new PatchError(`Cannot set on non-object at: ${path}`, 'setValue', path);
     }
     Reflect.set(current, lastPart, value);
@@ -155,13 +155,13 @@ export class Patch {
     let current: unknown = target;
     for (let index = 0; index < parts.length - 1; index += 1) {
       const part = parts[index]!;
-      if (!Guard.isObjectLike(current) || !Reflect.has(current, part)) {
+      if (!Predicates.isObjectLike(current) || !Reflect.has(current, part)) {
         throw new PatchError(`Path not found: ${path}`, 'removeValue', path);
       }
       current = Reflect.get(current, part);
     }
     const lastPart = parts.at(-1);
-    if (lastPart === undefined || !Guard.isObjectLike(current)) {
+    if (lastPart === undefined || !Predicates.isObjectLike(current)) {
       throw new PatchError(`Cannot remove from non-object: ${path}`, 'removeValue', path);
     }
     if (Array.isArray(current)) {
@@ -182,13 +182,13 @@ export class Patch {
     let current: unknown = target;
     for (let index = 0; index < parts.length - 1; index += 1) {
       const part = parts[index]!;
-      if (!Guard.isObjectLike(current) || !Reflect.has(current, part)) {
+      if (!Predicates.isObjectLike(current) || !Reflect.has(current, part)) {
         throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
       }
       current = Reflect.get(current, part);
     }
     const key = parts.at(-1)!;
-    if (!Guard.isObjectLike(current) || !Reflect.has(current, key)) {
+    if (!Predicates.isObjectLike(current) || !Reflect.has(current, key)) {
       throw new PatchError(`Cannot replace non-existent path: ${path}`, 'replace', path);
     }
     return { 'container': current, 'key': key };

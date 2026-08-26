@@ -30,7 +30,7 @@
 
 import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
@@ -295,7 +295,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     config?: Partial<MutexConfigEntity.Type>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!Guard.isObjectLike(result) || !Mutex.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Mutex.isConstructed<TInstance>(result, this)) {
       throw new TypeError('Mutex.create() must construct a Mutex instance');
     }
     return result;

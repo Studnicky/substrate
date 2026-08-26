@@ -716,18 +716,6 @@ importers:
         specifier: ^3.1.1
         version: 3.1.1
 
-  packages/predicates:
-    dependencies:
-      '@studnicky/cache':
-        specifier: workspace:*
-        version: link:../cache
-      '@studnicky/json':
-        specifier: workspace:*
-        version: link:../json
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-
   packages/process-kit:
     dependencies:
       '@studnicky/fsm':

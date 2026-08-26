@@ -14,12 +14,11 @@
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { IsRangeValid } from '../atomic/isRangeValid.js';
-import { PerformRangeComparison } from '../atomic/performRangeComparison.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 export class IsInRange {
   static isInRange(value: unknown, range: FilterValueEntity.Type): boolean {
-    if (!IsRangeValid.isRangeValid(range)) {
+    if (!Predicates.isRangeValid(range)) {
       return false;
     }
 
@@ -28,7 +27,7 @@ export class IsInRange {
       maximum
     ] = range;
 
-    const result = PerformRangeComparison.performRangeComparison(value, minimum, maximum, true);
+    const result = Predicates.performRangeComparison(value, minimum, maximum, true);
     return result;
   }
 }

@@ -9,7 +9,7 @@
  * All methods are monomorphic and use consistent object shapes so V8 can
  * inline-cache them without deoptimisation.
  */
-import { Guard } from './Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 
 export class Empty {
   // ── Producers ────────────────────────────────────────────────────────────
@@ -57,12 +57,12 @@ export class Empty {
    * keys. Returns `false` for `null`, arrays, Maps, Sets, and any other
    * non-plain-object value.
    *
-   * Delegates the plain-object shape check to `Guard.isObject` — the
+   * Delegates the plain-object shape check to `Predicates.isObject` — the
    * canonical predicate for the package — and adds only the emptiness check
    * on top, so the Map/Set exclusion lives in exactly one place.
    */
   public static isObject(value: unknown): boolean {
-    if (!Guard.isObject(value)) {
+    if (!Predicates.isObject(value)) {
       return false;
     }
     const result = Object.keys(value).length === 0;

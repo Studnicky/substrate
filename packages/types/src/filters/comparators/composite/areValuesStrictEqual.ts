@@ -6,11 +6,7 @@ import type {
   FilterConditionInterface
 } from '../../interfaces.js';
 
-import { Guard } from '../../../guards/Guard.js';
-import { AreNaNStrict } from '../atomic/areNaNStrict.js';
-import { AreNullUndefinedEqual } from '../atomic/areNullUndefinedEqual.js';
-import { AreObjectsReferenceEqual } from '../atomic/areObjectsReferenceEqual.js';
-import { AreTypesSame } from '../atomic/areTypesSame.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 import { AreStringsEqual } from './areStringsEqual.js';
 
 /**
@@ -25,7 +21,7 @@ export class AreValuesStrictEqual {
     // Handle NaN specially - NaN should not equal NaN (JavaScript semantics)
     if (typeof value === 'number' && typeof filterValue === 'number') {
       if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-        const result = AreNaNStrict.areNaNStrict(value, filterValue);
+        const result = Predicates.areNaNStrict(value, filterValue);
         return result;
       }
     }
@@ -37,18 +33,18 @@ export class AreValuesStrictEqual {
 
     // Handle null/undefined
     if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      const result = AreNullUndefinedEqual.areNullUndefinedEqual(value, filterValue);
+      const result = Predicates.areNullUndefinedEqual(value, filterValue);
       return result;
     }
 
     // Handle objects and arrays - use reference equality for all objects
     if ((typeof value === 'object' && value !== null) || (typeof filterValue === 'object' && filterValue !== null)) {
-      const result = AreObjectsReferenceEqual.areObjectsReferenceEqual(value, filterValue);
+      const result = Predicates.areObjectsReferenceEqual(value, filterValue);
       return result;
     }
 
     // Strict type checking - no automatic coercion
-    if (!AreTypesSame.areTypesSame(value, filterValue)) {
+    if (!Predicates.areTypesSame(value, filterValue)) {
       return false;
     }
 
@@ -79,7 +75,7 @@ export class AreValuesStrictEqual {
     filterValue: unknown,
     condition: FilterConditionInterface
   ): boolean | null {
-    if (Guard.isString(value) && Guard.isString(filterValue)) {
+    if (Predicates.isString(value) && Predicates.isString(filterValue)) {
       const result = AreStringsEqual.areStringsEqual(value, filterValue, condition);
       return result;
     }

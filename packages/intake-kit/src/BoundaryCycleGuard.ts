@@ -16,11 +16,11 @@
 // `DataType` is left as its own implementation.
 
 /** Detects a cycle in an arbitrary value graph via `Array`/`Map`/`Set`/plain-object traversal. */
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 export class BoundaryCycleGuard {
   public static hasCycle(value: unknown, seen: WeakSet<object> = new WeakSet<object>()): boolean {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return false;
     }
     if (seen.has(value)) {

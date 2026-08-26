@@ -8,7 +8,7 @@ import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
 import { LruCache } from '@studnicky/cache';
 import { HookInvoker } from '@studnicky/errors';
 import { TokenBucket } from '@studnicky/resilience';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { RateLimitRequestEntity } from './entities/RateLimitRequestEntity.js';
 import type { KeyedRateLimiterCreateConfigInterface } from './interfaces/KeyedRateLimiterCreateConfigInterface.js';
@@ -179,7 +179,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'factory': config.factory,
         'tokenBucketOptions': undefined
       }]);
-      if (!Guard.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+      if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
         throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
       }
       return result;
@@ -194,7 +194,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         ...(config.clock !== undefined ? { 'clock': config.clock } : {})
       }
     }]);
-    if (!Guard.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
       throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
     }
     return result;

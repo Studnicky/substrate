@@ -1,7 +1,7 @@
 /**
  * Safely stringifies an object to JSON, handling circular references
  */
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 export class SafeStringify {
   /**
@@ -12,7 +12,7 @@ export class SafeStringify {
     const seen = new WeakSet();
 
     const result = JSON.stringify(object, (_key, value) => {
-      if (Guard.isObjectLike(value)) {
+      if (Predicates.isObjectLike(value)) {
         if (seen.has(value)) {
           return '[Circular]';
         }

@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
@@ -38,7 +38,7 @@ export namespace ValidationReportOptionsEntity {
    * circular workspace reference.
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     if (candidate.status !== undefined && typeof candidate.status !== 'number') { return false; }
     if (candidate.title !== undefined && typeof candidate.title !== 'string') { return false; }
     if (candidate.type !== undefined && typeof candidate.type !== 'string') { return false; }

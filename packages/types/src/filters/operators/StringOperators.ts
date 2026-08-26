@@ -5,7 +5,7 @@ import type { FilterConditionInterface } from '../interfaces.js';
  * @module StringOperators
  * @description String operation implementations for FilterEngine
  */
-import { Guard } from '../../guards/Guard.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { DoesStringContain } from '../comparators/composite/doesStringContain.js';
 import { DoesStringEndWith } from '../comparators/composite/doesStringEndWith.js';
 import { DoesStringStartWith } from '../comparators/composite/doesStringStartWith.js';
@@ -287,10 +287,10 @@ export class StringOperators {
   private static resolveRegexPattern(condition: FilterConditionInterface | undefined, filterValue: FilterValueEntity.Type): string | RegExp {
     const compiledRegex = condition?.compiledRegex;
 
-    if (Guard.isString(compiledRegex) || Guard.isRegExp(compiledRegex)) {
+    if (Predicates.isString(compiledRegex) || Predicates.isRegExp(compiledRegex)) {
       return compiledRegex;
     }
-    if (Guard.isString(filterValue) || Guard.isRegExp(filterValue)) {
+    if (Predicates.isString(filterValue) || Predicates.isRegExp(filterValue)) {
       return filterValue;
     }
 

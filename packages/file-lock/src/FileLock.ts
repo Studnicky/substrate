@@ -1,7 +1,7 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
@@ -108,7 +108,7 @@ export class FileLock {
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
       { 'fs': fs, 'lockPath': lockPath, 'originalPath': path }
     ]);
-    if (!Guard.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
+    if (!Predicates.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
       throw new TypeError('FileLock.create() did not construct the requested subclass.');
     }
 

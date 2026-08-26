@@ -1,7 +1,7 @@
 import {
   HookInvocationError, HookInvoker
 } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { PaginatorExhaustedCursorEntity } from './entities/PaginatorExhaustedCursorEntity.js';
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
@@ -179,7 +179,7 @@ export class Paginator<TPage, TCursor> {
     }
     const result: unknown = Reflect.construct(this, []);
 
-    if (!Guard.isObjectLike(result) || !Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
       throw new TypeError('Paginator.create() must construct a Paginator instance');
     }
 

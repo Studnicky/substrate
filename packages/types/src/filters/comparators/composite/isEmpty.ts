@@ -29,37 +29,33 @@
  * IsEmpty.isEmpty({ name: 'John' }); // false
  */
 
-import { IsEmptyArray } from '../atomic/isEmptyArray.js';
-import { IsEmptyRegExp } from '../atomic/isEmptyRegExp.js';
-import { IsEmptyString } from '../atomic/isEmptyString.js';
-import { IsEmptyTypedArray } from '../atomic/isEmptyTypedArray.js';
-import { IsNullOrUndefined } from '../atomic/isNullOrUndefined.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 import { IsEmptyObject } from './isEmptyObject.js';
 
 export class IsEmpty {
   static isEmpty(value: unknown): boolean {
     // null and undefined are empty
-    if (IsNullOrUndefined.isNullOrUndefined(value)) {
+    if (Predicates.isNullish(value)) {
       return true;
     }
 
     // Empty string
-    if (IsEmptyString.isEmptyString(value)) {
+    if (Predicates.isEmptyString(value)) {
       return true;
     }
 
     // Empty array
-    if (IsEmptyArray.isEmptyArray(value)) {
+    if (Predicates.isEmptyArray(value)) {
       return true;
     }
 
     // Empty TypedArray
-    if (IsEmptyTypedArray.isEmptyTypedArray(value)) {
+    if (Predicates.isEmptyTypedArray(value)) {
       return true;
     }
 
     // Empty RegExp
-    if (IsEmptyRegExp.isEmptyRegExp(value)) {
+    if (Predicates.isEmptyRegExp(value)) {
       return true;
     }
 

@@ -16,8 +16,8 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { ContextualOperatorFunctionInterface } from './ContextualOperatorFunctionInterface.js';
 import type { PluginContextInterface } from './PluginContextInterface.js';
 
-import { Guard } from '../../guards/Guard.js';
-import { TIME_ONLY_PATTERN } from '../comparators/atomic/constants/TimeOnlyPattern.js';
+import { TIME_ONLY_PATTERN } from '../../predicates/constants/TimeOnlyPattern.js';
+import { Predicates } from '../../predicates/Predicates.js';
 import { WHOLE_NUMBER_PATTERN } from '../utils/constants/WholeNumberPattern.js';
 import { Plugin } from './Plugin.js';
 
@@ -77,7 +77,7 @@ export class TimeOperatorsPlugin extends Plugin {
     context?: PluginContextInterface
   ): boolean => {
     // Validate range input - only accept object format { start, end }
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       return false;
     }
 
@@ -130,7 +130,7 @@ export class TimeOperatorsPlugin extends Plugin {
     context?: PluginContextInterface
   ): boolean => {
     // Validate range input - only accept object format { start, end }
-    if (!Guard.isRecord(filterValue)) {
+    if (!Predicates.isRecord(filterValue)) {
       return false;
     }
 
@@ -198,7 +198,7 @@ export class TimeOperatorsPlugin extends Plugin {
   }
 
   private static isConditionInclusive(context: PluginContextInterface | undefined): boolean {
-    const result = !Guard.isRecord(context?.condition) || context.condition.inclusive !== false;
+    const result = !Predicates.isRecord(context?.condition) || context.condition.inclusive !== false;
 
     return result;
   }
@@ -227,7 +227,7 @@ export class TimeOperatorsPlugin extends Plugin {
    */
   private isTimeOnlyComparison(_value: unknown, range: unknown): boolean {
     // Handle object format { start, end }
-    if (Guard.isRecord(range)) {
+    if (Predicates.isRecord(range)) {
       const {
         end, start
       } = range;

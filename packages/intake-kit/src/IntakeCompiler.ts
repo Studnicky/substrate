@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityCreateFunctionInterface } from './interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFunctionInterface.js';
@@ -99,7 +99,7 @@ export class IntakeCompiler {
     config: IntakeCompiler.BoundaryConfigInterface,
     options: IntakeCompiler.ParseOptionsInterface
   ): TEntity {
-    if (!Guard.isObject(candidate)) {
+    if (!Predicates.isObject(candidate)) {
       const result = config.onInvalidCandidate(entityName, 'must be an object');
       return result;
     }

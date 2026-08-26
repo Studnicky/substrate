@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { EntityValidateFunctionInterface } from '../../src/interfaces/EntityValidateFunctionInterface.js';
 
@@ -21,7 +21,7 @@ export namespace CacheEventEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Guard.isObject(candidate)) { return false; }
+    if (!Predicates.isObject(candidate)) { return false; }
     const result = (candidate.event === 'hit' || candidate.event === 'miss') && typeof candidate.key === 'string';
     return result;
   };

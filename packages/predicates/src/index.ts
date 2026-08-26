@@ -1,9 +1,0 @@
-/**
- * @studnicky/predicates — JSON Schema primitive validation predicates.
- *
- * Named exports:
- * - Predicates — static predicate class for type guards, string, numeric,
- *   array, object, and content validation (JSON Schema draft 2020-12).
- */
-
-export { Predicates } from './Predicates.js';

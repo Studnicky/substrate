@@ -5,7 +5,7 @@
 
 import { Coalesce } from '@studnicky/concurrency';
 import { Mutex } from '@studnicky/mutex';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateConfigInterface.js';
 
@@ -74,7 +74,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
       'coalesce': KeyedWorkGate.#resolveCoalesce(config.coalesce),
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
     }]);
-    if (!Guard.isObjectLike(result)) {
+    if (!Predicates.isObjectLike(result)) {
       throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {

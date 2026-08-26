@@ -17,11 +17,11 @@
 
 import type { FilterConditionInterface } from '../../interfaces.js';
 
-import { AreStringsMatching } from '../atomic/areStringsMatching.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 export class AreStringsEqual {
   static areStringsEqual(value: string, filterValue: string, condition: FilterConditionInterface = {}): boolean {
-    const result = AreStringsMatching.areStringsMatching(value, filterValue, condition, (firstValue, secondValue) => {
+    const result = Predicates.areStringsMatching(value, filterValue, condition, (firstValue, secondValue) => {
       const matches = firstValue === secondValue;
       return matches;
     });

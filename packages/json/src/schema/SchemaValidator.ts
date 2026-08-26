@@ -22,7 +22,7 @@
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
 import { BoundaryCycleGuard } from '@studnicky/intake-kit';
-import { Guard, JsonObject, JsonValue } from '@studnicky/types';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types';
 
 import type { SchemaCreateFunctionInterface } from '../interfaces/SchemaCreateFunctionInterface.js';
 import type { SchemaIntakeFunctionInterface } from '../interfaces/SchemaIntakeFunctionInterface.js';
@@ -233,7 +233,7 @@ export class SchemaValidator {
 
   /** Strips undefined properties recursively. */
   protected static stripUndefinedProperties(value: unknown): unknown {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       const result = value;
       return result;
     }

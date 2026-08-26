@@ -3,7 +3,7 @@ import { ConfigurationError } from '@studnicky/config';
 import { HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { SampleBuffer } from '@studnicky/sample-buffer';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
@@ -191,7 +191,7 @@ export class Throttle implements ThrottleInterface {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
-    if (!Guard.isObjectLike(result) || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Throttle.create() did not construct the requested subclass.');
     }
     return result;

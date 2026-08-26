@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import scenarioGroups from './guard.scenarios.json' with { type: 'json' };
 
@@ -56,34 +56,34 @@ type GuardAssertion = (input: unknown, expected: unknown) => void;
 
 const guardAssertions: Record<GuardGroupName, GuardAssertion> = {
   'asNumber': (input, expected): void => {
-    assert.strictEqual(Guard.asNumber(input), expected);
+    assert.strictEqual(Predicates.asNumber(input), expected);
   },
   'asRecordArray': (input, expected): void => {
-    assert.deepStrictEqual(Guard.asRecordArray(input), expected);
+    assert.deepStrictEqual(Predicates.asRecordArray(input), expected);
   },
   'asStringOrNull': (input, expected): void => {
-    assert.strictEqual(Guard.asStringOrNull(input), expected);
+    assert.strictEqual(Predicates.asStringOrNull(input), expected);
   },
   'isBoolean': (input, expected): void => {
-    assert.strictEqual(Guard.isBoolean(input), expected);
+    assert.strictEqual(Predicates.isBoolean(input), expected);
   },
   'isFunction': (input, expected): void => {
-    assert.strictEqual(Guard.isFunction(input), expected);
+    assert.strictEqual(Predicates.isFunction(input), expected);
   },
   'isNonNegativeInteger': (input, expected): void => {
-    assert.strictEqual(Guard.isNonNegativeInteger(input), expected);
+    assert.strictEqual(Predicates.isNonNegativeInteger(input), expected);
   },
   'isNumber': (input, expected): void => {
-    assert.strictEqual(Guard.isNumber(input), expected);
+    assert.strictEqual(Predicates.isNumber(input), expected);
   },
   'isObject': (input, expected): void => {
-    assert.strictEqual(Guard.isObject(input), expected);
+    assert.strictEqual(Predicates.isObject(input), expected);
   },
   'isPositiveInteger': (input, expected): void => {
-    assert.strictEqual(Guard.isPositiveInteger(input), expected);
+    assert.strictEqual(Predicates.isPositiveInteger(input), expected);
   },
   'isString': (input, expected): void => {
-    assert.strictEqual(Guard.isString(input), expected);
+    assert.strictEqual(Predicates.isString(input), expected);
   }
 };
 

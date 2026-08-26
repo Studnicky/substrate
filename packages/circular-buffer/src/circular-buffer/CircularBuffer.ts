@@ -36,7 +36,7 @@
  */
 
 import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
@@ -92,7 +92,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       resolveSubclassConstructor(),
       [options]
     );
-    if (!Guard.isObjectLike(constructed)) {
+    if (!Predicates.isObjectLike(constructed)) {
       throw new TypeError(
         'CircularBuffer.create() did not construct the requested subclass.'
       );

@@ -2,9 +2,7 @@
  * Checks if object (Set, Map, or plain object) is empty
  */
 
-import { IsEmptyMap } from '../atomic/isEmptyMap.js';
-import { IsEmptyPlainObject } from '../atomic/isEmptyPlainObject.js';
-import { IsEmptySet } from '../atomic/isEmptySet.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 
 export class IsEmptyObject {
   static isEmptyObject(value: unknown): boolean {
@@ -13,15 +11,15 @@ export class IsEmptyObject {
     }
 
     // Check different object types
-    if (IsEmptySet.isEmptySet(value)) {
+    if (Predicates.isEmptySet(value)) {
       return true;
     }
 
-    if (IsEmptyMap.isEmptyMap(value)) {
+    if (Predicates.isEmptyMap(value)) {
       return true;
     }
 
-    if (IsEmptyPlainObject.isEmptyPlainObject(value)) {
+    if (Predicates.isEmptyPlainObject(value)) {
       return true;
     }
 

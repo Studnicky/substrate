@@ -5,7 +5,7 @@
 import type { FilterValueEntity } from './FilterValueEntity.js';
 import type { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
 
-import { Guard } from '../guards/Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 
 // Operator function signature - options carries the compiled condition and evaluation data
 export interface OperatorFunctionInterface {
@@ -190,7 +190,7 @@ export interface ArrayWildcardValueInterface {
 // Type guards
 export class FilterTypeGuards {
   static isArrayWildcardValue(value: unknown): value is ArrayWildcardValueInterface {
-    const result = Guard.isRecord(value) && value.arrayWildcard === true;
+    const result = Predicates.isRecord(value) && value.arrayWildcard === true;
 
     return result;
   }

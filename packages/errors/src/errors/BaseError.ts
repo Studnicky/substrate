@@ -18,7 +18,7 @@ import type {
   JSONSchema7Object, JSONSchema7Type
 } from 'json-schema';
 
-import { Guard, JsonValue } from '@studnicky/types';
+import { JsonValue, Predicates } from '@studnicky/types';
 
 import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
 
@@ -95,7 +95,7 @@ export abstract class BaseError extends Error {
     let current: unknown = error;
     let depth = 0;
 
-    while (!Guard.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
+    while (!Predicates.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
       if (current instanceof ctor) {
         return current;
       }
@@ -119,7 +119,7 @@ export abstract class BaseError extends Error {
     let current: unknown = error;
     let depth = 0;
 
-    while (!Guard.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
+    while (!Predicates.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
       chain.push(current);
       if (current instanceof Error) {
         current = current.cause;
@@ -142,7 +142,7 @@ export abstract class BaseError extends Error {
     let current: unknown = error;
     let depth = 0;
 
-    while (!Guard.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
+    while (!Predicates.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
       if (current instanceof ctor) {
         return true;
       }
@@ -167,59 +167,6 @@ export abstract class BaseError extends Error {
     return projection.message;
   }
 
-  /**
-   * Serializes a single cause node at the given depth. A `BaseError` cause carries its own
-   * `code`/`metadata`/`correlationId`/`timestamp` and is serialized directly from those fields.
-   * Anything else — a plain `Error`, an `AggregateError`, or an arbitrary thrown primitive/object
-   * — is an open-set shape, so it is parsed through {@link ThrownValueEntity} rather than hand-rolled
-   * `instanceof` branching.
-   */
-  protected static serializeCause(error: unknown, depth: number): JSONSchema7Object {
-    if (error instanceof BaseError) {
-      const causeRaw = error.cause;
-      let causeValue: JSONSchema7Type = null;
-
-      if (!Guard.isNullish(causeRaw)) {
-        if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
-          causeValue = CAUSE_DEPTH_SENTINEL;
-        } else {
-          causeValue = BaseError.serializeCause(causeRaw, depth + 1);
-        }
-      }
-
-      return {
-        'cause': causeValue,
-        'code': error.code,
-        'context': error.metadata === undefined ? null : { ...error.metadata },
-        'correlationId': error.correlationId ?? null,
-        'message': error.message,
-        'timestamp': error.timestamp
-      };
-    }
-
-    const projection = ThrownValueEntity.intake(error);
-    const causeRaw = error instanceof Error ? error.cause : undefined;
-    let causeValue: JSONSchema7Type = null;
-
-    if (!Guard.isNullish(causeRaw)) {
-      if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
-        causeValue = CAUSE_DEPTH_SENTINEL;
-      } else {
-        causeValue = BaseError.serializeCause(causeRaw, depth + 1);
-      }
-    }
-
-    const code = projection.kind === 'error' || projection.kind === 'aggregate' ? 'native.error' : 'native.primitive';
-
-    return {
-      'cause': causeValue,
-      'code': code,
-      'context': null,
-      'correlationId': null,
-      'message': projection.message,
-      'timestamp': 0
-    };
-  }
 
   /**
    * Returns extra fields to merge into the `toJSON()` output.
@@ -272,8 +219,8 @@ export abstract class BaseError extends Error {
     const causeRaw = this.cause;
     let causeValue: JSONSchema7Type = null;
 
-    if (!Guard.isNullish(causeRaw)) {
-      causeValue = BaseError.serializeCause(causeRaw, 1);
+    if (!Predicates.isNullish(causeRaw)) {
+      causeValue = CauseSerializationEntity.intake(causeRaw, 1);
     }
 
     const result: JSONSchema7Object = {
@@ -297,4 +244,64 @@ export abstract class BaseError extends Error {
 
     return result;
   }
+}
+
+/**
+ * Serializes a single cause node at the given depth. A `BaseError` cause carries its own
+ * `code`/`metadata`/`correlationId`/`timestamp` and is serialized directly from those fields.
+ * Anything else — a plain `Error`, an `AggregateError`, or an arbitrary thrown primitive/object
+ * — is an open-set shape, so it is parsed through {@link ThrownValueEntity} rather than hand-rolled
+ * `instanceof` branching.
+ */
+namespace CauseSerializationEntity {
+  class Intake {
+    static intake(error: unknown, depth: number): JSONSchema7Object {
+      if (error instanceof BaseError) {
+        const causeRaw = error.cause;
+        let causeValue: JSONSchema7Type = null;
+
+        if (!Predicates.isNullish(causeRaw)) {
+          if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
+            causeValue = CAUSE_DEPTH_SENTINEL;
+          } else {
+            causeValue = Intake.intake(causeRaw, depth + 1);
+          }
+        }
+
+        return {
+          'cause': causeValue,
+          'code': error.code,
+          'context': error.metadata === undefined ? null : { ...error.metadata },
+          'correlationId': error.correlationId ?? null,
+          'message': error.message,
+          'timestamp': error.timestamp
+        };
+      }
+
+      const projection = ThrownValueEntity.intake(error);
+      const causeRaw = error instanceof Error ? error.cause : undefined;
+      let causeValue: JSONSchema7Type = null;
+
+      if (!Predicates.isNullish(causeRaw)) {
+        if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
+          causeValue = CAUSE_DEPTH_SENTINEL;
+        } else {
+          causeValue = Intake.intake(causeRaw, depth + 1);
+        }
+      }
+
+      const code = projection.kind === 'error' || projection.kind === 'aggregate' ? 'native.error' : 'native.primitive';
+
+      return {
+        'cause': causeValue,
+        'code': code,
+        'context': null,
+        'correlationId': null,
+        'message': projection.message,
+        'timestamp': 0
+      };
+    }
+  }
+
+  export const intake = Intake.intake;
 }

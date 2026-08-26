@@ -9,10 +9,9 @@
  * @throws {RegexError} When a pattern is detected as too dangerous to execute
  */
 
-import { Guard } from '../../../guards/Guard.js';
+import { Predicates } from '../../../predicates/Predicates.js';
 import { ErrorCodes } from '../../enums/ErrorCodes.js';
 import { RegexError } from '../../errors/RegexError.js';
-import { IsVulnerablePattern } from '../atomic/isVulnerablePattern.js';
 import { HIGH_RISK_REGEX_PATTERNS } from './constants/HighRiskRegexPatterns.js';
 import { QUANTIFIER_CHARACTER_PATTERN } from './constants/QuantifierCharacterPattern.js';
 
@@ -55,7 +54,7 @@ export class DoesValueMatchPattern {
    */
   private static createRegexPattern(regex: RegExp | string): { 'pattern': RegExp;
     'source': string } {
-    if (Guard.isRegExp(regex)) {
+    if (Predicates.isRegExp(regex)) {
       return {
         'pattern': regex,
         'source': regex.source
@@ -109,7 +108,7 @@ export class DoesValueMatchPattern {
    * Executes regex test with appropriate safety measures
    */
   private static executePattern(regexPattern: RegExp, stringValue: string, patternString: string): boolean {
-    if (IsVulnerablePattern.isVulnerablePattern(patternString)) {
+    if (Predicates.isVulnerablePattern(patternString)) {
       const result = DoesValueMatchPattern.executeVulnerablePattern(regexPattern, stringValue, patternString);
       return result;
     }
@@ -123,7 +122,7 @@ export class DoesValueMatchPattern {
    */
   private static isHighRiskPattern(pattern: string | RegExp): boolean {
     // Convert to string if it's a RegExp object
-    const patternString = Guard.isRegExp(pattern) ? pattern.source : String(pattern);
+    const patternString = Predicates.isRegExp(pattern) ? pattern.source : String(pattern);
 
     const matchesKnownHighRiskShape = HIGH_RISK_REGEX_PATTERNS.some((riskPattern) => {
       const matches = riskPattern.test(patternString);

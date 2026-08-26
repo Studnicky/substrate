@@ -1,5 +1,5 @@
 import { HookInvoker } from '@studnicky/errors';
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
@@ -75,7 +75,7 @@ export class Context implements ContextInterface {
     config: ContextConfigEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!Guard.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;

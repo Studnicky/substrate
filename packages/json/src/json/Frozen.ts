@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
@@ -48,7 +48,7 @@ export class Frozen {
    * Delegates object-freeze decision to `this.shouldFreeze`.
    */
   protected static freezeValue<T>(value: T, seen: WeakSet<object>): T {
-    if (!Guard.isObjectLike(value)) {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
 

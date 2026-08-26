@@ -1,4 +1,4 @@
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -155,7 +155,7 @@ export class TestDispatcher {
 
     try {
       const parsed: unknown = JSON.parse(body);
-      if (!Guard.isObject(parsed)) {
+      if (!Predicates.isObject(parsed)) {
         return {};
       }
       const result: Record<string, unknown> = {};
