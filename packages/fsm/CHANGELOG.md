@@ -1,5 +1,18 @@
 # Changelog
 
+## 11.0.1
+
+### Patch Changes
+
+- 92e7c65: Adds missing `tsconfig.json` project references for `@studnicky/*` dependencies declared in
+  `package.json` but absent from `references`, the same class of bug that broke `intake-kit`'s
+  `tsc -b` build order. Found by auditing every package for this pattern after the intake-kit
+  incident; these 26 packages were latent, not yet triggering a build failure.
+- @studnicky/circular-buffer@11.0.1
+  - @studnicky/errors@11.0.1
+  - @studnicky/json@11.0.1
+  - @studnicky/types@11.0.1
+
 ## 11.0.0
 
 ### Major Changes

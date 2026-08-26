@@ -14,7 +14,16 @@
   ],
   "references": [
     {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    },
+    {
       "path": "../signal"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

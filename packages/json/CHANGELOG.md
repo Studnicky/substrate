@@ -1,5 +1,13 @@
 # Changelog
 
+## 11.0.1
+
+### Patch Changes
+
+- @studnicky/errors@11.0.1
+  - @studnicky/intake-kit@11.0.1
+  - @studnicky/types@11.0.1
+
 ## 11.0.0
 
 ### Major Changes

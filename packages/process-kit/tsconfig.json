@@ -14,10 +14,19 @@
   ],
   "references": [
     {
+      "path": "../clock"
+    },
+    {
       "path": "../fsm"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../scheduler"
+    },
+    {
+      "path": "../signal"
     }
   ]
 }

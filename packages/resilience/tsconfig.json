@@ -23,6 +23,9 @@
       "path": "../json"
     },
     {
+      "path": "../signal"
+    },
+    {
       "path": "../types"
     }
   ]

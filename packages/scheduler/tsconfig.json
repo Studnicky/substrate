@@ -18,6 +18,18 @@
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../fsm"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../signal"
+    },
+    {
+      "path": "../types"
     }
   ]
 }
