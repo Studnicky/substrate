@@ -11,5 +11,13 @@
   "exclude": [
     "node_modules",
     "dist"
+  ],
+  "references": [
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../json"
+    }
   ]
 }

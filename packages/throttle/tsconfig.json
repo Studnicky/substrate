@@ -32,6 +32,9 @@
       "path": "../sample-buffer"
     },
     {
+      "path": "../signal"
+    },
+    {
       "path": "../types"
     }
   ]
