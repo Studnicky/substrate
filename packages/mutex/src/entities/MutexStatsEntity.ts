@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -9,7 +10,7 @@ export namespace MutexStatsEntity {
     'properties': {
       'activeLocksCount': { 'minimum': 0, 'type': 'integer' },
       'coalescedCount': { 'minimum': 0, 'type': 'integer' },
-      'maxQueueSize': { 'minimum': 0, 'type': 'integer' },
+      'maximumQueueSize': { 'minimum': 0, 'type': 'integer' },
       'queuedCount': { 'minimum': 0, 'type': 'integer' },
       'timeout': { 'minimum': 0, 'type': 'integer' },
       'totalExecuted': { 'minimum': 0, 'type': 'integer' }
@@ -17,7 +18,7 @@ export namespace MutexStatsEntity {
     'required': [
       'activeLocksCount',
       'coalescedCount',
-      'maxQueueSize',
+      'maximumQueueSize',
       'queuedCount',
       'timeout',
       'totalExecuted'
@@ -29,4 +30,6 @@ export namespace MutexStatsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

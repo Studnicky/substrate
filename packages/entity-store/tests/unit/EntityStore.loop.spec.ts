@@ -623,9 +623,9 @@ async function runHookErrorsDeeplyDetached(scenarioCase: ScenarioCaseMap['hook-e
 
 async function runAsyncRejectionRoutedNoUnhandled(scenarioCase: ScenarioCaseMap['async-rejection-routed-no-unhandled']): Promise<void> {
   const store = makeAsyncRejectingUpsertStore(scenarioCase.input.failure.message);
-  const rejectionEvents: unknown[] = [];
-  const onUnhandledRejection = (reason: unknown): void => {
-    rejectionEvents.push(reason);
+  const rejectionEvents: boolean[] = [];
+  const onUnhandledRejection = (): void => {
+    rejectionEvents.push(true);
   };
   process.on('unhandledRejection', onUnhandledRejection);
   try {

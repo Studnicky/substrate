@@ -4,7 +4,7 @@
  * @studnicky/substrate.
  *
  * Guards:
- *   - `Guard`            — pure-static type-safe accessors and type guards for wire format values
+ *   - `Predicates`       — pure-static type-safe accessors, type guards, and JSON Schema predicates
  *   - `JsonObject`       — narrowing guard for the JSON-object boundary (`JsonObject.is`)
  *   - `JsonValue`        — validation and coercion of `unknown` into canonical JSON data
  *
@@ -13,7 +13,7 @@
  */
 
 export { Empty } from './guards/Empty.js';
-export { Guard } from './guards/Guard.js';
 export { JsonObject } from './guards/JsonObject.js';
 export { JsonValue } from './guards/JsonValue.js';
 export { PickDefined } from './objects/PickDefined.js';
+export { Predicates } from './predicates/Predicates.js';

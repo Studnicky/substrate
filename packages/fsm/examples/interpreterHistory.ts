@@ -39,7 +39,10 @@ await history.send({ 'type': 'advance' }); // green -> amber
 await history.send({ 'type': 'advance' }); // amber -> red, evicts the red -> green record
 
 console.log('Recorded transitions (oldest first):');
-for (const record of history.history()) {
+const historyRecords = history.history();
+const historyRecordsLength = historyRecords.length;
+for (let index = 0; index < historyRecordsLength; index += 1) {
+  const record = historyRecords[index]!;
   console.log(`  ${record.from.variant} --[${record.event.type}]--> ${record.to.variant} @ ${record.timestamp}`);
 }
 

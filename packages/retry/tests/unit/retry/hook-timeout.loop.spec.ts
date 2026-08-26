@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
-import { NonRetryableError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-timeout.scenarios.json' with { type: 'json' };
 
@@ -13,7 +12,7 @@ type ScenarioCase =
 
 type RetryScenarioInput = Record<string, unknown> & {
   batch?: { failureCountBeforeSuccess?: number };
-  retry?: Partial<Pick<RetryConfigInterface, 'hookTimeoutMs' | 'maxRetries'>>;
+  retry?: Partial<Pick<RetryConfigInterface, 'hookTimeoutMs' | 'maximumRetries'>>;
 };
 
 type AttemptOutcome = 'failure' | 'success';
@@ -144,7 +143,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const startedAt = Date.now();
     await assert.rejects(
       () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
-      (error: unknown) => error instanceof NonRetryableError && error.name === String(expected.errorShape)
+      { 'name': String(expected.errorShape) }
     );
     const elapsedMs = Date.now() - startedAt;
 

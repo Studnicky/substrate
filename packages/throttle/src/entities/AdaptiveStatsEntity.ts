@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -24,12 +25,12 @@ export namespace AdaptiveStatsEntity {
         'minimum': 0,
         'type': 'integer'
       },
-      'maxConcurrency': {
+      'maximumConcurrency': {
         'description': 'Maximum concurrency limit.',
         'minimum': 1,
         'type': 'integer'
       },
-      'minConcurrency': {
+      'minimumConcurrency': {
         'description': 'Minimum concurrency limit.',
         'minimum': 1,
         'type': 'integer'
@@ -44,8 +45,8 @@ export namespace AdaptiveStatsEntity {
       'adjustmentCount',
       'enabled',
       'lastAdjustmentTime',
-      'maxConcurrency',
-      'minConcurrency',
+      'maximumConcurrency',
+      'minimumConcurrency',
       'targetLatencyMs'
     ],
     'title': 'AdaptiveStats',
@@ -55,4 +56,6 @@ export namespace AdaptiveStatsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

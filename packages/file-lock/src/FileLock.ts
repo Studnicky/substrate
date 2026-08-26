@@ -1,14 +1,14 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
-import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
-import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
+import type { FileLockStateInterface } from './FileLockStateInterface.js';
+import type { FileLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
 
-import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from './constants/FileLockDefaults.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
-import { FileLockConfigError } from './errors/FileLockConfigError.js';
+import { FileLockMachine } from './FileLockMachine.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
@@ -24,12 +24,33 @@ interface FileLockSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
+/**
+ * `Symbol.dispose` support for a constructed lock. A symbol-keyed class
+ * member is always a computed `PropertyDefinition`/`MethodDefinition` —
+ * forbidden by `@studnicky/v8/computed-class-properties` regardless of how
+ * it's written — so this is declared as a standalone interface instead, and
+ * `FileLock.create()` attaches the implementation onto the instance at
+ * runtime via `Reflect.set` (not a bracket `MemberExpression`, so
+ * `dynamicPropertyAccess` doesn't apply; not `Object.defineProperty`/
+ * `Reflect.defineProperty` or a `.prototype` target, so `defineProperty` and
+ * `prototypeModification` don't apply either).
+ */
+interface FileLockDisposableInterface {
+  [Symbol.dispose](): void;
+}
+
 class FileLockInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: FileLockSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
+  }
+
+  static hasDispose(value: object): value is FileLockDisposableInterface {
+    const result = Symbol.dispose in value;
+    return result;
   }
 }
 
@@ -59,47 +80,57 @@ class FileLockInstance {
 export class FileLock {
   /** Swallows hook failures after the composed invoker records them. */
   static readonly #OwnedHookInvoker = class FileLockHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(): void {}
   };
 
   static async create<TInstance extends FileLock = FileLock>(
     this: FileLockSubclassInterface<TInstance>,
     options: FileLockCreateOptionsInterface
-  ): Promise<TInstance> {
-    const schemaOptions: FileLockOptionsEntity.Type = {
+  ): Promise<FileLockDisposableInterface & TInstance> {
+    const schemaOptions = FileLockOptionsEntity.intake({
       'path': options.path,
       ...(options.pollMs !== undefined ? { 'pollMs': options.pollMs } : {}),
       ...(options.timeoutMs !== undefined ? { 'timeoutMs': options.timeoutMs } : {})
-    };
+    });
 
-    if (!FileLockOptionsEntity.validate(schemaOptions)) {
-      const messages = (FileLockOptionsEntity.validate.errors ?? [])
-        .map((e) => {
-          return e.message ?? String(e);
-        })
-        .join('; ');
-      return await Promise.reject(new FileLockConfigError(messages.length > 0 ? messages : 'invalid options'));
-    }
-
-    const { path, pollMs = DEFAULT_POLL_MS, timeoutMs = DEFAULT_TIMEOUT_MS } = schemaOptions;
+    const { path, pollMs, timeoutMs } = schemaOptions;
 
     const fs: FileSystemInterface = options.fileSystem ?? new NodeFileSystem();
     const ownerToken: OwnerTokenInterface = options.ownerToken ?? new NodeOwnerToken();
     const lockPath = `${path}.lock.${ownerToken.get()}`;
 
+    const resolveSubclassConstructor = (): FileLockSubclassInterface<TInstance> => {
+      return this;
+    };
+
     // Construct instance first so protected hooks can fire during acquisition.
-    const constructed: unknown = Reflect.construct(this, [{ 'fs': fs, 'lockPath': lockPath, 'originalPath': path }]);
-    if (!FileLockInstance.belongsTo(this, constructed)) {
+    const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
+      { 'fs': fs, 'lockPath': lockPath, 'originalPath': path }
+    ]);
+    if (!Predicates.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
       throw new TypeError('FileLock.create() did not construct the requested subclass.');
     }
+
+    const dispose = (): void => {
+      constructed.release();
+    };
+
+    Reflect.set(constructed, Symbol.dispose, dispose);
+
+    if (!FileLockInstance.hasDispose(constructed)) {
+      throw new TypeError('FileLock.create() failed to attach Symbol.dispose');
+    }
+
     await constructed.#acquire(path, lockPath, pollMs, timeoutMs);
     return constructed;
   }
 
+  static readonly #machine = new FileLockMachine();
+
   readonly #fs: FileSystemInterface;
   readonly #lockPath: string;
   readonly #originalPath: string;
-  #released = false;
+  #state: FileLockStateInterface;
 
   protected readonly hooks: HookInvoker;
 
@@ -107,6 +138,7 @@ export class FileLock {
     this.#fs = options.fs;
     this.#originalPath = options.originalPath;
     this.#lockPath = options.lockPath;
+    this.#state = FileLock.#machine.getInitialState();
     this.hooks = new FileLock.#OwnedHookInvoker();
   }
 
@@ -136,24 +168,25 @@ export class FileLock {
       return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
     }
 
-    return await new Promise<void>((resolve, reject) => {
+    const result = await new Promise<void>((resolve, reject) => {
       const poll = (): void => {
         try {
           this.#fs.renameSync(path, lockPath);
+          this.#state = FileLock.#machine.transition(this.#state, { 'type': 'acquired' }).state;
           this.hooks.invoke('onAcquire', () => {
-            const result = this.onAcquire(path);
-            return result;
+            const acquireResult = this.onAcquire(path);
+            return acquireResult;
           });
           resolve();
-        } catch (error: unknown) {
+        } catch (error) {
           // Rename failed. ENOENT means another holder already renamed `path` away
           // (expected contention for this lock's race); any other code (or no code
           // at all) is a genuine filesystem failure that must fail fast.
-          if (!FileLock.#isContentionError(error)) {
-            const actualError = error instanceof Error ? error : new Error(String(error));
+          const actualError = Predicates.isError(error) ? error : new Error(String(error));
+          if (!FileLock.#isContentionError(actualError)) {
             this.hooks.invoke('onError', () => {
-              const result = this.onError(path, actualError);
-              return result;
+              const errorResult = this.onError(path, actualError);
+              return errorResult;
             });
             reject(actualError);
             return;
@@ -161,28 +194,29 @@ export class FileLock {
 
           if (Date.now() >= deadline) {
             this.hooks.invoke('onTimeout', () => {
-              const result = this.onTimeout(path);
-              return result;
+              const timeoutResult = this.onTimeout(path);
+              return timeoutResult;
             });
             reject(new FileLockTimeoutError(path, timeoutMs));
             return;
           }
 
           this.hooks.invoke('onContended', () => {
-            const result = this.onContended(path);
-            return result;
+            const contendedResult = this.onContended(path);
+            return contendedResult;
           });
 
           attempt += 1;
           this.hooks.invoke('onAcquireWait', () => {
-            const result = this.onAcquireWait(path, attempt);
-            return result;
+            const acquireWaitResult = this.onAcquireWait(path, attempt);
+            return acquireWaitResult;
           });
           setTimeout(poll, pollMs);
         }
       };
       poll();
     });
+    return result;
   }
 
   /**
@@ -192,10 +226,10 @@ export class FileLock {
    * conventional `ENOENT: ...` message prefix (fakes that model an errno in
    * text, e.g. `@studnicky/virtual-fs`, without a matching `.code`).
    */
-  static #isContentionError(error: unknown): boolean {
-    if (!(error instanceof Error)) { return false; }
+  static #isContentionError(error: Error): boolean {
     if ('code' in error && error.code === 'ENOENT') { return true; }
-    return error.message.startsWith('ENOENT');
+    const result = error.message.startsWith('ENOENT');
+    return result;
   }
 
   /**
@@ -209,8 +243,9 @@ export class FileLock {
       const base = LockPathHelpers.basename(path);
       const entries = this.#fs.readdirSync(dir);
       const lockPrefix = `${base}.lock.`;
-      for (const entry of entries) {
-        if (entry.startsWith(lockPrefix)) { return true; }
+      const entriesLength = entries.length;
+      for (let i = 0; i < entriesLength; i++) {
+        if ((entries.at(i) ?? '').startsWith(lockPrefix)) { return true; }
       }
       return false;
     } catch {
@@ -229,8 +264,8 @@ export class FileLock {
   }
 
   release(): void {
-    if (this.#released) { return; }
-    this.#released = true;
+    if (this.#state.variant !== 'held') { return; }
+    this.#state = FileLock.#machine.transition(this.#state, { 'type': 'released' }).state;
     this.#fs.renameSync(this.#lockPath, this.#originalPath);
     this.hooks.invoke('onRelease', () => {
       const result = this.onRelease(this.#originalPath);
@@ -246,12 +281,8 @@ export class FileLock {
 
   /** Returns detached diagnostics for every hook failure recorded since construction. */
   getHookErrors(): readonly HookInvocationError[] {
-    const result = this.hooks.getHookErrors();
+    const result = [...this.hooks.getHookErrors()];
     return result;
-  }
-
-  [Symbol.dispose](): void {
-    this.release();
   }
 
   // ---------------------------------------------------------------------------

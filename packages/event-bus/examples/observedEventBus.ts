@@ -20,7 +20,7 @@ class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
     console.log(`[event-bus] deliver topic=${String(topic)} payload=${JSON.stringify(payload)}`);
     this.deliverLog.push({ 'payload': payload, 'topic': String(topic) });
   }
-  protected override onDequeue<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
+  protected override onDequeue(topic: keyof OrderStatusEventMapEntity.Type): void {
     console.log(`[event-bus] dequeue topic=${String(topic)}`);
     this.dequeueLog.push(String(topic));
   }
@@ -28,7 +28,7 @@ class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
     console.log('[event-bus] dispose');
     this.disposeLog.push(1);
   }
-  protected override onEnqueue<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
+  protected override onEnqueue(topic: keyof OrderStatusEventMapEntity.Type): void {
     console.log(`[event-bus] enqueue topic=${String(topic)}`);
     this.enqueueLog.push(String(topic));
   }
@@ -36,11 +36,11 @@ class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
     console.log(`[event-bus] publish topic=${String(topic)} payload=${JSON.stringify(payload)}`);
     this.publishLog.push({ 'payload': payload, 'topic': String(topic) });
   }
-  protected override onSubscribe<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
+  protected override onSubscribe(topic: keyof OrderStatusEventMapEntity.Type): void {
     console.log(`[event-bus] subscribe topic=${String(topic)}`);
     this.subscribeLog.push(String(topic));
   }
-  protected override onUnsubscribe<K extends keyof OrderStatusEventMapEntity.Type>(topic: K): void {
+  protected override onUnsubscribe(topic: keyof OrderStatusEventMapEntity.Type): void {
     console.log(`[event-bus] unsubscribe topic=${String(topic)}`);
     this.unsubscribeLog.push(String(topic));
   }

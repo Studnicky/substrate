@@ -7,12 +7,11 @@ import assert from 'node:assert/strict';
 import type {
   LogBodyDataEntity,
   LoggerHookEventShapeEntity,
-  LoggerOptionsInterface,
   LogLevelEntity,
-  LogMetadataInterface,
-  LogRecordEntity,
-  TransportInterface
-} from '../src/index.js';
+  LogRecordEntity
+} from '../src/entities/index.js';
+import type { TransportInterface } from '../src/index.js';
+import type { LoggerOptionsInterface, LogMetadataInterface } from '../src/interfaces/index.js';
 
 import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 
@@ -22,7 +21,7 @@ import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 
 interface LogEventInterface {
   readonly 'bindings'?: LogMetadataInterface;
-  readonly 'error'?: unknown;
+  readonly 'error'?: Error;
   readonly 'level'?: LogLevelEntity.Type;
   readonly 'message'?: LogBodyDataEntity.Type['message'];
   readonly 'shape': LoggerHookEventShapeEntity.Type;
@@ -55,7 +54,7 @@ class ObservedLogger extends Logger {
     );
   }
 
-  protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
+  protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
     this.#recorder.record(
       { 'error': error, 'shape': 'transportError' },
       `[logger] onTransportError error=${String(error instanceof Error ? error.message : error)}`
@@ -109,7 +108,10 @@ console.log('Logger events:', JSON.stringify(logger.events));
 
 // Verify onLog fired for the info call
 {
-  const logEvents = logger.events.filter((e) => { return e.shape === 'log'; });
+  const logEvents = logger.events.filter((event) => {
+    const result = event.shape === 'log';
+    return result;
+  });
   assert.strictEqual(logEvents.length, 1);
   const [firstLog] = logEvents;
   assert.ok(firstLog?.shape === 'log');
@@ -117,12 +119,18 @@ console.log('Logger events:', JSON.stringify(logger.events));
 }
 
 // Verify onDropped fired for the debug call
-const droppedEvents = logger.events.filter((e) => { return e.shape === 'dropped'; });
+const droppedEvents = logger.events.filter((event) => {
+  const result = event.shape === 'dropped';
+  return result;
+});
 assert.strictEqual(droppedEvents.length, 1);
 
 // Verify onChildCreate fired
 {
-  const childEvents = logger.events.filter((e) => { return e.shape === 'childCreate'; });
+  const childEvents = logger.events.filter((event) => {
+    const result = event.shape === 'childCreate';
+    return result;
+  });
   assert.strictEqual(childEvents.length, 1);
   const [firstChild] = childEvents;
   assert.ok(firstChild?.shape === 'childCreate');
@@ -131,7 +139,10 @@ assert.strictEqual(droppedEvents.length, 1);
 
 // Verify onTransportError fired (throwing transport)
 {
-  const transportErrorEvents = logger.events.filter((e) => { return e.shape === 'transportError'; });
+  const transportErrorEvents = logger.events.filter((event) => {
+    const result = event.shape === 'transportError';
+    return result;
+  });
   assert.strictEqual(transportErrorEvents.length, 1);
   const [firstTransportError] = transportErrorEvents;
   assert.ok(firstTransportError?.shape === 'transportError');

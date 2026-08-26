@@ -43,7 +43,8 @@ class CountingClockProvider implements ClockProviderInterface {
 
   public hrtime(): bigint {
     this.#callCount += 1;
-    return BigInt(this.#callCount) * 1_000_000n;
+    const result = BigInt(this.#callCount) * 1_000_000n;
+    return result;
   }
 
   public now(): number {

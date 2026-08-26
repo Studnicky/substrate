@@ -19,12 +19,14 @@ class TraceClient extends FetchClient {
     const headers: Record<string, string> = context.options.headers ?? {};
     headers['X-Demo-Trace'] = 'substrate-fetch';
     const result: RequestContextInterface = { ...context, 'options': { ...context.options, 'headers': headers } };
-    return Promise.resolve(result);
+    const response = Promise.resolve(result);
+    return response;
   }
 
   protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     this.responseHookCount += 1;
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 }
 
@@ -34,7 +36,7 @@ await (async function runBrowserFetchExample(): Promise<void> {
     const headers = new Headers(init?.headers);
     assert.equal(headers.get('X-Demo-Trace'), 'substrate-fetch', 'onRequest injected the trace header');
 
-    return Promise.resolve(new Response(JSON.stringify({
+    const result = Promise.resolve(new Response(JSON.stringify({
       'completed': false,
       'id': 1,
       'title': 'delectus aut autem'
@@ -42,6 +44,7 @@ await (async function runBrowserFetchExample(): Promise<void> {
       'headers': { 'Content-Type': 'application/json' },
       'status': 200
     }));
+    return result;
   };
 
   const api = TraceClient.create({

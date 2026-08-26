@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { CoreLogFieldsEntity } from '../entities/CoreLogFieldsEntity.js';
 import type { CorrelationMetadataInterface } from '../interfaces/CorrelationMetadataInterface.js';
 import type { ErrorMetadataInterface } from '../interfaces/ErrorMetadataInterface.js';
@@ -14,8 +16,9 @@ export class LogMetadata {
    * @returns True if metadata has requestId
    */
   public static hasCorrelation(metadata: CoreLogFieldsEntity.Type): metadata is CorrelationMetadataInterface {
-    return 'requestId' in metadata
-      && typeof metadata.requestId === 'string';
+    const result = 'requestId' in metadata
+      && Predicates.isString(metadata.requestId);
+    return result;
   }
 
   /**
@@ -25,8 +28,9 @@ export class LogMetadata {
    * @returns True if metadata has durationMs
    */
   public static hasTiming(metadata: CoreLogFieldsEntity.Type): metadata is TimingMetadataInterface {
-    return 'durationMs' in metadata
-      && typeof metadata.durationMs === 'number';
+    const result = 'durationMs' in metadata
+      && Predicates.isNumber(metadata.durationMs);
+    return result;
   }
 
   /**
@@ -36,7 +40,8 @@ export class LogMetadata {
    * @returns True if metadata has error
    */
   public static hasError(metadata: CoreLogFieldsEntity.Type): metadata is ErrorMetadataInterface {
-    return 'error' in metadata
-      && typeof metadata.error === 'string';
+    const result = 'error' in metadata
+      && Predicates.isString(metadata.error);
+    return result;
   }
 }

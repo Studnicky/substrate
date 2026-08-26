@@ -14,7 +14,7 @@
 import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 export abstract class FetchBaseError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
   }
 }

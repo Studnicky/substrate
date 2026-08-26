@@ -107,16 +107,36 @@ The async-iter demo uses native `async function*` generators as sources — no N
 
 <RunnableExample src="packages/concurrency/examples/asyncIter" title="AsyncIter merge / filter / enrich" />
 
-## API
+## Exports
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `Channel<T>` | class | String-keyed fan-in async generator inbox |
-| `Semaphore` | class | Counting permit gate with async acquire |
-| `Coalesce<T>` | class | Deduplicates concurrent calls for the same key |
-| `AsyncIter` | class | Static utilities for async iterables |
-| `ChannelOptionsEntity`, `CoalesceOptionsEntity`, `SemaphoreOptionsEntity` | entities | Schema-backed construction data |
-| `ChannelError`, `CoalesceTimeoutError`, `ConcurrencyError`, `SemaphoreError` | errors | Concurrency-specific failures |
+| Symbol | Purpose | Import path |
+|--------|---------|-------------|
+| `AsyncIter` | Static combinators for async iterables. | `@studnicky/concurrency` |
+| `Channel` | String-keyed fan-in async-generator inbox. | `@studnicky/concurrency` |
+| `ChannelError` | Base error for channel operations. | `@studnicky/concurrency` |
+| `Coalesce` | Deduplicates concurrent calls by key. | `@studnicky/concurrency` |
+| `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency` |
+| `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency` |
+| `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency` |
+| `SemaphoreError` | Base error for semaphore operations. | `@studnicky/concurrency` |
+
+## Entities
+
+`@studnicky/concurrency/entities` exports all schema-backed option, state, transition, and event declarations. Each entity namespace provides `Schema`, `Type`, and `validate`.
+
+<!-- inline-ts-ok: Documents the entities subpath import. -->
+```typescript
+import { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
+```
+
+## Interfaces
+
+`@studnicky/concurrency/interfaces` exports the type-only state and transition contracts used by the coordination state machines.
+
+<!-- inline-ts-ok: Documents the interfaces subpath import. -->
+```typescript
+import type { ChannelKeyStateInterface } from '@studnicky/concurrency/interfaces';
+```
 
 ### `Channel<T>`
 

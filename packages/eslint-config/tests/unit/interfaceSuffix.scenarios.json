@@ -15,6 +15,14 @@
     {
       "code": "interface Empty {}",
       "name": "empty interface is owned by interface-must-be-contract"
+    },
+    {
+      "code": "type CallableAliasType = { (): void };\ninterface FooInterface extends CallableAliasType {}",
+      "name": "contract inherited through a type-alias heritage clause ending with Interface"
+    },
+    {
+      "code": "interface HandlerInterface<Fn extends () => void = () => void> { handler: Fn; }",
+      "name": "a callable constraint laundered through a type parameter ending with Interface"
     }
   ],
   "invalid": [
@@ -80,6 +88,24 @@
         }
       ],
       "name": "contract with inline pure data missing Interface suffix"
+    },
+    {
+      "code": "type CallableAliasType = { (): void };\ninterface Foo extends CallableAliasType {}",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "contract inherited through a type-alias heritage clause missing Interface suffix"
+    },
+    {
+      "code": "interface Handler<Fn extends () => void = () => void> { handler: Fn; }",
+      "errors": [
+        {
+          "messageId": "missing-interface-suffix"
+        }
+      ],
+      "name": "a callable constraint laundered through a type parameter missing Interface suffix"
     }
   ]
 }

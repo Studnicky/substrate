@@ -1,5 +1,7 @@
 /** Iterable collection of validation violations with RFC 7807 reporting. */
 
+import { Predicates } from '@studnicky/types';
+
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
 import type { ValidationProblemDetailsEntity } from '../entities/ValidationProblemDetailsEntity.js';
 import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
@@ -18,7 +20,8 @@ class ValidationErrorsInstance {
     constructor: ValidationErrorsSubclassInterface<TInstance>,
     value: unknown
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -44,10 +47,22 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   /** Merges multiple `ValidationErrors` collections into one. */
   public static merge(...errors: ValidationErrors[]): ValidationErrors {
-    const violations = errors.flatMap((e) => {
-      const items: ValidationViolationEntity.Type[] = [...e.items];
-      return items;
-    });
+    const violations: ValidationViolationEntity.Type[] = [];
+    const errorCount = errors.length;
+    for (let errorIndex = 0; errorIndex < errorCount; errorIndex += 1) {
+      const error = errors[errorIndex];
+      if (error === undefined) {
+        continue;
+      }
+      const items = error.items;
+      const itemCount = items.length;
+      for (let itemIndex = 0; itemIndex < itemCount; itemIndex += 1) {
+        const item = items[itemIndex];
+        if (item !== undefined) {
+          violations.push(item);
+        }
+      }
+    }
     const result = ValidationErrors.create(violations);
     return result;
   }
@@ -80,7 +95,12 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
   /** Detached ordered validation violations. */
   public get items(): readonly ValidationViolationEntity.Type[] {
     const result: ValidationViolationEntity.Type[] = [];
-    for (const item of this.#items) {
+    const length = this.#items.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = this.#items[index];
+      if (item === undefined) {
+        continue;
+      }
       result.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
     }
     return result;
@@ -88,11 +108,16 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   protected constructor(items: readonly ValidationViolationEntity.Type[]) {
     const typedItems = items;
-    if (!Array.isArray(items)) {
+    if (!Predicates.isArray(items)) {
       throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
     }
     const snapshot: ValidationViolationEntity.Type[] = [];
-    for (const item of typedItems) {
+    const length = typedItems.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = typedItems[index];
+      if (item === undefined) {
+        continue;
+      }
       snapshot.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
     }
     this.#items = snapshot;
@@ -102,28 +127,35 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
   public aggregate(): ValidationAggregateViewEntity.Type {
     const pathSet = new Set<string>();
     const keywordSet = new Set<string>();
-    for (const item of this.#items) {
+    const length = this.#items.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = this.#items[index];
+      if (item === undefined) {
+        continue;
+      }
       pathSet.add(item.path);
       keywordSet.add(item.keyword);
     }
-    return {
+    const result: ValidationAggregateViewEntity.Type = {
       'count': this.#items.length,
-      'keywords': [...keywordSet].sort(),
-      'paths': [...pathSet].sort()
+      'keywords': [...keywordSet].toSorted(),
+      'paths': [...pathSet].toSorted()
     };
+    return result;
   }
 
   /** RFC 7807 Problem Details payload; defaults: type validation URI, title 'Validation failed', status 422. */
   public report(options?: ValidationReportOptionsEntity.Type): ValidationProblemDetailsEntity.Type {
     const count = this.#items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
-    return {
+    const result: ValidationProblemDetailsEntity.Type = {
       'detail': detail,
       'errors': [...this.items],
       'status': options?.status ?? 422,
       'title': options?.title ?? 'Validation failed',
       'type': options?.type ?? DEFAULT_PROBLEM_TYPE
     };
+    return result;
   }
 
   /** Number of violations in this collection. */
@@ -134,11 +166,13 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   /** `true` when there are no violations. */
   public get ok(): boolean {
-    return this.#items.length === 0;
+    const result = this.#items.length === 0;
+    return result;
   }
 
   public [Symbol.iterator](): Iterator<ValidationViolationEntity.Type> {
-    const result = this.items[Symbol.iterator]();
+    const items = this.items;
+    const result = items[Symbol.iterator]();
     return result;
   }
 }

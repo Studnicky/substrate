@@ -1,9 +1,12 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
+import type { CoalesceKeyStateInterface } from './interfaces/CoalesceKeyStateInterface.js';
 
+import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
 interface CoalesceSubclassInterface<TInstance> extends Function {
@@ -13,9 +16,10 @@ interface CoalesceSubclassInterface<TInstance> extends Function {
 class CoalesceInstance {
   static belongsTo<TInstance>(
     constructor: CoalesceSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+    value: object
+  ): value is object & TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -38,14 +42,17 @@ export class Coalesce<T> {
     options?: CoalesceOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!CoalesceInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !CoalesceInstance.belongsTo(this, result)) {
       throw new TypeError('Coalesce.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
   readonly #inFlight = new Map<string, Promise<T>>();
+  readonly #keyMachine = new CoalesceKeyMachine();
+  readonly #keyStates = new Map<string, CoalesceKeyStateInterface>();
   readonly #timeout: number | undefined;
 
   protected constructor(options?: CoalesceOptionsEntity.Type) {
@@ -61,16 +68,20 @@ export class Coalesce<T> {
 
     const completion = Promise.withResolvers<T>();
     let success = false;
-    const started = completion.promise
-      .then(
-        (value) => { success = true; return value; },
-        (error: unknown) => { success = false; throw error; }
-      )
-      .finally(async () => {
-        this.#inFlight.delete(key);
-        await this.hooks.invokeAsync('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; });
-      });
+    void completion.promise.then(
+      () => { success = true; },
+      () => { success = false; }
+    );
+    const started = completion.promise.finally(async () => {
+      this.#inFlight.delete(key);
+      const settledState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
+      this.#keyStates.set(key, this.#keyMachine.transition(settledState, { 'type': 'settle' }).state);
+      this.#keyStates.delete(key);
+      await this.hooks.invokeAsync('onCoalesceSettled', () => { const result = this.onCoalesceSettled(key, success); return result; });
+    });
     this.#inFlight.set(key, started);
+    const startedState = this.#keyStates.get(key) ?? this.#keyMachine.getInitialState();
+    this.#keyStates.set(key, this.#keyMachine.transition(startedState, { 'type': 'start' }).state);
 
     try {
       await this.hooks.invokeAsync('onCoalesceStart', () => { const result = this.onCoalesceStart(key); return result; });
@@ -106,26 +117,18 @@ export class Coalesce<T> {
           reject
         );
       }, timeoutMs);
-      inFlight.then(
-        (value) => {
-          if (settled) { return; }
-          settled = true;
-          clearTimeout(timer);
-          resolve(value);
-        },
-        (error: unknown) => {
-          if (settled) { return; }
-          settled = true;
-          clearTimeout(timer);
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      );
+      void inFlight.then(resolve, reject).then(() => {
+        settled = true;
+        clearTimeout(timer);
+      });
     });
   }
 
   isInflight(key: string): boolean {
-    const result = this.#inFlight.has(key);
-    return result;
+    if (this.#inFlight.has(key)) {
+      return true;
+    }
+    return false;
   }
 
   /**

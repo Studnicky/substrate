@@ -6,7 +6,15 @@ import type { LayerOptionsEntity } from '../../../src/rules/layers/LayerOptionsE
 import scenarioGroups from './LayerResolver.scenarios.json' with { type: 'json' };
 
 const baseOptions: LayerOptionsEntity.Type = {
-  aliasPrefixes: { '@domain/': 'domain', '@ports/': 'ports' },
+  bindings: [
+    { kind: 'folder', pattern: 'domain', layer: 'domain' },
+    { kind: 'folder', pattern: 'ports', layer: 'ports' },
+    { kind: 'folder', pattern: 'application', layer: 'application' },
+    { kind: 'folder', pattern: 'adapters', layer: 'adapters' },
+    { kind: 'folder', pattern: 'infrastructure', layer: 'infrastructure' },
+    { kind: 'module', pattern: '@domain/', layer: 'domain' },
+    { kind: 'module', pattern: '@ports/', layer: 'ports' }
+  ],
   layers: ['domain', 'ports', 'application', 'adapters', 'infrastructure'],
   sourceRoot: 'src'
 };

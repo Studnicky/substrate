@@ -75,6 +75,36 @@ const parserServicesFactories: Record<string, ParserServicesFactory> = {
         }
       }
     };
+  },
+  // Regression fixture for the WeakMap-vs-Map bug: the real installed
+  // @typescript-eslint/parser exposes `esTreeNodeToTSNodeMap` as a WeakMap under
+  // projectService/allowDefaultProject, so `instanceof Map` is always false there.
+  // hasTypeServices must duck-type on `.get()` instead, which this WeakMap-backed
+  // fixture exercises directly (a WeakMap cannot be constructed from entries, so the
+  // single right-hand-side object is set individually).
+  typedWeakMap: (input, right) => {
+    const tsNode = {};
+    const map = new WeakMap();
+    if (input.hasTsNode !== false) { map.set(right, tsNode); }
+
+    return {
+      esTreeNodeToTSNodeMap: map,
+      program: {
+        getTypeChecker() {
+          return {
+            getTypeAtLocation() {
+              return {};
+            },
+            isArrayType() {
+              return input.isArrayType === true;
+            },
+            isTupleType() {
+              return input.isTupleType === true;
+            }
+          };
+        }
+      }
+    };
   }
 };
 

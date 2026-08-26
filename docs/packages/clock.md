@@ -21,7 +21,7 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 ## Public API
 
-Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, their option entities, `ClockProviderInterface`, and `ClockError` from `@studnicky/clock`. Construct each stateful primitive through its root-exported `create(...)` method. The package root is the only public code entrypoint.
+Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, `ClockProviderInterface`, and `ClockError` from `@studnicky/clock`. Provider and counter option entities use `@studnicky/clock/entities`. Construct each stateful primitive through its root-exported `create(...)` method.
 
 ## Virtual time control
 
@@ -85,3 +85,32 @@ Each `now()` and `hrtime()` read fires the corresponding hook on the counter, pr
 <RunnableExample src="packages/clock/examples/observedClock" title="Clock lifecycle hooks" />
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/clock)
+
+## Entities
+
+`@studnicky/clock/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { RealTimeClockProviderOptionsEntity } from '@studnicky/clock/entities';
+```
+
+## Interfaces
+
+`@studnicky/clock/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Clock` | Provides clock functionality. | `@studnicky/clock` |
+| `ClockError` | Represents clock failures. | `@studnicky/clock` |
+| `ClockProviderInterface` | Defines the clock provider contract. | `@studnicky/clock` |
+| `RealTimeClockProvider` | Provides real time clock provider functionality. | `@studnicky/clock` |
+| `VirtualClockProvider` | Provides virtual clock provider functionality. | `@studnicky/clock` |
+| `VirtualTimeCounter` | Provides virtual time counter functionality. | `@studnicky/clock` |

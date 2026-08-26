@@ -6,7 +6,7 @@
 
 Collects `process.hrtime.bigint()` timestamps for named `component.operation[.status]` events and returns them as a flat record of elapsed milliseconds. Designed for low-overhead instrumentation of async pipelines, adapters, and services.
 
-`@studnicky/timing` is the sole public code entrypoint.
+`@studnicky/timing` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
 
 ## Install
 
@@ -27,7 +27,7 @@ pnpm add @studnicky/timing
 ```typescript
 import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
 
-const timing = Timing.create({ 'maxEvents': 100 });
+const timing = Timing.create({ 'maximumEvents': 100 });
 
 // Record a plain component.operation event
 timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' }));
@@ -41,12 +41,12 @@ timing.event(
 );
 
 const events = timing.getEvents();
-// {
-//   initialize: 0,
-//   'GraphAdapter.query': <ms>,
-//   'GraphAdapter.query.start': <ms>,
-//   'GraphAdapter.query.complete': <ms>,
-//   durationMs: <ms>
+// Map(5) {
+//   'initialize' => 0,
+//   'GraphAdapter.query' => <ms>,
+//   'GraphAdapter.query.start' => <ms>,
+//   'GraphAdapter.query.complete' => <ms>,
+//   'durationMs' => <ms>
 // }
 console.log(events);
 ```
@@ -61,14 +61,14 @@ import { NoOpTiming } from '@studnicky/timing';
 const timing = NoOpTiming.create();
 timing.event(TimingEvent.create({ 'component': 'Cache', 'operation': 'get' }));
 
-console.log(timing.getEvents()); // { durationMs: 0 }
+console.log(timing.getEvents()); // Map(1) { 'durationMs' => 0 }
 ```
 
 ### Precision control
 
 ```typescript
 const timing = Timing.create({
-  maxEvents: 50,
+  maximumEvents: 50,
   precision: { ms: 2 } // round to 2 decimal places
 });
 ```
@@ -78,7 +78,7 @@ const timing = Timing.create({
 Override the protected `onEvent` hook to instrument or export timing data without changing the public API:
 
 ```typescript
-import type { TimingEventDataEntity } from '@studnicky/timing';
+import type { TimingEventDataEntity } from '@studnicky/timing/entities';
 
 import { Timing } from '@studnicky/timing';
 

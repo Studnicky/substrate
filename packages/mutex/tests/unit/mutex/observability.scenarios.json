@@ -121,6 +121,27 @@
       }
     },
     {
+      "name": "afterRelease-fires-on-handoff-and-drop",
+      "description": "afterRelease fires exactly once per release() call for both outcomes of a release — handing the lock off to the next queued waiter, and dropping it with nobody left waiting — never zero times and never twice for the same release. Regression test: afterRelease used to fire only from releaseLockCompletely(), so a release that handed off to a queued waiter never fired it at all.",
+      "shape": "afterRelease-fires-on-handoff-and-drop",
+      "input": {
+        "key": "key1"
+      },
+      "expected": {
+        "afterReleaseEventsAfterHandoff": [
+          "key1"
+        ],
+        "afterReleaseEventsAfterDrop": [
+          "key1",
+          "key1"
+        ],
+        "onReleaseEventsAfterDrop": [
+          "key1",
+          "key1"
+        ]
+      }
+    },
+    {
       "name": "hook-errors-do-not-break-locking",
       "description": "Mutex remains functional when release hooks throw",
       "shape": "hook-errors-do-not-break-locking",

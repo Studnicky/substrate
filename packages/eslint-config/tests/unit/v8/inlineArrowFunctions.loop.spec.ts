@@ -1,5 +1,6 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
@@ -17,8 +18,25 @@ function toMessageId(report: unknown): string {
 RuleTester.describe = describe;
 RuleTester.it = it;
 
+const repoRoot = resolve(import.meta.dirname, '../../../..');
+
+// `projectService`/`tsconfigRootDir` (not bare `sourceType: 'module'`) is required
+// here: the redesigned rule resolves `.forEach` and other per-element iteration
+// methods through `CallIdentity` (via the shared `InlineCallablePosition`/
+// `LoopContext`), which needs a real type checker. Without type services
+// `CallIdentity.isBuiltinCall` always returns `false`, so any scenario relying
+// on it would silently pass with zero errors regardless of what the rule
+// actually does — a vacuous test.
 const ruleTester = new RuleTester({
-  languageOptions: { parser, parserOptions: { sourceType: 'module' } }
+  languageOptions: {
+    parser,
+    parserOptions: {
+      projectService: {
+        allowDefaultProject: ['*.ts']
+      },
+      tsconfigRootDir: repoRoot
+    }
+  }
 });
 
 void describe('inline-arrow-functions', () => {
@@ -26,7 +44,7 @@ void describe('inline-arrow-functions', () => {
     ruleTester.run('inline-arrow-functions', inlineArrowFunctions, scenarioGroups);
   });
 
-  void it('covers guard exits and rebuilt-scope checks directly', () => {
+  void it('covers guard exits directly', () => {
     const reports: unknown[] = [];
     const listeners = inlineArrowFunctions.create({
       report(descriptor: unknown) {
@@ -34,42 +52,26 @@ void describe('inline-arrow-functions', () => {
       }
     } as never);
 
+    // Non-BlockStatement body short-circuits before any position check runs.
     listeners.ArrowFunctionExpression?.({
       body: { type: 'Identifier' },
       parent: { type: 'Property', parent: { type: 'ObjectExpression' } }
     } as never);
 
+    // Single-statement BlockStatement body short-circuits on the statement-count
+    // gate before any position check runs.
     listeners.ArrowFunctionExpression?.({
-      body: { type: 'BlockStatement' },
+      body: { body: [{ type: 'ReturnStatement' }], type: 'BlockStatement' },
+      parent: { type: 'Property', parent: { type: 'ObjectExpression' } }
+    } as never);
+
+    // Multi-statement BlockStatement body, but the containing shape matches none
+    // of the recognized rebuilt-per-call/iteration positions.
+    listeners.ArrowFunctionExpression?.({
+      body: { body: [{ type: 'ExpressionStatement' }, { type: 'ReturnStatement' }], type: 'BlockStatement' },
       parent: { type: 'MethodDefinition', parent: { type: 'ClassBody' } }
     } as never);
 
-    listeners.ArrowFunctionExpression?.({
-      body: { type: 'BlockStatement' },
-      parent: {
-        parent: {
-          parent: {
-            type: 'FunctionDeclaration'
-          },
-          type: 'ObjectExpression'
-        },
-        type: 'Property'
-      }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), ['forbidden']);
-
-    listeners.ArrowFunctionExpression?.({
-      body: { type: 'BlockStatement' },
-      parent: {
-        parent: {
-          parent: {
-            type: 'FunctionDeclaration'
-          },
-          type: 'ObjectExpression'
-        },
-        type: 'Property'
-      }
-    } as never);
+    assert.deepEqual(reports.map(toMessageId), []);
   });
 });

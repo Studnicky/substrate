@@ -3,13 +3,16 @@ import type { Rule } from 'eslint';
 import { allTypesAreEntities } from './rules/allTypesAreEntities.js';
 import { adapterOnlyImport } from './rules/arch/adapterOnlyImport.js';
 import { domainPurity } from './rules/arch/domainPurity.js';
+import { intakeParseOnly } from './rules/arch/intakeParseOnly.js';
 import { knownTypesOutsideAdapters } from './rules/arch/knownTypesOutsideAdapters.js';
 import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
+import { noUnparsedAssertion } from './rules/arch/noUnparsedAssertion.js';
 import { canonicalExportNames } from './rules/canonicalExportNames.js';
 import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
 import { descriptiveIdentifiers } from './rules/descriptiveIdentifiers.js';
 import { directInvocationOnly } from './rules/directInvocationOnly.js';
+import { explicitReturnBinding } from './rules/explicitReturnBinding.js';
 import { folderContentShape } from './rules/folderContentShape.js';
 import { hashPrivateFields } from './rules/hashPrivateFields.js';
 import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
@@ -33,9 +36,11 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'descriptive-identifiers': descriptiveIdentifiers,
     'direct-invocation-only': directInvocationOnly,
     'domain-purity': domainPurity,
+    'explicit-return-binding': explicitReturnBinding,
     'folder-content-shape': folderContentShape,
     'hash-private-fields': hashPrivateFields,
     'inline-trivial-logic': inlineTrivialLogic,
+    'intake-parse-only': intakeParseOnly,
     'interface-must-be-contract': interfaceMustBeContract,
     'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
@@ -43,6 +48,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'layer-import-boundary': layerImportBoundary,
     'lexical-this-only': lexicalThisOnly,
     'no-mixed-callable-shapes': noMixedCallableShapes,
+    'no-unparsed-assertion': noUnparsedAssertion,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,
     'single-export': singleExport,

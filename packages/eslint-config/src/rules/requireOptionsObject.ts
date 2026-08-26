@@ -1,5 +1,8 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
 
 import { ObjectGuard } from './shared/ObjectGuard.js';
 
@@ -7,7 +10,7 @@ namespace RequireOptionsObjectOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'minOptionals': {
+      'minimumOptionals': {
         'default': 2,
         'description': 'Minimum number of optional parameters to trigger the rule.',
         'minimum': 2,
@@ -18,9 +21,10 @@ namespace RequireOptionsObjectOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
-}
 
-const DEFAULT_MIN_OPTIONALS = 2;
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+}
 
 interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
   'TSCallSignatureDeclaration': (node: Rule.Node) => void;
@@ -30,43 +34,102 @@ interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
 }
 
 class ParamInspector {
-  public static isOptional(param: unknown): boolean {
-    if (!ObjectGuard.isObject(param)) { return false; }
-    if (param.type === 'RestElement') { return false; }
-    if (param.type === 'ObjectPattern') { return false; }
-    if (param.type === 'AssignmentPattern') { return true; }
+  /**
+   * Returns true when an `Identifier` param's own type annotation is a union containing
+   * `undefined` (`value: T | undefined`). No `?` and no default value are present, but a caller
+   * may still idiomatically omit the argument (`undefined` is a valid explicit value at every
+   * call site), so this counts the same as an explicitly optional parameter.
+   */
+  private static hasUndefinedUnionAnnotation(param: Record<string, unknown>): boolean {
+    const ann = param.typeAnnotation;
+    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
+    const typeAnnotation = ann.typeAnnotation;
+    if (typeAnnotation.type !== 'TSUnionType' || !Array.isArray(typeAnnotation.types)) { return false; }
+    const result = typeAnnotation.types.some((member) => {const isUndefinedMember = ObjectGuard.isObject(member) && member.type === 'TSUndefinedKeyword';
+      return isUndefinedMember;});
+    return result;
+  }
+
+  /**
+   * A rest param typed as a tuple (`...args: [name?: string, age?: number]`) is not a single
+   * non-optional unit — its own optional tuple members are exactly the kind of "caller may omit
+   * this" surface the rule exists to catch. Named tuple members mark themselves via
+   * `optional: true`; unnamed members wrap their element type in `TSOptionalType`.
+   */
+  private static tupleOptionalCount(param: Record<string, unknown>): number {
+    const ann = param.typeAnnotation;
+    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return 0; }
+    const typeAnnotation = ann.typeAnnotation;
+    if (typeAnnotation.type !== 'TSTupleType' || !Array.isArray(typeAnnotation.elementTypes)) { return 0; }
+
+    let count = 0;
+    typeAnnotation.elementTypes.forEach((element) => {
+      if (!ObjectGuard.isObject(element)) { return; }
+      if (element.type === 'TSNamedTupleMember' && element.optional === true) { count += 1; return; }
+      if (element.type === 'TSOptionalType') { count += 1; }
+    });
+    return count;
+  }
+
+  /**
+   * Returns how many "caller may omit" optional slots a single parameter contributes. Ordinary
+   * optional parameters contribute at most one; a rest-tuple parameter can contribute several,
+   * one per optional tuple member, since it is not really a single param for this rule's purposes.
+   */
+  public static optionalCount(param: unknown): number {
+    if (!ObjectGuard.isObject(param)) { return 0; }
+    if (param.type === 'RestElement') { const result = ParamInspector.tupleOptionalCount(param);
+      return result; }
+    if (param.type === 'ObjectPattern') { return 0; }
+    if (param.type === 'AssignmentPattern') { return 1; }
     if (param.type === 'Identifier') {
-      return param.optional === true;
+      if (param.optional === true) { return 1; }
+      const result = ParamInspector.hasUndefinedUnionAnnotation(param) ? 1 : 0;
+      return result;
     }
-    return false;
+    return 0;
   }
 
   public static isOptionsObject(param: unknown): boolean {
     if (!ObjectGuard.isObject(param)) { return false; }
     if (param.type === 'AssignmentPattern') {
-      return ObjectGuard.isObject(param.left) && param.left.type === 'ObjectPattern';
+      const result = ObjectGuard.isObject(param.left) && param.left.type === 'ObjectPattern';
+      return result;
     }
     if (param.type === 'Identifier') {
       const ann = param.typeAnnotation;
       if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
-      return ann.typeAnnotation.type === 'TSTypeLiteral';
+      const typeAnnotation = ann.typeAnnotation;
+      if (typeAnnotation.type !== 'TSTypeLiteral' || !Array.isArray(typeAnnotation.members)) { return false; }
+      // An empty `{}` or a pure index-signature literal (`{ [key: string]: unknown }`) carries
+      // none of a real options object's type safety — require at least one named member.
+      const result = typeAnnotation.members.some((member) => {const isNamedMember = ObjectGuard.isObject(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
+        return isNamedMember;});
+      return result;
     }
     return false;
   }
 
   public static check(
-    params: readonly unknown[],
+    parameters: readonly unknown[],
     context: Rule.RuleContext,
     node: Rule.Node,
     name: string,
-    minOptionals: number
+    minimumOptionals: number
   ): void {
-    const optionals = params.filter(ParamInspector.isOptional);
-    if (optionals.length < minOptionals) { return; }
-    const lastOptional = optionals[optionals.length - 1];
-    if (lastOptional !== undefined && ParamInspector.isOptionsObject(lastOptional)) { return; }
+    let optionalsCount = 0;
+    let lastOptionalParam: unknown;
+    parameters.forEach((param) => {
+      const contribution = ParamInspector.optionalCount(param);
+      if (contribution <= 0) { return; }
+      optionalsCount += contribution;
+      lastOptionalParam = param;
+    });
+
+    if (optionalsCount < minimumOptionals) { return; }
+    if (lastOptionalParam !== undefined && ParamInspector.isOptionsObject(lastOptionalParam)) { return; }
     context.report({
-      'data': { 'count': String(optionals.length), 'name': name },
+      'data': { 'count': String(optionalsCount), 'name': name },
       'messageId': 'requireOptionsObject',
       'node': node
     });
@@ -78,14 +141,16 @@ class FunctionName {
     const parent: unknown = node.parent;
     if (!ObjectGuard.isObject(parent)) { return '(anonymous)'; }
     if (parent.type === 'VariableDeclarator' && ObjectGuard.isObject(parent.id) && parent.id.type === 'Identifier') {
-      return typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
+      const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
+      return result;
     }
     if (
       (parent.type === 'MethodDefinition' || parent.type === 'Property')
       && ObjectGuard.isObject(parent.key)
       && parent.key.type === 'Identifier'
     ) {
-      return typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
+      const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
+      return result;
     }
     return '(anonymous)';
   }
@@ -104,57 +169,48 @@ class FunctionNodeProperties {
     return node.key.name;
   }
 
-  public static getParams(node: unknown): readonly unknown[] {
+  public static getParameters(node: unknown): readonly unknown[] {
     if (!ObjectGuard.isObject(node) || !Array.isArray(node.params)) { return []; }
     return node.params;
   }
 }
 
 class RuleHandlers {
-  public static onArrowFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+  public static onArrowFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minimumOptionals: number): void {
     const name = FunctionName.fromParent(node);
-    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+    ParamInspector.check(FunctionNodeProperties.getParameters(node), context, node, name, minimumOptionals);
   }
 
-  public static onFunctionDeclaration(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+  public static onFunctionDeclaration(node: Rule.Node, context: Rule.RuleContext, minimumOptionals: number): void {
     const name = FunctionNodeProperties.getIdentifierName(node) ?? '(anonymous)';
-    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+    ParamInspector.check(FunctionNodeProperties.getParameters(node), context, node, name, minimumOptionals);
   }
 
-  public static onFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+  public static onFunctionExpression(node: Rule.Node, context: Rule.RuleContext, minimumOptionals: number): void {
     const name = FunctionName.fromParent(node);
-    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
+    ParamInspector.check(FunctionNodeProperties.getParameters(node), context, node, name, minimumOptionals);
   }
 
-  public static onTypeScriptSignature(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
-    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, '(anonymous)', minOptionals);
+  public static onTypeScriptSignature(node: Rule.Node, context: Rule.RuleContext, minimumOptionals: number): void {
+    ParamInspector.check(FunctionNodeProperties.getParameters(node), context, node, '(anonymous)', minimumOptionals);
   }
 
-  public static onTypeScriptMethod(node: Rule.Node, context: Rule.RuleContext, minOptionals: number): void {
+  public static onTypeScriptMethod(node: Rule.Node, context: Rule.RuleContext, minimumOptionals: number): void {
     const name = FunctionNodeProperties.getMethodName(node) ?? '(anonymous)';
-    ParamInspector.check(FunctionNodeProperties.getParams(node), context, node, name, minOptionals);
-  }
-}
-
-class MinOptionals {
-  static get(rawOptions: unknown): number {
-    if (!ObjectGuard.isObject(rawOptions)) { return DEFAULT_MIN_OPTIONALS; }
-    const value = rawOptions.minOptionals;
-    return typeof value === 'number' && Number.isInteger(value) && value >= 2
-      ? value
-      : DEFAULT_MIN_OPTIONALS;
+    ParamInspector.check(FunctionNodeProperties.getParameters(node), context, node, name, minimumOptionals);
   }
 }
 
 export const requireOptionsObject: Rule.RuleModule = {
   'create': (context) => {
-    const minOptionals = MinOptionals.get(context.options.at(0));
+    const options = RequireOptionsObjectOptionsEntity.intake(context.options.at(0) ?? {});
+    const minimumOptionals = options.minimumOptionals;
 
-    const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minOptionals); };
-    const functionDeclarationHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionDeclaration(node, context, minOptionals); };
-    const functionExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionExpression(node, context, minOptionals); };
-    const typeScriptMethodHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptMethod(node, context, minOptionals); };
-    const typeScriptSignatureHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptSignature(node, context, minOptionals); };
+    const arrowFunctionHandler = (node: Rule.Node): void => { RuleHandlers.onArrowFunctionExpression(node, context, minimumOptionals); };
+    const functionDeclarationHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionDeclaration(node, context, minimumOptionals); };
+    const functionExpressionHandler = (node: Rule.Node): void => { RuleHandlers.onFunctionExpression(node, context, minimumOptionals); };
+    const typeScriptMethodHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptMethod(node, context, minimumOptionals); };
+    const typeScriptSignatureHandler = (node: Rule.Node): void => { RuleHandlers.onTypeScriptSignature(node, context, minimumOptionals); };
 
     const listener: TypeScriptRuleListenerInterface = {
       'ArrowFunctionExpression': arrowFunctionHandler,

@@ -6,7 +6,7 @@ import {
 import {
   InterpreterHistoryRecordMetadataEntity,
   RegisteredInterpreterMetricsEntity
-} from '../../src/index.js';
+} from '../../src/entities/index.js';
 import scenarioGroups from './FsmMetadataEntities.scenarios.json' with { type: 'json' };
 
 const validatorMap = {

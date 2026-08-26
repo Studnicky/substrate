@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -12,15 +13,17 @@ export namespace CloudWatchLogSchemaFieldsEntity {
     'additionalProperties': false,
     'properties': {
       'level': LogLevelEntity.Schema,
-      'msg': LogBodyDataEntity.Schema.properties.message,
+      'message': LogBodyDataEntity.Schema.properties.message,
       'service': { 'minLength': 1, 'type': 'string' },
       'time': { 'minLength': 1, 'type': 'string' }
     },
-    'required': ['level', 'msg', 'service', 'time'],
+    'required': ['level', 'message', 'service', 'time'],
     'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

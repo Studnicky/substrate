@@ -1,4 +1,5 @@
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
@@ -9,7 +10,7 @@ import type { LogMetadataInterface } from '../interfaces/LogMetadataInterface.js
 import type { TransportInterface } from '../transports/TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
-import { configValidation } from './configValidation.js';
+import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { ImmutableSnapshot } from './ImmutableSnapshot.js';
 import { ParseLogLevel } from './parseLogLevel.js';
 
@@ -22,11 +23,18 @@ interface LoggerSubclassInterface<TInstance> extends Function {
 }
 
 class LoggerInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: LoggerSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
+  }
+
+  static isTransport(value: object): value is TransportInterface {
+    const write: unknown = Reflect.get(value, 'write');
+    const result = typeof write === 'function';
+    return result;
   }
 }
 
@@ -67,7 +75,7 @@ export class Logger implements LoggerInterface {
     options: LoggerOptionsInterface = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!LoggerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !LoggerInstance.belongsTo(this, result)) {
       throw new TypeError('Logger.create() did not construct the requested subclass.');
     }
     return result;
@@ -80,14 +88,29 @@ export class Logger implements LoggerInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: LoggerOptionsInterface = {}) {
-    configValidation.assertPlainObject(options.metadata, 'metadata');
-    configValidation.assertArray(options.transports, 'transports');
+    if (options.metadata !== undefined && !Predicates.isObject(options.metadata)) {
+      throw new ConfigurationError('metadata must be a plain object');
+    }
+    const suppliedTransports: unknown = options.transports;
+    if (suppliedTransports !== undefined && !Predicates.isArray(suppliedTransports)) {
+      throw new ConfigurationError('transports must be an array');
+    }
+    const transportInputs: unknown[] = Predicates.isArray(suppliedTransports) ? [...suppliedTransports] : [];
 
     this.#level = options.level !== undefined
       ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.INFO;
     this.#metadata = ImmutableSnapshot.from(options.metadata ?? {});
-    this.#transports = Object.freeze(Array.from(options.transports ?? []));
+    const transports: TransportInterface[] = [];
+    const transportCount = transportInputs.length;
+    for (let index = 0; index < transportCount; index += 1) {
+      const candidate = transportInputs[index];
+      if (!Predicates.isObjectLike(candidate) || !LoggerInstance.isTransport(candidate)) {
+        throw new ConfigurationError('transports must contain transport objects');
+      }
+      transports.push(candidate);
+    }
+    this.#transports = Object.freeze(transports);
   }
 
   /**
@@ -104,8 +127,8 @@ export class Logger implements LoggerInterface {
       'transports': this.#transports
     });
     this.hooks.invoke('onChildCreate', () => {
-      const result = this.onChildCreate(metadata);
-      return result;
+      const childCreateResult = this.onChildCreate(metadata);
+      return childCreateResult;
     });
     return result;
   }
@@ -208,7 +231,8 @@ export class Logger implements LoggerInterface {
       this.#transportErrorHooks.invoke(
         'onTransportError',
         () => {
-          const result = this.onTransportError(transport, record, error);
+          const transportError = Predicates.isError(error) ? error : new Error(String(error));
+          const result = this.onTransportError(transport, record, transportError);
           return result;
         }
       );
@@ -243,5 +267,5 @@ export class Logger implements LoggerInterface {
    * failure is recorded and available via `hookErrorCount`/`getHookErrors()`.
    * Default implementation is a no-op.
    */
-  protected onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, _error: unknown): void {}
+  protected onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, _error: Error): void {}
 }

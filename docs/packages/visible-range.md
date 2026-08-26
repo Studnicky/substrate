@@ -21,6 +21,12 @@ Given a scroll offset, a viewport size, an item-size accessor (fixed or per-inde
 
 <<< ../../packages/visible-range/examples/observedVisibleRange.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/visible-range/examples/observedVisibleRange" title="Fixed and variable-size visible-range computation" />
+
+The output shows fixed-mode `onRangeChange` firing only when the computed range actually moves (not for an identical re-set scroll offset), and variable-mode range estimates shifting once `measureItem()` corrects the per-index size estimate with real measurements.
+
 ## Construction
 
 `VisibleRange.create({ count, itemSize, overscan? })` selects fixed-size arithmetic. `VisibleRange.create({ count, estimateSize, overscan? })` selects variable-size arithmetic. Exactly one sizing strategy is required.
@@ -57,6 +63,31 @@ Subclass `VisibleRange` and override the protected hook to inject trace logging,
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
-Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package root is the only public code entrypoint.
+Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package declares separate root, entity, and interface import surfaces.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/visible-range)
+
+## Entities
+
+`@studnicky/visible-range/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
+```
+
+## Interfaces
+
+`@studnicky/visible-range/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { VisibleRangeConfigInterface } from '@studnicky/visible-range/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `VisibleRange` | Provides visible range functionality. | `@studnicky/visible-range` |
+| `VisibleRangeError` | Represents visible range failures. | `@studnicky/visible-range` |

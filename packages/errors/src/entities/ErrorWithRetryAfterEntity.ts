@@ -1,6 +1,10 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
+
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
+import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Error with retry-after value (typically in seconds). */
 export namespace ErrorWithRetryAfterEntity {
@@ -23,8 +27,20 @@ export namespace ErrorWithRetryAfterEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-    return typeof candidate.retryAfter === 'number';
-  }
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
+    if (!Predicates.isObject(candidate)) { return false; }
+    const result = Predicates.isNumber(candidate.retryAfter);
+    return result;
+  };
+
+  const boundary = EntityIntake.compile<Type>((candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['retryAfter'])) { return undefined; }
+    const retryAfter = EntityIntake.number(candidate.retryAfter);
+    if (retryAfter === undefined) { return undefined; }
+    const result = { 'retryAfter': retryAfter };
+    return result;
+  }, 'ErrorWithRetryAfter');
+
+  export const intake = boundary.intake;
+  export const create = boundary.create;
 }

@@ -29,9 +29,9 @@ const clockB = Clock.create(VirtualClockProvider.create(counterB));
 
 const readings: number[] = [];
 
-const deltasLen = VirtualTimeFixture.Deltas.length;
+const deltaLength = VirtualTimeFixture.Deltas.length;
 
-for (let i = 0; i < deltasLen; i++) {
+for (let i = 0; i < deltaLength; i++) {
   counterB.advance(VirtualTimeFixture.Deltas[i] ?? 0);
   readings.push(clockB.now());
 }
@@ -63,9 +63,9 @@ console.log(`shared counter: clockP.now()=${clockP.now()}, clockQ.now()=${clockQ
 
 assert.equal(ns, BigInt(epochMs) * 1_000_000n, 'hrtime equals epoch-ms * 1_000_000n');
 
-const readingsLen = readings.length;
+const readingLength = readings.length;
 
-for (let i = 1; i < readingsLen; i++) {
+for (let i = 1; i < readingLength; i++) {
   assert.ok(
     (readings[i] ?? 0) >= (readings[i - 1] ?? 0),
     `now() must not decrease: readings[${i - 1}]=${readings[i - 1]}, readings[${i}]=${readings[i]}`

@@ -17,8 +17,8 @@
       "name": "object literal property - not a class member, not reported"
     },
     {
-      "code": "class A { [\"_bar\"] = 1; }",
-      "name": "computed key - not reported (cannot statically prove the name)"
+      "code": "class A { [x] = 1; }",
+      "name": "computed non-literal key - not reported (cannot statically prove the name)"
     },
     {
       "code": "class Foo { constructor(_bar: string) {} }",
@@ -141,6 +141,33 @@
         }
       ],
       "name": "directive comment does not exempt a field without configuration"
+    },
+    {
+      "code": "class A { [\"_secret\"] = 1; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed bracket string-literal key - forbidden"
+    },
+    {
+      "code": "class A { \"_secret\" = 1; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "non-computed bare string-literal key - forbidden"
+    },
+    {
+      "code": "class A { [\"_bar\"](): void {} }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed bracket string-literal method key - forbidden"
     }
   ]
 }

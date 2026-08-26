@@ -40,7 +40,7 @@
       "description": "runSingleFlight collapses concurrent same-key callers and shares the result",
       "shape": "single-flight-shares-result",
       "input": { "delayMs": 30, "key": "user1" },
-      "expected": { "calls": 1, "values": ["shared-result", "shared-result", "shared-result"] }
+      "expected": { "calls": 1, "values": [100, 100, 100] }
     },
     {
       "name": "single-flight-reruns-after-settle",
@@ -50,11 +50,11 @@
       "expected": { "calls": 2, "first": 1, "second": 2 }
     },
     {
-      "name": "single-flight-validates-result",
-      "description": "runSingleFlight validates the shared result independently for each caller",
-      "shape": "single-flight-validates-result",
+      "name": "single-flight-parses-result",
+      "description": "runSingleFlight parses the shared result through each caller's entity boundary",
+      "shape": "single-flight-parses-result",
       "input": { "delayMs": 20, "key": "user1" },
-      "expected": { "rejectedName": "TypeError", "resolved": "shared-result" }
+      "expected": { "rejectedName": "SchemaIntakeError", "resolved": 100 }
     },
     {
       "name": "single-flight-holds-mutex-against-serialized",

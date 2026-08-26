@@ -321,6 +321,56 @@
           ],
           "filename": "/project/src/types/reexport.ts",
           "name": "forbids export-all re-export in exempt directories"
+        },
+        {
+          "code": "export const foo = 1; export const bar = 2;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/errors/blank.ts",
+          "name": "forbids gamed blank-content file under errors/ that exports no Error-shaped class (topology exemption requires content, not just path)"
+        },
+        {
+          "code": "export const foo = 1; export const bar = 2;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/entities/blank.ts",
+          "name": "forbids gamed blank-content file under entities/ that exports no Type/namespace (topology exemption requires content, not just path)"
+        },
+        {
+          "code": "export const foo = 1; export const bar = 2;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/interfaces/blank.ts",
+          "name": "forbids gamed blank-content file under interfaces/ that exports no interface (topology exemption requires content, not just path)"
+        },
+        {
+          "code": "export const foo = 1; export const bar = 2;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/types/blank.ts",
+          "name": "forbids gamed blank-content file under types/ that exports no type alias (topology exemption requires content, not just path)"
+        },
+        {
+          "code": "export const foo = 1;",
+          "errors": [
+            {
+              "messageId": "mismatch"
+            }
+          ],
+          "filename": "/project/src/errors/wrongName.ts",
+          "name": "forbids a single gamed blank-content export under errors/ that isn't Error-shaped -> falls through to the normal mismatch check, not tooMany"
         }
       ]
     },

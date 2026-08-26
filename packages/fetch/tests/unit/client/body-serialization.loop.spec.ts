@@ -17,16 +17,16 @@ type RuntimeValue =
 type RuntimeObject = { [key: string]: RuntimeValue };
 
 type RuntimeTag =
-  | { __shape: 'array-buffer'; text: string }
-  | { __shape: 'bigint'; value: string }
-  | { __shape: 'buffer'; text: string }
-  | { __shape: 'circular'; name: string }
-  | { __shape: 'date'; iso: string }
-  | { __shape: 'filled-buffer'; fill: string; length: number }
-  | { __shape: 'function-properties'; data: string }
-  | { __shape: 'symbol-properties'; name: string }
-  | { __shape: 'undefined' }
-  | { __shape: 'uint8-array'; text: string };
+  | { shape: 'array-buffer'; text: string }
+  | { shape: 'bigint'; value: string }
+  | { shape: 'buffer'; text: string }
+  | { shape: 'circular'; name: string }
+  | { shape: 'date'; iso: string }
+  | { shape: 'filled-buffer'; fill: string; length: number }
+  | { shape: 'function-properties'; data: string }
+  | { shape: 'symbol-properties'; name: string }
+  | { shape: 'undefined' }
+  | { shape: 'uint8-array'; text: string };
 
 type RequestDefinition = {
   body?: RuntimeValue;
@@ -62,7 +62,7 @@ const ctx = {
 };
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -71,41 +71,41 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
   }
 
   if (isRuntimeTag(value)) {
-    if (value.__shape === 'undefined') {
+    if (value.shape === 'undefined') {
       return undefined;
     }
 
-    if (value.__shape === 'bigint') {
+    if (value.shape === 'bigint') {
       return BigInt(value.value);
     }
 
-    if (value.__shape === 'buffer') {
+    if (value.shape === 'buffer') {
       return Buffer.from(value.text, 'utf8');
     }
 
-    if (value.__shape === 'array-buffer') {
+    if (value.shape === 'array-buffer') {
       return new TextEncoder().encode(value.text).buffer;
     }
 
-    if (value.__shape === 'uint8-array') {
+    if (value.shape === 'uint8-array') {
       return new TextEncoder().encode(value.text);
     }
 
-    if (value.__shape === 'filled-buffer') {
+    if (value.shape === 'filled-buffer') {
       return Buffer.alloc(value.length, value.fill);
     }
 
-    if (value.__shape === 'date') {
+    if (value.shape === 'date') {
       return new Date(value.iso);
     }
 
-    if (value.__shape === 'circular') {
+    if (value.shape === 'circular') {
       const circular: { name: string; self?: unknown } = { name: value.name };
       circular.self = circular;
       return circular;
     }
 
-    if (value.__shape === 'symbol-properties') {
+    if (value.shape === 'symbol-properties') {
       const symbol = Symbol(value.name);
       return {
         [symbol]: 'symbol value',
@@ -113,7 +113,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
       };
     }
 
-    if (value.__shape === 'function-properties') {
+    if (value.shape === 'function-properties') {
       return {
         data: value.data,
         method: () => 'function'

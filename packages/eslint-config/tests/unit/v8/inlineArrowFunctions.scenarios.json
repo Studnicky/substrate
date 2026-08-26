@@ -11,107 +11,141 @@
     {
       "code": "const map = { a: (x) => x + 1 };",
       "name": "single-expression arrow body (not a BlockStatement) - not flagged"
+    },
+    {
+      "code": "function build(items: readonly number[]) { return items.map((x) => { let y = x; return y; }); }",
+      "name": "inline arrow callback argument, but call site is NOT inside a loop - not flagged"
+    },
+    {
+      "code": "const arr = [(x) => { let y = x; return y; }];",
+      "name": "bare array literal holding an inline arrow, not passed to any call - not flagged"
+    },
+    {
+      "code": "function handler(cb = (x: number) => x + 1) { return cb; }",
+      "name": "default-parameter value is a single-expression arrow (not a BlockStatement) - not flagged"
+    },
+    {
+      "code": "function build() { return { a: (x) => { let y = x; return y; } }; }",
+      "name": "one-shot factory: map rebuilt inside a function body, but the function has no lexical loop position and no evidence of being called per-iteration - NOT flagged, same reasoning as `inlineFunctions`' identical redesign"
+    },
+    {
+      "code": "class X { field = { a: (x) => { let y = x; return y; } }; }",
+      "name": "non-static instance field rebuilds per instantiation, but instantiation is not loop iteration - not flagged"
+    },
+    {
+      "code": "function build() { return { handler: (x) => { let y = x; return y; } }; }",
+      "name": "suggestive key name \"handler\", no loop anywhere - not flagged; the gate is loop evidence, never the key's name"
+    },
+    {
+      "code": "function build() { return { transformAsync: (x) => { let y = x; return y; } }; }",
+      "name": "suggestive key name \"transformAsync\", no loop anywhere - not flagged, same reasoning"
+    },
+    {
+      "code": "function build(cond: boolean) { return { a: cond ? (x) => { let y = x; return y; } : (x) => { let z = x; return z; } }; }",
+      "name": "ternary-branched inline arrows as an object value, no loop anywhere - neither branch flagged"
+    },
+    {
+      "code": "function build(handler = (x: number) => { let y = x; return y; }) { return handler; }",
+      "name": "default-parameter multi-statement arrow closure whose owning function `build` is never called anywhere - not flagged, no evidence of call frequency at all"
+    },
+    {
+      "code": "function build(handler = (x: number) => { let y = x; return y; }) { return handler; } build();",
+      "name": "default-parameter multi-statement arrow closure whose owning function IS called, but the call site is not per-iteration - not flagged, call exists but is not proven hot"
+    },
+    {
+      "code": "declare const items: readonly number[]; declare function doWork(x: number): number; declare function process(it: number, cb: (x: number) => number): void; for (const it of items) { process(it, (x) => { const y = doWork(x); return y; }); }",
+      "name": "per-iteration arrow whose body is the explicit-return-binding house style (const y = <call>; return y;) - the pair collapses to one effective statement, not flagged"
     }
   ],
   "invalid": [
     {
-      "code": "function build() { return { a: (x) => { let y = x; return y; } }; }",
+      "code": "declare const items: readonly number[]; declare function process(it: number, cb: (x: number) => number): void; for (const it of items) { process(it, (x) => { let y = x; return y; }); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "map rebuilt inside a function body on every call - flagged"
+      "name": "inline arrow callback argument passed directly to a call inside a for-of loop - flagged (the textbook per-iteration-closure-allocation case)"
     },
     {
-      "code": "class X { field = { a: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; declare function process(cb: (x: number) => number): void; while (hasNext()) { process((x) => { let y = x; return y; }); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "non-static instance field rebuilds per instantiation - flagged"
+      "name": "inline arrow callback argument inside a while loop - flagged"
     },
     {
-      "code": "function build() { return { handler: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; declare function register(entries: readonly [string, (x: number) => number][]): void; while (hasNext()) { register(Object.fromEntries([[\"a\", (x) => { let y = x; return y; }]])); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"handler\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "non-literal dispatch-table construction (Object.fromEntries) inside a loop - flagged"
     },
     {
-      "code": "function build() { return { callback: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; declare function register(entries: Map<string, (x: number) => number>): void; while (hasNext()) { register(new Map([[\"a\", (x) => { let y = x; return y; }]])); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"callback\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "non-literal dispatch-table construction (new Map) inside a loop - flagged"
     },
     {
-      "code": "function build() { return { execute: (x) => { let y = x; return y; } }; }",
+      "code": "declare const items: readonly number[]; function processItems(): void { items.forEach((item) => { const dispatch = { a: (x: number) => { let y = x + item; return y; } }; dispatch.a(1); }); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"execute\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "dispatch-map value rebuilt inside an Array.prototype.forEach callback - flagged: migrating onto LoopContext (resolved via CallIdentity, not name-matched) closes the .forEach-shaped bypass a lexical loop-keyword walk would miss"
     },
     {
-      "code": "function build() { return { message: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; function build(cond: boolean) { while (hasNext()) { const map = { a: cond ? (x: number) => { let y = x; return y; } : (x: number) => { let z = x; return z; } }; void map; } } void build;",
       "errors": [
-        {
-          "messageId": "forbidden"
-        }
+        { "messageId": "forbidden" },
+        { "messageId": "forbidden" }
       ],
-      "name": "key name \"message\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "ternary-branched inline arrows as an object value in a map rebuilt every iteration of a real loop - both branches flagged"
     },
     {
-      "code": "function build() { return { process: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; function build(handler = (x: number) => { let y = x; return y; }) { return handler; } while (hasNext()) { build(); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"process\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "default-parameter multi-statement arrow closure whose owning function's ONLY call site is inside a loop - flagged, call-site reachability proves per-iteration allocation"
     },
     {
-      "code": "function build() { return { transform: (x) => { let y = x; return y; } }; }",
+      "code": "declare function hasNext(): boolean; function build() { while (hasNext()) { const map = { transformAsync: (x: number) => { let y = x; return y; } }; void map; } } void build;",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"transform\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "suggestive key name \"transformAsync\" inside a real loop - flagged identically to any other key name, no name-based escape"
     },
     {
-      "code": "function build() { return { transformAsync: (x) => { let y = x; return y; } }; }",
+      "code": "declare const items: readonly number[]; declare function doSomething(): void; declare function other(): number; declare function process(it: number, cb: () => number): void; for (const it of items) { process(it, () => { doSomething(); return other(); }); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"transformAsync\" inside a rebuilt-per-call map - flagged, no name-based escape"
+      "name": "two genuinely distinct statements (an unrelated call, then a different return) - no collapse, still flagged"
     },
     {
-      "code": "function build() { return { validate: (x) => { let y = x; return y; } }; }",
+      "code": "declare const items: readonly number[]; declare function doWork(x: number): number; declare function sideEffect(): void; declare function process(it: number, cb: (x: number) => number): void; for (const it of items) { process(it, (x) => { const y = doWork(x); sideEffect(); return y; }); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "key name \"validate\" inside a rebuilt-per-call map - flagged, no name-based escape"
-    },
-    {
-      "code": "function build() { return { anyArbitraryKeyName: (x) => { let y = x; return y; } }; }",
-      "errors": [
-        {
-          "messageId": "forbidden"
-        }
-      ],
-      "name": "renaming the property key to an arbitrary name buys no escape - flagged identically"
+      "name": "const y = <call>; sideEffect(); return y; - the trailing return collapses with nothing, since the immediately preceding statement (sideEffect()) is not its binding - still flagged"
     }
   ]
 }

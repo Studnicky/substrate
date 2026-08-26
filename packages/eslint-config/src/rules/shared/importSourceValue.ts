@@ -8,6 +8,7 @@ export class ImportSourceValue {
     if (!ObjectGuard.isObject(source)) { return undefined; }
 
     const value: unknown = source.value;
-    return typeof value === 'string' ? value : undefined;
+    const result = typeof value === 'string' ? value : undefined;
+    return result;
   }
 }

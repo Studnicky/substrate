@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import { HookInvocationError } from '@studnicky/errors';
 
 import { Channel } from '../../src/Channel.js';
-import { ChannelError } from '../../src/errors/ChannelError.js';
 import scenarioGroups from './Channel.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
@@ -144,11 +143,7 @@ const scenarioRunners: RunnerMap = {
     const subscriber = ch.subscribe(input.key);
     const active = subscriber.next();
     const duplicate = ch.subscribe(input.key);
-    await assert.rejects(() => duplicate.next(), (error: unknown) => {
-      assert.ok(error instanceof ChannelError);
-      assert.equal(error.constructor.name, expected.errorName);
-      return true;
-    });
+    await assert.rejects(() => duplicate.next(), { 'name': expected.errorName });
     await ch.close();
     await active;
     await subscriber.return(undefined);
@@ -245,11 +240,7 @@ const scenarioRunners: RunnerMap = {
     }
     const ch = ThrowingDequeueChannel.create<number>();
     await ch.publish(input.key, input.item);
-    await assert.rejects(() => collectN(ch.subscribe(input.key), 1), (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.constructor.name, expected.errorName);
-      return true;
-    });
+    await assert.rejects(() => collectN(ch.subscribe(input.key), 1), { 'name': expected.errorName });
   },
 
   'async-enqueue-hook': async (scenarioCase) => {
@@ -266,8 +257,8 @@ const scenarioRunners: RunnerMap = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -277,7 +268,7 @@ const scenarioRunners: RunnerMap = {
       await assert.rejects(() => ch.publish(input.key, input.first), HookInvocationError);
       await ch.publish(input.key, input.second);
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, expected.rejectionCount);
+      assert.equal(rejectionCount, expected.rejectionCount);
       assert.deepEqual(await next, { 'done': false, 'value': expected.nextValue });
       await subscriber.return(undefined);
     } finally {

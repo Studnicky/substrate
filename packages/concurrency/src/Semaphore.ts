@@ -2,17 +2,20 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
-import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
+import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
+import type { SemaphoreWaiterStateInterface } from './interfaces/SemaphoreWaiterStateInterface.js';
 
 import { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
 import { SemaphoreError } from './errors/SemaphoreError.js';
+import { SemaphoreGrantMachine } from './SemaphoreGrantMachine.js';
+import { SemaphoreWaiterMachine } from './SemaphoreWaiterMachine.js';
 
 interface SemaphoreWaiterInterface {
-  'cancelled': SemaphoreWaiterStateEntity.Type['cancelled'];
-  'ready': SemaphoreWaiterStateEntity.Type['ready'];
   readonly 'reject': (reason?: unknown) => void;
   readonly 'resolve': (release: () => Promise<void>) => void;
+  'state': SemaphoreWaiterStateInterface;
 }
 
 interface SemaphoreSubclassInterface<TInstance> extends Function {
@@ -22,9 +25,10 @@ interface SemaphoreSubclassInterface<TInstance> extends Function {
 class SemaphoreInstance {
   static belongsTo<TInstance>(
     constructor: SemaphoreSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+    value: object
+  ): value is object & TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -33,11 +37,16 @@ export class Semaphore {
     this: SemaphoreSubclassInterface<TInstance>,
     options: SemaphoreOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!SemaphoreInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): SemaphoreSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!Predicates.isObjectLike(result) || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Semaphore.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   static #validate(options: SemaphoreOptionsEntity.Type): void {
@@ -48,14 +57,17 @@ export class Semaphore {
 
   protected readonly hooks: HookInvoker = new HookInvoker();
   #available: number;
-  #granting = false;
+  #grantState: SemaphoreGrantStateInterface;
+  readonly #grantMachine = new SemaphoreGrantMachine();
   #headWaiter: SemaphoreWaiterInterface | undefined;
   readonly #permits: number;
   readonly #queue: CircularBuffer<SemaphoreWaiterInterface>;
+  readonly #waiterMachine = new SemaphoreWaiterMachine();
 
   protected constructor(options: SemaphoreOptionsEntity.Type) {
     Semaphore.#validate(options);
     this.#available = options.permits;
+    this.#grantState = this.#grantMachine.getInitialState();
     this.#headWaiter = undefined;
     this.#permits = options.permits;
     this.#queue = CircularBuffer.create<SemaphoreWaiterInterface>({ 'overflow': 'grow' });
@@ -77,14 +89,14 @@ export class Semaphore {
         await this.#grantReadyWaiters();
         throw error;
       }
-      return this.#buildRelease();
+      const release = this.#buildRelease();
+      return release;
     }
     const waiterResult = Promise.withResolvers<() => Promise<void>>();
     const waiter: SemaphoreWaiterInterface = {
-      'cancelled': false,
-      'ready': false,
       'reject': waiterResult.reject,
-      'resolve': waiterResult.resolve
+      'resolve': waiterResult.resolve,
+      'state': this.#waiterMachine.getInitialState()
     };
     this.#queue.push(waiter);
     const queueLength = this.#queue.length + (this.#headWaiter === undefined ? 0 : 1);
@@ -92,9 +104,9 @@ export class Semaphore {
     try {
       await this.hooks.invokeAsync('onAcquireWait', () => { const result = this.onAcquireWait(); return result; });
       await this.hooks.invokeAsync('onContended', () => { const result = this.onContended(queueLength); return result; });
-      waiter.ready = true;
+      waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markReady' }).state;
     } catch (error) {
-      waiter.cancelled = true;
+      waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markCancelled' }).state;
       await this.#grantReadyWaiters();
       throw error;
     }
@@ -119,22 +131,22 @@ export class Semaphore {
 
   async #release(): Promise<void> {
     this.#available += 1;
-    if (this.#headWaiter === undefined && this.#queue.length === 0 && !this.#granting) {
+    if (this.#headWaiter === undefined && this.#queue.length === 0 && this.#grantState.variant === 'idle') {
       await this.hooks.invokeAsync('onRelease', () => { const result = this.onRelease(this.#available); return result; });
       return;
     }
     const delegated = await this.#grantReadyWaiters();
-    if (delegated === 0 && this.#headWaiter === undefined && this.#queue.length === 0 && !this.#granting) {
+    if (delegated === 0 && this.#headWaiter === undefined && this.#queue.length === 0 && this.#grantState.variant === 'idle') {
       await this.hooks.invokeAsync('onRelease', () => { const result = this.onRelease(this.#available); return result; });
     }
   }
 
   async #grantReadyWaiters(): Promise<number> {
-    if (this.#granting) {
+    if (this.#grantState.variant === 'granting') {
       return 0;
     }
 
-    this.#granting = true;
+    this.#grantState = this.#grantMachine.transition(this.#grantState, { 'type': 'start' }).state;
     let delegated = 0;
     try {
       while (true) {
@@ -142,11 +154,11 @@ export class Semaphore {
         if (next === undefined) {
           break;
         }
-        if (next.cancelled) {
+        if (next.state.variant === 'cancelled') {
           this.#headWaiter = undefined;
           continue;
         }
-        if (this.#available === 0 || !next.ready) {
+        if (this.#available === 0 || next.state.variant !== 'ready') {
           this.#headWaiter = next;
           break;
         }
@@ -157,7 +169,7 @@ export class Semaphore {
         }
       }
     } finally {
-      this.#granting = false;
+      this.#grantState = this.#grantMachine.transition(this.#grantState, { 'type': 'finish' }).state;
     }
     return delegated;
   }

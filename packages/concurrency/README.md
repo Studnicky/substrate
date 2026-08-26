@@ -8,7 +8,7 @@
 
 All primitives are TypeScript-native and ESM-only. The package declares runtime dependencies on `@studnicky/circular-buffer`, `@studnicky/errors`, `@studnicky/json`, `ajv`, and `json-schema-to-ts`.
 
-The package root also exports schema-backed contracts for internal coordination state and the bounded-dispatcher recipe: the three `AsyncIter*DiscriminantEntity` namespaces, `ChannelEntryStateEntity`, `ChannelStateEntity`, `SemaphoreWaiterStateEntity`, `DispatchStartedEventEntity`, and `DispatchCompletedEventEntity`. Each namespace exposes `Schema`, schema-derived `Type`, and `validate` members.
+Schema-backed data declarations are available from `@studnicky/concurrency/entities`; type-only internal coordination contracts are available from `@studnicky/concurrency/interfaces`.
 
 ## Install
 

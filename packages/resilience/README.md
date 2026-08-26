@@ -8,7 +8,7 @@ Three standalone resilience primitives for async TypeScript services: a three-st
 
 Each primitive is independently usable and composes naturally — wrap a rate-limited call with a circuit breaker, or pipe circuit breaker rejections into a DLQ for reprocessing.
 
-`@studnicky/resilience` is the sole public code entrypoint.
+Use the package root for runtime primitives, `@studnicky/resilience/entities` for schema-backed data declarations, and `@studnicky/resilience/interfaces` for type-only contracts.
 
 ## Install
 
@@ -46,7 +46,7 @@ try {
   }
 }
 
-breaker.state();     // 'closed' | 'open' | 'halfOpen'
+breaker.state;       // 'closed' | 'open' | 'halfOpen'
 breaker.reset();     // restore the closed state
 breaker.forceOpen(); // force-open for testing
 ```
@@ -66,7 +66,7 @@ const breaker = CircuitBreaker.create({
 For classification logic that can't be expressed as config, extend `CircuitBreaker` and override the protected `classifyError(error, attemptNumber)` method (bypassed when `errorClassifier` is supplied in options):
 
 ```typescript
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import { CircuitBreaker } from '@studnicky/resilience';
 
@@ -138,7 +138,7 @@ dlq.close(); // drain loop stops after current entries are consumed
 import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '@studnicky/resilience';
 
 const dlq = DeadLetterQueue.create<JobPayload>();
-const retryGen = DeadLetterQueueRetryGenerator.create({ dlq, intervalMs: 5_000 });
+const retryGen = DeadLetterQueueRetryGenerator.create({ deadLetterQueue: dlq, intervalMs: 5_000 });
 
 for await (const entry of retryGen.generate()) {
   await retryJob(entry.item); // each entry is yielded with a 5 s pause between
@@ -151,7 +151,17 @@ for await (const entry of retryGen.generate()) {
 
 ## Declaration boundaries
 
-Entity namespaces own serializable configuration and state, including `CircuitStateEntity.Type`, `CircuitBreakerOptionsEntity.Type`, `TokenBucketOptionsEntity.Type`, `DeadLetterQueueOptionsEntity.Type`, `DeadLetterQueueRetryGeneratorOptionsEntity.Type`, and `DlqEntryMetadataEntity.Type`. `DlqEntryInterface` indexes its enqueue timestamp, identifier, and reason from `DlqEntryMetadataEntity` while retaining caller-owned payload and `Error` contracts. Other interfaces add runtime contracts such as clocks, classifiers, signals, and live queues.
+Entity namespaces own serializable configuration and state. Import them from `@studnicky/resilience/entities`:
+
+```typescript
+import { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+```
+
+Type-only contracts are available from `@studnicky/resilience/interfaces`:
+
+```typescript
+import type { DeadLetterQueueEntryInterface } from '@studnicky/resilience/interfaces';
+```
 
 Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both owner packages are direct dependencies of `@studnicky/resilience`; dependency-owned declarations are not proxy-exported through another substrate package.
 

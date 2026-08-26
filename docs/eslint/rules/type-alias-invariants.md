@@ -9,7 +9,7 @@ Enforces one ordered contract for type aliases and imported type identity.
 
 A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes.
 
-**Fixable:** Partial (`noReadonly` explicit syntax only) · **Options:** No · **Suggested severity:** `error`
+**Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## Declaration contract
 
@@ -60,11 +60,70 @@ The companion [`all-types-are-entities`](./all-types-are-entities.md) rule then 
 
 Pure-data aliases describe mutable data. Readonly access belongs on interface contracts and use sites. The rule detects readonly properties, index signatures, arrays, tuples, mapped output modifiers, `Readonly<T>`, `ReadonlyArray<T>`, exposed readonly defaults, and readonly alias references.
 
+The rule reports readonly output without a fixer. Removing `readonly` changes the type's mutability contract even when the program still type-checks, so the appropriate repair depends on the design intent.
+
 Generic constraints, callable inputs, conditional operands, `keyof` operands, indexed-access operands, mapped keys, and `-readonly` modifiers inspect or constrain data without authoring output policy.
 
 For example, `UserSnapshotInterface` may expose `readonly value: UserEntity.Type` together with a `refresh(): Promise<void>` method. The entity owns the data shape; the interface owns readonly access and runtime behavior.
 
 Pure-data portions inside a contract interface reference separately declared entity types.
+
+## ✗ Incorrect
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type HandlerType = (value: string) => void;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type InlineDataType = { value: string };
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type ListType<T> = Array<T>;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
+type ValueType = FromSchema<typeof ValueSchema>;
+export type ValueListType = readonly ValueType[];
+```
+
+## ✓ Correct
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
+export type ValueType = FromSchema<typeof ValueSchema>;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
+type ValueType = FromSchema<typeof ValueSchema>;
+export type ValueCollectionType = ValueType[] | null;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type ConditionalType<T> = T extends string ? number : boolean;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface HandlerInterface {
+  (value: string): void;
+}
+```
 
 ## Configuration
 

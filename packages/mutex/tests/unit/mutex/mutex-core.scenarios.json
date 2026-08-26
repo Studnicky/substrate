@@ -8,7 +8,7 @@
         "mutex": {}
       },
       "expected": {
-        "maxQueueSize": 0,
+        "maximumQueueSize": 0,
         "timeout": 0,
         "enableCoalescing": false
       }
@@ -21,7 +21,7 @@
         "mutex": {}
       },
       "expected": {
-        "maxQueueSize": 0,
+        "maximumQueueSize": 0,
         "timeout": 0
       }
     },
@@ -44,40 +44,40 @@
       "shape": "config-full",
       "input": {
         "mutex": {
-          "maxQueueSize": 100,
+          "maximumQueueSize": 100,
           "timeout": 5000
         }
       },
       "expected": {
-        "maxQueueSize": 100,
+        "maximumQueueSize": 100,
         "timeout": 5000
       }
     },
     {
       "name": "config-partial-maxQueue-5",
-      "description": "Mutex accepts partial configuration with only maxQueueSize 5",
+      "description": "Mutex accepts partial configuration with only maximumQueueSize 5",
       "shape": "config-partial-maxQueue-5",
       "input": {
         "mutex": {
-          "maxQueueSize": 5
+          "maximumQueueSize": 5
         }
       },
       "expected": {
-        "maxQueueSize": 5,
+        "maximumQueueSize": 5,
         "timeout": 0
       }
     },
     {
       "name": "config-partial-maxQueue-50",
-      "description": "Mutex accepts partial configuration with only maxQueueSize 50",
+      "description": "Mutex accepts partial configuration with only maximumQueueSize 50",
       "shape": "config-partial-maxQueue-50",
       "input": {
         "mutex": {
-          "maxQueueSize": 50
+          "maximumQueueSize": 50
         }
       },
       "expected": {
-        "maxQueueSize": 50,
+        "maximumQueueSize": 50,
         "timeout": 0
       }
     },
@@ -91,7 +91,7 @@
         }
       },
       "expected": {
-        "maxQueueSize": 0,
+        "maximumQueueSize": 0,
         "timeout": 2000
       }
     },
@@ -110,11 +110,11 @@
     },
     {
       "name": "config-invalid-maxQueue-negative",
-      "description": "Mutex rejects negative maxQueueSize",
+      "description": "Mutex rejects negative maximumQueueSize",
       "shape": "config-invalid-maxQueue-negative",
       "input": {
         "mutex": {
-          "maxQueueSize": -1
+          "maximumQueueSize": -1
         }
       },
       "expected": {
@@ -136,11 +136,11 @@
     },
     {
       "name": "config-invalid-maxQueue-float",
-      "description": "Mutex rejects non-integer maxQueueSize",
+      "description": "Mutex rejects non-integer maximumQueueSize",
       "shape": "config-invalid-maxQueue-float",
       "input": {
         "mutex": {
-          "maxQueueSize": 1.5
+          "maximumQueueSize": 1.5
         }
       },
       "expected": {
@@ -192,11 +192,11 @@
       "shape": "validateConfig-valid",
       "input": {
         "mutex": {
-          "maxQueueSize": 100
+          "maximumQueueSize": 100
         }
       },
       "expected": {
-        "maxQueueSize": 100,
+        "maximumQueueSize": 100,
         "timeout": 0
       }
     },
@@ -219,7 +219,7 @@
       "shape": "config-return-copy",
       "input": {
         "mutex": {
-          "maxQueueSize": 10
+          "maximumQueueSize": 10
         }
       },
       "expected": {
@@ -233,12 +233,12 @@
       "shape": "config-external-modification",
       "input": {
         "mutex": {
-          "maxQueueSize": 100,
+          "maximumQueueSize": 100,
           "timeout": 5000
         }
       },
       "expected": {
-        "maxQueueSize": 100,
+        "maximumQueueSize": 100,
         "externalMutationIgnored": true
       }
     },
@@ -259,12 +259,12 @@
       "shape": "create-partial-config",
       "input": {
         "mutex": {
-          "maxQueueSize": 50
+          "maximumQueueSize": 50
         }
       },
       "expected": {
         "created": true,
-        "maxQueueSize": 50
+        "maximumQueueSize": 50
       }
     },
     {
@@ -531,7 +531,7 @@
       "input": {
         "key": "key1",
         "mutex": {
-          "maxQueueSize": 1
+          "maximumQueueSize": 1
         },
         "batch": {
           "queuedCount": 1,
@@ -620,7 +620,7 @@
       "input": {
         "key": "key1",
         "mutex": {
-          "maxQueueSize": 10,
+          "maximumQueueSize": 10,
           "timeout": 5000
         },
         "batch": {
@@ -725,12 +725,12 @@
       "shape": "getConfig-current",
       "input": {
         "mutex": {
-          "maxQueueSize": 10,
+          "maximumQueueSize": 10,
           "timeout": 1000
         }
       },
       "expected": {
-        "maxQueueSize": 10,
+        "maximumQueueSize": 10,
         "timeout": 1000
       }
     },
@@ -742,7 +742,7 @@
         "mutex": {}
       },
       "expected": {
-        "maxQueueSize": 0,
+        "maximumQueueSize": 0,
         "timeout": 0
       }
     },
@@ -753,13 +753,13 @@
       "input": {
         "key": "key1",
         "mutex": {
-          "maxQueueSize": 100,
+          "maximumQueueSize": 100,
           "timeout": 5000
         }
       },
       "expected": {
         "activeLocksCount": 0,
-        "maxQueueSize": 100,
+        "maximumQueueSize": 100,
         "queuedCount": 0,
         "timeout": 5000,
         "totalExecuted": 0

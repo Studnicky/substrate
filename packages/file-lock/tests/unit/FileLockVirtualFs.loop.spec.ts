@@ -50,7 +50,7 @@ const runnerMap: ScenarioRunnerMap = {
     assert.ok(lock1 !== undefined);
     await assert.rejects(
       FileLock.create({ fileSystem: vfs, path: scenarioCase.input.lockPath, ...scenarioCase.input.fileLock.second }),
-      (error: unknown) => error instanceof FileLockTimeoutError
+      (error: Error) => error instanceof FileLockTimeoutError
     );
     lock1.release();
     const lock3 = await FileLock.create({ fileSystem: vfs, path: scenarioCase.input.lockPath, ...scenarioCase.input.fileLock.third });

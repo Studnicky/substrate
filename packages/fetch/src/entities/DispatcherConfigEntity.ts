@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -45,6 +46,8 @@ export namespace DispatcherConfigEntity {
       },
       'connections': {
         'description': 'Number of connections in the pool (per origin). null means no limit',
+        'maximum': 1000,
+        'minimum': 1,
         'type': ['integer', 'null']
       },
       'connectTimeout': {
@@ -61,7 +64,7 @@ export namespace DispatcherConfigEntity {
         'minimum': 0,
         'type': 'number'
       },
-      'keepAliveMaxTimeout': {
+      'keepAliveMaximumTimeout': {
         'description': 'Maximum keep-alive timeout when overridden by server hints (milliseconds)',
         'minimum': 0,
         'type': 'number'
@@ -81,33 +84,34 @@ export namespace DispatcherConfigEntity {
         'minLength': 1,
         'type': 'string'
       },
-      'maxConcurrentStreams': {
+      'maximumConcurrentStreams': {
         'description': 'Maximum concurrent H2 streams per connection',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxHeaderSize': {
+      'maximumHeaderSize': {
         'description': 'Maximum request header size in bytes',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxOrigins': {
+      'maximumOrigins': {
         'description': 'Maximum number of origins (hosts) the Agent can manage',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxRequestsPerClient': {
+      'maximumRequestsPerClient': {
         'description': 'Maximum number of requests per client connection before rotation',
         'minimum': 1,
         'type': 'integer'
       },
-      'maxResponseSize': {
+      'maximumResponseSize': {
         'description': 'Maximum response body size in bytes (-1 = unlimited)',
         'minimum': -1,
         'type': 'integer'
       },
       'pipelining': {
         'description': 'HTTP/1.1 pipelining factor - number of concurrent requests per connection',
+        'maximum': 10,
         'minimum': 0,
         'type': 'integer'
       },
@@ -123,4 +127,6 @@ export namespace DispatcherConfigEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

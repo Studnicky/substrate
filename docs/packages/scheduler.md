@@ -37,7 +37,7 @@ With a `VirtualScheduler` and `VirtualClockProvider` sharing one counter, comple
 
 ## Public API
 
-Import `Delay`, `MinimumHeap`, `RealTimeScheduler`, `VirtualScheduler`, `SchedulerError`, `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler`. The package root is the only public code entrypoint. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`; construct the heap through `MinimumHeap.create()`.
+Import `Delay`, `RealTimeScheduler`, `VirtualScheduler`, `SchedulerError`, `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler`. The package declares separate root, entity, and interface import surfaces. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`.
 
 ## Extending
 
@@ -89,3 +89,31 @@ The hooks demo subclasses `VirtualScheduler` and overrides nine protected lifecy
 <RunnableExample src="packages/scheduler/examples/observedScheduler" title="Scheduler lifecycle hooks" />
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/scheduler)
+
+## Entities
+
+`@studnicky/scheduler/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { SchedulerTaskDataEntity } from '@studnicky/scheduler/entities';
+```
+
+## Interfaces
+
+`@studnicky/scheduler/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { PendingTaskInterface } from '@studnicky/scheduler/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Delay` | Provides delay functionality. | `@studnicky/scheduler` |
+| `RealTimeScheduler` | Provides real time scheduler functionality. | `@studnicky/scheduler` |
+| `SchedulerError` | Represents scheduler failures. | `@studnicky/scheduler` |
+| `SchedulerProviderInterface` | Defines the scheduler provider contract. | `@studnicky/scheduler` |
+| `VirtualScheduler` | Provides virtual scheduler functionality. | `@studnicky/scheduler` |

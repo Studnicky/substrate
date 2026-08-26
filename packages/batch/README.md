@@ -44,7 +44,8 @@ for await (const batch of doubles.process(ids, async (id) => id * 2)) {
 Subclass `Batch` and override protected lifecycle hooks to observe processing without changing the worker function or batching behavior:
 
 ```typescript
-import { Batch, BatchStatsEntity } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch';
+import { BatchStatsEntity } from '@studnicky/batch/entities';
 
 class ObservedBatch extends Batch<string> {
   readonly completions: BatchStatsEntity.Type[] = [];

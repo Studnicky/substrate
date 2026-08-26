@@ -9,8 +9,12 @@ export class EventRecorder<T> {
 
   get events(): readonly T[] {
     const result: T[] = [];
-    for (const event of this.#events) {
-      result.push(structuredClone(event));
+    const length = this.#events.length;
+    for (let index = 0; index < length; index += 1) {
+      const event = this.#events[index];
+      if (event !== undefined) {
+        result.push(structuredClone(event));
+      }
     }
     return result;
   }

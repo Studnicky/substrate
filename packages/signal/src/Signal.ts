@@ -1,19 +1,24 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import { SignalError } from './errors/SignalError.js';
 
-interface SignalSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 class SignalInstance {
-  static belongsTo<TInstance>(
-    constructor: SignalSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static construct(constructor: Function): object {
+    const result: unknown = Reflect.construct(constructor, []);
+    if (!Predicates.isObjectLike(result)) {
+      throw new TypeError('Signal.create() did not construct an object.');
+    }
+    return result;
+  }
+
+  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
+  // from the constructor rather than being a phantom generic supplied only at the call site.
+  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -26,11 +31,9 @@ export class Signal {
     this.hooks = hooks;
   }
 
-  static create<TInstance extends Signal = Signal>(
-    this: SignalSubclassInterface<TInstance>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!SignalInstance.belongsTo(this, result)) {
+  static create<TInstance extends Signal = Signal>(this: Function & { readonly 'prototype': TInstance; }): TInstance {
+    const result = SignalInstance.construct(this);
+    if (!SignalInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('Signal.create() did not construct the requested subclass.');
     }
     return result;
@@ -40,22 +43,27 @@ export class Signal {
     if (Signal.#never === null) {
       Signal.#never = new AbortController().signal;
     }
+
     return Signal.#never;
   }
 
   async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
-    const callerSignal  = options.signal;
-    const deadlineMs    = options.deadlineMs;
+    const callerSignal = options.signal;
+    const deadlineMs = options.deadlineMs;
 
-    if (deadlineMs !== undefined && (typeof deadlineMs !== 'number' || isNaN(deadlineMs) || deadlineMs < 0)) {
+    if (deadlineMs !== undefined && (!Predicates.isNumber(deadlineMs) || isNaN(deadlineMs) || deadlineMs < 0)) {
       throw new SignalError('deadlineMs must be a non-negative number');
     }
 
     const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
 
     let result: AbortSignal;
+
     if (callerSignal !== undefined && timeoutSignal !== undefined) {
-      result = AbortSignal.any([callerSignal, timeoutSignal]);
+      result = AbortSignal.any([
+        callerSignal,
+        timeoutSignal
+      ]);
     } else if (callerSignal !== undefined) {
       result = callerSignal;
     } else if (timeoutSignal !== undefined) {
@@ -65,10 +73,12 @@ export class Signal {
       result = Signal.never();
     }
 
-    await this.hooks.invokeAsync('onCompose', () => {
+    await this.hooks.invokeAsync('onCompose', async () => {
       const hookResult = this.onCompose(options, result);
-      return hookResult;
+
+      await hookResult;
     });
+
     return result;
   }
 

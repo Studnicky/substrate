@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Batch } from '../../../src/batch/Batch.js';
-import { DEFAULT_BATCH_MAX_CONCURRENT } from '../../../src/constants/index.js';
+import { DEFAULT_BATCH_MAXIMUM_CONCURRENT } from '../../../src/constants/index.js';
 import { collectBatches, delay } from '../../helpers/index.js';
 import scenarioGroups from './batch.scenarios.json' with { type: 'json' };
 
@@ -42,8 +42,7 @@ function createScenarioBatch<TResult = unknown>(input: ScenarioInput): Batch<TRe
   return Batch.create<TResult>(resolveBatchMaxConcurrent(input));
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
@@ -107,7 +106,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-invalid-max-concurrent': (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
-    assert.throws(() => { createScenarioBatch<number>(input); }, (error: unknown) => {
+    assert.throws(() => { createScenarioBatch<number>(input); }, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.message));
       return true;
     });
@@ -131,7 +130,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-default-max-concurrent': async (scenarioCase) => {
     const input = scenarioCase.input;
     const expected = scenarioCase.expected;
-    assert.strictEqual(DEFAULT_BATCH_MAX_CONCURRENT, Number(expected.defaultMaxConcurrent));
+    assert.strictEqual(DEFAULT_BATCH_MAXIMUM_CONCURRENT, Number(expected.defaultMaxConcurrent));
     const items = input.items as number[];
     let maxConcurrentObserved = 0;
     let currentConcurrent = 0;
@@ -188,7 +187,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         assert.ok(Array.isArray(batch));
       }
     };
-    return assert.rejects(consumeGenerator, (error: unknown) => {
+    return assert.rejects(consumeGenerator, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     });
@@ -214,7 +213,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       }
     };
 
-    return assert.rejects(consumeGenerator, (error: unknown) => {
+    return assert.rejects(consumeGenerator, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     }).then(() => {

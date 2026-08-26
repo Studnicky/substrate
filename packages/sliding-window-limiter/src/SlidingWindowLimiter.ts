@@ -30,10 +30,11 @@
 import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { RaceTimeout, Signal } from '@studnicky/signal';
+import { Predicates } from '@studnicky/types';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
-import { COUNTER_POLL_DIVISOR, MIN_RETRY_DELAY_MS } from './constants/index.js';
+import { COUNTER_POLL_DIVISOR, MINIMUM_RETRY_DELAY_MS } from './constants/index.js';
 import { SlidingWindowLimiterOptionsEntity } from './entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
@@ -41,6 +42,10 @@ import { TimestampLog } from './TimestampLog.js';
 
 class SlidingWindowHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
+}
+
+interface SlidingWindowLimiterSubclassInterface<TInstance extends SlidingWindowLimiter> extends Function {
+  readonly 'prototype': TInstance;
 }
 
 export class SlidingWindowLimiter {
@@ -65,18 +70,19 @@ export class SlidingWindowLimiter {
   protected readonly hooks = new SlidingWindowHookInvoker();
 
   private static isConstructed<TInstance extends SlidingWindowLimiter>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: SlidingWindowLimiterSubclassInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<TInstance extends SlidingWindowLimiter = SlidingWindowLimiter>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: SlidingWindowLimiterSubclassInterface<TInstance>,
     options: SlidingWindowLimiterOptionsInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!SlidingWindowLimiter.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !SlidingWindowLimiter.isConstructed(result, this)) {
       throw new TypeError('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
     }
     return result;
@@ -96,7 +102,7 @@ export class SlidingWindowLimiter {
     this.#limit = options.limit;
     this.#windowMs = options.windowMs;
     this.#algorithm = options.algorithm;
-    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+    this.#clock = options.clock ?? Date.now;
     this.#signal = Signal.create();
     this.#timestamps = this.#algorithm === 'log'
       ? TimestampLog.create<number, TimestampLog>({ 'capacity': this.#limit })
@@ -134,17 +140,8 @@ export class SlidingWindowLimiter {
   /** Wait until `consume()` would succeed, then consume. */
   async waitForToken(options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}): Promise<void> {
     const signal = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
-    const tryConsume = (tokens?: number): boolean => {
-      try {
-        this.consume(tokens);
-        return true;
-      } catch (error) {
-        if (!(error instanceof SlidingWindowExhaustedError)) { throw error; }
-        return false;
-      }
-    };
     while (true) {
-      if (tryConsume(options.tokens)) {
+      if (this.#consumeIfAvailable(options.tokens)) {
         return;
       }
       const waitMs = this.#nextRetryDelayMs();
@@ -172,6 +169,16 @@ export class SlidingWindowLimiter {
    * window index changes. Must not throw or block.
    */
   protected onWindowRoll(): void {}
+
+  #consumeIfAvailable(tokens?: number): boolean {
+    try {
+      this.consume(tokens);
+      return true;
+    } catch (error) {
+      if (!(error instanceof SlidingWindowExhaustedError)) { throw error; }
+      return false;
+    }
+  }
 
   #consumeLog(now: number): void {
     const timestamps = this.#timestamps;
@@ -261,12 +268,12 @@ export class SlidingWindowLimiter {
       const oldest = timestamps.peek();
       if (oldest === undefined) { throw new SlidingWindowLimiterConfigError('internal: timestamps unexpectedly empty in nextRetryDelayMs'); }
 
-      const result = Math.max(MIN_RETRY_DELAY_MS, (oldest + this.#windowMs) - now);
+      const result = Math.max(MINIMUM_RETRY_DELAY_MS, (oldest + this.#windowMs) - now);
       return result;
     }
 
     const untilNextWindow = ((this.#currentWindowIndex + 1) * this.#windowMs) - now;
-    const result = Math.max(MIN_RETRY_DELAY_MS, Math.min(this.#windowMs / COUNTER_POLL_DIVISOR, untilNextWindow));
+    const result = Math.max(MINIMUM_RETRY_DELAY_MS, Math.min(this.#windowMs / COUNTER_POLL_DIVISOR, untilNextWindow));
     return result;
   }
 }

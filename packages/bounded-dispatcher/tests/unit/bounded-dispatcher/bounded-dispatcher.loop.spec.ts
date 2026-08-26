@@ -5,7 +5,7 @@ import { VirtualTimeCounter } from '@studnicky/clock';
 import { EventBus } from '@studnicky/event-bus';
 import { VirtualScheduler } from '@studnicky/scheduler';
 
-import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/index.js';
+import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';
 
 type DispatcherBusDescriptor =
@@ -67,12 +67,14 @@ type ScenarioCase = {
 
 import scenarioGroups from './bounded-dispatcher.scenarios.json' with { type: 'json' };
 
+type PublicationCause = Error | { details: { value: number } };
+
 class RejectingEventBus extends EventBus<BoundedDispatcherTopicMapInterface> {
-  readonly #cause: unknown;
+  readonly #cause: PublicationCause;
   readonly #failureOrdinal: number;
   #publicationCount = 0;
 
-  constructor(failureOrdinal: number, cause: unknown) {
+  constructor(failureOrdinal: number, cause: PublicationCause) {
     super();
     this.#failureOrdinal = failureOrdinal;
     this.#cause = cause;
@@ -110,7 +112,7 @@ type MutableDispatcherConfig = {
 
 type BusMaterializer = (
   descriptor: DispatcherBusDescriptor,
-  cause: unknown | undefined
+  cause: PublicationCause | undefined
 ) => BoundedDispatcherConfigInterface['bus'] | undefined;
 
 type SchedulerMaterializer = (descriptor: DispatcherSchedulerDescriptor) => MaterializedScheduler;
@@ -140,21 +142,21 @@ function requireVirtualSchedulerDescriptor(
 
 function materializeDefaultBus(
   _descriptor: DispatcherBusDescriptor,
-  _cause: unknown | undefined
+  _cause: PublicationCause | undefined
 ): BoundedDispatcherConfigInterface['bus'] | undefined {
   return undefined;
 }
 
 function materializeOptionsBus(
   descriptor: DispatcherBusDescriptor,
-  _cause: unknown | undefined
+  _cause: PublicationCause | undefined
 ): BoundedDispatcherConfigInterface['bus'] | undefined {
   return requireBusOptionsDescriptor(descriptor).options;
 }
 
 function materializeRejectingBus(
   descriptor: DispatcherBusDescriptor,
-  cause: unknown | undefined
+  cause: PublicationCause | undefined
 ): BoundedDispatcherConfigInterface['bus'] | undefined {
   const rejectingDescriptor = requireRejectingBusDescriptor(descriptor);
   if (cause === undefined) {
@@ -187,7 +189,7 @@ const schedulerMaterializerMap: Record<DispatcherSchedulerDescriptor['shape'], S
   'virtual': materializeVirtualScheduler
 };
 
-function materializeDispatcher(config: DispatcherScenarioConfig, cause?: unknown): MaterializedDispatcher {
+function materializeDispatcher(config: DispatcherScenarioConfig, cause?: PublicationCause): MaterializedDispatcher {
   const dispatcherConfig: MutableDispatcherConfig = Object.create(null);
   if (config.options.permits !== undefined) {
     dispatcherConfig.permits = config.options.permits;
@@ -227,13 +229,13 @@ function createVirtualDispatcher(config: DispatcherScenarioConfig): {
   };
 }
 
-function createRejectingDispatcher(config: DispatcherScenarioConfig, cause: unknown): BoundedDispatcher {
+function createRejectingDispatcher(config: DispatcherScenarioConfig, cause: PublicationCause): BoundedDispatcher {
   return materializeDispatcher(config, cause).dispatcher;
 }
 
 function assertPublicationFailure(
   dispatcher: BoundedDispatcher,
-  publicationCause: unknown,
+  publicationCause: PublicationCause,
   expected: ScenarioCase['expected']
 ): void {
   const errors = dispatcher.getHookErrors();

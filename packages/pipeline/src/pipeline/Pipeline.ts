@@ -52,12 +52,13 @@
  * ```
  */
 
-import { HookInvoker, ValidationError } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
+import type { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
 
-import { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import { PipelineError } from '../errors/PipelineError.js';
 
 export class Pipeline<T> implements PipelineInterface<T> {
@@ -96,12 +97,6 @@ export class Pipeline<T> implements PipelineInterface<T> {
     stages: readonly PipelineFunctionInterface<T>[],
     options?: Readonly<PipelineOptionsEntity.Type>
   ) {
-    if (options !== undefined && !PipelineOptionsEntity.validate(options)) {
-      throw ValidationError.create({
-        'message': 'Must match PipelineOptionsEntity.Schema',
-        'path': 'options'
-      });
-    }
     this.hooks = options?.hookTimeoutMs === undefined
       ? new HookInvoker()
       : new HookInvoker({ 'timeoutMs': options.hookTimeoutMs });
@@ -126,8 +121,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param ctx - The context passed to run()
    * @returns Context to use as input to the first stage
    */
-  protected onRunStart(ctx: T): T {
-    const result = ctx;
+  protected onRunStart(context: T): T {
+    const result = context;
     return result;
   }
 
@@ -140,8 +135,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param _index - Zero-based index of the stage about to run
    * @returns Context to pass to the stage fn
    */
-  protected beforeStage(ctx: T, _index: number): T {
-    const result = ctx;
+  protected beforeStage(context: T, _index: number): T {
+    const result = context;
     return result;
   }
 
@@ -154,8 +149,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param _index - Zero-based index of the stage that just ran
    * @returns Context to use as input to the next stage
    */
-  protected afterStage(ctx: T, _index: number): T {
-    const result = ctx;
+  protected afterStage(context: T, _index: number): T {
+    const result = context;
     return result;
   }
 
@@ -167,8 +162,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param ctx - The context value after all stages
    * @returns Final resolved value
    */
-  protected onRunComplete(ctx: T): T {
-    const result = ctx;
+  protected onRunComplete(context: T): T {
+    const result = context;
     return result;
   }
 
@@ -181,7 +176,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param _index - Zero-based index of the stage
    * @param _ctx - Context value being passed to the stage fn
    */
-  protected onStageStart(_index: number, _ctx: T): void {}
+  protected onStageStart(_index: number, _context: T): void {}
 
   /**
    * Fires after each stage fn completes successfully, before afterStage().
@@ -190,16 +185,16 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param _index - Zero-based index of the stage
    * @param _ctx - Context value returned by the stage fn
    */
-  protected onStageSuccess(_index: number, _ctx: T): void {}
+  protected onStageSuccess(_index: number, _context: T): void {}
 
   /**
    * Fires when a stage fn throws, before the error is wrapped and re-thrown.
    * No-op by default. Overrides must not throw or block.
    *
    * @param _index - Zero-based index of the failing stage
-   * @param _error - The raw error thrown by the stage fn
+   * @param _error - The normalized error thrown by the stage fn
    */
-  protected onStageError(_index: number, _error: unknown): void {}
+  protected onStageError(_index: number, _error: Error): void {}
 
   /**
    * Fires when a stage fn throws, immediately after onStageError().
@@ -208,9 +203,9 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * `afterStage`, `onStageStart`, `onStageSuccess`, `onRunStart`, or
    * `onRunComplete`. No-op by default. Overrides must not throw or block.
    *
-   * @param _error - The PipelineError wrapping the stage fn's failure
+   * @param _error - The error propagated by a failed stage invocation
    */
-  protected onRunError(_error: unknown): void {}
+  protected onRunError(_error: Error): void {}
 
   /**
    * Run the context through all registered transforms in order
@@ -218,16 +213,17 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @param ctx - Initial context value
    * @returns Context after all transforms have been applied
    */
-  private async runStage(fn: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
+  private async runStage(stageFunction: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
     try {
-      const output = await fn(input);
+      const output = await stageFunction(input);
       return output;
-    } catch (err: unknown) {
+    } catch (error: unknown) {
+      const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
       await this.hooks.invokeAsync('onStageError', () => {
-        const result = this.onStageError(index, err);
+        const result = this.onStageError(index, normalizedError);
         return result;
       });
-      throw new PipelineError('Pipeline stage failed', err);
+      throw new PipelineError('Pipeline stage failed', normalizedError);
     }
   }
 
@@ -243,43 +239,53 @@ export class Pipeline<T> implements PipelineInterface<T> {
    * @returns The stage fn's output
    * @throws The original error, after `onRunError` has fired
    */
-  async #runStageWithErrorHandling(fn: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
+  async #runStageWithErrorHandling(stageFunction: PipelineFunctionInterface<T>, input: T, index: number): Promise<T> {
     try {
-      const output = await this.runStage(fn, input, index);
+      const output = await this.runStage(stageFunction, input, index);
       return output;
-    } catch (err: unknown) {
+    } catch (error: unknown) {
+      const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
       await this.hooks.invokeAsync('onRunError', () => {
-        const result = this.onRunError(err);
+        const result = this.onRunError(normalizedError);
         return result;
       });
-      throw err;
+      throw normalizedError;
     }
+  }
+
+  async #notifyStageStart(index: number, input: T): Promise<void> {
+    await this.hooks.invokeAsync('onStageStart', () => {
+      const result = this.onStageStart(index, input);
+      return result;
+    });
+  }
+
+  async #notifyStageSuccess(index: number, output: T): Promise<void> {
+    await this.hooks.invokeAsync('onStageSuccess', () => {
+      const result = this.onStageSuccess(index, output);
+      return result;
+    });
   }
 
   /**
    * Run the context through all constructed transforms in order.
    */
-  async run(ctx: T): Promise<T> {
-    let current = this.onRunStart(ctx);
+  async run(context: T): Promise<T> {
+    let current = this.onRunStart(context);
     const stageCount = this.fns.length;
 
     for (let i = 0; i < stageCount; i++) {
-      const fn = this.fns[i]!;
+      const stageFunction = this.fns[i]!;
       const input = this.beforeStage(current, i);
-      await this.hooks.invokeAsync('onStageStart', () => {
-        const result = this.onStageStart(i, input);
-        return result;
-      });
+      await this.#notifyStageStart(i, input);
 
-      const output = await this.#runStageWithErrorHandling(fn, input, i);
+      const output = await this.#runStageWithErrorHandling(stageFunction, input, i);
 
-      await this.hooks.invokeAsync('onStageSuccess', () => {
-        const result = this.onStageSuccess(i, output);
-        return result;
-      });
+      await this.#notifyStageSuccess(i, output);
       current = this.afterStage(output, i);
     }
 
-    return this.onRunComplete(current);
+    const result = this.onRunComplete(current);
+    return result;
   }
 }

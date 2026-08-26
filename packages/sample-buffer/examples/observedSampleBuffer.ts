@@ -50,25 +50,25 @@ class TracedSampleBuffer extends SampleBuffer {
   }
 }
 
-const buf = TracedSampleBuffer.create({ 'capacity': 3 });
+const buffer = TracedSampleBuffer.create({ 'capacity': 3 });
 
 // Fill the buffer (3 pushes, no overflow)
-buf.push(10);
-buf.push(20);
-buf.push(30);
+buffer.push(10);
+buffer.push(20);
+buffer.push(30);
 
 // Push past capacity — triggers overflow + eviction
-buf.push(40); // evicts 10
-buf.push(50); // evicts 20
+buffer.push(40); // evicts 10
+buffer.push(50); // evicts 20
 
 // Compute a percentile (triggers computeStart + computeComplete + percentile hook)
-const p50 = buf.percentile(50);
+const p50 = buffer.percentile(50);
 
 // Second call uses cache — no computeStart/computeComplete
-const p50Cached = buf.percentile(50);
+const p50Cached = buffer.percentile(50);
 
 // Clear
-buf.clear();
+buffer.clear();
 // #endregion usage
 
 // Assertions
@@ -77,28 +77,28 @@ assert.ok(p50Cached !== undefined, 'p50Cached should be defined');
 assert.equal(p50, p50Cached, 'cached result should match');
 
 // 5 pushes total
-assert.equal(buf.pushLog.length, 5, 'push hook fired 5 times');
+assert.equal(buffer.pushLog.length, 5, 'push hook fired 5 times');
 
 // 2 overflows (pushes 4 and 5 onto a full buffer)
-assert.equal(buf.overflowLog.length, 2, 'overflow hook fired 2 times');
-assert.equal(buf.overflowLog[0], 40, 'first overflow value is 40');
-assert.equal(buf.overflowLog[1], 50, 'second overflow value is 50');
+assert.equal(buffer.overflowLog.length, 2, 'overflow hook fired 2 times');
+assert.equal(buffer.overflowLog[0], 40, 'first overflow value is 40');
+assert.equal(buffer.overflowLog[1], 50, 'second overflow value is 50');
 
 // 2 evictions match 2 overflows
-assert.equal(buf.evictLog.length, 2, 'evict hook fired 2 times');
-assert.equal(buf.evictLog[0], 10, 'first eviction was 10');
-assert.equal(buf.evictLog[1], 20, 'second eviction was 20');
+assert.equal(buffer.evictLog.length, 2, 'evict hook fired 2 times');
+assert.equal(buffer.evictLog[0], 10, 'first eviction was 10');
+assert.equal(buffer.evictLog[1], 20, 'second eviction was 20');
 
 // computeStart fires once (second percentile() is a cache hit)
-assert.equal(buf.computeStartLog.length, 1, 'computeStart fires once per cache miss');
+assert.equal(buffer.computeStartLog.length, 1, 'computeStart fires once per cache miss');
 
 // computeComplete fires once
-assert.equal(buf.computeCompleteLog.length, 1, 'computeComplete fires once per cache miss');
+assert.equal(buffer.computeCompleteLog.length, 1, 'computeComplete fires once per cache miss');
 
 // percentile fires twice (both calls)
-assert.equal(buf.percentileLog.length, 2, 'percentile hook fires on every non-empty call');
+assert.equal(buffer.percentileLog.length, 2, 'percentile hook fires on every non-empty call');
 
 // clear fires once
-assert.equal(buf.clearCount, 1, 'clear hook fires');
+assert.equal(buffer.clearCount, 1, 'clear hook fires');
 
 console.log('observedSampleBuffer: all assertions passed');

@@ -1,13 +1,17 @@
 {
   "valid": [
     {
-      "code": "items.splice(0, 1);",
+      "code": "declare const items: number[]; items.splice(0, 1);",
       "name": "splice() outside any loop - not flagged"
+    },
+    {
+      "code": "declare const items: string[]; declare const id: string; function helper() { items.splice(0, 1); } helper(); for (const x of [id]) { void x; }",
+      "name": "helper's splice() call site is outside any loop - not flagged"
     }
   ],
   "invalid": [
     {
-      "code": "for (let i = items.length - 1; i >= 0; i--) { items.splice(i, 1); }",
+      "code": "declare const items: number[]; for (let i = items.length - 1; i >= 0; i -= 1) { items.splice(i, 1); }",
       "errors": [
         {
           "messageId": "forbidden"
@@ -16,7 +20,7 @@
       "name": "splice() inside for loop - flagged"
     },
     {
-      "code": "for (const id of ids) { records.splice(0, 1); }",
+      "code": "declare const records: number[]; declare const ids: number[]; for (const id of ids) { void id; records.splice(0, 1); }",
       "errors": [
         {
           "messageId": "forbidden"
@@ -25,13 +29,31 @@
       "name": "splice() inside for...of loop - flagged"
     },
     {
-      "code": "while (items.length > 0) { items.splice(0, 1); }",
+      "code": "declare const items: number[]; while (items.length > 0) { items.splice(0, 1); }",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
       "name": "splice() inside while loop - flagged"
+    },
+    {
+      "code": "declare const items: number[]; const SPLICE = 'splice' as const; for (let i = 0; i < items.length; i += 1) { items[SPLICE](0, 1); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "const-held computed key splice() inside a loop - flagged (CallIdentity resolves the signature, not the spelling)"
+    },
+    {
+      "code": "declare const items: number[]; for (let i = 0; i < items.length; i += 1) { items['splice'](0, 1); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed string-literal key splice() inside a loop - flagged"
     }
   ]
 }

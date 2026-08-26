@@ -3,5 +3,5 @@
 import { HookInvoker } from '@studnicky/errors';
 
 export class SchedulerHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string, _cause: Error): void {}
 }

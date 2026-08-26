@@ -22,16 +22,20 @@ class AsyncSources {
   }
 
   static async *words(items: string[]): AsyncGenerator<string> {
-    for (const item of items) {
+    const itemLength = items.length;
+    for (let index = 0; index < itemLength; index += 1) {
+      const item = items[index];
       await Promise.resolve();
-      yield item;
+      if (item !== undefined) { yield item; }
     }
   }
 
   static async *itemsOf<T>(items: T[]): AsyncGenerator<T> {
-    for (const item of items) {
+    const itemLength = items.length;
+    for (let index = 0; index < itemLength; index += 1) {
+      const item = items[index];
       await Promise.resolve();
-      yield item;
+      if (item !== undefined) { yield item; }
     }
   }
 }
@@ -43,18 +47,15 @@ class AsyncIterDemo {
       AsyncSources.range(1, 3),
       AsyncSources.range(10, 12)
     );
-    const results: number[] = [];
-    for await (const n of merged) {
-      results.push(n);
-    }
+    const results = await Array.fromAsync(merged);
 
     // All 6 values present — order is arrival-based (FIFO within each source), so check membership
     assert.equal(results.length, 6);
     const expected = [1, 2, 3, 10, 11, 12];
-    const expectedLen = expected.length;
+    const expectedLength = expected.length;
     const resultsSet = new Set(results);
 
-    for (let i = 0; i < expectedLen; i += 1) {
+    for (let i = 0; i < expectedLength; i += 1) {
       assert.ok(resultsSet.has(expected[i]!), `Missing value ${expected[i]}`);
     }
     // Within each source, relative order is preserved
@@ -67,20 +68,17 @@ class AsyncIterDemo {
   }
 
   static async runMergeEmpty(): Promise<void> {
-    const results: number[] = [];
-    for await (const n of AsyncIter.merge<number>()) {
-      results.push(n);
-    }
+    const results = await Array.fromAsync(AsyncIter.merge<number>());
     assert.equal(results.length, 0);
     console.log('merge empty: []');
   }
 
   static async runFilter(): Promise<void> {
-    const evens = AsyncIter.filter(AsyncSources.range(1, 10), (n) => { return n % 2 === 0; });
-    const results: number[] = [];
-    for await (const n of evens) {
-      results.push(n);
-    }
+    const evens = AsyncIter.filter(AsyncSources.range(1, 10), (number) => {
+      const result = number % 2 === 0;
+      return result;
+    });
+    const results = await Array.fromAsync(evens);
     assert.deepEqual(results, [2, 4, 6, 8, 10]);
     console.log('filter evens:', results);
   }
@@ -91,10 +89,7 @@ class AsyncIterDemo {
       AsyncSources.words(['hi', 'hello', 'hey', 'greetings']),
       async (w) => { const result = await Promise.resolve(w.length > 3); return result; }
     );
-    const results: string[] = [];
-    for await (const w of longWords) {
-      results.push(w);
-    }
+    const results = await Array.fromAsync(longWords);
     assert.deepEqual(results, ['hello', 'greetings']);
     console.log('filter long words:', results);
   }
@@ -106,13 +101,13 @@ class AsyncIterDemo {
     const enriched = AsyncIter.enrich<ItemEntity.Type, EnrichmentEntity.Type, EnrichedEntity.Type>(
       items,
       (item) => { const result = Promise.resolve(item.id % 2 === 0 ? { 'label': `even-${item.id}` } : null); return result; },
-      (item, enrichment) => { return { 'id': item.id, 'label': enrichment.label }; }
+      (item, enrichment) => {
+        const result: EnrichedEntity.Type = { 'id': item.id, 'label': enrichment.label };
+        return result;
+      }
     );
 
-    const results: (ItemEntity.Type | EnrichedEntity.Type)[] = [];
-    for await (const item of enriched) {
-      results.push(item);
-    }
+    const results = await Array.fromAsync(enriched);
 
     assert.equal(results.length, 3);
 
@@ -134,27 +129,31 @@ class AsyncIterDemo {
       AsyncSources.range(1, 5),
       AsyncSources.range(6, 10)
     );
-    const filtered = AsyncIter.filter<number>(merged, (n) => { return n % 3 === 0; });
+    const filtered = AsyncIter.filter<number>(merged, (number) => {
+      const result = number % 3 === 0;
+      return result;
+    });
     const enriched = AsyncIter.enrich<number, { 'tier': string }, { 'n': number; 'tier': string }>(
       filtered,
       (n) => { const result = Promise.resolve(n > 5 ? { 'tier': 'high' as const } : null); return result; },
-      (n, e) => { return { 'n': n, 'tier': e.tier }; }
+      (number, enrichment) => {
+        const result: { 'n': number; 'tier': string } = { 'n': number, 'tier': enrichment.tier };
+        return result;
+      }
     );
 
-    const results: ({ 'n': number; 'tier': string } | number)[] = [];
-    for await (const item of enriched) {
-      results.push(item);
-    }
+    const results = await Array.fromAsync(enriched);
 
     // Multiples of 3 in 1..10: 3, 6, 9
     // 3 → unenriched (≤5)
     // 6 → enriched { n:6, tier:'high' }
     // 9 → enriched { n:9, tier:'high' }
     // merge() yields in arrival order across concurrent sources — sort for stable assertions
-    const sorted = [...results].sort((a, b) => {
+    const sorted = [...results].toSorted((a, b) => {
       const nA = typeof a === 'number' ? a : a.n;
       const nB = typeof b === 'number' ? b : b.n;
-      return nA - nB;
+      const result = nA - nB;
+      return result;
     });
     assert.equal(sorted.length, 3);
     assert.deepEqual(sorted[0], 3);

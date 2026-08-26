@@ -1,8 +1,7 @@
 /**
  * Composable matcher utilities for flexible property checking
  *
- * These matchers can be used with ErrorClassifier.hasProperty() to create
- * expressive, reusable property matching logic.
+ * These matchers compose checks over values whose type is already established.
  */
 
 import {
@@ -22,55 +21,47 @@ import {
 import { HttpStatus } from '../constants/index.js';
 
 /**
- * Type guard matcher factory
- */
-class TypeGuardFactory {
-  /**
-   * Type guard matcher - ensures value is of specific type
-   */
-  public static isType<T>(type: string): (value: unknown) => value is T {
-    return (value: unknown): value is T => {return typeof value === type;};
-  }
-}
-
-/**
  * Number matchers
  */
 const NumberMatchers = Object.freeze({
   /**
    * Check if number is greater than value
    */
-  'greaterThan': (min: number) => {return (value: number): boolean => {return value > min;};},
+  'greaterThan': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value > minimum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is greater than or equal to value
    */
-  'gte': (min: number) => {return (value: number): boolean => {return value >= min;};},
+  'gte': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is in range (inclusive)
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status', number.inRange(500, 599))
-   * ```
    */
-  'inRange': (min: number, max: number) => {return (value: number): boolean => {return value >= min && value <= max;};},
+  'inRange': (minimum: number, maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum && value <= maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is less than value
    */
-  'lessThan': (max: number) => {return (value: number): boolean => {return value < max;};},
+  'lessThan': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value < maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number is less than or equal to value
    */
-  'lte': (max: number) => {return (value: number): boolean => {return value <= max;};},
+  'lte': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value <= maximum; return comparisonResult;}; return result;},
 
   /**
    * Check if number equals any of the provided values
    */
-  'oneOf': (...values: number[]) => {return (value: number): boolean => { const result = values.includes(value); return result; };}
+  'oneOf': (...values: number[]) => {return (value: number): boolean => {
+    const length = values.length;
+    for (let index = 0; index < length; index += 1) {
+      if (values[index] === value) {
+        return true;
+      }
+    }
+    return false;
+  };}
 });
 
 /**
@@ -80,7 +71,10 @@ const StringMatchers = Object.freeze({
   /**
    * Check if string contains substring (case-sensitive)
    */
-  'contains': (substring: string) => {return (value: string): boolean => { const result = value.includes(substring); return result; };},
+  'contains': (substring: string) => {return (value: string): boolean => {
+    const result = value.indexOf(substring) !== -1;
+    return result;
+  };},
 
   /**
    * Check if string contains substring (case-insensitive)
@@ -88,41 +82,62 @@ const StringMatchers = Object.freeze({
   'containsIgnoreCase': (substring: string) => {
     const lowerSubstring = substring.toLowerCase();
 
-    return (value: string): boolean => { const result = value.toLowerCase().includes(lowerSubstring); return result; };
+    return (value: string): boolean => {
+      const result = value.toLowerCase().indexOf(lowerSubstring) !== -1;
+      return result;
+    };
   },
 
   /**
    * Check if string ends with suffix (case-sensitive)
    */
-  'endsWith': (suffix: string) => {return (value: string): boolean => { const result = value.endsWith(suffix); return result; };},
+  'endsWith': (suffix: string) => {return (value: string): boolean => {
+    const result = value.length >= suffix.length && value.slice(value.length - suffix.length) === suffix;
+    return result;
+  };},
 
   /**
    * Check if string length is in range
    */
-  'lengthInRange': (min: number, max: number) => {return (value: string): boolean =>
-  {return value.length >= min && value.length <= max;};},
+  'lengthInRange': (minimum: number, maximum: number) => {return (value: string): boolean =>
+  {const result = value.length >= minimum && value.length <= maximum; return result;};},
 
   /**
    * Check if string matches regex pattern
    */
-  'matches': (pattern: RegExp) => {return (value: string): boolean => { const result = pattern.test(value); return result; };},
+  'matches': (pattern: RegExp) => {return (value: string): boolean => {
+    const result = pattern.test(value) === true;
+    return result;
+  };},
 
   /**
    * Check if string is not empty
    */
   'notEmpty': (value: string): boolean => {
-    return value.length > EMPTY_LENGTH;
+    const result = value.length > EMPTY_LENGTH;
+    return result;
   },
 
   /**
    * Check if string equals any of the provided values
    */
-  'oneOf': (...values: string[]) => {return (value: string): boolean => { const result = values.includes(value); return result; };},
+  'oneOf': (...values: string[]) => {return (value: string): boolean => {
+    const length = values.length;
+    for (let index = 0; index < length; index += 1) {
+      if (values[index] === value) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if string starts with prefix (case-sensitive)
    */
-  'startsWith': (prefix: string) => {return (value: string): boolean => { const result = value.startsWith(prefix); return result; };},
+  'startsWith': (prefix: string) => {return (value: string): boolean => {
+    const result = value.indexOf(prefix) === 0;
+    return result;
+  };},
 
   /**
    * Check if string starts with prefix (case-insensitive)
@@ -130,7 +145,10 @@ const StringMatchers = Object.freeze({
   'startsWithIgnoreCase': (prefix: string) => {
     const lowerPrefix = prefix.toLowerCase();
 
-    return (value: string): boolean => { const result = value.toLowerCase().startsWith(lowerPrefix); return result; };
+    return (value: string): boolean => {
+      const result = value.toLowerCase().indexOf(lowerPrefix) === 0;
+      return result;
+    };
   }
 });
 
@@ -142,7 +160,8 @@ const BooleanMatchers = Object.freeze({
    * Check if value is false
    */
   'isFalse': (value: boolean): boolean => {
-    return !value;
+    const result = !value;
+    return result;
   },
 
   /**
@@ -161,55 +180,57 @@ const ArrayMatchers = Object.freeze({
   /**
    * Check if array contains value
    */
-  'contains': <T>(searchValue: T) => {return (value: T[]): boolean => { const result = value.includes(searchValue); return result; };},
+  'contains': <T>(searchValue: T) => {return (value: T[]): boolean => {
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      if (value[index] === searchValue) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if array contains all of the values
    */
-  'containsAll': <T>(...searchValues: T[]) => {return (value: T[]): boolean =>
-  { const result = searchValues.every((sv) => { const result = value.includes(sv); return result; }); return result; };},
+  'containsAll': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
+    const valuesSet = new Set(value);
+    const requiredValues = new Set(searchValues);
+    for (const requiredValue of requiredValues) {
+      if (!valuesSet.has(requiredValue)) {
+        return false;
+      }
+    }
+    return true;
+  };},
 
   /**
    * Check if array contains any of the values
    */
-  'containsAny': <T>(...searchValues: T[]) => {return (value: T[]): boolean =>
-  { const result = searchValues.some((sv) => { const result = value.includes(sv); return result; }); return result; };},
+  'containsAny': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
+    const valuesSet = new Set(value);
+    const requiredValues = new Set(searchValues);
+    for (const requiredValue of requiredValues) {
+      if (valuesSet.has(requiredValue)) {
+        return true;
+      }
+    }
+    return false;
+  };},
 
   /**
    * Check if array length is in range
    */
-  'lengthInRange': (min: number, max: number) => {return <T>(value: T[]): boolean =>
-  {return value.length >= min && value.length <= max;};},
+  'lengthInRange': (minimum: number, maximum: number) => {return (value: unknown[]): boolean =>
+  {const result = value.length >= minimum && value.length <= maximum; return result;};},
 
   /**
    * Check if array is not empty
    */
-  'notEmpty': <T>(value: T[]): boolean => {
-    return value.length > EMPTY_LENGTH;
+  'notEmpty': (value: unknown[]): boolean => {
+    const result = value.length > EMPTY_LENGTH;
+    return result;
   }
-});
-
-/**
- * Object matchers
- */
-const ObjectMatchers = Object.freeze({
-  /**
-   * Check if object has all properties
-   */
-  'hasAllProperties': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => { const result = propertyNames.every((prop) => {return prop in value;}); return result; };},
-
-  /**
-   * Check if object has any of the properties
-   */
-  'hasAnyProperty': (...propertyNames: string[]) =>
-  {return (value: Record<string, unknown>): boolean => { const result = propertyNames.some((prop) => {return prop in value;}); return result; };},
-
-  /**
-   * Check if object has property
-   */
-  'hasProperty': (propertyName: string) =>
-  {return (value: Record<string, unknown>): boolean => {return propertyName in value;};}
 });
 
 /**
@@ -219,49 +240,47 @@ const LogicMatchers = Object.freeze({
   /**
    * Combine matchers with AND logic
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status',
-   *   logic.and(
-   *     number.gte(400),
-   *     number.lessThan(500)
-   *   )
-   * )
-   * ```
    */
   'and': <T>(...predicates: ((value: T) => boolean)[]) => {
-    return (value: T): boolean => { const result = predicates.every((pred) => { const result = pred(value); return result; }); return result; };
+    return (value: T): boolean => {
+      const predicatesLength = predicates.length;
+      for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
+        const predicate = predicates[predicateIndex];
+        const predicateMatches = predicate?.(value) ?? false;
+        if (!predicateMatches) {
+          return false;
+        }
+      }
+      return true;
+    };
   },
 
   /**
    * Negate a matcher
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status', logic.not(number.inRange(200, 299)))
-   * ```
    */
   'not': <T>(predicate: (value: T) => boolean) => {
     return (value: T): boolean => {
-      return !predicate(value);
+      const result = !predicate(value);
+      return result;
     };
   },
 
   /**
    * Combine matchers with OR logic
    *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'status',
-   *   logic.or(
-   *     number.inRange(500, 599),
-   *     number.oneOf(429)
-   *   )
-   * )
-   * ```
    */
   'or': <T>(...predicates: ((value: T) => boolean)[]) => {
-    return (value: T): boolean => { const result = predicates.some((pred) => { const result = pred(value); return result; }); return result; };
+    return (value: T): boolean => {
+      const predicatesLength = predicates.length;
+      for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
+        const predicate = predicates[predicateIndex];
+        if (predicate?.(value) === true) {
+          return true;
+        }
+      }
+      return false;
+    };
   }
 });
 
@@ -293,7 +312,8 @@ const HttpMatchers = Object.freeze({
    * Rate limiting
    */
   'isRateLimited': (status: number): boolean => {
-    return status === HttpStatus.TOO_MANY_REQUESTS;
+    const result = status === HttpStatus.TOO_MANY_REQUESTS;
+    return result;
   },
 
   /**
@@ -367,220 +387,17 @@ const DatabaseMatchers = Object.freeze({
    * Foreign key violation (23503)
    */
   'isForeignKeyViolation': (code: string): boolean => {
-    return code === '23503';
+    const result = code === '23503';
+    return result;
   },
 
   /**
    * Unique violation (23505)
    */
   'isUniqueViolation': (code: string): boolean => {
-    return code === '23505';
+    const result = code === '23505';
+    return result;
   }
-});
-
-/**
- * Instance and type checking matchers
- */
-const InstanceMatchers = Object.freeze({
-  /**
-   * Check if value is an Error instance (any Error type)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.isError)
-   * ```
-   */
-  'isError': (value: unknown): value is Error => {
-    return value instanceof Error;
-  },
-
-  /**
-   * Check constructor name (useful for cross-realm checks)
-   *
-   * Works across different execution contexts where instanceof might fail
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.named('TypeError'))
-   * ```
-   */
-  'named': (name: string) => {return (value: unknown): boolean => {
-    if (value === null || value === undefined || typeof value !== 'object') { return false; }
-
-    return (value as { 'constructor'?: { 'name'?: string } }).constructor?.name === name;
-  };},
-
-  /**
-   * Check if constructor name matches any of the provided names
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.namedAny('TypeError', 'RangeError'))
-   * ```
-   */
-  'namedAny': (...names: string[]) => {return (value: unknown): boolean => {
-    if (value === null || value === undefined || typeof value !== 'object') { return false; }
-
-    const constructorName = (value as { 'constructor'?: { 'name'?: string } }).constructor?.name ?? '';
-
-    return names.includes(constructorName);
-  };},
-
-  /**
-   * Check if value is an instance of a constructor
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.of(TypeError))
-   * hasProperty(error, 'originalError', instance.of(Error))
-   * ```
-   */
-  'of': <T>(constructor: new (...args: never[]) => T) => {
-    return (value: unknown): value is T => {
-      return value instanceof constructor;
-    };
-  },
-
-  /**
-   * Check if value is an instance of any of the provided constructors
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', instance.ofAny(TypeError, RangeError, ReferenceError))
-   * ```
-   */
-  'ofAny': <T>(...constructors: (new (...args: never[]) => T)[]) =>
-  {return (value: unknown): value is T => { const result = constructors.some((ctor) => {return value instanceof ctor;}); return result; };}
-});
-
-/**
- * Prototype checking matchers
- */
-class ProtoMatcherFactory {
-  public static hasAllMethods(...methodNames: string[]) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      return methodNames.every((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
-    };
-  }
-
-  public static hasAnyMethod(...methodNames: string[]) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      return methodNames.some((name) => {return typeof (value as Record<string, unknown>)[name] === 'function';});
-    };
-  }
-
-  public static hasMethod(methodName: string) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      return typeof (value as Record<string, unknown>)[methodName] === 'function';
-    };
-  }
-
-  public static hasProperty(propertyName: string) {
-    return (value: unknown): boolean => {
-      if (value === null || value === undefined) { return false; }
-
-      return typeof value === 'object' && propertyName in value;
-    };
-  }
-
-  public static isAsyncIterable(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    return typeof (value as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function';
-  }
-
-  public static isCallable(value: unknown): value is (...args: unknown[]) => unknown {
-    return typeof value === 'function';
-  }
-
-  public static isIterable(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    return typeof (value as Record<symbol, unknown>)[Symbol.iterator] === 'function';
-  }
-}
-
-const ProtoMatchers = Object.freeze({
-  /**
-   * Check if value's prototype has all specified methods
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.hasAllMethods('read', 'write', 'pipe'))
-   * ```
-   */
-  'hasAllMethods': ProtoMatcherFactory.hasAllMethods,
-
-  /**
-   * Check if value's prototype has any of the specified methods
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.hasAnyMethod('read', 'pipe'))
-   * ```
-   */
-  'hasAnyMethod': ProtoMatcherFactory.hasAnyMethod,
-
-  /**
-   * Check if value's prototype has a specific method
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'cause', prototype.hasMethod('toString'))
-   * hasProperty(error, 'stream', prototype.hasMethod('pipe'))
-   * ```
-   */
-  'hasMethod': ProtoMatcherFactory.hasMethod,
-
-  /**
-   * Check if value has a specific property (not just method)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'metadata', prototype.hasProperty('requestId'))
-   * ```
-   */
-  'hasProperty': ProtoMatcherFactory.hasProperty,
-
-  /**
-   * Check if value is async iterable (has Symbol.asyncIterator)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'stream', prototype.isAsyncIterable)
-   * ```
-   */
-  'isAsyncIterable': ProtoMatcherFactory.isAsyncIterable,
-
-  /**
-   * Check if value is callable (is a function)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'retry', prototype.isCallable)
-   * ```
-   */
-  'isCallable': ProtoMatcherFactory.isCallable,
-
-  /**
-   * Check if value is iterable (has Symbol.iterator)
-   *
-   * @example
-   * ```typescript
-   * hasProperty(error, 'items', prototype.isIterable)
-   * ```
-   */
-  'isIterable': ProtoMatcherFactory.isIterable
 });
 
 /**
@@ -591,13 +408,9 @@ const matchers = Object.freeze({
   'boolean': BooleanMatchers,
   'database': DatabaseMatchers,
   'http': HttpMatchers,
-  'instance': InstanceMatchers,
-  'isType': TypeGuardFactory.isType,
   'logic': LogicMatchers,
   'network': NetworkMatchers,
   'number': NumberMatchers,
-  'object': ObjectMatchers,
-  'proto': ProtoMatchers,
   'string': StringMatchers
 });
 

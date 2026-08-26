@@ -1,0 +1,81 @@
+{
+  "valid": [
+    {
+      "code": "result = [...result, x];",
+      "name": "reassignment with spread outside any loop - not flagged"
+    },
+    {
+      "code": "for (let i = 0; i < items.length; i++) { fn(...items); }",
+      "name": "spread as call argument inside loop - intentionally out of scope, not flagged"
+    },
+    {
+      "code": "for (let i = 0; i < items.length; i++) { const build = () => { result = [...result, i]; }; build(); }",
+      "name": "spread-array reassignment inside a nested function inside a loop - not flagged, runs per call not per iteration"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "for (let i = 0; i < items.length; i++) { result = [...result, x]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "reassignment with spread inside for loop - flagged"
+    },
+    {
+      "code": "let i = 0; while (i < items.length) { result = [...result, x]; i++; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "reassignment with spread inside while loop - flagged"
+    },
+    {
+      "code": "let i = 0; do { result = [...result, x]; i++; } while (i < items.length);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "reassignment with spread inside do...while loop - flagged"
+    },
+    {
+      "code": "for (const y of ys) { result = [...result, y]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "reassignment with spread inside for...of loop - flagged"
+    },
+    {
+      "code": "for (const k in obj) { result = [...result, k]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "reassignment with spread inside for...in loop - flagged"
+    },
+    {
+      "code": "for (let i = 0; i < items.length; i++) { const merged = [...result, x]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "VariableDeclarator init with spread inside for loop - flagged"
+    },
+    {
+      "code": "for (let i = 0; i < items.length; i++) { obj.result = [...arr, x]; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "MemberExpression left-hand assignment with spread inside for loop - flagged"
+    }
+  ]
+}

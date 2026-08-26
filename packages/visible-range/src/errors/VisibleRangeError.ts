@@ -1,10 +1,10 @@
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { JSONSchema7Type } from 'json-schema';
 
-import { BaseError, DomainErrorArgs } from '@studnicky/errors';
+import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';
 
 /** Optional construction arguments for {@link VisibleRangeError}; the class supplies its own code and message. */
-interface VisibleRangeErrorArgsInterface {
+interface VisibleRangeErrorArgumentListInterface {
   /** Underlying cause (native `Error`, `BaseError`, or any primitive). */
   readonly 'cause'?: unknown;
   /** Optional correlation ID for distributed tracing. */
@@ -20,20 +20,18 @@ interface VisibleRangeErrorArgsInterface {
 
 /** Thrown when a {@link VisibleRangeConfigInterface} is invalid or ambiguous. */
 export class VisibleRangeError extends BaseError {
-  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
-    const result = fields.message;
-    return result;
-  }
-
-  public constructor(message: string, args?: VisibleRangeErrorArgsInterface) {
+  public constructor(message: string, argumentList?: VisibleRangeErrorArgumentListInterface) {
     const fields = { 'message': message };
-    super(DomainErrorArgs.build(fields, {
-      'cause': args?.cause,
+    super(DomainErrorArgumentList.build(fields, {
+      'cause': argumentList?.cause,
       'code': 'visibleRange.invalidConfig',
-      'correlationId': args?.correlationId,
-      'message': VisibleRangeError.buildMessage,
-      'metadata': args?.metadata,
-      'retryable': args?.retryable ?? false
+      'correlationId': argumentList?.correlationId,
+      'message': (messageFields) => {
+        const messagePayload = { 'message': messageFields.message };
+        return messagePayload.message;
+      },
+      'metadata': argumentList?.metadata,
+      'retryable': argumentList?.retryable ?? false
     }));
   }
 }

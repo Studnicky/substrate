@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -87,7 +88,7 @@ type ScenarioCase =
     };
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
@@ -165,7 +166,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(
       pool.run(scenarioCase.input.items),
-      (error: unknown) => {
+      (error: Error) => {
         assert.ok(error instanceof Error);
         assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
         assert.equal(error.cause, abortReason);
@@ -245,7 +246,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(
       pool.run(scenarioCase.input.items),
-      (error: unknown) => {
+      (error: Error) => {
         assert.ok(error instanceof Error);
         return true;
       }
@@ -269,7 +270,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(
       pool.run(scenarioCase.input.items),
-      (error: unknown) => {
+      (error: Error) => {
         assert.ok(error instanceof Error);
         return true;
       }
@@ -306,7 +307,7 @@ const runnerMap: RunnerMap = {
     signal.release.resolve();
     await assert.rejects(
       running,
-      (error: unknown) => {
+      (error: Error) => {
         assert.ok(error instanceof Error);
         assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
         return true;

@@ -37,7 +37,7 @@ export class Delay {
   public static sleep(ms: number, options: DelayOptionsInterface = {}): Promise<void> {
     const signal = options.signal;
 
-    return new Promise<void>((resolve, reject) => {
+    const result = new Promise<void>((resolve, reject) => {
       let abortListenerAttached = false;
       let outcome: 'aborted' | 'complete' | 'pending' = 'pending';
       let task: ScheduledTaskInterface | undefined;
@@ -55,9 +55,6 @@ export class Delay {
         outcome = nextOutcome;
         removeAbortListener();
         return true;
-      };
-      const abortWon = (): boolean => {
-        return outcome === 'aborted';
       };
       const onAbort = (): void => {
         if (!finish('aborted')) {
@@ -96,7 +93,7 @@ export class Delay {
         });
         task = scheduledTask;
 
-        if (abortWon()) {
+        if (signal?.aborted === true) {
           scheduledTask.cancel();
         }
       } catch (error: unknown) {
@@ -105,5 +102,6 @@ export class Delay {
         }
       }
     });
+    return result;
   }
 }

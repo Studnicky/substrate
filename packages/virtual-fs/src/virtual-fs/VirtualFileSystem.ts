@@ -1,6 +1,7 @@
 import type { ClockProviderInterface } from '@studnicky/clock';
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
@@ -10,56 +11,79 @@ import type { VirtualFileSystemOptionsInterface } from '../interfaces/VirtualFil
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 
+interface VirtualFileSystemConstructorInterface<
+  TInstance extends VirtualFileSystem
+> extends Function {
+  readonly 'prototype': TInstance;
+}
+
 const DEFAULT_CLOCK: ClockProviderInterface = {
-  'hrtime': () => { return BigInt(Date.now()) * 1_000_000n; },
-  'now': () => {
-    const result = Date.now();
+  'hrtime': () => {
+    const result = BigInt(Date.now()) * 1_000_000n;
     return result;
-  }
+  },
+  'now': Date.now
 };
 
 class StatResult implements StatResultInterface {
   readonly mtimeMs: EntryEntity.Type['mtimeMs'];
   private readonly shape: EntryEntity.Type['shape'];
 
-  constructor(shape: EntryEntity.Type['shape'], mtimeMs: EntryEntity.Type['mtimeMs']) {
+  constructor(
+    shape: EntryEntity.Type['shape'],
+    mtimeMs: EntryEntity.Type['mtimeMs']
+  ) {
     this.shape = shape;
     this.mtimeMs = mtimeMs;
   }
 
   isDirectory(): boolean {
-    return this.shape === 'directory';
+    const result = this.shape === 'directory';
+    return result;
   }
 
   isFile(): boolean {
-    return this.shape === 'file';
+    const result = this.shape === 'file';
+    return result;
   }
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
   private static isConstructed<TInstance extends VirtualFileSystem>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: VirtualFileSystemConstructorInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: VirtualFileSystemConstructorInterface<TInstance>,
     options?: VirtualFileSystemOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options ?? {}]);
-    if (!VirtualFileSystem.isConstructed(result, this)) {
-      throw new TypeError('VirtualFileSystem.create() must construct a VirtualFileSystem instance');
+    const constructed: unknown = Reflect.construct(this, [options ?? {}]);
+    if (!Predicates.isObjectLike(constructed)) {
+      throw new TypeError(
+        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
+      );
     }
-    return result;
+    if (!VirtualFileSystem.isConstructed(constructed, this)) {
+      throw new TypeError(
+        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
+      );
+    }
+    return constructed;
   }
 
   static #splitPath(path: string): { 'name': string; 'parent': string } {
     const separatorIndex = path.lastIndexOf('/');
     const name = path.slice(separatorIndex + 1);
     const parent = separatorIndex === 0 ? '/' : path.slice(0, separatorIndex);
-    return { 'name': name, 'parent': parent };
+    const result: { 'name': string; 'parent': string } = {
+      'name': name,
+      'parent': parent
+    };
+    return result;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
@@ -87,6 +111,13 @@ export class VirtualFileSystem implements FileSystemInterface {
     }
   }
 
+  #invokeCreateHook(path: string): void {
+    this.hooks.invoke('onCreate', () => {
+      const result = this.onCreate(path);
+      return result;
+    });
+  }
+
   protected constructor(options: VirtualFileSystemOptionsInterface) {
     this.#children = new Map<string, Set<string>>();
     this.#clock = options.clock ?? DEFAULT_CLOCK;
@@ -100,8 +131,8 @@ export class VirtualFileSystem implements FileSystemInterface {
     if (options.seed !== undefined) {
       const seeds = options.seed;
       const seedKeys = Array.from(seeds.keys());
-      const seedLen = seedKeys.length;
-      for (let i = 0; i < seedLen; i += 1) {
+      const seedKeysLength = seedKeys.length;
+      for (let i = 0; i < seedKeysLength; i += 1) {
         const path = seedKeys[i];
         if (path !== undefined) {
           const content = seeds.get(path);
@@ -120,7 +151,8 @@ export class VirtualFileSystem implements FileSystemInterface {
   protected onWrite(_path: string): void {}
 
   existsSync(path: string): boolean {
-    return this.#files.has(path) || this.#entries.has(path);
+    const result = this.#files.has(path) || this.#entries.has(path);
+    return result;
   }
 
   mkdirSync(path: string, options?: MkdirOptionsEntity.Type): void {
@@ -129,47 +161,56 @@ export class VirtualFileSystem implements FileSystemInterface {
 
     if (existingEntry?.shape === 'directory') {
       if (!recursive) {
-        throw new VirtualFileSystemError(`EEXIST: directory already exists, mkdir '${path}'`);
+        throw new VirtualFileSystemError(
+          `EEXIST: directory already exists, mkdir '${path}'`
+        );
       }
       return;
     }
 
     if (this.#files.has(path)) {
-      throw new VirtualFileSystemError(`EEXIST: file already exists, mkdir '${path}'`);
+      throw new VirtualFileSystemError(
+        `EEXIST: file already exists, mkdir '${path}'`
+      );
     }
 
     if (recursive) {
       const segments = path.split('/');
       const filtered: string[] = [];
-      const segLen = segments.length;
-      for (let i = 0; i < segLen; i += 1) {
+      const segmentsLength = segments.length;
+      for (let i = 0; i < segmentsLength; i += 1) {
         const s = segments[i];
         if (s !== undefined && s.length > 0) {
           filtered.push(s);
         }
       }
       let current = '';
-      const filteredLen = filtered.length;
-      for (let i = 0; i < filteredLen; i += 1) {
+      const filteredLength = filtered.length;
+      for (let i = 0; i < filteredLength; i += 1) {
         const seg = filtered[i];
         if (seg !== undefined) {
           current = `${current}/${seg}`;
           if (this.#files.has(current)) {
-            throw new VirtualFileSystemError(`ENOTDIR: not a directory, mkdir '${path}'`);
+            throw new VirtualFileSystemError(
+              `ENOTDIR: not a directory, mkdir '${path}'`
+            );
           }
           if (!this.#entries.has(current)) {
-            const entry: EntryEntity.Type = { 'mtimeMs': this.#clock.now(), 'shape': 'directory' };
+            const entry: EntryEntity.Type = {
+              'mtimeMs': this.#clock.now(),
+              'shape': 'directory'
+            };
             this.#entries.set(current, entry);
             this.#indexAdd(current);
-            this.hooks.invoke('onCreate', () => {
-              const result = this.onCreate(current);
-              return result;
-            });
+            this.#invokeCreateHook(current);
           }
         }
       }
     } else {
-      const entry: EntryEntity.Type = { 'mtimeMs': this.#clock.now(), 'shape': 'directory' };
+      const entry: EntryEntity.Type = {
+        'mtimeMs': this.#clock.now(),
+        'shape': 'directory'
+      };
       this.#entries.set(path, entry);
       this.#indexAdd(path);
       this.hooks.invoke('onCreate', () => {
@@ -182,10 +223,14 @@ export class VirtualFileSystem implements FileSystemInterface {
   readdirSync(path: string): string[] {
     const entry = this.#entries.get(path);
     if (entry === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, scandir '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, scandir '${path}'`
+      );
     }
     if (entry.shape !== 'directory') {
-      throw new VirtualFileSystemError(`ENOTDIR: not a directory, scandir '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOTDIR: not a directory, scandir '${path}'`
+      );
     }
 
     const siblings = this.#children.get(path);
@@ -201,7 +246,9 @@ export class VirtualFileSystem implements FileSystemInterface {
   readFileSync(path: string, _encoding: 'utf8'): string {
     const content = this.#files.get(path);
     if (content === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, open '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, open '${path}'`
+      );
     }
     this.hooks.invoke('onRead', () => {
       const result = this.onRead(path);
@@ -215,7 +262,9 @@ export class VirtualFileSystem implements FileSystemInterface {
     const oldEntry = this.#entries.get(oldPath);
 
     if (content === undefined && oldEntry === undefined) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`
+      );
     }
 
     const mtimeMs = this.#clock.now();
@@ -224,8 +273,8 @@ export class VirtualFileSystem implements FileSystemInterface {
       const prefix = `${oldPath}/`;
 
       const entryKeys = Array.from(this.#entries.keys());
-      const entryLen = entryKeys.length;
-      for (let i = 0; i < entryLen; i += 1) {
+      const entryKeysLength = entryKeys.length;
+      for (let i = 0; i < entryKeysLength; i += 1) {
         const candidate = entryKeys[i];
         if (candidate?.startsWith(prefix) === true) {
           const rest = candidate.slice(prefix.length);
@@ -249,8 +298,8 @@ export class VirtualFileSystem implements FileSystemInterface {
       }
 
       const fileKeys = Array.from(this.#files.keys());
-      const fileLen = fileKeys.length;
-      for (let i = 0; i < fileLen; i += 1) {
+      const fileKeysLength = fileKeys.length;
+      for (let i = 0; i < fileKeysLength; i += 1) {
         const candidate = fileKeys[i];
         if (candidate?.startsWith(prefix) === true) {
           const rest = candidate.slice(prefix.length);
@@ -273,7 +322,8 @@ export class VirtualFileSystem implements FileSystemInterface {
         this.#files.delete(oldPath);
       }
 
-      const shape: EntryEntity.Type['shape'] = oldEntry !== undefined ? oldEntry.shape : 'file';
+      const shape: EntryEntity.Type['shape'] =
+        oldEntry !== undefined ? oldEntry.shape : 'file';
       this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': shape });
       this.#entries.delete(oldPath);
       this.#indexRemove(oldPath);
@@ -291,22 +341,31 @@ export class VirtualFileSystem implements FileSystemInterface {
     const hasFile = this.#files.has(path);
 
     if (entry === undefined && !hasFile) {
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, stat '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, stat '${path}'`
+      );
     }
 
-    const shape: EntryEntity.Type['shape'] = entry !== undefined ? entry.shape : 'file';
-    const mtimeMs: number = entry !== undefined ? entry.mtimeMs : this.#clock.now();
+    const shape: EntryEntity.Type['shape'] =
+      entry !== undefined ? entry.shape : 'file';
+    const mtimeMs: number =
+      entry !== undefined ? entry.mtimeMs : this.#clock.now();
 
-    return new StatResult(shape, mtimeMs);
+    const result = new StatResult(shape, mtimeMs);
+    return result;
   }
 
   unlinkSync(path: string): void {
     if (!this.#files.has(path)) {
       const entry = this.#entries.get(path);
       if (entry?.shape === 'directory') {
-        throw new VirtualFileSystemError(`EISDIR: illegal operation on a directory, unlink '${path}'`);
+        throw new VirtualFileSystemError(
+          `EISDIR: illegal operation on a directory, unlink '${path}'`
+        );
       }
-      throw new VirtualFileSystemError(`ENOENT: no such file or directory, unlink '${path}'`);
+      throw new VirtualFileSystemError(
+        `ENOENT: no such file or directory, unlink '${path}'`
+      );
     }
     this.#files.delete(path);
     this.#entries.delete(path);

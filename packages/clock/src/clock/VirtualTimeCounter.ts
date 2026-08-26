@@ -7,20 +7,18 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
-import { ClockError } from '../errors/ClockError.js';
 
 interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
 class VirtualTimeCounterInstance {
-  static belongsTo<TInstance>(
-    constructor: VirtualTimeCounterSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: VirtualTimeCounterSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -32,10 +30,11 @@ class VirtualTimeCounterInstance {
 export class VirtualTimeCounter {
   static create<TInstance extends VirtualTimeCounter = VirtualTimeCounter>(
     this: VirtualTimeCounterSubclassInterface<TInstance>,
-    options: VirtualTimeCounterOptionsEntity.Type = {}
+    options: Partial<VirtualTimeCounterOptionsEntity.Type> = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!VirtualTimeCounterInstance.belongsTo(this, result)) {
+    const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
+    const result: unknown = Reflect.construct(this, [resolvedOptions]);
+    if (!Predicates.isObjectLike(result) || !VirtualTimeCounterInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualTimeCounter.create() did not construct the requested subclass.');
     }
     return result;
@@ -50,14 +49,7 @@ export class VirtualTimeCounter {
    * Property write order: #nowMs.
    */
   protected constructor(options: VirtualTimeCounterOptionsEntity.Type) {
-    if (!VirtualTimeCounterOptionsEntity.validate(options)) {
-      throw new ClockError('invalid VirtualTimeCounter options');
-    }
-    const resolved = options.startMs ?? 0;
-    if (!Number.isFinite(resolved) || resolved < 0) {
-      throw new ClockError('startMs must be a finite non-negative number');
-    }
-    this.#nowMs = resolved;
+    this.#nowMs = options.startMs;
   }
 
   // ---------------------------------------------------------------------------

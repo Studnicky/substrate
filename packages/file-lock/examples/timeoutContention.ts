@@ -21,10 +21,10 @@ try {
   // Try to acquire again with a short timeout — throws because the file is at the lock path
   try {
     await FileLock.create({ 'path': filePath, 'pollMs': 50, 'timeoutMs': 200 });
-  } catch (err) {
-    if (err instanceof FileLockTimeoutError) {
-      caught = err;
-      console.log(`Timed out after ${String(err.timeoutMs)}ms on ${err.path}`);
+  } catch (error) {
+    if (error instanceof FileLockTimeoutError) {
+      caught = error;
+      console.log(`Timed out after ${String(error.timeoutMs)}ms on ${error.path}`);
     }
   }
 } finally {

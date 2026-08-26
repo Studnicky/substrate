@@ -1,5 +1,17 @@
 # Changelog
 
+## 10.0.0
+
+### Patch Changes
+
+- Updated dependencies [3e5575a]
+  - @studnicky/errors@10.0.0
+  - @studnicky/fetch@10.0.0
+  - @studnicky/retry@10.0.0
+  - @studnicky/json@10.0.0
+  - @studnicky/context@10.0.0
+  - @studnicky/signal@10.0.0
+
 ## 9.2.0
 
 ### Patch Changes

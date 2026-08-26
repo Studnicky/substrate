@@ -1,0 +1,197 @@
+{
+  "cases": [
+    {
+      "name": "string-gate-passes-when-condition-matches",
+      "description": "CORE.AND gate with STRING.EQUALS passes when the value matches",
+      "shape": "string-gate-pass",
+      "input": {
+        "data": { "name": "Alice" }
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "string-gate-fails-when-condition-does-not-match",
+      "description": "CORE.AND gate with STRING.EQUALS fails when the value does not match",
+      "shape": "string-gate-fail",
+      "input": {
+        "data": { "name": "Bob" }
+      },
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "name": "registered-custom-gate-and-operator-matches",
+      "description": "a custom gate and operator registered by name resolve and match, mirroring pre-redesign direct-function behavior",
+      "shape": "registered-custom-gate-operator",
+      "input": {
+        "data": { "name": "anything" }
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "date-equals-matches-identical-date-value",
+      "description": "DATE.EQUALS matches an identical date value",
+      "shape": "date-equals-match",
+      "input": {
+        "dateValue": "1990-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "date-between-matches-date-within-range",
+      "description": "DATE.BETWEEN matches a date within range",
+      "shape": "date-between-in-range",
+      "input": {
+        "dateValue": "1990-01-01T00:00:00.000Z",
+        "rangeMax": "2000-01-01T00:00:00.000Z",
+        "rangeMin": "1980-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "date-between-fails-date-outside-range",
+      "description": "DATE.BETWEEN fails a date outside range",
+      "shape": "date-between-out-of-range",
+      "input": {
+        "dateValue": "1990-01-01T00:00:00.000Z",
+        "rangeMax": "1985-01-01T00:00:00.000Z",
+        "rangeMin": "1980-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "name": "set-has-matches-directly",
+      "description": "SET.HAS matches directly on a non-wildcard path",
+      "shape": "set-has-direct",
+      "input": {
+        "entries": ["admin", "user"],
+        "matchValue": "admin"
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "map-has-matches-directly",
+      "description": "MAP.HAS matches directly on a non-wildcard path",
+      "shape": "map-has-direct",
+      "input": {
+        "entries": [["admin", true]],
+        "matchValue": "admin"
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "set-size-matches-nested-array-wildcard-path",
+      "description": "SET.SIZE matches a Set nested inside an array wildcard path",
+      "shape": "set-size-wildcard",
+      "input": {
+        "items": [
+          ["a", "b"],
+          ["c", "d"]
+        ],
+        "size": 2
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "map-size-matches-nested-array-wildcard-path",
+      "description": "MAP.SIZE matches a Map nested inside an array wildcard path",
+      "shape": "map-size-wildcard",
+      "input": {
+        "items": [
+          [["a", 1]],
+          [["b", 2]]
+        ],
+        "size": 1
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "custom-plugin-operator-resolves-namespaced-operator",
+      "description": "a namespaced plugin operator resolves and both passes and fails as expected",
+      "shape": "custom-plugin-operator",
+      "input": {
+        "failValue": "other",
+        "matchValue": "expected"
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "nested-or-group-inside-outer-and-group",
+      "description": "a nested OR group inside an outer AND group matches and fails to match as expected",
+      "shape": "nested-or-group",
+      "input": {
+        "failData": { "priority": 3, "status": "active" },
+        "matchData": { "priority": 2, "status": "active" }
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "array-equals-matches-different-instance-same-contents",
+      "description": "ARRAY.EQUALS deep-compares — a structurally-identical array from a different instance matches",
+      "shape": "array-equals-deep",
+      "input": {
+        "entries": ["a", "b", "c"]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "map-equals-matches-different-instance-same-contents",
+      "description": "MAP.EQUALS deep-compares — a structurally-identical Map from a different instance matches",
+      "shape": "map-equals-deep",
+      "input": {
+        "entries": [["admin", true]]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "set-equals-matches-different-instance-same-contents",
+      "description": "SET.EQUALS deep-compares — a structurally-identical Set from a different instance matches",
+      "shape": "set-equals-deep",
+      "input": {
+        "entries": ["admin", "user"]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "logic-gate-operator-array-logic-enums-reachable",
+      "description": "sanity check that LogicGate, Operator, and ArrayLogic enums are reachable",
+      "shape": "enum-reachability-sanity",
+      "input": {},
+      "expected": {}
+    }
+  ]
+}

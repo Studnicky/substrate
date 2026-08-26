@@ -22,7 +22,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -48,7 +75,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -74,7 +128,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -100,7 +181,140 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "entities",
+              "layer": "entities"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "const { x } = someLocalVar; x();",
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "destructuring an unrelated local variable - not flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "Math[\"floor\"](1.5);",
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "bracket-notation call to something not in forbiddenCalls - not flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }
@@ -133,7 +347,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -164,7 +405,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -195,7 +463,34 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     },
@@ -227,7 +522,266 @@
             "adapters",
             "infrastructure"
           ],
-          "sourceRoot": "src"
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "entities",
+              "layer": "entities"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "const { now } = Date; now();",
+      "errors": [
+        {
+          "messageId": "impureCall"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file calling a forbidden call via destructuring alias - flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "Date[\"now\"]();",
+      "errors": [
+        {
+          "messageId": "impureCall"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file calling a forbidden call via bracket notation - flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "globalThis.Date.now();",
+      "errors": [
+        {
+          "messageId": "impureCall"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file calling a forbidden call via a nested member chain - flagged via suffix match",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "import('fs');",
+      "errors": [
+        {
+          "messageId": "impureImport"
+        }
+      ],
+      "filename": "/repo/src/domain/user/User.ts",
+      "name": "domain-layer file dynamically importing a forbidden import - flagged",
+      "options": [
+        {
+          "forbiddenCalls": [
+            "Date.now",
+            "Math.random"
+          ],
+          "forbiddenImports": [
+            "fs",
+            "axios",
+            "node:fs"
+          ],
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            }
+          ]
         }
       ]
     }

@@ -575,7 +575,7 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onTransportError-fires': (_scenarioCase) => {
-    const errors: unknown[] = [];
+    const errors: Error[] = [];
     const capturedTransports: TransportInterface[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -583,7 +583,7 @@ const runnerMap: ScenarioRunnerMap = {
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing] });
         capturedTransports.push(throwing);
       }
-      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
+      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
         errors.push(error);
       }
     }
@@ -598,13 +598,13 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onTransportError-succeeds': (_scenarioCase) => {
-    const errors: unknown[] = [];
+    const errors: Error[] = [];
     class ObservedLogger extends Logger {
       constructor() {
         const memory = MemoryTransport.create();
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [memory] });
       }
-      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
+      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
         errors.push(error);
       }
     }
@@ -615,14 +615,14 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onTransportError-each-failure': (_scenarioCase) => {
-    const errors: unknown[] = [];
+    const errors: Error[] = [];
     class ObservedLogger extends Logger {
       constructor() {
         const throwing1 = FunctionTransport.create(() => { throw new Error('first'); });
         const throwing2 = FunctionTransport.create(() => { throw new Error('second'); });
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing1, throwing2] });
       }
-      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: unknown): void {
+      protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
         errors.push(error);
       }
     }
@@ -722,7 +722,7 @@ const runnerMap: ScenarioRunnerMap = {
     const deliveries: string[] = [];
     const hookFailure = new Error('async onTransportError boom');
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = <TReason>(reason: TReason): void => { rejectionEvents.push(reason); };
     class AsyncRejectingTransportErrorLogger extends Logger {
       protected override async onTransportError(): Promise<void> {
         await Promise.resolve();
@@ -774,7 +774,7 @@ const runnerMap: ScenarioRunnerMap = {
 
   'async-onLog-unhandled': async (_scenarioCase) => {
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = <TReason>(reason: TReason): void => { rejectionEvents.push(reason); };
     class AsyncOnLogLogger extends Logger {
       protected override onLog(): Promise<void> {
         return Promise.reject(new Error('async onLog boom'));

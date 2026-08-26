@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import { MaxRetriesExceededError, Retry, type RetryConfigInterface } from '@studnicky/retry';
-import { Throttle, type ThrottleConfigEntity } from '@studnicky/throttle';
+import { MaximumRetriesExceededError, Retry } from '@studnicky/retry';
+import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
+import { Throttle } from '@studnicky/throttle';
+import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
-import { BoundaryKit, type BoundaryKitConfigInterface } from '../../../src/index.js';
+import { BoundaryKit } from '../../../src/index.js';
+import type { BoundaryKitConfigInterface } from '../../../src/interfaces/index.js';
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
 import scenarioGroups from './boundary-kit.scenarios.json' with { type: 'json' };
 
@@ -17,7 +20,7 @@ type RetryClassifierDescriptor = {
 
 type RetryConfigDescriptor = {
   errorClassifier?: RetryClassifierDescriptor;
-  maxRetries?: number;
+  maximumRetries?: number;
 };
 
 type BoundaryKitConfigDescriptor = {
@@ -293,15 +296,15 @@ const runnerMap: RunnerMap = {
       throw new Error('always fails');
     };
 
-    await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
+    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
     assert.equal(callCount, scenarioCase.expected.callCount);
     assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterFirst);
 
-    await assert.rejects(() => kit.execute(alwaysFails), MaxRetriesExceededError);
+    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
     assert.equal(callCount, scenarioCase.expected.callCount * 2);
     assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterSecond);
 
-    await assert.rejects(() => kit.execute(alwaysFails), (error: unknown) => {
+    await assert.rejects(() => kit.execute(alwaysFails), (error) => {
       assert.ok(error instanceof CircuitBreakerOpenError);
       assert.equal(error.constructor.name, scenarioCase.expected.rejectionName);
       return true;

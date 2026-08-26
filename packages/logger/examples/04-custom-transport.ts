@@ -9,7 +9,8 @@
 
 import assert from 'node:assert/strict';
 
-import type { LogRecordEntity, TransportInterface } from '../src/index.js';
+import type { LogRecordEntity } from '../src/entities/index.js';
+import type { TransportInterface } from '../src/index.js';
 
 // #region usage
 import { LogBody, Logger, ParseLogLevel } from '../src/index.js';
@@ -17,17 +18,17 @@ import { LogBody, Logger, ParseLogLevel } from '../src/index.js';
 class BufferedTransport implements TransportInterface {
   readonly #batch: LogRecordEntity.Type[] = [];
   readonly #batchSize: number;
-  readonly #minLevel: number;
+  readonly #minimumLevel: number;
   readonly #sink: (batch: readonly LogRecordEntity.Type[]) => void;
 
   constructor(sink: (batch: readonly LogRecordEntity.Type[]) => void, options: { 'batchSize'?: number; 'level'?: string } = {}) {
     this.#sink = sink;
     this.#batchSize = options.batchSize ?? 2;
-    this.#minLevel = ParseLogLevel.parse(options.level ?? 'trace');
+    this.#minimumLevel = ParseLogLevel.parse(options.level ?? 'trace');
   }
 
   write(record: LogRecordEntity.Type): void {
-    if (record.level < this.#minLevel) {
+    if (record.level < this.#minimumLevel) {
       return;
     }
     this.#batch.push(record);

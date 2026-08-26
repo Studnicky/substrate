@@ -7,7 +7,7 @@ description: 'Contract interfaces reference named entities for inline pure-data 
 
 Requires valid contract interfaces to reference named schema-derived entity types for inline pure-data portions.
 
-The rule examines inline object literals and mapped types inside interface properties, index signatures, and return values. It reports an inline portion only when the shared classifier determines that portion is pure data. Inline callable, constructor, runtime, readonly, brand, or other contract objects are legitimate interface structure.
+The rule examines inline object literals and mapped types inside retained contract interfaces. It reports a portion only when the shared classifier determines it is pure data. Inline callable, constructor, runtime, readonly, brand, or other contract objects are legitimate interface structure. Bare `string`, `number`, and `boolean` members do not need extraction.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -20,24 +20,9 @@ The rule runs after interface declaration-shape classification:
 3. This rule inspects a retained contract interface for inline pure-data portions.
 4. Each pure-data portion is extracted to a schema-derived entity and referenced through its named `Type`.
 
-Generic type-parameter constraints are inspection roles and remain outside this rule.
+The constraint declaration of a generic type parameter is outside this rule. A member that refers to that parameter is still checked through its resolved constraint, so a pure-data shape cannot be hidden behind `T`. The same resolution applies to indexed member access such as `Source['value']`.
 
-## Incorrect
-
-### Inline pure-data property
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface SessionInterface {
-  readonly state: {
-    id: string;
-    expiresAt: string;
-  };
-  refresh(): Promise<void>;
-}
-```
-
-### Inline pure-data return
+## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
@@ -48,8 +33,6 @@ interface UserReaderInterface {
   };
 }
 ```
-
-### Inline pure-data index value
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
@@ -63,97 +46,60 @@ interface RegistryInterface {
 }
 ```
 
-## Correct
-
-### Named entity reference
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface SessionInterface {
-  readonly state: SessionStateEntity.Type;
-  refresh(): Promise<void>;
+interface BigInterface {
+  a: { x: string; y: string };
+  b: string;
+}
+
+interface WrapperInterface {
+  run(): void;
+  value: BigInterface['a'];
 }
 ```
 
-### Named entity return
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface UserReaderInterface {
-  read(): UserEntity.Type;
+interface HandlerInterface<T extends { a: string; b: string } = never> {
+  run(): void;
+  handler: T;
 }
 ```
 
-### Inline callable contract object
+## ✓ Correct
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface ServiceInterface {
+  run(): void;
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface FetchOptionsInterface {
+  (): void;
+  readonly 'headers'?: Record<string, string>;
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface SchedulerInterface {
+  (): void;
+  readonly 'handle': ReturnType<typeof setTimeout>;
+}
+```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 interface DispatcherInterface {
-  handler: {
-    (event: DomainEventType): Promise<void>;
-  };
+  handler: (() => void) | { a: 1 };
 }
 ```
 
-### Inline runtime contract object
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface ProcessInterface {
-  runtime: {
-    startedAt: Date;
-    stop(): Promise<void>;
-  };
-}
-```
-
-### Inline constructor contract object
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface FactoryRegistryInterface {
-  factory: {
-    new (options: ServiceOptionsEntity.Type): Service;
-  };
-}
-```
-
-### Generic constraint
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface RepositoryInterface<T extends { id: string }> {
-  save(value: T): Promise<void>;
-}
-```
-
-The inline object constrains `T`; it is not an authored member or return shape.
-
-## Entity extraction
-
-A pure-data portion receives its own schema and named entity type:
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-
-export namespace SessionStateEntity {
-  export const Schema = {
-    properties: {
-      expiresAt: { type: 'string' },
-      id: { type: 'string' }
-    },
-    required: ['expiresAt', 'id'],
-    type: 'object'
-  } as const satisfies JSONSchema;
-
-  export type Type = FromSchema<typeof Schema>;
-}
-```
-
-The contract interface references `SessionStateEntity.Type`; it does not reproduce the data shape inline.
-
-The schema and type derivation may occupy separate files. `JSONSchema` and `FromSchema` (used above) come from `json-schema-to-ts`, but the deriving type is recognized structurally, not by name or package — TypeBox's `Static`, Zod's `z.infer`, or a project-local schema-to-type function are equally valid. Compiled validators import `ValidateFunction` from `ajv`; public JSON value signatures import `JSONSchema7Type` from `json-schema`, backed by the package's direct `@types/json-schema` declaration dependency.
+Each pure-data portion is extracted to a schema-derived entity and referenced through its named `Type`.
 
 ## Scoped exceptions
 

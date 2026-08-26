@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/array-from-iterators'
-description: 'Disallows Array.from on non-array iterators in hot paths.'
+description: 'Disallows manually draining a non-array iterable into a fresh array.'
 ---
 
 # @studnicky/v8/array-from-iterators
 
-Disallows `Array.from(iterable)` when the argument is not already an array. Converting iterators (Map, Set, generators) to arrays materializes the full collection in memory — iterate directly instead. When type services are available, the rule uses the TypeScript checker to confirm the argument type.
+Disallows a narrow manual iterable drain: a fresh empty array declared immediately before a `for...of` loop whose sole body statement pushes that loop binding. It applies only when type services prove the iterable is not an array or tuple; without that proof it reports nothing. Accumulating into an existing or non-empty array and copying or filtering an array remain outside its scope.
+
+For a 5,000,000-entry `Set` in Node v24, `Array.from(set)` takes 5.64 ms and `[...set]` takes 5.57 ms. A `for...of` plus `push` takes 42.50 ms, 7.53× slower, while preallocation plus index filling takes 30.01 ms. Use `Array.from(iterable)` or `[...iterable]`; the two forms are performance-neutral in this measurement.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,28 +15,28 @@ Disallows `Array.from(iterable)` when the argument is not already an array. Conv
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Materializes all Map values into an array unnecessarily
-const values = Array.from(map.values());
+const values: number[] = [];
+for (const value of sourceSet) {
+  values.push(value);
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Materializes all Set entries into an array
-const items = Array.from(new Set(source));
+const entries: readonly [string, number][] = [];
+for (const entry of sourceMap) {
+  entries.push(entry);
+}
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Iterate directly over the Map values
-for (const value of map.values()) {
-  process(value);
-}
+const values = Array.from(sourceSet);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Spread into array only when the array is truly needed
-const snapshot = [...set];
+const entries = [...sourceMap];
 ```

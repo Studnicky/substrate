@@ -59,7 +59,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     assert.equal(scenarioCase.input.message, scenarioCase.expected.message);
     assert.throws(
       () => { BrowserUndiciDispatcher.create({}); },
-      (error: unknown): boolean => {
+      (error): boolean => {
         return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
       }
     );
@@ -70,7 +70,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     assert.equal(scenarioCase.input.message, scenarioCase.expected.message);
     assert.throws(
       () => { BrowserDispatcherAgent.create({} as never); },
-      (error: unknown): boolean => {
+      (error): boolean => {
         return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
       }
     );
@@ -108,7 +108,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     return assert.rejects(
       FetchTransport.fetch('https://example.com/resource', { dispatcher: {} }),
-      (error: unknown): boolean => {
+      (error): boolean => {
         return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
       }
     ).then(() => {
@@ -121,25 +121,25 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     assert.throws(() => {
       browserDispatcher.checkDispatcherHealth('https://example.com');
-    }, (error: unknown): boolean => {
+    }, (error): boolean => {
       return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
     });
 
     assert.throws(() => {
       browserDispatcher.close();
-    }, (error: unknown): boolean => {
+    }, (error): boolean => {
       return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
     });
 
     assert.throws(() => {
       browserDispatcher.destroy();
-    }, (error: unknown): boolean => {
+    }, (error): boolean => {
       return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
     });
 
     assert.throws(() => {
       browserDispatcher.getStats();
-    }, (error: unknown): boolean => {
+    }, (error): boolean => {
       return error instanceof ConfigurationError && error.message === scenarioCase.expected.message;
     });
     return;

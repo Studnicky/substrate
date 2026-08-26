@@ -46,7 +46,7 @@
         "fetchResponseText": "configured",
         "requestExecutor": {
           "fetchClient": { "baseURL": "https://example.test" },
-          "retry": { "maxRetries": 5 }
+          "retry": { "maximumRetries": 5 }
         },
         "requestPath": "/resource"
       },
@@ -65,7 +65,7 @@
         "requestExecutor": {
           "deadlineMs": 1000,
           "fetchClient": { "baseURL": "https://example.test" },
-          "retry": { "maxRetries": 2 }
+          "retry": { "maximumRetries": 2 }
         },
         "retryFailOnceMessage": "retry once"
       },
@@ -132,7 +132,7 @@
         "requestExecutor": {
           "deadlineMs": 5000,
           "fetchClient": { "baseURL": "https://example.test" },
-          "retry": { "maxRetries": 0 }
+          "retry": { "maximumRetries": 0 }
         }
       },
       "expected": {
@@ -185,7 +185,7 @@
         "fetchPath": "/flaky",
         "requestExecutor": {
           "fetchClient": { "baseURL": "https://example.test" },
-          "retry": { "maxRetries": 2 }
+          "retry": { "maximumRetries": 2 }
         }
       },
       "expected": {
@@ -250,7 +250,7 @@
         "fetchPath": "/flaky",
         "requestExecutor": {
           "fetchClient": { "baseURL": "https://example.test" },
-          "retry": { "maxRetries": 3 }
+          "retry": { "maximumRetries": 3 }
         }
       },
       "expected": {

@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import type { VisibleRangeConfigInterface } from '../../../src/index.js';
+import type { VisibleRangeConfigInterface } from '../../../src/interfaces/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
 import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };
@@ -66,7 +66,7 @@ function runErrorArgsCase(): void {
 function runInvalidConfigCase(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
     VisibleRange.create(buildConfig(scenarioCase.input.visibleRange));
-  }, (error: unknown) => {
+  }, (error: Error) => {
     assert.ok(error instanceof VisibleRangeError);
     assert.equal(error.constructor.name, scenarioCase.expected.errorName);
     return true;

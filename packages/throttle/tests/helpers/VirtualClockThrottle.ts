@@ -29,9 +29,9 @@ interface VirtualClockThrottleSubclassInterface<TInstance> extends Function {
 }
 
 class VirtualClockThrottleInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: VirtualClockThrottleSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
     return value instanceof constructor;
   }
@@ -50,7 +50,7 @@ export class VirtualClockThrottle extends Throttle {
     config?: Partial<ThrottleConfigEntity.Type>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, input]);
-    if (!VirtualClockThrottleInstance.belongsTo(this, result)) {
+    if (typeof result !== 'object' || result === null || !VirtualClockThrottleInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualClockThrottle.createWithClock() did not construct the requested subclass.');
     }
     return result;

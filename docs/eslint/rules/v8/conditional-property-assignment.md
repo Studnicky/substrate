@@ -1,11 +1,15 @@
 ---
 title: '@studnicky/v8/conditional-property-assignment'
-description: 'Disallows conditional this-property assignment inside a constructor.'
+description: 'Reports conditional this-property establishment that is not proven to give every instance the same property set.'
 ---
 
 # @studnicky/v8/conditional-property-assignment
 
-V8 assigns an object a hidden class based on the shape (set and order of properties) established during construction. When a constructor assigns `this.x` only inside an `if` branch, instances that take different branches end up with different hidden classes, forcing every call site that touches the instance into megamorphic (or at best polymorphic) property access instead of a fast monomorphic one. Assign every property unconditionally in the constructor — compute the conditional value first, then assign it once.
+Reports conditional establishment of `this` properties in a constructor or a same-class helper called directly by that constructor when the branches are not proven to establish the same property set. It covers `if`/`else`, ternaries, `&&` assignments, `Object.assign(this, condition ? {...} : {...})`, and `switch` statements. It examines direct assignments, including one block level within a branch; computed member writes belong to [`dynamic-property-access`](./dynamic-property-access).
+
+The rule accepts a complete `if`/`else` or ternary when both alternatives assign the same property names. A bare `if`, an `else if` chain, a short-circuit assignment, a conditional `Object.assign` with spreads or computed keys, or different property sets cannot establish that every instance has the same shape and is reported. A `switch` is reported only when its cases establish more than one property name.
+
+The distinction is about divergent maps, not dictionary mode: both branch shapes retain fast properties. Across a two-instance pool and 5,000,000 reads, a same-property branch read took 5.17 ms, while a differing-property branch took 6.75 ms (1.3×).
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,13 +17,22 @@ V8 assigns an object a hidden class based on the shape (set and order of propert
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-class CircuitBreaker {
-  #successThreshold: number;
-
-  constructor(options: CircuitBreakerOptionsInterface) {
-    if (options.successThreshold !== undefined) {
-      this.#successThreshold = options.successThreshold;
+class Connection {
+  public constructor(secure: boolean) {
+    if (secure) {
+      this.protocol = 'https';
+    } else {
+      this.port = 80;
     }
+  }
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+class Connection {
+  public constructor(secure: boolean) {
+    secure && (this.protocol = 'https');
   }
 }
 ```
@@ -28,11 +41,26 @@ class CircuitBreaker {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-class CircuitBreaker {
-  #successThreshold: number;
+class Connection {
+  public protocol: string;
 
-  constructor(options: CircuitBreakerOptionsInterface) {
-    this.#successThreshold = options.successThreshold ?? 1;
+  public constructor(secure: boolean) {
+    if (secure) {
+      this.protocol = 'https';
+    } else {
+      this.protocol = 'http';
+    }
+  }
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+class Connection {
+  public protocol: string;
+
+  public constructor(secure: boolean) {
+    this.protocol = secure ? 'https' : 'http';
   }
 }
 ```

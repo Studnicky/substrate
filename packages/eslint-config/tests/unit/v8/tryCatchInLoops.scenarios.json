@@ -3,6 +3,18 @@
     {
       "code": "try { doWork(); } catch { handle(); }",
       "name": "try-catch outside a loop - not flagged"
+    },
+    {
+      "code": "function riskyStep(x) { try { doWork(x); } catch { handle(); } } riskyStep(1);",
+      "name": "helper's only call site is outside a loop - not flagged"
+    },
+    {
+      "code": "function riskyStep(x) { try { doWork(x); } catch { handle(); } } for (const x of items) { if (x > 0) { riskyStep(x); } } riskyStep(0);",
+      "name": "helper called both inside and outside a loop (conditionally-called) - not flagged (documented residual limitation of the bounded fix)"
+    },
+    {
+      "code": "function riskyStep(x) { try { doWork(x); } catch { handle(); } } for (const x of items) { callbacks.push(riskyStep); }",
+      "name": "helper passed by reference rather than called directly - not flagged (documented residual limitation: not a resolvable direct call)"
     }
   ],
   "invalid": [
@@ -23,6 +35,24 @@
         }
       ],
       "name": "try-catch inside a while loop - flagged"
+    },
+    {
+      "code": "function riskyStep(x) { try { doWork(x); } catch { handle(); } } for (const x of items) { riskyStep(x); }",
+      "errors": [
+        {
+          "messageId": "tryCatchInLoop"
+        }
+      ],
+      "name": "helper function's try-catch is not lexically inside a loop, but every call site is (bypass: control-flow vs lexical-scope gap) - flagged"
+    },
+    {
+      "code": "const riskyStep = (x) => { try { doWork(x); } catch { handle(); } }; for (const x of items) { riskyStep(x); }",
+      "errors": [
+        {
+          "messageId": "tryCatchInLoop"
+        }
+      ],
+      "name": "arrow-function-expression helper assigned to a const, called only from inside a loop - flagged"
     }
   ]
 }

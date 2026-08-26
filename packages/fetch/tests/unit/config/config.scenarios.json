@@ -127,44 +127,44 @@
       }
     },
     {
-      "name": "params-non-object",
-      "description": "FetchClient rejects non-object params",
-      "shape": "params-non-object",
+      "name": "parameters-non-object",
+      "description": "FetchClient rejects non-object parameters",
+      "shape": "parameters-non-object",
       "input": {
         "fetchClient": {
-          "params": "invalid"
+          "parameters": "invalid"
         }
       },
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "params must be an object"
+          "parameters must be an object"
         ]
       }
     },
     {
-      "name": "params-array",
-      "description": "FetchClient rejects array params",
-      "shape": "params-array",
+      "name": "parameters-array",
+      "description": "FetchClient rejects array parameters",
+      "shape": "parameters-array",
       "input": {
         "fetchClient": {
-          "params": []
+          "parameters": []
         }
       },
       "expected": {
         "shape": "throws",
         "messageIncludes": [
-          "params must be an object"
+          "parameters must be an object"
         ]
       }
     },
     {
-      "name": "params-invalid-value",
+      "name": "parameters-invalid-value",
       "description": "FetchClient rejects invalid param value types",
-      "shape": "params-invalid-value",
+      "shape": "parameters-invalid-value",
       "input": {
         "fetchClient": {
-          "params": {
+          "parameters": {
             "invalid": {
               "nested": "object"
             }
@@ -179,12 +179,12 @@
       }
     },
     {
-      "name": "params-valid",
-      "description": "FetchClient accepts valid params",
-      "shape": "params-valid",
+      "name": "parameters-valid",
+      "description": "FetchClient accepts valid parameters",
+      "shape": "parameters-valid",
       "input": {
         "fetchClient": {
-          "params": {
+          "parameters": {
             "key": "value",
             "page": 1,
             "active": true,
@@ -389,7 +389,7 @@
           "headers": {
             "Authorization": "Bearer token"
           },
-          "params": {
+          "parameters": {
             "page": 1
           },
           "timeout": 5000

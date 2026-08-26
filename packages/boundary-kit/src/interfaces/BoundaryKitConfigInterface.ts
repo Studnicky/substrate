@@ -3,8 +3,10 @@
  */
 
 import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import type { Retry, RetryConfigInterface } from '@studnicky/retry';
-import type { Throttle, ThrottleConfigEntity } from '@studnicky/throttle';
+import type { Retry } from '@studnicky/retry';
+import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
+import type { Throttle } from '@studnicky/throttle';
+import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
 /**
  * Configuration accepted by `BoundaryKit.create()`.

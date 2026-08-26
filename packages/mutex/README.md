@@ -25,7 +25,7 @@ pnpm add @studnicky/mutex
 ```typescript
 import { Mutex } from '@studnicky/mutex';
 
-const mutex = Mutex.create<string>({ maxQueueSize: 100, timeout: 5000 });
+const mutex = Mutex.create<string>({ maximumQueueSize: 100, timeout: 5000 });
 
 // Different keys run concurrently — both complete without waiting for each other
 const [a, b] = await Promise.all([

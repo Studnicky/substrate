@@ -194,6 +194,57 @@
         }
       ],
       "name": "Pattern D - nested iteration calls both flagged from one inline match (stack-based tracker regression guard)"
+    },
+    {
+      "code": "const found = ['a', 'b', 'c'].indexOf(x) === -1;",
+      "errors": [
+        {
+          "messageId": "arrayLiteralIncludes"
+        }
+      ],
+      "name": "Pattern A - inline array literal with negated .indexOf() === -1"
+    },
+    {
+      "code": "const found = ['a', 'b', 'c'].indexOf(x) >= 0;",
+      "errors": [
+        {
+          "messageId": "arrayLiteralIncludes"
+        }
+      ],
+      "name": "Pattern A - inline array literal with .indexOf() >= 0"
+    },
+    {
+      "code": "function check(val) {\n  const arr = ['a', 'b'];\n  return arr.includes(val);\n}",
+      "errors": [
+        {
+          "messageId": "constantArrayForMembership",
+          "data": {
+            "name": "arr"
+          }
+        }
+      ],
+      "name": "Pattern C (indirection) - function-scope const array used only for .includes()"
+    },
+    {
+      "code": "class Lookup {\n  check(val) {\n    const arr = ['a', 'b'];\n    return arr.indexOf(val) !== -1;\n  }\n}",
+      "errors": [
+        {
+          "messageId": "constantArrayForMembership",
+          "data": {
+            "name": "arr"
+          }
+        }
+      ],
+      "name": "Pattern C (indirection) - class-method-scope const array used only for .indexOf() membership"
+    },
+    {
+      "code": "function lookup(key) {\n  const map = Object.fromEntries(pairs);\n  return map[key];\n}",
+      "errors": [
+        {
+          "messageId": "fromEntriesWithBracket"
+        }
+      ],
+      "name": "Pattern B (indirection) - Object.fromEntries() bound to a variable, read only via bracket notation"
     }
   ]
 }

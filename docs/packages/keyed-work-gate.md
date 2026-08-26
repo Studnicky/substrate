@@ -13,13 +13,19 @@ description: Keyed single-flight and serialized work gate composing mutex and co
 pnpm add @studnicky/keyed-work-gate
 ```
 
-`@studnicky/keyed-work-gate` is the sole public code entrypoint.
+`@studnicky/keyed-work-gate` exposes `KeyedWorkGate` at its root and configuration contracts at `@studnicky/keyed-work-gate/interfaces`.
 
 ## Usage
 
 `KeyedWorkGate` performs no work itself — the caller's `fn` is the unit of work being gated. `runSingleFlight` collapses concurrent callers requesting the identical key into one execution via `Coalesce`; `runSerialized` bypasses coalescing entirely and routes directly through `Mutex`, so every call actually runs:
 
 <<< ../../packages/keyed-work-gate/examples/observedKeyedWorkGate.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/keyed-work-gate/examples/observedKeyedWorkGate" title="Single-flight coalescing vs. serialized execution on the same key" />
+
+The output shows three concurrent `runSingleFlight` callers for `user-42` collapsing into one mutex acquisition and one `Coalesce` leader with two joiners, then `runSerialized` calls against the same key each actually running rather than sharing a result.
 
 ## Composition order: why Coalesce falls through to Mutex
 
@@ -50,5 +56,20 @@ Callers who supply subclassed `Mutex` or `Coalesce` instances retain those insta
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/keyed-work-gate
+
+## Interfaces
+
+`@studnicky/keyed-work-gate/interfaces` exports keyed work-gate configuration contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { KeyedWorkGateConfigInterface } from '@studnicky/keyed-work-gate/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `KeyedWorkGate` | Serializes and coalesces work independently for each key. | `@studnicky/keyed-work-gate` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/keyed-work-gate)

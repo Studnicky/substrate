@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -21,16 +22,16 @@ export namespace ThrottleStatsEntity {
           'adjustmentCount': { 'minimum': 0, 'type': 'integer' },
           'enabled': { 'type': 'boolean' },
           'lastAdjustmentTime': { 'minimum': 0, 'type': 'integer' },
-          'maxConcurrency': { 'minimum': 1, 'type': 'integer' },
-          'minConcurrency': { 'minimum': 1, 'type': 'integer' },
+          'maximumConcurrency': { 'minimum': 1, 'type': 'integer' },
+          'minimumConcurrency': { 'minimum': 1, 'type': 'integer' },
           'targetLatencyMs': { 'exclusiveMinimum': 0, 'type': 'number' }
         },
         'required': [
           'adjustmentCount',
           'enabled',
           'lastAdjustmentTime',
-          'maxConcurrency',
-          'minConcurrency',
+          'maximumConcurrency',
+          'minimumConcurrency',
           'targetLatencyMs'
         ],
         'type': 'object'
@@ -85,4 +86,6 @@ export namespace ThrottleStatsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

@@ -22,7 +22,7 @@ pnpm add @studnicky/pipeline
 
 ```typescript
 import { Pipeline } from '@studnicky/pipeline';
-import type { PipelineFunctionInterface } from '@studnicky/pipeline';
+import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
 import type { OrderContextEntity } from './entities/OrderContextEntity.js';
 
 // Stages — each receives the previous stage's output

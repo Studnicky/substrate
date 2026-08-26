@@ -74,6 +74,11 @@ export interface FetchOptionsInterface {
   'method'?: FetchRequestOptionsEntity.Type['method'];
 
   /**
+   * Request mode
+   */
+  'mode'?: FetchRequestOptionsEntity.Type['mode'];
+
+  /**
    * Redirect mode
    */
   'redirect'?: FetchRequestOptionsEntity.Type['redirect'];

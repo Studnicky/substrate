@@ -9,8 +9,8 @@
           "adaptive": {
             "adjustmentInterval": 1000,
             "enabled": true,
-            "maxConcurrency": 50,
-            "minConcurrency": 5,
+            "maximumConcurrency": 50,
+            "minimumConcurrency": 5,
             "sampleWindow": 100,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 0.5,
@@ -24,8 +24,8 @@
         "concurrencyLimit": 10,
         "adaptive": {
           "enabled": true,
-          "minConcurrency": 5,
-          "maxConcurrency": 50,
+          "minimumConcurrency": 5,
+          "maximumConcurrency": 50,
           "targetLatencyMs": 200
         }
       }
@@ -44,8 +44,8 @@
         }
       },
       "expected": {
-        "minConcurrency": 1,
-        "maxConcurrency": 100
+        "minimumConcurrency": 1,
+        "maximumConcurrency": 100
       }
     },
     {
@@ -72,8 +72,8 @@
         "disabledConfig": {
           "adjustmentInterval": 1000,
           "enabled": false,
-          "maxConcurrency": 100,
-          "minConcurrency": 1,
+          "maximumConcurrency": 100,
+          "minimumConcurrency": 1,
           "sampleWindow": 100,
           "scaleDownThreshold": 1.5,
           "scaleUpThreshold": 0.8,
@@ -184,13 +184,13 @@
     },
     {
       "name": "reject-min-concurrency-less-than-one",
-      "description": "Throttle rejects minConcurrency less than 1",
+      "description": "Throttle rejects minimumConcurrency less than 1",
       "shape": "reject-min-concurrency-less-than-one",
       "input": {
         "throttle": {
           "adaptive": {
             "enabled": true,
-            "minConcurrency": 0,
+            "minimumConcurrency": 0,
             "targetLatencyMs": 200
           }
         }
@@ -201,13 +201,13 @@
     },
     {
       "name": "reject-non-integer-min-concurrency",
-      "description": "Throttle rejects non-integer minConcurrency",
+      "description": "Throttle rejects non-integer minimumConcurrency",
       "shape": "reject-non-integer-min-concurrency",
       "input": {
         "throttle": {
           "adaptive": {
             "enabled": true,
-            "minConcurrency": 1.5,
+            "minimumConcurrency": 1.5,
             "targetLatencyMs": 200
           }
         }
@@ -218,14 +218,14 @@
     },
     {
       "name": "reject-min-greater-than-max",
-      "description": "Throttle rejects minConcurrency greater than maxConcurrency",
+      "description": "Throttle rejects minimumConcurrency greater than maximumConcurrency",
       "shape": "reject-min-greater-than-max",
       "input": {
         "throttle": {
           "adaptive": {
             "enabled": true,
-            "maxConcurrency": 5,
-            "minConcurrency": 10,
+            "maximumConcurrency": 5,
+            "minimumConcurrency": 10,
             "targetLatencyMs": 200
           }
         }
@@ -412,13 +412,13 @@
     },
     {
       "name": "reject-concurrency-below-min",
-      "description": "Throttle rejects concurrencyLimit below minConcurrency",
+      "description": "Throttle rejects concurrencyLimit below minimumConcurrency",
       "shape": "reject-concurrency-below-min",
       "input": {
         "throttle": {
           "adaptive": {
             "enabled": true,
-            "minConcurrency": 5,
+            "minimumConcurrency": 5,
             "targetLatencyMs": 200
           },
           "concurrencyLimit": 4
@@ -430,13 +430,13 @@
     },
     {
       "name": "reject-concurrency-above-max",
-      "description": "Throttle rejects concurrencyLimit above maxConcurrency",
+      "description": "Throttle rejects concurrencyLimit above maximumConcurrency",
       "shape": "reject-concurrency-above-max",
       "input": {
         "throttle": {
           "adaptive": {
             "enabled": true,
-            "maxConcurrency": 5,
+            "maximumConcurrency": 5,
             "targetLatencyMs": 200
           },
           "concurrencyLimit": 6
@@ -495,8 +495,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 4,
-            "minConcurrency": 1,
+            "maximumConcurrency": 4,
+            "minimumConcurrency": 1,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 0.8,
@@ -529,8 +529,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 3,
-            "minConcurrency": 1,
+            "maximumConcurrency": 3,
+            "minimumConcurrency": 1,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 0.8,
@@ -563,8 +563,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 3,
-            "minConcurrency": 1,
+            "maximumConcurrency": 3,
+            "minimumConcurrency": 1,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 0.8,
@@ -597,8 +597,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 4,
-            "minConcurrency": 1,
+            "maximumConcurrency": 4,
+            "minimumConcurrency": 1,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 0.8,
@@ -616,7 +616,7 @@
     },
     {
       "name": "default-min-concurrency",
-      "description": "Throttle applies default minConcurrency of 1",
+      "description": "Throttle applies default minimumConcurrency of 1",
       "shape": "default-min-concurrency",
       "input": {
         "throttle": {
@@ -628,12 +628,12 @@
         }
       },
       "expected": {
-        "minConcurrency": 1
+        "minimumConcurrency": 1
       }
     },
     {
       "name": "default-max-concurrency",
-      "description": "Throttle applies default maxConcurrency of 100",
+      "description": "Throttle applies default maximumConcurrency of 100",
       "shape": "default-max-concurrency",
       "input": {
         "throttle": {
@@ -645,7 +645,7 @@
         }
       },
       "expected": {
-        "maxConcurrency": 100
+        "maximumConcurrency": 100
       }
     }
   ]

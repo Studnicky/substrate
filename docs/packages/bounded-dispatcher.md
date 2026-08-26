@@ -21,7 +21,7 @@ pnpm add @studnicky/bounded-dispatcher
 
 ## Transparency contract
 
-Import `BoundedDispatcher` and its package-owned configuration, topic-map, and dispatch-event interfaces from `@studnicky/bounded-dispatcher`. The package root is the only public code entrypoint. Import `Semaphore`, `EventBus`, and scheduler contracts directly from their owning package roots.
+Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher`; configuration, topic-map, and dispatch-event contracts use its `./interfaces` subpath. Dispatch-event entities use `./entities`. Import `Semaphore`, `EventBus`, and scheduler contracts directly from their owning package roots.
 
 The package root also exports `BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity`. These entities own the schema-derived phase discriminants; the event interfaces compose those fields with their runtime result and error values.
 
@@ -52,3 +52,27 @@ Passing a `VirtualScheduler` gives deterministic test fixtures for free — `sch
 Full reference: https://studnicky.github.io/substrate/packages/bounded-dispatcher
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/bounded-dispatcher)
+
+## Entities
+
+`@studnicky/bounded-dispatcher/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { BoundedDispatcherStartEventEntity } from '@studnicky/bounded-dispatcher/entities';
+```
+
+## Interfaces
+
+`@studnicky/bounded-dispatcher/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { BoundedDispatcherConfigInterface } from '@studnicky/bounded-dispatcher/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `BoundedDispatcher` | Provides bounded dispatcher functionality. | `@studnicky/bounded-dispatcher` |

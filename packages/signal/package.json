@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/signal",
-  "version": "9.2.0",
+  "version": "10.0.0",
   "description": "AbortSignal composition for caller signals, deadlines, and a never-aborting reference",
   "type": "module",
   "sideEffects": false,
@@ -51,6 +51,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@studnicky/errors": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

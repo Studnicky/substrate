@@ -1,0 +1,107 @@
+{
+  "cases": [
+    {
+      "name": "primitives-report-false",
+      "description": "reports false for primitives",
+      "shape": "primitives-false",
+      "input": {
+        "values": [null, "text", 42, true]
+      },
+      "expected": {
+        "value": false
+      }
+    },
+    {
+      "name": "acyclic-plain-object-false",
+      "description": "reports false for an acyclic plain object",
+      "shape": "acyclic-value-false",
+      "input": {
+        "value": { "a": 1, "b": { "c": 2 } }
+      },
+      "expected": {
+        "value": false
+      }
+    },
+    {
+      "name": "acyclic-array-false",
+      "description": "reports false for an acyclic array",
+      "shape": "acyclic-value-false",
+      "input": {
+        "value": [1, [2, 3], { "x": 4 }]
+      },
+      "expected": {
+        "value": false
+      }
+    },
+    {
+      "name": "diamond-shaped-non-cycle-false",
+      "description": "reports false for a diamond-shaped, non-cyclic reference graph",
+      "shape": "diamond-non-cycle",
+      "input": {
+        "leaf": { "value": 1 }
+      },
+      "expected": {
+        "value": false
+      }
+    },
+    {
+      "name": "self-referencing-object-true",
+      "description": "reports true for a self-referencing object",
+      "shape": "self-reference-object",
+      "input": {},
+      "expected": {
+        "value": true
+      }
+    },
+    {
+      "name": "self-referencing-array-true",
+      "description": "reports true for a self-referencing array",
+      "shape": "self-reference-array",
+      "input": {},
+      "expected": {
+        "value": true
+      }
+    },
+    {
+      "name": "cycle-nested-in-map-value-true",
+      "description": "reports true for a cycle nested inside a Map value",
+      "shape": "cycle-nested-map",
+      "input": {},
+      "expected": {
+        "value": true
+      }
+    },
+    {
+      "name": "cycle-nested-in-set-member-true",
+      "description": "reports true for a cycle nested inside a Set member",
+      "shape": "cycle-nested-set",
+      "input": {},
+      "expected": {
+        "value": true
+      }
+    },
+    {
+      "name": "map-set-no-cycle-false",
+      "description": "reports false for a Map/Set with no cycle",
+      "shape": "map-set-no-cycle",
+      "input": {
+        "mapEntries": [["a", 1]],
+        "setValues": [1, 2, 3]
+      },
+      "expected": {
+        "value": false
+      }
+    },
+    {
+      "name": "date-treated-as-opaque-leaf-false",
+      "description": "treats a Date as an opaque leaf",
+      "shape": "date-opaque-leaf",
+      "input": {
+        "timestamp": 0
+      },
+      "expected": {
+        "value": false
+      }
+    }
+  ]
+}

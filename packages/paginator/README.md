@@ -43,10 +43,12 @@ Subclass `Paginator` and override any of the protected lifecycle hooks to add te
 import type {
   PaginatorExhaustedStateInterface,
   PaginatorHasMoreStateInterface,
+  PaginatorPageReceivedEventInterface
+} from '@studnicky/paginator/interfaces';
+import type {
   PaginatorIdleStateEntity,
-  PaginatorPageReceivedEventInterface,
   PaginatorResetEventEntity
-} from '@studnicky/paginator';
+} from '@studnicky/paginator/entities';
 
 import { Paginator } from '@studnicky/paginator';
 

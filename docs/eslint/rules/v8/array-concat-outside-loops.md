@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/array-concat-outside-loops'
-description: 'Disallows Array.concat inside for loops.'
+description: 'Disallows built-in Array.concat calls that execute once per iteration.'
 ---
 
 # @studnicky/v8/array-concat-outside-loops
 
-Disallows `.concat()` calls in assignment inside `for` loop bodies. `Array.concat` creates a new array on every iteration, producing O(n²) allocations. Accumulate with `.push()` or pre-allocate the result array instead.
+Disallows `Array.prototype.concat` and `ReadonlyArray.prototype.concat` when the call executes once per iteration. With 200-element chunks, repeatedly assigning `result = result.concat(chunk)` takes 150.3 ms, while `result.push(...chunk)` takes 20.6 ms: 7.3× faster. The rule resolves the called signature, so computed and const-aliased access to the built-in is included while an unrelated method named `concat` is not.
+
+It also reports a named function or a function held in a `const` when every provable call site is per-iteration. Calls through `.call()` and `.apply()` are outside this rule because `direct-invocation-only` rejects those invocations.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,17 +15,20 @@ Disallows `.concat()` calls in assignment inside `for` loop bodies. `Array.conca
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-let result: number[] = [];
-for (let i = 0; i < items.length; i++) {
-  result = result.concat(items[i] ?? []);
+let result: string[] = [];
+for (const chunk of chunks) {
+  result = result.concat(chunk);
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-let merged: string[] = [];
-for (const batch of batches) {
-  merged = merged.concat(batch);
+let result: string[] = [];
+const append = (chunk: readonly string[]): void => {
+  result = result.concat(chunk);
+};
+for (const chunk of chunks) {
+  append(chunk);
 }
 ```
 
@@ -31,15 +36,13 @@ for (const batch of batches) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const result: number[] = [];
-for (let i = 0; i < items.length; i++) {
-  const item = items[i];
-  if (item !== undefined) { result.push(item); }
+const result: string[] = [];
+for (const chunk of chunks) {
+  result.push(...chunk);
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Flat concatenation outside the loop
-const merged = batches.flat();
+const merged = chunks.flat();
 ```

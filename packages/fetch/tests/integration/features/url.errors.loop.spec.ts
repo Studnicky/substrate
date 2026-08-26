@@ -8,7 +8,7 @@ import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-type RuntimeTag = { __shape: 'undefined' };
+type RuntimeTag = { shape: 'undefined' };
 type RuntimeValue =
   | null
   | boolean
@@ -60,7 +60,7 @@ void after(async () => {
 });
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -74,10 +74,10 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      if (value.__shape === 'undefined') {
+      if (value.shape === 'undefined') {
         return undefined;
       }
-      const exhaustiveCheck: never = value.__shape;
+      const exhaustiveCheck: never = value.shape;
       throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
@@ -112,7 +112,7 @@ async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.crea
   }
 }
 
-function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
+function assertRejectedExpectation(error: Error, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
   assert.ok(error instanceof Error);
 
   if (expectation.error === 'AbortError') {
@@ -167,6 +167,7 @@ async function assertRequestExpectation(
   }
 
   assert.ok(!result.ok, 'expected request rejection');
+  assert.ok(result.error instanceof Error);
   assertRejectedExpectation(result.error, expectation);
 }
 

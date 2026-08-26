@@ -8,7 +8,8 @@
 import { VirtualTimeCounter } from '@studnicky/clock';
 import assert from 'node:assert/strict';
 
-import type { SchedulerLogEntryEntity, SchedulerProviderInterface } from '../src/index.js';
+import type { SchedulerLogEntryEntity } from '../src/entities/index.js';
+import type { SchedulerProviderInterface } from '../src/index.js';
 
 import { VirtualScheduler } from '../src/index.js';
 
@@ -56,8 +57,14 @@ console.log('Scheduler log:', loggingScheduler.log);
 console.log('Processed labels:', queue.processed);
 // #endregion usage
 
-assert.equal(loggingScheduler.log.filter((e) => { return e.event === 'schedule'; }).length, 2);
-assert.equal(loggingScheduler.log.filter((e) => { return e.event === 'fire'; }).length, 2);
+assert.equal(loggingScheduler.log.filter((event) => {
+  const result = event.event === 'schedule';
+  return result;
+}).length, 2);
+assert.equal(loggingScheduler.log.filter((event) => {
+  const result = event.event === 'fire';
+  return result;
+}).length, 2);
 assert.deepEqual(queue.processed, ['alpha', 'beta']);
 
 console.log('di-provider: all assertions passed');

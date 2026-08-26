@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import { Context } from '@studnicky/context';
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import { AbortError, FetchClient, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
-import { Retry, type RetryContextInterface, type RetryConfigInterface } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry';
+import type { RetryContextInterface, RetryConfigInterface } from '@studnicky/retry/interfaces';
 
-import { RequestDeadlineEntity, RequestExecutor } from '../../../src/index.js';
+import { RequestExecutor } from '../../../src/index.js';
+import { RequestDeadlineEntity } from '../../../src/entities/index.js';
 import type { RequestExecutorConfigInterface } from '../../../src/interfaces/RequestExecutorConfigInterface.js';
 import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
 
@@ -17,9 +19,19 @@ interface ScenarioRequestExecutorInputInterface {
   retry?: RetryConfigInterface;
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
+}
+
+async function captureRejectedError<T>(promise: Promise<T>): Promise<Error> {
+  try {
+    await promise;
+  } catch (error) {
+    assert.ok(error instanceof Error);
+    return error;
+  }
+
+  assert.fail('Expected promise to reject');
 }
 
 type ScenarioCase =
@@ -183,7 +195,7 @@ class TrackingRequestExecutor extends RequestExecutor {
     this.hookCalls.push({ 'args': [result], 'hook': 'onExecuteComplete' });
   }
 
-  protected override onExecuteError(error: unknown): void {
+  protected override onExecuteError(error: Error): void {
     this.hookCalls.push({ 'args': [error], 'hook': 'onExecuteError' });
   }
 }
@@ -200,7 +212,7 @@ class ThrowingErrorHookRequestExecutor extends RequestExecutor {
     return result;
   }
 
-  protected override onExecuteError(_error: unknown): void {
+  protected override onExecuteError(_error: Error): void {
     throw new Error(this.#hookFailureMessage);
   }
 }
@@ -427,26 +439,22 @@ const runnerMap: RunnerMap = {
     setTimeout(() => { controller.abort(); }, scenarioCase.input.abortAfterMs);
     const executor = RequestExecutor.create(resolvePlainExecutorConfig(scenarioCase.input.requestExecutor));
 
-    await assert.rejects(
+    const error = await captureRejectedError(
       executor.execute(
         (client, signal) => client.get(scenarioCase.input.fetchPath, { signal }),
         { signal: controller.signal }
-      ),
-      (error: unknown) => {
-        assert.ok(error instanceof Error);
-        let current: unknown = error;
-        let foundAbort = false;
-        while (current instanceof Error) {
-          if (current instanceof AbortError || current.name === 'AbortError') {
-            foundAbort = true;
-            break;
-          }
-          current = current.cause;
-        }
-        assert.equal(foundAbort, scenarioCase.expected.aborted);
-        return true;
-      }
+      )
     );
+    let current: Error | undefined = error;
+    let foundAbort = false;
+    while (current !== undefined) {
+      if (current instanceof AbortError || current.name === 'AbortError') {
+        foundAbort = true;
+        break;
+      }
+      current = current.cause instanceof Error ? current.cause : undefined;
+    }
+    assert.equal(foundAbort, scenarioCase.expected.aborted);
   },
 
   'cancellation-default-signal': async (scenarioCase) => {
@@ -525,16 +533,13 @@ const runnerMap: RunnerMap = {
   'hooks-bracket-error': async (scenarioCase) => {
     const executor = TrackingRequestExecutor.track(resolvePlainExecutorConfig(scenarioCase.input.requestExecutor));
 
-    await assert.rejects(
-      () => executor.execute(async () => {
+    const error = await captureRejectedError(
+      executor.execute(async () => {
         throw new Error(scenarioCase.input.errorMessage);
-      }),
-      (error: unknown) => {
-        assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
-        assert.strictEqual(executor.hookCalls[1]?.args[0], error);
-        return true;
-      }
+      })
     );
+    assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
+    assert.strictEqual(executor.hookCalls[1]?.args[0], error);
 
     assert.deepStrictEqual(executor.hookCalls.map((call) => call.hook), scenarioCase.expected.hookNames);
     assert.equal(executor.hookErrorCount, 0);
@@ -546,17 +551,14 @@ const runnerMap: RunnerMap = {
       scenarioCase.input.hookFailureMessage
     );
 
-    await assert.rejects(
-      () => executor.execute(async () => {
+    const error = await captureRejectedError(
+      executor.execute(async () => {
         throw new Error(scenarioCase.input.errorMessage);
-      }),
-      (error: unknown) => {
-        // A throwing onExecuteError override must not replace the request failure it
-        // observes — the original error, not the hook's HookInvocationError, propagates.
-        assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
-        return true;
-      }
+      })
     );
+    // A throwing onExecuteError override must not replace the request failure it
+    // observes — the original error, not the hook's HookInvocationError, propagates.
+    assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
 
     assert.equal(executor.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(executor.getHookErrors()[0]?.hookName, scenarioCase.expected.hookErrorName);

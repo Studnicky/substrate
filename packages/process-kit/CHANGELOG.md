@@ -1,5 +1,14 @@
 # Changelog
 
+## 10.0.0
+
+### Patch Changes
+
+- Updated dependencies [3e5575a]
+  - @studnicky/json@10.0.0
+  - @studnicky/fsm@10.0.0
+  - @studnicky/scheduler@10.0.0
+
 ## 9.2.0
 
 ### Patch Changes

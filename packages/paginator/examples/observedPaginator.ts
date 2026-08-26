@@ -4,12 +4,14 @@ import assert from 'node:assert/strict';
 
 // #region usage
 import type {
+  PaginatorIdleStateEntity,
+  PaginatorResetEventEntity
+} from '../src/entities/index.js';
+import type {
   PaginatorExhaustedStateInterface,
   PaginatorHasMoreStateInterface,
-  PaginatorIdleStateEntity,
-  PaginatorPageReceivedEventInterface,
-  PaginatorResetEventEntity
-} from '../src/index.js';
+  PaginatorPageReceivedEventInterface
+} from '../src/interfaces/index.js';
 import type { TransitionRecordEntity } from './entities/TransitionRecordEntity.js';
 
 import { Paginator } from '../src/index.js';

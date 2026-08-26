@@ -93,7 +93,7 @@ function createDispatcher(config: { connections: number }): UndiciDispatcher {
   return UndiciDispatcher.create(agent);
 }
 
-function matchesTypeDescriptor(value: unknown, descriptor: string): boolean {
+function matchesTypeDescriptor(value: boolean | number | object | string | undefined, descriptor: string): boolean {
   const orUndefinedSuffix = '-or-undefined';
   if (descriptor.endsWith(orUndefinedSuffix)) {
     const base = descriptor.slice(0, -orUndefinedSuffix.length);
@@ -103,7 +103,7 @@ function matchesTypeDescriptor(value: unknown, descriptor: string): boolean {
 }
 
 /** Materializes the `__UNDEFINED__` JSON sentinel into a real `undefined`. */
-function materializeSentinel(value: unknown): unknown {
+function materializeSentinel(value: string): undefined | string {
   return value === '__UNDEFINED__' ? undefined : value;
 }
 
@@ -252,7 +252,7 @@ const runnerMap: RunnerMap = {
   'reject-invalid-agent': async (scenarioCase) => {
     assert.throws(() => {
       Reflect.apply(UndiciDispatcher.create, UndiciDispatcher, [{}]);
-    }, (error: unknown): boolean => {
+    }, (error): boolean => {
       return error instanceof Error && error.message === scenarioCase.expected.message;
     });
   },

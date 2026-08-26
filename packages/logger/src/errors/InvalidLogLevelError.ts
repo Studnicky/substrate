@@ -14,14 +14,14 @@ import { LoggerError } from './LoggerError.js';
  * }
  * ```
  */
-export class InvalidLogLevelError extends LoggerError {
+export class InvalidLogLevelError<TCause = unknown> extends LoggerError<TCause> {
   /**
    * Creates a new InvalidLogLevelError
    *
    * @param message - Descriptive error message
    * @param cause - Optional underlying error that caused this error
    */
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: TCause) {
     super(message, cause);
   }
 }

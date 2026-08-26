@@ -11,7 +11,7 @@
         },
         "registry": {
           "keyIdleTtlMs": 1000,
-          "maxKeys": 100
+          "maximumKeys": 100
         }
       },
       "expected": {
@@ -28,7 +28,7 @@
           "tokens": 0
         },
         "registry": {
-          "maxKeys": 0
+          "maximumKeys": 0
         }
       },
       "expected": {
@@ -81,13 +81,13 @@
       }
     },
     {
-      "name": "create() applies maxKeys while composing the limiter",
-      "description": "create() applies maxKeys while composing the limiter",
+      "name": "create() applies maximumKeys while composing the limiter",
+      "description": "create() applies maximumKeys while composing the limiter",
       "shape": "getters-eviction-on-max-keys",
       "input": {
         "keyedRateLimiter": {
           "burstSize": 5,
-          "maxKeys": 3,
+          "maximumKeys": 3,
           "requestsPerSecond": 10
         }
       },
@@ -120,13 +120,13 @@
       "expected": {}
     },
     {
-      "name": "maxKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
-      "description": "maxKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
+      "name": "maximumKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
+      "description": "maximumKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
       "shape": "generic-cache-boundary",
       "input": {
         "keyedRateLimiter": {
           "allowance": 5,
-          "maxKeys": 1
+          "maximumKeys": 1
         }
       },
       "expected": {
@@ -187,7 +187,7 @@
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
-          "maxKeys": 2,
+          "maximumKeys": 2,
           "requestsPerSecond": 1
         }
       },
@@ -209,7 +209,7 @@
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
-          "maxKeys": 2,
+          "maximumKeys": 2,
           "requestsPerSecond": 1
         }
       },
@@ -255,7 +255,7 @@
       "input": {
         "keyedRateLimiter": {
           "burstSize": 1,
-          "maxKeys": 2,
+          "maximumKeys": 2,
           "requestsPerSecond": 1
         }
       },

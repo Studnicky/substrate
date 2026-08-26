@@ -1,8 +1,13 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { SchemaValidator } from '@studnicky/json';
+import { isTypeReferenceNode, type Node, type Program, TypeFlags } from 'typescript';
+
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 namespace KnownTypesOutsideAdaptersOptionsEntity {
   export const Schema = {
@@ -10,6 +15,7 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
     'properties': {
       ...LayerOptionsEntity.Schema.properties,
       'adapterLayerName': {
+        'default': 'adapters',
         'description': 'Name of the layer exempted from this ban — the layer responsible for converting untyped intake data into known shapes. Defaults to "adapters".',
         'type': 'string'
       }
@@ -17,37 +23,97 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
+
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+}
+
+interface NodeMapInterface {
+  readonly 'get': (node: unknown) => Node | undefined;
+}
+
+interface ParserServicesInterface {
+  readonly 'esTreeNodeToTSNodeMap': NodeMapInterface;
+  readonly 'program': Program;
+}
+
+class ParserServices {
+  public static has(value: unknown): value is ParserServicesInterface {
+    if (!ObjectGuard.isObject(value)) { return false; }
+
+    const program = value.program;
+    const nodeMap = value.esTreeNodeToTSNodeMap;
+    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
+
+    const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    return result;
+  }
 }
 
 class TypeKeywordReport {
+  public static report(context: Rule.RuleContext, sourceLayer: string, messageId: 'noAny' | 'noUnknown', node: Rule.Node): void {
+    context.report({
+      'data': { 'layer': sourceLayer },
+      'messageId': messageId,
+      'node': node
+    });
+  }
+
   public static listener(context: Rule.RuleContext, sourceLayer: string, messageId: 'noAny' | 'noUnknown'): NonNullable<Rule.RuleListener['TSAnyKeyword']> {
     return (node: Rule.Node) => {
-      context.report({
-        'data': { 'layer': sourceLayer },
-        'messageId': messageId,
-        'node': node
-      });
+      TypeKeywordReport.report(context, sourceLayer, messageId, node);
+    };
+  }
+}
+
+class ResolvedTypeReferenceReport {
+  public static listener(
+    context: Rule.RuleContext,
+    sourceLayer: string,
+    services: ParserServicesInterface
+  ): NonNullable<Rule.RuleListener['TSTypeReference']> {
+    const checker = services.program.getTypeChecker();
+
+    return (node: Rule.Node) => {
+      const tsNode = services.esTreeNodeToTSNodeMap.get(node);
+      if (tsNode === undefined || !isTypeReferenceNode(tsNode)) { return; }
+
+      const resolvedType = checker.getTypeFromTypeNode(tsNode);
+
+      if ((resolvedType.flags & TypeFlags.Any) !== 0) {
+        TypeKeywordReport.report(context, sourceLayer, 'noAny', node);
+        return;
+      }
+
+      if ((resolvedType.flags & TypeFlags.Unknown) !== 0) {
+        TypeKeywordReport.report(context, sourceLayer, 'noUnknown', node);
+      }
     };
   }
 }
 
 export const knownTypesOutsideAdapters: Rule.RuleModule = {
   'create': (context) => {
-    const options: unknown = context.options.at(0);
-
-    if (!LayerOptionsEntity.validate(options)) { return {}; }
+    const rawOptions: unknown = context.options.at(0);
+    if (rawOptions === undefined) { return {}; }
+    const options = KnownTypesOutsideAdaptersOptionsEntity.intake(rawOptions);
 
     const filename = context.physicalFilename;
     const sourceLayer = LayerResolver.layerForPath(filename, options);
 
-    const adapterLayerNameValue: unknown = Reflect.get(options, 'adapterLayerName');
-    const adapterLayerName = typeof adapterLayerNameValue === 'string' ? adapterLayerNameValue : 'adapters';
-    if (sourceLayer === undefined || sourceLayer === adapterLayerName) { return {}; }
+    if (sourceLayer === undefined || sourceLayer === options.adapterLayerName) { return {}; }
 
-    return {
+    const listeners: Rule.RuleListener = {
       'TSAnyKeyword': TypeKeywordReport.listener(context, sourceLayer, 'noAny'),
       'TSUnknownKeyword': TypeKeywordReport.listener(context, sourceLayer, 'noUnknown')
     };
+
+    const servicesUnknown: unknown = context.sourceCode.parserServices;
+    if (ParserServices.has(servicesUnknown)) {
+      listeners.TSTypeReference = ResolvedTypeReferenceReport.listener(context, sourceLayer, servicesUnknown);
+    }
+
+    return listeners;
   },
   'meta': {
     'docs': {

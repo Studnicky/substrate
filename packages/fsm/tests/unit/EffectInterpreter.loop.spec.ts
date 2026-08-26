@@ -6,8 +6,8 @@ import {
 import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { EffectInterpreterConstructorOptionsInterface } from '../../src/EffectInterpreterConstructorOptionsInterface.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { EffectInterpreterConstructorOptionsInterface } from '../../src/interfaces/EffectInterpreterConstructorOptionsInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './EffectInterpreter.scenarios.json' with { type: 'json' };
 
 type DemoState = { readonly variant: 'idle' } | { readonly variant: 'active' };
@@ -112,9 +112,19 @@ function createRejectingMachine(): StateMachine<DemoState, DemoEvent, DemoEffect
   return new RejectingMachine();
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
+}
+
+async function captureRejectedError<T>(promise: Promise<T>): Promise<Error> {
+  try {
+    await promise;
+  } catch (error) {
+    assert.ok(error instanceof Error);
+    return error;
+  }
+
+  assert.fail('Expected promise to reject');
 }
 
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
@@ -194,10 +204,9 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       if (overflowingSend === undefined) {
         throw new Error('Expected a second queued send');
       }
-      return assert.rejects(() => overflowingSend, (error: unknown) => {
+      return captureRejectedError(overflowingSend).then((error) => {
         assert.ok(error instanceof MailboxCapacityExceededError);
         assert.equal(error.name, caseData.expected.rejectionType);
-        return true;
       })
         .then(() => sends[0])
         .then(() => sends[2])
@@ -366,10 +375,10 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
           release();
           return activatePromise;
         })
-        .then(() => assert.rejects(() => deactivatePromise, (error: unknown) => {
+        .then(() => captureRejectedError(deactivatePromise))
+        .then((error) => {
           assertErrorMessageIncludes(error, caseData.expected.rejectionMessage);
-          return true;
-        }))
+        })
         .then(() => {
           assert.deepEqual(interp.getState(), caseData.expected.state);
         });

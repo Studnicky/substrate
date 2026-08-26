@@ -59,8 +59,8 @@ class ComposeDemo {
     let caught: unknown;
     try {
       await signals.compose({ 'deadlineMs': -1 });
-    } catch (err) {
-      caught = err;
+    } catch (error) {
+      caught = error;
     }
     assert.ok(caught instanceof SignalError, 'throws SignalError for negative deadlineMs');
     console.log(`caseInvalidNegative: threw SignalError=${caught instanceof SignalError}`);
@@ -71,8 +71,8 @@ class ComposeDemo {
     let caught: unknown;
     try {
       await signals.compose({ 'deadlineMs': NaN });
-    } catch (err) {
-      caught = err;
+    } catch (error) {
+      caught = error;
     }
     assert.ok(caught instanceof SignalError, 'throws SignalError for NaN deadlineMs');
     console.log(`caseInvalidNaN: threw SignalError=${caught instanceof SignalError}`);

@@ -13,15 +13,6 @@
  */
 
 export { DEFAULT_DISPATCHER_CONFIG } from './constants/DEFAULT_DISPATCHER_CONFIG.js';
-export { ClientConfigDataEntity } from './entities/ClientConfigDataEntity.js';
-export { DestroyOptionsEntity } from './entities/DestroyOptionsEntity.js';
-export { DispatcherConfigEntity } from './entities/DispatcherConfigEntity.js';
-export { DispatcherHealthEntity } from './entities/DispatcherHealthEntity.js';
-export { FetchRequestOptionsEntity } from './entities/FetchRequestOptionsEntity.js';
-export { RequestEventEntity } from './entities/RequestEventEntity.js';
-export { RequestMetadataEntity } from './entities/RequestMetadataEntity.js';
-export { ResponseEventEntity } from './entities/ResponseEventEntity.js';
-export { SocketDispatcherStatsEntity } from './entities/SocketDispatcherStatsEntity.js';
 export {
   AbortError,
   BodyTimeoutError,
@@ -39,11 +30,12 @@ export type {
   ClientConfigInterface,
   FetchClientInterface,
   FetchOptionsInterface,
-  QueryParamsInterface,
+  QueryParametersInterface,
   RequestContextInterface,
+  RequestIdGeneratorInterface,
   ResponseContextInterface,
   UndiciDispatcherInterface
 } from './interfaces/index.js';
 export { FetchClient } from './modules/FetchClient.js';
 export { UndiciDispatcher } from './modules/UndiciDispatcher.js';
-export { UrlUtils } from './modules/UrlUtils.js';
+export { UrlQueryString } from './modules/UrlQueryString.js';

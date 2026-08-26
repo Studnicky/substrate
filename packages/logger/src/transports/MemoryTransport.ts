@@ -1,20 +1,24 @@
+import { Predicates } from '@studnicky/types';
+
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsEntity } from '../entities/MemoryTransportOptionsEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { ImmutableSnapshot } from '../modules/ImmutableSnapshot.js';
-import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
+import { ResolveMinimumLevel } from '../modules/ResolveMinimumLevel.js';
 
 interface MemoryTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
 class MemoryTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: MemoryTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 }
 
@@ -48,17 +52,19 @@ export class MemoryTransport implements TransportInterface {
     options: MemoryTransportOptionsEntity.Type = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!MemoryTransportInstance.belongsTo(this, result)) {
+
+    if (!Predicates.isObjectLike(result) || !MemoryTransportInstance.belongsTo(this, result)) {
       throw new TypeError('MemoryTransport.create() did not construct the requested subclass.');
     }
+
     return result;
   }
 
   readonly #buffer: LogRecordEntity.Type[] = [];
-  readonly #minLevel: number;
+  readonly #minimumLevel: number;
 
   protected constructor(options: MemoryTransportOptionsEntity.Type = {}) {
-    this.#minLevel = ResolveMinLevel.from(options);
+    this.#minimumLevel = ResolveMinimumLevel.from(options);
   }
 
   /**
@@ -81,7 +87,7 @@ export class MemoryTransport implements TransportInterface {
    * @param record - Assembled log record from the Logger core
    */
   write(record: LogRecordEntity.Type): void {
-    if (record.level < this.#minLevel) {
+    if (record.level < this.#minimumLevel) {
       return;
     }
     this.#buffer.push(ImmutableSnapshot.from(record));

@@ -24,7 +24,7 @@ pnpm add @studnicky/worker-pool
 import { WorkerPool } from '@studnicky/worker-pool';
 
 const pool = WorkerPool.create({
-  workerPath: new URL('./worker.mjs', import.meta.url).pathname,
+  workerPath: fileURLToPath(new URL('./worker.mjs', import.meta.url)),
   concurrency: 4,
   timeoutMs: 5000
 });
@@ -36,9 +36,9 @@ const results = await pool.run([1, 2, 3, 4, 5]);
 
 For each dispatched task with a timeout, the pool awaits `signal.compose({ deadlineMs: timeoutMs })` before posting the item to its worker. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
 
-The worker entry script receives each item via a single `postMessage` and responds with one of four exported interface contracts: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+The worker entry script receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
-The package root exports the schema entities behind configuration, envelope fields, input indexes, and task disposition: `WorkerPoolConfigEntity`, the four `Worker*EnvelopeEntity` variants, `WorkerTaskIndexEntity`, and `WorkerTaskDispositionEntity`. Interfaces index serializable members from those schema-derived types and retain only runtime worker contracts directly.
+Schema-backed configuration, envelope, lifecycle, and task values are available from `@studnicky/worker-pool/entities`. Type-only worker contracts are available from `@studnicky/worker-pool/interfaces`.
 
 ## Ordering and failure semantics
 
@@ -80,7 +80,7 @@ import type {
   WorkerLogEnvelopeInterface,
   WorkerProgressEnvelopeInterface,
   WorkerResultEnvelopeInterface
-} from '@studnicky/worker-pool';
+} from '@studnicky/worker-pool/interfaces';
 
 import { WorkerPool } from '@studnicky/worker-pool';
 
@@ -105,7 +105,7 @@ class TelemetryWorkerPool extends WorkerPool<{ n: number }, number> {
 
 const pool = TelemetryWorkerPool.create({
   concurrency: 2,
-  workerPath: new URL('./worker.mjs', import.meta.url).pathname
+  workerPath: fileURLToPath(new URL('./worker.mjs', import.meta.url))
 });
 
 const results = await pool.run([{ n: 5 }, { n: 10 }, { n: 15 }]);

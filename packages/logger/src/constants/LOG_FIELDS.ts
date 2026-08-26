@@ -13,7 +13,7 @@ export const LOG_FIELDS = {
   // Core (always present)
   'EVENT': 'event',
   'LEVEL': 'level',
-  'MSG': 'msg',
+  'MESSAGE': 'msg',
 
   'ORG_ID': 'orgId',
 

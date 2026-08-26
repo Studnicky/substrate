@@ -8,7 +8,7 @@ import { type HookInvocationError, HookInvoker } from '../src/index.js';
 class ObservedCounter {
   static readonly #OwnedHookInvoker = class CounterHookInvoker extends HookInvoker {
     // Disposition only: HookInvoker already owns and snapshots diagnostics.
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(_hookName: string, _cause: Error): void {}
   };
 
   #value = 0;

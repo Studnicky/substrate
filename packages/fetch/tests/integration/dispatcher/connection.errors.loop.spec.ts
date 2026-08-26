@@ -10,15 +10,15 @@ import {
   UndiciDispatcher
 } from '../../../src/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
-import { validateDispatcher } from '../../../src/config/schemas/validateDispatcher.js';
+import { ClientConfigDataEntity } from '../../../src/entities/ClientConfigDataEntity.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 import scenarioGroups from './connection.errors.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
-  | { __shape: 'infinity' }
-  | { __shape: 'nan' };
+  | { shape: 'infinity' }
+  | { shape: 'nan' };
 
 type RuntimeValue =
   | null
@@ -85,7 +85,7 @@ void after(async () => {
 });
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -99,10 +99,10 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      if (value.__shape === 'infinity') {
+      if (value.shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
-      if (value.__shape === 'nan') {
+      if (value.shape === 'nan') {
         return Number.NaN;
       }
       const exhaustiveCheck: never = value;
@@ -123,9 +123,12 @@ function createManagedDispatcher(config: Record<string, RuntimeValue>): {
   agent: ReturnType<typeof DispatcherAgent.create>;
   dispatcher: ReturnType<typeof UndiciDispatcher.create>;
 } {
-  const materialized = materializeRuntimeValue(config) as Parameters<typeof DispatcherAgent.create>[0];
-  validateDispatcher(materialized);
-  const agent = DispatcherAgent.create(materialized);
+  const clientConfig = ClientConfigDataEntity.intake({ 'dispatcher': materializeRuntimeValue(config) });
+  const dispatcherConfig = clientConfig.dispatcher;
+  if (dispatcherConfig === undefined) {
+    throw new Error('dispatcher config must be present');
+  }
+  const agent = DispatcherAgent.create(dispatcherConfig);
   return {
     agent,
     dispatcher: UndiciDispatcher.create(agent)
@@ -270,7 +273,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(async () => {
       await client.get('/api');
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       const cause = error as Error & { cause?: Error };
       const hasDnsError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);
@@ -296,7 +299,7 @@ const runnerMap: RunnerMap = {
   'invalid-config': async (scenarioCase) => {
     const expectedError = requireExpectedString(scenarioCase, 'error');
     assert.throws(() => {
-      validateDispatcher(materializeRuntimeValue(getDispatcherConfig(scenarioCase)) as never);
+      Reflect.apply(FetchClient.create, FetchClient, [{ 'dispatcher': materializeRuntimeValue(getDispatcherConfig(scenarioCase)) }]);
     }, (error: Error) => {
       assert.ok(error instanceof ConfigurationError);
       assert.equal(error.name, expectedError);
@@ -413,7 +416,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(async () => {
       await client.get('/api');
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       const cause = error as Error & { cause?: Error };
       const hasConnectError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);

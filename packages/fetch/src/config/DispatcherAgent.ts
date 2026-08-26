@@ -12,9 +12,10 @@ export class DispatcherAgent {
     throw new TypeError('DispatcherAgent is a static factory');
   }
 
-  static create(config: DispatcherConfigEntity.Type): Agent {
+  static create(config: DispatcherConfigEntity.Type): Agent | TestDispatcher {
     if (process.env.SUBSTRATE_FETCH_TEST_TRANSPORT === '1') {
-      return TestDispatcher.create(config) as unknown as Agent;
+      const result = TestDispatcher.create(config);
+      return result;
     }
 
     const merged = DispatcherAgent.#mergeWithDefaults(config);
@@ -26,24 +27,25 @@ export class DispatcherAgent {
     DispatcherAgent.#setIfTruthy(options, 'bodyTimeout', merged.bodyTimeout);
     DispatcherAgent.#setIfTruthy(options, 'headersTimeout', merged.headersTimeout);
     DispatcherAgent.#setIfTruthy(options, 'keepAliveTimeout', merged.keepAliveTimeout);
-    DispatcherAgent.#setIfTruthy(options, 'keepAliveMaxTimeout', merged.keepAliveMaxTimeout);
+    DispatcherAgent.#setIfTruthy(options, 'keepAliveMaxTimeout', merged.keepAliveMaximumTimeout);
     DispatcherAgent.#setIfTruthy(options, 'keepAliveTimeoutThreshold', merged.keepAliveTimeoutThreshold);
     if (merged.allowH2) {
       options.allowH2 = true;
-      DispatcherAgent.#setIfTruthy(options, 'maxConcurrentStreams', merged.maxConcurrentStreams);
+      DispatcherAgent.#setIfTruthy(options, 'maxConcurrentStreams', merged.maximumConcurrentStreams);
     }
-    DispatcherAgent.#setIfPositive(options, 'maxResponseSize', merged.maxResponseSize);
-    DispatcherAgent.#setIfTruthy(options, 'maxHeaderSize', merged.maxHeaderSize);
-    DispatcherAgent.#setIfDefined(options, 'maxRequestsPerClient', config.maxRequestsPerClient);
+    DispatcherAgent.#setIfPositive(options, 'maxResponseSize', merged.maximumResponseSize);
+    DispatcherAgent.#setIfTruthy(options, 'maxHeaderSize', merged.maximumHeaderSize);
+    DispatcherAgent.#setIfDefined(options, 'maxRequestsPerClient', config.maximumRequestsPerClient);
     options.strictContentLength = merged.strictContentLength;
     DispatcherAgent.#setIfDefined(options, 'localAddress', config.localAddress);
     if (merged.autoSelectFamily) {
       options.autoSelectFamily = true;
       DispatcherAgent.#setIfTruthy(options, 'autoSelectFamilyAttemptTimeout', merged.autoSelectFamilyAttemptTimeout);
     }
-    DispatcherAgent.#setIfDefined(options, 'maxOrigins', config.maxOrigins);
+    DispatcherAgent.#setIfDefined(options, 'maxOrigins', config.maximumOrigins);
 
-    return new Agent(options);
+    const result = new Agent(options);
+    return result;
   }
 
   static #mergeWithDefaults(config: DispatcherConfigEntity.Type): MergedConfigEntity.Type {
@@ -55,35 +57,35 @@ export class DispatcherAgent {
       'connections': config.connections === undefined ? DEFAULT_DISPATCHER_CONFIG.connections : config.connections,
       'connectTimeout': config.connectTimeout ?? DEFAULT_DISPATCHER_CONFIG.connectTimeout,
       'headersTimeout': config.headersTimeout ?? DEFAULT_DISPATCHER_CONFIG.headersTimeout,
-      'keepAliveMaxTimeout': config.keepAliveMaxTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveMaxTimeout,
+      'keepAliveMaximumTimeout': config.keepAliveMaximumTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveMaximumTimeout,
       'keepAliveTimeout': config.keepAliveTimeout ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeout,
       'keepAliveTimeoutThreshold': config.keepAliveTimeoutThreshold ?? DEFAULT_DISPATCHER_CONFIG.keepAliveTimeoutThreshold,
-      'maxConcurrentStreams': config.maxConcurrentStreams ?? DEFAULT_DISPATCHER_CONFIG.maxConcurrentStreams,
-      'maxHeaderSize': config.maxHeaderSize ?? DEFAULT_DISPATCHER_CONFIG.maxHeaderSize,
-      'maxResponseSize': config.maxResponseSize ?? DEFAULT_DISPATCHER_CONFIG.maxResponseSize,
+      'maximumConcurrentStreams': config.maximumConcurrentStreams ?? DEFAULT_DISPATCHER_CONFIG.maximumConcurrentStreams,
+      'maximumHeaderSize': config.maximumHeaderSize ?? DEFAULT_DISPATCHER_CONFIG.maximumHeaderSize,
+      'maximumResponseSize': config.maximumResponseSize ?? DEFAULT_DISPATCHER_CONFIG.maximumResponseSize,
       'pipelining': config.pipelining ?? DEFAULT_DISPATCHER_CONFIG.pipelining,
       'strictContentLength': config.strictContentLength ?? DEFAULT_DISPATCHER_CONFIG.strictContentLength,
       ...(config.clientTtl !== undefined && { 'clientTtl': config.clientTtl }),
       ...(config.enabled !== undefined && { 'enabled': config.enabled }),
       ...(config.localAddress !== undefined && { 'localAddress': config.localAddress }),
-      ...(config.maxOrigins !== undefined && { 'maxOrigins': config.maxOrigins }),
-      ...(config.maxRequestsPerClient !== undefined && { 'maxRequestsPerClient': config.maxRequestsPerClient })
+      ...(config.maximumOrigins !== undefined && { 'maximumOrigins': config.maximumOrigins }),
+      ...(config.maximumRequestsPerClient !== undefined && { 'maximumRequestsPerClient': config.maximumRequestsPerClient })
     };
   }
 
-  static #setIfTruthy(options: Record<string, unknown>, key: string, value: unknown): void {
-    if (value !== undefined && value !== null && value !== 0 && value !== '') { options[key] = value; }
+  static #setIfTruthy(options: Record<string, unknown>, key: string, value: number | undefined): void {
+    if (value !== undefined && value !== 0) { Reflect.set(options, key, value); }
   }
 
-  static #setIfDefined(options: Record<string, unknown>, key: string, value: unknown): void {
-    if (value !== undefined) { options[key] = value; }
+  static #setIfDefined(options: Record<string, unknown>, key: string, value: number | string | undefined): void {
+    if (value !== undefined) { Reflect.set(options, key, value); }
   }
 
-  static #setIfNotNull(options: Record<string, unknown>, key: string, value: unknown): void {
-    if (value !== null) { options[key] = value; }
+  static #setIfNotNull(options: Record<string, unknown>, key: string, value: number | null): void {
+    if (value !== null) { Reflect.set(options, key, value); }
   }
 
   static #setIfPositive(options: Record<string, unknown>, key: string, value: number | undefined): void {
-    if (value !== undefined && value > 0) { options[key] = value; }
+    if (value !== undefined && value > 0) { Reflect.set(options, key, value); }
   }
 }

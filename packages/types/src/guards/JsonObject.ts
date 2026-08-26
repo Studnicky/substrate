@@ -7,18 +7,18 @@
  * All methods are monomorphic and use consistent shapes so V8 can inline-cache
  * them without deoptimisation.
  */
-import { Guard } from './Guard.js';
+import { Predicates } from '../predicates/Predicates.js';
 
 export class JsonObject {
   /**
    * Returns `true` when `value` is a plain, non-null, non-array object,
    * narrowing its type to `Record<string, unknown>`. `Map` and `Set` instances return
    * `false` — a JSON object is a property bag, and neither collection is
-   * JSON-serialisable in that shape. Delegates to `Guard.isObject`, the
+   * JSON-serialisable in that shape. Delegates to `Predicates.isObject`, the
    * canonical plain-object predicate for the package.
    */
   public static is(value: unknown): value is Record<string, unknown> {
-    if (!Guard.isObject(value)) { return false; }
+    if (!Predicates.isObject(value)) { return false; }
     const prototype = Reflect.getPrototypeOf(value);
     const result = prototype === Object.prototype || prototype === null;
     return result;

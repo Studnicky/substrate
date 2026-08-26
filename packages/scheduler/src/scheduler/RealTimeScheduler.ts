@@ -8,6 +8,8 @@
 
 import type { HookInvoker } from '@studnicky/errors';
 
+import { Predicates } from '@studnicky/types';
+
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
 import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -28,11 +30,9 @@ interface RealTimeSchedulerSubclassInterface<TInstance> extends Function {
 }
 
 class RealTimeSchedulerInstance {
-  static belongsTo<TInstance>(
-    constructor: RealTimeSchedulerSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: RealTimeSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -67,7 +67,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!RealTimeSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -108,7 +108,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
    * ~24.8 days). `scheduleAt` chains through intermediate stages capped at this value
    * for any `atMs` further out than this. Override to substitute a smaller value in tests.
    */
-  protected get maxTimeoutDelayMs(): number {
+  protected get maximumTimeoutDelayMs(): number {
     const result = 2147483647;
     return result;
   }
@@ -124,7 +124,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
    * The error is still silently swallowed by the scheduler — this hook is the only
    * observability seam for task-level failures.
    */
-  protected onFireError(_id: string, _error: unknown): void { return; }
+  protected onFireError(_id: string, _error: Error): void { return; }
 
   /**
    * Called when a one-shot task fires later than its scheduled `atMs`.
@@ -192,7 +192,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     const scheduleNowMs = Date.now();
     const rawDelayMs = atMs - scheduleNowMs;
     const timers = this.#timers;
-    const maxDelayMs = this.maxTimeoutDelayMs;
+    const maximumDelayMilliseconds = this.maximumTimeoutDelayMs;
 
     if (rawDelayMs < 0) {
       this.hooks.invoke('onMiss', () => {
@@ -203,13 +203,13 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
     const armStage = (): void => {
       const remainingDelayMs = atMs - Date.now();
-      const isTerminalStage = remainingDelayMs <= maxDelayMs;
+      const isTerminalStage = remainingDelayMs <= maximumDelayMilliseconds;
       let stageDelayMs: number;
 
       if (isTerminalStage) {
         stageDelayMs = remainingDelayMs < 0 ? 0 : remainingDelayMs;
       } else {
-        stageDelayMs = maxDelayMs;
+        stageDelayMs = maximumDelayMilliseconds;
       }
 
       const handle = this.createTimeout(() => {
@@ -238,19 +238,21 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
         try {
           result = fire();
-        } catch (error: unknown) {
+        } catch (error) {
+          const taskError = Predicates.isError(error) ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, error);
-            return result;
+            const fireErrorResult = this.onFireError(id, taskError);
+            return fireErrorResult;
           });
           return;
         }
 
         if (result instanceof Promise) {
           result.catch((error: unknown) => {
+            const taskError = Predicates.isError(error) ? error : new Error(String(error));
             this.hooks.invoke('onFireError', () => {
-              const result = this.onFireError(id, error);
-              return result;
+              const fireErrorResult = this.onFireError(id, taskError);
+              return fireErrorResult;
             });
           });
         }
@@ -306,19 +308,21 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
       try {
         result = fire();
-      } catch (error: unknown) {
+      } catch (error) {
+        const taskError = Predicates.isError(error) ? error : new Error(String(error));
         this.hooks.invoke('onFireError', () => {
-          const result = this.onFireError(id, error);
-          return result;
+          const fireErrorResult = this.onFireError(id, taskError);
+          return fireErrorResult;
         });
         return;
       }
 
       if (result instanceof Promise) {
         result.catch((error: unknown) => {
+          const taskError = Predicates.isError(error) ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
-            const result = this.onFireError(id, error);
-            return result;
+            const fireErrorResult = this.onFireError(id, taskError);
+            return fireErrorResult;
           });
         });
       }

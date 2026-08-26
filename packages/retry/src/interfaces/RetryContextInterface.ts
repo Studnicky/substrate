@@ -1,4 +1,4 @@
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
@@ -30,7 +30,7 @@ export interface RetryContextInterface<TState = Record<string, unknown>> {
   'error': Error;
 
   /** Maximum number of configured retries. */
-  'maxRetries': RetryConfigEntity.Type['maxRetries'];
+  'maximumRetries': RetryConfigEntity.Type['maximumRetries'];
 
   /** Caller-defined mutable state that persists across attempts. */
   'state': TState;

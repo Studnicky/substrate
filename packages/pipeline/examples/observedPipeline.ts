@@ -3,12 +3,13 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { PipelineFunctionInterface, PipelineOptionsEntity } from '../src/index.js';
-import type { StepCtxTypeEntity } from './entities/StepCtxTypeEntity.js';
+import type { PipelineOptionsEntity } from '../src/entities/index.js';
+import type { PipelineFunctionInterface } from '../src/interfaces/index.js';
 
 import { Pipeline, PipelineError } from '../src/index.js';
+import { StepContextTypeEntity } from './entities/StepContextTypeEntity.js';
 
-class TracingPipeline<T extends StepCtxTypeEntity.Type> extends Pipeline<T> {
+class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> {
   public constructor(
     stages: readonly PipelineFunctionInterface<T>[],
     options?: Readonly<PipelineOptionsEntity.Type>
@@ -16,79 +17,78 @@ class TracingPipeline<T extends StepCtxTypeEntity.Type> extends Pipeline<T> {
     super(stages, options);
   }
 
-  readonly stageStartEvents: { 'ctx': T; 'index': number }[] = [];
-  readonly stageSuccessEvents: { 'ctx': T; 'index': number }[] = [];
-  readonly stageErrorEvents: { 'error': unknown; 'index': number }[] = [];
-  readonly runErrorEvents: { 'error': unknown }[] = [];
+  readonly stageStartEvents: { 'context': T; 'index': number }[] = [];
+  readonly stageSuccessEvents: { 'context': T; 'index': number }[] = [];
+  readonly stageErrorEvents: { 'error': Error; 'index': number }[] = [];
+  readonly runErrorEvents: { 'error': Error }[] = [];
 
-  protected override onRunStart(ctx: T): T {
+  protected override onRunStart(context: T): T {
     console.log('[pipeline] runStart');
-    return ctx;
+    return context;
   }
 
-  protected override beforeStage(ctx: T, index: number): T {
+  protected override beforeStage(context: T, index: number): T {
     console.log(`[pipeline] beforeStage index=${index}`);
-    return ctx;
+    return context;
   }
 
-  protected override onStageStart(index: number, ctx: T): void {
+  protected override onStageStart(index: number, context: T): void {
     console.log(`[pipeline] stageStart index=${index}`);
-    this.stageStartEvents.push({ 'ctx': ctx, 'index': index });
+    this.stageStartEvents.push({ 'context': context, 'index': index });
   }
 
-  protected override onStageSuccess(index: number, ctx: T): void {
+  protected override onStageSuccess(index: number, context: T): void {
     console.log(`[pipeline] stageSuccess index=${index}`);
-    this.stageSuccessEvents.push({ 'ctx': ctx, 'index': index });
+    this.stageSuccessEvents.push({ 'context': context, 'index': index });
   }
 
-  protected override afterStage(ctx: T, index: number): T {
+  protected override afterStage(context: T, index: number): T {
     console.log(`[pipeline] afterStage index=${index}`);
-    return ctx;
+    return context;
   }
 
-  protected override onStageError(index: number, error: unknown): void {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.log(`[pipeline] stageError index=${index} error=${msg}`);
+  protected override onStageError(index: number, error: Error): void {
+    console.log(`[pipeline] stageError index=${index} error=${error.message}`);
     this.stageErrorEvents.push({ 'error': error, 'index': index });
   }
 
-  protected override onRunError(error: unknown): void {
-    const msg = error instanceof PipelineError ? `PipelineError: ${error.message}` : String(error);
-    console.log(`[pipeline] runError error=${msg}`);
+  protected override onRunError(error: Error): void {
+    const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : error.message;
+    console.log(`[pipeline] runError error=${message}`);
     this.runErrorEvents.push({ 'error': error });
   }
 
-  protected override onRunComplete(ctx: T): T {
+  protected override onRunComplete(context: T): T {
     console.log('[pipeline] runComplete');
-    return ctx;
+    return context;
   }
 }
 
 // ── Happy-path run: 3 stages that mutate step/value ───────────────────────────
 
-const successPipeline = new TracingPipeline<StepCtxTypeEntity.Type>([
-  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
-  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->beta` }; },
-  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->gamma` }; }
+const successPipeline = new TracingPipeline<StepContextTypeEntity.Type>([
+  (context) => { return { 'step': context.step + 1, 'value': `${context.value}->alpha` }; },
+  (context) => { return { 'step': context.step + 1, 'value': `${context.value}->beta` }; },
+  (context) => { return { 'step': context.step + 1, 'value': `${context.value}->gamma` }; }
 ]);
 
 console.log('\n--- happy path ---');
-const successResult = await successPipeline.run({ 'step': 0, 'value': 'start' });
+const successResult = await successPipeline.run(StepContextTypeEntity.create({ 'step': 0, 'value': 'start' }));
 console.log(`result: step=${successResult.step} value=${successResult.value}`);
 
 // ── Failing run: 2 stages where the second throws ────────────────────────────
 
-const failPipeline = new TracingPipeline<StepCtxTypeEntity.Type>([
-  (ctx) => { return { 'step': ctx.step + 1, 'value': `${ctx.value}->alpha` }; },
-  (_ctx) => { throw new Error('stage 1 fails'); }
+const failPipeline = new TracingPipeline<StepContextTypeEntity.Type>([
+  (context) => { return { 'step': context.step + 1, 'value': `${context.value}->alpha` }; },
+  (_context) => { throw new Error('stage 1 fails'); }
 ]);
 
 console.log('\n--- failing path ---');
 try {
-  await failPipeline.run({ 'step': 0, 'value': 'start' });
-} catch (err: unknown) {
-  const msg = err instanceof PipelineError ? `PipelineError: ${err.message}` : String(err);
-  console.log(`caught: ${msg}`);
+  await failPipeline.run(StepContextTypeEntity.create({ 'step': 0, 'value': 'start' }));
+} catch (error: unknown) {
+  const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : String(error);
+  console.log(`caught: ${message}`);
 }
 // #endregion usage
 
@@ -104,9 +104,9 @@ assert.strictEqual(successPipeline.stageStartEvents[0]?.index, 0);
 assert.strictEqual(successPipeline.stageStartEvents[1]?.index, 1);
 assert.strictEqual(successPipeline.stageStartEvents[2]?.index, 2);
 
-assert.strictEqual(successPipeline.stageSuccessEvents[0]?.ctx.value, 'start->alpha');
-assert.strictEqual(successPipeline.stageSuccessEvents[1]?.ctx.value, 'start->alpha->beta');
-assert.strictEqual(successPipeline.stageSuccessEvents[2]?.ctx.value, 'start->alpha->beta->gamma');
+assert.strictEqual(successPipeline.stageSuccessEvents[0]?.context.value, 'start->alpha');
+assert.strictEqual(successPipeline.stageSuccessEvents[1]?.context.value, 'start->alpha->beta');
+assert.strictEqual(successPipeline.stageSuccessEvents[2]?.context.value, 'start->alpha->beta->gamma');
 
 // Fail pipeline: stage 0 succeeded, stage 1 errored, run errored
 assert.strictEqual(failPipeline.stageStartEvents.length, 2);

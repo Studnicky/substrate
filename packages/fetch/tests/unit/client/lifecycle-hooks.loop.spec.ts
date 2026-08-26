@@ -82,7 +82,7 @@ class HookedClient extends FetchClient {
     this.events.push({ 'hook': 'onResponseError', 'args': [method, requestId, statusCode, durationMs] });
   }
 
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     this.events.push({ 'hook': 'onRequestError', 'args': [error, method, requestId, url, durationMs] });
   }
 
@@ -364,7 +364,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             assert.ok(error.cause instanceof HookTimeoutError);
@@ -426,7 +426,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             assert.ok(error.cause instanceof Error && error.cause.message === caseData.input.message);
@@ -452,7 +452,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             return true;
@@ -474,7 +474,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             return true;
@@ -496,7 +496,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             return true;
@@ -527,7 +527,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.strictEqual(error, caseData.expected.message);
             assert.equal(client.eventsOf('onRequestError').length, 1);
             return true;
@@ -548,7 +548,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof Error);
             assert.equal((error as Error).message, caseData.input.message);
             assert.equal(client.eventsOf('onRequestError').length, 1);
@@ -568,7 +568,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof Error);
             assert.equal(error.name, caseData.expected.hookName);
             return true;
@@ -629,7 +629,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.get(caseData.input.path),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             return true;
@@ -654,7 +654,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       try {
         await assert.rejects(
           () => client.destroy(),
-          (error: unknown) => {
+          (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
             return true;

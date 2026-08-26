@@ -1,63 +1,62 @@
 ---
 title: '@studnicky/domain-purity'
-description: 'Forbids impure imports and non-deterministic calls inside the domain layer of a hexagonal architecture.'
+description: 'Restricts configured impure imports and calls in a layer resolved as domain.'
 ---
 
 # @studnicky/domain-purity
 
-Forbids configurably-listed impure imports and non-deterministic calls inside files resolved to the domain layer of a hexagonal architecture. The domain layer is meant to hold pure business logic: no I/O, no wall-clock or random-number dependence, nothing that would make the same inputs produce different outputs across runs. The rule resolves each file's layer the same way [`layer-import-boundary`](./layer-import-boundary) does (via `layers`/`sourceRoot`/`aliasPrefixes`), then — for files in the domain layer (configurable via `domainLayerName`, default `"domain"`) — reports any import whose specifier matches (or is a submodule of) an entry in `forbiddenImports`, and any dotted call expression (`Identifier` or `Identifier.Identifier` form) matching an entry in `forbiddenCalls`. Files outside the domain layer are never checked. This rule is typically wired together with [`layer-import-boundary`](./layer-import-boundary), [`adapter-only-import`](./adapter-only-import), and [`known-types-outside-adapters`](./known-types-outside-adapters) via the `HexagonalSuite.create({...})` factory export, since all four share the same `layers`/`sourceRoot` configuration — but it is fully usable and configurable on its own.
+Restricts configured impure dependencies in files resolved to the configured domain layer. It reports static and dynamic imports whose specifier equals a `forbiddenImports` entry or starts with that entry followed by `/`. It also reports a call when any suffix of its resolved dotted callee name is in `forbiddenCalls`.
+
+The callee resolver supports identifier/member chains, string-literal bracket access such as `Date['now']()`, and a directly destructured property such as `const { now } = Date; now()`. Files outside the resolved domain layer are out of scope.
+
+The rule is implemented and registered, but this repository deliberately does not enable it. It reports one violation for `BaseError`'s legitimate `Date.now()` timestamp. This rule, [`adapter-only-import`](./adapter-only-import), and [`known-types-outside-adapters`](./known-types-outside-adapters) assume a business-logic core with a conversion boundary. Substrate has neither: it has four utility and infrastructure bands, no domain layer, and no separate intake boundary.
 
 **Fixable:** No · **Options:** Yes · **Suggested severity:** `error`
 
-### Options
+## Options
+
+Layer resolution uses the same required ordered `bindings`, `layers`, and `sourceRoot` options as [`layer-import-boundary`](./layer-import-boundary). A binding has `kind`, `layer`, and (except for `builtin`) `pattern`; the first applicable binding wins. `folder` and `package` match the path segment after `sourceRoot`; `module` and `dependency` prefix-match import specifiers; and `builtin` matches Node builtins. `allowedImports` is accepted as a shared option but is not consulted by this rule.
 
 | Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `layers` | `string[]` | *(required)* | Ordered list of enforced layer names, e.g. `["domain", "ports", "application", "adapters", "infrastructure"]`. |
-| `sourceRoot` | `string` | *(required)* | Path segment(s) after which the layer name appears, e.g. `"src"`. |
-| `aliasPrefixes` | `object` | `undefined` | Map of path-alias prefixes (e.g. `"@domain/"`) to their layer name. |
-| `allowedImports` | `object` | `undefined` | Override of the default allow-matrix: source layer name → list of layers it may import from. |
-| `domainLayerName` | `string` | `"domain"` | Name of the layer treated as the pure-data domain layer, e.g. `"domain"` or `"entities"`. |
-| `forbiddenImports` | `string[]` | `undefined` | Bare import specifiers or roots forbidden in domain-layer files, e.g. `["fs", "axios", "node:fs"]`. |
-| `forbiddenCalls` | `string[]` | `undefined` | Dotted call expressions forbidden in domain-layer files, e.g. `["Date.now", "Math.random"]`. |
+|---|---|---|---|
+| `bindings` | `{ kind, layer, pattern? }[]` | *(required)* | Ordered layer-resolution bindings. |
+| `layers` | `string[]` | *(required)* | Configured layer names. |
+| `sourceRoot` | `string` | *(required)* | Path segment(s) before the folder/package candidate. |
+| `allowedImports` | `Record<string, string[]>` | `undefined` | Shared layer option; unused by this rule. |
+| `domainLayerName` | `string` | `"domain"` | Layer where the restriction applies. |
+| `forbiddenImports` | `string[]` | `undefined` | Import roots forbidden in that layer. |
+| `forbiddenCalls` | `string[]` | `undefined` | Dotted callee names forbidden in that layer. |
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file (/repo/src/domain/user/User.ts) importing a forbidden import — flagged
+// A domain-layer file imports a configured forbidden dependency.
 import axios from 'axios';
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file calling a forbidden non-deterministic call — flagged
+// A configured dotted call is forbidden in a domain-layer file.
 const timestamp = Date.now();
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file importing a submodule of a forbidden root — flagged via prefix match
-import promises from 'node:fs/promises';
+const { now } = Date;
+now();
 ```
 
 ## ✓ Correct
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file importing something not in forbiddenImports — not flagged
+// This import is not listed in forbiddenImports.
 import { User } from './User.js';
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// non-domain-layer file (/repo/src/application/UserService.ts) importing a
-// forbidden import — not flagged, the rule only applies inside the domain layer
-import axios from 'axios';
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// domain-layer file calling something not in forbiddenCalls — not flagged
-const id = crypto.randomUUID();
+// Files resolved outside the domain layer are out of scope.
+const timestamp = Date.now();
 ```

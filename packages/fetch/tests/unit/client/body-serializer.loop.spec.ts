@@ -50,6 +50,7 @@ type ScenarioCase =
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
+type BodyScenarioCase = Extract<ScenarioCase, { input: { body: unknown } }>;
 
 const runnerMap: RunnerMap = {
   'needs-json-content-type-array': (scenarioCase) => {
@@ -97,7 +98,7 @@ function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<Scen
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-function materializeBody(body: unknown): unknown {
+function materializeBody(body: BodyScenarioCase['input']['body']): BodyScenarioCase['input']['body'] {
   if (body === null || body === undefined) {
     return body;
   }

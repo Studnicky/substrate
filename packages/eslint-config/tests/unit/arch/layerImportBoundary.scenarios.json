@@ -6,14 +6,61 @@
       "name": "application importing from domain - allowed",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -23,14 +70,61 @@
       "name": "adapters importing from ports - allowed",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -40,14 +134,61 @@
       "name": "infrastructure importing from adapters - allowed, infrastructure can import anything configured",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -57,14 +198,61 @@
       "name": "bare npm package import - never flagged regardless of source layer",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -74,14 +262,61 @@
       "name": "file not under configured sourceRoot/layers tree - never flagged",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -91,17 +326,67 @@
       "name": "allowedImports override permits an otherwise-forbidden direction - not flagged",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
           "allowedImports": {
-            "domain": ["domain", "application"]
+            "domain": [
+              "domain",
+              "application"
+            ]
           },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     }
@@ -118,14 +403,61 @@
       "name": "domain importing from application - forbidden per default matrix",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -140,14 +472,61 @@
       "name": "domain importing from adapters - forbidden per default matrix",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     },
@@ -162,14 +541,61 @@
       "name": "relative import from domain resolving into adapters - forbidden, exercises relative-path-fallback resolution",
       "options": [
         {
-          "aliasPrefixes": {
-            "@adapters/": "adapters",
-            "@application/": "application",
-            "@domain/": "domain",
-            "@ports/": "ports"
-          },
-          "layers": ["domain", "ports", "application", "adapters", "infrastructure"],
-          "sourceRoot": "src"
+          "layers": [
+            "domain",
+            "ports",
+            "application",
+            "adapters",
+            "infrastructure"
+          ],
+          "sourceRoot": "src",
+          "bindings": [
+            {
+              "kind": "folder",
+              "pattern": "domain",
+              "layer": "domain"
+            },
+            {
+              "kind": "folder",
+              "pattern": "ports",
+              "layer": "ports"
+            },
+            {
+              "kind": "folder",
+              "pattern": "application",
+              "layer": "application"
+            },
+            {
+              "kind": "folder",
+              "pattern": "adapters",
+              "layer": "adapters"
+            },
+            {
+              "kind": "folder",
+              "pattern": "infrastructure",
+              "layer": "infrastructure"
+            },
+            {
+              "kind": "module",
+              "pattern": "@adapters/",
+              "layer": "adapters"
+            },
+            {
+              "kind": "module",
+              "pattern": "@application/",
+              "layer": "application"
+            },
+            {
+              "kind": "module",
+              "pattern": "@domain/",
+              "layer": "domain"
+            },
+            {
+              "kind": "module",
+              "pattern": "@ports/",
+              "layer": "ports"
+            }
+          ]
         }
       ]
     }

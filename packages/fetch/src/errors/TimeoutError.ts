@@ -14,8 +14,6 @@
  * }
  * ```
  */
-import { DomainErrorArgs } from '@studnicky/errors';
-
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class TimeoutError extends FetchBaseError {
@@ -29,18 +27,14 @@ export class TimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
-  private static buildMessage(fields: Readonly<{ 'timeoutMs': number; 'url': string }>): string {
-    const result = `Request to ${fields.url} timed out after ${fields.timeoutMs}ms`;
-    return result;
-  }
-
   constructor(url: string, timeoutMs: number) {
     const fields = { 'timeoutMs': timeoutMs, 'url': url };
-    super(DomainErrorArgs.build(fields, {
+    super({
       'code': 'fetch.timeout',
-      'message': TimeoutError.buildMessage,
+      'message': `Request to ${fields.url} timed out after ${fields.timeoutMs}ms`,
       'retryable': true
-    }));
-    Object.assign(this, fields);
+    });
+    this.timeoutMs = fields.timeoutMs;
+    this.url = fields.url;
   }
 }

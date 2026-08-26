@@ -8,22 +8,22 @@ type ScenarioCase = {
   expected: {
     code: string;
     key: string;
-    maxQueueSize: number;
+    maximumQueueSize: number;
     message: string;
   };
   input: {
     key: string;
-    maxQueueSize: number;
+    maximumQueueSize: number;
   };
   name: string;
 };
 
 function runScenario(scenarioCase: ScenarioCase): void {
-  const error = new QueueSizeExceededError(scenarioCase.input.key, scenarioCase.input.maxQueueSize);
+  const error = new QueueSizeExceededError(scenarioCase.input.key, scenarioCase.input.maximumQueueSize);
   assert.strictEqual(error.code, scenarioCase.expected.code);
   assert.strictEqual(error.message, scenarioCase.expected.message);
   assert.strictEqual(error.key, scenarioCase.expected.key);
-  assert.strictEqual(error.maxQueueSize, scenarioCase.expected.maxQueueSize);
+  assert.strictEqual(error.maximumQueueSize, scenarioCase.expected.maximumQueueSize);
 }
 
 void describe('QueueSizeExceededError', () => {

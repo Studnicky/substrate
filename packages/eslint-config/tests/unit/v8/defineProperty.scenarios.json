@@ -1,0 +1,55 @@
+{
+  "valid": [
+    {
+      "name": "fresh data-property definition - %HaveSameMap identical to plain assignment, measured safe",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1, writable: true, enumerable: true, configurable: true });"
+    },
+    {
+      "name": "fresh non-enumerable data property - still %HasFastProperties true",
+      "code": "const target = {}; Object.defineProperty(target, 'hidden', { value: 1, enumerable: false, writable: false, configurable: false });"
+    },
+    {
+      "name": "two DIFFERENT fresh properties - neither redefines the other",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1 }); Object.defineProperty(target, 'beta', { value: 2 });"
+    },
+    {
+      "name": "plain assignment is not this rule's concern",
+      "code": "const target = {}; target.alpha = 1;"
+    },
+    {
+      "name": "class accessor syntax - the compliant spelling for a getter",
+      "code": "class Widget { get alpha() { return 1; } }"
+    },
+    {
+      "name": "object-literal accessor syntax - also compliant, no defineProperty involved",
+      "code": "const target = { get alpha() { return 1; } };"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "redefinition of a property established earlier in the same scope",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { value: 1 }); Object.defineProperty(target, 'alpha', { value: 2 });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "accessor descriptor with get - drops fast properties, 15.8x measured on reads",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { get() { return 1; } });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "accessor descriptor with set",
+      "code": "const target = {}; Object.defineProperty(target, 'alpha', { set(value) { void value; } });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "redefinition of a plainly-assigned property",
+      "code": "const target = {}; target.alpha = 1; Object.defineProperty(target, 'alpha', { value: 2 });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "accessor descriptor via Reflect.defineProperty - same hazard, different spelling",
+      "code": "const target = {}; Reflect.defineProperty(target, 'alpha', { get() { return 1; } });",
+      "errors": [{ "messageId": "forbidden" }]
+    }
+  ]
+}

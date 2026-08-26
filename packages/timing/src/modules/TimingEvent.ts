@@ -48,7 +48,8 @@ export class TimingEvent {
       ? `${config.component}.${config.operation}`
       : `${config.component}.${config.operation}.${config.status}`;
 
-    return Object.freeze({ 'event': event });
+    const result: TimingEventDataEntity.Type = Object.freeze({ 'event': event });
+    return result;
   }
 
   private constructor() {}

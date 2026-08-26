@@ -1,14 +1,14 @@
 {
   "cases": [
     {
-      "description": "Runs the guard accessors example",
+      "description": "Runs the predicates accessors example",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/guard-accessors.ts"
+        "entrypoint": "../../examples/predicates-accessors.ts"
       },
-      "name": "guard-accessors"
+      "name": "predicates-accessors"
     },
     {
       "description": "Runs the PickDefined example",

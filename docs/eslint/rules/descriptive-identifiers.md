@@ -1,53 +1,48 @@
 ---
 title: '@studnicky/descriptive-identifiers'
-description: 'Disallows internal shorthand identifiers (cb, dlq, cfg, opts, ctx, idx, etc.) in favour of descriptive names.'
+description: 'Disallows configured shorthand tokens in project-owned identifiers.'
 ---
 
 # @studnicky/descriptive-identifiers
 
-Disallows internal shorthand identifiers such as `cb`, `dlq`, `cfg`, `opts`, `ctx`, `idx`, `mgr`, `svc`, and similar abbreviated tokens, in favour of descriptive names. Identifiers are split into camelCase tokens and each token is checked against a banned-shortening set — there is no exemption list of acceptable names: a token is only skipped when it does not match a banned shortening, never because of what the whole identifier is called. Non-computed member expression properties (e.g. `Math.max`) are not checked, since they name an external API rather than a project-owned identifier; export specifiers in a re-export (`export { cfg } from './config.js'`) are likewise not checked, since the identifier is not declared by this module.
+Disallows a configured shorthand token in an identifier. It splits camelCase and PascalCase names into tokens, compares each token case-insensitively, and reports the first match. The banned tokens are `args`, `arr`, `buf`, `cb`, `cfg`, `cnt`, `conf`, `ctx`, `curr`, `dlq`, `doc`, `dst`, `env`, `err`, `fn`, `idx`, `kv`, `len`, `lst`, `max`, `mgr`, `min`, `mq`, `msg`, `num`, `nxt`, `obj`, `opts`, `params`, `prev`, `ptr`, `rcv`, `ref`, `repo`, `ret`, `snd`, `src`, `str`, `svc`, `tmp`, `util`, `utils`, and `val`.
+
+The rule checks declaration IDs, identifier references, enum members, method/property keys, and type parameters. It checks quoted object and class keys only when the quoted value is a valid JavaScript identifier, so project-owned `'ctx'` is in scope while a rule ID, URL, path, or numeric key is not. JSON Schema vocabulary keys are exempt because they are external specification keys. Non-computed member properties and export specifiers are also out of scope.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// variable name contains the banned shortening cfg
 const cfg = {};
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// function name contains the banned shortening ctx
 function getCtx(): void {}
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// class property name contains the banned shortening opts
-class A {
-  opts: string = '';
-}
+const callbacks = { 'cb': (): void => {} };
+void callbacks;
 ```
 
 ## ✓ Correct
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// "http" is not a banned shortening token — not flagged
-const httpClient = 1;
+const configuration = {};
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// single-letter loop iterators never match a banned shortening token
-for (let i = 0; i < 10; i += 1) { void i; }
+const schema = { 'minLength': 1 };
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// non-computed member expression property on an external API — not checked
-const n = Math.max(1, 2);
-void n;
+const maximum = Math.max(1, 2);
+void maximum;
 ```

@@ -1,20 +1,24 @@
+import { Predicates } from '@studnicky/types';
+
 import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { ResolveMinLevel } from '../modules/ResolveMinLevel.js';
+import { ResolveMinimumLevel } from '../modules/ResolveMinimumLevel.js';
 
 interface FunctionTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
 class FunctionTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: FunctionTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 }
 
@@ -50,22 +54,27 @@ export class FunctionTransport implements TransportInterface {
     sink: (record: LogRecordEntity.Type) => void,
     options: FunctionTransportOptionsEntity.Type = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [sink, options]);
-    if (!FunctionTransportInstance.belongsTo(this, result)) {
+    const result: unknown = Reflect.construct(this, [
+      sink,
+      options
+    ]);
+
+    if (!Predicates.isObjectLike(result) || !FunctionTransportInstance.belongsTo(this, result)) {
       throw new TypeError('FunctionTransport.create() did not construct the requested subclass.');
     }
+
     return result;
   }
 
-  readonly #minLevel: number;
+  readonly #minimumLevel: number;
   readonly #sink: (record: LogRecordEntity.Type) => void;
 
   protected constructor(sink: (record: LogRecordEntity.Type) => void, options: FunctionTransportOptionsEntity.Type = {}) {
-    if (typeof sink !== 'function') {
+    if (!Predicates.isFunction(sink)) {
       throw new ConfigurationError('sink must be a function');
     }
     this.#sink = sink;
-    this.#minLevel = ResolveMinLevel.from(options);
+    this.#minimumLevel = ResolveMinimumLevel.from(options);
   }
 
   /**
@@ -74,7 +83,7 @@ export class FunctionTransport implements TransportInterface {
    * @param record - Assembled log record from the Logger core
    */
   write(record: LogRecordEntity.Type): void {
-    if (record.level < this.#minLevel) {
+    if (record.level < this.#minimumLevel) {
       return;
     }
     this.#sink(record);

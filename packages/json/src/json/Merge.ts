@@ -1,140 +1,122 @@
-/**
- * Merge — deep merge with V8-monomorphic write order.
- *
- * Semantics:
- * - Primitives: overlay wins when defined; base preserved on overlay = undefined.
- * - Arrays: overlay replaces base atomically (override `mergeArrays` to change).
- * - Objects: key-wise recursive merge; alphabetical union write order (monomorphic).
- * - Mismatched shapes (object vs array, primitive vs object): overlay wins entirely.
- * - Null is treated as a primitive (overlay-wins, not deep-merged).
- *
- * Subclass `Merge` and override protected static steps to customise merge behaviour.
- */
+/** Deep merging for arbitrary in-memory values. */
 
+import { Clone } from './Clone.js';
 import { DataType } from './DataType.js';
 
 export class Merge {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise merging
-  // ---------------------------------------------------------------------------
-
-  /** Return `true` when `value` is a mergeable plain object (not null, not array). */
-  protected static isMergeable(value: unknown): value is Readonly<Record<string, unknown>> {
-    if (!DataType.isPlainObject(value)) {
-      return false;
-    }
-
-    return true;
+  /** Return whether a value is a mergeable plain object. */
+  protected static isMergeable<T>(value: T): value is Readonly<Record<string, unknown>> & T {
+    const result = DataType.isPlainObject(value);
+    return result;
   }
 
   /** Return the sorted union of keys from `base` and `overlay`. */
-  protected static unionKeys(
-    base: Readonly<Record<string, unknown>>,
-    overlay: Readonly<Record<string, unknown>>
-  ): readonly string[] {
+  protected static unionKeys(base: Readonly<Record<string, unknown>>, overlay: Readonly<Record<string, unknown>>): readonly string[] {
     const seenKeys: Record<string, true> = {};
-
-    for (const baseKey of Object.keys(base)) {
-      seenKeys[baseKey] = true;
+    const baseKeys = Object.keys(base);
+    const baseKeyLength = baseKeys.length;
+    for (let index = 0; index < baseKeyLength; index += 1) {
+      const key = baseKeys[index];
+      if (key !== undefined) {
+        Reflect.set(seenKeys, key, true);
+      }
     }
-    for (const overlayKey of Object.keys(overlay)) {
-      seenKeys[overlayKey] = true;
+    const overlayKeys = Object.keys(overlay);
+    const overlayKeyLength = overlayKeys.length;
+    for (let index = 0; index < overlayKeyLength; index += 1) {
+      const key = overlayKeys[index];
+      if (key !== undefined) {
+        Reflect.set(seenKeys, key, true);
+      }
     }
-
-    return Object.keys(seenKeys).sort();
+    const result = Object.keys(seenKeys).toSorted();
+    return result;
   }
 
-  /**
-   * Merge two arrays.
-   *
-   * Default: overlay replaces base atomically.
-   * Override to union, concat, or otherwise combine arrays.
-   */
-  protected static mergeArrays(_base: unknown[], overlay: unknown[]): unknown[] {
+  /** Merge two arrays. Default behaviour replaces the base atomically. */
+  protected static mergeArrays<T>(_: T[], overlay: T[]): T[] {
     const result = overlay;
     return result;
   }
 
-  /** Return a detached snapshot for JSON containers while preserving atomic values. */
-  protected static snapshot(value: unknown): unknown {
+  /** Return a detached snapshot for arrays and plain objects, preserving atomic values. */
+  protected static snapshot<T>(value: T): T {
     if (Array.isArray(value)) {
-      const snapshot: unknown[] = [];
-      for (const entry of value) {
-        snapshot.push(this.snapshot(entry));
-      }
-      return snapshot;
+      const result = Clone.deep(value);
+      return result;
     }
-
     if (!DataType.isPlainObject(value)) {
-      return value;
+      const result = value;
+      return result;
     }
-
-    const snapshot: Record<string, unknown> = {};
-    for (const key of Object.keys(value).sort()) {
-      snapshot[key] = this.snapshot(value[key]);
+    const snapshot = Clone.shallow(value);
+    const keys = Object.keys(snapshot);
+    const keyLength = keys.length;
+    for (let index = 0; index < keyLength; index += 1) {
+      const key = keys[index];
+      if (key !== undefined) {
+        const item: unknown = Reflect.get(snapshot, key);
+        Reflect.set(snapshot, key, this.snapshot(item));
+      }
     }
-    return snapshot;
+    const result = snapshot;
+    return result;
   }
 
   /** Merge two plain objects key-by-key in alphabetical union order. */
-  protected static mergeObjects(
-    base: Readonly<Record<string, unknown>>,
-    overlay: Readonly<Record<string, unknown>>
-  ): Record<string, unknown> {
-    const keys = this.unionKeys(base, overlay);
-    const merged: Record<string, unknown> = {};
-
-    for (const key of keys) {
-      merged[key] = this.deep(base[key], overlay[key]);
+  protected static mergeObjects<TBase extends Record<string, unknown>>(base: TBase, overlay: Record<string, unknown>): TBase {
+    const merged = this.snapshot(base);
+    const keys = Object.keys(merged);
+    const keyLength = keys.length;
+    for (let index = 0; index < keyLength; index += 1) {
+      const key = keys[index];
+      if (key !== undefined) {
+        Reflect.deleteProperty(merged, key);
+      }
     }
-
+    const unionKeys = this.unionKeys(base, overlay);
+    const unionKeyLength = unionKeys.length;
+    for (let index = 0; index < unionKeyLength; index += 1) {
+      const key = unionKeys[index];
+      if (key !== undefined) {
+        const baseItem: unknown = Reflect.get(base, key);
+        const overlayItem: unknown = Reflect.get(overlay, key);
+        Reflect.set(merged, key, this.deep(baseItem, overlayItem));
+      }
+    }
     return merged;
   }
 
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Deeply merge `overlayValue` onto `baseValue` and return a new value.
-   *
-   * Overlay wins on conflicting primitives. Arrays replaced atomically.
-   * Plain objects merged key-wise in alphabetical union order (monomorphic).
-   */
-  public static deep(
-    baseValue: Readonly<Record<string, unknown>>,
-    overlayValue: Readonly<Record<string, unknown>>
-  ): Record<string, unknown>;
-  public static deep(baseValue: readonly unknown[], overlayValue: readonly unknown[]): readonly unknown[];
-  public static deep(baseValue: unknown, overlayValue: unknown): unknown;
-  public static deep(baseValue: unknown, overlayValue: unknown): unknown {
+  /** Deeply merge `overlayValue` onto `baseValue` and return a detached result. */
+  public static deep<TBase extends object, TOverlay extends object>(baseValue: TBase, overlayValue: TOverlay): TBase & TOverlay;
+  public static deep<T>(baseValue: T, overlayValue: T): T;
+  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): TBase | TOverlay;
+  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): unknown {
     if (overlayValue === undefined) {
-      return this.snapshot(baseValue);
+      const result = this.snapshot(baseValue);
+      return result;
     }
-
     if (baseValue === undefined) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
-
     if (Array.isArray(overlayValue)) {
       if (Array.isArray(baseValue)) {
-        return this.snapshot(this.mergeArrays(baseValue, overlayValue));
+        const result = this.snapshot(this.mergeArrays(baseValue, overlayValue));
+        return result;
       }
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
-
     if (Array.isArray(baseValue)) {
-      return this.snapshot(overlayValue);
+      const result = this.snapshot(overlayValue);
+      return result;
     }
-
-    if (!this.isMergeable(overlayValue)) {
-      return this.snapshot(overlayValue);
+    if (!this.isMergeable(overlayValue) || !this.isMergeable(baseValue)) {
+      const result = this.snapshot(overlayValue);
+      return result;
     }
-
-    if (!this.isMergeable(baseValue)) {
-      return this.snapshot(overlayValue);
-    }
-
-    return this.mergeObjects(baseValue, overlayValue);
+    const result = this.mergeObjects(baseValue, overlayValue);
+    return result;
   }
 }

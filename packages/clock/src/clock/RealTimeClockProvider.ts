@@ -6,12 +6,11 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
-import { ClockError } from '../errors/ClockError.js';
-
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
 
@@ -20,11 +19,9 @@ interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
 }
 
 class RealTimeClockProviderInstance {
-  static belongsTo<TInstance>(
-    constructor: RealTimeClockProviderSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: RealTimeClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -35,10 +32,11 @@ class RealTimeClockProviderInstance {
 export class RealTimeClockProvider implements ClockProviderInterface {
   static create<TInstance extends RealTimeClockProvider = RealTimeClockProvider>(
     this: RealTimeClockProviderSubclassInterface<TInstance>,
-    options: RealTimeClockProviderOptionsEntity.Type = {}
+    options: Partial<RealTimeClockProviderOptionsEntity.Type> = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!RealTimeClockProviderInstance.belongsTo(this, result)) {
+    const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
+    const result: unknown = Reflect.construct(this, [resolvedOptions]);
+    if (!Predicates.isObjectLike(result) || !RealTimeClockProviderInstance.belongsTo(this, result)) {
       throw new TypeError('RealTimeClockProvider.create() did not construct the requested subclass.');
     }
     return result;
@@ -56,30 +54,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * Property write order: #offsetMs.
    */
   protected constructor(options: RealTimeClockProviderOptionsEntity.Type) {
-    if (!RealTimeClockProviderOptionsEntity.validate(options)) {
-      throw new ClockError('invalid RealTimeClockProvider options');
-    }
-    const resolved = options.offsetMs ?? 0;
-    if (!Number.isFinite(resolved)) {
-      throw new ClockError('offsetMs must be a finite number');
-    }
-    this.#offsetMs = resolved;
-  }
-
-  /**
-   * Extension seam: subclasses may override to replace the raw `Date.now()` source.
-   */
-  protected readRawMs(): number {
-    const result = Date.now();
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to replace the raw `performance.now()` source.
-   */
-  protected readRawHrtimeMs(): number {
-    const result = performance.now();
-    return result;
+    this.#offsetMs = options.offsetMs;
   }
 
   /**
@@ -114,7 +89,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * Not guaranteed to match `Date.now()` — use for elapsed-time measurements only.
    */
   public hrtime(): bigint {
-    const ms = this.readRawHrtimeMs() + this.offsetMs;
+    const ms = performance.now() + this.offsetMs;
 
     // Split into whole-millisecond and fractional-millisecond parts before
     // converting to BigInt. Multiplying the full `ms` value by 1e6 as a
@@ -135,7 +110,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
 
   /** Returns the current wall-clock time in milliseconds since the Unix epoch. */
   public now(): number {
-    const result = this.readRawMs() + this.offsetMs;
+    const result = Date.now() + this.offsetMs;
 
     this.hooks.invoke('onNow', () => {
       const hookResult = this.onNow(result);

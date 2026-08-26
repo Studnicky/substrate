@@ -10,7 +10,7 @@
             "baseDelayMs": 100,
             "strategy": "exponential"
           },
-          "maxRetries": 2
+          "maximumRetries": 2
         },
         "batch": { "failureCountBeforeSuccess": 2 },
         "errorMessage": "transient failure",
@@ -24,7 +24,7 @@
       "shape": "backoff-config-default",
       "input": {
         "retry": {
-          "maxRetries": 2
+          "maximumRetries": 2
         },
         "batch": { "failureCountBeforeSuccess": 1 },
         "errorMessage": "transient failure",
@@ -42,7 +42,7 @@
             "baseDelayMs": 100,
             "strategy": "exponential"
           },
-          "maxRetries": 2
+          "maximumRetries": 2
         },
         "batch": { "failureCountBeforeSuccess": 2 },
         "errorMessage": "transient failure",
@@ -52,9 +52,9 @@
     },
     {
       "name": "retry-config-guard-bad-type",
-      "description": "rejects an invalid config (bad maxRetries type) without constructing a classifier",
+      "description": "rejects an invalid config (bad maximumRetries type) without constructing a classifier",
       "shape": "config-guard-bad-type",
-      "input": { "retry": { "maxRetries": "not-a-number" } },
+      "input": { "retry": { "maximumRetries": "not-a-number" } },
       "expected": { "result": false, "classifierCalls": 0 }
     },
     {
@@ -68,28 +68,28 @@
       "name": "retry-config-guard-valid",
       "description": "accepts a valid config without constructing a classifier",
       "shape": "config-guard-valid",
-      "input": { "retry": { "maxRetries": 3 } },
+      "input": { "retry": { "maximumRetries": 3 } },
       "expected": { "result": true, "classifierCalls": 0 }
     },
     {
       "name": "retry-backoff-strategy-non-object",
       "description": "rejects a non-object backoffStrategy config",
       "shape": "backoff-strategy-non-object",
-      "input": { "retry": { "backoffStrategy": "bad", "maxRetries": 1 } },
+      "input": { "retry": { "backoffStrategy": "bad", "maximumRetries": 1 } },
       "expected": { "result": false }
     },
     {
       "name": "retry-backoff-strategy-missing-fn",
       "description": "rejects a backoffStrategy config without strategy",
       "shape": "backoff-strategy-missing-fn",
-      "input": { "retry": { "backoffStrategy": { "baseDelayMs": 1 }, "maxRetries": 1 } },
+      "input": { "retry": { "backoffStrategy": { "baseDelayMs": 1 }, "maximumRetries": 1 } },
       "expected": { "result": false }
     },
     {
       "name": "retry-backoff-strategy-bad-delay",
       "description": "rejects a backoffStrategy config with non-number baseDelayMs",
       "shape": "backoff-strategy-bad-delay",
-      "input": { "retry": { "backoffStrategy": { "baseDelayMs": "bad", "strategy": "noop" }, "maxRetries": 1 } },
+      "input": { "retry": { "backoffStrategy": { "baseDelayMs": "bad", "strategy": "noop" }, "maximumRetries": 1 } },
       "expected": { "result": false }
     },
     {

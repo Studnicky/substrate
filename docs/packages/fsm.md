@@ -80,7 +80,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## API
 
-Import every FSM class, package-owned interface, and package error from `@studnicky/fsm`. The package root is the only public code entrypoint.
+Import FSM classes, root-level type contracts, and package errors from `@studnicky/fsm`; import schema namespaces from `@studnicky/fsm/entities`.
 
 | Export | Type | Description |
 |--------|------|-------------|
@@ -135,5 +135,38 @@ Run the examples below directly in the browser to see the FSM primitives in acti
 Every variant-changing state transition fires hooks on both the machine and interpreter layers — watch the paired log lines as each advance propagates.
 
 <RunnableExample src="packages/fsm/examples/observedFsm" title="FSM lifecycle hooks" />
+
+## Entities
+
+`@studnicky/fsm/entities` exports interpreter history and registry metrics schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `EffectHandlerInterface` | Defines effect execution callbacks. | `@studnicky/fsm` |
+| `EffectInterpreter` | Executes state-machine effects. | `@studnicky/fsm` |
+| `EffectInterpreterConstructorOptionsInterface` | Defines interpreter construction options. | `@studnicky/fsm` |
+| `FsmConfigError` | Represents invalid FSM configuration. | `@studnicky/fsm` |
+| `FsmError` | Base error for FSM failures. | `@studnicky/fsm` |
+| `FsmStepInterface` | Defines a state-machine transition result. | `@studnicky/fsm` |
+| `FsmTransitionInterface` | Defines a state-machine transition. | `@studnicky/fsm` |
+| `InterpreterHistory` | Retains state-machine transition history. | `@studnicky/fsm` |
+| `InterpreterHistoryRecordInterface` | Defines a recorded transition. | `@studnicky/fsm` |
+| `InterpreterNotRunningError` | Signals work submitted to a stopped interpreter. | `@studnicky/fsm` |
+| `InterpreterNotStartedError` | Signals work submitted before an interpreter starts. | `@studnicky/fsm` |
+| `MachineAlreadyRegisteredError` | Signals duplicate machine registration. | `@studnicky/fsm` |
+| `MachineRegistry` | Manages named state-machine interpreters. | `@studnicky/fsm` |
+| `MachineTerminatedError` | Signals use of a terminated machine. | `@studnicky/fsm` |
+| `MailboxCapacityExceededError` | Signals an interpreter mailbox overflow. | `@studnicky/fsm` |
+| `ReducerThrewError` | Wraps an error thrown by a reducer. | `@studnicky/fsm` |
+| `RegisteredInterpreterInterface` | Defines a registered interpreter entry. | `@studnicky/fsm` |
+| `StateMachine` | Defines typed state transitions and effects. | `@studnicky/fsm` |
+| `TransitionRejectedError` | Signals a rejected state transition. | `@studnicky/fsm` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fsm)

@@ -3,10 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import {
-  Context,
-  type ContextScopeInterface
-} from '../src/index.js';
+import type { ContextScopeInterface } from '../src/interfaces/index.js';
+
+import { Context } from '../src/index.js';
 
 class ObservedContext extends Context {
   readonly deleteEvents: { 'existed': boolean; 'key': string }[] = [];
@@ -58,17 +57,19 @@ scope.execute(() => {
 });
 
 const snapshot = scope.terminate();
-console.log('Final snapshot keys:', Object.keys(snapshot).sort());
+console.log('Final snapshot keys:', Object.keys(snapshot).toSorted());
 // #endregion usage
 
 assert.equal(context.initializeEvents.length, 1, 'onInitialize fired once');
-assert.ok(context.setEvents.some((event) => { return event.key === 'userId'; }));
-assert.ok(context.getEvents.some((event) => { return event.key === 'requestId'; }));
+assert.ok(context.setEvents.some((event) => { const result = event.key === 'userId'; return result; }));
+assert.ok(context.getEvents.some((event) => { const result = event.key === 'requestId'; return result; }));
 assert.ok(context.deleteEvents.some((event) => {
-  return event.key === 'tempKey' && event.existed;
+  const result = event.key === 'tempKey' && event.existed;
+  return result;
 }));
 assert.ok(context.deleteEvents.some((event) => {
-  return event.key === 'nonexistent' && !event.existed;
+  const result = event.key === 'nonexistent' && !event.existed;
+  return result;
 }));
 assert.ok(!('tempKey' in snapshot));
 assert.equal(snapshot.requestId, 'req-001');

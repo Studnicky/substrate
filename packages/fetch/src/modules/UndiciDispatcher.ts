@@ -28,9 +28,10 @@ interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
 class UndiciDispatcherInstance {
   static belongsTo<TInstance>(
     constructor: UndiciDispatcherSubclassInterface<TInstance>,
-    value: unknown
+    value: TInstance | object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -80,11 +81,12 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     this: UndiciDispatcherSubclassInterface<TInstance>,
     agent: Agent | TestDispatcher
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [agent]);
+    const result = Reflect.construct(this, [agent]) as object;
     if (!UndiciDispatcherInstance.belongsTo(this, result)) {
       throw new TypeError('UndiciDispatcher.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   private readonly agent: Agent | TestDispatcher;
@@ -156,13 +158,15 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    */
   checkDispatcherHealth(origin: string): DispatcherHealthEntity.Type {
     if (this.agent instanceof TestDispatcher) {
-      return this.agent.checkDispatcherHealth(origin);
+      const result = this.agent.checkDispatcherHealth(origin);
+      return result;
     }
 
-    const stats = this.agent.stats[origin];
+    const stats: unknown = Reflect.get(this.agent.stats, origin);
 
     if (stats === undefined || !SocketDispatcherStatsEntity.validate(stats)) {
-      return { 'healthy': true };
+      const result: DispatcherHealthEntity.Type = { 'healthy': true };
+      return result;
     }
 
     const queueRatio = stats.connected > 0
@@ -179,12 +183,13 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
       recommendation = `Connection pool is under pressure. Consider increasing connections from ${stats.connected} to ${Math.ceil(stats.connected * POOL_PRESSURE_MULTIPLIER)} (pending: ${stats.pending}, ratio: ${queueRatio.toFixed(2)})`;
     }
 
-    return {
+    const result: DispatcherHealthEntity.Type = {
       'healthy': healthy,
       'queueRatio': queueRatio,
       'stats': stats,
       ...(recommendation !== undefined && { 'recommendation': recommendation })
     };
+    return result;
   }
 
   /**
@@ -252,17 +257,26 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    */
   getStats(): Readonly<Record<string, unknown>> {
     if (this.agent instanceof TestDispatcher) {
-      return this.agent.getStats();
+      const result = this.agent.getStats();
+      return result;
     }
 
     const stats = this.agent.stats;
     const frozenStats: Record<string, unknown> = {};
 
-    for (const [origin, dispatcherStats] of Object.entries(stats)) {
-      frozenStats[origin] = Object.freeze({ ...dispatcherStats });
+    const originEntries = Object.entries(stats);
+    const originEntryLength = originEntries.length;
+    for (let index = 0; index < originEntryLength; index += 1) {
+      const entry = originEntries[index];
+      if (entry === undefined) {
+        continue;
+      }
+      const [origin, dispatcherStats] = entry;
+      Reflect.set(frozenStats, origin, Object.freeze({ ...dispatcherStats }));
     }
 
-    return Object.freeze(frozenStats);
+    const result = Object.freeze(frozenStats);
+    return result;
   }
 
 }

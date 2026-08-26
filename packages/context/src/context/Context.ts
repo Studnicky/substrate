@@ -1,4 +1,5 @@
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
@@ -17,11 +18,12 @@ interface ContextSubclassInterface<TInstance> extends Function {
 }
 
 class ContextInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: ContextSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -73,7 +75,7 @@ export class Context implements ContextInterface {
     config: ContextConfigEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!ContextInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
       throw new TypeError('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -164,7 +166,7 @@ export class Context implements ContextInterface {
    * Subclasses override to implement lenient-mode or logging behavior.
    */
   protected onMissingContext(_key?: string): boolean {
-    const result = false;
+    const result = _key === undefined && false;
     return result;
   }
 
@@ -258,8 +260,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   has(key: string): boolean {
-    const result = this.#getStore().has(key);
-    return result;
+    if (this.#getStore().has(key)) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -295,7 +299,8 @@ export class Context implements ContextInterface {
    * @returns true if within an active context
    */
   isActive(): boolean {
-    return this.#storage.getStore() !== undefined;
+    const result = this.#storage.getStore() !== undefined;
+    return result;
   }
 
   /**
@@ -317,7 +322,7 @@ export class Context implements ContextInterface {
    * @param value - The value to store
    * @throws {ContextError} If no context is active
    */
-  set<T>(key: string, value: T): void {
+  set(key: string, value: unknown): void {
     this.getMutableStore().set(key, value);
     this.hooks.invoke('onSet', () => {
       const hookResult = this.onSet(key, value);
@@ -332,7 +337,10 @@ export class Context implements ContextInterface {
    * @throws {ContextError} If no context is active
    */
   snapshot(): Record<string, unknown> {
-    const result = Object.fromEntries(this.#getStore());
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of this.#getStore()) {
+      Reflect.set(result, key, value);
+    }
     return result;
   }
 

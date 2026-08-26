@@ -3,11 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import {
-  FetchClient,
-  type RequestEventEntity,
-  type ResponseEventEntity
-} from '../src/index.js';
+import type { RequestEventEntity, ResponseEventEntity } from '../src/entities/index.js';
+
+import { FetchClient } from '../src/index.js';
 
 interface ErrorEventInterface {
   'durationMs': ResponseEventEntity.Type['durationMs'];
@@ -31,7 +29,7 @@ class TelemetryClient extends FetchClient {
     this.responseEvents.push({ 'durationMs': durationMs, 'method': method, 'requestId': requestId, 'statusCode': statusCode });
   }
 
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     this.errorEvents.push({ 'durationMs': durationMs, 'error': error, 'method': method, 'requestId': requestId, 'url': url });
   }
 
@@ -44,7 +42,7 @@ class TelemetryClient extends FetchClient {
     this.onResponseSuccess(method, requestId, statusCode, durationMs);
   }
 
-  simulateError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  simulateError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     this.onRequestError(error, method, requestId, url, durationMs);
   }
 }
@@ -56,8 +54,8 @@ client.simulateRequest('GET', '/users', 'req-001', 'https://api.example.com/user
 client.simulateSuccess('GET', 'req-001', 200, 45);
 
 // Simulate an error
-const err = new Error('connection refused');
-client.simulateError(err, 'POST', 'req-002', 'https://api.example.com/data', 120);
+const error = new Error('connection refused');
+client.simulateError(error, 'POST', 'req-002', 'https://api.example.com/data', 120);
 
 console.log('TelemetryClient — hooks fire correctly:');
 console.log(`  onRequestStart: ${client.requestEvents.length} event(s)`);
@@ -78,7 +76,7 @@ assert.strictEqual(client.responseEvents[0]?.statusCode, 200);
 assert.strictEqual(client.responseEvents[0]?.durationMs, 45);
 
 assert.strictEqual(client.errorEvents.length, 1, 'onRequestError fired once');
-assert.strictEqual(client.errorEvents[0]?.error, err);
+assert.strictEqual(client.errorEvents[0]?.error, error);
 assert.strictEqual(client.errorEvents[0]?.durationMs, 120);
 
 console.log('03-telemetry-hooks: all assertions passed');

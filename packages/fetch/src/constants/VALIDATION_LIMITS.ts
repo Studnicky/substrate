@@ -5,12 +5,12 @@
 /**
  * Maximum allowed connections in the dispatcher pool
  */
-export const MAX_DISPATCHER_CONNECTIONS = 1000;
+export const MAXIMUM_DISPATCHER_CONNECTIONS = 1000;
 
 /**
  * Maximum pipelining value for HTTP/1.1 connections
  */
-export const MAX_PIPELINING = 10;
+export const MAXIMUM_PIPELINING = 10;
 
 /**
  * HTTP status code for successful response

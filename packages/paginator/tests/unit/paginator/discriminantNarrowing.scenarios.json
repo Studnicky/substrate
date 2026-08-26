@@ -1,0 +1,84 @@
+{
+  "cases": [
+    {
+      "description": "narrows cursor payloads by their exhausted discriminant",
+      "expected": {
+        "descriptions": [
+          "cursor:2",
+          "exhausted"
+        ]
+      },
+      "input": {
+        "cursors": [
+          {
+            "cursor": 2,
+            "exhausted": false
+          },
+          {
+            "exhausted": true
+          }
+        ]
+      },
+      "shape": "cursor-discriminants",
+      "name": "narrows cursor payloads by their exhausted discriminant"
+    },
+    {
+      "description": "narrows event payloads by their type discriminant",
+      "expected": {
+        "descriptions": [
+          "reset",
+          "page-1:cursor:2"
+        ]
+      },
+      "input": {
+        "events": [
+          {
+            "type": "reset"
+          },
+          {
+            "nextCursor": {
+              "cursor": 2,
+              "exhausted": false
+            },
+            "page": "page-1",
+            "type": "pageReceived"
+          }
+        ]
+      },
+      "shape": "event-discriminants",
+      "name": "narrows event payloads by their type discriminant"
+    },
+    {
+      "description": "narrows state payloads by their variant discriminant",
+      "expected": {
+        "descriptions": [
+          "idle",
+          "page-1:cursor:2",
+          "page-1:exhausted"
+        ]
+      },
+      "input": {
+        "states": [
+          {
+            "variant": "idle"
+          },
+          {
+            "cursor": 2,
+            "pages": [
+              "page-1"
+            ],
+            "variant": "hasMore"
+          },
+          {
+            "pages": [
+              "page-1"
+            ],
+            "variant": "exhausted"
+          }
+        ]
+      },
+      "shape": "state-discriminants",
+      "name": "narrows state payloads by their variant discriminant"
+    }
+  ]
+}

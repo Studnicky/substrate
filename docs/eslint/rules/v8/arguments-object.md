@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/v8/arguments-object'
-description: 'Disallows the arguments object in functions.'
+description: 'Disallows the arguments object and requires rest parameters.'
 ---
 
 # @studnicky/v8/arguments-object
 
-Disallows use of the `arguments` object inside functions. The `arguments` object prevents V8 from optimizing the function because it must handle the dynamic object allocation. Use rest parameters (`...args`) instead.
+Disallows every use of `arguments` and requires rest parameters. Reading `arguments.length` or an indexed element locally measures the same as rest parameters in Node v24; the costly case is allowing `arguments` to escape its frame, such as by assigning, passing, spreading, returning, or storing it. At 5,000,000 calls, an escaped `arguments` object measures 7.5× slower than rest parameters. The rule keeps one uniform remedy because rest parameters are never worse and reliably distinguishing every escaping use requires control-flow analysis.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,19 +13,16 @@ Disallows use of the `arguments` object inside functions. The `arguments` object
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function sum() {
-  let total = 0;
-  for (let i = 0; i < arguments.length; i++) {
-    total += arguments[i] as number;
-  }
-  return total;
+function first(): unknown {
+  return arguments[0];
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function first() {
-  return arguments[0];
+let saved: IArguments | undefined;
+function save(): void {
+  saved = arguments;
 }
 ```
 
@@ -33,16 +30,15 @@ function first() {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function sum(...args: number[]): number {
-  let total = 0;
-  for (let i = 0; i < args.length; i++) { total += args[i] ?? 0; }
-  return total;
+function first(...values: unknown[]): unknown {
+  return values[0];
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-function first(...args: unknown[]): unknown {
-  return args[0];
+let saved: readonly unknown[] | undefined;
+function save(...values: unknown[]): void {
+  saved = values;
 }
 ```

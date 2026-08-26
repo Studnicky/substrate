@@ -30,7 +30,8 @@ class ParserServicesGuard {
     if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
       return false;
     }
-    return ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    return result;
   }
 }
 
@@ -38,7 +39,8 @@ class ContextHelpers {
   public static getServices(context: Rule.RuleContext): ParserServicesInterface | undefined {
     const sourceCode: SourceCodeServicesAccessorInterface = context.sourceCode;
     const services: unknown = sourceCode.parserServices;
-    return ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+    const result = ParserServicesGuard.hasTypeInformation(services) ? services : undefined;
+    return result;
   }
 }
 

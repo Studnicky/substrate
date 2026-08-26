@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
@@ -6,11 +8,12 @@ interface NoOpTransportSubclassInterface<TInstance> extends Function {
 }
 
 class NoOpTransportInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: NoOpTransportSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -38,7 +41,7 @@ export class NoOpTransport implements TransportInterface {
     this: NoOpTransportSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!NoOpTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !NoOpTransportInstance.belongsTo(this, result)) {
       throw new TypeError('NoOpTransport.create() did not construct the requested subclass.');
     }
     return result;

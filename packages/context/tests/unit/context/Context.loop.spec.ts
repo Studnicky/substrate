@@ -81,11 +81,11 @@ type ScenarioInput = {
 type ScenarioCase = ScenarioData;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord<TValue>(value: TValue): value is TValue & Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
+function requireRecord<TValue>(value: TValue, label: string): Record<string, unknown> {
   if (!isRecord(value)) {
     throw new TypeError(`${label} must be an object`);
   }
@@ -199,7 +199,7 @@ const runnerMap = {
     assert.strictEqual(typeof scope.execute, 'function');
     assert.strictEqual(typeof scope.terminate, 'function');
     scope.execute(() => {
-      assert.deepStrictEqual(context.keys().sort(), expectedStringArray(scenarioCase, 'keys').sort());
+      assert.deepStrictEqual(context.keys().toSorted(), expectedStringArray(scenarioCase, 'keys').toSorted());
       if (initial !== undefined) {
         for (const [key, value] of Object.entries(initial)) {
           assert.deepStrictEqual(context.get(key), value);
@@ -390,7 +390,7 @@ const runnerMap = {
     const scope = context.initialize(scopeInitial(scenarioCase));
     scope.execute(() => {
       const keys = context.keys();
-      assert.deepStrictEqual(keys.sort(), ['a', 'b', 'c']);
+      assert.deepStrictEqual(keys.toSorted(), ['a', 'b', 'c']);
     });
     return;
   },
@@ -666,7 +666,7 @@ const runnerMap = {
   'subclass-on-set': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
-      protected override onSet(key: string, value: unknown): void {
+      protected override onSet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
     }
@@ -684,7 +684,7 @@ const runnerMap = {
   'subclass-on-get': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
-      protected override onGet(key: string, value: unknown): void {
+      protected override onGet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
     }
@@ -744,7 +744,7 @@ const runnerMap = {
     const context = ThrowingInitializeContext.create(contextConfig(scenarioCase));
     assert.throws(
       () => context.initialize(scopeInitial(scenarioCase)),
-      (error: unknown) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
+      (error: Error) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
     );
     return;
   },
@@ -762,7 +762,7 @@ const runnerMap = {
     scope.execute(() => {
       assert.throws(
         () => context.set(key, value),
-        (error: unknown) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
+        (error: Error) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
       );
       assert.strictEqual(context.get(key), value);
     });
@@ -781,7 +781,7 @@ const runnerMap = {
     scope.execute(() => {
       assert.throws(
         () => context.get(key),
-        (error: unknown) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
+        (error: Error) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
       );
     });
     return;
@@ -799,7 +799,7 @@ const runnerMap = {
     scope.execute(() => {
       assert.throws(
         () => context.delete(key),
-        (error: unknown) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
+        (error: Error) => error instanceof HookInvocationError && error.hookName === scenarioCase.expected.hookName
       );
       assert.strictEqual(context.has(key), false);
     });
@@ -814,7 +814,7 @@ const runnerMap = {
       }
     }
     const unhandled: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { unhandled.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { unhandled.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
     return (async () => {
       try {

@@ -10,5 +10,5 @@ export interface KeyedRateLimiterStrategyConfigInterface<
   /** Time-to-live (ms) for an idle key's strategy before cache eviction. */
   'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.Type['keyIdleTtlMs'];
   /** Maximum number of distinct keys retained at once. Defaults to 10,000. */
-  'maxKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maxKeys'];
+  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maximumKeys'];
 }

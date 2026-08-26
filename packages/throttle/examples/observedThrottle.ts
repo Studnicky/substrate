@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 
-import type { ThrottleStateEntity } from '../src/index.js';
+import type { ThrottleStateEntity } from '../src/entities/index.js';
 
 import { Throttle } from '../src/index.js';
 
@@ -62,13 +62,12 @@ class TracingThrottle extends Throttle {
 const throttle = TracingThrottle.create({ 'concurrencyLimit': 2 });
 
 // Submit 4 ops. Ops 0-1 acquire immediately; ops 2-3 contend and wait.
-const ops: Promise<number | undefined>[] = [];
-for (let i = 0; i < 4; i++) {
-  ops.push(throttle.execute(async () => {
-    await setTimeout(5);
-    return i;
-  }));
-}
+const ops: Promise<number | undefined>[] = [
+  throttle.execute(async () => { await setTimeout(5); const result = 0; return result; }),
+  throttle.execute(async () => { await setTimeout(5); const result = 1; return result; }),
+  throttle.execute(async () => { await setTimeout(5); const result = 2; return result; }),
+  throttle.execute(async () => { await setTimeout(5); const result = 3; return result; })
+];
 
 // Initiate a graceful drain — no new ops accepted; wait for the 4 to finish.
 const drainPromise = throttle.drain();

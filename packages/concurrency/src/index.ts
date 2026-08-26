@@ -1,17 +1,6 @@
 export { AsyncIter } from './AsyncIter.js';
 export { Channel } from './Channel.js';
 export { Coalesce } from './Coalesce.js';
-export { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
-export { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';
-export { AsyncIterValueDiscriminantEntity } from './entities/AsyncIterValueDiscriminantEntity.js';
-export { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
-export { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
-export { ChannelStateEntity } from './entities/ChannelStateEntity.js';
-export { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
-export { DispatchCompletedEventEntity } from './entities/DispatchCompletedEventEntity.js';
-export { DispatchStartedEventEntity } from './entities/DispatchStartedEventEntity.js';
-export { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
-export { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
 export { ChannelError } from './errors/index.js';
 export { CoalesceTimeoutError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';

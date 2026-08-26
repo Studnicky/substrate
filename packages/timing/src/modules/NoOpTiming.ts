@@ -1,17 +1,23 @@
+import { Predicates } from '@studnicky/types';
+
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 
-interface NoOpTimingSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 class NoOpTimingInstance {
-  static belongsTo<TInstance>(
-    constructor: NoOpTimingSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static construct(constructor: Function): object {
+    const result: unknown = Reflect.construct(constructor, []);
+    if (!Predicates.isObjectLike(result)) {
+      throw new TypeError('NoOpTiming.create() did not construct an object.');
+    }
+    return result;
+  }
+
+  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
+  // from the constructor rather than being a phantom generic supplied only at the call site.
+  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -52,10 +58,10 @@ export class NoOpTiming implements TimingInterface {
    * ```
    */
   static create<TInstance extends NoOpTiming = NoOpTiming>(
-    this: NoOpTimingSubclassInterface<TInstance>
+    this: Function & { readonly 'prototype': TInstance; }
   ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!NoOpTimingInstance.belongsTo(this, result)) {
+    const result = NoOpTimingInstance.construct(this);
+    if (!NoOpTimingInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('NoOpTiming.create() did not construct the requested subclass.');
     }
     return result;
@@ -88,8 +94,8 @@ export class NoOpTiming implements TimingInterface {
    *
    * @returns Empty events with zero duration
    */
-  getEvents(): Record<string, number> {
-    const events: Record<string, number> = { 'durationMs': 0 };
+  getEvents(): ReadonlyMap<string, number> {
+    const events = new Map<string, number>([['durationMs', 0]]);
     return events;
   }
 }

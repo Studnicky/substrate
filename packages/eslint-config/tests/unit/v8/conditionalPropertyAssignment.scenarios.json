@@ -1,0 +1,92 @@
+{
+  "valid": [
+    {
+      "code": "class Foo { constructor(cond) { this.a = 1; this.b = cond ? 1 : 2; } }",
+      "name": "unconditional assignment (ternary only on the value, not the target) - not flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { if (cond) { console.log('no assignment here'); } } }",
+      "name": "if statement with no this.* assignment inside - not flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { switch (cond) { case 'a': this.type = 'a'; break; case 'b': this.type = 'b'; break; } } }",
+      "name": "switch whose cases all assign the SAME property - not flagged (same resulting hidden class every branch)"
+    },
+    {
+      "code": "class Foo { constructor() { this.helper(); } helper() { this.a = 1; } }",
+      "name": "helper method called from constructor, but with only an unconditional assignment - not flagged"
+    },
+    {
+      "code": "function standalone(cond) { if (cond) { doSomething(); } }",
+      "name": "if statement outside any class method - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "class Foo { constructor(cond) { if (cond) { this.a = 1; } else { this.b = 2; } } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        },
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "if/else with this.* assignment in each branch - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "class Foo { constructor(cond) { cond ? (this.a = 1) : (this.b = 2); } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        },
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "ternary consequent/alternate assignments (bypass) - flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { this.a = 1; cond && (this.extra = 2); } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "logical short-circuit assignment (bypass) - flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { switch (cond) { case 'a': this.a = 1; break; case 'b': this.b = 2; break; } } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        },
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "switch statement with differing this.* assignments across cases (bypass) - flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { Object.assign(this, cond ? { a: 1 } : { b: 2 }); } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Object.assign(this, ternary) (bypass) - flagged"
+    },
+    {
+      "code": "class Foo { constructor(cond) { this.init(cond); } init(cond) { if (cond) { this.a = 1; } else { this.b = 2; } } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        },
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "helper-method indirection: constructor calls this.init(), init() branches on this.* (bypass) - flagged"
+    }
+  ]
+}

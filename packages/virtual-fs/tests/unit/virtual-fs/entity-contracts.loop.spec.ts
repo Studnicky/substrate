@@ -3,7 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
-import { MkdirOptionsEntity } from '../../../src/index.js';
+import { MkdirOptionsEntity } from '../../../src/entities/index.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

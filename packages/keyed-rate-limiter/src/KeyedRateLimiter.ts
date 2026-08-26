@@ -2,12 +2,13 @@
  * Per-key rate limiting composing cache and resilience
  */
 
-import type { LruCacheOptionsEntity } from '@studnicky/cache';
+import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
 
 import { LruCache } from '@studnicky/cache';
 import { HookInvoker } from '@studnicky/errors';
 import { TokenBucket } from '@studnicky/resilience';
+import { Predicates } from '@studnicky/types';
 
 import type { RateLimitRequestEntity } from './entities/RateLimitRequestEntity.js';
 import type { KeyedRateLimiterCreateConfigInterface } from './interfaces/KeyedRateLimiterCreateConfigInterface.js';
@@ -21,15 +22,19 @@ interface KeyedRateLimiterDepsInterface<TStrategy extends RateLimiterStrategyInt
   'tokenBucketOptions': TokenBucketOptionsInterface | undefined;
 }
 
-/** Default `maxKeys` when a caller omits it — bounds unbounded key growth without requiring every caller to pick a number. */
-const DEFAULT_MAX_KEYS = 10_000;
+interface KeyedRateLimiterSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+/** Default `maximumKeys` when a caller omits it — bounds unbounded key growth without requiring every caller to pick a number. */
+const DEFAULT_MAXIMUM_KEYS = 10_000;
 
 /**
  * Isolates observer failures from successful consumption and the underlying
  * exhaustion errors reported by the limiter.
  */
 class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 /**
@@ -68,33 +73,39 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
   static readonly #OwnedCache = class KeyedRateLimiterCache<
     TOwnerStrategy extends RateLimiterStrategyInterface
   > extends LruCache<string, TOwnerStrategy> {
-    readonly #owner: KeyedRateLimiter<TOwnerStrategy>;
+    readonly #hookInvoker: HookInvoker;
+    readonly #notifyKeyEviction: (key: string) => void;
 
-    constructor(owner: KeyedRateLimiter<TOwnerStrategy>, options: LruCacheOptionsEntity.Type) {
+    constructor(
+      hookInvoker: HookInvoker,
+      notifyKeyEviction: (key: string) => void,
+      options: LruCacheOptionsEntity.Type
+    ) {
       super(options);
-      this.#owner = owner;
+      this.#hookInvoker = hookInvoker;
+      this.#notifyKeyEviction = notifyKeyEviction;
     }
 
     protected override onEvict(key: string, reason: 'capacity'): void {
       super.onEvict(key, reason);
-      this.#owner.hooks.invoke('onKeyEvicted', () => {
-        const result = this.#owner.onKeyEvicted(key);
+      this.#hookInvoker.invoke('onKeyEvicted', () => {
+        const result = this.#notifyKeyEviction(key);
         return result;
       });
     }
 
     protected override onExpire(key: string): void {
       super.onExpire(key);
-      this.#owner.hooks.invoke('onKeyEvicted', () => {
-        const result = this.#owner.onKeyEvicted(key);
+      this.#hookInvoker.invoke('onKeyEvicted', () => {
+        const result = this.#notifyKeyEviction(key);
         return result;
       });
     }
 
     protected override onDelete(key: string): void {
       super.onDelete(key);
-      this.#owner.hooks.invoke('onKeyEvicted', () => {
-        const result = this.#owner.onKeyEvicted(key);
+      this.#hookInvoker.invoke('onKeyEvicted', () => {
+        const result = this.#notifyKeyEviction(key);
         return result;
       });
     }
@@ -124,28 +135,29 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
   };
 
   private static isConstructed<TInstance>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
-  ): value is TInstance {
-    return value instanceof constructor;
+    value: object,
+    constructor: KeyedRateLimiterSubclassInterface<TInstance>
+  ): value is object & TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 
   /**
    * Creates a `KeyedRateLimiter` whose default factory constructs one
    * `TokenBucket` per key from `requestsPerSecond`/`burstSize`/`clock`.
    *
-   * @param config - `{requestsPerSecond, burstSize, maxKeys?, keyIdleTtlMs?, clock?}`
+   * @param config - `{requestsPerSecond, burstSize, maximumKeys?, keyIdleTtlMs?, clock?}`
    * @returns New `KeyedRateLimiter<TokenBucket>` instance
    */
   static create<TInstance extends KeyedRateLimiter<TokenBucket> = KeyedRateLimiter<TokenBucket>>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: KeyedRateLimiterSubclassInterface<TInstance>,
     config: KeyedRateLimiterCreateConfigInterface
   ): TInstance;
   static create<
     TStrategy extends RateLimiterStrategyInterface,
     TInstance extends KeyedRateLimiter<TStrategy> = KeyedRateLimiter<TStrategy>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: KeyedRateLimiterSubclassInterface<TInstance>,
     config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
   ): TInstance;
   static create<
@@ -153,11 +165,11 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     TInstance extends KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> =
       KeyedRateLimiter<TokenBucket>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: KeyedRateLimiterSubclassInterface<TInstance>,
     config: KeyedRateLimiterCreateConfigInterface | KeyedRateLimiterStrategyConfigInterface<TStrategy>
   ): TInstance {
     const cacheOptions: LruCacheOptionsEntity.Type = {
-      'capacity': config.maxKeys ?? DEFAULT_MAX_KEYS,
+      'capacity': config.maximumKeys ?? DEFAULT_MAXIMUM_KEYS,
       ...(config.keyIdleTtlMs !== undefined ? { 'ttlMs': config.keyIdleTtlMs } : {})
     };
 
@@ -167,7 +179,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'factory': config.factory,
         'tokenBucketOptions': undefined
       }]);
-      if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+      if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
         throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
       }
       return result;
@@ -182,7 +194,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         ...(config.clock !== undefined ? { 'clock': config.clock } : {})
       }
     }]);
-    if (!KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
       throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
     }
     return result;
@@ -191,11 +203,18 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
   readonly #cache: LruCache<string, TStrategy>;
   readonly #factory: (this: KeyedRateLimiter<TStrategy>, key: string) => TStrategy;
   readonly #tokenBucketOptions: TokenBucketOptionsInterface | undefined;
+  readonly #notifyKeyEviction = (key: string): void => {
+    this.onKeyEvicted(key);
+  };
   protected readonly hooks: HookInvoker = new KeyedRateLimiterFailureIsolatingHookInvoker();
 
   protected constructor(deps: KeyedRateLimiterDepsInterface<TStrategy>) {
     this.#factory = deps.factory;
-    this.#cache = new KeyedRateLimiter.#OwnedCache<TStrategy>(this, deps.cacheOptions);
+    this.#cache = new KeyedRateLimiter.#OwnedCache<TStrategy>(
+      this.hooks,
+      this.#notifyKeyEviction,
+      deps.cacheOptions
+    );
     this.#tokenBucketOptions = deps.tokenBucketOptions;
   }
 

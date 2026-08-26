@@ -22,7 +22,8 @@ class ParserServices {
     const nodeMap = value.esTreeNodeToTSNodeMap;
     if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
 
-    return typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    return result;
   }
 }
 

@@ -1,7 +1,7 @@
 /**
  * Configuration clamping utility.
  *
- * Soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a
+ * Soft-correction utility for configuration fields: given a
  * flat config object and a declarative table of `{min, max, reason}` per
  * numeric field, returns a NEW object with out-of-range numeric fields clamped
  * into range instead of throwing.
@@ -11,12 +11,13 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';
 
 class ClampedConfigHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(): void {}
 }
 
 export class ClampedConfig {
@@ -47,28 +48,47 @@ export class ClampedConfig {
     config: T,
     rules: Readonly<Record<string, ClampRuleEntity.Type>>
   ): T {
-    const result = { ...config };
+    const result: T = { ...config };
 
-    for (const [field, rule] of Object.entries(rules)) {
-      if (!(field in config)) {
+    const entries = Object.entries(rules);
+    const configValues = new Map(Object.entries(config));
+    const length = entries.length;
+
+    for (let index = 0; index < length; index += 1) {
+      const entry = entries[index];
+
+      if (entry === undefined) {
         continue;
       }
-      const raw = config[field];
-      if (typeof raw !== 'number') {
+      const [
+        field,
+        rule
+      ] = entry;
+
+      if (!configValues.has(field)) {
         continue;
       }
-      if (raw >= rule.min && raw <= rule.max) {
+      const raw = configValues.get(field);
+
+      if (!Predicates.isNumber(raw)) {
         continue;
       }
-      const clamped = Math.min(Math.max(raw, rule.min), rule.max);
+      if (raw >= rule.minimum && raw <= rule.maximum) {
+        continue;
+      }
+      const clamped = Math.min(Math.max(raw, rule.minimum), rule.maximum);
+
       Reflect.set(result, field, clamped);
+      const event: ClampEventEntity.Type = {
+        'clamped': clamped,
+        'field': field,
+        'raw': raw,
+        'reason': rule.reason
+      };
+
       this.hooks.invoke('onClamp', () => {
-        const hookResult = this.onClamp({
-          'clamped': clamped,
-          'field': field,
-          'raw': raw,
-          'reason': rule.reason
-        });
+        const hookResult = this.onClamp(event);
+
         return hookResult;
       });
     }

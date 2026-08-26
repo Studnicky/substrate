@@ -70,8 +70,11 @@ export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
   | PaginatorExhaustedStateInterface<TPage> {
     priorPages.push(event.page);
 
-    return event.nextCursor.exhausted
+    const result: PaginatorIdleStateEntity.Type
+    | PaginatorHasMoreStateInterface<TPage, TCursor>
+    | PaginatorExhaustedStateInterface<TPage> = event.nextCursor.exhausted
       ? { 'pages': priorPages, 'variant': 'exhausted' }
       : { 'cursor': event.nextCursor.cursor, 'pages': priorPages, 'variant': 'hasMore' };
+    return result;
   }
 }

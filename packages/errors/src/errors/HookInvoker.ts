@@ -3,6 +3,8 @@
  *
  * @module
  */
+import { Predicates } from '@studnicky/types';
+
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
 import { HookTimeoutError } from './HookTimeoutError.js';
@@ -10,72 +12,100 @@ import { ReentrantHookInvocationError } from './ReentrantHookInvocationError.js'
 import { ValidationError } from './ValidationError.js';
 
 /** Builds detached diagnostic graphs while preserving canonical hook-error classes. */
-class HookDiagnosticSnapshot {
-  static value(value: unknown, seen: WeakMap<object, unknown>): unknown {
-    if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
-      return value;
-    }
-
-    const existing = seen.get(value);
-    if (existing !== undefined) {
-      return existing;
-    }
-
-    if (value instanceof Error) {
-      let snapshot: Error;
-      if (value instanceof HookInvocationError) {
-        snapshot = new HookInvocationError(value.hookName, undefined);
-      } else if (value instanceof HookTimeoutError) {
-        snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
-      } else if (value instanceof ReentrantHookInvocationError) {
-        snapshot = new ReentrantHookInvocationError(value.hookName);
-      } else {
-        snapshot = new Error(value.message, { 'cause': undefined });
+namespace HookDiagnosticSnapshotEntity {
+  class Intake {
+    static intake(value: unknown, seen: WeakMap<object, unknown>): unknown {
+      if (!Predicates.isObjectLikeOrFunction(value)) {
+        return value;
       }
-      seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
-      }
-      return snapshot;
-    }
 
-    if (Array.isArray(value)) {
-      const snapshot: unknown[] = [];
-      seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
-        if (key === 'length') {
-          continue;
+      const existing = seen.get(value);
+      if (existing !== undefined) {
+        return existing;
+      }
+
+      if (value instanceof Error) {
+        let snapshot: Error;
+        if (value instanceof HookInvocationError) {
+          snapshot = new HookInvocationError(value.hookName, undefined);
+        } else if (value instanceof HookTimeoutError) {
+          snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
+        } else if (value instanceof ReentrantHookInvocationError) {
+          snapshot = new ReentrantHookInvocationError(value.hookName);
+        } else {
+          snapshot = new Error(value.message, { 'cause': undefined });
         }
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
       }
-      return snapshot;
-    }
 
-    if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
-      const snapshot: Record<string, unknown> = {};
-      seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+      if (Array.isArray(value)) {
+        const snapshot: unknown[] = [];
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          if (key === 'length') {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
       }
-      return snapshot;
-    }
 
-    try {
-      const snapshot: object = structuredClone(value);
-      return snapshot;
-    } catch {
-      const snapshot: Record<string, unknown> = {};
-      seen.set(value, snapshot);
-      for (const key of Reflect.ownKeys(value)) {
-        const propertyValue: unknown = Reflect.get(value, key);
-        Reflect.set(snapshot, key, HookDiagnosticSnapshot.value(propertyValue, seen));
+      if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
+        const snapshot: Record<string, unknown> = {};
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
       }
-      return snapshot;
+
+      try {
+        const snapshot: object = structuredClone(value);
+        return snapshot;
+      } catch {
+        const snapshot: Record<string, unknown> = {};
+        seen.set(value, snapshot);
+        const keys = Reflect.ownKeys(value);
+        const length = keys.length;
+        for (let index = 0; index < length; index += 1) {
+          const key = keys[index];
+          if (key === undefined) {
+            continue;
+          }
+          const propertyValue: unknown = Reflect.get(value, key);
+          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+        }
+        return snapshot;
+      }
     }
   }
+
+  export const intake = Intake.intake;
 }
 
 /**
@@ -160,15 +190,15 @@ export class HookInvoker {
     this.#timeoutMs = options?.timeoutMs;
   }
 
-  /** Invokes `fn` synchronously and guards any asynchronous completion without exposing it. */
-  invoke(hookName: string, fn: () => unknown): void {
-    const completion = this.#invokeCompletion(hookName, fn, false);
+  /** Invokes `callback` synchronously and guards any asynchronous completion without exposing it. */
+  invoke(hookName: string, callback: () => unknown): void {
+    const completion = this.#invokeCompletion(hookName, callback, false);
     if (completion !== undefined) { return; }
   }
 
-  /** Invokes `fn` immediately and exposes its synchronous or asynchronous completion as a promise. */
-  async invokeAsync(hookName: string, fn: () => unknown): Promise<void> {
-    await this.#invokeCompletion(hookName, fn, true);
+  /** Invokes `callback` immediately and exposes its synchronous or asynchronous completion as a promise. */
+  async invokeAsync(hookName: string, callback: () => unknown): Promise<void> {
+    await this.#invokeCompletion(hookName, callback, true);
   }
 
   /** Number of hook failures recorded by this invoker. */
@@ -179,8 +209,13 @@ export class HookInvoker {
   /** Detached diagnostics for every hook failure recorded by this invoker. */
   getHookErrors(): readonly HookInvocationError[] {
     const result: HookInvocationError[] = [];
-    for (const error of this.#hookErrors) {
-      const snapshot = HookDiagnosticSnapshot.value(error, new WeakMap());
+    const errorCount = this.#hookErrors.length;
+    for (let errorIndex = 0; errorIndex < errorCount; errorIndex += 1) {
+      const error = this.#hookErrors[errorIndex];
+      if (error === undefined) {
+        continue;
+      }
+      const snapshot = HookDiagnosticSnapshotEntity.intake(error, new WeakMap());
       if (!(snapshot instanceof HookInvocationError)) {
         throw new TypeError('Hook diagnostic projection must preserve HookInvocationError');
       }
@@ -190,15 +225,17 @@ export class HookInvoker {
   }
 
   /** Shared invocation path for synchronous entry, runtime thenables, failure routing, and completion guards. */
-  #invokeCompletion(hookName: string, fn: () => unknown, propagateTerminalFailure: boolean): Promise<void> | undefined {
+  #invokeCompletion(hookName: string, callback: () => unknown, propagateTerminalFailure: boolean): Promise<void> | undefined {
     if (this.#detectReentrancy && this.#invoking) {
       throw new ReentrantHookInvocationError(hookName);
     }
     this.#invoking = true;
     try {
-      return this.#guardCompletion(hookName, fn(), false, propagateTerminalFailure);
+      const result = this.#guardCompletion(hookName, callback(), false, propagateTerminalFailure);
+      return result;
     } catch (cause) {
-      return this.#routeHookFailure(hookName, cause, false, propagateTerminalFailure);
+      const result = this.#routeHookFailure(hookName, cause, false, propagateTerminalFailure);
+      return result;
     } finally {
       this.#invoking = false;
     }
@@ -215,7 +252,8 @@ export class HookInvoker {
       return undefined;
     }
     const bounded = this.#timeoutMs === undefined ? Promise.resolve(result) : this.#raceWithTimeout(hookName, result, this.#timeoutMs);
-    return this.#awaitAndRoute(hookName, bounded, isFailureHandlerResult, propagateTerminalFailure);
+    const completionResult = this.#awaitAndRoute(hookName, bounded, isFailureHandlerResult, propagateTerminalFailure);
+    return completionResult;
   }
 
   /** Races `pending` against `timeoutMs`, rejecting with `HookTimeoutError` if the timer wins. Clears the timer on either outcome. */
@@ -256,7 +294,7 @@ export class HookInvoker {
     asynchronousFailure: boolean,
     propagateTerminalFailure: boolean
   ): Promise<void> | undefined {
-    const diagnostic = HookDiagnosticSnapshot.value(
+    const diagnostic = HookDiagnosticSnapshotEntity.intake(
       new HookInvocationError(hookName, cause),
       new WeakMap()
     );
@@ -274,11 +312,13 @@ export class HookInvoker {
       }
       return undefined;
     }
-    return this.#guardCompletion(hookName, failureHandlerResult, true, propagateTerminalFailure);
+    const result = this.#guardCompletion(hookName, failureHandlerResult, true, propagateTerminalFailure);
+    return result;
   }
 
   static #isThenable(value: unknown): value is PromiseLike<unknown> {
-    return (typeof value === 'object' || typeof value === 'function') && value !== null && 'then' in value && typeof value.then === 'function';
+    const result = Predicates.isThenable(value);
+    return result;
   }
 
   /**
