@@ -41,7 +41,7 @@ for check in "$@"; do
     docs-includes) pnpm run lint:docs ;;
     generated-artifacts) prepare_dist && pnpm run config-schema:check && pnpm run stamp-version:check && pnpm run diagram:deps:check ;;
     predocs-build) pnpm run predocs:build ;;
-    audit) run_audit_check ;;
+    audit) run_audit_check "${CI_SUITE_BASE_REF:-}" ;;
     verify-dist) prepare_dist && verify_dist ;;
     diagram-check) prepare_dist && pnpm run diagram:deps:check ;;
     diagram-blast-radius) prepare_dist && pnpm run diagram:deps:blast-radius -- --base "${CI_SUITE_BASE_REF:-origin/develop}" ;;

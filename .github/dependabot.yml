@@ -7,11 +7,14 @@ updates:
       day: monday
     versioning-strategy: increase
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
     labels:
       - automated
       - dependencies
     commit-message:
-      prefix: deps
+      prefix: chore
+      include: scope
     groups:
       eslint-ecosystem:
         applies-to: version-updates
@@ -42,6 +45,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     labels:
       - automated
       - dependencies
