@@ -88,7 +88,30 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin
-      - run: pnpm changeset version
+      - name: Apply pending changesets, if any
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          output=$(pnpm changeset version 2>&1)
+          status=$?
+
+          echo "$output"
+
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+
+          # A release branch's own pre-push gate (release-gates.sh) requires
+          # changesets already consumed and versions already aligned before
+          # push, so by the time this runs there is usually nothing left for
+          # changeset version to do — that is success, not failure, here.
+          if printf '%s' "$output" | grep -q "No unreleased changesets found"; then
+            echo "No pending changesets — version already prepared before this release branch was pushed."
+            exit 0
+          fi
+
+          exit "$status"
       - name: Stamp docs assets and extract release notes
         shell: bash
         run: |
