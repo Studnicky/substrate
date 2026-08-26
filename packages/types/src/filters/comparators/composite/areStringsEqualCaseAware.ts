@@ -3,20 +3,23 @@
  */
 
 import type {
-  FilterCondition
-} from '../../types.js';
+  FilterConditionInterface
+} from '../../interfaces.js';
 
 import { Guard } from '../../../guards/Guard.js';
-import { areStringsEqual } from './areStringsEqual.js';
+import { AreStringsEqual } from './areStringsEqual.js';
 
-export function areStringsEqualCaseAware(
-  value: unknown,
-  filterValue: unknown,
-  condition: FilterCondition
-): boolean {
-  if (!Guard.isString(value) || !Guard.isString(filterValue)) {
-    return false;
+export class AreStringsEqualCaseAware {
+  static areStringsEqualCaseAware(
+    value: unknown,
+    filterValue: unknown,
+    condition: FilterConditionInterface
+  ): boolean {
+    if (!Guard.isString(value) || !Guard.isString(filterValue)) {
+      return false;
+    }
+
+    const result = AreStringsEqual.areStringsEqual(value, filterValue, condition);
+    return result;
   }
-
-  return areStringsEqual(value, filterValue, condition);
 }

@@ -7,7 +7,8 @@ export class AreNullUndefinedEqual {
   static areNullUndefinedEqual(value: unknown, filterValue: unknown): boolean   {
     if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
       // null/undefined are only equal to themselves (strict equality)
-      return value === filterValue;
+      const result = value === filterValue;
+      return result;
     }
 
     // No null/undefined values

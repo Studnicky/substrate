@@ -10,6 +10,7 @@
  */
 export class IsEven {
   static isEven(value: unknown): boolean   {
-    return typeof value === 'number' && Number.isFinite(value) && value % 2 === 0;
+    const result = typeof value === 'number' && Number.isFinite(value) && value % 2 === 0;
+    return result;
   }
 }

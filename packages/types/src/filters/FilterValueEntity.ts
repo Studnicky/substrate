@@ -1,57 +1,95 @@
-import type { FilterValue } from './types.js';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Guard } from '../guards/Guard.js';
 
-// WHY AN ENTITY, NOT A CAST.
-//
-// `FilterValue` is a recursive, non-JSON-Schema-representable union (it allows `Date`, `Set`,
-// `Map`, alongside the JSON primitives), so it can't be validated through `SchemaValidator` —
-// this hand-rolls the same shape-proving role `intake` plays everywhere else in this codebase.
-// Anywhere untyped traversal data (`Reflect.get`'s `any`, `JSON.parse`'s `any`) needs to become a
-// real `FilterValue`, it crosses through here — never through an `as FilterValue` assertion, which
-// would just be an unchecked promise instead of a proven one.
-//
-// SHALLOW BY DESIGN. `intake` classifies exactly one level and recurses into children lazily
-// through the SAME check — it does not eagerly walk and re-validate an entire subtree before a
-// caller has asked for it. A path-traversal helper hopping through a large structure one segment
-// at a time only needs each hop's classification, not the whole remaining tree validated up
-// front; recursing eagerly here would make every single-property lookup pay for validating data
-// nothing asked to see yet.
-
+/**
+ * The JSON-safe value domain FilterEngine conditions and data operate over.
+ * Bounded to 5 levels of array/object nesting at the type level — json-schema-to-ts's
+ * self-referential ($ref: '#') recursion hits TS2589 (verified), and real filter data is
+ * never meaningfully deeper than this in practice. FilterValueGuard.intake's actual runtime
+ * recursion is unbounded and also accepts Date/Set/Map (normalized via the ValueCoders
+ * registry) — this static type is deliberately narrower than what the runtime guard accepts.
+ */
 export namespace FilterValueEntity {
-  export type Type = FilterValue;
+  const leaf = {
+    'anyOf': [{ 'type': 'string' }, { 'type': 'number' }, { 'type': 'boolean' }, { 'type': 'null' }]
+  } as const;
+  const level1 = {
+    'anyOf': [
+      ...leaf.anyOf,
+      { 'items': leaf, 'type': 'array' },
+      { 'additionalProperties': leaf, 'type': 'object' }
+    ]
+  } as const;
+  const level2 = {
+    'anyOf': [
+      ...leaf.anyOf,
+      { 'items': level1, 'type': 'array' },
+      { 'additionalProperties': level1, 'type': 'object' }
+    ]
+  } as const;
+  const level3 = {
+    'anyOf': [
+      ...leaf.anyOf,
+      { 'items': level2, 'type': 'array' },
+      { 'additionalProperties': level2, 'type': 'object' }
+    ]
+  } as const;
+  const level4 = {
+    'anyOf': [
+      ...leaf.anyOf,
+      { 'items': level3, 'type': 'array' },
+      { 'additionalProperties': level3, 'type': 'object' }
+    ]
+  } as const;
 
-  /**
-   * Narrows an arbitrary value into `FilterValue`, throwing on anything outside the union
-   * (a class instance, a function, a symbol) rather than silently passing it through.
-   */
-  export function intake(input: unknown): Type {
-    if (input === null || input === undefined) {
-      return input;
+  export const Schema = {
+    'anyOf': [
+      ...leaf.anyOf,
+      { 'items': level4, 'type': 'array' },
+      { 'additionalProperties': level4, 'type': 'object' }
+    ]
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+
+  // Hand-rolled, not SchemaValidator.compile — @studnicky/json depends on @studnicky/types,
+  // so importing SchemaValidator here would be circular.
+  export function validate(candidate: unknown): candidate is Type {
+    if (candidate === null || Guard.isString(candidate) || Guard.isNumber(candidate) || Guard.isBoolean(candidate)) {
+      return true;
     }
-    if (Guard.isString(input) || Guard.isNumber(input) || Guard.isBoolean(input) || Guard.isDate(input)) {
-      return input;
-    }
-    if (Guard.isArray(input)) {
-      const result = input.map((item) => {return intake(item);});
+    if (Guard.isArray(candidate)) {
+      const result = candidate.every((item) => {
+        const itemResult = FilterValueEntity.validate(item);
+
+        return itemResult;
+      });
+
       return result;
     }
-    if (Guard.isSet(input)) {
-      const result = new Set([...input].map((item) => {return intake(item);}));
-      return result;
-    }
-    if (Guard.isMap(input)) {
-      const result = new Map([...input.entries()].map(([key, item]) => {return [String(key), intake(item)] as const;}));
-      return result;
-    }
-    if (Guard.isRecord(input)) {
-      const result: Record<string, FilterValue> = {};
-      for (const [key, item] of Object.entries(input)) {
-        result[key] = intake(item);
-      }
+    if (Guard.isRecord(candidate)) {
+      const result = Object.values(candidate).every((item) => {
+        const itemResult = FilterValueEntity.validate(item);
+
+        return itemResult;
+      });
+
       return result;
     }
 
-    throw new TypeError(`Not a valid FilterValue: ${typeof input}`);
+    return false;
   }
+
+  class Intake {
+    static intake(candidate: unknown): Type {
+      if (!FilterValueEntity.validate(candidate)) {
+        throw new TypeError('Not a valid FilterValueEntity.Type');
+      }
+
+      return candidate;
+    }
+  }
+
+  export const intake = Intake.intake;
 }

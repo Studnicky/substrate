@@ -2,14 +2,21 @@
  * Checks if an array contains all values from another array
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { doesArrayContain } from './doesArrayContain.js';
+import { DoesArrayContain } from './doesArrayContain.js';
 
-export function doesArrayContainAll(array: FilterValue, searchValues: FilterValue): boolean {
-  if (!Array.isArray(array) || !Array.isArray(searchValues)) {
-    return false;
+export class DoesArrayContainAll {
+  static doesArrayContainAll(array: FilterValueEntity.Type, searchValues: FilterValueEntity.Type): boolean {
+    if (!Array.isArray(array) || !Array.isArray(searchValues)) {
+      return false;
+    }
+
+    const result = searchValues.every((searchValue) => {
+      const isContained = DoesArrayContain.doesArrayContain(array, searchValue);
+      return isContained;
+    });
+
+    return result;
   }
-
-  return searchValues.every((searchValue) => {return doesArrayContain(array, searchValue);});
 }

@@ -10,6 +10,7 @@
  */
 export class IsFinite {
   static isFinite(value: unknown): boolean   {
-    return typeof value === 'number' && Number.isFinite(value);
+    const result = typeof value === 'number' && Number.isFinite(value);
+    return result;
   }
 }

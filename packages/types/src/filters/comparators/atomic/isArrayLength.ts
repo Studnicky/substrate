@@ -2,14 +2,15 @@
  * Checks if an array has a specific length
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
 export class IsArrayLength {
-  static isArrayLength(array: FilterValue, expectedLength: FilterValue): boolean   {
+  static isArrayLength(array: FilterValueEntity.Type, expectedLength: FilterValueEntity.Type): boolean   {
     if (!Array.isArray(array) || typeof expectedLength !== 'number') {
       return false;
     }
 
-    return array.length === expectedLength;
+    const result = array.length === expectedLength;
+    return result;
   }
 }

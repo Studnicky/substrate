@@ -6,8 +6,9 @@ export class AreInstancesOf {
   static areInstancesOf<T>(
     value: unknown,
     filterValue: unknown,
-    constructor: new (..._args: unknown[]) => T
+    constructor: new (..._constructorArguments: unknown[]) => T
   ): value is T {
-    return value instanceof constructor && filterValue instanceof constructor;
+    const result = value instanceof constructor && filterValue instanceof constructor;
+    return result;
   }
 }

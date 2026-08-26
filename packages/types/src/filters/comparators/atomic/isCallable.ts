@@ -10,6 +10,7 @@
  */
 export class IsCallable {
   static isCallable(value: unknown): boolean   {
-    return typeof value === 'function';
+    const result = typeof value === 'function';
+    return result;
   }
 }

@@ -4,46 +4,51 @@
  * logical operators, and nested groupings
  */
 
+import type { FilterValueEntity } from './FilterValueEntity.js';
 import type {
-  ArrayLogicFunction,
-  ArrayWildcardValue,
-  ErrorCollectionFunction,
-  FilterCondition,
-  FilterConfig,
-  FilterModeFunction,
-  FilterValue,
-  LogicGateFunction,
-  OperatorFunction
-} from './types.js';
+  ArrayWildcardValueInterface,
+  FilterConditionInterface,
+  FilterConfigInterface,
+  FilterModeFunctionInterface
+} from './interfaces.js';
 
 import { Guard } from '../guards/Guard.js';
 import { DefaultConfig } from './config/DefaultConfig.js';
+import { REGEX_LIKE_PATTERN } from './constants/RegexLikePattern.js';
+import { REGEX_SPECIAL_CHARS_PATTERN } from './constants/RegexSpecialCharsPattern.js';
+import { SURROGATE_PAIR_PATTERN } from './constants/SurrogatePairPattern.js';
+import { UNICODE_CODE_POINT_ESCAPE_PATTERN } from './constants/UnicodeCodePointEscapePattern.js';
+import { UNICODE_PROPERTY_ESCAPE_PATTERN } from './constants/UnicodePropertyEscapePattern.js';
+import { WILDCARD_SEGMENT_PATTERN } from './constants/WildcardSegmentPattern.js';
+import { WILDCARD_STAR_PATTERN } from './constants/WildcardStarPattern.js';
 import { ConditionType } from './enums/ConditionType.js';
 import { ErrorCollectionMode } from './enums/ErrorCollectionMode.js';
 import { FilterMode } from './enums/FilterMode.js';
-import { LogicGate } from './enums/LogicGate.js';
 import { PropertyName } from './enums/PropertyName.js';
 import { FilterConfigurationError } from './errors/FilterConfigurationError.js';
 import { FilterGateError } from './errors/FilterGateError.js';
 import { FilterOperatorError } from './errors/FilterOperatorError.js';
-import { FilterValueEntity } from './FilterValueEntity.js';
-import { ArrayLogic } from './logic/ArrayLogic.js';
+import { FilterValueGuard } from './FilterValueGuard.js';
+import { FilterTypeGuards } from './interfaces.js';
+import { ArrayLogicOperations } from './logic/ArrayLogicOperations.js';
 import { NumericOperators } from './operators/NumericOperators.js';
 import { Plugins } from './registries/index.js';
-import { isArrayWildcardValue, isValidFilterConfig } from './types.js';
 import { GetPathValue } from './utils/getPathValue.js';
 import { ValidatePath } from './utils/validatePath.js';
 
-// Config-like shape accepted by #validateConfiguration - both the root FilterConfig
-// and a nested FilterCondition (which reuses gate/conditions for sub-groups) satisfy it
-interface ValidatableConfig {
-  'conditions'?: FilterCondition[];
-  'gate'?: string | LogicGateFunction;
-  'mode'?: FilterModeFunction;
+// Default gate registry key applied when a condition/config omits gate/rowGate
+const DEFAULT_GATE_NAME = 'CORE.AND';
+
+// Config-like shape accepted by #validateConfiguration - both the root FilterConfigInterface
+// and a nested FilterConditionInterface (which reuses gate/conditions for sub-groups) satisfy it
+interface ValidatableConfigInterface {
+  'conditions'?: FilterConditionInterface[];
+  'gate'?: string;
+  'mode'?: FilterModeFunctionInterface;
 }
 
 // Entry collected in the errors array while evaluating with error reporting enabled
-interface FilterEvaluationErrorEntry {
+interface FilterEvaluationErrorEntryInterface {
   'actual'?: unknown;
   'expected'?: unknown;
   'field'?: string;
@@ -56,25 +61,33 @@ interface FilterEvaluationErrorEntry {
 }
 
 // Validator-like shape returned from evaluate()
-interface ProcessedFilterError {
+interface ProcessedFilterErrorInterface {
   'field': string;
   'message': string;
   'operator': unknown;
-  'params'?: { 'expected': unknown };
+  'parameters'?: { 'expected': unknown };
   'source': string;
   'value': unknown;
 }
 
-function getErrorMessage(error: unknown): string {
-  return Guard.isError(error) ? error.message : String(error);
-}
+class FilterEngineHelpers {
+  static getErrorCause(error: unknown): Error | undefined {
+    const result = Guard.isError(error) ? error : undefined;
 
-function getErrorCause(error: unknown): Error | undefined {
-  return Guard.isError(error) ? error : undefined;
-}
+    return result;
+  }
 
-function readRangeBound(value: FilterValue, key: 'min' | 'max'): unknown {
-  return Guard.isRecord(value) ? value[key] : undefined;
+  static getErrorMessage(error: unknown): string {
+    const result = Guard.isError(error) ? error.message : String(error);
+
+    return result;
+  }
+
+  static readRangeBound(value: FilterValueEntity.Type, key: 'max' | 'min'): unknown {
+    const result = Guard.isRecord(value) ? value[key] : undefined;
+
+    return result;
+  }
 }
 
 /**
@@ -82,25 +95,25 @@ function readRangeBound(value: FilterValue, key: 'min' | 'max'): unknown {
  * recursive conditionals, logical operators, and nested groupings
  */
 class FilterEngine {
-  private compiledConditions: FilterCondition[];
-  private conditions: FilterCondition[];
-  private gate: string | LogicGateFunction;
-  private includeErrors: string | ErrorCollectionFunction;
-  private maxDepth: number;
-  private maxPathDepth: number;
-  private mode: FilterModeFunction;
+  private compiledConditions: FilterConditionInterface[];
+  private conditions: FilterConditionInterface[];
+  private gate: string;
+  private includeErrors: string;
+  private maximumDepth: number;
+  private maximumPathDepth: number;
+  private mode: FilterModeFunctionInterface;
   private registry: Plugins;
 
   /**
    * Creates a new FilterEngine instance
    */
-  constructor(config: FilterConfig) {
+  constructor(config: FilterConfigInterface) {
     // Strict runtime validation of configuration
-    if (!isValidFilterConfig(config)) {
-      const configObj = config as Record<string, unknown>;
+    if (!FilterTypeGuards.isValidFilterConfig(config)) {
+      const filterConfigRecord = config as Record<string, unknown>;
 
       // Check for missing required fields
-      if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      if (config === null || config === undefined || typeof config !== 'object' || Array.isArray(config)) {
         throw new FilterConfigurationError(
           'Filter configuration must be an object with required fields: conditions, gate, mode',
           {
@@ -110,9 +123,9 @@ class FilterEngine {
         );
       }
 
-      if (!('conditions' in configObj)) {
+      if (!('conditions' in filterConfigRecord)) {
         throw new FilterConfigurationError(
-          'Missing required field: conditions. Must be an array of FilterCondition objects.',
+          'Missing required field: conditions. Must be an array of FilterConditionInterface objects.',
           {
             'property': 'conditions',
             'value': undefined
@@ -120,9 +133,9 @@ class FilterEngine {
         );
       }
 
-      if (!('gate' in configObj)) {
+      if (!('gate' in filterConfigRecord)) {
         throw new FilterConfigurationError(
-          'Missing required field: gate. Must be a LogicGateFunction (e.g., Types.LogicGate.CORE.AND).',
+          'Missing required field: gate. Must be a registry-key string reference (e.g., "CORE.AND").',
           {
             'property': 'gate',
             'value': undefined
@@ -130,9 +143,9 @@ class FilterEngine {
         );
       }
 
-      if (!('mode' in configObj)) {
+      if (!('mode' in filterConfigRecord)) {
         throw new FilterConfigurationError(
-          'Missing required field: mode. Must be a FilterModeFunction (e.g., Types.FilterMode.CORE.WHITELIST).',
+          'Missing required field: mode. Must be a FilterModeFunctionInterface (e.g., Types.FilterMode.CORE.WHITELIST).',
           {
             'property': 'mode',
             'value': undefined
@@ -141,39 +154,39 @@ class FilterEngine {
       }
 
       // Check for invalid field types
-      if (!Array.isArray(configObj.conditions)) {
+      if (!Array.isArray(filterConfigRecord.conditions)) {
         throw new FilterConfigurationError(
-          'Invalid field type: conditions must be an array of FilterCondition objects.',
+          'Invalid field type: conditions must be an array of FilterConditionInterface objects.',
           {
             'property': 'conditions',
-            'value': configObj.conditions
+            'value': filterConfigRecord.conditions
           }
         );
       }
 
-      if (typeof configObj.gate !== 'function' && typeof configObj.gate !== 'string') {
+      if (typeof filterConfigRecord.gate !== 'string') {
         throw new FilterConfigurationError(
-          'Invalid field type: gate must be a LogicGateFunction or string reference (e.g., Types.LogicGate.CORE.AND or "plugin:gateName").',
+          'Invalid field type: gate must be a registry-key string reference (e.g., "CORE.AND" or "plugin:gateName").',
           {
             'property': 'gate',
-            'value': configObj.gate
+            'value': filterConfigRecord.gate
           }
         );
       }
 
-      if (typeof configObj.mode !== 'function') {
+      if (typeof filterConfigRecord.mode !== 'function') {
         throw new FilterConfigurationError(
-          'Invalid field type: mode must be a FilterModeFunction (e.g., Types.FilterMode.CORE.WHITELIST).',
+          'Invalid field type: mode must be a FilterModeFunctionInterface (e.g., Types.FilterMode.CORE.WHITELIST).',
           {
             'property': 'mode',
-            'value': configObj.mode
+            'value': filterConfigRecord.mode
           }
         );
       }
 
       // Generic fallback error
       throw new FilterConfigurationError(
-        'Invalid FilterConfig: conditions must be FilterCondition[], gate must be LogicGateFunction, mode must be FilterModeFunction',
+        'Invalid FilterConfigInterface: conditions must be FilterConditionInterface[], gate must be a registry-key string, mode must be FilterModeFunctionInterface',
         {
           'property': 'config',
           'value': config
@@ -188,23 +201,23 @@ class FilterEngine {
     };
 
     // Set maximum nesting depth (default from config, min 1, max 100)
-    const maxDepthOption = normalizedConfig.maxDepth;
-    const clampedMaxDepth = Math.max(1, maxDepthOption);
+    const maximumDepthOption = normalizedConfig.maximumDepth;
+    const clampedMaximumDepth = Math.max(1, maximumDepthOption);
 
     // Set maximum path depth for property access (default from config, min 1, max 100)
 
-    this.maxDepth = Math.min(100, clampedMaxDepth);
-    const maxPathDepthOption = normalizedConfig.maxPathDepth;
-    const clampedMaxPathDepth = Math.max(1, maxPathDepthOption);
+    this.maximumDepth = Math.min(100, clampedMaximumDepth);
+    const maximumPathDepthOption = normalizedConfig.maximumPathDepth;
+    const clampedMaximumPathDepth = Math.max(1, maximumPathDepthOption);
 
     // Validate and set filter mode (REQUIRED - no default)
 
-    this.maxPathDepth = Math.min(100, clampedMaxPathDepth);
+    this.maximumPathDepth = Math.min(100, clampedMaximumPathDepth);
 
     // Mode is required in config
     const mode = normalizedConfig.mode;
 
-    if (!mode) {
+    if (mode === null || mode === undefined) {
       throw new FilterConfigurationError(
         'Filter mode is required. Must be one of: FilterMode.CORE.WHITELIST, FilterMode.CORE.BLACKLIST',
         {
@@ -232,38 +245,32 @@ class FilterEngine {
     this.mode = mode;
     this.registry = normalizedConfig.registry instanceof Plugins
       ? normalizedConfig.registry
-      : new Plugins({ 'plugins': normalizedConfig.plugins || [] });
+      : new Plugins({ 'plugins': normalizedConfig.plugins });
 
     // Initialize all properties first for V8 optimization (maintaining hidden classes)
     this.includeErrors = normalizedConfig.includeErrors;
 
-    // Resolve gate - could be a function or string reference
-    if (typeof normalizedConfig.gate === 'string') {
-      const gateFunction = this.registry.gates.get(normalizedConfig.gate);
+    // Validate gate exists in the registry; resolved to a function per-use in #evaluateConditions
+    if (!this.registry.gates.has(normalizedConfig.gate)) {
+      // Get list of valid gates for error message
+      const validGates = Array.from(this.registry.gates.keys()).toSorted();
 
-      if (!gateFunction) {
-        // Get list of valid gates for error message
-        const validGates = Array.from(this.registry.gates.keys()).toSorted();
-
-        throw new FilterGateError(
-          `Unknown gate: ${normalizedConfig.gate}. Gate must be a function or registered string.`,
-          {
-            'gate': normalizedConfig.gate,
-            'validGates': validGates
-          }
-        );
-      }
-      this.gate = gateFunction;
-    } else {
-      this.gate = normalizedConfig.gate!;
+      throw new FilterGateError(
+        `Unknown gate: ${normalizedConfig.gate}. Gate must be a registered string.`,
+        {
+          'gate': normalizedConfig.gate,
+          'validGates': validGates
+        }
+      );
     }
+    this.gate = normalizedConfig.gate;
 
     this.conditions = [];
     // Get conditions from configuration
     this.compiledConditions = [];
     // Determine conditions value unconditionally for V8 optimization (maintaining hidden classes)
     const conditions = normalizedConfig.conditions;
-    let finalConditions: FilterCondition[];
+    let finalConditions: FilterConditionInterface[];
 
     // Strict validation: conditions must be an array or a nested config object
     if (conditions !== null && conditions !== undefined) {
@@ -329,18 +336,20 @@ class FilterEngine {
    * @param {string} logic - Array logic operation (EVERY, SOME, ONE, NONE)
    * @returns {boolean} Result of applying logic operation
    */
-  #applyArrayLogic(results: boolean[], logic: string | ArrayLogicFunction): boolean {
+  #applyArrayLogic(results: boolean[], logic: string): boolean {
     // Check for custom arrayLogic function in plugin registry first
-    if (typeof logic === 'string') {
-      const customLogic = this.registry.arrayLogic.get(logic);
+    const customLogic = this.registry.arrayLogic.get(logic);
 
-      if (customLogic) {
-        return customLogic(results);
-      }
+    if (customLogic !== undefined) {
+      const result = customLogic(results);
+
+      return result;
     }
 
     // Fall back to built-in array logic
-    return ArrayLogic.applyLogic(results, logic);
+    const result = ArrayLogicOperations.applyLogic(results, logic);
+
+    return result;
   }
 
   /**
@@ -353,29 +362,28 @@ class FilterEngine {
    * @returns {boolean} Result of wildcard operation
    */
   #applyArrayWildcard(
-    wildcardValue: ArrayWildcardValue,
-    operator: string | OperatorFunction,
-    filterValue: FilterValue,
-    condition: FilterCondition,
-    wildcardLevel = 0,
-    data: FilterValue = null
+    wildcardValue: ArrayWildcardValueInterface,
+    operator: string,
+    filterValue: FilterValueEntity.Type,
+    condition: FilterConditionInterface,
+    options: { 'data'?: unknown; 'wildcardLevel'?: number } = {}
   ): boolean {
+    const wildcardLevel = options.wildcardLevel ?? 0;
+    const data = options.data ?? null;
     const {
       array, remainingPath
     } = wildcardValue;
-    const nestedConditions = condition[PropertyName.CORE.CONDITIONS];
+    const nestedConditions = condition.conditions;
 
-    if (nestedConditions && nestedConditions.length > 0) {
+    if (nestedConditions !== undefined && nestedConditions.length > 0) {
       const results: boolean[] = [];
       const arrayLength = array.length;
 
       for (let i = 0; i < arrayLength; i++) {
         results.push(this.#evaluateConditions(
-          FilterValueEntity.intake(array[i]),
+          FilterValueGuard.intake(array[i]),
           nestedConditions,
-          condition.rowGate || LogicGate.CORE.AND,
-          '',
-          null
+          { 'gate': condition.rowGate ?? DEFAULT_GATE_NAME }
         ));
       }
 
@@ -387,16 +395,16 @@ class FilterEngine {
     }
 
     const results: boolean[] = [];
-    const remainingPathStr = remainingPath.length > 0
+    const remainingPathValue = remainingPath.length > 0
       ? remainingPath.join('.')
       : null;
     const arrayLength = array.length;
 
     for (let i = 0; i < arrayLength; i++) {
       const rawItem = array[i];
-      const value = remainingPathStr
-        ? GetPathValue.getPathValue(FilterValueEntity.intake(rawItem), remainingPathStr, this.maxPathDepth)
-        : FilterValueEntity.intake(rawItem);
+      const value = remainingPathValue !== null
+        ? GetPathValue.getPathValue(FilterValueGuard.intake(rawItem), remainingPathValue, this.maximumPathDepth)
+        : FilterValueGuard.intake(rawItem);
 
       // Pass the wildcard level to nested evaluations
       results.push(this.#applyOperatorWithLevel(value, operator, filterValue, condition, wildcardLevel, data));
@@ -418,41 +426,34 @@ class FilterEngine {
    * @returns {boolean} Result of operator evaluation
    */
   #applyOperator(
-    value: FilterValue | ArrayWildcardValue,
-    operator: string | OperatorFunction,
-    filterValue: FilterValue,
-    condition: FilterCondition,
-    data: FilterValue = null
+    value: unknown,
+    operator: string,
+    filterValue: FilterValueEntity.Type,
+    condition: FilterConditionInterface,
+    data: unknown = null
   ): boolean {
-    if (isArrayWildcardValue(value)) {
-      const result = this.#applyArrayWildcard(value, operator, filterValue, condition, 0, data);
+    if (FilterTypeGuards.isArrayWildcardValue(value)) {
+      const result = this.#applyArrayWildcard(value, operator, filterValue, condition, { 'data': data, 'wildcardLevel': 0 });
 
       return result;
     }
 
-    // Create context for plugin operators with field-level options
-    const context: FilterCondition = {
+    // Options object seen by operator functions — data omitted when not supplied,
+    // matching the pre-redesign behavior of never fabricating a fallback value.
+    const options: { 'condition': FilterConditionInterface; 'data'?: FilterValueEntity.Type } = {
       'condition': condition,
-      'data': data || this,
-      ...(condition.options !== undefined && { 'options': condition.options })
+      ...(data !== null && { 'data': data as FilterValueEntity.Type })
     };
-
-    // Handle direct function references
-    if (typeof operator === 'function') {
-      const result = operator(value, filterValue, context);
-
-      return result;
-    }
 
     // Get operator handler - colon notation for plugins (PluginName:OPERATOR)
     const handler = this.registry.operators.get(operator);
 
-    if (!handler) {
+    if (handler === undefined) {
       // Get list of available operators for error message
       const availableOperators = Array.from(this.registry.operators.keys()).toSorted();
 
       throw new FilterOperatorError(
-        `Unknown operator: ${operator}. Operator must be a function or registered string.`,
+        `Unknown operator: ${operator}. Operator must be a registered string.`,
         {
           'availableOperators': availableOperators,
           'operator': operator
@@ -460,7 +461,10 @@ class FilterEngine {
       );
     }
 
-    const result = handler(value, filterValue, context);
+    // Operators declare FilterValueEntity.Type params for the common JSON-safe case; Date/Set/Map
+    // instances still flow through correctly here since operators self-validate via
+    // instanceof/typeof, but the static type at this traversal boundary is unknown.
+    const result = handler(value as FilterValueEntity.Type, filterValue, options);
 
     return result;
   }
@@ -476,16 +480,16 @@ class FilterEngine {
    * @returns {boolean} Result of operator evaluation
    */
   #applyOperatorWithLevel(
-    value: FilterValue | ArrayWildcardValue,
-    operator: string | OperatorFunction,
-    filterValue: FilterValue,
-    condition: FilterCondition,
+    value: unknown,
+    operator: string,
+    filterValue: FilterValueEntity.Type,
+    condition: FilterConditionInterface,
     wildcardLevel: number,
-    data: FilterValue = null
+    data: unknown = null
   ): boolean {
-    if (isArrayWildcardValue(value)) {
+    if (FilterTypeGuards.isArrayWildcardValue(value)) {
       // Increment level for nested wildcards
-      const result = this.#applyArrayWildcard(value, operator, filterValue, condition, wildcardLevel + 1, data);
+      const result = this.#applyArrayWildcard(value, operator, filterValue, condition, { 'data': data, 'wildcardLevel': wildcardLevel + 1 });
 
       return result;
     }
@@ -500,7 +504,7 @@ class FilterEngine {
    * @param {Object} compiled - Compiled condition object
    * @param {Object} condition - Original condition
    */
-  #compileBetweenRange(compiled: FilterCondition, condition: FilterCondition): void {
+  #compileBetweenRange(compiled: FilterConditionInterface, condition: FilterConditionInterface): void {
     const isBetweenOperator = typeof condition.operator === 'string'
       && (condition.operator.endsWith('.BETWEEN') || condition.operator.endsWith('.OUTSIDE'));
     const rangeValue = compiled.value;
@@ -512,16 +516,16 @@ class FilterEngine {
     const firstValue = Number(rangeValue[0]);
     const secondValue = Number(rangeValue[1]);
 
-    compiled.minValue = firstValue < secondValue ? firstValue : secondValue;
-    compiled.maxValue = firstValue > secondValue ? firstValue : secondValue;
+    compiled.minimumValue = firstValue < secondValue ? firstValue : secondValue;
+    compiled.maximumValue = firstValue > secondValue ? firstValue : secondValue;
   }
 
   /**
    * Compiles case-insensitive string values
    * @param {Object} compiled - Compiled condition object
    */
-  #compileCaseInsensitiveValue(compiled: FilterCondition): void {
-    if (!compiled.caseSensitive && typeof compiled.value === 'string') {
+  #compileCaseInsensitiveValue(compiled: FilterConditionInterface): void {
+    if (compiled.caseSensitive !== true && typeof compiled.value === 'string') {
       compiled.lowerValue = compiled.value.toLowerCase();
     }
   }
@@ -532,28 +536,33 @@ class FilterEngine {
    * @param {Object} condition - Raw condition configuration
    * @returns {Object} Compiled condition with optimizations
    */
-  #compileCondition(condition: FilterCondition): FilterCondition {
-    if (condition[PropertyName.CORE.GATE] || condition[PropertyName.CORE.OPERATOR] === 'group') {
-      const logicalCompiled: FilterCondition = {};
+  #compileCondition(condition: FilterConditionInterface): FilterConditionInterface {
+    if (condition.gate !== undefined || condition.operator === 'group') {
+      const logicalCompiled: FilterConditionInterface = {};
 
-      logicalCompiled[PropertyName.CORE.CONDITIONS] = this.#compileConditions(condition[PropertyName.CORE.CONDITIONS] ?? []);
+      logicalCompiled.conditions = this.#compileConditions(condition.conditions ?? []);
 
-      logicalCompiled[PropertyName.CORE.GATE] = condition[PropertyName.CORE.GATE] || LogicGate.CORE.AND;
+      logicalCompiled.gate = condition.gate ?? DEFAULT_GATE_NAME;
 
-      logicalCompiled[PropertyName.CORE.NEGATE] = condition[PropertyName.CORE.NEGATE] || false;
+      logicalCompiled.negate = condition.negate ?? false;
 
-      logicalCompiled[PropertyName.CORE.TYPE] = ConditionType.CORE.LOGICAL;
+      logicalCompiled.type = ConditionType.CORE.LOGICAL;
 
       return logicalCompiled;
     }
 
-    const path = condition[PropertyName.CORE.PATH]
-      || condition[PropertyName.CORE.FIELD]
+    let path = condition.path;
+
+    if (path === undefined || path === '') {
+      path = condition.field;
+    }
+    if (path === undefined || path === '') {
       // Count wildcards in the path
-      || condition[PropertyName.CORE.PATHWAY];
+      path = condition.pathway;
+    }
 
     // Validate path format - paths MUST be in dot notation
-    if (path && !ValidatePath.validatePath(path)) {
+    if (path !== undefined && path !== '' && !ValidatePath.validatePath(path)) {
       throw new FilterConfigurationError(
         `Invalid path format: "${path}". Paths must use dot notation (e.g., "user.profile.name" or "items[0].value")`,
         {
@@ -564,11 +573,11 @@ class FilterEngine {
     }
 
     // Count wildcards in the path
-    const wildcardCount = path ? (path.match(/\[\*\]/g) || []).length : 0;
-    let groupGates: (string | ArrayLogicFunction)[] | undefined;
+    const wildcardCount = path !== undefined ? [...path.matchAll(WILDCARD_SEGMENT_PATTERN)].length : 0;
+    let groupGates: string[] | undefined;
 
     if (wildcardCount > 0) {
-      if (!condition.groupGates || !Array.isArray(condition.groupGates)) {
+      if (condition.groupGates === undefined || !Array.isArray(condition.groupGates)) {
         throw new FilterConfigurationError(
           `Path "${path}" has ${wildcardCount} wildcard(s) but groupGates is not an array`,
           {
@@ -591,46 +600,46 @@ class FilterEngine {
       groupGates = condition.groupGates;
     }
 
-    const compiled: FilterCondition = {
+    const compiled: FilterConditionInterface = {
       ...(condition.caseSensitive !== undefined && { 'caseSensitive': condition.caseSensitive }),
       ...(condition.dataType !== undefined && { 'dataType': condition.dataType }),
       ...(condition.decimalPrecision !== undefined && { 'decimalPrecision': condition.decimalPrecision }),
       ...(condition.equals !== undefined && { 'equals': condition.equals }),
       ...(groupGates !== undefined && { 'groupGates': groupGates }),
       ...(condition.inclusive !== undefined && { 'inclusive': condition.inclusive }),
-      'rowGate': condition.rowGate || LogicGate.CORE.AND
+      'rowGate': condition.rowGate ?? DEFAULT_GATE_NAME
     // Set properties using direct assignment for V8 optimization
     };
 
-    const rawNestedConditions = condition[PropertyName.CORE.CONDITIONS];
+    const rawNestedConditions = condition.conditions;
 
-    if (rawNestedConditions) {
-      compiled[PropertyName.CORE.CONDITIONS] = this.#compileConditions(rawNestedConditions);
+    if (rawNestedConditions !== undefined) {
+      compiled.conditions = this.#compileConditions(rawNestedConditions);
     }
-    compiled[PropertyName.CORE.NEGATE] = condition[PropertyName.CORE.NEGATE] || false;
+    compiled.negate = condition.negate ?? false;
 
-    const rawOperator = condition[PropertyName.CORE.OPERATOR];
+    const rawOperator = condition.operator;
 
     if (rawOperator !== undefined) {
-      compiled[PropertyName.CORE.OPERATOR] = rawOperator;
+      compiled.operator = rawOperator;
     }
     if (path !== undefined) {
-      compiled[PropertyName.CORE.PATH] = path;
+      compiled.path = path;
     }
 
-    const rawThreshold = condition[PropertyName.CORE.THRESHOLD];
+    const rawThreshold = condition.threshold;
 
     if (rawThreshold !== undefined) {
-      compiled[PropertyName.CORE.THRESHOLD] = rawThreshold;
+      compiled.threshold = rawThreshold;
     }
-    compiled[PropertyName.CORE.TYPE] = ConditionType.CORE.FIELD;
+    compiled.type = ConditionType.CORE.FIELD;
 
-    const rawValue = condition[PropertyName.CORE.VALUE] !== undefined
-      ? condition[PropertyName.CORE.VALUE]
+    const rawValue = condition.value !== undefined
+      ? condition.value
       : rawThreshold;
 
     if (rawValue !== undefined) {
-      compiled[PropertyName.CORE.VALUE] = rawValue;
+      compiled.value = rawValue;
     }
 
     this.#compileRegexPattern(compiled, condition);
@@ -646,8 +655,8 @@ class FilterEngine {
    * @param {Array} conditions - Array of raw conditions
    * @returns {Array} Array of compiled conditions
    */
-  #compileConditions(conditions: FilterCondition[]): FilterCondition[] {
-    const compiled: FilterCondition[] = [];
+  #compileConditions(conditions: FilterConditionInterface[]): FilterConditionInterface[] {
+    const compiled: FilterConditionInterface[] = [];
     const conditionsLength = conditions.length;
 
     for (let i = 0; i < conditionsLength; i++) {
@@ -666,7 +675,7 @@ class FilterEngine {
    * @param {Object} compiled - Compiled condition object
    * @param {Object} condition - Original condition
    */
-  #compileNumericValues(compiled: FilterCondition, condition: FilterCondition): void {
+  #compileNumericValues(compiled: FilterConditionInterface, condition: FilterConditionInterface): void {
     const hasNumericOperator = typeof condition.operator === 'string' && NumericOperators.numericOperators.has(condition.operator);
     const hasValidValue = compiled.value !== null && compiled.value !== undefined;
 
@@ -685,11 +694,11 @@ class FilterEngine {
    * @param {Object} compiled - Compiled condition object
    * @param {Object} condition - Original condition
    */
-  #compileRegexPattern(compiled: FilterCondition, condition: FilterCondition): void {
+  #compileRegexPattern(compiled: FilterConditionInterface, condition: FilterConditionInterface): void {
     const isRegexOperator = typeof condition.operator === 'string'
       && (condition.operator.endsWith('.MATCHES') || condition.operator.endsWith('.REGEX'));
 
-    if (!isRegexOperator || !compiled.value) {
+    if (!isRegexOperator || Boolean(compiled.value) === false) {
       return;
     }
 
@@ -700,7 +709,7 @@ class FilterEngine {
         return;
       }
 
-      let regexPattern: FilterValue = compiled.value;
+      let regexPattern: FilterValueEntity.Type = compiled.value ?? '';
 
       if (typeof condition.operator === 'string' && condition.operator.endsWith('.MATCHES') && typeof regexPattern === 'string') {
         regexPattern = this.#processMatchesPattern(regexPattern);
@@ -710,7 +719,7 @@ class FilterEngine {
 
       // Add 'u' flag only when Unicode features are detected in the pattern
       const needsUnicodeFlag = this.#needsUnicodeFlag(regexSource);
-      const flags = (compiled.caseSensitive ? '' : 'i') + (needsUnicodeFlag ? 'u' : '');
+      const flags = (compiled.caseSensitive === true ? '' : 'i') + (needsUnicodeFlag ? 'u' : '');
 
       compiled.compiledRegex = new RegExp(regexSource, flags);
     } catch {
@@ -723,18 +732,24 @@ class FilterEngine {
    * Evaluates an array of conditions using the specified logical gate
    * @param {*} data - Data to evaluate
    * @param {Array} conditions - Array of compiled conditions
-   * @param {string} [gate=LogicGate.CORE.AND] - Logical gate to use
+   * @param {string} [gate=DEFAULT_GATE_NAME] - Logical gate registry key to use
    * @param {string} [path=''] - Current path for error reporting
    * @param {Array} [errors=null] - Array to collect errors (optional)
    * @returns {boolean} Result of conditions evaluation
    */
   #evaluateConditions(
-    data: FilterValue,
-    conditions: FilterCondition[],
-    gate: string | LogicGateFunction = LogicGate.CORE.AND,
-    path = '',
-    errors: FilterEvaluationErrorEntry[] | null = null
+    data: unknown,
+    conditions: FilterConditionInterface[],
+    options: {
+      'errors'?: FilterEvaluationErrorEntryInterface[] | null;
+      'gate'?: string | undefined;
+      'path'?: string;
+    } = {}
   ): boolean {
+    const gate = options.gate ?? DEFAULT_GATE_NAME;
+    const path = options.path ?? '';
+    const errors = options.errors ?? null;
+
     if (conditions.length === 0) {
       return true;
     }
@@ -750,34 +765,48 @@ class FilterEngine {
         continue;
       }
 
-      const conditionResult = errors
+      const conditionResult = errors !== null
         ? this.#evaluateSingleConditionWithErrors(data, condition, errors, path)
         : this.#evaluateSingleCondition(data, condition);
 
       results.push(conditionResult);
 
       // Short-circuit based on error collection mode
-      if (gate === LogicGate.CORE.AND && !conditionResult && this.includeErrors === ErrorCollectionMode.FIRST) {
+      if (gate === 'CORE.AND' && !conditionResult && this.includeErrors === ErrorCollectionMode.FIRST) {
         return false;
       }
 
-      if (gate === LogicGate.CORE.OR && conditionResult && this.includeErrors === ErrorCollectionMode.FIRST) {
+      if (gate === 'CORE.OR' && conditionResult && this.includeErrors === ErrorCollectionMode.FIRST) {
         return true;
       }
     }
 
-    // Apply the logical gate - must be a function
-    if (typeof gate !== 'function') {
-      throw new Error(`Gate must be a function, got ${typeof gate}`);
+    // Resolve the gate function from the registry
+    const gateFunction = this.registry.gates.get(gate);
+
+    if (gateFunction === undefined) {
+      const validGates = Array.from(this.registry.gates.keys()).toSorted();
+
+      throw new FilterGateError(
+        `Unknown gate: ${gate}. Gate must be a registered string.`,
+        {
+          'gate': gate,
+          'validGates': validGates
+        }
+      );
     }
 
     try {
-      return gate(results);
+      const result = gateFunction(results);
+
+      return result;
     } catch (error) {
-      if (errors) {
+      if (errors !== null) {
+        const errorMessage = FilterEngineHelpers.getErrorMessage(error);
+
         errors.push({
           'gate': 'function',
-          'message': getErrorMessage(error) || 'Gate function error'
+          'message': errorMessage !== '' ? errorMessage : 'Gate function error'
         });
       }
 
@@ -791,31 +820,33 @@ class FilterEngine {
    * @param {Object} condition - Compiled condition
    * @returns {boolean} Result of condition evaluation
    */
-  #evaluateSingleCondition(data: FilterValue, condition: FilterCondition): boolean {
+  #evaluateSingleCondition(data: unknown, condition: FilterConditionInterface): boolean {
     let result: boolean;
 
-    if (condition[PropertyName.CORE.TYPE] === ConditionType.CORE.LOGICAL) {
-      result = this.#evaluateConditions(data, condition[PropertyName.CORE.CONDITIONS] ?? [], condition[PropertyName.CORE.GATE], '', null);
+    if (condition.type === ConditionType.CORE.LOGICAL) {
+      result = this.#evaluateConditions(data, condition.conditions ?? [], { 'gate': condition.gate });
     } else {
-      const operator = condition[PropertyName.CORE.OPERATOR];
+      const operator = condition.operator;
 
       if (operator === undefined) {
         throw new FilterOperatorError('Condition is missing an operator', {});
       }
 
       // Apply converter if specified, but not for array wildcards (handled in applyArrayWildcard)
-      const value = GetPathValue.getPathValue(data, condition[PropertyName.CORE.PATH] ?? '', this.maxPathDepth);
+      const value = GetPathValue.getPathValue(data, condition.path ?? '', this.maximumPathDepth);
 
 
       result = this.#applyOperator(
         value,
         operator,
-        condition[PropertyName.CORE.VALUE],
+        condition.value ?? null,
         condition
       );
     }
 
-    return condition[PropertyName.CORE.NEGATE] ? !result : result;
+    const finalResult = condition.negate === true ? !result : result;
+
+    return finalResult;
   }
 
 
@@ -829,32 +860,30 @@ class FilterEngine {
    * @returns {boolean} Result of condition evaluation
    */
   #evaluateSingleConditionWithErrors(
-    data: FilterValue,
-    condition: FilterCondition,
-    errors: FilterEvaluationErrorEntry[],
+    data: unknown,
+    condition: FilterConditionInterface,
+    errors: FilterEvaluationErrorEntryInterface[],
     path = ''
   ): boolean {
     let result: boolean;
 
-    if (condition[PropertyName.CORE.TYPE] === ConditionType.CORE.LOGICAL) {
+    if (condition.type === ConditionType.CORE.LOGICAL) {
       // For nested conditions, maintain the current path (don't add .conditions)
       result = this.#evaluateConditions(
         data,
-        condition[PropertyName.CORE.CONDITIONS] ?? [],
-        condition[PropertyName.CORE.GATE],
-        path,
-        errors
+        condition.conditions ?? [],
+        { 'errors': errors, 'gate': condition.gate, 'path': path }
       );
     } else {
-      const operator = condition[PropertyName.CORE.OPERATOR];
+      const operator = condition.operator;
 
       if (operator === undefined) {
         throw new FilterOperatorError('Condition is missing an operator', {});
       }
 
-      const fieldPath = condition[PropertyName.CORE.PATH] ?? '';
+      const fieldPath = condition.path ?? '';
       // Apply converter if specified
-      const value = GetPathValue.getPathValue(data, fieldPath, this.maxPathDepth);
+      const value = GetPathValue.getPathValue(data, fieldPath, this.maximumPathDepth);
 
 
       // If the condition failed, add error details
@@ -864,7 +893,7 @@ class FilterEngine {
         result = this.#applyOperator(
           value,
           operator,
-          condition[PropertyName.CORE.VALUE],
+          condition.value ?? null,
           condition,
           data
         );
@@ -872,42 +901,38 @@ class FilterEngine {
         // Handle plugin operator errors gracefully
         result = false;
         // Always collect errors when errors array is provided
-        if (errors) {
-          // Get the string name for the operator
-          const operatorName = typeof operator === 'function'
-            ? this.registry.operators.findKeyByValue(operator) || 'UNKNOWN'
-            : operator;
-          const isBuiltIn = typeof operatorName === 'string' && this.registry.operators.isBuiltIn(operatorName);
-
-          errors.push({
-            'actual': value,
-            'expected': condition[PropertyName.CORE.VALUE],
-            'field': fieldPath,
-            'message': getErrorMessage(error) || 'Operator error',
-            'operator': operatorName,
-            'operatorSource': isBuiltIn ? 'builtin' : 'plugin'
-          });
-          errorAdded = true;
-        }
-      }
-      if (!result && !errorAdded && errors) {
-        // The fieldPath is already the full path from the data root (e.g., "user.profile.email")
-        // We only prepend 'path' if we're in a nested evaluation context (like array wildcards)
-        const fullPath = path && !fieldPath.startsWith(path) ? `${path}.${fieldPath}` : fieldPath;
+        const errorMessage = FilterEngineHelpers.getErrorMessage(error);
 
         // Get the string name for the operator
-        const operatorName = typeof operator === 'function'
-          ? this.registry.operators.findKeyByValue(operator) || 'UNKNOWN'
-          : operator;
-        const isBuiltIn = typeof operatorName === 'string' && this.registry.operators.isBuiltIn(operatorName);
+        const operatorName = operator;
+        const isBuiltIn = this.registry.operators.isBuiltIn(operatorName);
 
         errors.push({
           'actual': value,
-          'expected': condition[PropertyName.CORE.VALUE],
+          'expected': condition.value,
+          'field': fieldPath,
+          'message': errorMessage !== '' ? errorMessage : 'Operator error',
+          'operator': operatorName,
+          'operatorSource': isBuiltIn ? 'builtin' : 'plugin'
+        });
+        errorAdded = true;
+      }
+      if (!result && !errorAdded) {
+        // The fieldPath is already the full path from the data root (e.g., "user.profile.email")
+        // We only prepend 'path' if we're in a nested evaluation context (like array wildcards)
+        const fullPath = path !== '' && !fieldPath.startsWith(path) ? `${path}.${fieldPath}` : fieldPath;
+
+        // Get the string name for the operator
+        const operatorName = operator;
+        const isBuiltIn = this.registry.operators.isBuiltIn(operatorName);
+
+        errors.push({
+          'actual': value,
+          'expected': condition.value,
           // Use the full path as the field
           'field': fullPath,
           'message': this.#formatErrorMessage(condition, value),
-          'negate': condition[PropertyName.CORE.NEGATE] || false,
+          'negate': condition.negate ?? false,
           'operator': operatorName,
           'operatorSource': isBuiltIn ? 'builtin' : 'plugin',
           'path': fullPath
@@ -915,7 +940,9 @@ class FilterEngine {
       }
     }
 
-    return condition[PropertyName.CORE.NEGATE] ? !result : result;
+    const finalResult = condition.negate === true ? !result : result;
+
+    return finalResult;
   }
 
 
@@ -926,10 +953,10 @@ class FilterEngine {
    * @param {*} value - The actual value that failed
    * @returns {string} Formatted error message
    */
-  #formatErrorMessage(condition: FilterCondition, value: FilterValue | ArrayWildcardValue): string {
-    const operatorValue = condition[PropertyName.CORE.OPERATOR];
-    const expected = condition[PropertyName.CORE.VALUE];
-    const negate = condition[PropertyName.CORE.NEGATE] ? 'not ' : '';
+  #formatErrorMessage(condition: FilterConditionInterface, value: unknown): string {
+    const operatorValue = condition.operator;
+    const expected = condition.value ?? null;
+    const negate = condition.negate === true ? 'not ' : '';
 
     if (value === undefined) {
       return 'is required';
@@ -939,14 +966,7 @@ class FilterEngine {
       return 'must not be null';
     }
 
-    // Get operator name - if it's a function, find its registered name
-    let operatorName: string | OperatorFunction | undefined;
-
-    if (typeof operatorValue === 'function') {
-      operatorName = this.registry.operators.findKeyByValue(operatorValue) || 'custom operator';
-    } else {
-      operatorName = operatorValue;
-    }
+    const operatorName = operatorValue;
 
     // Create human-readable error messages based on operator type
     if (typeof operatorName === 'string') {
@@ -958,12 +978,16 @@ class FilterEngine {
       ] = parts;
 
       if (parts.length === 2 && category !== undefined && type !== undefined) {
-        return this.#formatOperatorMessage(category, type, expected, negate);
+        const result = this.#formatOperatorMessage(category, type, expected, negate);
+
+        return result;
       }
     }
 
     // Default message for unknown operators
-    return `failed ${negate}${String(operatorName)} validation (expected: ${this.#formatValue(expected)})`;
+    const result = `failed ${negate}${String(operatorName)} validation (expected: ${this.#formatValue(expected)})`;
+
+    return result;
   }
 
   /**
@@ -975,91 +999,143 @@ class FilterEngine {
    * @param {string} negate - Negation prefix ('not ' or '')
    * @returns {string} Formatted error message
    */
-  #formatOperatorMessage(category: string, type: string, expected: FilterValue, negate: string): string {
-    const expectedStr = this.#formatValue(expected);
+  #formatArrayOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const handlers: Record<string, () => string> = {
+      'CONTAINS': () => { return `must ${negate}contain ${expectedDisplay}`; },
+      'EMPTY': () => { return `must ${negate}be empty`; },
+      'EXCLUDES': () => { return `must ${negate}exclude ${expectedDisplay}`; },
+      'IN': () => { return `must ${negate}be in ${expectedDisplay}`; },
+      'INCLUDES': () => { return `must ${negate}include ${expectedDisplay}`; },
+      'LENGTH': () => { return `must have length ${negate}equal to ${expected}`; },
+      'NOT_EMPTY': () => { return `must ${negate}be non-empty`; }
+    };
+    const handler = handlers[type];
+    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
 
-    switch (category) {
-      case 'STRING':
-        switch (type) {
-          case 'CONTAINS': return `must ${negate}contain "${expected}"`;
-          case 'EMPTY': return `must ${negate}be empty`;
-          case 'ENDS_WITH': return `must ${negate}end with "${expected}"`;
-          case 'EQUALS': return `must ${negate}equal "${expected}"`;
-          case 'LENGTH': return `must have length ${negate}equal to ${expected}`;
-          case 'NOT_EMPTY': return `must ${negate}be non-empty`;
-          case 'REGEX': return `must ${negate}match pattern ${expectedStr}`;
-          case 'STARTS_WITH': return `must ${negate}start with "${expected}"`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
+    return result;
+  }
 
-      case 'NUMBER':
-        switch (type) {
-          case 'BETWEEN': return `must ${negate}be between ${this.#formatValue(readRangeBound(expected, 'min'))} and ${this.#formatValue(readRangeBound(expected, 'max'))}`;
-          case 'EQUALS': return `must ${negate}equal ${expected}`;
-          case 'GREATER': return `must ${negate}be greater than ${expected}`;
-          case 'GREATER_EQUAL': return `must ${negate}be at least ${expected}`;
-          case 'LESS': return `must ${negate}be less than ${expected}`;
-          case 'LESS_EQUAL': return `must ${negate}be at most ${expected}`;
-          case 'OUTSIDE': return `must ${negate}be outside ${this.#formatValue(readRangeBound(expected, 'min'))} to ${this.#formatValue(readRangeBound(expected, 'max'))}`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
-
-      case 'BOOLEAN':
-        switch (type) {
-          case 'EQUALS': return `must ${negate}equal ${expected}`;
-          case 'FALSE': return `must ${negate}be false`;
-          case 'FALSY': return `must ${negate}be falsy`;
-          case 'TRUE': return `must ${negate}be true`;
-          case 'TRUTHY': return `must ${negate}be truthy`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
-
-      case 'ARRAY':
-        switch (type) {
-          case 'CONTAINS': return `must ${negate}contain ${expectedStr}`;
-          case 'EMPTY': return `must ${negate}be empty`;
-          case 'EXCLUDES': return `must ${negate}exclude ${expectedStr}`;
-          case 'IN': return `must ${negate}be in ${expectedStr}`;
-          case 'INCLUDES': return `must ${negate}include ${expectedStr}`;
-          case 'LENGTH': return `must have length ${negate}equal to ${expected}`;
-          case 'NOT_EMPTY': return `must ${negate}be non-empty`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
-
-      case 'DATE':
-        switch (type) {
-          case 'BETWEEN': return `must ${negate}be between ${this.#formatValue(readRangeBound(expected, 'min'))} and ${this.#formatValue(readRangeBound(expected, 'max'))}`;
-          case 'EQUALS': return `must ${negate}equal ${expectedStr}`;
-          case 'OUTSIDE': return `must ${negate}be outside ${this.#formatValue(readRangeBound(expected, 'min'))} to ${this.#formatValue(readRangeBound(expected, 'max'))}`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
-
-      case 'CROSS':
-        switch (type) {
-          case 'ABSENT': return `must ${negate}be absent`;
-          case 'DEFINED': return `must ${negate}be defined`;
-          case 'EQUALS': return `must ${negate}equal ${expectedStr}`;
-          case 'EXISTS': return `must ${negate}exist`;
-          case 'NOT_NULL': return `must ${negate}be non-null`;
-          case 'NULL': return `must ${negate}be null`;
-          case 'TYPE': return `must ${negate}be of type ${expected}`;
-          case 'UNDEFINED': return `must ${negate}be undefined`;
-          default: return `must ${negate}pass ${type} validation`;
-        }
-
-      default:
-        return `must ${negate}pass ${category}.${type} validation`;
+  #formatBooleanOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string): string {
+    switch (type) {
+      case 'EQUALS': return `must ${negate}equal ${expected}`;
+      case 'FALSE': return `must ${negate}be false`;
+      case 'FALSY': return `must ${negate}be falsy`;
+      case 'TRUE': return `must ${negate}be true`;
+      case 'TRUTHY': return `must ${negate}be truthy`;
+      default: return `must ${negate}pass ${type} validation`;
     }
+  }
+
+  #formatCrossOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const handlers: Record<string, () => string> = {
+      'ABSENT': () => { return `must ${negate}be absent`; },
+      'DEFINED': () => { return `must ${negate}be defined`; },
+      'EQUALS': () => { return `must ${negate}equal ${expectedDisplay}`; },
+      'EXISTS': () => { return `must ${negate}exist`; },
+      'NOT_NULL': () => { return `must ${negate}be non-null`; },
+      'NULL': () => { return `must ${negate}be null`; },
+      'TYPE': () => { return `must ${negate}be of type ${expected}`; },
+      'UNDEFINED': () => { return `must ${negate}be undefined`; }
+    };
+    const handler = handlers[type];
+    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+
+    return result;
+  }
+
+  #formatDateOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    switch (type) {
+      case 'BETWEEN': return `must ${negate}be between ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} and ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
+      case 'EQUALS': return `must ${negate}equal ${expectedDisplay}`;
+      case 'OUTSIDE': return `must ${negate}be outside ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} to ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
+      default: return `must ${negate}pass ${type} validation`;
+    }
+  }
+
+  #formatNumberOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string): string {
+    const handlers: Record<string, () => string> = {
+      'BETWEEN': () => { return `must ${negate}be between ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} and ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`; },
+      'EQUALS': () => { return `must ${negate}equal ${expected}`; },
+      'GREATER': () => { return `must ${negate}be greater than ${expected}`; },
+      'GREATER_EQUAL': () => { return `must ${negate}be at least ${expected}`; },
+      'LESS': () => { return `must ${negate}be less than ${expected}`; },
+      'LESS_EQUAL': () => { return `must ${negate}be at most ${expected}`; },
+      'OUTSIDE': () => { return `must ${negate}be outside ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} to ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`; }
+    };
+    const handler = handlers[type];
+    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+
+    return result;
+  }
+
+  #formatOperatorMessage(category: string, type: string, expected: FilterValueEntity.Type, negate: string): string {
+    const expectedDisplay = this.#formatValue(expected);
+    const categoryHandlers: Record<string, (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = {
+      'ARRAY': (typeName, expectedValue, negatePrefix, display) => {
+        const messageResult = this.#formatArrayOperatorMessage(typeName, expectedValue, negatePrefix, display);
+
+        return messageResult;
+      },
+      'BOOLEAN': (typeName, expectedValue, negatePrefix) => {
+        const messageResult = this.#formatBooleanOperatorMessage(typeName, expectedValue, negatePrefix);
+
+        return messageResult;
+      },
+      'CROSS': (typeName, expectedValue, negatePrefix, display) => {
+        const messageResult = this.#formatCrossOperatorMessage(typeName, expectedValue, negatePrefix, display);
+
+        return messageResult;
+      },
+      'DATE': (typeName, expectedValue, negatePrefix, display) => {
+        const messageResult = this.#formatDateOperatorMessage(typeName, expectedValue, negatePrefix, display);
+
+        return messageResult;
+      },
+      'NUMBER': (typeName, expectedValue, negatePrefix) => {
+        const messageResult = this.#formatNumberOperatorMessage(typeName, expectedValue, negatePrefix);
+
+        return messageResult;
+      },
+      'STRING': (typeName, expectedValue, negatePrefix, display) => {
+        const messageResult = this.#formatStringOperatorMessage(typeName, expectedValue, negatePrefix, display);
+
+        return messageResult;
+      }
+    };
+
+    const handler = categoryHandlers[category];
+    const result = handler !== undefined
+      ? handler(type, expected, negate, expectedDisplay)
+      : `must ${negate}pass ${category}.${type} validation`;
+
+    return result;
+  }
+
+  #formatStringOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const handlers: Record<string, () => string> = {
+      'CONTAINS': () => { return `must ${negate}contain "${expected}"`; },
+      'EMPTY': () => { return `must ${negate}be empty`; },
+      'ENDS_WITH': () => { return `must ${negate}end with "${expected}"`; },
+      'EQUALS': () => { return `must ${negate}equal "${expected}"`; },
+      'LENGTH': () => { return `must have length ${negate}equal to ${expected}`; },
+      'NOT_EMPTY': () => { return `must ${negate}be non-empty`; },
+      'REGEX': () => { return `must ${negate}match pattern ${expectedDisplay}`; },
+      'STARTS_WITH': () => { return `must ${negate}start with "${expected}"`; }
+    };
+    const handler = handlers[type];
+    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+
+    return result;
   }
 
   /**
    * Formats a value for display in error messages
    * @private
    * @param {*} value - The value to format
-   * @param {number} maxLength - Maximum string length
+   * @param {number} maximumLength - Maximum string length
    * @returns {string} Formatted value
    */
-  #formatValue(value: unknown, maxLength = 100): string {
+  #formatValue(value: unknown, maximumLength = 100): string {
     if (value === null) {
       return 'null';
     }
@@ -1070,8 +1146,8 @@ class FilterEngine {
       return '(empty string)';
     }
     if (typeof value === 'string') {
-      if (value.length > maxLength) {
-        return `'${value.substring(0, maxLength)}...'`;
+      if (value.length > maximumLength) {
+        return `'${value.substring(0, maximumLength)}...'`;
       }
 
       return `'${value}'`;
@@ -1090,22 +1166,32 @@ class FilterEngine {
         return '-Infinity';
       }
 
-      return String(value);
+      const result = String(value);
+
+      return result;
     }
     if (typeof value === 'boolean') {
-      return String(value);
+      const result = String(value);
+
+      return result;
     }
     if (typeof value === 'symbol') {
-      return value.toString();
+      const result = value.toString();
+
+      return result;
     }
     if (typeof value === 'function') {
       return '[Function]';
     }
     if (value instanceof Date) {
-      return value.toISOString();
+      const result = value.toISOString();
+
+      return result;
     }
     if (value instanceof RegExp) {
-      return value.toString();
+      const result = value.toString();
+
+      return result;
     }
     if (Array.isArray(value)) {
       if (value.length === 0) {
@@ -1115,7 +1201,14 @@ class FilterEngine {
         return `[Array(${value.length})]`;
       }
 
-      return `[${value.map((v) => {return this.#formatValue(v, 20);}).join(', ')}]`;
+      const formattedItems = value.map((item) => {
+        const formattedItem = this.#formatValue(item, 20);
+
+        return formattedItem;
+      });
+      const result = `[${formattedItems.join(', ')}]`;
+
+      return result;
     }
     if (typeof value === 'object') {
       const keys = Object.keys(value);
@@ -1127,19 +1220,21 @@ class FilterEngine {
         return `{Object(${keys.length} keys)}`;
       }
       try {
-        const str = JSON.stringify(value, null, 0);
+        const serialized = JSON.stringify(value, null, 0);
 
-        if (str.length > maxLength) {
+        if (serialized.length > maximumLength) {
           return `{Object(${keys.length} keys)}`;
         }
 
-        return str;
+        return serialized;
       } catch {
         return `{Object(${keys.length} keys)}`;
       }
     }
 
-    return String(value);
+    const result = String(value);
+
+    return result;
   }
 
   /**
@@ -1149,9 +1244,9 @@ class FilterEngine {
    * @param {number} level - Wildcard nesting level
    * @returns {string} The array logic to use at this level
    */
-  #getGroupGateForLevel(condition: FilterCondition, level: number): string | ArrayLogicFunction {
+  #getGroupGateForLevel(condition: FilterConditionInterface, level: number): string {
     // groupGates MUST be an array matching the number of wildcards
-    if (!condition.groupGates || !Array.isArray(condition.groupGates)) {
+    if (condition.groupGates === undefined || !Array.isArray(condition.groupGates)) {
       throw new FilterConfigurationError(
         'groupGates must be an array with one entry per wildcard in the path',
         { 'groupGates': condition.groupGates }
@@ -1188,7 +1283,9 @@ class FilterEngine {
    * @returns {boolean} True if conditions should be considered empty
    */
   #hasEmptyConditions(): boolean {
-    return this.conditions.length === 0 || (this.conditions.length === 1 && !this.conditions[0]);
+    const result = this.conditions.length === 0 || (this.conditions.length === 1 && this.conditions[0] === undefined);
+
+    return result;
   }
 
   /**
@@ -1203,17 +1300,17 @@ class FilterEngine {
     }
 
     // Check for Unicode property escapes like \p{...} or \P{...}
-    if (/\\[pP]\{[^}]+\}/.test(pattern)) {
+    if (UNICODE_PROPERTY_ESCAPE_PATTERN.test(pattern)) {
       return true;
     }
 
     // Check for Unicode code point escapes like \u{...}
-    if (/\\u\{[^}]+\}/.test(pattern)) {
+    if (UNICODE_CODE_POINT_ESCAPE_PATTERN.test(pattern)) {
       return true;
     }
 
     // Check for surrogate pair patterns (high surrogate range)
-    if (/\\u[dD][8-9a-fA-F][0-9a-fA-F]{2}/.test(pattern)) {
+    if (SURROGATE_PAIR_PATTERN.test(pattern)) {
       return true;
     }
 
@@ -1226,13 +1323,15 @@ class FilterEngine {
    * @returns {string} Processed regex pattern
    */
   #processMatchesPattern(pattern: string): string {
-    const isRegexPattern = /^[\\^]|\$|[[(].*[\])]|[\\][dDsSwW]/.test(pattern);
+    const isRegexPattern = REGEX_LIKE_PATTERN.test(pattern);
 
     if (isRegexPattern) {
       return pattern;
     }
 
-    return `^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`;
+    const result = `^${pattern.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&').replace(WILDCARD_STAR_PATTERN, '.*')}$`;
+
+    return result;
   }
 
 
@@ -1246,11 +1345,11 @@ class FilterEngine {
     }
 
     const onlyCondition = this.compiledConditions[0];
+    const result = this.compiledConditions.length === 1
+        && onlyCondition?.type === ConditionType.CORE.LOGICAL
+        && (onlyCondition.conditions?.length ?? 0) === 0;
 
-    return this.compiledConditions.length === 1
-        && onlyCondition !== undefined
-        && onlyCondition[PropertyName.CORE.TYPE] === ConditionType.CORE.LOGICAL
-        && (onlyCondition[PropertyName.CORE.CONDITIONS]?.length ?? 0) === 0;
+    return result;
   }
 
 
@@ -1261,20 +1360,20 @@ class FilterEngine {
    * @returns {boolean} True if configuration is valid
    * @throws {Error} If configuration is invalid
    */
-  #validateConfiguration(config: ValidatableConfig, depth = 0): boolean {
+  #validateConfiguration(config: ValidatableConfigInterface, depth = 0): boolean {
     // Check if we've exceeded maximum nesting depth
-    if (depth >= this.maxDepth) {
+    if (depth >= this.maximumDepth) {
       throw new FilterConfigurationError(
-        `Maximum nesting depth of ${this.maxDepth} exceeded. Consider increasing maxDepth option or restructuring your filter.`,
+        `Maximum nesting depth of ${this.maximumDepth} exceeded. Consider increasing maximumDepth option or restructuring your filter.`,
         {
-          'maxDepth': this.maxDepth,
+          'maximumDepth': this.maximumDepth,
           'property': 'depth',
           'value': depth
         }
       );
     }
 
-    if (!config || typeof config !== 'object') {
+    if (config === null || config === undefined || typeof config !== 'object') {
       throw new FilterConfigurationError(
         'Filter configuration must be an object',
         {
@@ -1316,18 +1415,17 @@ class FilterEngine {
       );
     }
 
-    // Check if gate is valid - accept functions or strings
-    const isValidGate = typeof config.gate === 'function'
-                       || (typeof config.gate === 'string' && this.registry.gates.has(config.gate));
+    // Check if gate is valid - registered string only
+    const isValidGate = typeof config.gate === 'string' && this.registry.gates.has(config.gate);
 
     if (!isValidGate) {
       // Get list of valid gates for error message
       const validGates = Array.from(this.registry.gates.keys()).toSorted();
 
       throw new FilterGateError(
-        'Invalid logical gate. Must be a function or registered gate string.',
+        'Invalid logical gate. Must be a registered gate string.',
         {
-          'gate': config.gate || 'undefined',
+          'gate': config.gate !== '' ? config.gate : 'undefined',
           'validGates': validGates
         }
       );
@@ -1371,7 +1469,7 @@ class FilterEngine {
         continue;
       }
 
-      if (nested[PropertyName.CORE.GATE]) {
+      if (nested.gate !== undefined) {
         this.#validateNestedCondition(nested, i, depth + 1);
         continue;
       }
@@ -1388,7 +1486,7 @@ class FilterEngine {
    * @param {number} index - Index for error reporting
    * @throws {Error} If field condition is invalid
    */
-  #validateFieldCondition(nested: FilterCondition, index: number): void {
+  #validateFieldCondition(nested: FilterConditionInterface, index: number): void {
     // Check for undefined explicitly - empty string is a valid path for obj[""] access
     if (nested.path === undefined && nested.field === undefined) {
       throw new FilterConfigurationError(
@@ -1397,20 +1495,20 @@ class FilterEngine {
           'index': index,
           'property': 'path/field',
           'value': {
-            'field': nested.field || null,
-            'path': nested.path || null
+            'field': nested.field ?? null,
+            'path': nested.path ?? null
           }
         }
       );
     }
 
-    if (!nested.operator) {
+    if (nested.operator === undefined) {
       throw new FilterConfigurationError(
         `Field condition at index ${index} must have an 'operator'`,
         {
           'index': index,
           'property': PropertyName.CORE.OPERATOR,
-          'value': nested.operator || null
+          'value': null
         }
       );
     }
@@ -1425,17 +1523,17 @@ class FilterEngine {
    * @param {number} [depth=0] - Current nesting depth
    * @throws {Error} If nested condition is invalid
    */
-  #validateNestedCondition(nested: FilterCondition, index: number, depth = 0): void {
+  #validateNestedCondition(nested: FilterConditionInterface, index: number, depth = 0): void {
     try {
       this.#validateConfiguration(nested, depth);
     } catch (error) {
       throw new FilterConfigurationError(
-        `Invalid nested condition at index ${index}: ${getErrorMessage(error)}`,
+        `Invalid nested condition at index ${index}: ${FilterEngineHelpers.getErrorMessage(error)}`,
         {
+          'cause': FilterEngineHelpers.getErrorCause(error),
           'index': index,
           'property': 'nested condition'
-        },
-        getErrorCause(error)
+        }
       );
     }
   }
@@ -1446,27 +1544,17 @@ class FilterEngine {
    * @param {number} index - Index for error reporting
    * @throws {Error} If operator is invalid
    */
-  #validateOperator(operator: string | OperatorFunction, index: number): void {
-    // Skip validation for function references (direct operator functions)
-    if (typeof operator === 'function') {
+  #validateOperator(operator: string, index: number): void {
+    // Check if operator exists - dot notation only
+    if (this.registry.operators.has(operator)) {
       return;
-    }
-
-    // For string operators, check if they exist in the registry
-    if (typeof operator === 'string') {
-      // Check if operator exists - dot notation only
-      const hasOperator = this.registry.operators.has(operator);
-
-      if (hasOperator) {
-        return;
-      }
     }
 
     // Get list of available operators for error message
     const availableOperators = Array.from(this.registry.operators.keys()).toSorted();
 
     throw new FilterOperatorError(
-      `Invalid operator at index ${index}: '${operator}'. Operator must be a function reference or a registered operator string.`,
+      `Invalid operator at index ${index}: '${operator}'. Operator must be a registered operator string.`,
       {
         'availableOperators': availableOperators,
         'index': index,
@@ -1481,7 +1569,7 @@ class FilterEngine {
    * @param {*} data - Data to evaluate
    * @returns {Object} Result object with valid flag and errors array
    */
-  evaluate(data: FilterValue): { 'errors': ProcessedFilterError[]; 'valid': boolean; } {
+  evaluate(data: unknown): { 'errors': ProcessedFilterErrorInterface[]; 'valid': boolean; } {
     if (this.#shouldReturnTrueEarly()) {
       return {
         'errors': [],
@@ -1492,7 +1580,7 @@ class FilterEngine {
     // Handle different error collection modes
     if (this.includeErrors === ErrorCollectionMode.NONE) {
       // Validation only - no error collection for maximum performance
-      const result = this.#evaluateConditions(data, this.compiledConditions, this.gate, '', null);
+      const result = this.#evaluateConditions(data, this.compiledConditions, { 'gate': this.gate });
       const valid = this.mode(result);
 
       return {
@@ -1501,29 +1589,48 @@ class FilterEngine {
       };
     }
 
-    const errors: FilterEvaluationErrorEntry[] = [];
-    const result = this.#evaluateConditions(data, this.compiledConditions, this.gate, '', errors);
+    const errors: FilterEvaluationErrorEntryInterface[] = [];
+    const result = this.#evaluateConditions(data, this.compiledConditions, { 'errors': errors, 'gate': this.gate });
     const valid = this.mode(result);
 
     // Convert to validator-like format
-    const processedErrors: ProcessedFilterError[] = [];
+    const processedErrors: ProcessedFilterErrorInterface[] = [];
 
     if (!valid && errors.length > 0) {
-      for (const error of errors) {
-        const errorObj: ProcessedFilterError = {
-          'field': error.field || error.path || 'root',
+      const errorsLength = errors.length;
+
+      for (let errorIndex = 0; errorIndex < errorsLength; errorIndex += 1) {
+        const error = errors[errorIndex];
+
+        if (error === undefined) {
+          continue;
+        }
+
+        let field = 'root';
+
+        if (error.field !== undefined && error.field !== '') {
+          field = error.field;
+        } else if (error.path !== undefined && error.path !== '') {
+          field = error.path;
+        }
+        const source = error.operatorSource !== undefined && error.operatorSource !== ''
+          ? error.operatorSource
+          : 'unknown';
+
+        const processedError: ProcessedFilterErrorInterface = {
+          'field': field,
           'message': error.message,
           'operator': error.operator,
-          'source': error.operatorSource || 'unknown',
+          'source': source,
           'value': error.actual
         };
 
         // Add params if there are relevant parameters
         if (error.expected !== undefined) {
-          errorObj.params = { 'expected': error.expected };
+          processedError.parameters = { 'expected': error.expected };
         }
 
-        processedErrors.push(errorObj);
+        processedErrors.push(processedError);
       }
     }
 

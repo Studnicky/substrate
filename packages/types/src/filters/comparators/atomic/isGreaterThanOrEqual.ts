@@ -2,20 +2,21 @@
  * Checks if a value is greater than or equal to another value
  */
 
-import type { FilterValue } from '../../types.js';
-
 export class IsGreaterThanOrEqual {
-  static isGreaterThanOrEqual(value: unknown, comparison: FilterValue): boolean   {
+  static isGreaterThanOrEqual(value: unknown, comparison: unknown): boolean   {
     if (typeof value === 'number' && typeof comparison === 'number') {
-      return value >= comparison;
+      const result = value >= comparison;
+      return result;
     }
 
     if (typeof value === 'string' && typeof comparison === 'string') {
-      return value >= comparison;
+      const result = value >= comparison;
+      return result;
     }
 
     if (value instanceof Date && comparison instanceof Date) {
-      return value.getTime() >= comparison.getTime();
+      const result = value.getTime() >= comparison.getTime();
+      return result;
     }
 
     return false;

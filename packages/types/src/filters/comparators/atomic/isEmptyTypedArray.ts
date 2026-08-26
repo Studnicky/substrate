@@ -4,6 +4,7 @@
 
 export class IsEmptyTypedArray {
   static isEmptyTypedArray(value: unknown): boolean   {
-    return ArrayBuffer.isView(value) && (value as Uint8Array).length === 0;
+    const result = ArrayBuffer.isView(value) && (value as Uint8Array).length === 0;
+    return result;
   }
 }

@@ -2,10 +2,13 @@
  * Checks if a numeric value is not close to another within a specified precision
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { isCloseTo } from '../atomic/isCloseTo.js';
+import { IsCloseTo } from '../atomic/isCloseTo.js';
 
-export function isNotCloseTo(value: unknown, expected: FilterValue, precision = 2): boolean {
-  return !isCloseTo(value, expected, precision);
+export class IsNotCloseTo {
+  static isNotCloseTo(value: unknown, expected: FilterValueEntity.Type, precision = 2): boolean {
+    const result = !IsCloseTo.isCloseTo(value, expected, precision);
+    return result;
+  }
 }

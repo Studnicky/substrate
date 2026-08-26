@@ -14,7 +14,8 @@ export class AreObjectsReferenceEqual {
       // Use reference equality for ALL objects (including Date, RegExp, etc.)
       // This means new Date('2023-01-01') !== new Date('2023-01-01')
       // and [1,2,3] !== [1,2,3] if they are different object instances
-      return value === filterValue;
+      const result = value === filterValue;
+      return result;
     }
 
     // Not objects

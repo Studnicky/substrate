@@ -3,16 +3,23 @@
  */
 
 import type {
-  FilterCondition
-} from '../../types.js';
+  FilterConditionInterface
+} from '../../interfaces.js';
 
 import { Guard } from '../../../guards/Guard.js';
-import { areStringsMatching } from '../atomic/areStringsMatching.js';
+import { AreStringsMatching } from '../atomic/areStringsMatching.js';
 
-export function doesStringEndWith(value: unknown, filterValue: unknown, condition: FilterCondition = {}) : boolean {
-  if (!Guard.isString(value) || !Guard.isString(filterValue)) {
-    return false;
+export class DoesStringEndWith {
+  static doesStringEndWith(value: unknown, filterValue: unknown, condition: FilterConditionInterface = {}): boolean {
+    if (!Guard.isString(value) || !Guard.isString(filterValue)) {
+      return false;
+    }
+
+    const result = AreStringsMatching.areStringsMatching(value, filterValue, condition, (firstValue, secondValue) => {
+      const matches = firstValue.endsWith(secondValue);
+      return matches;
+    });
+
+    return result;
   }
-
-  return areStringsMatching(value, filterValue, condition, (str1, str2) => {return str1.endsWith(str2);});
 }

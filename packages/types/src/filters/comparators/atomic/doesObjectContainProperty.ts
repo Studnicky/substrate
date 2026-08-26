@@ -5,11 +5,12 @@
 import { Guard } from '../../../guards/Guard.js';
 
 export class DoesObjectContainProperty {
-  static doesObjectContainProperty(obj: unknown, propertyName: string): boolean   {
-    if (!Guard.isRecord(obj)) {
+  static doesObjectContainProperty(candidate: unknown, propertyName: string): boolean   {
+    if (!Guard.isRecord(candidate)) {
       return false;
     }
 
-    return Object.prototype.hasOwnProperty.call(obj, propertyName);
+    const result = Object.hasOwn(candidate, propertyName);
+    return result;
   }
 }

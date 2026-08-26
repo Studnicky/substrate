@@ -2,10 +2,10 @@
  * Compares two arrays for deep equality
  */
 
-import type { FilterCondition } from '../../types.js';
+import type { FilterConditionInterface } from '../../interfaces.js';
 
 export class AreArraysEqual {
-  static areArraysEqual(value: unknown[], filterValue: unknown[], condition: FilterCondition = {}) : boolean {
+  static areArraysEqual(value: unknown[], filterValue: unknown[], condition: FilterConditionInterface = {}) : boolean {
     if (value.length !== filterValue.length) {
       return false;
     }
@@ -25,7 +25,7 @@ export class AreArraysEqual {
   /**
    * Internal deep comparison function to avoid circular dependencies
    */
-  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterCondition = {}) : boolean {
+  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterConditionInterface = {}) : boolean {
     // Quick reference equality check
     if (value === filterValue) {
       return true;
@@ -33,12 +33,14 @@ export class AreArraysEqual {
 
     // Handle null/undefined
     if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      return value === filterValue;
+      const result = value === filterValue;
+      return result;
     }
 
     // Handle arrays recursively
     if (Array.isArray(value) && Array.isArray(filterValue)) {
-      return AreArraysEqual.areArraysEqual(value, filterValue, condition);
+      const result = AreArraysEqual.areArraysEqual(value, filterValue, condition);
+      return result;
     }
 
     // Handle objects
@@ -50,14 +52,15 @@ export class AreArraysEqual {
         return false;
       }
 
-      for (const key of keys1) {
-        if (!Object.prototype.hasOwnProperty.call(filterValue, key)) {
+      for (let i = 0; i < keys1.length; i++) {
+        const key = keys1.at(i);
+        if (key === undefined || !Object.hasOwn(filterValue, key)) {
           return false;
         }
-        const valueObj = value as Record<string, unknown>;
-        const filterObj = filterValue as Record<string, unknown>;
+        const valueRecord = value as Record<string, unknown>;
+        const filterRecord = filterValue as Record<string, unknown>;
 
-        if (!AreArraysEqual.compareDeep(valueObj[key], filterObj[key], condition)) {
+        if (!AreArraysEqual.compareDeep(valueRecord[key], filterRecord[key], condition)) {
           return false;
         }
       }
@@ -66,6 +69,7 @@ export class AreArraysEqual {
     }
 
     // Primitive comparison
-    return value === filterValue;
+    const result = value === filterValue;
+    return result;
   }
 }

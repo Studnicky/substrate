@@ -3,6 +3,8 @@
  * @description Validates that paths follow strict dot notation format
  */
 
+import { WHOLE_NUMBER_PATTERN } from './constants/WholeNumberPattern.js';
+
 export class ValidatePath {
   /**
    * Validates that a path is in proper dot notation format
@@ -49,45 +51,51 @@ export class ValidatePath {
     // Split by dots and validate each segment
     const segments = path.split('.');
 
-    for (const segment of segments) {
+    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+      const segment = segments[segmentIndex]!;
+
       // Each segment must be non-empty
       if (segment.length === 0) {
         return false;
       }
 
       // Check for array notation (allowed)
-      if (segment.includes('[')) {
-        const parts = segment.split('[');
-        const fieldName = parts[0];
-        const bracketPart = parts[1];
-
-        // Must have field name before bracket
-        if (fieldName === undefined || fieldName.length === 0) {
-          return false;
-        }
-
-        // Validate field name part
-        if (!ValidatePath.isValidSegment(fieldName)) {
-          return false;
-        }
-
-        // Check bracket part
-        if (parts.length !== 2 || !bracketPart?.endsWith(']')) {
-          return false;
-        }
-
-        // Remove closing bracket
-        const indexPart = bracketPart.slice(0, -1);
-
-        // Index must be number or wildcard
-        if (indexPart !== '*' && !/^\d+$/.test(indexPart)) {
-          return false;
-        }
-      } else {
+      if (!segment.includes('[')) {
         // Regular segment - validate identifier
         if (!ValidatePath.isValidSegment(segment)) {
           return false;
         }
+        continue;
+      }
+
+      const parts = segment.split('[');
+      const fieldName = parts[0];
+      const bracketPart = parts[1];
+
+      // Must have field name before bracket
+      if (fieldName === undefined || fieldName.length === 0) {
+        return false;
+      }
+
+      // Validate field name part
+      if (!ValidatePath.isValidSegment(fieldName)) {
+        return false;
+      }
+
+      // Check bracket part
+      if (parts.length !== 2 || bracketPart === undefined) {
+        return false;
+      }
+      if (!bracketPart.endsWith(']')) {
+        return false;
+      }
+
+      // Remove closing bracket
+      const indexPart = bracketPart.slice(0, -1);
+
+      // Index must be number or wildcard
+      if (indexPart !== '*' && !WHOLE_NUMBER_PATTERN.test(indexPart)) {
+        return false;
       }
     }
 
@@ -117,8 +125,9 @@ export class ValidatePath {
     ]);
     const hasDangerousChar = [...segment].some((char) => {
       const codePoint = char.codePointAt(0) ?? 0;
+      const isDangerous = codePoint <= 0x1f || codePoint === 0x7f || dangerousMarkupChars.has(char);
 
-      return codePoint <= 0x1f || codePoint === 0x7f || dangerousMarkupChars.has(char);
+      return isDangerous;
     });
 
     if (hasDangerousChar) {

@@ -11,6 +11,7 @@
  */
 export class IsStringLength {
   static isStringLength(value: unknown, length: number): boolean   {
-    return typeof value === 'string' && value.length === length;
+    const result = typeof value === 'string' && value.length === length;
+    return result;
   }
 }

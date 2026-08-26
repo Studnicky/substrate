@@ -5,6 +5,7 @@
 
 export class AreTypesSame {
   static areTypesSame(value: unknown, filterValue: unknown): boolean   {
-    return typeof value === typeof filterValue;
+    const result = typeof value === typeof filterValue;
+    return result;
   }
 }

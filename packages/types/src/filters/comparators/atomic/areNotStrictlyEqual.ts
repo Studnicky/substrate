@@ -5,6 +5,7 @@
 
 export class AreNotStrictlyEqual {
   static areNotStrictlyEqual(value: unknown, filterValue: unknown): boolean   {
-    return !Object.is(value, filterValue);
+    const result = !Object.is(value, filterValue);
+    return result;
   }
 }

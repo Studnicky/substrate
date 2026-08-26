@@ -8,8 +8,9 @@ import { FilterError } from './FilterError.js';
 /**
  * Details for PluginError
  */
-export interface PluginErrorDetails {
-  'availableItems'?: string[];
+export interface PluginErrorDetailsInterface {
+  'availableItems'?: readonly string[];
+  'cause'?: Error | undefined;
   'name'?: string;
   'namespace'?: string;
   'pluginType'?: string;
@@ -19,9 +20,9 @@ export interface PluginErrorDetails {
  * Error thrown when plugin operations fail
  */
 export class PluginError extends FilterError {
-  public readonly availableItems: string[] | null;
-  public readonly context: PluginErrorDetails;
-  public readonly details: PluginErrorDetails;
+  public readonly availableItems: readonly string[] | null;
+  public readonly context: PluginErrorDetailsInterface;
+  public readonly details: PluginErrorDetailsInterface;
   public readonly itemName: string | null;
   public readonly namespace: string | null;
   public readonly pluginType: string | null;
@@ -29,27 +30,39 @@ export class PluginError extends FilterError {
   /**
    * Create a PluginError
    */
-  constructor(message: string, code: string, details: PluginErrorDetails = {}, cause?: Error) {
-    super(message, code, cause);
+  constructor(message: string, code: string, details: PluginErrorDetailsInterface = {}) {
+    super(message, { 'cause': details.cause, 'code': code });
 
     // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor?.name || 'PluginError';
+    this.name = this.constructor.name !== '' ? this.constructor.name : 'PluginError';
 
     // Store context (alias for details) - use the passed object directly
-    this.context = details ?? {};
+    this.context = details;
 
     // Add details property
     this.details = this.context;
 
     // Initialize all properties unconditionally for V8 optimization (maintaining hidden classes)
-    this.pluginType = (details && 'pluginType' in details) ? (details.pluginType || null) : null;
-    this.itemName = (details && 'name' in details) ? (details.name || null) : null;
-    this.namespace = (details && 'namespace' in details) ? (details.namespace || null) : null;
-    this.availableItems = (details && 'availableItems' in details) ? (details.availableItems || null) : null;
+    this.pluginType = ('pluginType' in details && details.pluginType !== undefined && details.pluginType !== '') ? details.pluginType : null;
+    this.itemName = ('name' in details && details.name !== undefined && details.name !== '') ? details.name : null;
+    this.namespace = ('namespace' in details && details.namespace !== undefined && details.namespace !== '') ? details.namespace : null;
+    this.availableItems = ('availableItems' in details && details.availableItems !== undefined) ? details.availableItems : null;
+  }
+
+  public override toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      'availableItems': this.availableItems,
+      'context': this.context,
+      'details': this.details,
+      'itemName': this.itemName,
+      'namespace': this.namespace,
+      'pluginType': this.pluginType
+    };
   }
 
   static {
     // Ensure proper prototype chain
-    this.prototype.constructor = this;
+    PluginError.prototype.constructor = PluginError;
   }
 }

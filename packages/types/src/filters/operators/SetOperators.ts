@@ -2,8 +2,6 @@
  * @module SetOperators
  * @description Set operation implementations for FilterEngine
  */
-import type { FilterValue } from '../types.js';
-
 
 /**
  * Set operation implementations
@@ -14,12 +12,13 @@ export class SetOperators {
    * @param {*} value - Value to check (should be a Set)
    * @returns {boolean} True if Set is empty
    */
-  static handleEmpty(value: FilterValue) {
+  static handleEmpty(value: unknown) {
     if (!(value instanceof Set)) {
       return false;
     }
 
-    return value.size === 0;
+    const result = value.size === 0;
+    return result;
   }
 
   /**
@@ -29,7 +28,7 @@ export class SetOperators {
    * @returns {boolean} True if Sets are deeply equal
    * @throws {Error} If either value is not a Set
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: unknown, filterValue: unknown) {
     if (!(value instanceof Set)) {
       throw new Error(`SET.EQUALS requires value to be a Set, got ${typeof value}`);
     }
@@ -56,12 +55,13 @@ export class SetOperators {
    * @param {*} filterValue - Value to find in the Set
    * @returns {boolean} True if Set contains value
    */
-  static handleHas(value: FilterValue, filterValue: FilterValue) {
+  static handleHas(value: unknown, filterValue: unknown) {
     if (!(value instanceof Set)) {
       return false;
     }
 
-    return value.has(filterValue);
+    const result = value.has(filterValue);
+    return result;
   }
 
   /**
@@ -71,8 +71,9 @@ export class SetOperators {
    * @returns {boolean} True if Sets are identical
    * @throws {Error} If either value is not a Set
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
-    return this.handleEquals(value, filterValue);
+  static handleIdentical(value: unknown, filterValue: unknown) {
+    const result = this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -81,12 +82,13 @@ export class SetOperators {
    * @param {*} filterValue - Value to check absence of
    * @returns {boolean} True if Set does not contain value
    */
-  static handleMissing(value: FilterValue, filterValue: FilterValue) {
+  static handleMissing(value: unknown, filterValue: unknown) {
     if (!(value instanceof Set)) {
       return false;
     }
 
-    return !value.has(filterValue);
+    const result = !value.has(filterValue);
+    return result;
   }
 
   /**
@@ -94,12 +96,13 @@ export class SetOperators {
    * @param {*} value - Value to check (should be a Set)
    * @returns {boolean} True if Set is not empty
    */
-  static handleNotEmpty(value: FilterValue) {
+  static handleNotEmpty(value: unknown) {
     if (!(value instanceof Set)) {
       return false;
     }
 
-    return value.size > 0;
+    const result = value.size > 0;
+    return result;
   }
 
   /**
@@ -109,8 +112,9 @@ export class SetOperators {
    * @returns {boolean} True if Sets are not equal
    * @throws {Error} If either value is not a Set
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotEquals(value: unknown, filterValue: unknown) {
+    const result = !this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -120,8 +124,9 @@ export class SetOperators {
    * @returns {boolean} True if Sets are not identical
    * @throws {Error} If either value is not a Set
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotIdentical(value: unknown, filterValue: unknown) {
+    const result = !this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -130,7 +135,7 @@ export class SetOperators {
    * @param {*} filterValue - Size to compare against
    * @returns {boolean} True if Set size matches
    */
-  static handleSize(value: FilterValue, filterValue: FilterValue) {
+  static handleSize(value: unknown, filterValue: unknown) {
     if (!(value instanceof Set)) {
       return false;
     }
@@ -138,6 +143,7 @@ export class SetOperators {
       return false;
     }
 
-    return value.size === filterValue;
+    const result = value.size === filterValue;
+    return result;
   }
 }

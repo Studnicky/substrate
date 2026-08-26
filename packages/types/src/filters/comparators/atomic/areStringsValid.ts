@@ -5,6 +5,7 @@
 
 export class AreStringsValid {
   static areStringsValid(value: unknown, filterValue: unknown): value is string   {
-    return typeof value === 'string' && typeof filterValue === 'string';
+    const result = typeof value === 'string' && typeof filterValue === 'string';
+    return result;
   }
 }

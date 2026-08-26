@@ -8,6 +8,7 @@
 
 export class IsNull {
   static isNull(value: unknown): boolean   {
-    return value === null;
+    const result = value === null;
+    return result;
   }
 }

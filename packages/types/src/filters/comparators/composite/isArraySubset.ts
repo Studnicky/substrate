@@ -2,14 +2,21 @@
  * Checks if an array is a subset of another array (all items are contained)
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { doesArrayContain } from './doesArrayContain.js';
+import { DoesArrayContain } from './doesArrayContain.js';
 
-export function isArraySubset(subset: FilterValue, superset: FilterValue): boolean {
-  if (!Array.isArray(subset) || !Array.isArray(superset)) {
-    return false;
+export class IsArraySubset {
+  static isArraySubset(subset: FilterValueEntity.Type, superset: FilterValueEntity.Type): boolean {
+    if (!Array.isArray(subset) || !Array.isArray(superset)) {
+      return false;
+    }
+
+    const result = subset.every((item) => {
+      const isContained = DoesArrayContain.doesArrayContain(superset, item);
+      return isContained;
+    });
+
+    return result;
   }
-
-  return subset.every((item) => {return doesArrayContain(superset, item);});
 }

@@ -2,23 +2,25 @@
  * Performs case-sensitive or case-insensitive string comparison
  */
 
-import type { FilterCondition } from '../../types.js';
+import type { FilterConditionInterface } from '../../interfaces.js';
 
 export class AreStringsMatching {
   static areStringsMatching(
-  value: string,
-  filterValue: string,
-  condition: FilterCondition,
-  operation: (_str1: string, _str2: string) => boolean
-): boolean   {
+    value: string,
+    filterValue: string,
+    condition: FilterConditionInterface,
+    operation: (_firstValue: string, _secondValue: string) => boolean
+  ): boolean   {
     // Check if caseSensitive is explicitly false (not just undefined/null)
     if (condition.caseSensitive === false) {
-      const lowerStr = condition.lowerValue || filterValue.toLowerCase();
+      const lowerCaseFilterValue = condition.lowerValue ?? filterValue.toLowerCase();
 
-      return operation(value.toLowerCase(), lowerStr);
+      const result = operation(value.toLowerCase(), lowerCaseFilterValue);
+      return result;
     }
 
     // Default to case-sensitive if not explicitly set to false
-    return operation(value, filterValue);
+    const result = operation(value, filterValue);
+    return result;
   }
 }

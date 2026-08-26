@@ -4,6 +4,7 @@
 
 export class IsEmptyMap {
   static isEmptyMap(value: unknown): boolean   {
-    return value instanceof Map && value.size === 0;
+    const result = value instanceof Map && value.size === 0;
+    return result;
   }
 }

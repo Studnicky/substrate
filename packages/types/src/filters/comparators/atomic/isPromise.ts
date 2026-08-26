@@ -10,10 +10,11 @@
  */
 export class IsPromise {
   static isPromise(value: unknown): boolean   {
-    return value instanceof Promise
+    const result = value instanceof Promise
       || (value !== null
        && value !== undefined
        && typeof value === 'object'
        && typeof (value as Record<string, unknown>).then === 'function');
+    return result;
   }
 }

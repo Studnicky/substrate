@@ -1,14 +1,16 @@
-import type { FilterCondition, FilterValue } from '../types.js';
+import type { FilterValueEntity } from '../FilterValueEntity.js';
+import type { FilterConditionInterface } from '../interfaces.js';
 
 /**
  * @module StringOperators
  * @description String operation implementations for FilterEngine
  */
 import { Guard } from '../../guards/Guard.js';
-import { doesStringEndWith } from '../comparators/composite/doesStringEndWith.js';
-import { doesStringStartWith } from '../comparators/composite/doesStringStartWith.js';
-import { doesValueMatchPattern } from '../comparators/composite/matchesPattern.js';
-import { doesStringContain } from '../comparators/composite/stringContains.js';
+import { DoesStringContain } from '../comparators/composite/doesStringContain.js';
+import { DoesStringEndWith } from '../comparators/composite/doesStringEndWith.js';
+import { DoesStringStartWith } from '../comparators/composite/doesStringStartWith.js';
+import { DoesValueMatchPattern } from '../comparators/composite/doesValueMatchPattern.js';
+import { WHITESPACE_PATTERN } from '../enums/constants/WhitespacePattern.js';
 
 /**
  * String operation implementations
@@ -19,11 +21,14 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - Substring to find
    * @param {Object} condition - Compiled condition
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if value contains substring
    */
-  static handleContains(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
-    const result = doesStringContain(value, filterValue, condition);
+  static handleContains(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    if (typeof value !== 'string' || typeof filterValue !== 'string') {
+      return false;
+    }
+
+    const result = DoesStringContain.doesStringContain(value, filterValue, options?.condition);
 
     return result;
   }
@@ -33,12 +38,14 @@ export class StringOperators {
    * @param {*} value - Value to check (should be a string)
    * @returns {boolean} True if string is empty
    */
-  static handleEmpty(value: FilterValue) {
+  static handleEmpty(value: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       return false;
     }
 
-    return value.length === 0;
+    const result = value.length === 0;
+
+    return result;
   }
 
   /**
@@ -46,11 +53,14 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - Suffix to match
    * @param {Object} condition - Compiled condition
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if value ends with suffix
    */
-  static handleEndsWith(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
-    const result = doesStringEndWith(value, filterValue, condition);
+  static handleEndsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    if (typeof value !== 'string' || typeof filterValue !== 'string') {
+      return false;
+    }
+
+    const result = DoesStringEndWith.doesStringEndWith(value, filterValue, options?.condition);
 
     return result;
   }
@@ -62,7 +72,7 @@ export class StringOperators {
    * @returns {boolean} True if strings are exactly equal
    * @throws {Error} If either value is not a string
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       throw new Error(`STRING.EQUALS requires value to be a string, got ${typeof value}`);
     }
@@ -70,7 +80,9 @@ export class StringOperators {
       throw new Error(`STRING.EQUALS requires filter value to be a string, got ${typeof filterValue}`);
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
 
@@ -79,13 +91,13 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - Substring to check absence of
    * @param {Object} condition - Compiled condition
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if value does not contain substring
    */
-  static handleExcludes(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
-    const contains = doesStringContain(value, filterValue, condition);
+  static handleExcludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const contains = DoesStringContain.doesStringContain(value, filterValue, options?.condition);
+    const result = !contains;
 
-    return !contains;
+    return result;
   }
 
   /**
@@ -95,7 +107,7 @@ export class StringOperators {
    * @returns {boolean} True if strings are identical
    * @throws {Error} If either value is not a string
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       throw new Error(`STRING.IDENTICAL requires value to be a string, got ${typeof value}`);
     }
@@ -103,7 +115,9 @@ export class StringOperators {
       throw new Error(`STRING.IDENTICAL requires filter value to be a string, got ${typeof filterValue}`);
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
   /**
@@ -112,7 +126,7 @@ export class StringOperators {
    * @param {*} filterValue - Length to compare against
    * @returns {boolean} True if string length matches
    */
-  static handleLength(value: FilterValue, filterValue: FilterValue) {
+  static handleLength(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       return false;
     }
@@ -120,7 +134,9 @@ export class StringOperators {
       return false;
     }
 
-    return value.length === filterValue;
+    const result = value.length === filterValue;
+
+    return result;
   }
 
   /**
@@ -128,20 +144,23 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - String to match against
    * @param {Object} condition - Compiled condition
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if strings match exactly
    */
-  static handleMatches(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
+  static handleMatches(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
     // Strict type checking - only strings can match
     if (typeof value !== 'string' || typeof filterValue !== 'string') {
       return false;
     }
 
-    if (!condition?.caseSensitive) {
-      return value.toLowerCase() === filterValue.toLowerCase();
+    if (options?.condition?.caseSensitive !== true) {
+      const result = value.toLowerCase() === filterValue.toLowerCase();
+
+      return result;
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
   /**
@@ -149,12 +168,14 @@ export class StringOperators {
    * @param {*} value - Value to check (should be a string)
    * @returns {boolean} True if string is not empty
    */
-  static handleNotEmpty(value: FilterValue) {
+  static handleNotEmpty(value: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       return false;
     }
 
-    return value.length > 0;
+    const result = value.length > 0;
+
+    return result;
   }
 
   /**
@@ -164,7 +185,7 @@ export class StringOperators {
    * @returns {boolean} True if strings are not equal
    * @throws {Error} If either value is not a string
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       throw new Error(`STRING.NOT_EQUALS requires value to be a string, got ${typeof value}`);
     }
@@ -172,7 +193,9 @@ export class StringOperators {
       throw new Error(`STRING.NOT_EQUALS requires filter value to be a string, got ${typeof filterValue}`);
     }
 
-    return value !== filterValue;
+    const result = value !== filterValue;
+
+    return result;
   }
 
   /**
@@ -182,7 +205,7 @@ export class StringOperators {
    * @returns {boolean} True if strings are not identical
    * @throws {Error} If either value is not a string
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       throw new Error(`STRING.NOT_IDENTICAL requires value to be a string, got ${typeof value}`);
     }
@@ -190,7 +213,9 @@ export class StringOperators {
       throw new Error(`STRING.NOT_IDENTICAL requires filter value to be a string, got ${typeof filterValue}`);
     }
 
-    return value !== filterValue;
+    const result = value !== filterValue;
+
+    return result;
   }
 
   /**
@@ -198,20 +223,17 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - Regex pattern
    * @param {Object} condition - Compiled condition with regex
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if pattern matches
    */
-  static handleRegex(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
-    if (condition?.regexError) {
+  static handleRegex(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    if (options?.condition?.regexError === true) {
       return false;
     }
 
-    const compiledRegex = condition?.compiledRegex;
-    const pattern = Guard.isString(compiledRegex) || Guard.isRegExp(compiledRegex)
-      ? compiledRegex
-      : (Guard.isString(filterValue) || Guard.isRegExp(filterValue) ? filterValue : String(filterValue));
+    const pattern = StringOperators.resolveRegexPattern(options?.condition, filterValue);
+    const result = DoesValueMatchPattern.doesValueMatchPattern(value, pattern);
 
-    return doesValueMatchPattern(value, pattern);
+    return result;
   }
 
   /**
@@ -219,11 +241,14 @@ export class StringOperators {
    * @param {*} value - Value to check
    * @param {*} filterValue - Prefix to match
    * @param {Object} condition - Compiled condition
-   * @param {Object} engine - FilterEngine instance for helper methods
    * @returns {boolean} True if value starts with prefix
    */
-  static handleStartsWith(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _engine?: unknown) {
-    const result = doesStringStartWith(value, filterValue, condition);
+  static handleStartsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    if (typeof value !== 'string' || typeof filterValue !== 'string') {
+      return false;
+    }
+
+    const result = DoesStringStartWith.doesStringStartWith(value, filterValue, options?.condition);
 
     return result;
   }
@@ -235,7 +260,7 @@ export class StringOperators {
    * @returns {boolean} True if word count matches
    * @throws {Error} If value is not a string or filterValue is not a number
    */
-  static handleWordCount(value: FilterValue, filterValue: FilterValue) {
+  static handleWordCount(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'string') {
       throw new Error(`STRING.WORD_COUNT requires value to be a string, got ${typeof value}`);
     }
@@ -244,9 +269,33 @@ export class StringOperators {
     }
 
     // Split by whitespace and filter out empty strings
-    const words = value.trim().split(/\s+/)
-      .filter((word) => {return word.length > 0;});
+    const words = value.trim().split(WHITESPACE_PATTERN)
+      .filter((word) => {
+        const isNonEmpty = word.length > 0;
 
-    return words.length === filterValue;
+        return isNonEmpty;
+      });
+
+    const result = words.length === filterValue;
+
+    return result;
+  }
+
+  /**
+   * Resolves the pattern to test a value against for STRING.REGEX
+   */
+  private static resolveRegexPattern(condition: FilterConditionInterface | undefined, filterValue: FilterValueEntity.Type): string | RegExp {
+    const compiledRegex = condition?.compiledRegex;
+
+    if (Guard.isString(compiledRegex) || Guard.isRegExp(compiledRegex)) {
+      return compiledRegex;
+    }
+    if (Guard.isString(filterValue) || Guard.isRegExp(filterValue)) {
+      return filterValue;
+    }
+
+    const result = String(filterValue);
+
+    return result;
   }
 }

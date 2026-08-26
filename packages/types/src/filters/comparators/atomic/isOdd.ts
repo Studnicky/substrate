@@ -10,6 +10,7 @@
  */
 export class IsOdd {
   static isOdd(value: unknown): boolean   {
-    return typeof value === 'number' && Number.isFinite(value) && Math.abs(value % 2) === 1;
+    const result = typeof value === 'number' && Number.isFinite(value) && Math.abs(value % 2) === 1;
+    return result;
   }
 }

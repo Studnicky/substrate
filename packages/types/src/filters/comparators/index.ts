@@ -3,131 +3,122 @@
  */
 
 // Deep equality atomics
-export { areArraysEqual } from './atomic/areArraysEqual.js';
+export { AreArraysEqual } from './atomic/areArraysEqual.js';
 // ============= Atomic Comparators =============
 // Basic type checks and state
-export { areInstancesOf } from './atomic/areInstancesOf.js';
-export { areMapsEqual } from './atomic/areMapsEqual.js';
-export { areNaNEqual } from './atomic/areNaNEqual.js';
-export { areNaNStrict } from './atomic/areNaNStrict.js';
-export { areNotStrictlyEqual } from './atomic/areNotStrictlyEqual.js';
-export { areNullUndefinedEqual } from './atomic/areNullUndefinedEqual.js';
-export { areObjectsEqual } from './atomic/areObjectsEqual.js';
-export { areObjectsReferenceEqual } from './atomic/areObjectsReferenceEqual.js';
+export { AreInstancesOf } from './atomic/areInstancesOf.js';
+export { AreMapsEqual } from './atomic/areMapsEqual.js';
+export { AreNaNEqual } from './atomic/areNaNEqual.js';
+export { AreNaNStrict } from './atomic/areNaNStrict.js';
+export { AreNotStrictlyEqual } from './atomic/areNotStrictlyEqual.js';
+export { AreNullUndefinedEqual } from './atomic/areNullUndefinedEqual.js';
+export { AreObjectsEqual } from './atomic/areObjectsEqual.js';
+export { AreObjectsReferenceEqual } from './atomic/areObjectsReferenceEqual.js';
 // Equality comparisons
-export { areReferenceEqual } from './atomic/areReferenceEqual.js';
-export { areStringsMatching } from './atomic/areStringsMatching.js';
+export { AreReferenceEqual } from './atomic/areReferenceEqual.js';
+export { AreStringsMatching } from './atomic/areStringsMatching.js';
 // String foundations
-export { areStringsValid } from './atomic/areStringsValid.js';
-export { areTypesSame } from './atomic/areTypesSame.js';
-export { doesObjectContainProperty } from './atomic/doesObjectContainProperty.js';
-export { isAlphanumeric } from './atomic/isAlphanumeric.js';
-export { isArray } from './atomic/isArray.js';
-export { isArrayLength } from './atomic/isArrayLength.js';
-export { isCallable } from './atomic/isCallable.js';
-export { isCloseTo } from './atomic/isCloseTo.js';
-export { isDate } from './atomic/isDate.js';
+export { AreStringsValid } from './atomic/areStringsValid.js';
+export { AreTypesSame } from './atomic/areTypesSame.js';
+export { DoesObjectContainProperty } from './atomic/doesObjectContainProperty.js';
+export { IsAlphanumeric } from './atomic/isAlphanumeric.js';
+export { IsArray } from './atomic/isArray.js';
+export { IsArrayLength } from './atomic/isArrayLength.js';
+export { IsCallable } from './atomic/isCallable.js';
+export { IsCloseTo } from './atomic/isCloseTo.js';
+export { IsDate } from './atomic/isDate.js';
 // Utility and validation
-export { isDateLike } from './atomic/isDateLike.js';
-export { isDefined } from './atomic/isDefined.js';
+export { IsDateLike } from './atomic/isDateLike.js';
+export { IsDefined } from './atomic/isDefined.js';
 
 // Emptiness and length checks
-export { isEmptyArray } from './atomic/isEmptyArray.js';
-export { isEmptyMap } from './atomic/isEmptyMap.js';
-export { isEmptyPlainObject } from './atomic/isEmptyPlainObject.js';
-export { isEmptyRegExp } from './atomic/isEmptyRegExp.js';
-export { isEmptySet } from './atomic/isEmptySet.js';
-export { isEmptyString } from './atomic/isEmptyString.js';
-export { isEmptyTypedArray } from './atomic/isEmptyTypedArray.js';
-export { isEven } from './atomic/isEven.js';
+export { IsEmptyArray } from './atomic/isEmptyArray.js';
+export { IsEmptyMap } from './atomic/isEmptyMap.js';
+export { IsEmptyPlainObject } from './atomic/isEmptyPlainObject.js';
+export { IsEmptyRegExp } from './atomic/isEmptyRegExp.js';
+export { IsEmptySet } from './atomic/isEmptySet.js';
+export { IsEmptyString } from './atomic/isEmptyString.js';
+export { IsEmptyTypedArray } from './atomic/isEmptyTypedArray.js';
+export { IsEven } from './atomic/isEven.js';
 
-export { isFalse } from './atomic/isFalse.js';
-export { isFalsy } from './atomic/isFalsy.js';
+export { IsFalse } from './atomic/isFalse.js';
+export { IsFalsy } from './atomic/isFalsy.js';
 
-export { isFinite } from './atomic/isFinite.js';
-export { isFunction } from './atomic/isFunction.js';
+export { IsFinite } from './atomic/isFinite.js';
+export { IsFunction } from './atomic/isFunction.js';
 // Numeric comparisons
-export { isGreaterThan } from './atomic/isGreaterThan.js';
-export { isGreaterThanOrEqual } from './atomic/isGreaterThanOrEqual.js';
-export { isInstanceOf } from './atomic/isInstanceOf.js';
-export { isInteger } from './atomic/isInteger.js';
-export { isIterable } from './atomic/isIterable.js';
-export { isLessThan } from './atomic/isLessThan.js';
-export { isLessThanOrEqual } from './atomic/isLessThanOrEqual.js';
-export { isMap } from './atomic/isMap.js';
-export { isNegative } from './atomic/isNegative.js';
+export { IsGreaterThan } from './atomic/isGreaterThan.js';
+export { IsGreaterThanOrEqual } from './atomic/isGreaterThanOrEqual.js';
+export { IsInstanceOf } from './atomic/isInstanceOf.js';
+export { IsInteger } from './atomic/isInteger.js';
+export { IsIterable } from './atomic/isIterable.js';
+export { IsLessThan } from './atomic/isLessThan.js';
+export { IsLessThanOrEqual } from './atomic/isLessThanOrEqual.js';
+export { IsMap } from './atomic/isMap.js';
+export { IsNegative } from './atomic/isNegative.js';
 
-export { isNotNull } from './atomic/isNotNull.js';
-export { isNull } from './atomic/isNull.js';
-export { isNullOrUndefined } from './atomic/isNullOrUndefined.js';
-export { isNumber } from './atomic/isNumber.js';
-export { isObjectPropertyCount } from './atomic/isObjectPropertyCount.js';
-export { isOdd } from './atomic/isOdd.js';
-export { isPositive } from './atomic/isPositive.js';
-export { isPromise } from './atomic/isPromise.js';
+export { IsNotNull } from './atomic/isNotNull.js';
+export { IsNull } from './atomic/isNull.js';
+export { IsNullOrUndefined } from './atomic/isNullOrUndefined.js';
+export { IsNumber } from './atomic/isNumber.js';
+export { IsObjectPropertyCount } from './atomic/isObjectPropertyCount.js';
+export { IsOdd } from './atomic/isOdd.js';
+export { IsPositive } from './atomic/isPositive.js';
+export { IsPromise } from './atomic/isPromise.js';
 
-export { isRangeValid } from './atomic/isRangeValid.js';
-export { isRegExp } from './atomic/isRegExp.js';
-export { isSet } from './atomic/isSet.js';
-export { isString } from './atomic/isString.js';
-export { isStringLength } from './atomic/isStringLength.js';
-export { isSymbol } from './atomic/isSymbol.js';
-export { isTrue } from './atomic/isTrue.js';
-export { isTruthy } from './atomic/isTruthy.js';
-export { isTypeOf } from './atomic/isTypeOf.js';
+export { IsRangeValid } from './atomic/isRangeValid.js';
+export { IsRegExp } from './atomic/isRegExp.js';
+export { IsSet } from './atomic/isSet.js';
+export { IsString } from './atomic/isString.js';
+export { IsStringLength } from './atomic/isStringLength.js';
+export { IsSymbol } from './atomic/isSymbol.js';
+export { IsTrue } from './atomic/isTrue.js';
+export { IsTruthy } from './atomic/isTruthy.js';
+export { IsTypeOf } from './atomic/isTypeOf.js';
 
-export { isUndefined } from './atomic/isUndefined.js';
-export { isVulnerablePattern } from './atomic/isVulnerablePattern.js';
-export { performRangeComparison } from './atomic/performRangeComparison.js';
+export { IsUndefined } from './atomic/isUndefined.js';
+export { IsVulnerablePattern } from './atomic/isVulnerablePattern.js';
+export { PerformRangeComparison } from './atomic/performRangeComparison.js';
 
-// Object operations
-export { areObjectsPartiallyEqual } from './composite/areObjectsPartiallyEqual.js';
-export { areStrictlyEqual } from './composite/areStrictlyEqual.js';
-// String operations
-export { areStringsEqual } from './composite/areStringsEqual.js';
-
-export { areStringsEqualCaseAware } from './composite/areStringsEqualCaseAware.js';
-// Advanced string operations
-export { containsWord } from './composite/containsWord.js';
 // ============= Composite Comparators =============
-// High-level equality
-export { areDeeplyEqual } from './composite/deepEquals.js';
-
-// Array operations
-export { doesArrayContain } from './composite/doesArrayContain.js';
-export { doesArrayContainAll } from './composite/doesArrayContainAll.js';
-export { doesArrayContainAny } from './composite/doesArrayContainAny.js';
-export { doesObjectContainAllProperties } from './composite/doesObjectContainAllProperties.js';
-
-export { doesObjectContainAnyProperty } from './composite/doesObjectContainAnyProperty.js';
-export { doesObjectContainPropertyValue } from './composite/doesObjectContainPropertyValue.js';
-export { doesStringEndWith } from './composite/doesStringEndWith.js';
-
-export { doesStringStartWith } from './composite/doesStringStartWith.js';
-export { hasDuplicates } from './composite/hasDuplicates.js';
+export { AreDeeplyEqual } from './composite/areDeeplyEqual.js';
+export { AreObjectsPartiallyEqual } from './composite/areObjectsPartiallyEqual.js';
+export { AreStrictlyEqual } from './composite/areStrictlyEqual.js';
+export { AreStringsEqual } from './composite/areStringsEqual.js';
+export { AreStringsEqualCaseAware } from './composite/areStringsEqualCaseAware.js';
+export { AreValuesStrictEqual } from './composite/areValuesStrictEqual.js';
+export { ContainsWord } from './composite/containsWord.js';
+export { DoesArrayContain } from './composite/doesArrayContain.js';
+export { DoesArrayContainAll } from './composite/doesArrayContainAll.js';
+export { DoesArrayContainAny } from './composite/doesArrayContainAny.js';
+export { DoesObjectContainAllProperties } from './composite/doesObjectContainAllProperties.js';
+export { DoesObjectContainAnyProperty } from './composite/doesObjectContainAnyProperty.js';
+export { DoesObjectContainPropertyValue } from './composite/doesObjectContainPropertyValue.js';
+export { DoesStringContain } from './composite/doesStringContain.js';
+export { DoesStringEndWith } from './composite/doesStringEndWith.js';
+export { DoesStringStartWith } from './composite/doesStringStartWith.js';
+export { DoesValueMatchPattern } from './composite/doesValueMatchPattern.js';
+export { HasDuplicates } from './composite/hasDuplicates.js';
 // Length comparisons
-export { hasLength } from './composite/hasLength.js';
+export { HasLength } from './composite/hasLength.js';
 // Deep property operations
-export { hasPropertyPath } from './composite/hasPropertyPath.js';
+export { HasPropertyPath } from './composite/hasPropertyPath.js';
 // Collection operations
-export { hasUniqueElements } from './composite/hasUniqueElements.js';
-export { isArraySubset } from './composite/isArraySubset.js';
+export { HasUniqueElements } from './composite/hasUniqueElements.js';
+export { IsArraySubset } from './composite/isArraySubset.js';
 
-export { isEmpty } from './composite/isEmpty.js';
-export { isEmptyObject } from './composite/isEmptyObject.js';
-export { areValuesStrictEqual } from './composite/isEqual.js';
+export { IsEmpty } from './composite/isEmpty.js';
+export { IsEmptyObject } from './composite/isEmptyObject.js';
 // Range and pattern operations
-export { isInRange } from './composite/isInRange.js';
+export { IsInRange } from './composite/isInRange.js';
 
-export { isLongerThan } from './composite/isLongerThan.js';
-export { isLongerThanOrEqual } from './composite/isLongerThanOrEqual.js';
+export { IsLongerThan } from './composite/isLongerThan.js';
+export { IsLongerThanOrEqual } from './composite/isLongerThanOrEqual.js';
 
-export { isNotCloseTo } from './composite/isNotCloseTo.js';
+export { IsNotCloseTo } from './composite/isNotCloseTo.js';
 
-export { isOutsideRange } from './composite/isOutsideRange.js';
+export { IsOutsideRange } from './composite/isOutsideRange.js';
 
-export { isSerializable } from './composite/isSerializable.js';
-export { isShorterThan } from './composite/isShorterThan.js';
-export { isShorterThanOrEqual } from './composite/isShorterThanOrEqual.js';
-export { doesValueMatchPattern } from './composite/matchesPattern.js';
-export { doesStringContain } from './composite/stringContains.js';
+export { IsSerializable } from './composite/isSerializable.js';
+export { IsShorterThan } from './composite/isShorterThan.js';
+export { IsShorterThanOrEqual } from './composite/isShorterThanOrEqual.js';

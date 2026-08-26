@@ -4,8 +4,16 @@
  */
 
 /**
+ * Options for constructing a FilterError
+ */
+export interface FilterErrorOptionsInterface {
+  'cause'?: Error | undefined;
+  'code'?: string | undefined;
+}
+
+/**
  * Base class for all FilterEngine errors
- * Follows MDN Error specification with proper prototype chain and stack traces
+ * Follows MDN Error specification with proper prototype chain
  */
 export class FilterError extends Error {
   public override readonly cause: Error | null;
@@ -14,37 +22,35 @@ export class FilterError extends Error {
   /**
    * Creates a FilterError
    */
-  constructor(message: string, code?: string, cause?: Error) {
+  constructor(message: string, options?: FilterErrorOptionsInterface) {
     super(message);
 
     // Set the name to the constructor name
-    // Handle case where constructor might be null (edge case in tests)
-    this.name = this.constructor?.name || 'FilterError';
-
-    // Initialize all properties in constructor for V8 optimization (maintaining hidden classes)
-    // Direct property assignment instead of Object.defineProperty for V8 optimization
-    // Make message enumerable for JSON serialization (preserve value from super())
-    Object.defineProperty(this, 'message', {
-      'configurable': true,
-      'enumerable': true,
-      'value': this.message,
-      'writable': true
-    });
+    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterError';
 
     // Handle code parameter - convert only undefined to null, preserve everything else
-    this.code = code === undefined ? null : code;
+    this.code = options?.code ?? null;
 
     // Handle cause parameter - convert only undefined to null, preserve everything else
-    this.cause = cause === undefined ? null : cause;
+    this.cause = options?.cause ?? null;
+  }
 
-    // Capture stack trace, excluding constructor call from stack trace
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor || FilterError);
-    }
+  /**
+   * Error's own `message` property is non-enumerable, so JSON.stringify() drops it by default.
+   * A subclass that adds fields (e.g. FilterGateError's `gate`) must override this and spread
+   * `super.toJSON()` — spreading `this` directly is forbidden by lexical-this-only.
+   */
+  public toJSON(): Record<string, unknown> {
+    return {
+      'cause': this.cause,
+      'code': this.code,
+      'message': this.message,
+      'name': this.name
+    };
   }
 
   static {
     // Ensure proper prototype chain
-    this.prototype.constructor = this;
+    FilterError.prototype.constructor = FilterError;
   }
 }

@@ -5,6 +5,7 @@
 
 export class IsEmptyArray {
   static isEmptyArray(value: unknown): boolean   {
-    return Array.isArray(value) && value.length === 0;
+    const result = Array.isArray(value) && value.length === 0;
+    return result;
   }
 }

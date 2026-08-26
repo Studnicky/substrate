@@ -10,6 +10,7 @@
  */
 export class IsPositive {
   static isPositive(value: unknown): boolean   {
-    return typeof value === 'number' && value > 0;
+    const result = typeof value === 'number' && value > 0;
+    return result;
   }
 }

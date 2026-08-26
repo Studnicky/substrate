@@ -11,6 +11,7 @@
  */
 export class IsTypeOf {
   static isTypeOf(value: unknown, type: string): boolean   {
-    return typeof value === type;
+    const result = typeof value === type;
+    return result;
   }
 }

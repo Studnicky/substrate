@@ -2,13 +2,13 @@
  * Compares two Map objects for deep equality
  */
 
-import type { FilterCondition } from '../../types.js';
+import type { FilterConditionInterface } from '../../interfaces.js';
 
 export class AreMapsEqual {
   static areMapsEqual(
     value: Map<unknown, unknown>,
     filterValue: Map<unknown, unknown>,
-    condition: FilterCondition
+    condition: FilterConditionInterface
   ): boolean {
     if (value.size !== filterValue.size) {
       return false;
@@ -16,9 +16,9 @@ export class AreMapsEqual {
 
     for (const [
       key,
-      val
+      entryValue
     ] of value) {
-      if (!filterValue.has(key) || !AreMapsEqual.compareDeep(val, filterValue.get(key), condition)) {
+      if (!filterValue.has(key) || !AreMapsEqual.compareDeep(entryValue, filterValue.get(key), condition)) {
         return false;
       }
     }
@@ -29,7 +29,7 @@ export class AreMapsEqual {
   /**
    * Internal deep comparison function for Map values
    */
-  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterCondition = {}) : boolean {
+  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterConditionInterface = {}) : boolean {
     // Quick reference equality check
     if (value === filterValue) {
       return true;
@@ -37,7 +37,8 @@ export class AreMapsEqual {
 
     // Handle null/undefined
     if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      return value === filterValue;
+      const result = value === filterValue;
+      return result;
     }
 
     // Handle arrays
@@ -56,7 +57,8 @@ export class AreMapsEqual {
 
     // Handle Maps recursively
     if (value instanceof Map && filterValue instanceof Map) {
-      return AreMapsEqual.areMapsEqual(value, filterValue, condition);
+      const result = AreMapsEqual.areMapsEqual(value, filterValue, condition);
+      return result;
     }
 
     // Handle objects
@@ -68,14 +70,15 @@ export class AreMapsEqual {
         return false;
       }
 
-      for (const key of keys1) {
-        if (!Object.prototype.hasOwnProperty.call(filterValue, key)) {
+      for (let i = 0; i < keys1.length; i++) {
+        const key = keys1.at(i);
+        if (key === undefined || !Object.hasOwn(filterValue, key)) {
           return false;
         }
-        const valueObj = value as Record<string, unknown>;
-        const filterObj = filterValue as Record<string, unknown>;
+        const valueRecord = value as Record<string, unknown>;
+        const filterRecord = filterValue as Record<string, unknown>;
 
-        if (!AreMapsEqual.compareDeep(valueObj[key], filterObj[key], condition)) {
+        if (!AreMapsEqual.compareDeep(valueRecord[key], filterRecord[key], condition)) {
           return false;
         }
       }
@@ -84,6 +87,7 @@ export class AreMapsEqual {
     }
 
     // Primitive comparison
-    return value === filterValue;
+    const result = value === filterValue;
+    return result;
   }
 }

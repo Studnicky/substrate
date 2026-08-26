@@ -17,12 +17,12 @@ export class NumberConverter {
     if (value === undefined) {
       return defaultValue;
     }
-    const num = Number(value);
+    const number = Number(value);
 
-    if (isNaN(num)) {
+    if (isNaN(number)) {
       return defaultValue;
     }
 
-    return num;
+    return number;
   }
 }

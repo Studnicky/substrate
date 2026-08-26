@@ -2,14 +2,21 @@
  * Checks if an object has all of the specified properties
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { doesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
+import { DoesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
 
-export function doesObjectContainAllProperties(obj: FilterValue, propertyNames: string[]): boolean {
-  if (typeof obj !== 'object' || obj === null || !Array.isArray(propertyNames)) {
-    return false;
+export class DoesObjectContainAllProperties {
+  static doesObjectContainAllProperties(value: FilterValueEntity.Type, propertyNames: string[]): boolean {
+    if (typeof value !== 'object' || value === null || !Array.isArray(propertyNames)) {
+      return false;
+    }
+
+    const result = propertyNames.every((propertyName) => {
+      const hasProperty = DoesObjectContainProperty.doesObjectContainProperty(value, propertyName);
+      return hasProperty;
+    });
+
+    return result;
   }
-
-  return propertyNames.every((propertyName) => {return doesObjectContainProperty(obj, propertyName);});
 }

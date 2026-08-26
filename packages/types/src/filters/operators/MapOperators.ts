@@ -1,5 +1,3 @@
-import type { FilterValue } from '../types.js';
-
 /**
  * @module MapOperators
  * @description Map operation implementations for FilterEngine
@@ -21,7 +19,8 @@ export class MapOperators {
     }
 
     if (a === null || a === undefined || b === null || b === undefined) {
-      return a === b;
+      const result = a === b;
+      return result;
     }
 
     if (typeof a !== typeof b) {
@@ -29,11 +28,13 @@ export class MapOperators {
     }
 
     if (typeof a !== 'object') {
-      return a === b;
+      const result = a === b;
+      return result;
     }
 
     if (a instanceof Date && b instanceof Date) {
-      return a.getTime() === b.getTime();
+      const result = a.getTime() === b.getTime();
+      return result;
     }
 
     if (a instanceof Map && b instanceof Map) {
@@ -42,9 +43,9 @@ export class MapOperators {
       }
       for (const [
         key,
-        val
+        mapEntryValue
       ] of a) {
-        if (!b.has(key) || !this.deepEqual(val, b.get(key))) {
+        if (!b.has(key) || !this.deepEqual(mapEntryValue, b.get(key))) {
           return false;
         }
       }
@@ -80,8 +81,14 @@ export class MapOperators {
       return false;
     }
 
-    for (const key of keysA) {
-      if (!keysB.includes(key)) {
+    const keysBSet = new Set(keysB);
+
+    for (let index = 0; index < keysA.length; index += 1) {
+      const key = keysA[index];
+      if (key === undefined) {
+        continue;
+      }
+      if (!keysBSet.has(key)) {
         return false;
       }
       if (!this.deepEqual(a[key], b[key])) {
@@ -98,12 +105,13 @@ export class MapOperators {
    * @returns {boolean} True if Map is empty
    * @throws {Error} If value is not a Map
    */
-  static handleEmpty(value: FilterValue) {
+  static handleEmpty(value: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.EMPTY requires value to be a Map, got ${typeof value}`);
     }
 
-    return value.size === 0;
+    const result = value.size === 0;
+    return result;
   }
 
   /**
@@ -113,7 +121,7 @@ export class MapOperators {
    * @returns {boolean} True if Maps are deeply equal
    * @throws {Error} If either value is not a Map
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: unknown, filterValue: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.EQUALS requires value to be a Map, got ${typeof value}`);
     }
@@ -127,9 +135,9 @@ export class MapOperators {
 
     for (const [
       key,
-      val
+      mapEntryValue
     ] of value) {
-      if (!filterValue.has(key) || !this.deepEqual(val, filterValue.get(key))) {
+      if (!filterValue.has(key) || !this.deepEqual(mapEntryValue, filterValue.get(key))) {
         return false;
       }
     }
@@ -144,12 +152,13 @@ export class MapOperators {
    * @returns {boolean} True if Map has the key
    * @throws {Error} If value is not a Map
    */
-  static handleHas(value: FilterValue, filterValue: FilterValue) {
+  static handleHas(value: unknown, filterValue: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.HAS requires value to be a Map, got ${typeof value}`);
     }
 
-    return Guard.isString(filterValue) && value.has(filterValue);
+    const result = Guard.isString(filterValue) && value.has(filterValue);
+    return result;
   }
 
   /**
@@ -159,8 +168,9 @@ export class MapOperators {
    * @returns {boolean} True if Maps are identical
    * @throws {Error} If either value is not a Map
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
-    return this.handleEquals(value, filterValue);
+  static handleIdentical(value: unknown, filterValue: unknown) {
+    const result = this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -170,12 +180,13 @@ export class MapOperators {
    * @returns {boolean} True if Map does not have the key
    * @throws {Error} If value is not a Map
    */
-  static handleMissing(value: FilterValue, filterValue: FilterValue) {
+  static handleMissing(value: unknown, filterValue: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.MISSING requires value to be a Map, got ${typeof value}`);
     }
 
-    return !Guard.isString(filterValue) || !value.has(filterValue);
+    const result = !Guard.isString(filterValue) || !value.has(filterValue);
+    return result;
   }
 
   /**
@@ -184,12 +195,13 @@ export class MapOperators {
    * @returns {boolean} True if Map is not empty
    * @throws {Error} If value is not a Map
    */
-  static handleNotEmpty(value: FilterValue) {
+  static handleNotEmpty(value: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.NOT_EMPTY requires value to be a Map, got ${typeof value}`);
     }
 
-    return value.size > 0;
+    const result = value.size > 0;
+    return result;
   }
 
   /**
@@ -199,8 +211,9 @@ export class MapOperators {
    * @returns {boolean} True if Maps are not equal
    * @throws {Error} If either value is not a Map
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotEquals(value: unknown, filterValue: unknown) {
+    const result = !this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -210,8 +223,9 @@ export class MapOperators {
    * @returns {boolean} True if Maps are not identical
    * @throws {Error} If either value is not a Map
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotIdentical(value: unknown, filterValue: unknown) {
+    const result = !this.handleEquals(value, filterValue);
+    return result;
   }
 
   /**
@@ -221,7 +235,7 @@ export class MapOperators {
    * @returns {boolean} True if Map size matches
    * @throws {Error} If value is not a Map or filterValue is not a number
    */
-  static handleSize(value: FilterValue, filterValue: FilterValue) {
+  static handleSize(value: unknown, filterValue: unknown) {
     if (!(value instanceof Map)) {
       throw new Error(`MAP.SIZE requires value to be a Map, got ${typeof value}`);
     }
@@ -229,6 +243,7 @@ export class MapOperators {
       throw new Error(`MAP.SIZE requires filter value to be a number, got ${typeof filterValue}`);
     }
 
-    return value.size === filterValue;
+    const result = value.size === filterValue;
+    return result;
   }
 }

@@ -2,12 +2,8 @@
  * Date-like value detection
  */
 
-
-// Timestamp range for realistic date filtering (Jan 1, 1990 to Jan 1, 2100)
-// Jan 1, 1990 00:00:00 UTC
-const MIN_TIMESTAMP = 631152000000;
-// Jan 1, 2100 00:00:00 UTC
-const MAX_TIMESTAMP = 4102444800000;
+import { DATE_LIKE_TIMESTAMP_RANGE } from './constants/DateLikeTimestampRange.js';
+import { TIME_ONLY_PATTERN } from './constants/TimeOnlyPattern.js';
 
 /**
  * Checks if a value is date-like (can be converted to a valid date)
@@ -42,7 +38,8 @@ export class IsDateLike {
       }
 
       // Check if the timestamp is within our valid range
-      return value >= MIN_TIMESTAMP && value <= MAX_TIMESTAMP;
+      const result = value >= DATE_LIKE_TIMESTAMP_RANGE.MINIMUM && value <= DATE_LIKE_TIMESTAMP_RANGE.MAXIMUM;
+      return result;
     }
 
     // Handle string values
@@ -55,16 +52,16 @@ export class IsDateLike {
       const trimmedValue = value.trim();
 
       // Check for time-only strings (HH:MM or HH:MM:SS format)
-      const timeOnlyRegex = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
-      const timeMatch = trimmedValue.match(timeOnlyRegex);
+      const timeMatch = TIME_ONLY_PATTERN.exec(trimmedValue);
 
-      if (timeMatch) {
+      if (timeMatch !== null) {
         const hours = parseInt(timeMatch[1] ?? '0', 10);
         const minutes = parseInt(timeMatch[2] ?? '0', 10);
         const seconds = timeMatch[3] === undefined ? 0 : parseInt(timeMatch[3], 10);
 
         // Valid time components indicate this is date-like
-        return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59;
+        const result = hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59;
+        return result;
       }
 
       // Try to parse the string as a date
@@ -72,7 +69,8 @@ export class IsDateLike {
       try {
         const parsed = Date.parse(trimmedValue);
 
-        return !isNaN(parsed);
+        const result = !isNaN(parsed);
+        return result;
       } catch {
         return false;
       }

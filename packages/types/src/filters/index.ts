@@ -36,21 +36,20 @@ import { DeepFreeze } from './utils/deepFreeze.js';
 // Export FilterEngine class - primary API
 export { FilterEngine };
 
+// Export range interfaces
 export type {
-  BasePlugin, PluginContext
-} from './plugins/BasePlugin.js';
+  DateRangeInterface,
+  NumericRangeInterface,
+  RangeInterface,
+  TimeRangeInterface
+} from './interfaces.js';
+export type { BasePluginInterface } from './plugins/BasePluginInterface.js';
 
 // Export plugin system
 export {
   Plugin, TimeOperatorsPlugin
 } from './plugins/index.js';
-// Export range interfaces
-export type {
-  DateRange,
-  NumericRange,
-  Range,
-  TimeRange
-} from './types.js';
+export type { PluginContextInterface } from './plugins/PluginContextInterface.js';
 
 // Export individual enums and config directly
 export {
@@ -59,7 +58,17 @@ export {
 
 
 // Export Types namespace - all enums and type-related exports
-export const Types = DeepFreeze.deepFreeze({
+export const Types: {
+  'ArrayLogic': typeof ArrayLogic;
+  'Comparator': typeof Comparator;
+  'ConditionType': typeof ConditionType;
+  'ErrorCodes': typeof ErrorCodes;
+  'ErrorCollectionMode': typeof ErrorCollectionMode;
+  'FilterMode': typeof FilterMode;
+  'LogicGate': typeof LogicGate;
+  'Operator': typeof Operator;
+  'PropertyName': typeof PropertyName;
+} = DeepFreeze.deepFreeze({
   'ArrayLogic': ArrayLogic,
   'Comparator': Comparator,
   // Internal enums (for advanced usage/tooling)

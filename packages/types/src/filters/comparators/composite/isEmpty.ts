@@ -14,63 +14,61 @@
  * - Empty objects ({})
  * - Empty Sets and Maps
  *
- * @param value - The value to test for emptiness
- * @returns true if the value is considered empty, false otherwise
- *
  * @example
- * isEmpty(null); // true
- * isEmpty(undefined); // true
- * isEmpty(''); // true
- * isEmpty([]); // true
- * isEmpty(new Uint8Array(0)); // true
- * isEmpty(new RegExp('')); // true
- * isEmpty({}); // true
- * isEmpty(new Set()); // true
- * isEmpty(new Map()); // true
- * isEmpty('hello'); // false
- * isEmpty([1, 2, 3]); // false
- * isEmpty({ name: 'John' }); // false
+ * IsEmpty.isEmpty(null); // true
+ * IsEmpty.isEmpty(undefined); // true
+ * IsEmpty.isEmpty(''); // true
+ * IsEmpty.isEmpty([]); // true
+ * IsEmpty.isEmpty(new Uint8Array(0)); // true
+ * IsEmpty.isEmpty(new RegExp('')); // true
+ * IsEmpty.isEmpty({}); // true
+ * IsEmpty.isEmpty(new Set()); // true
+ * IsEmpty.isEmpty(new Map()); // true
+ * IsEmpty.isEmpty('hello'); // false
+ * IsEmpty.isEmpty([1, 2, 3]); // false
+ * IsEmpty.isEmpty({ name: 'John' }); // false
  */
 
+import { IsEmptyArray } from '../atomic/isEmptyArray.js';
+import { IsEmptyRegExp } from '../atomic/isEmptyRegExp.js';
+import { IsEmptyString } from '../atomic/isEmptyString.js';
+import { IsEmptyTypedArray } from '../atomic/isEmptyTypedArray.js';
+import { IsNullOrUndefined } from '../atomic/isNullOrUndefined.js';
+import { IsEmptyObject } from './isEmptyObject.js';
 
-import { isEmptyArray } from '../atomic/isEmptyArray.js';
-import { isEmptyRegExp } from '../atomic/isEmptyRegExp.js';
-import { isEmptyString } from '../atomic/isEmptyString.js';
-import { isEmptyTypedArray } from '../atomic/isEmptyTypedArray.js';
-import { isNullOrUndefined } from '../atomic/isNullOrUndefined.js';
-import { isEmptyObject } from './isEmptyObject.js';
+export class IsEmpty {
+  static isEmpty(value: unknown): boolean {
+    // null and undefined are empty
+    if (IsNullOrUndefined.isNullOrUndefined(value)) {
+      return true;
+    }
 
-export function isEmpty(value: unknown): boolean {
-  // null and undefined are empty
-  if (isNullOrUndefined(value)) {
-    return true;
+    // Empty string
+    if (IsEmptyString.isEmptyString(value)) {
+      return true;
+    }
+
+    // Empty array
+    if (IsEmptyArray.isEmptyArray(value)) {
+      return true;
+    }
+
+    // Empty TypedArray
+    if (IsEmptyTypedArray.isEmptyTypedArray(value)) {
+      return true;
+    }
+
+    // Empty RegExp
+    if (IsEmptyRegExp.isEmptyRegExp(value)) {
+      return true;
+    }
+
+    // Empty object (Set, Map, or plain object with no enumerable properties)
+    if (IsEmptyObject.isEmptyObject(value)) {
+      return true;
+    }
+
+    // Everything else is not considered empty
+    return false;
   }
-
-  // Empty string
-  if (isEmptyString(value)) {
-    return true;
-  }
-
-  // Empty array
-  if (isEmptyArray(value)) {
-    return true;
-  }
-
-  // Empty TypedArray
-  if (isEmptyTypedArray(value)) {
-    return true;
-  }
-
-  // Empty RegExp
-  if (isEmptyRegExp(value)) {
-    return true;
-  }
-
-  // Empty object (Set, Map, or plain object with no enumerable properties)
-  if (isEmptyObject(value)) {
-    return true;
-  }
-
-  // Everything else is not considered empty
-  return false;
 }

@@ -2,33 +2,33 @@
  * Comparator functions with direct function access
  */
 
-import type { ComparatorFunction } from '../types.js';
+import type { ComparatorFunctionInterface } from '../interfaces.js';
 
-import { isDateLike } from '../comparators/atomic/isDateLike.js';
-import { areStringsEqualCaseAware } from '../comparators/composite/areStringsEqualCaseAware.js';
-import { areDeeplyEqual } from '../comparators/composite/deepEquals.js';
-import { doesStringEndWith } from '../comparators/composite/doesStringEndWith.js';
-import { doesStringStartWith } from '../comparators/composite/doesStringStartWith.js';
-import { isEmpty } from '../comparators/composite/isEmpty.js';
-import { areValuesStrictEqual } from '../comparators/composite/isEqual.js';
-import { isInRange } from '../comparators/composite/isInRange.js';
-import { isOutsideRange } from '../comparators/composite/isOutsideRange.js';
-import { doesValueMatchPattern } from '../comparators/composite/matchesPattern.js';
-import { doesStringContain } from '../comparators/composite/stringContains.js';
+import { IsDateLike } from '../comparators/atomic/isDateLike.js';
+import { AreDeeplyEqual } from '../comparators/composite/areDeeplyEqual.js';
+import { AreStringsEqualCaseAware } from '../comparators/composite/areStringsEqualCaseAware.js';
+import { AreValuesStrictEqual } from '../comparators/composite/areValuesStrictEqual.js';
+import { DoesStringContain } from '../comparators/composite/doesStringContain.js';
+import { DoesStringEndWith } from '../comparators/composite/doesStringEndWith.js';
+import { DoesStringStartWith } from '../comparators/composite/doesStringStartWith.js';
+import { DoesValueMatchPattern } from '../comparators/composite/doesValueMatchPattern.js';
+import { IsEmpty } from '../comparators/composite/isEmpty.js';
+import { IsInRange } from '../comparators/composite/isInRange.js';
+import { IsOutsideRange } from '../comparators/composite/isOutsideRange.js';
 import { DeepFreeze } from '../utils/deepFreeze.js';
 
 export const Comparator = DeepFreeze.deepFreeze({
   'CORE': {
-    'deepEquals': areDeeplyEqual,
-    'isDateLike': isDateLike,
-    'isEmpty': isEmpty,
-    'isEqual': areValuesStrictEqual,
-    'isInRange': isInRange,
-    'isOutsideRange': isOutsideRange,
-    'matchesPattern': doesValueMatchPattern as ComparatorFunction,
-    'stringCompareCaseAware': areStringsEqualCaseAware as ComparatorFunction,
-    'stringContains': doesStringContain,
-    'stringEndsWith': doesStringEndWith,
-    'stringStartsWith': doesStringStartWith
+    'deepEquals': AreDeeplyEqual.areDeeplyEqual,
+    'isDateLike': IsDateLike.isDateLike,
+    'isEmpty': IsEmpty.isEmpty,
+    'isEqual': AreValuesStrictEqual.areValuesStrictEqual,
+    'isInRange': IsInRange.isInRange,
+    'isOutsideRange': IsOutsideRange.isOutsideRange,
+    'matchesPattern': DoesValueMatchPattern.doesValueMatchPattern as ComparatorFunctionInterface,
+    'stringCompareCaseAware': AreStringsEqualCaseAware.areStringsEqualCaseAware as ComparatorFunctionInterface,
+    'stringContains': DoesStringContain.doesStringContain,
+    'stringEndsWith': DoesStringEndWith.doesStringEndWith,
+    'stringStartsWith': DoesStringStartWith.doesStringStartWith
   }
 });

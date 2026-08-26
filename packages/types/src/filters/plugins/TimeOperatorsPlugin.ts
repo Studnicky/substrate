@@ -12,68 +12,69 @@
  * a robust date library like date-fns or dayjs.
  */
 
-import type { FilterValue } from '../types.js';
-import type { ContextualOperatorFunction, PluginContext } from './BasePlugin.js';
+import type { FilterValueEntity } from '../FilterValueEntity.js';
+import type { ContextualOperatorFunctionInterface } from './ContextualOperatorFunctionInterface.js';
+import type { PluginContextInterface } from './PluginContextInterface.js';
 
 import { Guard } from '../../guards/Guard.js';
-import { Plugin } from './BasePlugin.js';
-
-function isConditionInclusive(context: PluginContext | undefined): boolean {
-  return !Guard.isRecord(context?.condition) || context.condition.inclusive !== false;
-}
+import { TIME_ONLY_PATTERN } from '../comparators/atomic/constants/TimeOnlyPattern.js';
+import { WHOLE_NUMBER_PATTERN } from '../utils/constants/WholeNumberPattern.js';
+import { Plugin } from './Plugin.js';
 
 export class TimeOperatorsPlugin extends Plugin {
   /**
    * TIME_AFTER operator - checks if a time/datetime is after another
    */
-  private timeAfter: ContextualOperatorFunction = (
-    value: FilterValue,
-    filterValue: FilterValue,
-    _context?: PluginContext
+  private timeAfter: ContextualOperatorFunctionInterface = (
+    value: FilterValueEntity.Type,
+    filterValue: FilterValueEntity.Type,
+    _context?: PluginContextInterface
   ): boolean => {
     const dateValue = this.parseTimeValue(value);
     const compareDate = this.parseTimeValue(filterValue);
 
-    if (!dateValue || !compareDate) {
+    if (dateValue === null || compareDate === null) {
       return false;
     }
 
     const timeOnly = this.isTimeOnlyComparison(value, [filterValue]);
     const valueTime = this.getComparableTime(dateValue, timeOnly);
     const compareTime = this.getComparableTime(compareDate, timeOnly);
+    const result = valueTime > compareTime;
 
-    return valueTime > compareTime;
+    return result;
   };
 
   /**
    * TIME_BEFORE operator - checks if a time/datetime is before another
    */
-  private timeBefore: ContextualOperatorFunction = (
-    value: FilterValue,
-    filterValue: FilterValue,
-    _context?: PluginContext
+  private timeBefore: ContextualOperatorFunctionInterface = (
+    value: FilterValueEntity.Type,
+    filterValue: FilterValueEntity.Type,
+    _context?: PluginContextInterface
   ): boolean => {
     const dateValue = this.parseTimeValue(value);
     const compareDate = this.parseTimeValue(filterValue);
 
-    if (!dateValue || !compareDate) {
+    if (dateValue === null || compareDate === null) {
       return false;
     }
 
     const timeOnly = this.isTimeOnlyComparison(value, [filterValue]);
     const valueTime = this.getComparableTime(dateValue, timeOnly);
     const compareTime = this.getComparableTime(compareDate, timeOnly);
+    const result = valueTime < compareTime;
 
-    return valueTime < compareTime;
+    return result;
   };
 
   /**
    * TIME_BETWEEN operator - checks if a time/datetime is within a range
    */
-  private timeBetween: ContextualOperatorFunction = (
-    value: FilterValue,
-    filterValue: FilterValue,
-    context?: PluginContext
+  private timeBetween: ContextualOperatorFunctionInterface = (
+    value: FilterValueEntity.Type,
+    filterValue: FilterValueEntity.Type,
+    context?: PluginContextInterface
   ): boolean => {
     // Validate range input - only accept object format { start, end }
     if (!Guard.isRecord(filterValue)) {
@@ -90,7 +91,7 @@ export class TimeOperatorsPlugin extends Plugin {
     const endDate = this.parseTimeValue(end);
 
     // If any parsing fails, return false
-    if (!dateValue || !startDate || !endDate) {
+    if (dateValue === null || startDate === null || endDate === null) {
       return false;
     }
 
@@ -103,26 +104,30 @@ export class TimeOperatorsPlugin extends Plugin {
     const endTime = this.getComparableTime(endDate, timeOnly);
 
     // Handle range inversion (e.g., 23:00 to 02:00 for overnight ranges)
-    const min = Math.min(startTime, endTime);
-    const max = Math.max(startTime, endTime);
+    const minimum = Math.min(startTime, endTime);
+    const maximum = Math.max(startTime, endTime);
 
     // Check if inclusive (default true)
-    const inclusive = isConditionInclusive(context);
+    const inclusive = TimeOperatorsPlugin.isConditionInclusive(context);
 
     if (inclusive) {
-      return valueTime >= min && valueTime <= max;
+      const result = valueTime >= minimum && valueTime <= maximum;
+
+      return result;
     }
 
-    return valueTime > min && valueTime < max;
+    const result = valueTime > minimum && valueTime < maximum;
+
+    return result;
   };
 
   /**
    * TIME_OUTSIDE operator - checks if a time/datetime is outside a range
    */
-  private timeOutside: ContextualOperatorFunction = (
-    value: FilterValue,
-    filterValue: FilterValue,
-    context?: PluginContext
+  private timeOutside: ContextualOperatorFunctionInterface = (
+    value: FilterValueEntity.Type,
+    filterValue: FilterValueEntity.Type,
+    context?: PluginContextInterface
   ): boolean => {
     // Validate range input - only accept object format { start, end }
     if (!Guard.isRecord(filterValue)) {
@@ -139,12 +144,12 @@ export class TimeOperatorsPlugin extends Plugin {
     const endDate = this.parseTimeValue(end);
 
     // If value parsing fails, consider it "outside"
-    if (!dateValue) {
+    if (dateValue === null) {
       return true;
     }
 
     // If range parsing fails, return true (invalid range means everything is outside)
-    if (!startDate || !endDate) {
+    if (startDate === null || endDate === null) {
       return true;
     }
 
@@ -157,17 +162,21 @@ export class TimeOperatorsPlugin extends Plugin {
     const endTime = this.getComparableTime(endDate, timeOnly);
 
     // Handle range inversion
-    const min = Math.min(startTime, endTime);
-    const max = Math.max(startTime, endTime);
+    const minimum = Math.min(startTime, endTime);
+    const maximum = Math.max(startTime, endTime);
 
     // Check if inclusive (default true)
-    const inclusive = isConditionInclusive(context);
+    const inclusive = TimeOperatorsPlugin.isConditionInclusive(context);
 
     if (inclusive) {
-      return valueTime < min || valueTime > max;
+      const result = valueTime < minimum || valueTime > maximum;
+
+      return result;
     }
 
-    return valueTime <= min || valueTime >= max;
+    const result = valueTime <= minimum || valueTime >= maximum;
+
+    return result;
   };
 
   constructor() {
@@ -177,13 +186,21 @@ export class TimeOperatorsPlugin extends Plugin {
       'version': '1.0.0'
     });
 
-    // Register operators in constructor
+    // Register operators in constructor. `timeAfter` etc. are already arrow
+    // class fields, lexically bound to this instance at construction — no
+    // `.bind(this)` needed (or permitted; see @studnicky/lexical-this-only).
     this.operators = {
-      'TIME_AFTER': this.timeAfter.bind(this),
-      'TIME_BEFORE': this.timeBefore.bind(this),
-      'TIME_BETWEEN': this.timeBetween.bind(this),
-      'TIME_OUTSIDE': this.timeOutside.bind(this)
+      'TIME_AFTER': this.timeAfter,
+      'TIME_BEFORE': this.timeBefore,
+      'TIME_BETWEEN': this.timeBetween,
+      'TIME_OUTSIDE': this.timeOutside
     };
+  }
+
+  private static isConditionInclusive(context: PluginContextInterface | undefined): boolean {
+    const result = !Guard.isRecord(context?.condition) || context.condition.inclusive !== false;
+
+    return result;
   }
 
   /**
@@ -193,12 +210,15 @@ export class TimeOperatorsPlugin extends Plugin {
   private getComparableTime(date: Date, timeOnly = false): number {
     if (timeOnly) {
       // For time-only comparisons, normalize to the same date
-      const refDate = new Date(1970, 0, 1, date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+      const referenceDate = new Date(1970, 0, 1, date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
+      const result = referenceDate.getTime();
 
-      return refDate.getTime();
+      return result;
     }
 
-    return date.getTime();
+    const result = date.getTime();
+
+    return result;
   }
 
   /**
@@ -206,22 +226,27 @@ export class TimeOperatorsPlugin extends Plugin {
    * This happens when the range contains time-only strings
    */
   private isTimeOnlyComparison(_value: unknown, range: unknown): boolean {
-    const timeOnlyRegex = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
-
     // Handle object format { start, end }
     if (Guard.isRecord(range)) {
       const {
         end, start
       } = range;
-      const startIsTimeOnly = typeof start === 'string' && timeOnlyRegex.test(start.trim());
-      const endIsTimeOnly = typeof end === 'string' && timeOnlyRegex.test(end.trim());
+      const startIsTimeOnly = typeof start === 'string' && TIME_ONLY_PATTERN.test(start.trim());
+      const endIsTimeOnly = typeof end === 'string' && TIME_ONLY_PATTERN.test(end.trim());
+      const result = startIsTimeOnly && endIsTimeOnly;
 
-      return startIsTimeOnly && endIsTimeOnly;
+      return result;
     }
 
     // Handle array format (legacy)
     if (Array.isArray(range)) {
-      return range.every((v) => {return typeof v === 'string' && timeOnlyRegex.test(v.trim());});
+      const result = range.every((item) => {
+        const itemIsTimeOnly = typeof item === 'string' && TIME_ONLY_PATTERN.test(item.trim());
+
+        return itemIsTimeOnly;
+      });
+
+      return result;
     }
 
     return false;
@@ -238,7 +263,9 @@ export class TimeOperatorsPlugin extends Plugin {
 
     // Handle existing Date objects
     if (value instanceof Date) {
-      return isNaN(value.getTime()) ? null : value;
+      const result = isNaN(value.getTime()) ? null : value;
+
+      return result;
     }
 
     // Handle numeric timestamps
@@ -256,8 +283,9 @@ export class TimeOperatorsPlugin extends Plugin {
       }
 
       const date = new Date(timestamp);
+      const result = isNaN(date.getTime()) ? null : date;
 
-      return isNaN(date.getTime()) ? null : date;
+      return result;
     }
 
     // Handle string values
@@ -265,18 +293,19 @@ export class TimeOperatorsPlugin extends Plugin {
       const trimmed = value.trim();
 
       // Check if it's a numeric string (potential timestamp)
-      if (/^\d+$/.test(trimmed)) {
-        const numValue = parseInt(trimmed, 10);
+      if (WHOLE_NUMBER_PATTERN.test(trimmed)) {
+        const numericValue = parseInt(trimmed, 10);
 
         // Recursively call with numeric value to handle Unix/epoch logic
-        return this.parseTimeValue(numValue);
+        const result = this.parseTimeValue(numericValue);
+
+        return result;
       }
 
       // Check for time-only format (HH:MM or HH:MM:SS)
-      const timeOnlyRegex = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
-      const timeMatch = trimmed.match(timeOnlyRegex);
+      const timeMatch = TIME_ONLY_PATTERN.exec(trimmed);
 
-      if (timeMatch) {
+      if (timeMatch !== null) {
         const hours = parseInt(timeMatch[1] ?? '0', 10);
         const minutes = parseInt(timeMatch[2] ?? '0', 10);
         const seconds = timeMatch[3] === undefined ? 0 : parseInt(timeMatch[3], 10);
@@ -305,8 +334,9 @@ export class TimeOperatorsPlugin extends Plugin {
 
       // Try standard Date parsing for full datetime strings
       const date = new Date(trimmed);
+      const result = isNaN(date.getTime()) ? null : date;
 
-      return isNaN(date.getTime()) ? null : date;
+      return result;
     }
 
     return null;

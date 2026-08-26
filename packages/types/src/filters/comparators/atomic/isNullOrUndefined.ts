@@ -8,6 +8,7 @@
 
 export class IsNullOrUndefined {
   static isNullOrUndefined(value: unknown): boolean   {
-    return value === null || value === undefined;
+    const result = value === null || value === undefined;
+    return result;
   }
 }

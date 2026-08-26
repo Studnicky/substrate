@@ -3,12 +3,12 @@
  */
 
 import type {
-  ArrayLogicFunction,
-  ComparatorFunction,
-  LogicGateFunction,
-  OperatorFunction,
-  PluginInstance
-} from '../types.js';
+  ArrayLogicFunctionInterface,
+  ComparatorFunctionInterface,
+  LogicGateFunctionInterface,
+  OperatorFunctionInterface,
+  PluginInstanceInterface
+} from '../interfaces.js';
 
 import { ArrayLogic } from '../enums/ArrayLogic.js';
 import { Comparator } from '../enums/Comparator.js';
@@ -17,12 +17,12 @@ import { Operator } from '../enums/Operator.js';
 import { Registry } from './Registry.js';
 
 export class Plugins {
-  public readonly arrayLogic: Registry<ArrayLogicFunction>;
-  public readonly comparators: Registry<ComparatorFunction>;
-  public readonly gates: Registry<LogicGateFunction>;
-  public readonly operators: Registry<OperatorFunction>;
+  public readonly arrayLogic: Registry<ArrayLogicFunctionInterface>;
+  public readonly comparators: Registry<ComparatorFunctionInterface>;
+  public readonly gates: Registry<LogicGateFunctionInterface>;
+  public readonly operators: Registry<OperatorFunctionInterface>;
 
-  constructor(config?: { 'plugins'?: PluginInstance[] }) {
+  constructor(config?: { 'plugins'?: PluginInstanceInterface[] }) {
     // Initialize all registries
     this.operators = new Registry('operator', Operator);
     this.comparators = new Registry('comparator', Comparator);
@@ -30,19 +30,48 @@ export class Plugins {
     this.arrayLogic = new Registry('arrayLogic', ArrayLogic);
 
     // Register plugin instances if provided
-    if (config?.plugins) {
-      for (const plugin of config.plugins) {
-        this.registerPlugin(plugin);
+    const plugins = config?.plugins;
+
+    if (plugins !== undefined) {
+      const pluginsLength = plugins.length;
+
+      for (let pluginIndex = 0; pluginIndex < pluginsLength; pluginIndex += 1) {
+        const plugin = plugins[pluginIndex];
+
+        if (plugin !== undefined) {
+          this.registerPlugin(plugin);
+        }
       }
+    }
+  }
+
+  private static registerEntries<T>(registry: Registry<T>, record: Record<string, T> | undefined, namespace: string): void {
+    if (record === undefined) {
+      return;
+    }
+
+    const entries = Object.entries(record);
+    const entriesLength = entries.length;
+
+    for (let entryIndex = 0; entryIndex < entriesLength; entryIndex += 1) {
+      const entry = entries[entryIndex];
+
+      if (entry === undefined) {
+        continue;
+      }
+      const [name, func] = entry;
+      const key = `${namespace}:${name}`;
+
+      registry.set(key, func);
     }
   }
 
   /**
    * Register a plugin instance (idiomatic Node.js class)
    */
-  private registerPlugin(plugin: PluginInstance): void {
+  private registerPlugin(plugin: PluginInstanceInterface): void {
     // Runtime validation: Ensure plugin is a proper class instance
-    if (!plugin || typeof plugin !== 'object') {
+    if (plugin === null || typeof plugin !== 'object') {
       throw new Error('Plugin must be a class instance with getNamespace() method');
     }
 
@@ -56,52 +85,9 @@ export class Plugins {
       throw new Error('Plugin getNamespace() must return a non-empty string');
     }
 
-    // Register operators
-    if (plugin.operators) {
-      for (const [
-        name,
-        func
-      ] of Object.entries(plugin.operators)) {
-        const key = `${namespace}:${name}`;
-
-        this.operators.set(key, func);
-      }
-    }
-
-    // Register comparators
-    if (plugin.comparators) {
-      for (const [
-        name,
-        func
-      ] of Object.entries(plugin.comparators)) {
-        const key = `${namespace}:${name}`;
-
-        this.comparators.set(key, func);
-      }
-    }
-
-    // Register gates
-    if (plugin.gates) {
-      for (const [
-        name,
-        func
-      ] of Object.entries(plugin.gates)) {
-        const key = `${namespace}:${name}`;
-
-        this.gates.set(key, func);
-      }
-    }
-
-    // Register array logic
-    if (plugin.arrayLogic) {
-      for (const [
-        name,
-        func
-      ] of Object.entries(plugin.arrayLogic)) {
-        const key = `${namespace}:${name}`;
-
-        this.arrayLogic.set(key, func);
-      }
-    }
+    Plugins.registerEntries(this.operators, plugin.operators, namespace);
+    Plugins.registerEntries(this.comparators, plugin.comparators, namespace);
+    Plugins.registerEntries(this.gates, plugin.gates, namespace);
+    Plugins.registerEntries(this.arrayLogic, plugin.arrayLogic, namespace);
   }
 }

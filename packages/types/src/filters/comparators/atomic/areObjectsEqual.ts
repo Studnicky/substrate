@@ -2,13 +2,13 @@
  * Compares two plain objects for deep equality
  */
 
-import type { FilterCondition } from '../../types.js';
+import type { FilterConditionInterface } from '../../interfaces.js';
 
 export class AreObjectsEqual {
   static areObjectsEqual(
     value: Record<string, unknown>,
     filterValue: Record<string, unknown>,
-    condition: FilterCondition
+    condition: FilterConditionInterface
   ): boolean {
     const keys1 = Object.keys(value);
     const keys2 = Object.keys(filterValue);
@@ -17,8 +17,9 @@ export class AreObjectsEqual {
       return false;
     }
 
-    for (const key of keys1) {
-      if (!Object.prototype.hasOwnProperty.call(filterValue, key)) {
+    for (let i = 0; i < keys1.length; i++) {
+      const key = keys1.at(i);
+      if (key === undefined || !Object.hasOwn(filterValue, key)) {
         return false;
       }
 
@@ -33,7 +34,7 @@ export class AreObjectsEqual {
   /**
    * Internal deep comparison function for object properties
    */
-  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterCondition = {}) : boolean {
+  private static compareDeep(value: unknown, filterValue: unknown, condition: FilterConditionInterface = {}) : boolean {
     // Quick reference equality check
     if (value === filterValue) {
       return true;
@@ -41,7 +42,8 @@ export class AreObjectsEqual {
 
     // Handle null/undefined
     if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      return value === filterValue;
+      const result = value === filterValue;
+      return result;
     }
 
     // Handle arrays
@@ -60,10 +62,12 @@ export class AreObjectsEqual {
 
     // Handle objects recursively
     if (typeof value === 'object' && typeof filterValue === 'object') {
-      return AreObjectsEqual.areObjectsEqual(value as Record<string, unknown>, filterValue as Record<string, unknown>, condition);
+      const result = AreObjectsEqual.areObjectsEqual(value as Record<string, unknown>, filterValue as Record<string, unknown>, condition);
+      return result;
     }
 
     // Primitive comparison
-    return value === filterValue;
+    const result = value === filterValue;
+    return result;
   }
 }

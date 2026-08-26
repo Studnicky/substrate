@@ -3,14 +3,19 @@
  */
 
 import { Guard } from '../../../guards/Guard.js';
-import { doesObjectContainPropertyValue } from './doesObjectContainPropertyValue.js';
+import { DoesObjectContainPropertyValue } from './doesObjectContainPropertyValue.js';
 
-export function areObjectsPartiallyEqual(obj: unknown, partialObj: unknown): boolean {
-  if (!Guard.isRecord(obj) || !Guard.isRecord(partialObj)) {
-    return false;
+export class AreObjectsPartiallyEqual {
+  static areObjectsPartiallyEqual(value: unknown, partialValue: unknown): boolean {
+    if (!Guard.isRecord(value) || !Guard.isRecord(partialValue)) {
+      return false;
+    }
+
+    const result = Object.keys(partialValue).every((key) => {
+      const propertyMatches = DoesObjectContainPropertyValue.doesObjectContainPropertyValue(value, key, partialValue[key]);
+      return propertyMatches;
+    });
+
+    return result;
   }
-
-  return Object.keys(partialObj).every((key) => {
-    return doesObjectContainPropertyValue(obj, key, partialObj[key]);
-  });
 }

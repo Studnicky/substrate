@@ -8,6 +8,7 @@
 
 export class IsNumber {
   static isNumber(value: unknown): value is number   {
-    return typeof value === 'number';
+    const result = typeof value === 'number';
+    return result;
   }
 }

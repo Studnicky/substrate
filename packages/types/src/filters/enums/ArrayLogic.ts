@@ -7,12 +7,32 @@ import { DeepFreeze } from '../utils/deepFreeze.js';
 export const ArrayLogic = DeepFreeze.deepFreeze({
   'CORE': {
     // All items must match (Array.every)
-    'EVERY': (results: boolean[]) => {return results.every(Boolean);},
+    'EVERY': (results: boolean[]) => {
+      const result = results.every(Boolean);
+
+      return result;
+    },
     // No items should match
-    'NONE': (results: boolean[]) => {return results.every((result) => {return !result;});},
+    'NONE': (results: boolean[]) => {
+      const result = results.every((item) => {
+        const isNotMatch = !item;
+
+        return isNotMatch;
+      });
+
+      return result;
+    },
     // Exactly one item must match
-    'ONE': (results: boolean[]) => {return results.filter(Boolean).length === 1;},
+    'ONE': (results: boolean[]) => {
+      const result = results.filter(Boolean).length === 1;
+
+      return result;
+    },
     // At least one item must match (Array.some)
-    'SOME': (results: boolean[]) => {return results.some(Boolean);}
+    'SOME': (results: boolean[]) => {
+      const result = results.some(Boolean);
+
+      return result;
+    }
   }
 });

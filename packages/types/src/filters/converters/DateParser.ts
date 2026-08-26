@@ -3,6 +3,9 @@
  * @description Date parsing with multiple format support
  */
 
+import { TIME_ONLY_PATTERN } from '../comparators/atomic/constants/TimeOnlyPattern.js';
+import { INTEGER_STRING_PATTERN } from './constants/IntegerStringPattern.js';
+
 /**
  * Date parsing with multiple format support
  */
@@ -66,21 +69,22 @@ export class DateParser {
       const trimmedValue = value.trim();
 
       // Check if it's a numeric string (potential timestamp)
-      if (/^-?\d+$/.test(trimmedValue)) {
-        const numValue = parseInt(trimmedValue, 10);
+      if (INTEGER_STRING_PATTERN.test(trimmedValue)) {
+        const numberValue = parseInt(trimmedValue, 10);
 
         // Recursively call with numeric value to handle Unix/epoch logic
-        return DateParser.parseDate(numValue);
+        const result = DateParser.parseDate(numberValue);
+
+        return result;
       }
 
       // Check for time-only strings (HH:MM or HH:MM:SS format)
-      const timeOnlyRegex = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
-      const timeMatch = trimmedValue.match(timeOnlyRegex);
+      const timeMatch = TIME_ONLY_PATTERN.exec(trimmedValue);
 
-      if (timeMatch) {
+      if (timeMatch !== null) {
         const hours = parseInt(timeMatch[1] ?? '0', 10);
         const minutes = parseInt(timeMatch[2] ?? '0', 10);
-        const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+        const seconds = timeMatch[3] !== undefined ? parseInt(timeMatch[3], 10) : 0;
 
         // Validate time components
         if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59) {

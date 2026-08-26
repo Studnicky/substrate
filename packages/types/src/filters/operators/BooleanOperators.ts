@@ -2,7 +2,7 @@
  * @module BooleanOperators
  * @description Boolean operation implementations for FilterEngine
  */
-import type { FilterValue } from '../types.js';
+import type { FilterValueEntity } from '../FilterValueEntity.js';
 
 
 /**
@@ -16,7 +16,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are exactly equal
    * @throws {Error} If either value is not a boolean
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new Error(`BOOLEAN.EQUALS requires value to be a boolean, got ${typeof value}`);
     }
@@ -24,7 +24,9 @@ export class BooleanOperators {
       throw new Error(`BOOLEAN.EQUALS requires filter value to be a boolean, got ${typeof filterValue}`);
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
   /**
@@ -32,8 +34,10 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is boolean false
    */
-  static handleFalse(value: FilterValue) {
-    return value === false;
+  static handleFalse(value: FilterValueEntity.Type) {
+    const result = value === false;
+
+    return result;
   }
 
   /**
@@ -41,8 +45,10 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is falsy
    */
-  static handleFalsy(value: FilterValue) {
-    return !value;
+  static handleFalsy(value: FilterValueEntity.Type) {
+    const result = Boolean(value) === false;
+
+    return result;
   }
 
   /**
@@ -52,7 +58,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are identical
    * @throws {Error} If either value is not a boolean
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new Error(`BOOLEAN.IDENTICAL requires value to be a boolean, got ${typeof value}`);
     }
@@ -60,7 +66,9 @@ export class BooleanOperators {
       throw new Error(`BOOLEAN.IDENTICAL requires filter value to be a boolean, got ${typeof filterValue}`);
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
   /**
@@ -70,7 +78,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are not equal
    * @throws {Error} If either value is not a boolean
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new Error(`BOOLEAN.NOT_EQUALS requires value to be a boolean, got ${typeof value}`);
     }
@@ -78,7 +86,9 @@ export class BooleanOperators {
       throw new Error(`BOOLEAN.NOT_EQUALS requires filter value to be a boolean, got ${typeof filterValue}`);
     }
 
-    return value !== filterValue;
+    const result = value !== filterValue;
+
+    return result;
   }
 
   /**
@@ -88,7 +98,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are not identical
    * @throws {Error} If either value is not a boolean
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new Error(`BOOLEAN.NOT_IDENTICAL requires value to be a boolean, got ${typeof value}`);
     }
@@ -96,7 +106,9 @@ export class BooleanOperators {
       throw new Error(`BOOLEAN.NOT_IDENTICAL requires filter value to be a boolean, got ${typeof filterValue}`);
     }
 
-    return value !== filterValue;
+    const result = value !== filterValue;
+
+    return result;
   }
 
   /**
@@ -104,8 +116,10 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is boolean true
    */
-  static handleTrue(value: FilterValue) {
-    return value === true;
+  static handleTrue(value: FilterValueEntity.Type) {
+    const result = value === true;
+
+    return result;
   }
 
   /**
@@ -113,7 +127,9 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is truthy
    */
-  static handleTruthy(value: FilterValue) {
-    return Boolean(value);
+  static handleTruthy(value: FilterValueEntity.Type) {
+    const result = Boolean(value) === true;
+
+    return result;
   }
 }

@@ -1,8 +1,6 @@
-import { Guard } from '../../../guards/Guard.js';
-
 export class IsFunction {
   static isFunction(value: unknown): boolean   {
-    const result = Guard.isFunction(value);
+    const result = typeof value === 'function';
     return result;
   }
 }

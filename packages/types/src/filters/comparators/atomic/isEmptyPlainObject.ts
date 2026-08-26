@@ -4,16 +4,17 @@
 
 export class IsEmptyPlainObject {
   static isEmptyPlainObject(value: unknown): boolean   {
-    if (Object.prototype.toString.call(value) !== '[object Object]') {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return false;
     }
 
-    for (const key in value as Record<string, unknown>) {
-      if (Object.prototype.hasOwnProperty.call(value, key)) {
-        return false;
-      }
+    const prototype: unknown = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      return false;
     }
 
-    return true;
+    const keys = Object.keys(value);
+    const result = keys.length === 0;
+    return result;
   }
 }

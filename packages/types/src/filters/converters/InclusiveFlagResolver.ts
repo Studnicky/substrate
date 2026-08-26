@@ -13,6 +13,8 @@ export class InclusiveFlagResolver {
    * @returns {boolean} Whether boundaries are inclusive
    */
   static getInclusiveFlag(condition?: { 'inclusive'?: boolean }): boolean {
-    return condition?.inclusive !== false;
+    const result = condition?.inclusive !== false;
+
+    return result;
   }
 }

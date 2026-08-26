@@ -2,6 +2,7 @@
  * Checks if a string contains only alphanumeric characters
  */
 
+import { ALPHANUMERIC_PATTERN } from './constants/AlphanumericPattern.js';
 
 /**
  * Checks if a value is a string containing only letters and numbers
@@ -10,6 +11,7 @@
  */
 export class IsAlphanumeric {
   static isAlphanumeric(value: unknown): boolean   {
-    return typeof value === 'string' && /^[a-zA-Z0-9]+$/.test(value);
+    const result = typeof value === 'string' && ALPHANUMERIC_PATTERN.test(value);
+    return result;
   }
 }

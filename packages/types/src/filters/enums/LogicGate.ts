@@ -6,12 +6,40 @@ import { DeepFreeze } from '../utils/deepFreeze.js';
 
 export const LogicGate = DeepFreeze.deepFreeze({
   'CORE': {
-    'AND': (results: boolean[]) => {return results.every(Boolean);},
-    'NAND': (results: boolean[]) => {return !results.every(Boolean);},
-    'NOR': (results: boolean[]) => {return !results.some(Boolean);},
-    'NOT': (results: boolean[]) => {return !results[0];},
-    'OR': (results: boolean[]) => {return results.some(Boolean);},
-    'XNOR': (results: boolean[]) => {return results.filter(Boolean).length !== 1;},
-    'XOR': (results: boolean[]) => {return results.filter(Boolean).length === 1;}
+    'AND': (results: boolean[]) => {
+      const result = results.every(Boolean);
+
+      return result;
+    },
+    'NAND': (results: boolean[]) => {
+      const result = !results.every(Boolean);
+
+      return result;
+    },
+    'NOR': (results: boolean[]) => {
+      const result = !results.some(Boolean);
+
+      return result;
+    },
+    'NOT': (results: boolean[]) => {
+      const result = results[0] !== true;
+
+      return result;
+    },
+    'OR': (results: boolean[]) => {
+      const result = results.some(Boolean);
+
+      return result;
+    },
+    'XNOR': (results: boolean[]) => {
+      const result = results.filter(Boolean).length !== 1;
+
+      return result;
+    },
+    'XOR': (results: boolean[]) => {
+      const result = results.filter(Boolean).length === 1;
+
+      return result;
+    }
   }
 });

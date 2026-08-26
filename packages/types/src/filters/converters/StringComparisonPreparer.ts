@@ -15,8 +15,14 @@ export class StringComparisonPreparer {
    * @returns {string} Prepared string value
    */
   static prepareStringComparison(value: unknown, caseSensitive: boolean, lowerValue: string | null = null): string {
-    const str = String(value);
+    const stringValue = String(value);
 
-    return caseSensitive ? str : (lowerValue || str.toLowerCase());
+    if (caseSensitive) {
+      return stringValue;
+    }
+
+    const result = lowerValue !== null && lowerValue !== '' ? lowerValue : stringValue.toLowerCase();
+
+    return result;
   }
 }

@@ -2,19 +2,13 @@
  * Universal length checker for strings, arrays, and objects with length property
  */
 
-
 import { Guard } from '../../../guards/Guard.js';
-import { isArray } from '../atomic/isArray.js';
-import { isMap } from '../atomic/isMap.js';
-import { isSet } from '../atomic/isSet.js';
-import { isString } from '../atomic/isString.js';
+import { IsArray } from '../atomic/isArray.js';
+import { IsMap } from '../atomic/isMap.js';
+import { IsSet } from '../atomic/isSet.js';
+import { IsString } from '../atomic/isString.js';
 
 /**
- * Checks if a value has a specific length (works with strings, arrays, Sets, Maps, etc.)
- * @param value - The value to check
- * @param length - The expected length
- * @returns true if value has the specified length, false otherwise
- *
  * Supported types:
  * - Strings: checks string.length
  * - Arrays: checks array.length
@@ -22,22 +16,27 @@ import { isString } from '../atomic/isString.js';
  * - Maps: checks map.size
  * - Objects with length property: checks obj.length
  */
-export function hasLength(value: unknown, length: number): boolean {
-  // Strings and arrays
-  if (isString(value) || isArray(value)) {
-    return value.length === length;
-  }
+export class HasLength {
+  static hasLength(value: unknown, length: number): boolean {
+    // Strings and arrays
+    if (IsString.isString(value) || IsArray.isArray(value)) {
+      const result = value.length === length;
+      return result;
+    }
 
-  // Sets and Maps
-  if (isSet(value) || isMap(value)) {
-    return value.size === length;
-  }
+    // Sets and Maps
+    if (IsSet.isSet(value) || IsMap.isMap(value)) {
+      const result = value.size === length;
+      return result;
+    }
 
-  // Objects with a length property
-  if (Guard.isObjectLike(value) && 'length' in value) {
-    const objectLength = Reflect.get(value, 'length');
-    return Guard.isNumber(objectLength) && objectLength === length;
-  }
+    // Objects with a length property
+    if (Guard.isObjectLike(value) && 'length' in value) {
+      const objectLength = Reflect.get(value, 'length');
+      const result = Guard.isNumber(objectLength) && objectLength === length;
+      return result;
+    }
 
-  return false;
+    return false;
+  }
 }

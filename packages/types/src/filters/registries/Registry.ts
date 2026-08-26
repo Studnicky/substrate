@@ -21,7 +21,9 @@ export class Registry<T> extends Map<string, T> {
       throw new Error(`Cannot remove built-in ${this.name}: ${key}`);
     }
 
-    return super.delete(key);
+    const result = super.delete(key);
+
+    return result;
   }
 
   /**
@@ -30,9 +32,9 @@ export class Registry<T> extends Map<string, T> {
   findKeyByValue(value: T): string | undefined {
     for (const [
       key,
-      val
+      candidate
     ] of this.entries()) {
-      if (val === value) {
+      if (candidate === value) {
         return key;
       }
     }
@@ -44,19 +46,33 @@ export class Registry<T> extends Map<string, T> {
    * Check if an item is built-in
    */
   isBuiltIn(key: string): boolean {
-    return this.builtIn.has(key);
+    const result = this.builtIn.has(key);
+
+    return result;
   }
 
   private registerFromEnum(enumObject: Record<string, Record<string, T>>): void {
     // Register all items from the enum with dot notation
-    for (const [
-      category,
-      items
-    ] of Object.entries(enumObject)) {
-      for (const [
-        name,
-        func
-      ] of Object.entries(items)) {
+    const categoryEntries = Object.entries(enumObject);
+    const categoryEntriesLength = categoryEntries.length;
+
+    for (let categoryIndex = 0; categoryIndex < categoryEntriesLength; categoryIndex += 1) {
+      const categoryEntry = categoryEntries[categoryIndex];
+
+      if (categoryEntry === undefined) {
+        continue;
+      }
+      const [category, items] = categoryEntry;
+      const itemEntries = Object.entries(items);
+      const itemEntriesLength = itemEntries.length;
+
+      for (let itemIndex = 0; itemIndex < itemEntriesLength; itemIndex += 1) {
+        const itemEntry = itemEntries[itemIndex];
+
+        if (itemEntry === undefined) {
+          continue;
+        }
+        const [name, func] = itemEntry;
         const key = `${category}.${name}`;
 
         super.set(key, func);
@@ -73,6 +89,8 @@ export class Registry<T> extends Map<string, T> {
       throw new Error(`Cannot override built-in ${this.name}: ${key}`);
     }
 
-    return super.set(key, value);
+    super.set(key, value);
+
+    return this;
   }
 }

@@ -4,6 +4,7 @@
 
 export class IsEmptyRegExp {
   static isEmptyRegExp(value: unknown): boolean   {
-    return value instanceof RegExp && value.source === '(?:)';
+    const result = value instanceof RegExp && value.source === '(?:)';
+    return result;
   }
 }

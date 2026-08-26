@@ -5,6 +5,7 @@
 
 export class IsEmptyString {
   static isEmptyString(value: unknown): boolean   {
-    return typeof value === 'string' && value.length === 0;
+    const result = typeof value === 'string' && value.length === 0;
+    return result;
   }
 }

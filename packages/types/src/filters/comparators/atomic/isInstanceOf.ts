@@ -10,9 +10,10 @@
  * @returns true if value is an instance of constructor, false otherwise
  */
 export class IsInstanceOf {
-  static isInstanceOf(value: unknown, constructor: new (..._args: unknown[]) => unknown): boolean   {
+  static isInstanceOf(value: unknown, constructor: new (...argumentList: unknown[]) => unknown): boolean   {
     try {
-      return value instanceof constructor;
+      const result = value instanceof constructor;
+      return result;
     } catch {
       // Handle cases where constructor is not a valid constructor function
       return false;

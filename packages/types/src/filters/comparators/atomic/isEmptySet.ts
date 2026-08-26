@@ -4,6 +4,7 @@
 
 export class IsEmptySet {
   static isEmptySet(value: unknown): boolean   {
-    return value instanceof Set && value.size === 0;
+    const result = value instanceof Set && value.size === 0;
+    return result;
   }
 }

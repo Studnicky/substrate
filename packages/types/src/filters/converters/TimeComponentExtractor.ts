@@ -3,7 +3,7 @@
  * @description Extract time components from date values
  */
 
-import { DateParser } from './date.js';
+import { DateParser } from './DateParser.js';
 
 /**
  * Extract time components from date values
@@ -20,7 +20,7 @@ export class TimeComponentExtractor {
     'totalMinutes': number } | null {
     const date = DateParser.parseDate(value);
 
-    if (!date) {
+    if (date === null) {
       return null;
     }
 

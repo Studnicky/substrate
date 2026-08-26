@@ -3,11 +3,10 @@
  * @description Extracts values from objects using dot notation paths with security protections
  */
 
-import type { ArrayWildcardValue, FilterValue } from '../types.js';
-
 import { Guard } from '../../guards/Guard.js';
-import { FilterValueEntity } from '../FilterValueEntity.js';
-import { isArrayWildcardValue } from '../types.js';
+import { FilterValueGuard } from '../FilterValueGuard.js';
+import { FilterTypeGuards } from '../interfaces.js';
+import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';
 
 /**
  * List of dangerous property names that should not be accessed
@@ -112,8 +111,8 @@ export class GetPathValue {
       };
     }
 
-    const arrayIdx = Number(arrayIndex) | 0;
-    const value: unknown = arrayValue.at(arrayIdx);
+    const arrayIndexNumber = Number(arrayIndex) | 0;
+    const value: unknown = arrayValue.at(arrayIndexNumber);
 
     return {
       'isWildcard': false,
@@ -125,21 +124,21 @@ export class GetPathValue {
    * Extracts a value from an object using dot notation path
    * Supports array indexing and wildcard syntax (path[*])
    */
-  static getPathValue(obj: FilterValue, path: string, maxDepth?: number): FilterValue | ArrayWildcardValue {
-    if (!path) {
-      return obj;
+  static getPathValue(targetValue: unknown, path: string, maximumDepth?: number): unknown {
+    if (path === '') {
+      return targetValue;
     }
 
     // Handle bracket notation with quoted keys like ["special.key"]
     if (path.startsWith('[') && path.includes('"]')) {
       // Extract the key from ["key"] or ["key"]["otherKey"]
-      const matches = path.match(/\["([^"]+)"\]/g);
+      const matches = [...path.matchAll(BRACKETED_KEY_PATTERN)];
 
-      if (matches) {
-        let current: unknown = obj;
+      if (matches.length > 0) {
+        let current: unknown = targetValue;
 
-        for (const match of matches) {
-          const key = match.slice(2, -2); // Remove [" and "]
+        for (let matchIndex = 0; matchIndex < matches.length; matchIndex++) {
+          const key = matches[matchIndex]![0].slice(2, -2); // Remove [" and "]
 
           if (current === null || current === undefined) {
             return undefined;
@@ -147,16 +146,18 @@ export class GetPathValue {
           current = GetPathValue.readField(current, key);
         }
 
-        return FilterValueEntity.intake(current);
+        const bracketResult = FilterValueGuard.intake(current);
+
+        return bracketResult;
       }
     }
 
     const parts = path.split('.');
-    let current: unknown = obj;
+    let current: unknown = targetValue;
     const partsLength = parts.length;
 
     // Check if path depth exceeds maximum
-    if (maxDepth !== undefined && partsLength > maxDepth) {
+    if (maximumDepth !== undefined && partsLength > maximumDepth) {
       // Return undefined for paths that are too deep
       return undefined;
     }
@@ -164,7 +165,7 @@ export class GetPathValue {
     for (let i = 0; i < partsLength; i++) {
       const part = parts[i];
 
-      if (!part) {
+      if (part === undefined || part === '') {
         continue;
       }
 
@@ -176,7 +177,9 @@ export class GetPathValue {
         const result = GetPathValue.processArrayIndexing(part, current, path, parts, i);
 
         if (result.isWildcard) {
-          return isArrayWildcardValue(result.value) ? result.value : FilterValueEntity.intake(result.value);
+          const wildcardResult = FilterTypeGuards.isArrayWildcardValue(result.value) ? result.value : FilterValueGuard.intake(result.value);
+
+          return wildcardResult;
         }
         current = result.value;
       } else {
@@ -188,6 +191,8 @@ export class GetPathValue {
       }
     }
 
-    return FilterValueEntity.intake(current);
+    const finalResult = FilterValueGuard.intake(current);
+
+    return finalResult;
   }
 }

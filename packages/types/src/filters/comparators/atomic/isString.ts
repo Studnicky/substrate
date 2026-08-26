@@ -8,6 +8,7 @@
 
 export class IsString {
   static isString(value: unknown): value is string   {
-    return typeof value === 'string';
+    const result = typeof value === 'string';
+    return result;
   }
 }

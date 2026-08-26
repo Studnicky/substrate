@@ -10,6 +10,7 @@
  */
 export class IsIterable {
   static isIterable(value: unknown): boolean   {
-    return value !== null && value !== undefined && typeof (value as Record<string | symbol, unknown>)[Symbol.iterator] === 'function';
+    const result = value !== null && value !== undefined && typeof (value as Record<string | symbol, unknown>)[Symbol.iterator] === 'function';
+    return result;
   }
 }

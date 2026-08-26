@@ -5,26 +5,29 @@
  * Unlike Array.includes() which uses strict equality (===), this function performs
  * deep comparison which can match complex objects and nested structures.
  *
- * @param array - The array to search through
- * @param searchValue - The value to search for in the array
- * @returns true if the array contains an element deeply equal to searchValue, false otherwise
- *
  * @example
  * const users = [{ id: 1, name: 'John' }, { id: 2, name: 'Jane' }];
- * doesArrayContain(users, { id: 1, name: 'John' }); // true
- * doesArrayContain([1, [2, 3], 4], [2, 3]); // true
- * doesArrayContain(['a', 'b', 'c'], 'b'); // true
- * doesArrayContain([1, 2, 3], 4); // false
+ * DoesArrayContain.doesArrayContain(users, { id: 1, name: 'John' }); // true
+ * DoesArrayContain.doesArrayContain([1, [2, 3], 4], [2, 3]); // true
+ * DoesArrayContain.doesArrayContain(['a', 'b', 'c'], 'b'); // true
+ * DoesArrayContain.doesArrayContain([1, 2, 3], 4); // false
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { areDeeplyEqual } from './deepEquals.js';
+import { AreDeeplyEqual } from './areDeeplyEqual.js';
 
-export function doesArrayContain(array: FilterValue, searchValue: FilterValue): boolean {
-  if (!Array.isArray(array)) {
-    return false;
+export class DoesArrayContain {
+  static doesArrayContain(array: FilterValueEntity.Type, searchValue: FilterValueEntity.Type): boolean {
+    if (!Array.isArray(array)) {
+      return false;
+    }
+
+    const result = array.some((item) => {
+      const isMatch = AreDeeplyEqual.areDeeplyEqual(item, searchValue, { 'caseSensitive': true });
+      return isMatch;
+    });
+
+    return result;
   }
-
-  return array.some((item) => {return areDeeplyEqual(item, searchValue, { 'caseSensitive': true });});
 }

@@ -5,6 +5,7 @@
 
 export class IsTruthy {
   static isTruthy(value: unknown): boolean   {
-    return Boolean(value);
+    const result = Boolean(value) === true;
+    return result;
   }
 }

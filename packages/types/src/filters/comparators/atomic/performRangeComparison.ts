@@ -6,11 +6,13 @@ export class PerformRangeComparison {
   /**
    * Checks if all values are numbers and performs numeric range comparison
    */
-  private static compareNumericRange(value: unknown, min: unknown, max: unknown, inclusive: boolean): boolean | null {
-    if (typeof value === 'number' && typeof min === 'number' && typeof max === 'number') {
-      return inclusive
-        ? value >= min && value <= max
-        : value < min || value > max;
+  private static compareNumericRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+    if (typeof value === 'number' && typeof minimum === 'number' && typeof maximum === 'number') {
+      const result = inclusive
+        ? value >= minimum && value <= maximum
+        : value < minimum || value > maximum;
+
+      return result;
     }
 
     return null;
@@ -19,15 +21,17 @@ export class PerformRangeComparison {
   /**
    * Checks if all values are Dates and performs date range comparison
    */
-  private static compareDateRange(value: unknown, min: unknown, max: unknown, inclusive: boolean): boolean | null {
-    if (value instanceof Date && min instanceof Date && max instanceof Date) {
+  private static compareDateRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+    if (value instanceof Date && minimum instanceof Date && maximum instanceof Date) {
       const valueTime = value.getTime();
-      const minTime = min.getTime();
-      const maxTime = max.getTime();
+      const minimumTime = minimum.getTime();
+      const maximumTime = maximum.getTime();
 
-      return inclusive
-        ? valueTime >= minTime && valueTime <= maxTime
-        : valueTime < minTime || valueTime > maxTime;
+      const result = inclusive
+        ? valueTime >= minimumTime && valueTime <= maximumTime
+        : valueTime < minimumTime || valueTime > maximumTime;
+
+      return result;
     }
 
     return null;
@@ -36,11 +40,13 @@ export class PerformRangeComparison {
   /**
    * Checks if all values are strings and performs lexicographic range comparison
    */
-  private static compareStringRange(value: unknown, min: unknown, max: unknown, inclusive: boolean): boolean | null {
-    if (typeof value === 'string' && typeof min === 'string' && typeof max === 'string') {
-      return inclusive
-        ? value >= min && value <= max
-        : value < min || value > max;
+  private static compareStringRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+    if (typeof value === 'string' && typeof minimum === 'string' && typeof maximum === 'string') {
+      const result = inclusive
+        ? value >= minimum && value <= maximum
+        : value < minimum || value > maximum;
+
+      return result;
     }
 
     return null;
@@ -49,34 +55,36 @@ export class PerformRangeComparison {
   /**
    * Performs range comparison with type checking for multiple data types
    * @param value - The value to check
-   * @param min - The minimum value of the range
-   * @param max - The maximum value of the range
+   * @param minimum - The minimum value of the range
+   * @param maximum - The maximum value of the range
    * @param inclusive - Whether to include boundaries (true for >=/<= , false for >/<)
    * @returns true if value is in range (inclusive) or outside range (!inclusive)
    */
-  static performRangeComparison(value: unknown, min: unknown, max: unknown, inclusive: boolean): boolean {
+  static performRangeComparison(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean {
     // Try numeric comparison
-    const numericResult = PerformRangeComparison.compareNumericRange(value, min, max, inclusive);
+    const numericResult = PerformRangeComparison.compareNumericRange(value, minimum, maximum, inclusive);
 
     if (numericResult !== null) {
       return numericResult;
     }
 
     // Try date comparison
-    const dateResult = PerformRangeComparison.compareDateRange(value, min, max, inclusive);
+    const dateResult = PerformRangeComparison.compareDateRange(value, minimum, maximum, inclusive);
 
     if (dateResult !== null) {
       return dateResult;
     }
 
     // Try string comparison
-    const stringResult = PerformRangeComparison.compareStringRange(value, min, max, inclusive);
+    const stringResult = PerformRangeComparison.compareStringRange(value, minimum, maximum, inclusive);
 
     if (stringResult !== null) {
       return stringResult;
     }
 
     // Type mismatch or unsupported types
-    return inclusive ? false : true;
+    const result = inclusive ? false : true;
+
+    return result;
   }
 }

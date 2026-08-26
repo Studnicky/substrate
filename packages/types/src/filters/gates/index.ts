@@ -3,8 +3,24 @@
  */
 
 export const CORE = {
-  'AND': (results: boolean[]) => {return results.every(Boolean);},
-  'NOT': (results: boolean[]) => {return !results[0];},
-  'OR': (results: boolean[]) => {return results.some(Boolean);},
-  'XOR': (results: boolean[]) => {return results.filter(Boolean).length === 1;}
+  'AND': (results: boolean[]) => {
+    const result = results.every(Boolean);
+
+    return result;
+  },
+  'NOT': (results: boolean[]) => {
+    const result = results[0] !== true;
+
+    return result;
+  },
+  'OR': (results: boolean[]) => {
+    const result = results.some(Boolean);
+
+    return result;
+  },
+  'XOR': (results: boolean[]) => {
+    const result = results.filter(Boolean).length === 1;
+
+    return result;
+  }
 };

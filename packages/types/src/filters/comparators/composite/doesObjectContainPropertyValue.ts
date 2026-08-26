@@ -3,17 +3,20 @@
  */
 
 import { Guard } from '../../../guards/Guard.js';
-import { doesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
-import { areDeeplyEqual } from './deepEquals.js';
+import { DoesObjectContainProperty } from '../atomic/doesObjectContainProperty.js';
+import { AreDeeplyEqual } from './areDeeplyEqual.js';
 
-export function doesObjectContainPropertyValue(
-  obj: unknown,
-  propertyName: string,
-  expectedValue: unknown
-): boolean {
-  if (!doesObjectContainProperty(obj, propertyName) || !Guard.isRecord(obj)) {
-    return false;
+export class DoesObjectContainPropertyValue {
+  static doesObjectContainPropertyValue(
+    value: unknown,
+    propertyName: string,
+    expectedValue: unknown
+  ): boolean {
+    if (!DoesObjectContainProperty.doesObjectContainProperty(value, propertyName) || !Guard.isRecord(value)) {
+      return false;
+    }
+
+    const result = AreDeeplyEqual.areDeeplyEqual(value[propertyName], expectedValue, { 'caseSensitive': true });
+    return result;
   }
-
-  return areDeeplyEqual(obj[propertyName], expectedValue, { 'caseSensitive': true });
 }

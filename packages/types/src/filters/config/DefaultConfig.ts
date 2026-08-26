@@ -23,9 +23,9 @@ const DefaultConfig = DeepFreeze.deepFreeze({
   'includeErrors': ErrorCollectionMode.FIRST,
 
   // Depth and safety limits
-  'maxDepth': 10,
+  'maximumDepth': 10,
 
-  'maxPathDepth': 10,
+  'maximumPathDepth': 10,
   'mode': FilterMode.CORE.BLACKLIST,
 
   // Core engine configuration

@@ -5,6 +5,7 @@
 
 export class IsDefined {
   static isDefined(value: unknown): boolean   {
-    return value !== undefined;
+    const result = value !== undefined;
+    return result;
   }
 }

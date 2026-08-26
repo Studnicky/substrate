@@ -1,16 +1,17 @@
+import type { FilterValueEntity } from '../FilterValueEntity.js';
 /**
  * @module NumericOperators
  * @description Numeric operation implementations for FilterEngine
  */
-import type { FilterCondition, FilterValue } from '../types.js';
+import type { FilterConditionInterface } from '../interfaces.js';
 
 import { Guard } from '../../guards/Guard.js';
-import { isDateLike } from '../comparators/atomic/isDateLike.js';
-import { isInRange } from '../comparators/composite/isInRange.js';
-import { isOutsideRange } from '../comparators/composite/isOutsideRange.js';
-import { processDateRange } from '../converters/dateRange.js';
-import { getInclusiveFlag } from '../converters/inclusiveFlag.js';
-import { processNumericRange } from '../converters/numericRange.js';
+import { IsDateLike } from '../comparators/atomic/isDateLike.js';
+import { IsInRange } from '../comparators/composite/isInRange.js';
+import { IsOutsideRange } from '../comparators/composite/isOutsideRange.js';
+import { DateRangeProcessor } from '../converters/DateRangeProcessor.js';
+import { InclusiveFlagResolver } from '../converters/InclusiveFlagResolver.js';
+import { NumericRangeProcessor } from '../converters/NumericRangeProcessor.js';
 
 /**
  * Numeric operation implementations
@@ -33,46 +34,46 @@ export class NumericOperators {
    * @param {*} data - FilterEngine instance
    * @returns {boolean} True if value is within range
    */
-  static handleBetween(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _data?: Record<string, unknown>) {
-    const inclusive = getInclusiveFlag(condition);
+  static handleBetween(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const inclusive = InclusiveFlagResolver.getInclusiveFlag(options?.condition);
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 
     // Handle date values first
-    if (isDateLike(value) || isDateLike(firstFilterValue)) {
-      const dateInfo = processDateRange(value, filterValue);
+    if (IsDateLike.isDateLike(value) || IsDateLike.isDateLike(firstFilterValue)) {
+      const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
 
-      if (!dateInfo) {
+      if (dateInfo === null) {
         return false;
       }
 
       const {
         dateTime,
-        max,
-        min
+        maximum,
+        minimum
       } = dateInfo;
       const result = inclusive
-        ? isInRange(dateTime, [
-          min,
-          max
+        ? IsInRange.isInRange(dateTime, [
+          minimum,
+          maximum
         ])
-        : (dateTime > min && dateTime < max);
+        : (dateTime > minimum && dateTime < maximum);
 
       return result;
     }
 
     // Handle numeric values
     const {
-      max,
-      min,
-      numValue
-    } = processNumericRange(value, filterValue, condition);
+      maximum,
+      minimum,
+      numberValue
+    } = NumericRangeProcessor.processNumericRange(value, filterValue, options?.condition);
 
     const result = inclusive
-      ? isInRange(numValue, [
-        min,
-        max
+      ? IsInRange.isInRange(numberValue, [
+        minimum,
+        maximum
       ])
-      : (numValue > min && numValue < max);
+      : (numberValue > minimum && numberValue < maximum);
 
     return result;
   }
@@ -85,7 +86,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are exactly equal
    * @throws {Error} If either value is not a number
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new Error(`NUMBER.EQUALS requires value to be a number, got ${typeof value}`);
     }
@@ -98,7 +99,9 @@ export class NumericOperators {
       return false;
     }
 
-    return value === filterValue;
+    const result = value === filterValue;
+
+    return result;
   }
 
   /**
@@ -108,16 +111,16 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is greater
    */
-  static handleGreater(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition) {
-    const comparisonValue = condition?.numericValue !== undefined
-      ? condition?.numericValue
-      : filterValue;
+  static handleGreater(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
     if (typeof value !== 'number' || typeof comparisonValue !== 'number') {
       // Handle BigInt as a special case
       if (typeof value === 'bigint' && typeof comparisonValue === 'bigint') {
-        return value > comparisonValue;
+        const result = value > comparisonValue;
+
+        return result;
       }
 
       return false;
@@ -128,7 +131,9 @@ export class NumericOperators {
       return false;
     }
 
-    return value > comparisonValue;
+    const result = value > comparisonValue;
+
+    return result;
   }
 
   /**
@@ -138,16 +143,16 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is greater or equal
    */
-  static handleGreaterEqual(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition) {
-    const comparisonValue = condition?.numericValue !== undefined
-      ? condition?.numericValue
-      : filterValue;
+  static handleGreaterEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
     if (typeof value !== 'number' || typeof comparisonValue !== 'number') {
       // Handle BigInt as a special case
       if (typeof value === 'bigint' && typeof comparisonValue === 'bigint') {
-        return value >= comparisonValue;
+        const result = value >= comparisonValue;
+
+        return result;
       }
 
       return false;
@@ -158,7 +163,9 @@ export class NumericOperators {
       return false;
     }
 
-    return value >= comparisonValue;
+    const result = value >= comparisonValue;
+
+    return result;
   }
 
   /**
@@ -168,7 +175,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are identical
    * @throws {Error} If either value is not a number
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new Error(`NUMBER.IDENTICAL requires value to be a number, got ${typeof value}`);
     }
@@ -177,7 +184,9 @@ export class NumericOperators {
     }
 
     // For numbers, identical means bitwise identical (including NaN handling)
-    return Object.is(value, filterValue);
+    const result = Object.is(value, filterValue);
+
+    return result;
   }
 
   /**
@@ -187,16 +196,16 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is less
    */
-  static handleLess(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition) {
-    const comparisonValue = condition?.numericValue !== undefined
-      ? condition?.numericValue
-      : filterValue;
+  static handleLess(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
     if (typeof value !== 'number' || typeof comparisonValue !== 'number') {
       // Handle BigInt as a special case
       if (typeof value === 'bigint' && typeof comparisonValue === 'bigint') {
-        return value < comparisonValue;
+        const result = value < comparisonValue;
+
+        return result;
       }
 
       return false;
@@ -207,7 +216,9 @@ export class NumericOperators {
       return false;
     }
 
-    return value < comparisonValue;
+    const result = value < comparisonValue;
+
+    return result;
   }
 
   /**
@@ -217,16 +228,16 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is less or equal
    */
-  static handleLessEqual(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition) {
-    const comparisonValue = condition?.numericValue !== undefined
-      ? condition?.numericValue
-      : filterValue;
+  static handleLessEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
     if (typeof value !== 'number' || typeof comparisonValue !== 'number') {
       // Handle BigInt as a special case
       if (typeof value === 'bigint' && typeof comparisonValue === 'bigint') {
-        return value <= comparisonValue;
+        const result = value <= comparisonValue;
+
+        return result;
       }
 
       return false;
@@ -237,7 +248,9 @@ export class NumericOperators {
       return false;
     }
 
-    return value <= comparisonValue;
+    const result = value <= comparisonValue;
+
+    return result;
   }
 
   /**
@@ -247,7 +260,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition (unused)
    * @returns {boolean} True if value % divisor equals remainder
    */
-  static handleModulo(value: FilterValue, filterValue: FilterValue, _condition?: FilterCondition) {
+  static handleModulo(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
     // Only work with numbers - no type coercion
     if (typeof value !== 'number') {
       return false;
@@ -273,10 +286,14 @@ export class NumericOperators {
 
     // Optimized modulo for power-of-2 divisors
     if (divisor > 0 && (divisor & (divisor - 1)) === 0) {
-      return (value & (divisor - 1)) === remainder;
+      const result = (value & (divisor - 1)) === remainder;
+
+      return result;
     }
 
-    return value % divisor === remainder;
+    const result = value % divisor === remainder;
+
+    return result;
   }
 
   /**
@@ -286,7 +303,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are not equal
    * @throws {Error} If either value is not a number
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new Error(`NUMBER.NOT_EQUALS requires value to be a number, got ${typeof value}`);
     }
@@ -299,7 +316,9 @@ export class NumericOperators {
       return true;
     }
 
-    return value !== filterValue;
+    const result = value !== filterValue;
+
+    return result;
   }
 
   /**
@@ -309,7 +328,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are not identical
    * @throws {Error} If either value is not a number
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
+  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new Error(`NUMBER.NOT_IDENTICAL requires value to be a number, got ${typeof value}`);
     }
@@ -317,7 +336,9 @@ export class NumericOperators {
       throw new Error(`NUMBER.NOT_IDENTICAL requires filter value to be a number, got ${typeof filterValue}`);
     }
 
-    return !Object.is(value, filterValue);
+    const result = !Object.is(value, filterValue);
+
+    return result;
   }
 
   /**
@@ -328,47 +349,47 @@ export class NumericOperators {
    * @param {*} data - FilterEngine instance
    * @returns {boolean} True if value is outside range
    */
-  static handleOutside(value: FilterValue, filterValue: FilterValue, condition?: FilterCondition, _data?: Record<string, unknown>) {
-    const inclusive = getInclusiveFlag(condition);
+  static handleOutside(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+    const inclusive = InclusiveFlagResolver.getInclusiveFlag(options?.condition);
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 
     // Handle date values first
-    if (isDateLike(value) || isDateLike(firstFilterValue)) {
-      const dateInfo = processDateRange(value, filterValue);
+    if (IsDateLike.isDateLike(value) || IsDateLike.isDateLike(firstFilterValue)) {
+      const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
 
-      if (!dateInfo) {
+      if (dateInfo === null) {
         // Invalid dates are considered "outside"
         return true;
       }
 
       const {
         dateTime,
-        max,
-        min
+        maximum,
+        minimum
       } = dateInfo;
       const result = inclusive
-        ? isOutsideRange(dateTime, [
-          min,
-          max
+        ? IsOutsideRange.isOutsideRange(dateTime, [
+          minimum,
+          maximum
         ])
-        : (dateTime < min || dateTime > max);
+        : (dateTime < minimum || dateTime > maximum);
 
       return result;
     }
 
     // Handle numeric values
     const {
-      max,
-      min,
-      numValue
-    } = processNumericRange(value, filterValue, condition);
+      maximum,
+      minimum,
+      numberValue
+    } = NumericRangeProcessor.processNumericRange(value, filterValue, options?.condition);
 
     const result = inclusive
-      ? isOutsideRange(numValue, [
-        min,
-        max
+      ? IsOutsideRange.isOutsideRange(numberValue, [
+        minimum,
+        maximum
       ])
-      : (numValue < min || numValue > max);
+      : (numberValue < minimum || numberValue > maximum);
 
     return result;
   }

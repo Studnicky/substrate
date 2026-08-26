@@ -8,6 +8,7 @@
 
 export class IsDate {
   static isDate(value: unknown): value is Date   {
-    return value instanceof Date;
+    const result = value instanceof Date;
+    return result;
   }
 }

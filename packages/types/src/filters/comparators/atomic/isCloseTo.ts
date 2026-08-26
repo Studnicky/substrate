@@ -10,16 +10,17 @@
  * @returns true if values are close within the specified precision, false otherwise
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
 export class IsCloseTo {
-  static isCloseTo(value: unknown, expected: FilterValue, precision = 2): boolean   {
+  static isCloseTo(value: unknown, expected: FilterValueEntity.Type, precision = 2): boolean   {
     if (typeof value !== 'number' || typeof expected !== 'number') {
       return false;
     }
 
     if (!Number.isFinite(value) || !Number.isFinite(expected)) {
-      return value === expected;
+      const result = value === expected;
+      return result;
     }
 
     const pass = Math.abs(expected - value) < Math.pow(10, -precision) / 2;

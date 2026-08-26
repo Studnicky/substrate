@@ -1,4 +1,4 @@
-import type { FilterValue } from '../types.js';
+import type { FilterValueEntity } from '../FilterValueEntity.js';
 
 /**
  * @module ArrayOperators
@@ -21,7 +21,9 @@ export class ArrayOperators {
     }
 
     if (a === null || a === undefined || b === null || b === undefined) {
-      return a === b;
+      const result = a === b;
+
+      return result;
     }
 
     if (typeof a !== typeof b) {
@@ -29,7 +31,9 @@ export class ArrayOperators {
     }
 
     if (typeof a !== 'object') {
-      return a === b;
+      const result = a === b;
+
+      return result;
     }
 
     if (Array.isArray(a) && Array.isArray(b)) {
@@ -60,8 +64,12 @@ export class ArrayOperators {
       return false;
     }
 
-    for (const key of keysA) {
-      if (!keysB.includes(key)) {
+    const keysBSet = new Set(keysB);
+
+    for (let i = 0; i < keysA.length; i++) {
+      const key = keysA[i]!;
+
+      if (!keysBSet.has(key)) {
         return false;
       }
       if (!this.deepEqual(a[key], b[key])) {
@@ -77,12 +85,14 @@ export class ArrayOperators {
    * @param {*} value - Value to check (should be an array)
    * @returns {boolean} True if array is empty
    */
-  static handleEmpty(value: FilterValue) {
+  static handleEmpty(value: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       return false;
     }
 
-    return value.length === 0;
+    const result = value.length === 0;
+
+    return result;
   }
 
   /**
@@ -92,7 +102,7 @@ export class ArrayOperators {
    * @returns {boolean} True if arrays are deeply equal
    * @throws {Error} If either value is not an array
    */
-  static handleEquals(value: FilterValue, filterValue: FilterValue) {
+  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       throw new Error(`ARRAY.EQUALS requires value to be an array, got ${typeof value}`);
     }
@@ -120,12 +130,14 @@ export class ArrayOperators {
    * @param {*} filterValue - Value to check absence of
    * @returns {boolean} True if array does not include value
    */
-  static handleExcludes(value: FilterValue, filterValue: FilterValue) {
+  static handleExcludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       return false;
     }
 
-    return !value.includes(filterValue);
+    const result = !(value as unknown[]).includes(filterValue);
+
+    return result;
   }
 
   /**
@@ -135,8 +147,10 @@ export class ArrayOperators {
    * @returns {boolean} True if arrays are identical
    * @throws {Error} If either value is not an array
    */
-  static handleIdentical(value: FilterValue, filterValue: FilterValue) {
-    return this.handleEquals(value, filterValue);
+  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+    const result = this.handleEquals(value, filterValue);
+
+    return result;
   }
 
   /**
@@ -146,12 +160,14 @@ export class ArrayOperators {
    * @returns {boolean} True if value is found in array
    * @throws {Error} If filterValue is not an array
    */
-  static handleIn(value: FilterValue, filterValue: FilterValue) {
+  static handleIn(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(filterValue)) {
       throw new Error(`ARRAY.IN requires filter value to be an array, got ${typeof filterValue}`);
     }
 
-    return filterValue.includes(value);
+    const result = (filterValue as unknown[]).includes(value);
+
+    return result;
   }
 
   /**
@@ -160,12 +176,14 @@ export class ArrayOperators {
    * @param {*} filterValue - Value to find
    * @returns {boolean} True if array includes value
    */
-  static handleIncludes(value: FilterValue, filterValue: FilterValue) {
+  static handleIncludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       return false;
     }
 
-    return value.includes(filterValue);
+    const result = (value as unknown[]).includes(filterValue);
+
+    return result;
   }
 
   /**
@@ -174,7 +192,7 @@ export class ArrayOperators {
    * @param {*} filterValue - Length to compare against
    * @returns {boolean} True if array length matches
    */
-  static handleLength(value: FilterValue, filterValue: FilterValue) {
+  static handleLength(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       return false;
     }
@@ -182,7 +200,9 @@ export class ArrayOperators {
       return false;
     }
 
-    return value.length === filterValue;
+    const result = value.length === filterValue;
+
+    return result;
   }
 
   /**
@@ -190,12 +210,14 @@ export class ArrayOperators {
    * @param {*} value - Value to check (should be an array)
    * @returns {boolean} True if array is not empty
    */
-  static handleNotEmpty(value: FilterValue) {
+  static handleNotEmpty(value: FilterValueEntity.Type) {
     if (!Array.isArray(value)) {
       return false;
     }
 
-    return value.length > 0;
+    const result = value.length > 0;
+
+    return result;
   }
 
   /**
@@ -205,8 +227,10 @@ export class ArrayOperators {
    * @returns {boolean} True if arrays are not equal
    * @throws {Error} If either value is not an array
    */
-  static handleNotEquals(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+    const result = !this.handleEquals(value, filterValue);
+
+    return result;
   }
 
   /**
@@ -216,8 +240,10 @@ export class ArrayOperators {
    * @returns {boolean} True if arrays are not identical
    * @throws {Error} If either value is not an array
    */
-  static handleNotIdentical(value: FilterValue, filterValue: FilterValue) {
-    return !this.handleEquals(value, filterValue);
+  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+    const result = !this.handleEquals(value, filterValue);
+
+    return result;
   }
 
   /**
@@ -227,11 +253,13 @@ export class ArrayOperators {
    * @returns {boolean} True if value is not found in array
    * @throws {Error} If filterValue is not an array
    */
-  static handleNotIn(value: FilterValue, filterValue: FilterValue) {
+  static handleNotIn(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(filterValue)) {
       throw new Error(`ARRAY.NOT_IN requires filter value to be an array, got ${typeof filterValue}`);
     }
 
-    return !filterValue.includes(value);
+    const result = !(filterValue as unknown[]).includes(value);
+
+    return result;
   }
 }

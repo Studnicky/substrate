@@ -5,32 +5,30 @@
  * and less than or equal to the maximum value in a range. The range should
  * be provided as a two-element array [min, max].
  *
- * @param value - The numeric value to test
- * @param range - A two-element array [min, max] defining the inclusive range
- * @returns true if the value is within the range (min <= value <= max), false otherwise
- *
  * @example
- * isInRange(5, [1, 10]); // true
- * isInRange(0, [1, 10]); // false
- * isInRange(10, [1, 10]); // true (inclusive)
- * isInRange(15, [1, 10]); // false
+ * IsInRange.isInRange(5, [1, 10]); // true
+ * IsInRange.isInRange(0, [1, 10]); // false
+ * IsInRange.isInRange(10, [1, 10]); // true (inclusive)
+ * IsInRange.isInRange(15, [1, 10]); // false
  */
 
-import type { FilterValue } from '../../types.js';
+import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
-import { isRangeValid } from '../atomic/isRangeValid.js';
-import { performRangeComparison } from '../atomic/performRangeComparison.js';
+import { IsRangeValid } from '../atomic/isRangeValid.js';
+import { PerformRangeComparison } from '../atomic/performRangeComparison.js';
 
-export function isInRange(value: unknown, range: FilterValue): boolean {
-  if (!isRangeValid(range)) {
-    return false;
+export class IsInRange {
+  static isInRange(value: unknown, range: FilterValueEntity.Type): boolean {
+    if (!IsRangeValid.isRangeValid(range)) {
+      return false;
+    }
+
+    const [
+      minimum,
+      maximum
+    ] = range;
+
+    const result = PerformRangeComparison.performRangeComparison(value, minimum, maximum, true);
+    return result;
   }
-
-  const [
-    min,
-    max
-  ] = range;
-
-  return performRangeComparison(value, min, max, true);
 }
-

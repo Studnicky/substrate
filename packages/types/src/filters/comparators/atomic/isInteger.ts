@@ -10,6 +10,7 @@
  */
 export class IsInteger {
   static isInteger(value: unknown): boolean   {
-    return typeof value === 'number' && Number.isInteger(value);
+    const result = typeof value === 'number' && Number.isInteger(value);
+    return result;
   }
 }

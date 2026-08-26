@@ -6,6 +6,14 @@
 
 export class AreReferenceEqual {
   static areReferenceEqual(value: unknown, filterValue: unknown): boolean   {
-    return Object.is(value, filterValue);
+    if (value === filterValue) {
+      // Object.is semantics: +0 and -0 are distinct despite `===` treating them as equal
+      const result = value !== 0 || 1 / (value as number) === 1 / (filterValue as number);
+      return result;
+    }
+
+    // Object.is semantics: NaN is equal to itself despite `===` treating it as unequal
+    const result = value !== value && filterValue !== filterValue;
+    return result;
   }
 }

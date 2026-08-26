@@ -3,7 +3,7 @@
  * @description Logic gate evaluation implementations for FilterEngine
  */
 
-import type { FilterCondition } from '../types.js';
+import type { FilterConditionInterface } from '../interfaces.js';
 
 import { LogicGate } from '../enums/LogicGate.js';
 
@@ -37,7 +37,7 @@ export class Evaluators {
    * @param {Function} evaluator - Function to evaluate each condition
    * @returns {boolean} True if all criteria evaluate to true
    */
-  static evaluateAndGate(criteria: FilterCondition[], evaluator: (_condition: FilterCondition) => boolean): boolean {
+  static evaluateAndGate(criteria: FilterConditionInterface[], evaluator: (_condition: FilterConditionInterface) => boolean): boolean {
     const criteriaLength = criteria.length;
 
     for (let i = 0; i < criteriaLength; i++) {
@@ -57,7 +57,7 @@ export class Evaluators {
    * @param {Function} evaluator - Function to evaluate each condition
    * @returns {boolean} True if any condition evaluates to false
    */
-  static evaluateNotGate(criteria: FilterCondition[], evaluator: (_condition: FilterCondition) => boolean): boolean {
+  static evaluateNotGate(criteria: FilterConditionInterface[], evaluator: (_condition: FilterConditionInterface) => boolean): boolean {
     const criteriaLength = criteria.length;
 
     for (let i = 0; i < criteriaLength; i++) {
@@ -77,7 +77,7 @@ export class Evaluators {
    * @param {Function} evaluator - Function to evaluate each condition
    * @returns {boolean} True if any condition evaluates to true
    */
-  static evaluateOrGate(criteria: FilterCondition[], evaluator: (_condition: FilterCondition) => boolean): boolean {
+  static evaluateOrGate(criteria: FilterConditionInterface[], evaluator: (_condition: FilterConditionInterface) => boolean): boolean {
     const criteriaLength = criteria.length;
 
     for (let i = 0; i < criteriaLength; i++) {
@@ -97,7 +97,7 @@ export class Evaluators {
    * @param {Function} evaluator - Function to evaluate each condition
    * @returns {boolean} True if exactly one condition evaluates to true
    */
-  static evaluateXorGate(criteria: FilterCondition[], evaluator: (_condition: FilterCondition) => boolean): boolean {
+  static evaluateXorGate(criteria: FilterConditionInterface[], evaluator: (_condition: FilterConditionInterface) => boolean): boolean {
     let matchCount = 0;
     const criteriaLength = criteria.length;
 
@@ -112,6 +112,8 @@ export class Evaluators {
       }
     }
 
-    return matchCount === 1;
+    const result = matchCount === 1;
+
+    return result;
   }
 }

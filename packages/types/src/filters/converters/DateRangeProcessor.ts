@@ -3,7 +3,7 @@
  * @description Process date range values for comparison
  */
 
-import { DateParser } from './date.js';
+import { DateParser } from './DateParser.js';
 
 /**
  * Process date range values for comparison
@@ -13,15 +13,15 @@ export class DateRangeProcessor {
    * Process date range values for comparison
    * @param {*} value - Value to check
    * @param {Array} filterValue - Range values [start, end]
-   * @returns {Object|null} Processed date info {dateTime, min, max} or null if invalid
+   * @returns {Object|null} Processed date info {dateTime, minimum, maximum} or null if invalid
    */
   static processDateRange(value: unknown, filterValue: unknown): { 'dateTime': number;
-    'max': number
-    'min': number; } | null {
+    'maximum': number
+    'minimum': number; } | null {
     const [
       rangeStart,
       rangeEnd
-    ] = Array.isArray(filterValue) ? filterValue : [
+    ]: unknown[] = Array.isArray(filterValue) ? filterValue as unknown[] : [
       undefined,
       undefined
     ];
@@ -29,7 +29,7 @@ export class DateRangeProcessor {
     const startDate = DateParser.parseDate(rangeStart);
     const endDate = DateParser.parseDate(rangeEnd);
 
-    if (!dateValue || !startDate || !endDate) {
+    if (dateValue === null || startDate === null || endDate === null) {
       return null;
     }
 
@@ -39,8 +39,8 @@ export class DateRangeProcessor {
 
     const result = {
       'dateTime': dateTime,
-      'max': startTime > endTime ? startTime : endTime,
-      'min': startTime < endTime ? startTime : endTime
+      'maximum': startTime > endTime ? startTime : endTime,
+      'minimum': startTime < endTime ? startTime : endTime
     };
 
 

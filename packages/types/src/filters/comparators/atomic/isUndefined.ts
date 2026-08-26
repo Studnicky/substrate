@@ -8,6 +8,7 @@
 
 export class IsUndefined {
   static isUndefined(value: unknown): boolean   {
-    return value === undefined;
+    const result = value === undefined;
+    return result;
   }
 }

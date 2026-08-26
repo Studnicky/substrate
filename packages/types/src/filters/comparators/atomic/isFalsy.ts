@@ -5,6 +5,7 @@
 
 export class IsFalsy {
   static isFalsy(value: unknown): boolean   {
-    return !value;
+    const result = Boolean(value) === false;
+    return result;
   }
 }
