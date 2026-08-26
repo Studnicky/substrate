@@ -1,8 +1,10 @@
-import { CircularBuffer, type CircularBufferOptionsEntity } from '@studnicky/circular-buffer';
+import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
+
+import { CircularBuffer } from '@studnicky/circular-buffer';
 import { Clone } from '@studnicky/json';
 
-import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
-import type { InterpreterHistoryRecordInterface } from './InterpreterHistoryRecordInterface.js';
+import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
+import type { InterpreterHistoryRecordInterface } from './interfaces/InterpreterHistoryRecordInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { EffectInterpreter } from './EffectInterpreter.js';

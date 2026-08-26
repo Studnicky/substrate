@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { ContextScopeInterface } from '../src/index.js';
+import type { ContextScopeInterface } from '../src/interfaces/index.js';
 
 import { Context } from '../src/index.js';
 
@@ -39,11 +39,12 @@ scope.execute(() => {
 
 const snapshot = scope.terminate();
 
-console.log('snapshot keys:', Object.keys(snapshot).sort());
+console.log('snapshot keys:', Object.keys(snapshot).toSorted());
 // #endregion usage
 
 assert.equal(snapshot.operation, 'delete');
 assert.equal(snapshot.resource, 'user/99');
-assert.ok(typeof snapshot._createdAt === 'number' && snapshot._createdAt > 0);
+const auditedCreatedAt: unknown = Reflect.get(snapshot, '_createdAt');
+assert.ok(typeof auditedCreatedAt === 'number' && auditedCreatedAt > 0);
 
 console.log('subclass-hooks: all assertions passed');

@@ -19,9 +19,9 @@ export const clientConfigWithHeaders = {
   }
 } as const satisfies ClientConfigInterface;
 
-export const clientConfigWithParams = {
+export const clientConfigWithParameters = {
   baseURL: 'https://api.example.com',
-  params: {
+  parameters: {
     clientId: 'test-key',
     version: 'v1'
   }
@@ -58,6 +58,6 @@ export const clientConfigComplete = {
     environment: 'test',
     service: 'test-service'
   },
-  params: { clientId: 'test-key' },
+  parameters: { clientId: 'test-key' },
   timeout: 5000
 } as const satisfies ClientConfigInterface;

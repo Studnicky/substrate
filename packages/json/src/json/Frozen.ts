@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
 
@@ -18,7 +20,7 @@ export class Frozen {
 
   /** Build the `get` trap for a mutation-guarded Map/Set `Proxy`, bound to `target` and `mutators`. */
   protected static createMutationGetTrap<T extends object>(target: T, mutators: ReadonlySet<PropertyKey>): (source: T, prop: PropertyKey) => unknown {
-    return (source, prop) => {
+    const result = (source: T, prop: PropertyKey): unknown => {
       const value: unknown = Reflect.get(source, prop, source);
 
       if (mutators.has(prop)) {
@@ -27,15 +29,18 @@ export class Frozen {
         };
       }
 
-      return typeof value === 'function' ? value.bind(source) : value;
+      const resolvedValue: unknown = typeof value === 'function' ? value.bind(source) : value;
+      return resolvedValue;
     };
+    return result;
   }
 
   /** Wrap a Map/Set in a `Proxy` that throws `FrozenMutationError` on mutating method calls. */
   protected static guardMutations<T extends object>(target: T, mutators: ReadonlySet<PropertyKey>): T {
-    return new Proxy(target, {
+    const result = new Proxy(target, {
       'get': this.createMutationGetTrap(target, mutators)
     });
+    return result;
   }
 
   /**
@@ -43,7 +48,7 @@ export class Frozen {
    * Delegates object-freeze decision to `this.shouldFreeze`.
    */
   protected static freezeValue<T>(value: T, seen: WeakSet<object>): T {
-    if (value === null || typeof value !== 'object') {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
 
@@ -59,7 +64,8 @@ export class Frozen {
         this.freezeValue(v, seen);
       }
 
-      return this.guardMutations(value, FROZEN_MAP_MUTATORS);
+      const result = this.guardMutations(value, FROZEN_MAP_MUTATORS);
+      return result;
     }
 
     if (value instanceof Set) {
@@ -68,7 +74,8 @@ export class Frozen {
         this.freezeValue(v, seen);
       }
 
-      return this.guardMutations(value, FROZEN_SET_MUTATORS);
+      const result = this.guardMutations(value, FROZEN_SET_MUTATORS);
+      return result;
     }
 
     if (this.shouldFreeze(value)) {
@@ -77,15 +84,15 @@ export class Frozen {
 
     if (Array.isArray(value)) {
       const items = Array.from<unknown>(value);
-      const objLen = items.length;
-      for (let i = 0; i < objLen; i += 1) {
-        this.freezeValue(items[i], seen);
+      const length = items.length;
+      for (let index = 0; index < length; index += 1) {
+        this.freezeValue(items[index], seen);
       }
     } else {
       const children = Object.values(value);
-      const childLen = children.length;
-      for (let i = 0; i < childLen; i += 1) {
-        this.freezeValue(children[i], seen);
+      const length = children.length;
+      for (let index = 0; index < length; index += 1) {
+        this.freezeValue(children[index], seen);
       }
     }
 

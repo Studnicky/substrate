@@ -19,7 +19,7 @@ const BROWSER_ERROR_MESSAGE =
  * because create() throws before any instance is constructed.
  */
 export class UndiciDispatcher implements UndiciDispatcherInterface {
-  static create(_agent: unknown): UndiciDispatcher {
+  static create(_agent: object): UndiciDispatcher {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 

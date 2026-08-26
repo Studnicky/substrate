@@ -7,7 +7,7 @@ import { PickDefined } from '../src/index.js';
 
 const withClock = PickDefined.from({
   'burstSize': 15,
-  'clock': () => { const result = Date.now(); return result; },
+  'clock': Date.now,
   'deadlineMs': undefined,
   'requestsPerSecond': 5
 });

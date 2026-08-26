@@ -15,10 +15,7 @@ class ChannelSemaphoreDemo {
     await channel.publish('nums', 3);
     await channel.close();
 
-    const received: number[] = [];
-    for await (const item of channel.subscribe('nums')) {
-      received.push(item);
-    }
+    const received = await Array.fromAsync(channel.subscribe('nums'));
 
     console.log('Channel received:', received);
     assert.deepEqual(received, [1, 2, 3]);
@@ -33,15 +30,9 @@ class ChannelSemaphoreDemo {
     await channel.publish('a', 'apple');
     await channel.close();
 
-    const fromA: string[] = [];
-    for await (const item of channel.subscribe('a')) {
-      fromA.push(item);
-    }
+    const fromA = await Array.fromAsync(channel.subscribe('a'));
 
-    const fromB: string[] = [];
-    for await (const item of channel.subscribe('b')) {
-      fromB.push(item);
-    }
+    const fromB = await Array.fromAsync(channel.subscribe('b'));
 
     console.log('Channel key=a:', fromA);
     console.log('Channel key=b:', fromB);
@@ -78,22 +69,26 @@ class ChannelSemaphoreDemo {
     console.log('Semaphore permits:', sem.permits, 'available:', sem.available);
 
     let concurrent = 0;
-    let maxConcurrent = 0;
+    let maximumConcurrent = 0;
 
-    const task = (): Promise<void> =>
-    { const result = sem.withPermit(async () => {
+    const runTask = async (): Promise<void> => {
       concurrent += 1;
-      maxConcurrent = Math.max(maxConcurrent, concurrent);
+      maximumConcurrent = Math.max(maximumConcurrent, concurrent);
       // Yield to the event loop so tasks interleave
       await new Promise<void>((resolve) => { setImmediate(resolve); });
       concurrent -= 1;
-    }); return result; };
+    };
 
     // Launch 4 tasks against a semaphore of 2
-    await Promise.all([task(), task(), task(), task()]);
+    await Promise.all([
+      sem.withPermit(runTask),
+      sem.withPermit(runTask),
+      sem.withPermit(runTask),
+      sem.withPermit(runTask)
+    ]);
 
-    console.log('Semaphore maxConcurrent:', maxConcurrent, '(≤ 2), available after:', sem.available);
-    assert.ok(maxConcurrent <= 2, `maxConcurrent ${maxConcurrent} exceeded permits`);
+    console.log('Semaphore maximum concurrent:', maximumConcurrent, '(≤ 2), available after:', sem.available);
+    assert.ok(maximumConcurrent <= 2, `maximum concurrent ${maximumConcurrent} exceeded permits`);
   }
 
   static async runSemaphoreAcquireRelease(): Promise<void> {

@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/types'
-description: Runtime type guards, JSON boundaries, empty-value helpers, and defined-property selection.
+description: Runtime type guards and predicates, a declarative filter engine, JSON boundaries, empty-value producers, and defined-property selection.
 ---
 
 # @studnicky/types
 
-> Runtime type-guard and object helpers for `@studnicky/substrate`.
+> Runtime type-guard, predicate, and object helpers for `@studnicky/substrate`.
 
 ## Install
 
@@ -15,15 +15,15 @@ pnpm add @studnicky/types
 
 ## Usage
 
-`Guard` provides type-safe narrowing accessors for wire-format values. `Empty` produces fresh empty collection instances and predicates. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `PickDefined` assembles objects without retaining `undefined` properties.
+`Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation — every type guard, atomic comparator, and coercion-free predicate the package exposes lives on it. `Empty` produces fresh empty collection instances (a distinct job from checking emptiness — `Predicates.isEmptyString`/`isEmptyPlainObject`/`isEmptyArray`/`isEmptyMap`/`isEmptySet` cover that). `JsonObject` and `JsonValue` implement runtime JSON boundaries. `PickDefined` assembles objects without retaining `undefined` properties. A declarative `FilterEngine` composes `Predicates`-backed comparators into multi-condition filter specs, importable from the `@studnicky/types/filters` subpath (not the package root) — see `src/filters/index.ts`'s own barrel for the full condition/gate/operator surface.
 
-<<< ../../packages/types/examples/guard-accessors.ts#usage
+<<< ../../packages/types/examples/predicates-accessors.ts#usage
 
 ## Try it
 
-<RunnableExample src="packages/types/examples/guard-accessors" title="Guard accessors, type predicates, and Empty producers" />
+<RunnableExample src="packages/types/examples/predicates-accessors" title="Predicates accessors, type predicates, and Empty producers" />
 
-The output shows `Guard.isObject`/`asRecordArray` narrowing, scalar guards and coercions, the `StrictGuard` static-override subclass, `Empty` producers and predicates, and a JSON value boundary.
+The output shows `Predicates.isObject`/`asRecordArray` narrowing, scalar guards, the `StrictPredicates` static-override subclass, `Empty` producers, and a JSON value boundary.
 
 ## JSON runtime boundaries
 
@@ -81,12 +81,37 @@ Import `JSONSchema7Type` directly from `json-schema` when a public signature or 
 
 The output shows direct configuration with required defaults and an optional `clock` field that is present only when defined.
 
-## Public API
+## Exports
 
-Import `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined` from `@studnicky/types`.
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Predicates` | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class. | `@studnicky/types` |
+| `FilterEngine` | Evaluates a declarative condition tree against a value, composing `Predicates`-backed comparators. | `@studnicky/types/filters` |
+| `Empty` | Produces fresh empty collection instances. | `@studnicky/types` |
+| `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types` |
+| `JsonValue` | Validates and coerces recursive JSON values. | `@studnicky/types` |
+| `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types` |
+
+### Selected `Predicates` static methods
+
+| Method | Description |
+|--------|-------------|
+| `isString`/`isNumber`/`isBoolean`/`isFunction`/`isNullish` | Generic-preserving type guards (`<T>(value: T): value is X & T`) — narrow an already-typed value without discarding its declared shape. |
+| `isNumberType(value)` | `typeof value === 'number'`, including `NaN`/`Infinity` — use over `isNumber` when the caller routes those values to a more specific downstream check. |
+| `isObjectLike`/`isObject`/`isRecord`/`isPlainObject` | Progressively narrower object-shape guards; see each method's doc comment for the exact exclusion each adds. |
+| `isMap`/`isSet`/`isDate`/`isArray`/`isRegExp`/`isURL`/`isError` | Type guards for the common non-primitive built-ins. |
+| `isEmptyString`/`isEmptyPlainObject`/`isEmptyArray`/`isEmptyMap`/`isEmptySet` | Emptiness checks — pair with `Empty`'s producers of the same five shapes. |
+| `areArraysEqual`/`areMapsEqual`/`areSetsEqual`/`areObjectsEqual` | Structural equality per container shape. |
+| `isFiniteNumber(value)` | True for finite `number` values. |
+| `isIntegerValue(value)` | True for integer `number` values. |
+| `inferValueType(value)` | Returns JSON Schema type name (`'null'`, `'array'`, `'object'`, etc.) |
+| `matchesType(schemaType, value)` | True if `value` satisfies the named JSON Schema type. |
+| `satisfiesUniqueItems(arr)` | Deep-equal uniqueness check. |
+| `satisfiesContentEncoding(value, encoding)` | Validates `base64`/`base64url` encoding. |
+| `satisfiesContentMediaType(value, mediaType, encoding?)` | Validates `application/json` content. |
 
 ## Extending
 
-`Guard` is a pure-static class. Extend it and override `static isObject` to customise record detection. `asRecordArray` delegates through `this.isObject`, so overrides propagate automatically.
+`Predicates` is a pure-static class. Extend it and override a `static` method — most commonly `isObject`, to customise record detection — and other methods that delegate through `this.<method>` (e.g. `asRecordArray` delegates through `this.isObject`) will propagate the override automatically.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/types)

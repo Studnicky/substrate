@@ -7,7 +7,7 @@ import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
 
 /** Abstract base for all concurrency-domain errors. */
 export abstract class ConcurrencyError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
   }
 }

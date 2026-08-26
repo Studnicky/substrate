@@ -6,5 +6,5 @@ export namespace DraftFixture {
     'untouched': { 'value': 1 }
   };
 
-  export const Doc = { 'count': 0, 'status': 'draft' };
+  export const Document = { 'count': 0, 'status': 'draft' };
 }

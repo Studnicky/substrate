@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -9,7 +10,7 @@ export namespace KeyedRateLimiterRegistryOptionsEntity {
     'additionalProperties': false,
     'properties': {
       'keyIdleTtlMs': { 'minimum': 0, 'type': 'number' },
-      'maxKeys': { 'minimum': 1, 'type': 'integer' }
+      'maximumKeys': { 'minimum': 1, 'type': 'integer' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;
@@ -17,4 +18,6 @@ export namespace KeyedRateLimiterRegistryOptionsEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

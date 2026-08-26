@@ -6,6 +6,10 @@ import { Coalesce } from '../../src/Coalesce.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 import scenarioGroups from './Coalesce.scenarios.json' with { type: 'json' };
 
+function delayedStringFactory(): Promise<string> {
+  return new Promise((resolve) => setTimeout(() => resolve('v'), 10));
+}
+
 type ScenarioCase =
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'shared-factory'; name: string }
   | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'independent-keys'; name: string }
@@ -39,11 +43,6 @@ class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
   protected override onTimeout(key: string, timeoutMs: number): void {
     this.timeoutEvents.push({ 'key': key, 'timeoutMs': timeoutMs });
   }
-}
-
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
-  assert.equal(error.message.includes(expectedMessage), true);
 }
 
 const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
@@ -94,10 +93,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
+    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -105,10 +102,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
-    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
+    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -149,8 +144,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string };
     const expected = scenarioCase.expected as { joinCount: number; startCount: number };
     const c = ObservedCoalesce.create();
-    const factory = (): Promise<string> => new Promise((resolve) => setTimeout(() => resolve('v'), 10));
-    await Promise.all([c.run(input.key, factory), c.run(input.key, factory), c.run(input.key, factory)]);
+    await Promise.all([c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory)]);
     assert.equal(c.startEvents.length, expected.startCount);
     assert.equal(c.joinEvents.length, expected.joinCount);
     assert.deepEqual(c.startEvents, [input.key]);
@@ -195,10 +189,8 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const input = scenarioCase.input as { key: string; message: string };
     const expected = scenarioCase.expected as { success: boolean };
     const c = ObservedCoalesce.create();
-    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), (error: unknown) => {
-      assertErrorMessageIncludes(error, input.message);
-      return true;
-    });
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
+    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
     assert.equal(c.settledEvents.length, 1);
     assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
   },
@@ -218,11 +210,10 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const c = ObservedTimeoutCoalesce.create({ 'timeout': input.coalesce.timeout });
     const deferred = Promise.withResolvers<string>();
     const pending = c.run(input.key, () => deferred.promise);
-    await assert.rejects(pending, (err: unknown) => {
-      assert.ok(err instanceof CoalesceTimeoutError);
-      assert.equal(err.key, input.key);
-      assert.equal(err.timeoutMs, input.coalesce.timeout);
-      return true;
+    await assert.rejects(pending, {
+      'key': input.key,
+      'name': CoalesceTimeoutError.name,
+      'timeoutMs': input.coalesce.timeout
     });
     assert.deepEqual(c.timeoutEvents, expected.timeoutEvents);
     assert.equal(c.isInflight(input.key), expected.inflightAfterTimeout);
@@ -255,21 +246,17 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
         throw new Error('timeout hook boom');
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
       const c = RejectingTimeoutCoalesce.create<string>({ 'timeout': input.coalesce.timeout });
       const deferred = Promise.withResolvers<string>();
       const pending = c.run(input.key, () => deferred.promise);
-      await assert.rejects(pending, (error: unknown) => {
-        assert.ok(error instanceof HookInvocationError);
-        assert.equal(error.hookName, expected.hookName);
-        return true;
-      });
+      await assert.rejects(pending, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
       assert.equal(c.isInflight(input.key), true);
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionEvents.length, expected.unhandledRejections);
+      assert.equal(rejectionCount, expected.unhandledRejections);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }

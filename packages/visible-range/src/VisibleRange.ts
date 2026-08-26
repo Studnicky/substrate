@@ -7,6 +7,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';
@@ -21,6 +22,12 @@ interface VisibleRangeResolvedConfigInterface {
   readonly 'itemSize'?: VisibleRangeResolvedConfigEntity.Type['itemSize'];
   readonly 'mode': VisibleRangeResolvedConfigEntity.Type['mode'];
   readonly 'overscan': VisibleRangeResolvedConfigEntity.Type['overscan'];
+}
+
+interface VisibleRangeFunctionInterface extends Function {}
+
+interface VisibleRangeConstructorInterface<TInstance> {
+  readonly 'prototype': TInstance;
 }
 
 /**
@@ -43,19 +50,20 @@ interface VisibleRangeResolvedConfigInterface {
  */
 export class VisibleRange {
   private static isConstructed<TInstance extends VisibleRange>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface
   ): value is TInstance {
-    return value instanceof constructor;
+    const isInstance = value instanceof constructor;
+    return isInstance;
   }
 
   static create<TInstance extends VisibleRange = VisibleRange>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
     config: VisibleRangeConfigInterface
   ): TInstance {
     const resolved = VisibleRange.#resolve(config);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!VisibleRange.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !VisibleRange.isConstructed<TInstance>(result, this)) {
       throw new TypeError('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;
@@ -236,7 +244,8 @@ export class VisibleRange {
       }
     }
 
-    return Math.min(Math.max(0, lo - 1), count - 1);
+    const index = Math.min(Math.max(0, lo - 1), count - 1);
+    return index;
   }
 
   /**

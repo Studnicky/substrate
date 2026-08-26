@@ -49,8 +49,10 @@ class TracingCache extends LruCache<string, number> {
 
   eventNames(): string[] {
     const result: string[] = [];
-    for (const e of this.events) {
-      result.push(e.event);
+    const length = this.events.length;
+    for (let index = 0; index < length; index += 1) {
+      const event = this.events[index]!;
+      result.push(event.event);
     }
     return result;
   }

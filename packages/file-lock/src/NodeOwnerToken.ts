@@ -1,8 +1,8 @@
-import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
+import type { OwnerTokenInterface } from './interfaces/index.js';
 
 export class NodeOwnerToken implements OwnerTokenInterface {
   get(): string {
-    const result = String(process.pid);
+    const result = `${process.pid}`;
     return result;
   }
 }

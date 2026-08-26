@@ -232,8 +232,8 @@
           }
         ],
         "filename": "packages/eslint-config/ReadonlyCollection.ts",
-        "name": "canonical alias readonly output is reported and fixed",
-        "output": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\nexport type ValueListType = ValueType[];"
+        "name": "canonical alias readonly output is reported without an unsafe fix",
+        "output": null
       },
       {
         "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;\ntype ValueListType = ReadonlyArray<ValueType>;",
@@ -265,6 +265,16 @@
         ],
         "filename": "packages/eslint-config/AnnotatedOwnerBinding.ts",
         "name": "an explicitly type-annotated const is not value-first authored even for an owner-direct schema"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { type: 'string' } as const satisfies JSONSchema;\ntype LocalNameType = FromSchema<typeof ValueSchema>;\nexport type { LocalNameType as ExportedNonTypeName };",
+        "errors": [
+          {
+            "messageId": "mustEndType"
+          }
+        ],
+        "name": "a separate re-export renaming to a non-Type-suffixed exported name is checked against the exported name",
+        "filename": "packages/eslint-config/RenamedReexportName.ts"
       }
     ]
   },
@@ -275,7 +285,9 @@
     "code": "type HandlerType = () => void;",
     "warningFilename": "OuterSeverity.ts",
     "disabledFilename": "OuterSeverityOff.ts",
-    "expectedMessageIds": ["aliasMustBeInterface"],
+    "expectedMessageIds": [
+      "aliasMustBeInterface"
+    ],
     "expectedWarningSeverity": 1
   },
   "combined": {

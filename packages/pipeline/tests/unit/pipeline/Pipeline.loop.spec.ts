@@ -148,16 +148,17 @@ const runnerMap: RunnerMap = {
       buildNumberStages(scenarioCase.input.stages),
       buildPipelineOptions(scenarioCase.input)
     );
-    await assert.rejects(
-      () => pipeline.run(scenarioCase.input.value),
-      (err: unknown) => {
-        assert.ok(err instanceof HookInvocationError);
-        assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
-        assert.ok(err.cause instanceof HookTimeoutError);
-        assert.strictEqual(err.cause.name, scenarioCase.expected.causeName);
-        return true;
+    await assert.rejects(async () => {
+      try {
+        await pipeline.run(scenarioCase.input.value);
+      } catch (error) {
+        assert.ok(error instanceof HookInvocationError);
+        assert.strictEqual(error.hookName, scenarioCase.expected.hookName);
+        assert.ok(error.cause instanceof HookTimeoutError);
+        assert.strictEqual(error.cause.name, scenarioCase.expected.causeName);
+        throw error;
       }
-    );
+    });
   },
   'hook-timeout-resolving-has-no-effect': async (scenarioCase) => {
     class ResolvingHookPipeline extends Pipeline<number> {
@@ -235,14 +236,15 @@ const runnerMap: RunnerMap = {
     }
 
     const pipeline = ThrowingHookPipeline.create<number>([(n) => n + 1]);
-    await assert.rejects(
-      () => pipeline.run(scenarioCase.input.value),
-      (err: unknown) => {
-        assert.ok(err instanceof HookInvocationError);
-        assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
-        return true;
+    await assert.rejects(async () => {
+      try {
+        await pipeline.run(scenarioCase.input.value);
+      } catch (error) {
+        assert.ok(error instanceof HookInvocationError);
+        assert.strictEqual(error.hookName, scenarioCase.expected.hookName);
+        throw error;
       }
-    );
+    });
   }
 };
 

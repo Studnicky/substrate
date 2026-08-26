@@ -44,13 +44,16 @@ export class JsonValue {
       return value;
     }
     if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : null;
+      const result = Number.isFinite(value) ? value : null;
+      return result;
     }
     if (Array.isArray(value)) {
       if (ancestors.has(value)) { return null; }
       ancestors.add(value);
       const result: JSONSchema7Type[] = [];
-      for (const item of value) {
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value[index];
         result.push(JsonValue.coerce(item, ancestors));
       }
       ancestors.delete(value);
@@ -59,9 +62,13 @@ export class JsonValue {
     if (JsonObject.is(value)) {
       if (ancestors.has(value)) { return null; }
       ancestors.add(value);
+      const keys = Object.keys(value);
+      const length = keys.length;
       const result: Record<string, JSONSchema7Type> = {};
-      for (const key of Object.keys(value)) {
-        result[key] = JsonValue.coerce(value[key], ancestors);
+      for (let index = 0; index < length; index += 1) {
+        const key = keys[index]!;
+        const item: unknown = Reflect.get(value, key);
+        Reflect.set(result, key, JsonValue.coerce(item, ancestors));
       }
       ancestors.delete(value);
       return result;
@@ -74,12 +81,15 @@ export class JsonValue {
       return true;
     }
     if (typeof value === 'number') {
-      return Number.isFinite(value);
+      const result = Number.isFinite(value);
+      return result;
     }
     if (Array.isArray(value)) {
       if (ancestors.has(value)) { return false; }
       ancestors.add(value);
-      for (const item of value) {
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const item: unknown = value[index];
         if (!JsonValue.isValue(item, ancestors)) {
           ancestors.delete(value);
           return false;
@@ -91,8 +101,12 @@ export class JsonValue {
     if (JsonObject.is(value)) {
       if (ancestors.has(value)) { return false; }
       ancestors.add(value);
-      for (const key of Object.keys(value)) {
-        if (!JsonValue.isValue(value[key], ancestors)) {
+      const keys = Object.keys(value);
+      const length = keys.length;
+      for (let index = 0; index < length; index += 1) {
+        const key = keys[index]!;
+        const item: unknown = Reflect.get(value, key);
+        if (!JsonValue.isValue(item, ancestors)) {
           ancestors.delete(value);
           return false;
         }

@@ -15,13 +15,19 @@ description: Pure function memoization composing cache and concurrency — LRU+T
 pnpm add @studnicky/memoize
 ```
 
-`@studnicky/memoize` is the sole public code entrypoint.
+`@studnicky/memoize` exposes runtime operations at its root, schemas at `@studnicky/memoize/entities`, and type contracts at `@studnicky/memoize/interfaces`.
 
 ## Usage
 
 `Memoize#call(...args)` derives `key = keyFn(...args)` and checks the composed `LruCache` for an entry under `key`. A hit returns the cached result without re-invoking the wrapped function; a miss runs the call through the composed `Coalesce` so concurrent callers sharing the derived key share one invocation:
 
 <<< ../../packages/memoize/examples/observedMemoize.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/memoize/examples/observedMemoize" title="Cache hits, invalidation, and coalesced concurrent calls" />
+
+The output shows `onMemoMiss` firing on the first call for a key, `onMemoHit` on a repeat call, a fresh `onMemoMiss` after `invalidate()` forces re-computation, and `onMemoCoalesced` when two concurrent callers share the same in-flight invocation.
 
 ## Hooks
 
@@ -52,5 +58,31 @@ The composed `LruCache` and `Coalesce` remain private. Callers control cached st
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/memoize
+
+## Entities
+
+`@studnicky/memoize/entities` exports memoized cache lookup schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { CacheLookupEntity } from '@studnicky/memoize/entities';
+```
+
+## Interfaces
+
+`@studnicky/memoize/interfaces` exports memoization option contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { MemoizeOptionsInterface } from '@studnicky/memoize/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Memoize` | Wraps a function with cache-backed, single-flight memoization. | `@studnicky/memoize` |
+| `MemoizeConfigError` | Represents invalid memoization configuration. | `@studnicky/memoize` |
+| `MemoizeError` | Base error for memoization failures. | `@studnicky/memoize` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/memoize)

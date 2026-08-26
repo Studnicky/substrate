@@ -5,13 +5,15 @@ description: 'Disallows freestanding functions at module scope.'
 
 # @studnicky/static-method-verbs
 
-Disallows module-scope function declarations and `const` arrow/function-expression assignments — every freestanding function or const-arrow that lives directly at the top level of a module, whether exported or not, is forbidden regardless of its name. Move the logic into a static method of a class instead. A function nested inside a class method, another function, or any non-module scope is never flagged.
+Disallows module-scope function declarations and variable-bound arrow/function expressions — every freestanding function at the top level of a module, whether exported or not, is forbidden regardless of its name. Namespace bodies are transparent, and the rule also detects function-valued object members and object or array destructuring that binds such a function. Move the logic into a static method of a class instead. A function nested inside a class method, another function, or any non-module scope is never flagged.
 
 Detection is gated by the `mode` option:
 
 - `"any"` — flags every module-scope function declaration or const arrow/function-expression, with no exemption.
 - `"structural"` (the default) — exempts a function whose entire body is a trivial single-statement pass-through: a block body containing only a `return` of an identifier, call expression, awaited expression, or chain (the same shape [`inline-trivial-logic`](./inline-trivial-logic.md) already flags), or the expression-bodied arrow equivalent. Any other body — multiple statements, real control flow, or a `return` that constructs a new object/array — is still flagged.
 - `"typed"` — flags a function only when the type checker resolves its return type to a named type alias or interface, as opposed to a primitive, `void`, or an inline object-literal type with no name. Requires type-aware parser services (`parserOptions.project`); if they are unavailable the rule reports nothing at all.
+
+An entity namespace's `validate` type guard is exempt in every mode. [`folder-content-shape`](./folder-content-shape.md) requires that exact schema-validation member, so the shared predicate keeps the two rules compatible.
 
 **Fixable:** No · **Options:** `mode` · **Suggested severity:** `error`
 

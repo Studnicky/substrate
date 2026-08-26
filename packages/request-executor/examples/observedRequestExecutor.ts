@@ -1,7 +1,7 @@
 /** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
 // #region usage
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import {
   FetchClient,
@@ -12,7 +12,7 @@ import { Retry } from '@studnicky/retry';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
-import type { RequestExecutorDepsInterface } from '../src/index.js';
+import type { RequestExecutorDepsInterface } from '../src/interfaces/index.js';
 
 import { RequestExecutor } from '../src/index.js';
 
@@ -22,12 +22,14 @@ class TelemetryFetchClient extends FetchClient {
   protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
     console.log(`[fetch] ${context.metadata.method} ${context.metadata.path}`);
     this.requestPaths.push(context.metadata.path);
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 
   protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     console.log(`[fetch] <- ${context.response.status}`);
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 }
 
@@ -75,9 +77,9 @@ class ReportingRequestExecutor extends RequestExecutor {
     return result;
   }
 
-  protected override onExecuteError(error: unknown): void {
-    console.log('[execute] failed', error instanceof Error ? error.message : error);
-    this.errorMessages.push(error instanceof Error ? error.message : String(error));
+  protected override onExecuteError(error: Error): void {
+    console.log('[execute] failed', error.message);
+    this.errorMessages.push(error.message);
   }
 
   report(): { 'retries': number; 'totalRequests': number } {
@@ -120,7 +122,7 @@ if (address === null || typeof address !== 'object') {
 
 // #region usage
 const fetchClient = TelemetryFetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
-const retry = new TelemetryRetry({ 'maxRetries': 3 });
+const retry = new TelemetryRetry({ 'maximumRetries': 3 });
 
 const executor = ReportingRequestExecutor.tracked(fetchClient, retry);
 

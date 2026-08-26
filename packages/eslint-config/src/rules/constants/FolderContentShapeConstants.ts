@@ -24,6 +24,15 @@ export const BUILTIN_COLLECTION_CONSTRUCTOR_NAMES: ReadonlySet<string> = new Set
   'WeakSet'
 ]);
 
+/** Primitive-wrapper builtins (`Number(...)`, `String(...)`, `Boolean(...)`) called with a
+ * literal argument produce a plain primitive data value, not a function/reference — a magic
+ * constant written as `Number(3)` instead of `3` is still a magic constant. */
+export const PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES: ReadonlySet<string> = new Set([
+  'Boolean',
+  'Number',
+  'String'
+]);
+
 export const TS_WRAPPER_EXPRESSION_TYPES: ReadonlySet<string> = new Set([
   'TSAsExpression',
   'TSNonNullExpression',

@@ -58,7 +58,8 @@ class JobProcess extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, 
 
   waitForState(variant: JobStateEntity.Type['variant']): Promise<void> {
     if (this.currentState.variant === variant) {
-      return Promise.resolve();
+      const result = Promise.resolve();
+      return result;
     }
 
     return new Promise<void>((resolve) => {
@@ -70,7 +71,8 @@ class JobProcess extends StateMachine<JobStateEntity.Type, JobEventEntity.Type, 
 
   // Once settled, further transitions are rejected outright — reduce() is never called.
   protected override isTerminated(state: JobStateEntity.Type): boolean {
-    return state.variant === 'completed' || state.variant === 'cancelled';
+    const result = state.variant === 'completed' || state.variant === 'cancelled';
+    return result;
   }
 
   protected override onEnterState(state: JobStateEntity.Type): void {

@@ -1,0 +1,45 @@
+{
+  "valid": [
+    {
+      "code": "declare const x: any; x.arguments;",
+      "name": "MemberExpression property access literally named 'arguments' - not flagged (object literal key declarations are still flagged separately, since only the MemberExpression-property read is excluded)"
+    },
+    {
+      "code": "function fn() { eval('arguments.length'); }",
+      "name": "eval(\"arguments.length\") - not flagged; arguments identifier is inside a string literal, invisible to static AST analysis (known, permanent limitation)"
+    },
+    {
+      "code": "function fn() {} fn.arguments;",
+      "name": "fn.arguments deprecated accessor - not flagged; no reliable static signal distinguishes a function's deprecated .arguments accessor from a legitimate data property literally named 'arguments' (documented known limitation)"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function fn() { return arguments.length; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "bare arguments identifier inside a function - flagged"
+    },
+    {
+      "code": "function fn() { const args = arguments; return args; }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "arguments assigned to a variable - flagged"
+    },
+    {
+      "code": "const x = { arguments: [1, 2] };",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "object literal Property key literally named 'arguments' - flagged; the selector only excludes MemberExpression-property reads, not ObjectExpression Property keys (documents the actual boundary of the exclusion)"
+    }
+  ]
+}

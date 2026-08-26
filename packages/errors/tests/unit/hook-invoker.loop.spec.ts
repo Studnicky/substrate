@@ -17,21 +17,21 @@ const errorConstructorsByShape: Record<string, new (...args: never[]) => Error> 
   'HookTimeoutError': HookTimeoutError
 };
 
-function errorConstructorForShape(shape: unknown): new (...args: never[]) => Error {
+function errorConstructorForShape(shape: string): new (...args: never[]) => Error {
   const constructor = errorConstructorsByShape[String(shape)];
   assert.ok(constructor, `Unknown error shape: ${String(shape)}`);
   return constructor;
 }
 
 class SwallowingInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string, _cause: Error): void {}
 }
 
 class RecordingInvoker extends HookInvoker {
-  readonly causes: unknown[] = [];
+  readonly causes: Error[] = [];
   readonly erroredHookNames: string[] = [];
 
-  protected override onHookError(hookName: string, cause: unknown): void {
+  protected override onHookError(hookName: string, cause: Error): void {
     this.causes.push(cause);
     this.erroredHookNames.push(hookName);
   }
@@ -40,7 +40,7 @@ class RecordingInvoker extends HookInvoker {
 class AsyncRejectingOnHookErrorInvoker extends HookInvoker {
   readonly terminalCause = new Error('onHookError itself failed');
 
-  protected override async onHookError(_hookName: string, _cause: unknown): Promise<void> {
+  protected override async onHookError(_hookName: string, _cause: Error): Promise<void> {
     await Promise.resolve();
     throw this.terminalCause;
   }
@@ -49,7 +49,7 @@ class AsyncRejectingOnHookErrorInvoker extends HookInvoker {
 class AsyncSwallowingInvoker extends HookInvoker {
   readonly erroredHookNames: string[] = [];
 
-  protected override async onHookError(hookName: string, _cause: unknown): Promise<void> {
+  protected override async onHookError(hookName: string, _cause: Error): Promise<void> {
     await Promise.resolve();
     this.erroredHookNames.push(hookName);
   }
@@ -57,7 +57,7 @@ class AsyncSwallowingInvoker extends HookInvoker {
 
 let callCount = 0;
 class LoopingOnHookErrorInvoker extends HookInvoker {
-  protected override async onHookError(_hookName: string, _cause: unknown): Promise<void> {
+  protected override async onHookError(_hookName: string, _cause: Error): Promise<void> {
     callCount += 1;
     await Promise.resolve();
     throw new Error('onHookError rejects every time');
@@ -73,15 +73,21 @@ class CloneableMarker {
   public readonly nested = { count: 2 };
 }
 
-interface HookInvokerOptionsInputInterface {
+interface HookInvokerOptionsInputInterface extends ScenarioRecordInterface {
   detectReentrancy?: boolean;
   timeoutMs?: number;
 }
 
+interface ScenarioRecordInterface {
+  readonly [key: string]: ScenarioValue;
+}
+
+type ScenarioValue = undefined | boolean | number | string | null | ScenarioValue[] | ScenarioRecordInterface;
+
 interface HookDiagnosticsInputInterface {
-  details?: Record<string, unknown>;
-  items?: unknown[];
-  plain?: Record<string, unknown>;
+  details?: Record<string, ScenarioValue>;
+  items?: ScenarioValue[];
+  plain?: Record<string, ScenarioValue>;
 }
 
 interface HookInvokerInputInterface {
@@ -96,7 +102,7 @@ interface HookInvokerInputInterface {
   observationDelayMs?: number;
   options?: HookInvokerOptionsInputInterface;
   outerHookName?: string;
-  returnValue?: unknown;
+  returnValue?: ScenarioValue;
   thenEvent?: string;
 }
 
@@ -108,25 +114,25 @@ type ScenarioShape = 'detectreentrancy-disabled' | 'detectreentrancy-direct' | '
 
 type ScenarioCase = {
   description: string;
-  expected: Record<string, unknown>;
+  expected: ScenarioRecordInterface;
   input: ScenarioInputInterface;
   shape: ScenarioShape;
   name: string;
 };
 
-function materializeInput(value: unknown): unknown {
+function materializeInput(value: ScenarioValue): ScenarioValue {
   if (Array.isArray(value)) {
     return value.map((entry) => materializeInput(entry));
   }
   if (value !== null && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
+    const record = value as ScenarioRecordInterface;
     if (record.shape === 'undefined') {
       return undefined;
     }
     if ('returnValue' in record || 'hookName' in record || 'outerHookName' in record || 'innerHookName' in record || 'timeoutMs' in record) {
       return record;
     }
-    const materialized: Record<string, unknown> = {};
+    const materialized: Record<string, ScenarioValue> = {};
     for (const [key, entry] of Object.entries(record)) {
       materialized[key] = materializeInput(entry);
     }
@@ -143,7 +149,7 @@ function createDiagnosticsError(message: string): Error {
   return error;
 }
 
-function requireScenarioData(scenario: ScenarioCase): { expected: Record<string, unknown>; input: HookInvokerInputInterface } {
+function requireScenarioData(scenario: ScenarioCase): { expected: ScenarioRecordInterface; input: HookInvokerInputInterface } {
   assert.ok(scenario.input.invoker, `Scenario ${scenario.name} is missing invoker input`);
   assert.ok(scenario.expected, `Scenario ${scenario.name} is missing expected`);
   return { expected: scenario.expected, input: scenario.input.invoker };
@@ -153,9 +159,9 @@ async function flushTurn(): Promise<void> {
   await new Promise<void>((resolve) => { setImmediate(resolve); });
 }
 
-async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void> | void): Promise<unknown[]> {
-  const rejectionEvents: unknown[] = [];
-  const onUnhandledRejection = (reason: unknown): void => {
+async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void> | void): Promise<Error[]> {
+  const rejectionEvents: Error[] = [];
+  const onUnhandledRejection = (reason: Error): void => {
     rejectionEvents.push(reason);
     console.error('[%s] captured unhandledRejection', scenarioName, reason);
   };
@@ -169,7 +175,7 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
   }
 }
 
-type ScenarioRunner = (scenario: ScenarioCase, expected: Record<string, unknown>, input: HookInvokerInputInterface) => Promise<void> | void;
+type ScenarioRunner = (scenario: ScenarioCase, expected: ScenarioRecordInterface, input: HookInvokerInputInterface) => Promise<void> | void;
 
 const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
   const invoker = new RecordingInvoker(input.options);
@@ -179,7 +185,7 @@ const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
     await new Promise((resolve) => { setTimeout(resolve, Number(input.observationDelayMs)); });
     assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
     const cause = invoker.causes[0];
-    assert.ok(cause instanceof errorConstructorForShape(expected.causeShape));
+    assert.ok(cause instanceof errorConstructorForShape(String(expected.causeShape)));
     assert.strictEqual((cause as HookTimeoutError).hookName, String((expected.erroredHookNames as unknown[])[0]));
     assert.strictEqual((cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
   }).then((rejectionEvents) => {
@@ -225,11 +231,11 @@ const runnerMap = {
       invoker.invoke(String(input.outerHookName), () => {
         invoker.invoke(String(input.innerHookName), () => 'never reached');
       });
-    }, (err: unknown) => {
+    }, (err) => {
       assert.ok(err instanceof HookInvocationError);
-      assert.strictEqual((err as HookInvocationError).hookName, String(expected.outerHookName));
-      assert.ok((err as HookInvocationError).cause instanceof ReentrantHookInvocationError);
-      assert.strictEqual(((err as HookInvocationError).cause as ReentrantHookInvocationError).hookName, String(expected.innerHookName));
+      assert.strictEqual(err.hookName, String(expected.outerHookName));
+      assert.ok(err.cause instanceof ReentrantHookInvocationError);
+      assert.strictEqual(err.cause.hookName, String(expected.innerHookName));
       return true;
     });
   },
@@ -416,10 +422,11 @@ const runnerMap = {
       invoker.invoke(String(input.hookName), () => {
         throw original;
       });
-    }, (err: unknown) => {
-      assert.ok(err instanceof errorConstructorForShape(expected.errorShape));
-      assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
-      assert.strictEqual((err as HookInvocationError).cause, original);
+    }, (err) => {
+      assert.ok(err instanceof errorConstructorForShape(String(expected.errorShape)));
+      assert.ok(err instanceof HookInvocationError);
+      assert.strictEqual(err.hookName, String(expected.hookName));
+      assert.strictEqual(err.cause, original);
       return true;
     });
   },
@@ -456,10 +463,10 @@ const runnerMap = {
     const original = new Error(String(input.message));
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), async () => { throw original; }),
-      (err: unknown) => {
+      (err) => {
         assert.ok(err instanceof HookInvocationError);
-        assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
-        assert.strictEqual((err as HookInvocationError).cause, original);
+        assert.strictEqual(err.hookName, String(expected.hookName));
+        assert.strictEqual(err.cause, original);
         return true;
       }
     );
@@ -501,10 +508,10 @@ const runnerMap = {
     const original = new Error(String(input.message));
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), () => { throw original; }),
-      (err: unknown) => {
+      (err) => {
         assert.ok(err instanceof HookInvocationError);
-        assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
-        assert.strictEqual((err as HookInvocationError).cause, original);
+        assert.strictEqual(err.hookName, String(expected.hookName));
+        assert.strictEqual(err.cause, original);
         return true;
       }
     );
@@ -527,12 +534,14 @@ const runnerMap = {
     const invoker = new HookInvoker(input.options);
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), () => new Promise(() => { /* never settles */ })),
-      (err: unknown) => {
-        assert.ok(err instanceof errorConstructorForShape(expected.errorShape));
-        assert.ok(err.cause instanceof errorConstructorForShape(expected.causeShape));
-        assert.strictEqual((err as HookInvocationError).hookName, String(expected.hookName));
-        assert.strictEqual((err.cause as HookTimeoutError).hookName, String(expected.hookName));
-        assert.strictEqual((err.cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
+      (err) => {
+        assert.ok(err instanceof errorConstructorForShape(String(expected.errorShape)));
+        assert.ok(err instanceof HookInvocationError);
+        assert.ok(err.cause instanceof errorConstructorForShape(String(expected.causeShape)));
+        assert.ok(err.cause instanceof HookTimeoutError);
+        assert.strictEqual(err.hookName, String(expected.hookName));
+        assert.strictEqual(err.cause.hookName, String(expected.hookName));
+        assert.strictEqual(err.cause.timeoutMs, Number(expected.causeTimeoutMs));
         const recorded = invoker.getHookErrors()[0];
         assert.ok(recorded instanceof HookInvocationError);
         assert.ok(recorded.cause instanceof HookTimeoutError);
@@ -559,8 +568,9 @@ const runnerMap = {
         await Promise.resolve();
         throw new Error(String(input.causeMessage));
       }),
-      (error: unknown) => {
-        assert.strictEqual((error as Error).message, String(expected.terminalCauseMessage));
+      (error) => {
+        assert.ok(error instanceof Error);
+        assert.strictEqual(error.message, String(expected.terminalCauseMessage));
         return true;
       }
     );
@@ -579,7 +589,7 @@ const runnerMap = {
   },
   'onhookerror-sync-throw': (_scenario, expected, input) => {
     class ThrowingOnHookErrorInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         throw new Error(`custom failure for ${hookName}: ${String(cause)}`);
       }
     }
@@ -589,7 +599,7 @@ const runnerMap = {
       invoker.invoke(String(input.hookName), () => {
         throw new Error(String(input.causeMessage));
       });
-    }, (err: unknown) => {
+    }, (err) => {
       assert.ok(err instanceof Error);
       for (const fragment of (expected.messageIncludes as string[] | undefined) ?? []) {
         assert.ok(err.message.includes(String(fragment)));
@@ -599,9 +609,8 @@ const runnerMap = {
     });
   },
   'options-malformed': (_scenario, _expected, input) => {
-    const malformed = materializeInput(input.options) as Record<string, unknown>;
     assert.throws(() => {
-      Reflect.construct(HookInvoker, [malformed]);
+      Reflect.construct(HookInvoker, [input.options]);
     }, ValidationError);
   },
   'options-no-options': (_scenario, expected, input) => {
@@ -613,7 +622,7 @@ const runnerMap = {
   },
   'options-non-positive': (_scenario, _expected, input) => {
     assert.throws(() => {
-      new HookInvoker(materializeInput(input.options) as { timeoutMs: number });
+      new HookInvoker(input.options);
     }, ValidationError);
   },
   'timeout-invoke-fire-and-forget': runFireAndForgetTimeout,

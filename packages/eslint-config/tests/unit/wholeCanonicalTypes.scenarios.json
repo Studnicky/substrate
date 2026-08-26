@@ -15,6 +15,18 @@
     {
       "code": "import type { Rule } from 'eslint'; type BarType = Partial<Rule.RuleModule>;",
       "name": "'Partial<X>' on a type declared in node_modules - not flagged, not a domain shape this codebase owns"
+    },
+    {
+      "code": "type FooType = { a: number; b: string }; type BarType = { [K in keyof FooType]: FooType[K] };",
+      "name": "a full keyof remap is not a subset - not flagged, every property is retained"
+    },
+    {
+      "code": "type FooType = { a: number; b: string }; type BarType = { a: FooType['a']; b: FooType['b'] };",
+      "name": "inline indexed-access reproducing every canonical property is not a subset - not flagged"
+    },
+    {
+      "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] };",
+      "name": "a reusable generic Pick-shaped utility definition itself is not flagged - its own object type is a type parameter, not a canonical owned type"
     }
   ],
   "invalid": [
@@ -53,6 +65,33 @@
         }
       ],
       "name": "'Partial<X>' used as a function parameter type - flagged"
+    },
+    {
+      "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] }; type FooType = { a: number; b: string }; type BarType = MyPickType<FooType, 'a'>;",
+      "errors": [
+        {
+          "messageId": "noPartialCanonicalType"
+        }
+      ],
+      "name": "a custom-named alias structurally reimplementing Pick is flagged the same as the literal utility name"
+    },
+    {
+      "code": "type FooType = { a: number; b: string }; type BarType = { [K in 'a']: FooType[K] };",
+      "errors": [
+        {
+          "messageId": "noPartialCanonicalType"
+        }
+      ],
+      "name": "a manual mapped type with zero Omit/Partial/Pick reference is flagged the same as the utility"
+    },
+    {
+      "code": "type FooType = { a: number; b: string; c: boolean }; type BarType = { a: FooType['a']; b: FooType['b'] };",
+      "errors": [
+        {
+          "messageId": "noPartialCanonicalType"
+        }
+      ],
+      "name": "plain inline indexed-access subsetting into fewer than every canonical property is flagged"
     }
   ]
 }

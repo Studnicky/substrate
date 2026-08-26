@@ -17,6 +17,9 @@
       "path": "../errors"
     },
     {
+      "path": "../fsm"
+    },
+    {
       "path": "../json"
     },
     {

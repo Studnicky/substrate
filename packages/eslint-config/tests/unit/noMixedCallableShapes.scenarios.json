@@ -19,6 +19,14 @@
     {
       "code": "type MaybeMapEntryType<K, V> = Map<K, V> | V;",
       "name": "a second method-bearing library interface union member is not callable evidence either"
+    },
+    {
+      "code": "type PolymorphicFactoryType<TInstance> = Function & { readonly 'prototype': TInstance };",
+      "name": "Function intersected with only its own intrinsic prototype member is not a mix - the polymorphic static-factory idiom lexical-this-only also permits"
+    },
+    {
+      "code": "type NamedConstructorType<TInstance> = Function & { readonly 'name': string; readonly 'prototype': TInstance };",
+      "name": "Function intersected with more than one intrinsic function member (name and prototype) is still not a mix"
     }
   ],
   "invalid": [
@@ -81,6 +89,56 @@
         }
       ],
       "name": "mixed nested inside a property"
+    },
+    {
+      "code": "type MixedFunctionType = Function | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedFunctionType", "name": "MixedFunctionType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "the global Function type mixed with data is callable evidence, not an exempt lib-interface fallback"
+    },
+    {
+      "code": "type MixedAnyType = any | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "MixedAnyType", "name": "MixedAnyType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "any admits a callable value, so any mixed with data is still a mix"
+    },
+    {
+      "code": "interface Weird {\n  a: number;\n}\ninterface Weird {\n  (): void;\n}\ntype ViaMergedInterfaceType = Weird | { b: 2 };",
+      "errors": [
+        {
+          "data": { "location": "ViaMergedInterfaceType", "name": "ViaMergedInterfaceType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "a call signature in the second block of a declaration-merged interface is still callable evidence"
+    },
+    {
+      "code": "type Wrap<T> = T;\ntype ViaWrapType = Wrap<() => void> | { a: 1 };",
+      "errors": [
+        {
+          "data": { "location": "ViaWrapType", "name": "ViaWrapType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "a generic identity alias substitutes the caller's concrete type argument instead of recursing into its bare type parameter"
+    },
+    {
+      "code": "type MixedFactoryType<TInstance> = Function & { readonly 'prototype': TInstance; retries: number };",
+      "errors": [
+        {
+          "data": { "location": "MixedFactoryType", "name": "MixedFactoryType" },
+          "messageId": "mixedCallableShape"
+        }
+      ],
+      "name": "Function intersected with an intrinsic member PLUS a genuine data member (retries) is still a mix - the exemption does not cover added members outside the intrinsic allowlist"
     }
   ]
 }

@@ -1,17 +1,22 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { ConfigurationError, ConfigValidation } from '@studnicky/config';
+import { ConfigurationError } from '@studnicky/config';
 import { HookInvoker } from '@studnicky/errors';
+import { SchemaValidator } from '@studnicky/json';
 import { SampleBuffer } from '@studnicky/sample-buffer';
+import { Predicates } from '@studnicky/types';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
+import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import type { ThrottleStateEntity } from '../entities/ThrottleStateEntity.js';
 import type { ThrottleStatsEntity } from '../entities/ThrottleStatsEntity.js';
 import type { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
 import type { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
 import type { ThrottleInterface } from '../interfaces/index.js';
+import type { OperationLifecycleEffect } from './OperationLifecycleEffect.js';
+import type { OperationLifecycleEvent } from './OperationLifecycleEvent.js';
 
 import {
   DEFAULT_ADAPTIVE_CONFIG,
@@ -21,8 +26,6 @@ import {
   EMPTY_LENGTH,
   FIRST_ARRAY_INDEX,
   INITIAL_COUNTER,
-  MIN_ADJUSTMENT_INTERVAL,
-  MIN_SAMPLE_WINDOW,
   NO_DELAY_MS,
   PERCENTILE_P50,
   PERCENTILE_P95,
@@ -34,17 +37,19 @@ import {
   ThrottleDrainingError
 } from '../errors/index.js';
 import { Delay } from './Delay.js';
+import { OperationLifecycleMachine } from './OperationLifecycleMachine.js';
 
 interface ThrottleSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
 class ThrottleInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: ThrottleSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -67,6 +72,21 @@ interface ActiveOperationInterface {
 interface ThrottleQueueEntryInterface {
   readonly 'reject': (error: unknown) => void;
   readonly 'resolve': () => void;
+}
+
+interface LifecycleEffectHandlerInterface {
+  (
+    effect: OperationLifecycleEffect.FireOnAbortStartEffectInterface
+    | OperationLifecycleEffect.FireOnAcquireEffectInterface
+    | OperationLifecycleEffect.FireOnAcquireWaitEffectInterface
+    | OperationLifecycleEffect.FireOnAdaptiveAdjustEffectInterface
+    | OperationLifecycleEffect.FireOnContendedEffectInterface
+    | OperationLifecycleEffect.FireOnDrainCompleteEffectInterface
+    | OperationLifecycleEffect.FireOnDrainStartEffectInterface
+    | OperationLifecycleEffect.FireOnReleaseEffectInterface
+    | OperationLifecycleEffect.FireOnRejectEffectInterface
+    | OperationLifecycleEffect.FireOnWindowSlideEffectInterface
+  ): void;
 }
 
 /**
@@ -121,6 +141,36 @@ interface ThrottleQueueEntryInterface {
  * ```
  */
 export class Throttle implements ThrottleInterface {
+  private readonly lifecycleEffectHandlers = new Map<
+    Parameters<LifecycleEffectHandlerInterface>[0]['variant'],
+    LifecycleEffectHandlerInterface
+  >([
+    ['FireOnAdaptiveAdjust', (effect) => {
+      if (effect.variant !== 'FireOnAdaptiveAdjust') { throw new TypeError(`Expected FireOnAdaptiveAdjust effect, received ${effect.variant}`); }
+      this.hooks.invoke('onAdaptiveAdjust', () => { const result = this.onAdaptiveAdjust(effect.previousLimit, effect.newLimit); return result; });
+    }],
+    ['FireOnContended', (effect) => {
+      if (effect.variant !== 'FireOnContended') { throw new TypeError(`Expected FireOnContended effect, received ${effect.variant}`); }
+      this.hooks.invoke('onContended', () => { const result = this.onContended(effect.activeCount, effect.queuedCount); return result; });
+    }],
+    ['FireOnDrainComplete', (effect) => {
+      if (effect.variant !== 'FireOnDrainComplete') { throw new TypeError(`Expected FireOnDrainComplete effect, received ${effect.variant}`); }
+      this.hooks.invoke('onDrainComplete', () => { const result = this.onDrainComplete(effect.totalExecuted); return result; });
+    }],
+    ['FireOnReject', (effect) => {
+      if (effect.variant !== 'FireOnReject') { throw new TypeError(`Expected FireOnReject effect, received ${effect.variant}`); }
+      this.hooks.invoke('onReject', () => { const result = this.onReject(effect.reason); return result; });
+    }],
+    ['FireOnRelease', (effect) => {
+      if (effect.variant !== 'FireOnRelease') { throw new TypeError(`Expected FireOnRelease effect, received ${effect.variant}`); }
+      this.hooks.invoke('onRelease', () => { const result = this.onRelease(effect.activeCount, effect.totalExecuted); return result; });
+    }],
+    ['FireOnWindowSlide', (effect) => {
+      if (effect.variant !== 'FireOnWindowSlide') { throw new TypeError(`Expected FireOnWindowSlide effect, received ${effect.variant}`); }
+      this.hooks.invoke('onWindowSlide', () => { const result = this.onWindowSlide(effect.activeCount, effect.queuedCount); return result; });
+    }]
+  ]);
+
   /**
    * Factory method to create a new Throttle instance
    *
@@ -136,8 +186,12 @@ export class Throttle implements ThrottleInterface {
     this: ThrottleSubclassInterface<TInstance>,
     config?: Partial<ThrottleConfigEntity.Type>
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!ThrottleInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): ThrottleSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
+    if (!Predicates.isObjectLike(result) || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('Throttle.create() did not construct the requested subclass.');
     }
     return result;
@@ -156,6 +210,16 @@ export class Throttle implements ThrottleInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
   private lastAdjustmentTime = INITIAL_COUNTER;
   private readonly latencyBuffer: SampleBuffer | undefined;
+
+  /**
+   * Per-operation lifecycle reducer (see `OperationLifecycleMachine`). Single point of
+   * truth for which lifecycle hook fires for a given per-operation event — replaces the
+   * old scattered, inconsistent `hooks.invoke(...)` call sites. Distinct from `#state`
+   * above, which is the coarse idle/active/draining/aborted mode FSM.
+   */
+  private readonly lifecycle = new OperationLifecycleMachine();
+  private lifecycleState: OperationLifecycleStateEntity.Type = this.lifecycle.getInitialState();
+
   private readonly observers: (() => void)[] = [];
   private readonly queue: CircularBuffer<ThrottleQueueEntryInterface>;
 
@@ -254,6 +318,119 @@ export class Throttle implements ThrottleInterface {
     return result;
   }
 
+  // ── Per-operation lifecycle ────────────────────────────────────────────────
+
+  /**
+   * Drives `OperationLifecycleMachine.reduce()` for `event` and fires its single
+   * resulting effect via a synchronous `hooks.invoke(...)` call. `reduce()` returns
+   * exactly one effect per event by construction — see `OperationLifecycleMachine` for
+   * why that eliminates the double-fire/missing-fire class of bug at the source.
+   */
+  private fireLifecycleEffect(
+    event: OperationLifecycleEvent.AbortStartedEventInterface
+    | OperationLifecycleEvent.AcquiredEventInterface
+    | OperationLifecycleEvent.ConcurrencyAdjustedEventInterface
+    | OperationLifecycleEvent.ContendedEventInterface
+    | OperationLifecycleEvent.DrainCompletedEventInterface
+    | OperationLifecycleEvent.DrainStartedEventInterface
+    | OperationLifecycleEvent.OperationRejectedEventInterface
+    | OperationLifecycleEvent.QueuedEventInterface
+    | OperationLifecycleEvent.SlotReleasedEventInterface
+    | OperationLifecycleEvent.WindowSlidEventInterface
+  ): void {
+    const effect = this.stepLifecycle(event);
+    const handler = this.lifecycleEffectHandlers.get(effect.variant);
+    if (handler === undefined) {
+      throw new TypeError(`fireLifecycleEffect received an async-only effect: ${effect.variant}`);
+    }
+    handler(effect);
+  }
+
+  /**
+   * Drives `OperationLifecycleMachine.reduce()` for `event` and fires its single
+   * resulting effect via `hooks.invokeAsync(...)`, exposing completion to the caller.
+   */
+  private async fireLifecycleEffectAsync(
+    event: OperationLifecycleEvent.AbortStartedEventInterface
+    | OperationLifecycleEvent.AcquiredEventInterface
+    | OperationLifecycleEvent.ConcurrencyAdjustedEventInterface
+    | OperationLifecycleEvent.ContendedEventInterface
+    | OperationLifecycleEvent.DrainCompletedEventInterface
+    | OperationLifecycleEvent.DrainStartedEventInterface
+    | OperationLifecycleEvent.OperationRejectedEventInterface
+    | OperationLifecycleEvent.QueuedEventInterface
+    | OperationLifecycleEvent.SlotReleasedEventInterface
+    | OperationLifecycleEvent.WindowSlidEventInterface
+  ): Promise<void> {
+    const effect = this.stepLifecycle(event);
+
+    switch (effect.variant) {
+      case 'FireOnAbortStart':
+        await this.hooks.invokeAsync('onAbortStart', () => {
+          const result = this.onAbortStart(effect.cancelledCount);
+          return result;
+        });
+        return;
+      case 'FireOnAcquire':
+        await this.hooks.invokeAsync('onAcquire', () => {
+          const result = this.onAcquire(effect.activeCount, effect.queuedCount);
+          return result;
+        });
+        return;
+      case 'FireOnAcquireWait':
+        await this.hooks.invokeAsync('onAcquireWait', () => {
+          const result = this.onAcquireWait(effect.queuedCount);
+          return result;
+        });
+        return;
+      case 'FireOnDrainStart':
+        await this.hooks.invokeAsync('onDrainStart', () => {
+          const result = this.onDrainStart(effect.activeCount, effect.queuedCount);
+          return result;
+        });
+        return;
+      default:
+        throw new TypeError(`fireLifecycleEffectAsync received a sync-only effect: ${effect.variant}`);
+    }
+  }
+
+  /** Transitions the lifecycle reducer and returns its single effect for `event`. */
+  private stepLifecycle(
+    event: OperationLifecycleEvent.AbortStartedEventInterface
+    | OperationLifecycleEvent.AcquiredEventInterface
+    | OperationLifecycleEvent.ConcurrencyAdjustedEventInterface
+    | OperationLifecycleEvent.ContendedEventInterface
+    | OperationLifecycleEvent.DrainCompletedEventInterface
+    | OperationLifecycleEvent.DrainStartedEventInterface
+    | OperationLifecycleEvent.OperationRejectedEventInterface
+    | OperationLifecycleEvent.QueuedEventInterface
+    | OperationLifecycleEvent.SlotReleasedEventInterface
+    | OperationLifecycleEvent.WindowSlidEventInterface
+  ):
+    OperationLifecycleEffect.FireOnAbortStartEffectInterface
+    | OperationLifecycleEffect.FireOnAcquireEffectInterface
+    | OperationLifecycleEffect.FireOnAcquireWaitEffectInterface
+    | OperationLifecycleEffect.FireOnAdaptiveAdjustEffectInterface
+    | OperationLifecycleEffect.FireOnContendedEffectInterface
+    | OperationLifecycleEffect.FireOnDrainCompleteEffectInterface
+    | OperationLifecycleEffect.FireOnDrainStartEffectInterface
+    | OperationLifecycleEffect.FireOnReleaseEffectInterface
+    | OperationLifecycleEffect.FireOnRejectEffectInterface
+    | OperationLifecycleEffect.FireOnWindowSlideEffectInterface {
+    const step = this.lifecycle.transition(this.lifecycleState, event);
+
+    this.lifecycleState = step.state;
+
+    const [effect] = step.effects;
+
+    if (effect === undefined) {
+      throw new TypeError(`OperationLifecycleMachine produced no effect for event: ${event.type}`);
+    }
+
+    const result = effect;
+    return result;
+  }
+
   // ── Clock ───────────────────────────────────────────────────────────────────
 
   /**
@@ -263,7 +440,8 @@ export class Throttle implements ThrottleInterface {
    * real epoch-ms by default.
    */
   protected now(): number {
-    const result = Date.now();
+    const currentDate = new Date();
+    const result = currentDate.getTime();
     return result;
   }
 
@@ -328,10 +506,7 @@ export class Throttle implements ThrottleInterface {
     let abortHookError: unknown;
 
     try {
-      await this.hooks.invokeAsync('onAbortStart', () => {
-        const result = this.onAbortStart(cancelledCount);
-        return result;
-      });
+      await this.fireLifecycleEffectAsync({ 'cancelledCount': cancelledCount, 'type': 'AbortStarted' });
     } catch (error) {
       abortHookError = error;
     }
@@ -368,10 +543,7 @@ export class Throttle implements ThrottleInterface {
       // fails, the slot was never actually put to use, so it is rolled back via
       // releaseSlot() before the failure propagates to the caller.
       try {
-        await this.hooks.invokeAsync('onAcquire', () => {
-          const result = this.onAcquire(this.activeCount, this.queue.length);
-          return result;
-        });
+        await this.fireLifecycleEffectAsync({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'Acquired' });
       } catch (error) {
         this.releaseSlot();
         throw error;
@@ -382,10 +554,7 @@ export class Throttle implements ThrottleInterface {
 
     // Synchronous entry preserves the ordering guarantee that onContended fires
     // before this caller is pushed onto the queue.
-    this.hooks.invoke('onContended', () => {
-      const result = this.onContended(this.activeCount, this.queue.length);
-      return result;
-    });
+    this.fireLifecycleEffect({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'Contended' });
 
     await new Promise<void>((resolve, reject) => {
       const pendingTask = {
@@ -399,11 +568,8 @@ export class Throttle implements ThrottleInterface {
       // here. invokeAsync exposes both synchronous and asynchronous hook
       // failures through its completion promise, so the same catch handles
       // either failure mode.
-      this.hooks.invokeAsync('onAcquireWait', () => {
-        const result = this.onAcquireWait(this.queue.length);
-        return result;
-      })
-        .catch((error: unknown) => {
+      this.fireLifecycleEffectAsync({ 'queuedCount': this.queue.length, 'type': 'Queued' })
+        .catch((error) => {
           const queuedCount = this.queue.length;
 
           for (let i = INITIAL_COUNTER; i < queuedCount; i++) {
@@ -427,16 +593,19 @@ export class Throttle implements ThrottleInterface {
     p95: number
   ): number {
     if (p95 < adaptive.targetLatencyMs * adaptive.scaleUpThreshold
-        && this.config.concurrencyLimit < adaptive.maxConcurrency) {
-      return this.scaleConcurrency(adaptive, p95, 'up');
+        && this.config.concurrencyLimit < adaptive.maximumConcurrency) {
+      const result = this.scaleConcurrency(adaptive, p95, 'up');
+      return result;
     }
 
     if (p95 > adaptive.targetLatencyMs * adaptive.scaleDownThreshold
-        && this.config.concurrencyLimit > adaptive.minConcurrency) {
-      return this.scaleConcurrency(adaptive, p95, 'down');
+        && this.config.concurrencyLimit > adaptive.minimumConcurrency) {
+      const result = this.scaleConcurrency(adaptive, p95, 'down');
+      return result;
     }
 
-    return this.config.concurrencyLimit;
+    const result = this.config.concurrencyLimit;
+    return result;
   }
 
   /**
@@ -479,10 +648,7 @@ export class Throttle implements ThrottleInterface {
 
     // drain() is already async and the state transition above is already
     // committed — awaiting here cannot race with a concurrent synchronous call.
-    await this.hooks.invokeAsync('onDrainStart', () => {
-      const result = this.onDrainStart(this.activeCount, this.queue.length);
-      return result;
-    });
+    await this.fireLifecycleEffectAsync({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'DrainStarted' });
 
     return await this.waitForCompletion();
   }
@@ -491,12 +657,11 @@ export class Throttle implements ThrottleInterface {
    * Drain the queue by resolving all pending operations with undefined
    */
   private drainQueue(): void {
-    while (this.queue.length > EMPTY_LENGTH) {
-      const pendingTask = this.queue.shift();
+    let pendingTask = this.queue.shift();
 
-      if (pendingTask !== undefined) {
-        pendingTask.resolve();
-      }
+    while (pendingTask !== undefined) {
+      pendingTask.resolve();
+      pendingTask = this.queue.shift();
     }
   }
 
@@ -513,10 +678,10 @@ export class Throttle implements ThrottleInterface {
    * });
    * ```
    */
-  async execute<T>(fn: () => Promise<T>): Promise<T | undefined> {
+  async execute<T>(callback: () => Promise<T>): Promise<T | undefined> {
     this.validateExecuteState();
 
-    return await new Promise<T | undefined>((resolveExecute, rejectExecute) => {
+    const result = await new Promise<T | undefined>((resolveExecute, rejectExecute) => {
       this.acquireSlot().then(() => {
         if (this.#state === 'aborted') {
           resolveExecute(undefined);
@@ -539,16 +704,17 @@ export class Throttle implements ThrottleInterface {
           // HookInvocationError (a lifecycle hook they invoke can fail) — the
           // appended .catch(rejectExecute) is the safety net so that failure
           // rejects execute() instead of becoming an unhandled rejection.
-          fn().then(
-            (result) => { this.handleOperationSuccess(operation, result, operationStartTime, resolveExecute); },
-            (error) => { this.handleOperationError(operation, error, rejectExecute); }
+          callback().then(
+            (successResult) => { this.handleOperationSuccess(operation, successResult, operationStartTime, resolveExecute); },
+            (error) => { this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute); }
           ).catch(rejectExecute);
         } catch (error) {
-          this.handleOperationError(operation, error, rejectExecute);
+          this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute);
         }
       })
         .catch(rejectExecute);
     });
+    return result;
   }
 
   /**
@@ -597,13 +763,14 @@ export class Throttle implements ThrottleInterface {
         'adjustmentCount': this.adjustmentCount,
         'enabled': true,
         'lastAdjustmentTime': this.lastAdjustmentTime,
-        'maxConcurrency': this.config.adaptive.maxConcurrency,
-        'minConcurrency': this.config.adaptive.minConcurrency,
+        'maximumConcurrency': this.config.adaptive.maximumConcurrency,
+        'minimumConcurrency': this.config.adaptive.minimumConcurrency,
         'targetLatencyMs': this.config.adaptive.targetLatencyMs
       };
     }
 
-    return stats;
+    const result = stats;
+    return result;
   }
 
   /**
@@ -614,7 +781,8 @@ export class Throttle implements ThrottleInterface {
       return false;
     }
 
-    return await this.waitForGracePeriod(timeout);
+    const result = await this.waitForGracePeriod(timeout);
+    return result;
   }
 
   /**
@@ -622,8 +790,8 @@ export class Throttle implements ThrottleInterface {
    */
   private handleOperationError(
     operation: ActiveOperationInterface,
-    error: unknown,
-    rejectExecute: (error: unknown) => void
+    error: Error,
+    rejectExecute: (error: Error) => void
   ): void {
     if (operation.completed) {
       return;
@@ -632,16 +800,15 @@ export class Throttle implements ThrottleInterface {
     operation.completed = true;
     this.activeOperations.delete(operation);
 
+    const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
+
     try {
-      this.hooks.invoke('onReject', () => {
-        const result = this.onReject(error);
-        return result;
-      });
+      this.fireLifecycleEffect({ 'reason': normalizedError, 'type': 'OperationRejected' });
     } finally {
       this.releaseSlot();
     }
 
-    rejectExecute(error);
+    rejectExecute(normalizedError);
   }
 
   /**
@@ -677,12 +844,10 @@ export class Throttle implements ThrottleInterface {
       }
     }
 
+    // releaseSlot() is the sole place that fires onRelease — it does so exactly once,
+    // for every outcome (queue handoff, becomes idle, still busy), by routing through
+    // OperationLifecycleMachine's 'SlotReleased' event. No separate explicit firing here.
     this.releaseSlot();
-
-    this.hooks.invoke('onRelease', () => {
-      const hookResult = this.onRelease(this.activeCount, this.totalExecuted);
-      return hookResult;
-    });
 
     resolveExecute(result);
   }
@@ -700,7 +865,8 @@ export class Throttle implements ThrottleInterface {
    * ```
    */
   isComplete(): boolean {
-    return this.activeCount === INITIAL_COUNTER && this.queue.length === EMPTY_LENGTH;
+    const result = this.activeCount === INITIAL_COUNTER && this.queue.length === EMPTY_LENGTH;
+    return result;
   }
 
   /**
@@ -743,10 +909,7 @@ export class Throttle implements ThrottleInterface {
     try {
       if (this.#state === 'draining') {
         try {
-          this.hooks.invoke('onDrainComplete', () => {
-            const result = this.onDrainComplete(this.totalExecuted);
-            return result;
-          });
+          this.fireLifecycleEffect({ 'totalExecuted': this.totalExecuted, 'type': 'DrainCompleted' });
         } finally {
           this.transition('idle');
         }
@@ -758,7 +921,7 @@ export class Throttle implements ThrottleInterface {
 
       try {
         for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-          const observer = this.observers[i];
+          const observer = this.observers.at(i);
 
           if (observer !== undefined) {
             observer();
@@ -821,7 +984,7 @@ export class Throttle implements ThrottleInterface {
   /**
    * Fires when an operation fails.
    */
-  protected onReject(_reason: unknown): void {}
+  protected onReject(_reason: Error): void {}
 
   /**
    * Fires when a slot is released.
@@ -839,10 +1002,7 @@ export class Throttle implements ThrottleInterface {
     this.activeCount++;
 
     try {
-      this.hooks.invoke('onWindowSlide', () => {
-        const result = this.onWindowSlide(this.activeCount, this.queue.length);
-        return result;
-      });
+      this.fireLifecycleEffect({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'WindowSlid' });
     } catch (error) {
       this.activeCount--;
       pendingTask.reject(error);
@@ -888,21 +1048,45 @@ export class Throttle implements ThrottleInterface {
         // onRelease here describes the just-completed operation's own release
         // (accounting is already fully committed above), so a failure
         // propagates up to that operation's caller rather than to the waiter.
-        this.hooks.invoke('onRelease', () => {
-          const result = this.onRelease(this.activeCount, this.totalExecuted);
-          return result;
+        this.fireLifecycleEffect({
+          'activeCount': this.activeCount,
+          'outcome': 'handoff-granted',
+          'totalExecuted': this.totalExecuted,
+          'type': 'SlotReleased'
         });
       }
-    } else if (this.activeCount === INITIAL_COUNTER) {
+
+      // outcome === 'failed' (onWindowSlide threw): the waiter was already rejected by
+      // grantNextQueuedOperation and its own failure has already been surfaced there —
+      // this release did not successfully hand off, so no onRelease fires for it.
+      return;
+    }
+
+    if (this.activeCount === INITIAL_COUNTER) {
       try {
-        this.hooks.invoke('onRelease', () => {
-          const result = this.onRelease(this.activeCount, this.totalExecuted);
-          return result;
+        this.fireLifecycleEffect({
+          'activeCount': this.activeCount,
+          'outcome': 'became-idle',
+          'totalExecuted': this.totalExecuted,
+          'type': 'SlotReleased'
         });
       } finally {
         this.notifyObservers();
       }
+
+      return;
     }
+
+    // Still busy (activeCount > 0) with an empty queue — this is the outcome the old
+    // procedural code failed to cover from inside releaseSlot() itself, relying instead
+    // on an inconsistent explicit call at the handleOperationSuccess() call site only.
+    // Every release outcome now fires onRelease exactly once, from this one method.
+    this.fireLifecycleEffect({
+      'activeCount': this.activeCount,
+      'outcome': 'still-busy',
+      'totalExecuted': this.totalExecuted,
+      'type': 'SlotReleased'
+    });
   }
 
   /**
@@ -915,13 +1099,10 @@ export class Throttle implements ThrottleInterface {
   ): number {
     const previousLimit = this.config.concurrencyLimit;
     const newLimit = direction === 'up'
-      ? Math.min(previousLimit + adaptive.stepSize, adaptive.maxConcurrency)
-      : Math.max(previousLimit - adaptive.stepSize, adaptive.minConcurrency);
+      ? Math.min(previousLimit + adaptive.stepSize, adaptive.maximumConcurrency)
+      : Math.max(previousLimit - adaptive.stepSize, adaptive.minimumConcurrency);
 
-    this.hooks.invoke('onAdaptiveAdjust', () => {
-      const result = this.onAdaptiveAdjust(previousLimit, newLimit);
-      return result;
-    });
+    this.fireLifecycleEffect({ 'newLimit': newLimit, 'previousLimit': previousLimit, 'type': 'ConcurrencyAdjusted' });
 
     return newLimit;
   }
@@ -942,7 +1123,8 @@ export class Throttle implements ThrottleInterface {
 
     const now = this.now();
 
-    return now - this.lastAdjustmentTime >= adaptive.adjustmentInterval;
+    const result = now - this.lastAdjustmentTime >= adaptive.adjustmentInterval;
+    return result;
   }
 
   /**
@@ -968,14 +1150,16 @@ export class Throttle implements ThrottleInterface {
    */
   private waitForCompletion(): Promise<void> {
     if (this.isComplete()) {
-      return Promise.resolve();
+      const result = Promise.resolve();
+      return result;
     }
 
     this.completionPromise ??= new Promise<void>((resolve) => {
       this.observers.push(resolve);
     });
 
-    return this.completionPromise;
+    const result = this.completionPromise;
+    return result;
   }
 
   /**
@@ -1014,41 +1198,33 @@ export class Throttle implements ThrottleInterface {
     adaptive: AdaptiveConfigEntity.Type,
     targetLatencyMs: number
   ): ValidatedAdaptiveConfigEntity.Type {
-    const d = Throttle.ADAPTIVE_DEFAULTS;
-    const minConcurrency = adaptive.minConcurrency ?? d.minConcurrency;
-    const maxConcurrency = adaptive.maxConcurrency ?? d.maxConcurrency;
-    const scaleUpThreshold = adaptive.scaleUpThreshold ?? d.scaleUpThreshold;
-    const scaleDownThreshold = adaptive.scaleDownThreshold ?? d.scaleDownThreshold;
+    const defaults = Throttle.ADAPTIVE_DEFAULTS;
+    const minimumConcurrency = adaptive.minimumConcurrency ?? defaults.minimumConcurrency;
+    const maximumConcurrency = adaptive.maximumConcurrency ?? defaults.maximumConcurrency;
+    const scaleUpThreshold = adaptive.scaleUpThreshold ?? defaults.scaleUpThreshold;
+    const scaleDownThreshold = adaptive.scaleDownThreshold ?? defaults.scaleDownThreshold;
 
     // Cross-field business rules the static JSON Schema cannot express: it
     // validates each field in isolation, not the relationship between two of them.
-    if (minConcurrency > maxConcurrency) {
-      throw ConfigurationError.create('adaptive.minConcurrency must be less than or equal to adaptive.maxConcurrency');
+    if (minimumConcurrency > maximumConcurrency) {
+      throw ConfigurationError.create('adaptive.minimumConcurrency must be less than or equal to adaptive.maximumConcurrency');
     }
     if (scaleUpThreshold >= scaleDownThreshold) {
       throw ConfigurationError.create('adaptive.scaleUpThreshold must be less than adaptive.scaleDownThreshold');
     }
 
-    // The schema's structural minimum for these two fields (1) is looser than
-    // their actual business minimum, so that stricter floor is enforced here.
-    if (adaptive.sampleWindow !== undefined) {
-      ConfigValidation.assertMin(adaptive.sampleWindow, MIN_SAMPLE_WINDOW, 'adaptive.sampleWindow');
-    }
-    if (adaptive.adjustmentInterval !== undefined) {
-      ConfigValidation.assertMin(adaptive.adjustmentInterval, MIN_ADJUSTMENT_INTERVAL, 'adaptive.adjustmentInterval');
-    }
-
-    return {
-      'adjustmentInterval': adaptive.adjustmentInterval ?? d.adjustmentInterval,
+    const result: ValidatedAdaptiveConfigEntity.Type = {
+      'adjustmentInterval': adaptive.adjustmentInterval ?? defaults.adjustmentInterval,
       'enabled': true,
-      'maxConcurrency': maxConcurrency,
-      'minConcurrency': minConcurrency,
-      'sampleWindow': adaptive.sampleWindow ?? d.sampleWindow,
+      'maximumConcurrency': maximumConcurrency,
+      'minimumConcurrency': minimumConcurrency,
+      'sampleWindow': adaptive.sampleWindow ?? defaults.sampleWindow,
       'scaleDownThreshold': scaleDownThreshold,
       'scaleUpThreshold': scaleUpThreshold,
-      'stepSize': adaptive.stepSize ?? d.stepSize,
+      'stepSize': adaptive.stepSize ?? defaults.stepSize,
       'targetLatencyMs': targetLatencyMs
     };
+    return result;
   }
 
   private static validateAdaptiveConfig(
@@ -1061,20 +1237,21 @@ export class Throttle implements ThrottleInterface {
     // adaptive's shape (object, boolean enabled, required: ['enabled'], and
     // per-field type/exclusiveMinimum) is already enforced by
     // ThrottleConfigEntity.validate() before this method is reached.
-    const d = Throttle.ADAPTIVE_DEFAULTS;
+    const defaults = Throttle.ADAPTIVE_DEFAULTS;
 
     if (adaptive.enabled === false) {
-      return {
-        'adjustmentInterval': d.adjustmentInterval,
+      const result: ValidatedAdaptiveConfigEntity.Type = {
+        'adjustmentInterval': defaults.adjustmentInterval,
         'enabled': false,
-        'maxConcurrency': d.maxConcurrency,
-        'minConcurrency': d.minConcurrency,
-        'sampleWindow': d.sampleWindow,
-        'scaleDownThreshold': d.scaleDownThreshold,
-        'scaleUpThreshold': d.scaleUpThreshold,
-        'stepSize': d.stepSize,
-        'targetLatencyMs': d.targetLatencyMs
+        'maximumConcurrency': defaults.maximumConcurrency,
+        'minimumConcurrency': defaults.minimumConcurrency,
+        'sampleWindow': defaults.sampleWindow,
+        'scaleDownThreshold': defaults.scaleDownThreshold,
+        'scaleUpThreshold': defaults.scaleUpThreshold,
+        'stepSize': defaults.stepSize,
+        'targetLatencyMs': defaults.targetLatencyMs
       };
+      return result;
     }
 
     // Cross-field business rule the static JSON Schema cannot express:
@@ -1085,27 +1262,31 @@ export class Throttle implements ThrottleInterface {
       throw ConfigurationError.create('adaptive.targetLatencyMs is required when adaptive is enabled');
     }
 
-    return Throttle.buildEnabledAdaptiveConfig(adaptive, adaptive.targetLatencyMs);
+    const result = Throttle.buildEnabledAdaptiveConfig(adaptive, adaptive.targetLatencyMs);
+    return result;
   }
 
   private static validateConfig(
     config?: Partial<ThrottleConfigEntity.Type>
   ): ValidatedThrottleConfigEntity.Type {
-    const cfg = config ?? {};
+    const configuration = config ?? {};
 
-    ThrottleConfigEntity.validate(cfg);
+    if (!ThrottleConfigEntity.validate(configuration)) {
+      throw ConfigurationError.create(SchemaValidator.formatErrors(ThrottleConfigEntity.validate.errors));
+    }
 
-    const adaptive = Throttle.validateAdaptiveConfig(cfg.adaptive);
-    const concurrencyLimit = cfg.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
+    const parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+    const adaptive = Throttle.validateAdaptiveConfig(parsedConfiguration.adaptive);
+    const concurrencyLimit = parsedConfiguration.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
 
     // Cross-field business rule the static JSON Schema cannot express:
-    // concurrencyLimit compared against adaptive.minConcurrency/maxConcurrency.
+    // concurrencyLimit compared against adaptive.minimumConcurrency/maximumConcurrency.
     if (adaptive?.enabled === true) {
-      if (concurrencyLimit < adaptive.minConcurrency) {
-        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at least adaptive.minConcurrency (${adaptive.minConcurrency})`);
+      if (concurrencyLimit < adaptive.minimumConcurrency) {
+        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at least adaptive.minimumConcurrency (${adaptive.minimumConcurrency})`);
       }
-      if (concurrencyLimit > adaptive.maxConcurrency) {
-        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at most adaptive.maxConcurrency (${adaptive.maxConcurrency})`);
+      if (concurrencyLimit > adaptive.maximumConcurrency) {
+        throw ConfigurationError.create(`concurrencyLimit (${concurrencyLimit}) must be at most adaptive.maximumConcurrency (${adaptive.maximumConcurrency})`);
       }
     }
 

@@ -101,13 +101,13 @@ async function runTimesOutFastRequestScenario(scenarioCase: TimesOutFastRequestS
     await client.get(requestUrl, {
       timeout: scenarioCase.input.request.timeout
     });
-  }, (error: unknown) => error instanceof TimeoutError && error.name === scenarioCase.expected.errorName);
+  }, (error) => error instanceof TimeoutError && error.name === scenarioCase.expected.errorName);
 }
 
 async function runReportsTimeoutDetailsScenario(scenarioCase: ReportsTimeoutDetailsScenario): Promise<void> {
   await assert.rejects(async () => {
     await client.get(`${testUrl}${scenarioCase.input.request.url}`, { timeout: scenarioCase.input.request.timeout });
-  }, (error: unknown) => {
+  }, (error) => {
     assert.ok(error instanceof TimeoutError);
     assert.strictEqual(error.timeoutMs, scenarioCase.expected.timeoutMs);
     assert.ok(error.url.includes(scenarioCase.expected.urlIncludes));
@@ -123,7 +123,7 @@ async function runClearsTimeoutAfterSuccessScenario(scenarioCase: ClearsTimeoutA
 async function runSupportsTimeoutInGetScenario(scenarioCase: SupportsTimeoutInGetScenario): Promise<void> {
   await assert.rejects(async () => {
     await client.get(`${testUrl}${scenarioCase.input.request.url}`, { timeout: scenarioCase.input.request.timeout });
-  }, (error: unknown) => error instanceof TimeoutError && error.name === scenarioCase.expected.errorName);
+  }, (error) => error instanceof TimeoutError && error.name === scenarioCase.expected.errorName);
 }
 
 async function runWorksWithFastRequestsScenario(scenarioCase: WorksWithFastRequestsScenario): Promise<void> {

@@ -1,51 +1,48 @@
-import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
-import { HookInvocationError } from '@studnicky/errors';
+import { HookInvocationError } from "@studnicky/errors";
 
-import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
-import scenarioGroups from './SampleBufferSubclass.scenarios.json' with { type: 'json' };
+import { SampleBuffer } from "../../../src/sample-buffer/SampleBuffer.js";
+import scenarioGroups from "./SampleBufferSubclass.scenarios.json" with { type: "json" };
 
-type ScenarioCase =
-  {
-    description: string;
-    expected: Record<string, unknown>;
-    input: { sampleBuffer: { capacity: number } } & Record<string, unknown>;
-    shape:
-      | 'on-evict'
-      | 'on-evict-before-overwrite'
-      | 'on-push'
-      | 'on-push-length-update'
-      | 'on-clear'
-      | 'on-clear-before-reset'
-      | 'on-percentile-called'
-      | 'on-percentile-absent-when-empty'
-      | 'on-percentile-result-matches-return'
-      | 'on-percentile-edge-cases'
-      | 'on-overflow-not-full'
-      | 'on-overflow-full'
-      | 'on-overflow-before-on-evict'
-      | 'on-overflow-incoming-value'
-      | 'on-compute-start-empty'
-      | 'on-compute-start-cache-miss'
-      | 'on-compute-start-length'
-      | 'on-compute-complete-sorted'
-      | 'on-compute-complete-empty'
-      | 'on-compute-start-after-invalidation'
-      | 'inspect-protected-fields'
-      | 'throwing-on-push'
-      | 'throwing-on-overflow'
-      | 'throwing-on-evict'
-      | 'throwing-on-clear'
-      | 'throwing-on-percentile'
-      | 'throwing-on-compute-start'
-      | 'hook-invocation-error-cause'
-      | 'async-push-rejection-safe'
-      | 'async-percentile-rejection-safe';
-    name: string;
-  };
+type ScenarioCase = {
+  description: string;
+  expected: Record<string, unknown>;
+  input: { sampleBuffer: { capacity: number } } & Record<string, unknown>;
+  shape:
+    | "on-evict"
+    | "on-evict-before-overwrite"
+    | "on-push"
+    | "on-push-length-update"
+    | "on-clear"
+    | "on-clear-before-reset"
+    | "on-percentile-called"
+    | "on-percentile-absent-when-empty"
+    | "on-percentile-result-matches-return"
+    | "on-percentile-edge-cases"
+    | "on-overflow-not-full"
+    | "on-overflow-full"
+    | "on-overflow-before-on-evict"
+    | "on-overflow-incoming-value"
+    | "on-compute-start-empty"
+    | "on-compute-start-cache-miss"
+    | "on-compute-start-length"
+    | "on-compute-complete-sorted"
+    | "on-compute-complete-empty"
+    | "on-compute-start-after-invalidation"
+    | "inspect-protected-fields"
+    | "throwing-on-push"
+    | "throwing-on-overflow"
+    | "throwing-on-evict"
+    | "throwing-on-clear"
+    | "throwing-on-percentile"
+    | "throwing-on-compute-start"
+    | "hook-invocation-error-cause"
+    | "async-push-rejection-safe"
+    | "async-percentile-rejection-safe";
+  name: string;
+};
 
 class EvictTracker extends SampleBuffer {
   readonly evictedValues: number[] = [];
@@ -65,7 +62,9 @@ class PushAudit extends SampleBuffer {
 
 class ClearCounter extends SampleBuffer {
   clearCount = 0;
-  override onClear(): void { this.clearCount += 1; }
+  override onClear(): void {
+    this.clearCount += 1;
+  }
 }
 
 class PercentileAudit extends SampleBuffer {
@@ -84,7 +83,10 @@ class OverflowTracker extends SampleBuffer {
 
 class ComputeAudit extends SampleBuffer {
   readonly computeStartLengths: number[] = [];
-  readonly computeCompletes: Array<{ length: number; sorted: readonly number[] }> = [];
+  readonly computeCompletes: Array<{
+    length: number;
+    sorted: readonly number[];
+  }> = [];
 
   override onComputeStart(length: number): void {
     this.computeStartLengths.push(length);
@@ -95,20 +97,51 @@ class ComputeAudit extends SampleBuffer {
   }
 }
 
-class ThrowingPushBuffer extends SampleBuffer { override onPush(): void { throw new Error('onPush boom'); } }
-class ThrowingOverflowBuffer extends SampleBuffer { override onOverflow(): void { throw new Error('onOverflow boom'); } }
-class ThrowingEvictBuffer extends SampleBuffer { override onEvict(): void { throw new Error('onEvict boom'); } }
-class ThrowingClearBuffer extends SampleBuffer { override onClear(): void { throw new Error('onClear boom'); } }
-class ThrowingPercentileBuffer extends SampleBuffer { override onPercentile(): void { throw new Error('onPercentile boom'); } }
-class ThrowingComputeBuffer extends SampleBuffer { override onComputeStart(): void { throw new Error('onComputeStart boom'); } }
+class ThrowingPushBuffer extends SampleBuffer {
+  override onPush(): void {
+    throw new Error("onPush boom");
+  }
+}
+class ThrowingOverflowBuffer extends SampleBuffer {
+  override onOverflow(): void {
+    throw new Error("onOverflow boom");
+  }
+}
+class ThrowingEvictBuffer extends SampleBuffer {
+  override onEvict(): void {
+    throw new Error("onEvict boom");
+  }
+}
+class ThrowingClearBuffer extends SampleBuffer {
+  override onClear(): void {
+    throw new Error("onClear boom");
+  }
+}
+class ThrowingPercentileBuffer extends SampleBuffer {
+  override onPercentile(): void {
+    throw new Error("onPercentile boom");
+  }
+}
+class ThrowingComputeBuffer extends SampleBuffer {
+  override onComputeStart(): void {
+    throw new Error("onComputeStart boom");
+  }
+}
 
-type ScenarioShape = ScenarioCase['shape'];
+type ScenarioShape = ScenarioCase["shape"];
 type RunnerResult = Promise<void> | void;
-type RunnerMap = { [K in ScenarioShape]: (scenarioCase: ScenarioCase & { shape: K }) => RunnerResult };
+type RunnerMap = {
+  [K in ScenarioShape]: (
+    scenarioCase: ScenarioCase & { shape: K },
+  ) => RunnerResult;
+};
 
 const runnerMap: RunnerMap = {
-  'on-evict': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-evict": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { evictedValues: number[] };
     const buf = EvictTracker.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -118,7 +151,7 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-evict-before-overwrite': (scenarioCase) => {
+  "on-evict-before-overwrite": (scenarioCase) => {
     let capturedOldValue = -1;
 
     class CaptureEvict extends SampleBuffer {
@@ -127,7 +160,10 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const input = scenarioCase.input as { sampleBuffer: { capacity: number }; values: number[] };
+    const input = scenarioCase.input as {
+      sampleBuffer: { capacity: number };
+      values: number[];
+    };
     const expected = scenarioCase.expected as { capturedOldValue: number };
     const buf = CaptureEvict.create(input.sampleBuffer);
     for (const value of input.values) {
@@ -137,9 +173,14 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-push': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { pushLog: Array<{ evicted: boolean; value: number }> };
+  "on-push": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      pushLog: Array<{ evicted: boolean; value: number }>;
+    };
     const buf = PushAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
@@ -148,8 +189,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-push-length-update': (scenarioCase) => {
-    const input = scenarioCase.input as { sampleBuffer: { capacity: number }; value: number };
+  "on-push-length-update": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      sampleBuffer: { capacity: number };
+      value: number;
+    };
     const expected = scenarioCase.expected as { lengthAtHook: number };
     let lengthAtHook = -1;
     class CheckLength extends SampleBuffer {
@@ -164,8 +208,12 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-clear': (scenarioCase) => {
-    const input = scenarioCase.input as { clearTimes: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-clear": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      clearTimes: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { clearCount: number };
     const buf = ClearCounter.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -178,8 +226,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-clear-before-reset': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-clear-before-reset": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { lengthAtHook: number };
     let lengthAtHook = -1;
     class CheckClear extends SampleBuffer {
@@ -197,9 +248,17 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-percentile-called': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { pct: number; result: number; resultType: string };
+  "on-percentile-called": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      pct: number;
+      result: number;
+      resultType: string;
+    };
     const buf = PercentileAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
@@ -212,8 +271,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-percentile-absent-when-empty': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; sampleBuffer: { capacity: number } };
+  "on-percentile-absent-when-empty": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { percentileLogLength: number };
     const buf = PercentileAudit.create(input.sampleBuffer);
     buf.percentile(input.pct);
@@ -221,8 +283,12 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-percentile-result-matches-return': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-percentile-result-matches-return": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { result: number };
     const buf = PercentileAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -234,8 +300,12 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-percentile-edge-cases': (scenarioCase) => {
-    const input = scenarioCase.input as { percentiles: number[]; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-percentile-edge-cases": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      percentiles: number[];
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { results: number[] };
     const buf = PercentileAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -251,8 +321,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-overflow-not-full': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-overflow-not-full": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { overflowCount: number };
     const buf = OverflowTracker.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -262,9 +335,15 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-overflow-full': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { overflowCount: number; overflowValue: number };
+  "on-overflow-full": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      overflowCount: number;
+      overflowValue: number;
+    };
     const buf = OverflowTracker.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
@@ -274,7 +353,7 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-overflow-before-on-evict': (scenarioCase) => {
+  "on-overflow-before-on-evict": (scenarioCase) => {
     class OverflowEvictOrder extends SampleBuffer {
       readonly events: string[] = [];
 
@@ -287,7 +366,10 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { events: string[] };
     const buf = OverflowEvictOrder.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -297,8 +379,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-overflow-incoming-value': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-overflow-incoming-value": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { overflowValue: number };
     const buf = OverflowTracker.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -308,17 +393,28 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-compute-start-empty': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; sampleBuffer: { capacity: number } };
+  "on-compute-start-empty": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { computeStartLengths: number[] };
     const buf = ComputeAudit.create(input.sampleBuffer);
     buf.percentile(input.pct);
-    assert.deepStrictEqual(buf.computeStartLengths, expected.computeStartLengths);
+    assert.deepStrictEqual(
+      buf.computeStartLengths,
+      expected.computeStartLengths,
+    );
     return;
   },
 
-  'on-compute-start-cache-miss': (scenarioCase) => {
-    const input = scenarioCase.input as { calls: number; pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-compute-start-cache-miss": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      calls: number;
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { computeStartLengths: number[] };
     const buf = ComputeAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -327,12 +423,19 @@ const runnerMap: RunnerMap = {
     for (let i = 0; i < input.calls; i += 1) {
       buf.percentile(input.pct);
     }
-    assert.deepStrictEqual(buf.computeStartLengths, expected.computeStartLengths);
+    assert.deepStrictEqual(
+      buf.computeStartLengths,
+      expected.computeStartLengths,
+    );
     return;
   },
 
-  'on-compute-start-length': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-compute-start-length": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { computeStartLength: number };
     const buf = ComputeAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -343,8 +446,12 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-compute-complete-sorted': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "on-compute-complete-sorted": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { sorted: number[] };
     const buf = ComputeAudit.create(input.sampleBuffer);
     for (const value of input.pushItems) {
@@ -356,8 +463,11 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-compute-complete-empty': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; sampleBuffer: { capacity: number } };
+  "on-compute-complete-empty": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { computeCompletes: [] };
     const buf = ComputeAudit.create(input.sampleBuffer);
     buf.percentile(input.pct);
@@ -365,8 +475,13 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'on-compute-start-after-invalidation': (scenarioCase) => {
-    const input = scenarioCase.input as { initialPushItems: number[]; pct: number; pushAfter: number; sampleBuffer: { capacity: number } };
+  "on-compute-start-after-invalidation": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      initialPushItems: number[];
+      pct: number;
+      pushAfter: number;
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { computeStartCount: number };
     const buf = ComputeAudit.create(input.sampleBuffer);
     for (const value of input.initialPushItems) {
@@ -379,11 +494,26 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'inspect-protected-fields': (scenarioCase) => {
-    const input = scenarioCase.input as { pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { state: { cacheNull: boolean; capacity: number; head: number; length: number } };
+  "inspect-protected-fields": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      state: {
+        cacheNull: boolean;
+        capacity: number;
+        head: number;
+        length: number;
+      };
+    };
     class InspectBuffer extends SampleBuffer {
-      inspect(): { capacity: number; head: number; length: number; cacheNull: boolean } {
+      inspect(): {
+        capacity: number;
+        head: number;
+        length: number;
+        cacheNull: boolean;
+      } {
         return {
           cacheNull: this.sortedCache === null,
           capacity: this.capacity,
@@ -402,24 +532,43 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'throwing-on-push': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushValue: number; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { length: number; percentile: number };
+  "throwing-on-push": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushValue: number;
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      length: number;
+      percentile: number;
+    };
     const buf = ThrowingPushBuffer.create(input.sampleBuffer);
-    assert.throws(() => { buf.push(input.pushValue); }, HookInvocationError);
+    assert.throws(() => {
+      buf.push(input.pushValue);
+    }, HookInvocationError);
     assert.equal(buf.length, expected.length);
     assert.equal(buf.percentile(input.pct), expected.percentile);
     return;
   },
 
-  'throwing-on-overflow': (scenarioCase) => {
-    const input = scenarioCase.input as { overflowPush: number; percentiles: number[]; primingPushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { length: number; percentiles: Record<string, number> };
+  "throwing-on-overflow": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      overflowPush: number;
+      percentiles: number[];
+      primingPushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      length: number;
+      percentiles: Record<string, number>;
+    };
     const buf = ThrowingOverflowBuffer.create(input.sampleBuffer);
     for (const value of input.primingPushItems) {
       buf.push(value);
     }
-    assert.throws(() => { buf.push(input.overflowPush); }, HookInvocationError);
+    assert.throws(() => {
+      buf.push(input.overflowPush);
+    }, HookInvocationError);
     assert.equal(buf.length, expected.length);
     for (const pct of input.percentiles) {
       assert.equal(buf.percentile(pct), expected.percentiles[String(pct)]);
@@ -427,14 +576,24 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'throwing-on-evict': (scenarioCase) => {
-    const input = scenarioCase.input as { overflowPush: number; percentiles: number[]; primingPushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { length: number; percentiles: Record<string, number> };
+  "throwing-on-evict": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      overflowPush: number;
+      percentiles: number[];
+      primingPushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      length: number;
+      percentiles: Record<string, number>;
+    };
     const buf = ThrowingEvictBuffer.create(input.sampleBuffer);
     for (const value of input.primingPushItems) {
       buf.push(value);
     }
-    assert.throws(() => { buf.push(input.overflowPush); }, HookInvocationError);
+    assert.throws(() => {
+      buf.push(input.overflowPush);
+    }, HookInvocationError);
     assert.equal(buf.length, expected.length);
     for (const pct of input.percentiles) {
       assert.equal(buf.percentile(pct), expected.percentiles[String(pct)]);
@@ -442,56 +601,89 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'throwing-on-clear': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { length: number; percentile: number };
+  "throwing-on-clear": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      length: number;
+      percentile: number;
+    };
     const buf = ThrowingClearBuffer.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
     }
-    assert.throws(() => { buf.clear(); }, HookInvocationError);
+    assert.throws(() => {
+      buf.clear();
+    }, HookInvocationError);
     assert.equal(buf.length, expected.length);
     assert.equal(buf.percentile(input.pct), expected.percentile);
     return;
   },
 
-  'throwing-on-percentile': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "throwing-on-percentile": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { errorName: string };
     const buf = ThrowingPercentileBuffer.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
     }
-    assert.throws(() => { buf.percentile(input.pct); }, (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.constructor.name, expected.errorName);
-      return true;
-    });
+    assert.throws(
+      () => {
+        buf.percentile(input.pct);
+      },
+      (error) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.constructor.name, expected.errorName);
+        return true;
+      },
+    );
     return;
   },
 
-  'throwing-on-compute-start': (scenarioCase) => {
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
+  "throwing-on-compute-start": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
+    };
     const expected = scenarioCase.expected as { errorName: string };
     const buf = ThrowingComputeBuffer.create(input.sampleBuffer);
     for (const value of input.pushItems) {
       buf.push(value);
     }
-    assert.throws(() => { buf.percentile(input.pct); }, (error: unknown) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.equal(error.constructor.name, expected.errorName);
-      return true;
-    });
+    assert.throws(
+      () => {
+        buf.percentile(input.pct);
+      },
+      (error) => {
+        assert.ok(error instanceof HookInvocationError);
+        assert.equal(error.constructor.name, expected.errorName);
+        return true;
+      },
+    );
     return;
   },
 
-  'hook-invocation-error-cause': (scenarioCase) => {
-    const input = scenarioCase.input as { pushValue: number; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { causeMessage: string; hookName: string };
+  "hook-invocation-error-cause": (scenarioCase) => {
+    const input = scenarioCase.input as {
+      pushValue: number;
+      sampleBuffer: { capacity: number };
+    };
+    const expected = scenarioCase.expected as {
+      causeMessage: string;
+      hookName: string;
+    };
     const buf = ThrowingPushBuffer.create(input.sampleBuffer);
     try {
       buf.push(input.pushValue);
-      assert.fail('expected push() to throw');
+      assert.fail("expected push() to throw");
     } catch (error) {
       assert.ok(error instanceof HookInvocationError);
       assert.equal(error.hookName, expected.hookName);
@@ -501,22 +693,30 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'async-push-rejection-safe': (scenarioCase) => {
+  "async-push-rejection-safe": (scenarioCase) => {
     class AsyncRejectingPushBuffer extends SampleBuffer {
       override async onPush(_value: number, _evicted: boolean): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onPush failure');
+        throw new Error("async onPush failure");
       }
     }
 
-    const input = scenarioCase.input as { pct: number; pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { length: number; percentile: number; rejectionCount: number };
-    const buf = AsyncRejectingPushBuffer.create(input.sampleBuffer);
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    const input = scenarioCase.input as {
+      pct: number;
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
     };
-    process.on('unhandledRejection', onUnhandledRejection);
+    const expected = scenarioCase.expected as {
+      length: number;
+      percentile: number;
+      rejectionCount: number;
+    };
+    const buf = AsyncRejectingPushBuffer.create(input.sampleBuffer);
+    let unhandledRejectionCount = 0;
+    const onUnhandledRejection = (): void => {
+      unhandledRejectionCount += 1;
+    };
+    process.on("unhandledRejection", onUnhandledRejection);
 
     return Promise.resolve()
       .then(() => {
@@ -524,34 +724,54 @@ const runnerMap: RunnerMap = {
           buf.push(value);
         }
       })
-      .then(() => new Promise((resolve) => { setImmediate(resolve); }))
-      .then(() => new Promise((resolve) => { setImmediate(resolve); }))
+      .then(
+        () =>
+          new Promise((resolve) => {
+            setImmediate(resolve);
+          }),
+      )
+      .then(
+        () =>
+          new Promise((resolve) => {
+            setImmediate(resolve);
+          }),
+      )
       .then(() => {
-        assert.equal(rejectionEvents.length, expected.rejectionCount);
+        assert.equal(unhandledRejectionCount, expected.rejectionCount);
         assert.equal(buf.length, expected.length);
         assert.equal(buf.percentile(input.pct), expected.percentile);
       })
       .finally(() => {
-        process.off('unhandledRejection', onUnhandledRejection);
+        process.off("unhandledRejection", onUnhandledRejection);
       });
   },
 
-  'async-percentile-rejection-safe': (scenarioCase) => {
+  "async-percentile-rejection-safe": (scenarioCase) => {
     class AsyncRejectingPercentileBuffer extends SampleBuffer {
-      override async onPercentile(_pct: number, _result: number): Promise<void> {
+      override async onPercentile(
+        _pct: number,
+        _result: number,
+      ): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onPercentile failure');
+        throw new Error("async onPercentile failure");
       }
     }
 
-    const input = scenarioCase.input as { percentiles: number[]; pushItems: number[]; sampleBuffer: { capacity: number } };
-    const expected = scenarioCase.expected as { rejectionCount: number; results: Record<string, number> };
-    const buf = AsyncRejectingPercentileBuffer.create(input.sampleBuffer);
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    const input = scenarioCase.input as {
+      percentiles: number[];
+      pushItems: number[];
+      sampleBuffer: { capacity: number };
     };
-    process.on('unhandledRejection', onUnhandledRejection);
+    const expected = scenarioCase.expected as {
+      rejectionCount: number;
+      results: Record<string, number>;
+    };
+    const buf = AsyncRejectingPercentileBuffer.create(input.sampleBuffer);
+    let unhandledRejectionCount = 0;
+    const onUnhandledRejection = (): void => {
+      unhandledRejectionCount += 1;
+    };
+    process.on("unhandledRejection", onUnhandledRejection);
 
     return Promise.resolve()
       .then(() => {
@@ -562,26 +782,41 @@ const runnerMap: RunnerMap = {
           assert.equal(buf.percentile(pct), expected.results[String(pct)]);
         }
       })
-      .then(() => new Promise((resolve) => { setImmediate(resolve); }))
-      .then(() => new Promise((resolve) => { setImmediate(resolve); }))
+      .then(
+        () =>
+          new Promise((resolve) => {
+            setImmediate(resolve);
+          }),
+      )
+      .then(
+        () =>
+          new Promise((resolve) => {
+            setImmediate(resolve);
+          }),
+      )
       .then(() => {
-        assert.equal(rejectionEvents.length, expected.rejectionCount);
+        assert.equal(unhandledRejectionCount, expected.rejectionCount);
       })
       .finally(() => {
-        process.off('unhandledRejection', onUnhandledRejection);
+        process.off("unhandledRejection", onUnhandledRejection);
       });
-  }
+  },
 };
 
-function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCase & { shape: K }): RunnerResult {
+function dispatchCase<K extends ScenarioShape>(
+  shape: K,
+  scenarioCase: ScenarioCase & { shape: K },
+): RunnerResult {
   return runnerMap[shape](scenarioCase);
 }
 
-function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCase & { shape: K }): RunnerResult {
+function runCase<K extends ScenarioShape>(
+  scenarioCase: ScenarioCase & { shape: K },
+): RunnerResult {
   return dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
-void describe('SampleBuffer subclass extension', () => {
+void describe("SampleBuffer subclass extension", () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);

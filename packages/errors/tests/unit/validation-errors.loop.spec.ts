@@ -2,14 +2,20 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
-import type { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
+import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
 import scenarioGroups from './validation-errors.scenarios.json' with { type: 'json' };
 
 class TestViolation {
   public static of(path: string, keyword: string, message: string): ValidationViolationEntity.Type {
-    return { keyword, message, path };
+    return ValidationViolationEntity.create({ keyword, message, path });
   }
 }
+
+interface ScenarioRecordInterface {
+  readonly [key: string]: ScenarioValue;
+}
+
+type ScenarioValue = undefined | boolean | number | string | null | ScenarioValue[] | ScenarioRecordInterface;
 
 type ScenarioCase =
   | {
@@ -31,7 +37,7 @@ type ScenarioCase =
           type?: string;
         };
       };
-      input: unknown;
+      input: ScenarioValue;
       shape: 'aggregate-dedup' | 'aggregate-empty' | 'construction-empty' | 'construction-invalid' | 'construction-non-empty' | 'create-from-array' | 'detaches-source' | 'fallback-message' | 'for-of' | 'from-empty-array' | 'from-null' | 'from-undefined' | 'maps-ajv' | 'merge' | 'merge-empty' | 'report-default' | 'report-empty' | 'report-overrides' | 'report-plural' | 'report-title' | 'spread';
       name: string;
     };
@@ -40,17 +46,17 @@ type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
 type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
 
-function materialize(value: unknown): unknown {
+function materialize(value: ScenarioValue): ScenarioValue | undefined {
   if (Array.isArray(value)) {
     return value.map((entry) => materialize(entry));
   }
 
-  if (value !== null && typeof value === 'object' && 'shape' in value && (value as { shape?: string }).shape === 'undefined') {
+  if (value !== null && typeof value === 'object' && 'shape' in value && value.shape === 'undefined') {
     return undefined;
   }
 
   if (value !== null && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
+    const record = value as ScenarioRecordInterface;
     if (record.shape === 'null') {
       return null;
     }
@@ -81,7 +87,7 @@ function materialize(value: unknown): unknown {
       };
     }
 
-    const result: Record<string, unknown> = {};
+    const result: Record<string, ScenarioValue> = {};
     for (const [key, entry] of Object.entries(record)) {
       result[key] = materialize(entry);
     }
@@ -91,8 +97,21 @@ function materialize(value: unknown): unknown {
   return value;
 }
 
-function toViolations(input: unknown): ValidationViolationEntity.Type[] {
-  return materialize(input) as ValidationViolationEntity.Type[];
+function toViolations(input: ScenarioValue | undefined): ValidationViolationEntity.Type[] {
+  if (!Array.isArray(input)) {
+    throw new TypeError('test fixture must contain a validation-violation array');
+  }
+
+  return input.map((entry) => {
+    if (entry === null || Array.isArray(entry) || typeof entry !== 'object') {
+      throw new TypeError('test fixture validation violation must be an object');
+    }
+    return ValidationViolationEntity.create({
+      'keyword': String(entry.keyword),
+      'message': String(entry.message),
+      'path': String(entry.path)
+    });
+  });
 }
 
 function expectViolations(actual: readonly ValidationViolationEntity.Type[], expected: readonly ValidationViolationEntity.Type[]): void {
@@ -147,7 +166,7 @@ const runnerMap: RunnerMap = {
     const input = materialize(scenarioCase.input);
     assert.throws(() => {
       ValidationErrors.create(input as never);
-    }, (err: unknown) => {
+    }, (err) => {
       assert.ok(err instanceof Error);
       assert.ok(err.message.includes('items must be an array'));
       return true;

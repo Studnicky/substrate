@@ -19,13 +19,13 @@ export const DEFAULT_DECIMAL_PRECISION = {
  * Generous enough for a single operation's timing spans while bounding
  * memory growth for long-lived instances.
  */
-export const DEFAULT_MAX_EVENTS = 1000;
+export const DEFAULT_MAXIMUM_EVENTS = 1000;
 
 /**
  * Maximum allowed decimal precision (0-20).
  * Corresponds to JavaScript's toFixed() limit.
  */
-export const MAX_PRECISION = 20;
+export const MAXIMUM_PRECISION = 20;
 
 /**
  * Nanoseconds conversion factors for each time unit.

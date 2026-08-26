@@ -138,7 +138,7 @@
       "input": {
         "fetchClient": {
           "baseURL": "__TEST_URL__",
-          "params": {
+          "parameters": {
             "_limit": "5",
             "_page": "1"
           }
@@ -157,7 +157,7 @@
       "shape": "params-apply-defaults-without-baseURL",
       "input": {
         "fetchClient": {
-          "params": {
+          "parameters": {
             "_limit": "5",
             "_page": "1"
           }

@@ -22,6 +22,12 @@
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../fsm"
+    },
+    {
+      "path": "../signal"
     }
   ]
 }

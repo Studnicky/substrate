@@ -64,11 +64,11 @@ console.log('--- hook trace complete ---');
 // #endregion usage
 
 // Assertions
-const creates = recorder.events.filter((e) => { return e.hook === 'onCreate'; });
-const writes = recorder.events.filter((e) => { return e.hook === 'onWrite'; });
-const reads = recorder.events.filter((e) => { return e.hook === 'onRead'; });
-const renames = recorder.events.filter((e) => { return e.hook === 'onRename'; });
-const deletes = recorder.events.filter((e) => { return e.hook === 'onDelete'; });
+const creates = recorder.events.filter((event) => { const result = event.hook === 'onCreate'; return result; });
+const writes = recorder.events.filter((event) => { const result = event.hook === 'onWrite'; return result; });
+const reads = recorder.events.filter((event) => { const result = event.hook === 'onRead'; return result; });
+const renames = recorder.events.filter((event) => { const result = event.hook === 'onRename'; return result; });
+const deletes = recorder.events.filter((event) => { const result = event.hook === 'onDelete'; return result; });
 
 // writeFileSync('/log/init.txt') → onCreate; writeFileSync('/log/new.txt') → onCreate; mkdirSync('/log/sub') → onCreate
 assert.ok(creates.length >= 3, `onCreate fired at least 3 times (got ${creates.length})`);

@@ -4,11 +4,15 @@ import { describe, it } from 'node:test';
 import { Batch } from '@studnicky/batch';
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError } from '@studnicky/errors';
+import { SchemaIntakeError } from '@studnicky/json';
 
-import { ThrottleConfigEntity, Throttle } from '../../../src/index.js';
-import { AdaptiveConfigEntity } from '../../../src/entities/AdaptiveConfigEntity.js';
-import { ValidatedAdaptiveConfigEntity } from '../../../src/entities/ValidatedAdaptiveConfigEntity.js';
-import { ValidatedThrottleConfigEntity } from '../../../src/entities/ValidatedThrottleConfigEntity.js';
+import { Throttle } from '../../../src/index.js';
+import {
+  AdaptiveConfigEntity,
+  ThrottleConfigEntity,
+  ValidatedAdaptiveConfigEntity,
+  ValidatedThrottleConfigEntity
+} from '../../../src/entities/index.js';
 import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
 import scenarioGroups from './adaptive-config.scenarios.json' with { type: 'json' };
@@ -56,8 +60,8 @@ interface AdaptiveBatchInputInterface {
 interface ScenarioExpectedInterface {
   adaptive?: {
     enabled?: boolean;
-    maxConcurrency?: number;
-    minConcurrency?: number;
+    maximumConcurrency?: number;
+    minimumConcurrency?: number;
     targetLatencyMs?: number;
   };
   adjustmentDirection?: AdjustmentDirection;
@@ -65,8 +69,8 @@ interface ScenarioExpectedInterface {
   enabled?: boolean;
   error?: string;
   hookErrorMessage?: string;
-  maxConcurrency?: number;
-  minConcurrency?: number;
+  maximumConcurrency?: number;
+  minimumConcurrency?: number;
   rejectEnabledTrue?: boolean;
   throttleValidated?: boolean;
   validated?: boolean;
@@ -161,8 +165,8 @@ function assertValidAllFields(scenarioCase: ScenarioCase): void {
   assert.ok(stats.adaptive !== undefined);
   assert.strictEqual(stats.concurrencyLimit, scenarioCase.expected.concurrencyLimit);
   assert.strictEqual(stats.adaptive.enabled, expectedAdaptive.enabled);
-  assert.strictEqual(stats.adaptive.minConcurrency, expectedAdaptive.minConcurrency);
-  assert.strictEqual(stats.adaptive.maxConcurrency, expectedAdaptive.maxConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, expectedAdaptive.minimumConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, expectedAdaptive.maximumConcurrency);
   assert.strictEqual(stats.adaptive.targetLatencyMs, expectedAdaptive.targetLatencyMs);
 }
 
@@ -170,8 +174,8 @@ function assertValidRequiredFields(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minConcurrency, scenarioCase.expected.minConcurrency);
-  assert.strictEqual(stats.adaptive.maxConcurrency, scenarioCase.expected.maxConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
 }
 
 function assertValidDisabledNoExtraFields(scenarioCase: ScenarioCase): void {
@@ -190,15 +194,15 @@ function assertValidDisabledDefaultedConfig(scenarioCase: ScenarioCase): void {
     scenarioCase.expected.throttleValidated
   );
   assert.throws(() => {
-    return ValidatedAdaptiveConfigEntity.validate({ ...disabledConfig, enabled: true });
-  }, ConfigurationError);
+    return ValidatedAdaptiveConfigEntity.intake({ ...disabledConfig, enabled: true });
+  }, SchemaIntakeError);
   assert.strictEqual(scenarioCase.expected.rejectEnabledTrue, true);
 }
 
 function assertThrottleConfigEntityRejects(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
-    return ThrottleConfigEntity.validate(getThrottleConfigRecord(scenarioCase));
-  }, ConfigurationError);
+    return ThrottleConfigEntity.intake(getThrottleConfigRecord(scenarioCase));
+  }, SchemaIntakeError);
 }
 
 function assertThrottleCreateRejects(scenarioCase: ScenarioCase): void {
@@ -209,13 +213,13 @@ function assertThrottleCreateRejects(scenarioCase: ScenarioCase): void {
 
 function assertAdaptiveEmptyRejects(scenarioCase: ScenarioCase): void {
   const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.validate(throttleConfig.adaptive); }, ConfigurationError);
-  assert.throws(() => { return ValidatedThrottleConfigEntity.validate(throttleConfig); }, ConfigurationError);
+  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
+  assert.throws(() => { return ValidatedThrottleConfigEntity.intake(throttleConfig); }, SchemaIntakeError);
 }
 
 function assertAdaptiveStepSizeRejects(scenarioCase: ScenarioCase): void {
   const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.validate(throttleConfig.adaptive); }, ConfigurationError);
+  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
   assertThrottleCreateRejects(scenarioCase);
 }
 
@@ -255,7 +259,7 @@ async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Prom
   const throttle = ThrowingAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
   await assert.rejects(async () => {
     await executeAdaptiveSamples(throttle, scenarioCase.input);
-  }, (error: unknown) => {
+  }, (error) => {
     assert.ok(error instanceof HookInvocationError);
     assert.strictEqual(error.cause, hookError);
     assert.strictEqual(error.name, scenarioCase.expected.error);
@@ -269,14 +273,14 @@ function assertDefaultMinConcurrency(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minConcurrency, scenarioCase.expected.minConcurrency);
+  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
 }
 
 function assertDefaultMaxConcurrency(scenarioCase: ScenarioCase): void {
   const throttle = createScenarioThrottle(scenarioCase);
   const stats = throttle.getStats();
   assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.maxConcurrency, scenarioCase.expected.maxConcurrency);
+  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
 }
 
 const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {

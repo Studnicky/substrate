@@ -21,6 +21,12 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 <<< ../../packages/entity-store/examples/observedEntityStore.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/entity-store/examples/observedEntityStore" title="Observing upsert, remove, and replaceAll on an EntityStore" />
+
+The output shows `onUpsert`/`onRemove`/`onReplaceAll` firing as a `TelemetryStore` subclass runs `upsertOne`, `upsertMany`, `removeOne` (including a no-op remove for a missing id), and `setAll`, followed by the final normalized collection and each hook's collected event log.
+
 ## Observability hooks
 
 `EntityStore` exposes protected lifecycle hooks that a subclass can override to
@@ -70,5 +76,20 @@ Unlike `@studnicky/cache`'s `LruCache`, `EntityStore` is deliberately unbounded 
 | `getIds` | `() => readonly TId[]` | Returns every id, in insertion order |
 | `hookErrorCount` | `get hookErrorCount(): number` | Count of hook failures recorded since construction |
 | `getHookErrors` | `() => readonly HookErrorEntryInterface[]` | Defensive copy of every hook failure recorded since construction |
+
+## Interfaces
+
+`@studnicky/entity-store/interfaces` exports entity-store option contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { EntityStoreOptionsInterface } from '@studnicky/entity-store/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `EntityStore` | Maintains an ID-indexed entity collection. | `@studnicky/entity-store` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/entity-store)

@@ -4,18 +4,14 @@
  * @module
  */
 
-type WithCodeType = object & { readonly code: unknown };
+type WithCodeType = Error & { readonly code: string };
 
 /**
  * Guards against values that carry a `code` property.
  */
 export class CodeGuard {
   /** Returns `true` when `value` is a non-null object that has a `code` property. */
-  public static has(value: unknown): value is WithCodeType {
-    return (
-      typeof value === 'object'
-      && value !== null
-      && 'code' in value
-    );
+  public static has(value: Error): value is WithCodeType {
+    return 'code' in value;
   }
 }

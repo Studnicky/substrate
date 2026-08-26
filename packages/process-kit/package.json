@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/process-kit",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [

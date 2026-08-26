@@ -12,6 +12,13 @@ import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
 import scenarioGroups from './VirtualScheduler.scenarios.json' with { type: 'json' };
 
+function requiredAuditNumber(value: number | undefined): number {
+  if (value === undefined) {
+    throw new Error('Expected a numeric audit field');
+  }
+  return value;
+}
+
 class FireRecord {
   public count = 0;
 
@@ -21,18 +28,18 @@ class FireRecord {
 }
 
 type ScenarioInput = {
-  batch?: Record<string, unknown>;
-  scheduler: Record<string, unknown>;
+  batch?: Record<string, boolean | number | string | object | null>;
+  scheduler: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunnerContext = {
-  batch: Record<string, unknown>;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
+  batch: Record<string, boolean | number | string | object | null>;
+  expected: Record<string, boolean | number | string | object | null>;
+  input: Record<string, boolean | number | string | object | null>;
 };
 type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
 type ScenarioCase = {
   description: string;
-  expected?: Record<string, unknown>;
+  expected?: Record<string, boolean | number | string | object | null>;
   input: ScenarioInput;
   shape: string;
   name: string;
@@ -85,7 +92,7 @@ function createScheduler(startMs: number): VirtualScheduler {
   return VirtualScheduler.create({ counter: createCounter(startMs) });
 }
 
-function numberField(input: Record<string, unknown>, key: string): number {
+function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
     throw new Error(`Expected numeric field '${key}'`);
@@ -460,18 +467,18 @@ const scenarioRunners = {
     const fireErrorInput = input as { atMs: number; counterStartMs: number; intervalAdvanceDeltas: number[]; intervalMs: number };
 
     class ErrorHookScheduler extends VirtualScheduler {
-      public errors: unknown[] = [];
+      public errors: Error[] = [];
       public fireCount = 0;
 
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onFire(_id: string): void {
         this.fireCount++;
       }
 
-      protected override onFireError(_id: string, error: unknown): void {
+      protected override onFireError(_id: string, error: Error): void {
         this.errors.push(error);
       }
     }
@@ -523,8 +530,8 @@ const scenarioRunners = {
       public cancelAllCount = 0;
       public advanceCount = 0;
 
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
@@ -597,12 +604,6 @@ const scenarioRunners = {
       throwingRescheduleFireCount: number;
       throwingScheduleIdNonEmpty: boolean;
     };
-    const requiredAuditNumber = (value: number | undefined): number => {
-      if (value === undefined) {
-        throw new Error('Expected a numeric audit field');
-      }
-      return value;
-    };
     const auditActionDispatch = {
       advance: (sched, scenario): void => {
         sched.advance(requiredAuditNumber(scenario.advanceMs));
@@ -659,8 +660,8 @@ const scenarioRunners = {
     assert.strictEqual(cancelAfterFireSched.cancelCount, subclassExpected.cancelAfterFireCancelCount);
 
     class CounterAccessor extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       public getCounter(): Readonly<VirtualTimeCounter> {
@@ -672,8 +673,8 @@ const scenarioRunners = {
     assert.strictEqual(accessor.getCounter().nowMs(), subclassExpected.counterAccessorNowMs);
 
     class CancelChecker extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       public checkCancelled(id: string): boolean {
@@ -688,8 +689,8 @@ const scenarioRunners = {
 
     let heapCreatedCount = 0;
     class SpyHeapScheduler extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override createHeap(): MinimumHeap {
@@ -707,12 +708,12 @@ const scenarioRunners = {
 
     class ErrorHookScheduler extends VirtualScheduler {
       public fireErrorIds: string[] = [];
-      public fireErrorValues: unknown[] = [];
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public fireErrorValues: Error[] = [];
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
-      protected override onFireError(id: string, error: unknown): void {
+      protected override onFireError(id: string, error: Error): void {
         this.fireErrorIds.push(id);
         this.fireErrorValues.push(error);
       }
@@ -733,11 +734,11 @@ const scenarioRunners = {
 
     class AsyncErrorHookScheduler extends VirtualScheduler {
       public asyncErrorCount = 0;
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
-      protected override onFireError(_id: string, _error: unknown): void {
+      protected override onFireError(_id: string, _error: Error): void {
         this.asyncErrorCount++;
       }
     }
@@ -752,8 +753,8 @@ const scenarioRunners = {
     class RescheduleHookScheduler extends VirtualScheduler {
       public rescheduleIds: string[] = [];
       public rescheduleAtMs: number[] = [];
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onReschedule(id: string, atMs: number): void {
@@ -770,8 +771,8 @@ const scenarioRunners = {
 
     class IdleHookScheduler extends VirtualScheduler {
       public idleCount = 0;
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onIdle(): void {
@@ -801,8 +802,8 @@ const scenarioRunners = {
     assert.strictEqual(idlePartialSched.idleCount, subclassExpected.idlePartialCount);
 
     class ThrowingScheduleScheduler extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onSchedule(): void {
@@ -814,8 +815,8 @@ const scenarioRunners = {
     assert.strictEqual(throwingSchedule.scheduleAt(subclassInput.scheduleAtMs, () => { return; }).id.length > 0, subclassExpected.throwingScheduleIdNonEmpty);
 
     class ThrowingFireScheduler extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onFire(): void {
@@ -833,15 +834,15 @@ const scenarioRunners = {
 
     let receivedError: HookInvocationError | undefined;
     class RecordingHookInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         receivedError = new HookInvocationError(hookName, cause);
       }
     }
     class ObservedThrowingFireScheduler extends VirtualScheduler {
       protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
 
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onFire(): void {
@@ -858,8 +859,8 @@ const scenarioRunners = {
     assert.strictEqual(receivedError?.cause.message, subclassExpected.observedCauseMessage);
 
     class ThrowingRescheduleScheduler extends VirtualScheduler {
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onReschedule(): void {
@@ -878,8 +879,8 @@ const scenarioRunners = {
     class ThrowingFireErrorScheduler extends VirtualScheduler {
       public fireErrorCount = 0;
 
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override onFireError(): void {
@@ -894,9 +895,9 @@ const scenarioRunners = {
     assert.strictEqual(throwingFireError.fireErrorCount, subclassExpected.throwingFireErrorCount);
 
     const recordedHookNames: string[] = [];
-    const recordedCauses: unknown[] = [];
+    const recordedCauses: Error[] = [];
     class RecordingSwallowingInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: unknown): void {
+      protected override onHookError(hookName: string, cause: Error): void {
         recordedHookNames.push(hookName);
         recordedCauses.push(cause);
       }
@@ -905,8 +906,8 @@ const scenarioRunners = {
     class AsyncRejectingFireScheduler extends VirtualScheduler {
       protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
 
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
+      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+        super(injectedCounter);
       }
 
       protected override async onFire(_id: string): Promise<void> {
@@ -914,9 +915,9 @@ const scenarioRunners = {
         throw rejectionError;
       }
     }
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
     };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
@@ -926,7 +927,7 @@ const scenarioRunners = {
       asyncFire.runAll();
       await Promise.resolve();
       await Promise.resolve();
-      assert.strictEqual(rejectionEvents.length, subclassExpected.rejectionEventsLength);
+      assert.strictEqual(rejectionEvents, subclassExpected.rejectionEventsLength);
       assert.deepStrictEqual(recordedHookNames, subclassExpected.recordedHookNames);
       assert.strictEqual(recordedCauses[0], rejectionError);
     } finally {

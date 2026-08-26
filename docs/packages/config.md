@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/config'
-description: Configuration validation and clamping utilities.
+description: Configuration parsing, errors, and clamping utilities.
 ---
 
 # @studnicky/config
 
-> Configuration validation and clamping utilities.
+> Configuration parsing, errors, and clamping utilities.
 
 ## Install
 
@@ -17,33 +17,34 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Validate required fields and check types in a configuration object. All assertion methods skip `undefined`/`null` values, and throw `ConfigurationError` on failure:
+Parse external configuration through an entity's `intake` function. Intake supplies schema defaults and removes undeclared properties, without coercing a value's type — a wrong-typed field is rejected, not silently converted:
 
 <<< ../../packages/config/examples/validate-config.ts#usage
 
 ## Public API
 
-Import `ConfigValidation`, `ClampedConfig`, `ClampEventEntity`, `ClampRuleEntity`, and `ConfigurationError` from `@studnicky/config`. The package root is the only public code entrypoint.
+Import `ClampedConfig` and `ConfigurationError` from `@studnicky/config`; import clamping schemas from `@studnicky/config/entities`.
 
 ## Try it
 
-<RunnableExample src="packages/config/examples/validate-config" title="Config validation" />
+<RunnableExample src="packages/config/examples/validate-config" title="Configuration intake" />
 
-The output shows fields passing validation and the `ConfigurationError` messages thrown for wrong types and unknown keys.
+The output shows a typed configuration with defaults applied and undeclared properties removed.
 
-## Extending
+## Configuration errors
 
-`ConfigValidation` is a static class. Subclass it and override `onValidationError` to emit a domain-specific error type instead of `ConfigurationError`:
+Build a `ConfigurationError` with an `Error` cause when an already-parsed configuration cannot be used:
 
 <<< ../../packages/config/examples/custom-error.ts#usage
 
 ## Clamping
 
-`ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{min, max, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
+`ClampedConfig` applies declarative `{min, max, reason}` rules to a flat configuration object. `apply` returns a new object with out-of-range numeric fields clamped into range. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig, ClampRuleEntity } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampRuleEntity } from '@studnicky/config/entities';
 
 interface WorkerConfig {
   timeoutMs: number;
@@ -64,7 +65,8 @@ Override the protected `onClamp` static method to observe clamp events — loggi
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampEventEntity } from '@studnicky/config/entities';
 
 class LoggingClampedConfig extends ClampedConfig {
   protected static override onClamp(event: ClampEventEntity.Type): void {
@@ -74,5 +76,21 @@ class LoggingClampedConfig extends ClampedConfig {
 
 LoggingClampedConfig.apply(raw, rules);
 ```
+
+## Entities
+
+`@studnicky/config/entities` exports clamping rule and event schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { ClampRuleEntity } from '@studnicky/config/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `ClampedConfig` | Applies declarative numeric clamping rules. | `@studnicky/config` |
+| `ConfigurationError` | Represents invalid configuration values. | `@studnicky/config` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/config)

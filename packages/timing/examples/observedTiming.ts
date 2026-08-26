@@ -3,8 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { TimingEventDataEntity, TimingOptionsEntity } from '../src/index.js';
+import type { TimingEventDataEntity } from '../src/entities/index.js';
 
+import { TimingOptionsEntity } from '../src/entities/index.js';
 import { Timing, TimingEvent } from '../src/index.js';
 
 class ObservedTiming extends Timing {
@@ -17,7 +18,7 @@ class ObservedTiming extends Timing {
   clearCount = 0;
   getEventsCalls: { 'eventCount': number }[] = [];
 
-  public constructor(options: TimingOptionsEntity.Type = {}) {
+  public constructor(options: TimingOptionsEntity.Type = TimingOptionsEntity.create()) {
     super(options);
   }
 
@@ -49,8 +50,8 @@ class ObservedTiming extends Timing {
   }
 }
 
-// Create an ObservedTiming with a small maxEvents to trigger eviction
-const timing = new ObservedTiming({ 'maxEvents': 3 });
+// Create an ObservedTiming with a small maximumEvents to trigger eviction
+const timing = new ObservedTiming(TimingOptionsEntity.create({ 'maximumEvents': 3 }));
 
 // Record two events (cache: initialize + DbAdapter.query + CacheService.get = 3, at capacity)
 timing.event(
@@ -63,12 +64,12 @@ timing.event(
 
 // Call getEvents to trigger onGetEvents (3 entries in cache)
 const snapshot = timing.getEvents();
-console.log('snapshot keys:', Object.keys(snapshot));
+console.log('snapshot keys:', [...snapshot.keys()]);
 
 // Clear to trigger onClear
 timing.clear();
 
-// Fill cache to capacity (maxEvents: 3) then overflow to trigger eviction
+// Fill cache to capacity (maximumEvents: 3) then overflow to trigger eviction
 timing.event(
   TimingEvent.create({ 'component': 'DbAdapter', 'operation': 'insert' })
 );
@@ -88,7 +89,7 @@ timing.event(
 
 // Final getEvents call
 const final = timing.getEvents();
-console.log('final keys:', Object.keys(final));
+console.log('final keys:', [...final.keys()]);
 // #endregion usage
 
 // Assertions on recorded events structure
@@ -97,7 +98,9 @@ assert.equal(typeof timing.initEvents[0]!.startTime, 'bigint', 'startTime should
 
 assert.ok(timing.recordedEvents.length >= 4, 'at least 4 events should have been recorded');
 
-for (const entry of timing.recordedEvents) {
+const recordedEventsLength = timing.recordedEvents.length;
+for (let index = 0; index < recordedEventsLength; index += 1) {
+  const entry = timing.recordedEvents[index]!;
   assert.equal(typeof entry.data.event, 'string', 'event label should be a string');
   assert.equal(typeof entry.timestamp, 'bigint', 'timestamp should be bigint');
 }
@@ -106,7 +109,9 @@ assert.ok(timing.evictedNames.length >= 1, 'at least one eviction should have oc
 assert.equal(timing.clearCount, 1, 'onClear should fire exactly once');
 assert.equal(timing.getEventsCalls.length, 2, 'onGetEvents should fire twice');
 
-for (const call of timing.getEventsCalls) {
+const getEventsCallsLength = timing.getEventsCalls.length;
+for (let index = 0; index < getEventsCallsLength; index += 1) {
+  const call = timing.getEventsCalls[index]!;
   assert.equal(typeof call.eventCount, 'number', 'eventCount should be a number');
 }
 

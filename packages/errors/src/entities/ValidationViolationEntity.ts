@@ -1,6 +1,10 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
+
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
+import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Describes one validation failure from a schema check. */
 export namespace ValidationViolationEntity {
@@ -34,11 +38,25 @@ export namespace ValidationViolationEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-    if (typeof candidate.keyword !== 'string') { return false; }
-    if (typeof candidate.message !== 'string') { return false; }
-    if (typeof candidate.path !== 'string') { return false; }
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
+    if (!Predicates.isObject(candidate)) { return false; }
+    if (!Predicates.isString(candidate.keyword)) { return false; }
+    if (!Predicates.isString(candidate.message)) { return false; }
+    if (!Predicates.isString(candidate.path)) { return false; }
     return true;
+  };
+
+  class Parser {
+    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['keyword', 'message', 'path'])) { return undefined; }
+      const keyword = EntityIntake.string(candidate.keyword);
+      const message = EntityIntake.string(candidate.message);
+      const path = EntityIntake.string(candidate.path);
+      if (keyword === undefined || message === undefined || path === undefined) { return undefined; }
+      return { 'keyword': keyword, 'message': message, 'path': path };
+    }
   }
+
+  export const intake = EntityIntake.compileIntake(Parser.parse, 'ValidationViolation');
+  export const create = EntityIntake.compileCreate(Parser.parse, 'ValidationViolation');
 }

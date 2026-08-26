@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -60,7 +61,7 @@ type ScenarioCase =
     });
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
@@ -73,7 +74,7 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
 
 async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void>): Promise<unknown[]> {
   const rejectionEvents: unknown[] = [];
-  const onUnhandledRejection = (reason: unknown): void => {
+  const onUnhandledRejection = (reason: Error): void => {
     rejectionEvents.push(reason);
     console.error('[%s] captured unhandledRejection', scenarioName, reason);
   };

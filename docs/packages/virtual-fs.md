@@ -15,7 +15,7 @@ pnpm add @studnicky/virtual-fs
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/virtual-fs` is the sole public code entrypoint.
+`@studnicky/virtual-fs` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
@@ -86,6 +86,32 @@ function processFiles(fs: FileSystemInterface): void {
 
 ## Public API
 
-The package root exports `VirtualFileSystem`, `VirtualFileSystemError`, `EntryEntity`, `VirtualFileSystemOptionsInterface`, `FileSystemInterface`, and `StatResultInterface`.
+The root exports `VirtualFileSystem`, `VirtualFileSystemError`, and `FileSystemInterface`. Filesystem entities use `@studnicky/virtual-fs/entities`; option and stat contracts use `@studnicky/virtual-fs/interfaces`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/virtual-fs)
+
+## Entities
+
+`@studnicky/virtual-fs/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { EntryEntity } from '@studnicky/virtual-fs/entities';
+```
+
+## Interfaces
+
+`@studnicky/virtual-fs/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `FileSystemInterface` | Defines the file system contract. | `@studnicky/virtual-fs` |
+| `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs` |
+| `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs` |

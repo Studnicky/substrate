@@ -1,6 +1,10 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
+
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
+import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Error with hostname information. */
 export namespace ErrorWithHostnameEntity {
@@ -23,8 +27,20 @@ export namespace ErrorWithHostnameEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-    return typeof candidate.hostname === 'string';
-  }
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
+    if (!Predicates.isObject(candidate)) { return false; }
+    const result = Predicates.isString(candidate.hostname);
+    return result;
+  };
+
+  const boundary = EntityIntake.compile<Type>((candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['hostname'])) { return undefined; }
+    const hostname = EntityIntake.string(candidate.hostname);
+    if (hostname === undefined) { return undefined; }
+    const result = { 'hostname': hostname };
+    return result;
+  }, 'ErrorWithHostname');
+
+  export const intake = boundary.intake;
+  export const create = boundary.create;
 }

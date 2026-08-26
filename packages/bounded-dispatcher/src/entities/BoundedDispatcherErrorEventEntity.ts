@@ -1,8 +1,11 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { SchemaValidator } from '@studnicky/json';
+
 export namespace BoundedDispatcherErrorEventEntity {
   export const Schema = {
     'additionalProperties': false,
+    'minProperties': 1,
     'properties': {
       'phase': { 'const': 'error', 'type': 'string' }
     },
@@ -12,11 +15,7 @@ export namespace BoundedDispatcherErrorEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof candidate === 'object'
-      && candidate !== null
-      && Object.hasOwn(candidate, 'phase')
-      && Object.keys(candidate).length === 1
-      && Reflect.get(candidate, 'phase') === 'error';
-  }
+  export const validate: (candidate: unknown) => candidate is Type = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }

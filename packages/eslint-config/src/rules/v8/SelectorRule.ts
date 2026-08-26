@@ -3,7 +3,6 @@ import type { Rule } from 'eslint';
 export class SelectorRule {
   public static create(ruleName: string, selector: string, message: string): Rule.RuleModule {
     const create: NonNullable<Rule.RuleModule['create']> = (context) => {
-      const listeners: Record<string, (node: Rule.Node) => void> = {};
       const reportForbidden = (node: Rule.Node): void => {
         context.report({
           'messageId': 'forbidden',
@@ -11,7 +10,8 @@ export class SelectorRule {
         });
       };
 
-      listeners[selector] = reportForbidden;
+      const listeners: Record<string, (node: Rule.Node) => void> = {};
+      Reflect.set(listeners, selector, reportForbidden);
 
       return listeners;
     };

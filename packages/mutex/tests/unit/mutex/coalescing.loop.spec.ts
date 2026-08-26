@@ -6,6 +6,14 @@ import { Mutex } from '../../../src/mutex/index.js';
 
 import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
+function isNumberValue<TValue>(value: TValue): value is TValue & number {
+  return typeof value === 'number';
+}
+
+function isStringValue<TValue>(value: TValue): value is TValue & string {
+  return typeof value === 'string';
+}
+
 type MutexInput = Parameters<typeof Mutex.create>[0];
 type ScenarioInputWithMutex = { mutex?: MutexInput };
 type BatchInput = { callerCount?: number; perKeyCount?: number };
@@ -311,15 +319,15 @@ const runnerMap: {
   },
   'validates-each-caller-result': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
-    const acceptsNumber = (value: unknown): value is number => typeof value === 'number';
-    const acceptsString = (value: unknown): value is string => typeof value === 'string';
+    const acceptsNumber = isNumberValue;
+    const acceptsString = isStringValue;
     const numberResult = mutex.runExclusive(scenarioCase.input.key, async () => {
       await delay(scenarioCase.input.delayMs);
       return scenarioCase.input.numberResult;
     }, acceptsNumber);
     const stringResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult, acceptsString);
     assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
-    await assert.rejects(stringResult, (error: unknown) => error instanceof TypeError && error.name === scenarioCase.expected.rejectedType);
+    await assert.rejects(stringResult, <TError>(error: TError) => error instanceof TypeError && error.name === scenarioCase.expected.rejectedType);
   }
 };
 

@@ -1,0 +1,65 @@
+{
+  "valid": [
+    {
+      "name": "one-shot prototype method setup at module top level - runs once, before any instance exists",
+      "code": "function Widget() {} Widget.prototype.run = function () { return 1; };"
+    },
+    {
+      "name": "one-shot whole-prototype assignment at module top level",
+      "code": "function Widget() {} Widget.prototype = { run: function () { return 1; } };"
+    },
+    {
+      "name": "one-shot Object.assign onto a prototype at module top level",
+      "code": "function Widget() {} Object.assign(Widget.prototype, { run: function () { return 1; } });"
+    },
+    {
+      "name": "class syntax - no prototype mutation node exists at all",
+      "code": "class Widget { run() { return 1; } }"
+    },
+    {
+      "name": "reading from a prototype is not modification",
+      "code": "function Widget() {} const runner = Widget.prototype.run;"
+    },
+    {
+      "name": "assigning a static property is not prototype modification",
+      "code": "function Widget() {} Widget.version = 1;"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "prototype method assignment inside a function - can run again after instances exist",
+      "code": "function Widget() {} function install() { Widget.prototype.run = function () { return 1; }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "prototype method assignment inside a loop",
+      "code": "function Widget() {} for (let index = 0; index < 3; index += 1) { Widget.prototype.run = function () { return index; }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "whole-prototype reassignment inside a function",
+      "code": "function Widget() {} function install() { Widget.prototype = { run: function () { return 1; } }; }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "Object.assign onto a prototype inside a function - previously evaded name matching entirely",
+      "code": "function Widget() {} function install() { Object.assign(Widget.prototype, { run: function () { return 1; } }); }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "Object.setPrototypeOf inside a function",
+      "code": "function Widget() {} const base = {}; function install() { Object.setPrototypeOf(Widget.prototype, base); }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "__proto__ assignment inside a function",
+      "code": "const base = {}; function install(target) { target.__proto__ = base; }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "prototype mutation inside a forEach callback - a loop body via LoopContext",
+      "code": "function Widget() {} const names = ['a', 'b']; names.forEach((name) => { Widget.prototype[name] = function () { return 1; }; });",
+      "errors": [{ "messageId": "prototypeModification" }]
+    }
+  ]
+}

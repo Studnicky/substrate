@@ -1,2 +1,1 @@
-/** Data constant for the `clean-diagnostics` rule: the lint/type suppression-comment matcher. Longest alternatives first, to avoid partial prefix shadowing in alternation. */
-export const SUPPRESSION_PATTERN = /istanbul ignore entirely|tslint:disable-next-line|tslint:disable-line|eslint-disable-next-line|eslint-disable-line|@ts-expect-error|eslint-disable|eslint-enable|tslint:disable|@ts-nocheck|@ts-ignore|c8-ignore|c8 ignore/v;
+export const SUPPRESSION_PATTERN = /istanbul ignore (?:next|if|else)|tslint:disable-next-line|tslint:disable-line|eslint-disable-next-line|eslint-disable-line|@ts-expect-error|eslint-disable|eslint-enable|tslint:disable|@ts-nocheck|@ts-ignore|c8-ignore|c8 ignore|eslint\s+[\w.@\/\-]+\s*:\s*(?:"off"|'off'|0)/v;

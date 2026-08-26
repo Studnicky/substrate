@@ -8,7 +8,7 @@
       },
       "input": {
         "options": {
-          "__shape": "undefined"
+          "shape": "undefined"
         }
       }
     },
@@ -548,7 +548,7 @@
       "input": {
         "options": {
           "signal": {
-            "__shape": "abort-signal"
+            "shape": "abort-signal"
           }
         }
       }
@@ -574,7 +574,7 @@
       "input": {
         "options": {
           "signal": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       }

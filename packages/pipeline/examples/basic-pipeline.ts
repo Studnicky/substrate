@@ -8,25 +8,24 @@
 
 import assert from 'node:assert/strict';
 
-// #region usage
-import type { NumCtxTypeEntity } from './entities/NumCtxTypeEntity.js';
-
 import { Pipeline } from '../src/index.js';
+// #region usage
+import { NumberContextTypeEntity } from './entities/NumberContextTypeEntity.js';
 
-class NumStages {
-  static double(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value * 2 }; }
-  static addTen(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value + 10 }; }
-  static timesThree(ctx: NumCtxTypeEntity.Type): NumCtxTypeEntity.Type { return { 'value': ctx.value * 3 }; }
+class NumberStages {
+  static double(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value * 2 }; }
+  static addTen(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value + 10 }; }
+  static timesThree(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value * 3 }; }
 }
 
 // Three-stage pipeline: double, then add ten, then multiply by three
-const threeStagePipeline = Pipeline.create<NumCtxTypeEntity.Type>([
-  NumStages.double, NumStages.addTen, NumStages.timesThree
+const threeStagePipeline = Pipeline.create<NumberContextTypeEntity.Type>([
+  NumberStages.double, NumberStages.addTen, NumberStages.timesThree
 ]);
 
 // Two-stage pipeline: add ten, then multiply by three — a different fixed
 // composition constructed from a different stage array
-const twoStagePipeline = Pipeline.create<NumCtxTypeEntity.Type>([NumStages.addTen, NumStages.timesThree]);
+const twoStagePipeline = Pipeline.create<NumberContextTypeEntity.Type>([NumberStages.addTen, NumberStages.timesThree]);
 
 console.log(`Three-stage pipeline stages: ${threeStagePipeline.stages.length}`);
 console.log(`Two-stage pipeline stages: ${twoStagePipeline.stages.length}`);
@@ -36,14 +35,14 @@ class PipelineRunDemo {
   // results so the caller ends up with a single top-level binding.
   static async run(): Promise<{ 'withDouble': number; 'withoutDouble': number }> {
     // (5 * 2 + 10) * 3 = 60
-    const result = await threeStagePipeline.run({ 'value': 5 });
+    const result = await threeStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
     console.log(`Result with 3 stages: ${result.value}`);
 
     // (5 + 10) * 3 = 45
-    const resultWithout = await twoStagePipeline.run({ 'value': 5 });
-    console.log(`Result without double stage: ${resultWithout.value}`);
+    const resultWithoutDouble = await twoStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
+    console.log(`Result without double stage: ${resultWithoutDouble.value}`);
 
-    return { 'withDouble': result.value, 'withoutDouble': resultWithout.value };
+    return { 'withDouble': result.value, 'withoutDouble': resultWithoutDouble.value };
   }
 }
 

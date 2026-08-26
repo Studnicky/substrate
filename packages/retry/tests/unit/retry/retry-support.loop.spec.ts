@@ -1,20 +1,18 @@
 import assert from 'node:assert/strict';
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 
 import { ConfigurationError } from '@studnicky/config';
 import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 
 import {
-  BackoffConfigEntity,
   BackoffStrategy,
-  Retry,
-  RetryConfigGuard,
-  RetryContextDataEntity
+  Retry
 } from '../../../src/index.js';
+import { BackoffConfigEntity, RetryContextDataEntity } from '../../../src/entities/index.js';
 import type {
   RetryConfigInterface,
   RetryContextInterface
-} from '../../../src/index.js';
+} from '../../../src/interfaces/index.js';
 import scenarioGroups from './retry-support.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
@@ -44,8 +42,8 @@ type RetrySupportInput = Record<string, unknown> & {
   errorMessage?: string;
   result?: string;
   retry?: Record<string, unknown> & {
-    backoffStrategy?: unknown;
-    maxRetries?: unknown;
+    backoffStrategy?: { baseDelayMs?: number };
+    maximumRetries?: unknown;
   };
   value?: Record<string, unknown>;
 };
@@ -85,9 +83,9 @@ class OverridingRetry extends Retry {
   }
 }
 
-function createBackoffConfig(config: unknown): { baseDelayMs: number; strategy: typeof BackoffStrategy.exponential } {
+function createBackoffConfig(config?: { baseDelayMs?: number }): { baseDelayMs: number; strategy: typeof BackoffStrategy.exponential } {
   return {
-    'baseDelayMs': typeof config === 'object' && config !== null ? Number(Reflect.get(config, 'baseDelayMs') ?? 100) : 100,
+    'baseDelayMs': config?.baseDelayMs ?? 100,
     'strategy': BackoffStrategy.exponential
   };
 }
@@ -123,14 +121,15 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetrySupportIn
 
 function assertConfigGuard(scenarioCase: ScenarioCase): void {
   const { expected, input } = scenarioCase;
-  const createSpy = mock.method(DefaultHttpErrorClassifier, 'create');
 
-  try {
-    const result = RetryConfigGuard.isRetryConfig(input.retry ?? {});
-    assert.equal(result, Boolean(expected.result));
-    assert.equal(createSpy.mock.callCount(), Number(expected.classifierCalls));
-  } finally {
-    createSpy.mock.restore();
+  if (expected.result === true) {
+    assert.doesNotThrow(() => {
+      Reflect.construct(Retry, [input.retry ?? {}]);
+    });
+  } else {
+    assert.throws(() => {
+      Reflect.construct(Retry, [input.retry ?? {}]);
+    }, ConfigurationError);
   }
 }
 
@@ -140,7 +139,7 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
     Retry.create({
       backoffStrategy: input.retry?.backoffStrategy as never,
-      maxRetries: Number(input.retry?.maxRetries)
+      maximumRetries: Number(input.retry?.maximumRetries)
     });
   }, ConfigurationError);
 }
@@ -150,7 +149,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const { expected, input } = scenarioCase;
     const retry = new RecordingRetry({
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -162,7 +161,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const retry = new RecordingRetry({
       'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -174,7 +173,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const retry = new OverridingRetry({
       'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maxRetries': Number(input.retry?.maxRetries)
+      'maximumRetries': Number(input.retry?.maximumRetries)
     });
 
     await executeUntilConfiguredSuccess(retry, input);

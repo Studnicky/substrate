@@ -1,0 +1,102 @@
+{
+  "valid": [
+    {
+      "name": "direct member access off this - allowed",
+      "code": "class Foo { bar() { return this.baz; } }"
+    },
+    {
+      "name": "return this - allowed, method-chaining/fluent pattern",
+      "code": "class Foo { bar() { return this; } }"
+    },
+    {
+      "name": "direct method call off this in object method - allowed",
+      "code": "const o = { bar() { this.baz(); } };"
+    },
+    {
+      "name": "static context: new this() - subclass-aware construction, this is the constructor",
+      "code": "class Foo { static create() { return new this(); } }"
+    },
+    {
+      "name": "static context: Reflect.construct(this, []) - reflective form of the same idiom",
+      "code": "class Foo { static create() { const made = Reflect.construct(this, []); return made; } }"
+    },
+    {
+      "name": "static context: this as a guard argument - Foo.isConstructed(result, this)",
+      "code": "class Foo { static isConstructed(a, b) { return a === b; } static create() { return Foo.isConstructed(null, this); } }"
+    },
+    {
+      "name": "static block: this is the constructor",
+      "code": "class Foo { static registry = null; static { Foo.registry = new WeakSet(); } }"
+    },
+    {
+      "name": "this passed to a public static nested collaborator the class itself owns - stays in the object graph",
+      "code": "class Foo { static OwnedMachine = class {}; constructor() { this.machine = new Foo.OwnedMachine(this); } }"
+    },
+    {
+      "name": "this passed to a #private static nested collaborator the class itself owns - provably cannot leave the class",
+      "code": "class Foo { static #OwnedCoalesce = class {}; constructor() { this.coalesce = new Foo.#OwnedCoalesce(this); } }"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "const self = this - aliases the receiver to a local binding",
+      "code": "class Foo { bar() { const self = this; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "x = this - aliases the receiver by assignment",
+      "code": "class Foo { bar() { let x; x = this; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "capture(this) from an INSTANCE method - hands the whole receiver to another function",
+      "code": "function capture(x) {} class Foo { bar() { capture(this); } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "foo.bind(this) - receiver escapes via a member call argument",
+      "code": "class Foo { bar(foo) { foo.bind(this); } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "const arr = [this] - receiver escapes as an array element",
+      "code": "class Foo { bar() { const arr = [this]; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "const o = { self: this } - receiver escapes as an object property value",
+      "code": "class Foo { bar() { const o = { self: this }; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "class-field self = this - receiver stored on a PropertyDefinition value",
+      "code": "class Foo { bar() { this.x = 1; } baz = this; }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "Object.assign(this, fields) - bulk external mutation of the receiver",
+      "code": "class Foo { constructor(fields) { Object.assign(this, fields); } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "instance method hands itself to a static helper",
+      "code": "class Foo { static serialize(x) { return x; } toJSON() { return Foo.serialize(this); } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "const { alpha } = this - destructuring detaches state from the receiver",
+      "code": "class Foo { alpha = 1; bar() { const { alpha } = this; return alpha; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "this.parent = this - stores a self-cycle on the instance",
+      "code": "class Foo { parent = null; bar() { this.parent = this; } }",
+      "errors": [{ "messageId": "escapes" }]
+    },
+    {
+      "name": "new SomeOtherClass(this) - a genuine escape, not the enclosing class's own nested collaborator",
+      "code": "class SomeOtherClass { constructor(owner) {} } class Foo { constructor() { this.other = new SomeOtherClass(this); } }",
+      "errors": [{ "messageId": "escapes" }]
+    }
+  ]
+}

@@ -35,15 +35,13 @@ The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` ins
 
 The output confirms each composition case: caller+deadline composite, caller-only passthrough, deadline-only timeout, the never-aborting sentinel, and `SignalError` thrown for invalid deadline values.
 
-## API
+## Exports
 
-Import `Signal`, `SignalError`, and `RaceTimeout` from `@studnicky/signal`. The package root is the only public code entrypoint.
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `Signal` | class | Instance-based AbortSignal composition with a static never-aborting sentinel |
-| `SignalError` | class | Invalid signal-composition configuration |
-| `RaceTimeout` | class | Abort-aware timeout race primitive |
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Signal` | Composes caller and deadline abort signals. | `@studnicky/signal` |
+| `SignalError` | Represents invalid signal-composition configuration. | `@studnicky/signal` |
+| `RaceTimeout` | Races a value against an abort-aware timeout. | `@studnicky/signal` |
 
 ### `Signal`
 

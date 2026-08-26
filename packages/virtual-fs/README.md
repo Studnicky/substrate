@@ -6,7 +6,7 @@
 
 `VirtualFileSystem` implements a small synchronous filesystem contract for browser-compatible code and deterministic tests. It supports files and directories in memory, seeded content, controlled modification times, and protected lifecycle hooks.
 
-`@studnicky/virtual-fs` is the sole public code entrypoint.
+`@studnicky/virtual-fs` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
 
 ## Install
 
@@ -43,10 +43,10 @@ const stat = vfs.statSync('/data/config.json');
 
 ```typescript
 import type {
-  FileSystemInterface,
   StatResultInterface,
   VirtualFileSystemOptionsInterface
-} from '@studnicky/virtual-fs';
+} from '@studnicky/virtual-fs/interfaces';
+import type { FileSystemInterface } from '@studnicky/virtual-fs';
 ```
 
 - `EntryEntity.Type` is schema-derived pure filesystem-entry data.

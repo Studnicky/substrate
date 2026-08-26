@@ -19,6 +19,12 @@ pnpm add @studnicky/process-kit
 
 <<< ../../packages/process-kit/examples/observedProcessKit.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/process-kit/examples/observedProcessKit" title="Same-cycle dispatch, scheduled effects, and Signal-driven cancellation" />
+
+The output shows Job A completing after a same-cycle self-acknowledgment followed by a `VirtualScheduler`-driven advance, and Job B's final state landing on `cancelled` after an `AbortSignal` fires — even though its pending scheduled advance is still cancelled out by `ProcessKit#stop()`.
+
 ## Transparency contract
 
 `ProcessKit` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to:
@@ -31,7 +37,7 @@ pnpm add @studnicky/process-kit
 
 `ProcessKit` exposes no collaborator getters. Callers retain their machine and optional scheduler references when they need those primitives' lifecycle APIs. The interpreter is owned internally and receives the singular handler through `ProcessKit.create({ machine, handler, scheduler? })`.
 
-Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit`. The package root is the only public code entrypoint.
+Import `ProcessKit` from `@studnicky/process-kit` and `ProcessKitConfigInterface` from `@studnicky/process-kit/interfaces`.
 
 ## `dispatch()` vs. the effect-handler `dispatch` capability
 
@@ -52,5 +58,20 @@ Import `ProcessKit` and `ProcessKitConfigInterface` from `@studnicky/process-kit
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/process-kit
+
+## Interfaces
+
+`@studnicky/process-kit/interfaces` exports process-kit configuration contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { ProcessKitConfigInterface } from '@studnicky/process-kit/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `ProcessKit` | Combines an FSM, effect interpreter, and scheduler for one process. | `@studnicky/process-kit` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/process-kit)

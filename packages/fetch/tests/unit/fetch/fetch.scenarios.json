@@ -59,7 +59,7 @@
           "invoke": "apply-get",
           "args": [
             {
-              "__shape": "undefined"
+              "shape": "undefined"
             }
           ]
         }
@@ -121,7 +121,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "nan"
+            "shape": "nan"
           }
         }
       },
@@ -138,7 +138,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -155,7 +155,7 @@
         "request": {
           "path": "/instant",
           "timeout": {
-            "__shape": "negative-infinity"
+            "shape": "negative-infinity"
           }
         }
       },
@@ -349,13 +349,13 @@
       }
     },
     {
-      "name": "request-without-timeout-baseurl-params",
-      "description": "FetchClient builds URLs from baseURL and params without timeout",
+      "name": "request-without-timeout-baseurl-parameters",
+      "description": "FetchClient builds URLs from baseURL and parameters without timeout",
       "input": {
         "request": {
           "client": {
             "baseURL": "https://example.test/",
-            "params": {
+            "parameters": {
               "page": 1,
               "tag": "alpha"
             }

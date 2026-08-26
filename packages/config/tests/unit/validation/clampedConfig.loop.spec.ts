@@ -13,6 +13,7 @@ type ScenarioShape =
   | 'clamp-below-min'
   | 'default-hook-noop'
   | 'in-range-untouched'
+  | 'nan-field-untouched-no-hook'
   | 'non-numeric-field-untouched'
   | 'on-clamp-fires'
   | 'on-clamp-multi-field'
@@ -122,7 +123,7 @@ function applyWithThrowingHook(scenarioCase: ScenarioCase): Record<string, unkno
 }
 
 function sorted(values: readonly string[]): string[] {
-  return [...values].sort();
+  return [...values].toSorted();
 }
 
 function assertClampedResult(scenarioCase: ScenarioCase): void {
@@ -140,9 +141,9 @@ const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
       }
     }
 
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
-      rejectionEvents.push(reason);
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (): void => {
+      rejectionEvents.push(new Error('unexpected unhandled rejection'));
     };
     process.on('unhandledRejection', onUnhandledRejection);
 
@@ -165,6 +166,13 @@ const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
     });
   },
   'in-range-untouched': assertClampedResult,
+  'nan-field-untouched-no-hook': (scenarioCase): void => {
+    const config = { 'timeoutMs': Number.NaN };
+    const captured = captureClampEvents({ ...scenarioCase, 'input': { 'config': config, 'rules': scenarioCase.input.rules } });
+
+    assert.strictEqual(captured.events.length, requiredNumber(scenarioCase.expected.eventCount, 'expected.eventCount'));
+    assert.ok(Number.isNaN(captured.result.timeoutMs), 'NaN field is left untouched, not clamped');
+  },
   'non-numeric-field-untouched': assertClampedResult,
   'on-clamp-fires': (scenarioCase): void => {
     const captured = captureClampEvents(scenarioCase);

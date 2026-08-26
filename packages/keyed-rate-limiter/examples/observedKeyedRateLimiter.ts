@@ -8,13 +8,6 @@ import type { RateLimiterStrategyInterface } from '../src/index.js';
 
 import { KeyedRateLimiter } from '../src/index.js';
 
-class FixedClock {
-  static now(): number {
-    const timestamp = 0;
-    return timestamp;
-  }
-}
-
 const telemetryEvents: string[] = [];
 
 class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
@@ -41,8 +34,12 @@ class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
 
 const limiter = TelemetryKeyedRateLimiter.create({
   'burstSize': 2,
-  'clock': FixedClock.now,
-  'maxKeys': 2,
+  'clock': () => {
+    const epoch = new Date(0);
+    const result = epoch.getTime();
+    return result;
+  },
+  'maximumKeys': 2,
   'requestsPerSecond': 1
 });
 
@@ -58,7 +55,7 @@ try {
 
 limiter.consume('user-b'); // unaffected by user-a's exhaustion
 
-// maxKeys: 2 — a third key evicts the LRU tail (user-a)
+// maximumKeys: 2 — a third key evicts the LRU tail (user-a)
 limiter.consume('user-c');
 
 console.log('Events:', telemetryEvents);
@@ -75,7 +72,8 @@ class FixedAllowance implements RateLimiterStrategyInterface {
   }
   waitForToken(options?: { 'signal'?: AbortSignal; 'tokens'?: number }): Promise<void> {
     this.consume(options?.tokens ?? 1);
-    return Promise.resolve();
+    const result = Promise.resolve();
+    return result;
   }
 }
 

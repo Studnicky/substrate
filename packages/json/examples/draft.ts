@@ -14,7 +14,7 @@ const base = DraftFixture.Base;
 
 const next = Draft.produce(base, (draft) => {
   draft.meta.label = 'published';
-  draft.tags.push('beta');
+  draft.tags = ['alpha', 'beta'];
 });
 
 console.log('next.meta:', next.meta);
@@ -26,17 +26,17 @@ console.log('untouched branch same reference?', next.untouched === base.untouche
 // Draft.producePatch — same mechanics, plus the RFC-6902 patch that produced it
 // ---------------------------------------------------------------------------
 
-const doc = DraftFixture.Doc;
+const document = DraftFixture.Document;
 
-const { 'next': patchedNext, patch } = Draft.producePatch(doc, (draft) => {
+const { 'next': patchedNext, patch } = Draft.producePatch(document, (draft) => {
   draft.count = 1;
   draft.status = 'published';
 });
 
 console.log('generated patch:', patch);
 
-// Replaying the generated patch against a fresh copy of `doc` reproduces `next`.
-const replayed: Record<string, unknown> = { ...doc };
+// Replaying the generated patch against a fresh copy of `document` reproduces `next`.
+const replayed = { ...document };
 
 Patch.create(patch).apply(replayed);
 
@@ -55,7 +55,7 @@ console.log('no-op result === base?', noopResult === base);
 
 assert.equal(next.meta.label, 'published', 'nested field mutated on the draft');
 assert.equal(base.meta.label, 'draft', 'base itself untouched');
-assert.deepEqual(next.tags, ['alpha', 'beta'], 'array push recorded on the draft');
+assert.deepEqual(next.tags, ['alpha', 'beta'], 'array replacement recorded on the draft');
 assert.deepEqual(base.tags, ['alpha'], 'base array untouched');
 assert.notEqual(next, base, 'produce returns a new top-level object');
 assert.equal(next.untouched, base.untouched, 'untouched branch shares the same reference');

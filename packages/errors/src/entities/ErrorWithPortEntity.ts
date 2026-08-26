@@ -1,6 +1,10 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
+
+import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+
+import { EntityIntake } from '../validation/EntityIntake.js';
 
 /** Error with port information. */
 export namespace ErrorWithPortEntity {
@@ -23,8 +27,20 @@ export namespace ErrorWithPortEntity {
    * package is a dependency of `@studnicky/json`; depending on it here would form a
    * circular workspace reference.
    */
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-    return typeof candidate.port === 'number';
-  }
+  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
+    if (!Predicates.isObject(candidate)) { return false; }
+    const result = Predicates.isNumber(candidate.port);
+    return result;
+  };
+
+  const boundary = EntityIntake.compile<Type>((candidate, options) => {
+    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['port'])) { return undefined; }
+    const port = EntityIntake.number(candidate.port);
+    if (port === undefined) { return undefined; }
+    const result = { 'port': port };
+    return result;
+  }, 'ErrorWithPort');
+
+  export const intake = boundary.intake;
+  export const create = boundary.create;
 }

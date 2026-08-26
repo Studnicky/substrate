@@ -25,7 +25,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'constructor-throws': (scenario) => {
     assert.throws(() => {
       Reflect.construct(ErrorCodeRegistry, []);
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       assert.strictEqual((error as Error).message, String(scenario.expected.message));
       return true;
@@ -39,7 +39,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     });
     assert.throws(() => {
       ErrorCodeRegistry.register(descriptor);
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(String(scenario.expected.messageIncludes)));
       return true;

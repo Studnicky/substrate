@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/array-from-map-callback'
-description: 'Disallows the two-argument Array.from(iterable, mapFn) form.'
+description: 'Disallows the two-argument built-in Array.from form.'
 ---
 
 # @studnicky/v8/array-from-map-callback
 
-`Array.from(iterable, mapFn)` pays real iterator-protocol and per-element call overhead. Measured on Node v24 (2,000,000 iterations, JIT-warmed), a manual `new Array(n)` plus an index-assignment fill loop runs roughly 58x faster than the two-argument `Array.from` form for the same output. Prefer manual index-fill, or drop the map argument and use single-argument `Array.from(iterable)`.
+Disallows `Array.from(iterable, mapFn)`. The rule resolves `ArrayConstructor.from` from the standard library, covering computed or aliased calls while excluding an unrelated static method named `from`. It applies at every call site, not only in loops: the measured cost is proportional to the source size even for one top-level call.
+
+For a 5,000,000-element array in Node v24, `Array.from(arr, mapFn)` takes 79.28 ms and `new Array(n)` with indexed assignment takes 6.27 ms, a 12.65× difference. Use an index-assignment loop where the mapped result is needed, or use the one-argument form when conversion is sufficient.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,18 +15,25 @@ description: 'Disallows the two-argument Array.from(iterable, mapFn) form.'
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const a = Array.from({ length: n }, (_, i) => i * 2);
+const doubled = Array.from(values, (value) => value * 2);
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+const labels = Array.from(records, (record) => record.label);
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const a = new Array(n);
-for (let i = 0; i < n; i++) { a[i] = i * 2; }
+const doubled = new Array<number>(values.length);
+for (let index = 0; index < values.length; index += 1) {
+  doubled[index] = (values[index] ?? 0) * 2;
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const a = Array.from(iterable);
+const copied = Array.from(values);
 ```

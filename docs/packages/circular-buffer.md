@@ -29,7 +29,7 @@ Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted 
 
 ## Public API
 
-Import `CircularBuffer`, `CircularBufferOptionsEntity`, `CircularBufferStateEntity`, `CircularBufferError`, and `CircularBufferInterface` from `@studnicky/circular-buffer`. Construct a ring through `CircularBuffer.create({ capacity, overflow })`. `CircularBufferInterface.length` composes the schema-derived field owned by `CircularBufferStateEntity`. The package root is the only public code entrypoint; storage constants are implementation details.
+Import `CircularBuffer`, `CircularBufferOptionsEntity`, `CircularBufferStateEntity`, `CircularBufferError`, and `CircularBufferInterface` from `@studnicky/circular-buffer`. Construct a ring through `CircularBuffer.create({ capacity, overflow })`. `CircularBufferInterface.length` composes the schema-derived field owned by `CircularBufferStateEntity`. The package declares separate root, entity, and interface import surfaces; storage constants are implementation details.
 
 ## Extending
 
@@ -54,3 +54,28 @@ Override any protected hook to observe lifecycle events without coupling to a lo
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/circular-buffer)
+
+## Entities
+
+`@studnicky/circular-buffer/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
+```
+
+## Interfaces
+
+`@studnicky/circular-buffer/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { CircularBufferInterface } from '@studnicky/circular-buffer/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `CircularBuffer` | Provides circular buffer functionality. | `@studnicky/circular-buffer` |
+| `CircularBufferError` | Represents circular buffer failures. | `@studnicky/circular-buffer` |

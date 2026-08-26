@@ -1,4 +1,3 @@
-export { configValidation } from './configValidation.js';
 export { LogBody } from './LogBody.js';
 export { LogEventName } from './LogEventName.js';
 export { LogFault } from './LogFault.js';

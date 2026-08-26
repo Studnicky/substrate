@@ -37,8 +37,8 @@ class ObservedScheduler extends VirtualScheduler {
     this.events.push(line);
   }
 
-  protected override onFireError(id: string, error: unknown): void {
-    const message = error instanceof Error ? error.message : String(error);
+  protected override onFireError(id: string, error: Error): void {
+    const message = error.message;
     const line = `[scheduler] fireError id=${id} error="${message}"`;
     console.log(line);
     this.events.push(line);
@@ -100,28 +100,28 @@ scheduler.cancelAll();
 const evts = scheduler.events;
 
 // schedule: one-shot (vtask-1), interval (vtask-2), failing (vtask-3)
-assert.ok(evts.some((e) => { return e.includes('schedule') && e.includes('vtask-1') && e.includes('timeout'); }), 'one-shot scheduled');
-assert.ok(evts.some((e) => { return e.includes('schedule') && e.includes('vtask-2') && e.includes('interval'); }), 'interval scheduled');
-assert.ok(evts.some((e) => { return e.includes('schedule') && e.includes('vtask-3') && e.includes('timeout'); }), 'failing task scheduled');
+assert.ok(evts.some((e) => { const result = e.includes('schedule') && e.includes('vtask-1') && e.includes('timeout'); return result; }), 'one-shot scheduled');
+assert.ok(evts.some((e) => { const result = e.includes('schedule') && e.includes('vtask-2') && e.includes('interval'); return result; }), 'interval scheduled');
+assert.ok(evts.some((e) => { const result = e.includes('schedule') && e.includes('vtask-3') && e.includes('timeout'); return result; }), 'failing task scheduled');
 
 // advance + runUntil appear
-assert.ok(evts.some((e) => { return e.includes('advance') && e.includes('300'); }), 'advance(300) traced');
-assert.ok(evts.some((e) => { return e.includes('runUntil') && e.includes('atMs'); }), 'runUntil traced');
+assert.ok(evts.some((e) => { const result = e.includes('advance') && e.includes('300'); return result; }), 'advance(300) traced');
+assert.ok(evts.some((e) => { const result = e.includes('runUntil') && e.includes('atMs'); return result; }), 'runUntil traced');
 
 // fire events for all three tasks
-assert.ok(evts.some((e) => { return e.includes('fire') && e.includes('vtask-1'); }), 'one-shot fired');
-assert.ok(evts.some((e) => { return e.includes('fire') && e.includes('vtask-2'); }), 'interval fired');
-assert.ok(evts.some((e) => { return e.includes('fire') && e.includes('vtask-3'); }), 'failing task fired');
+assert.ok(evts.some((e) => { const result = e.includes('fire') && e.includes('vtask-1'); return result; }), 'one-shot fired');
+assert.ok(evts.some((e) => { const result = e.includes('fire') && e.includes('vtask-2'); return result; }), 'interval fired');
+assert.ok(evts.some((e) => { const result = e.includes('fire') && e.includes('vtask-3'); return result; }), 'failing task fired');
 
 // fireError for the failing task
-assert.ok(evts.some((e) => { return e.includes('fireError') && e.includes('vtask-3') && e.includes('task failure'); }), 'fireError traced');
+assert.ok(evts.some((e) => { const result = e.includes('fireError') && e.includes('vtask-3') && e.includes('task failure'); return result; }), 'fireError traced');
 
 // reschedule for the interval task
-assert.ok(evts.some((e) => { return e.includes('reschedule') && e.includes('vtask-2'); }), 'interval rescheduled');
+assert.ok(evts.some((e) => { const result = e.includes('reschedule') && e.includes('vtask-2'); return result; }), 'interval rescheduled');
 
 // idle after advance drains pending tasks — heap has only the interval pending at 300
 // then cancelAll clears it
-assert.ok(evts.some((e) => { return e.includes('cancelAll') && e.startsWith('[scheduler]'); }), 'cancelAll traced');
-assert.ok(evts.some((e) => { return e.includes('idle') && e.startsWith('[scheduler]'); }), 'idle traced');
+assert.ok(evts.some((e) => { const result = e.includes('cancelAll') && e.startsWith('[scheduler]'); return result; }), 'cancelAll traced');
+assert.ok(evts.some((e) => { const result = e.includes('idle') && e.startsWith('[scheduler]'); return result; }), 'idle traced');
 
 console.log('observedScheduler: all assertions passed');

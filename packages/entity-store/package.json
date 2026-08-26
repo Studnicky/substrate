@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/entity-store",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [

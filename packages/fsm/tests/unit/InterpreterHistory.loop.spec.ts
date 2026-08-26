@@ -5,7 +5,7 @@ import {
 
 import { InterpreterHistory } from '../../src/InterpreterHistory.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './InterpreterHistory.scenarios.json' with { type: 'json' };
 
 type ToggleState = { readonly variant: 'a' } | { readonly variant: 'b' };

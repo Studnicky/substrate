@@ -13,9 +13,13 @@ import {
   ScriptTarget
 } from 'typescript';
 
-import { IdempotencyConflictError, IdempotencyGuard, IdempotencyGuardEntryMetadataEntity } from '../../../src/index.js';
+import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
+import { IdempotencyGuardEntryMetadataEntity, IdempotencyPayloadEntity } from '../../../src/entities/index.js';
 
 import scenarioGroups from './idempotency-guard.scenarios.json' with { type: 'json' };
+
+// Shared placeholder for a deferred-promise resolver that is always reassigned before use.
+const NOOP_STRING_RESOLVER: (value: string) => void = () => {};
 
 type ScenarioFixture = (typeof scenarioGroups.cases)[number];
 type GuardOptions = ScenarioFixture['input']['idempotencyGuard'];
@@ -472,10 +476,10 @@ function assertScenarioRaceConcurrentDifferentPayload(
 }
 
 type PayloadMaterializerMap = {
-  conflicting: <TInput extends { conflictingPayload: unknown }>(input: TInput) => TInput['conflictingPayload'];
-  follower: <TInput extends { followerPayload: unknown }>(input: TInput) => TInput['followerPayload'];
-  leader: <TInput extends { leaderPayload: unknown }>(input: TInput) => TInput['leaderPayload'];
-  primary: <TInput extends { payload: unknown }>(input: TInput) => TInput['payload'];
+  conflicting: (input: { conflictingPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
+  follower: (input: { followerPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
+  leader: (input: { leaderPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
+  primary: (input: { payload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
 };
 type DiagnosticPatternPredicate = (diagnostic: string) => boolean;
 
@@ -484,14 +488,15 @@ const diagnosticPatternPredicates: Record<string, DiagnosticPatternPredicate> = 
 };
 
 class ResultContractCompiler {
-  static diagnostics(input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: unknown }): string[] {
+  static diagnostics(input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: IdempotencyPayloadEntity.Type }): string[] {
     const guardOptions = input.idempotencyGuard;
     const fileName = fileURLToPath(new URL(`../../fixtures/${input.fixture}`, import.meta.url));
     const source = `
       import { IdempotencyGuard } from '../../src/index.js';
+      import { IdempotencyPayloadEntity } from '../../src/entities/index.js';
 
       const direct = IdempotencyGuard.create<number>({ capacity: ${guardOptions.capacity}, ttlMs: ${guardOptions.ttlMs} });
-      await direct.run(${sourceLiteral(scenarioKey(input))}, ${sourceLiteral(scenarioPayload(input))}, () => 'wrong');
+      await direct.run(${sourceStringLiteral(scenarioKey(input))}, IdempotencyPayloadEntity.create(${sourceLiteral(scenarioPayload(input))}), () => 'wrong');
     `;
     const options = {
       module: ModuleKind.NodeNext,
@@ -553,12 +558,16 @@ function createGuard<TResult>(options: GuardOptions): IdempotencyGuard<TResult> 
   return IdempotencyGuard.create<TResult>(options);
 }
 
-function sourceLiteral(value: unknown): string {
+function sourceLiteral(value: IdempotencyPayloadEntity.Type): string {
   const literal = JSON.stringify(value);
   if (literal === undefined) {
     throw new Error('Scenario fixture is not JSON serializable');
   }
   return literal;
+}
+
+function sourceStringLiteral(value: string): string {
+  return JSON.stringify(value);
 }
 
 function scenarioKey(input: { key: string }): string {
@@ -567,38 +576,38 @@ function scenarioKey(input: { key: string }): string {
 
 const payloadMaterializers: PayloadMaterializerMap = {
   conflicting(input) {
-    return structuredClone(input.conflictingPayload);
+    return IdempotencyPayloadEntity.create(structuredClone(input.conflictingPayload));
   },
   follower(input) {
-    return structuredClone(input.followerPayload);
+    return IdempotencyPayloadEntity.create(structuredClone(input.followerPayload));
   },
   leader(input) {
-    return structuredClone(input.leaderPayload);
+    return IdempotencyPayloadEntity.create(structuredClone(input.leaderPayload));
   },
   primary(input) {
-    return structuredClone(input.payload);
+    return IdempotencyPayloadEntity.create(structuredClone(input.payload));
   }
 };
 
-function scenarioPayload<TInput extends { payload: unknown }>(input: TInput): TInput['payload'] {
+function scenarioPayload(input: { payload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
   return payloadMaterializers.primary(input);
 }
 
-function scenarioConflictingPayload<TInput extends { conflictingPayload: unknown }>(
-  input: TInput
-): TInput['conflictingPayload'] {
+function scenarioConflictingPayload(
+  input: { conflictingPayload: IdempotencyPayloadEntity.Type }
+): IdempotencyPayloadEntity.Type {
   return payloadMaterializers.conflicting(input);
 }
 
-function scenarioLeaderPayload<TInput extends { leaderPayload: unknown }>(input: TInput): TInput['leaderPayload'] {
+function scenarioLeaderPayload(input: { leaderPayload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
   return payloadMaterializers.leader(input);
 }
 
-function scenarioFollowerPayload<TInput extends { followerPayload: unknown }>(input: TInput): TInput['followerPayload'] {
+function scenarioFollowerPayload(input: { followerPayload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
   return payloadMaterializers.follower(input);
 }
 
-function runScenarioInput<TResult, TInput extends { key: string; payload: unknown }>(
+function runScenarioInput<TResult, TInput extends { key: string; payload: IdempotencyPayloadEntity.Type }>(
   guard: IdempotencyGuard<TResult>,
   input: TInput,
   factory: GuardFactory<TResult>
@@ -606,7 +615,7 @@ function runScenarioInput<TResult, TInput extends { key: string; payload: unknow
   return guard.run(scenarioKey(input), scenarioPayload(input), factory);
 }
 
-function runConflictingScenarioInput<TResult, TInput extends { conflictingPayload: unknown; key: string }>(
+function runConflictingScenarioInput<TResult, TInput extends { conflictingPayload: IdempotencyPayloadEntity.Type; key: string }>(
   guard: IdempotencyGuard<TResult>,
   input: TInput,
   factory: GuardFactory<TResult>
@@ -614,7 +623,7 @@ function runConflictingScenarioInput<TResult, TInput extends { conflictingPayloa
   return guard.run(scenarioKey(input), scenarioConflictingPayload(input), factory);
 }
 
-function runLeaderScenarioInput<TResult, TInput extends { key: string; leaderPayload: unknown }>(
+function runLeaderScenarioInput<TResult, TInput extends { key: string; leaderPayload: IdempotencyPayloadEntity.Type }>(
   guard: IdempotencyGuard<TResult>,
   input: TInput,
   factory: GuardFactory<TResult>
@@ -622,7 +631,7 @@ function runLeaderScenarioInput<TResult, TInput extends { key: string; leaderPay
   return guard.run(scenarioKey(input), scenarioLeaderPayload(input), factory);
 }
 
-function runFollowerScenarioInput<TResult, TInput extends { followerPayload: unknown; key: string }>(
+function runFollowerScenarioInput<TResult, TInput extends { followerPayload: IdempotencyPayloadEntity.Type; key: string }>(
   guard: IdempotencyGuard<TResult>,
   input: TInput,
   factory: GuardFactory<TResult>
@@ -630,7 +639,7 @@ function runFollowerScenarioInput<TResult, TInput extends { followerPayload: unk
   return guard.run(scenarioKey(input), scenarioFollowerPayload(input), factory);
 }
 
-function runScenarioInputBatch<TResult, TInput extends { batch: { calls: number }; key: string; payload: unknown }>(
+function runScenarioInputBatch<TResult, TInput extends { batch: { calls: number }; key: string; payload: IdempotencyPayloadEntity.Type }>(
   guard: IdempotencyGuard<TResult>,
   input: TInput,
   factory: GuardFactory<TResult>
@@ -691,7 +700,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const guard = createGuard<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let calls = 0;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -868,7 +877,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
     await runScenarioInput(guard, input, async () => 'ok');
-    await runConflictingScenarioInput(guard, input, async () => 'ok').catch((error: unknown) => {
+    await runConflictingScenarioInput(guard, input, async () => 'ok').catch((error: Error) => {
       if (!(error instanceof IdempotencyConflictError)) {
         throw error;
       }
@@ -880,7 +889,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     assertScenarioHooksCoalesceFollower(scenario);
     const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -920,7 +929,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const executions = scenario.input.batch.factoryResults.map((result): IsolatedExecution => {
       let calls = 0;
-      let resolveFactory: (value: string) => void = () => {};
+      let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
       const pending = new Promise<string>((resolve) => {
         resolveFactory = resolve;
       });
@@ -1054,10 +1063,10 @@ const scenarioRunners: ScenarioRunnerMap = {
     }
 
     const guard = AsyncRejectingReplayGuard.tracked(scenario.input.idempotencyGuard);
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (reason: Error): void => {
       rejectionEvents.push(reason);
-      trace.log(`unhandled-rejection:${String((reason as Error | undefined)?.message ?? reason)}`);
+      trace.log(`unhandled-rejection:${reason.message}`);
     };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
@@ -1092,7 +1101,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const guard = ThrowingCoalesceGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -1106,10 +1115,10 @@ const scenarioRunners: ScenarioRunnerMap = {
     assertScenarioHooksAsyncOverridesSafe(scenario);
     const trace = createTraceLogger(scenario.shape);
     const events: string[] = [];
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (reason: Error): void => {
       rejectionEvents.push(reason);
-      trace.log(`unhandled-rejection:${String((reason as Error | undefined)?.message ?? reason)}`);
+      trace.log(`unhandled-rejection:${reason.message}`);
     };
     process.on('unhandledRejection', onUnhandledRejection);
 
@@ -1145,7 +1154,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
     const guard = AsyncRejectingHooksGuard.tracked(scenario.input.idempotencyGuard);
     const input = scenario.input;
-    let resolveFactory: (value: string) => void = () => {};
+    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
     const pending = new Promise<string>((resolve) => {
       resolveFactory = resolve;
     });
@@ -1186,7 +1195,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     const input = scenario.input;
     let leaderCalls = 0;
     let followerCalls = 0;
-    let resolveLeader: (value: string) => void = () => {};
+    let resolveLeader: (value: string) => void = NOOP_STRING_RESOLVER;
     const gate = new Promise<string>((resolve) => {
       resolveLeader = resolve;
     });

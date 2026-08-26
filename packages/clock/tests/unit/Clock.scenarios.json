@@ -146,7 +146,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: NaN is not valid JSON data"
       }
     },
     {
@@ -164,7 +164,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: Infinity is not valid JSON data"
       }
     },
     {
@@ -182,7 +182,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: -Infinity is not valid JSON data"
       }
     },
     {
@@ -213,7 +213,7 @@
         }
       },
       "expected": {
-        "message": "invalid RealTimeClockProvider options"
+        "message": "/offsetMs: NaN is not valid JSON data"
       }
     },
     {
@@ -242,7 +242,7 @@
         }
       },
       "expected": {
-        "message": "startMs must be a finite non-negative number"
+        "message": "/startMs: must be >= 0"
       }
     },
     {
@@ -839,7 +839,7 @@
     },
     {
       "name": "metered-clock-now",
-      "description": "MeteredClock readNow intercepts now calls and monotonicity holds",
+      "description": "Metered clock provider records now calls and monotonicity holds",
       "shape": "metered-clock-now",
       "input": {
         "counterOptions": {
@@ -856,7 +856,7 @@
     },
     {
       "name": "metered-clock-hrtime",
-      "description": "MeteredClock readHrtime intercepts hrtime calls",
+      "description": "Metered clock provider records hrtime calls",
       "shape": "metered-clock-hrtime",
       "input": {
         "counterOptions": {

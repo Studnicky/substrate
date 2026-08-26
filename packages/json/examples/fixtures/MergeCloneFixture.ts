@@ -4,5 +4,5 @@ export namespace MergeCloneFixture {
 
   export const Overlay = { 'b': { 'y': 99, 'z': 3 }, 'c': 'new', 'tags': ['beta'] };
 
-  export const Original = { 'created': new Date(0), 'items': [1, 2, 3], 'nested': { 'value': 42 } };
+  export const Original = { 'createdAt': '1970-01-01T00:00:00.000Z', 'items': [1, 2, 3], 'nested': { 'value': 42 } };
 }

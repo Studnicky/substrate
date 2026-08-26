@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/batch",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Batch concurrent execution for processing items in controlled batches",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
     }
   },
   "files": [
@@ -55,6 +59,7 @@
   "dependencies": {
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"

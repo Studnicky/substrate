@@ -43,7 +43,7 @@ class RecordingBatch<TResult = unknown> extends Batch<TResult> {
   public batchStartArgs: number[] = [];
   public itemStartArgs: number[] = [];
   public itemSuccessArgs: Array<[number, TResult]> = [];
-  public itemErrorArgs: Array<[number, unknown]> = [];
+  public itemErrorArgs: Array<[number, Error]> = [];
   public itemSettledArgs: number[] = [];
   public concurrencySaturatedCount = 0;
   public batchCompleteArgs: BatchStatsEntity.Type[] = [];
@@ -52,7 +52,7 @@ class RecordingBatch<TResult = unknown> extends Batch<TResult> {
   protected override onConcurrencySaturated(): void { this.concurrencySaturatedCount += 1; }
   protected override onItemStart(index: number): void { this.itemStartArgs.push(index); }
   protected override onItemSuccess(index: number, result: TResult): void { this.itemSuccessArgs.push([index, result]); }
-  protected override onItemError(index: number, error: unknown): void { this.itemErrorArgs.push([index, error]); }
+  protected override onItemError(index: number, error: Error): void { this.itemErrorArgs.push([index, error]); }
   protected override onItemSettled(index: number): void { this.itemSettledArgs.push(index); }
   protected override onBatchComplete(stats: BatchStatsEntity.Type): void { this.batchCompleteArgs.push(stats); }
 }
@@ -66,8 +66,7 @@ function createRecordingBatch<TResult = unknown>(input: ScenarioInput): Recordin
   return new RecordingBatch<TResult>(resolveBatchMaxConcurrent(input));
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
@@ -83,14 +82,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.process(input.items as number[], async (n) => n));
     assert.strictEqual(rec.itemStartArgs.length, Number(expected.itemStartCount));
-    assert.deepStrictEqual(rec.itemStartArgs.slice().sort((a, b) => a - b), expected.sortedIndices);
+    assert.deepStrictEqual(rec.itemStartArgs.slice().toSorted((a, b) => a - b), expected.sortedIndices);
   },
 
   'on-item-success': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.process(input.items as number[], async (n) => n * 2));
     assert.strictEqual(rec.itemSuccessArgs.length, Number(expected.itemSuccessCount));
-    const sorted = rec.itemSuccessArgs.slice().sort((a, b) => a[0] - b[0]);
+    const sorted = rec.itemSuccessArgs.slice().toSorted((a, b) => a[0] - b[0]);
     assert.deepStrictEqual(sorted.map((entry) => entry[1]), expected.sortedResults);
   },
 
@@ -102,7 +101,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, (error: unknown) => {
+    await assert.rejects(run, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     });
@@ -118,7 +117,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, (error: unknown) => {
+    await assert.rejects(run, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     });
@@ -148,7 +147,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const run = async (): Promise<void> => {
       await collectBatches(batch.process(input.items as number[], async () => { throw new Error(String(input.errorMessage)); }));
     };
-    await assert.rejects(run, (error: unknown) => {
+    await assert.rejects(run, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     });
@@ -176,7 +175,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         return n;
       }));
     };
-    await assert.rejects(run, (error: unknown) => {
+    await assert.rejects(run, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
       return true;
     });
@@ -229,9 +228,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-settled-indices': async ({ expected, input }) => {
     const rec = createRecordingBatch<string>(input);
     await collectBatches(rec.processSettled(input.items as string[], async (value) => value.toUpperCase()));
-    assert.deepStrictEqual(rec.itemStartArgs.slice().sort((a, b) => a - b), expected.sortedIndices);
-    assert.deepStrictEqual(rec.itemSettledArgs.slice().sort((a, b) => a - b), expected.sortedSettledIndices);
-    assert.deepStrictEqual(rec.itemSuccessArgs.slice().sort((a, b) => a[0] - b[0]).map((entry) => entry[1]), expected.sortedResults);
+    assert.deepStrictEqual(rec.itemStartArgs.slice().toSorted((a, b) => a - b), expected.sortedIndices);
+    assert.deepStrictEqual(rec.itemSettledArgs.slice().toSorted((a, b) => a - b), expected.sortedSettledIndices);
+    assert.deepStrictEqual(rec.itemSuccessArgs.slice().toSorted((a, b) => a[0] - b[0]).map((entry) => entry[1]), expected.sortedResults);
   },
 
   'process-settled-all-fail': async ({ expected, input }) => {
@@ -311,8 +310,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 
     const batch = new AsyncRejectingBatch(resolveBatchMaxConcurrent(input));
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const rejectionEvents: Error[] = [];
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     return collectBatches(batch.processSettled(input.items as number[], async (n) => n))

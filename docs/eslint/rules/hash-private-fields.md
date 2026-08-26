@@ -5,7 +5,9 @@ description: 'Disallows underscore-prefixed class members; use real #private fie
 
 # @studnicky/hash-private-fields
 
-Disallows underscore-prefixed class members — the `_bar` convention for signalling "private" is a stylistic hint only, not enforced by the language. Use a real `#bar`-style private field or method instead, which the compiler and runtime actually protect. The rule checks `MethodDefinition` and `PropertyDefinition` nodes with a non-computed `Identifier` key starting with `_`; an explicit `private`/`protected` TS accessibility modifier does not exempt an underscore-prefixed name, since the underscore itself is what's banned. Plain TS accessibility modifiers without an underscore, object literal properties (not class members), and computed keys (name cannot be statically proven) are not flagged. The rule has no comment-based or path-based exemption: an `external-contract` (or any other) directive comment does not exempt an underscore-prefixed field or parameter property, and neither does the file's layer or path — a field named `_meta` is flagged the same way in an `adapters` or `domain` layer file as anywhere else.
+Disallows underscore-prefixed class members — the `_bar` convention is a stylistic hint, not language-enforced privacy. Use a real `#bar` private field or method instead.
+
+The rule checks class methods and fields whose key is an underscore-prefixed identifier or string literal. It also checks a TypeScript parameter property when it has an accessibility modifier or `readonly`. `private` and `protected` do not exempt an underscore-prefixed name. Object-literal properties and ordinary constructor parameters are outside the rule. A computed identifier such as `[name]` is not statically known, but a literal key such as `['_bar']` is checked.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -43,6 +45,22 @@ class A {
 }
 ```
 
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// string-literal keys name the member and are checked
+class A {
+  ['_bar'] = 1;
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// parameter property
+class A {
+  constructor(private readonly _id: string) {}
+}
+```
+
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -65,8 +83,8 @@ class A {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// computed key — name cannot be statically proven, not reported
+// computed identifier — the name is not statically known
 class A {
-  ['_bar'] = 1;
+  [getName()] = 1;
 }
 ```

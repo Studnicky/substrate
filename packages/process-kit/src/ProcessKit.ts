@@ -22,7 +22,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler/interfaces';
 
 import { EffectInterpreter } from '@studnicky/fsm';
 import { RealTimeScheduler } from '@studnicky/scheduler';

@@ -71,7 +71,7 @@ const runnerMap: RunnerMap = {
   'missing-component': (scenarioCase) => {
     assert.throws(() => {
       createInvalidTimingEvent({ operation: scenarioCase.input.operation });
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       assert.equal(error.name, scenarioCase.expected.errorName);
       assert.match(error.message, /TimingEvent requires component/);
@@ -82,7 +82,7 @@ const runnerMap: RunnerMap = {
   'missing-operation': (scenarioCase) => {
     assert.throws(() => {
       createInvalidTimingEvent({ component: scenarioCase.input.component });
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof Error);
       assert.equal(error.name, scenarioCase.expected.errorName);
       assert.match(error.message, /TimingEvent requires operation/);

@@ -2,14 +2,14 @@
   "cases": [
     {
       "name": "accepts-valid-max-events",
-      "description": "accepts valid maxEvents values",
+      "description": "accepts valid maximumEvents values",
       "shape": "accepts-valid-max-events",
       "input": { "values": [1, 10, 1000, 1000000] },
       "expected": { "accepted": true }
     },
     {
       "name": "rejects-invalid-max-events",
-      "description": "rejects invalid maxEvents values",
+      "description": "rejects invalid maximumEvents values",
       "shape": "rejects-invalid-max-events",
       "input": { "values": [10.5, 0, -1, "not-a-number"] },
       "expected": { "errorNames": ["ConfigurationError", "ConfigurationError", "ConfigurationError", "ConfigurationError"] }
@@ -30,14 +30,14 @@
     },
     {
       "name": "accepts-null-max-events",
-      "description": "accepts null maxEvents",
+      "description": "accepts null maximumEvents",
       "shape": "accepts-null-max-events",
       "input": {},
       "expected": { "accepted": true }
     },
     {
       "name": "accepts-undefined-max-events",
-      "description": "accepts undefined maxEvents",
+      "description": "accepts undefined maximumEvents",
       "shape": "accepts-undefined-max-events",
       "input": {},
       "expected": { "accepted": true }
@@ -82,7 +82,7 @@
           { "entity": "TimingStatusEntity", "value": "unknown" },
           { "entity": "TimingPrecisionEntity", "value": { "ms": 3, "s": 6 } },
           { "entity": "TimingPrecisionEntity", "value": { "invalid": 3 } },
-          { "entity": "TimingOptionsEntity", "value": { "maxEvents": 10, "precision": { "ms": 3 } } }
+          { "entity": "TimingOptionsEntity", "value": { "maximumEvents": 10, "precision": { "ms": 3 } } }
         ]
       },
       "expected": { "results": [true, false, true, false, true, false, true] }
@@ -104,7 +104,7 @@
       "name": "accepts-all-options",
       "description": "accepts valid configuration with all options",
       "shape": "accepts-all-options",
-      "input": { "timing": { "maxEvents": 100, "precision": { "ms": 2 } } },
+      "input": { "timing": { "maximumEvents": 100, "precision": { "ms": 2 } } },
       "expected": { "accepted": true }
     },
     {

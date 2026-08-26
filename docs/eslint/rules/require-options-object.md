@@ -5,9 +5,9 @@ description: 'Requires functions with two or more optional parameters to collect
 
 # @studnicky/require-options-object
 
-When a function or method has two or more optional parameters, they must be collected into a single trailing options object. The threshold defaults to `minOptionals: 2` and is configurable. Applies to function declarations, function expressions, arrow functions, and TypeScript call, construct, and method signatures.
+When a function or method has two or more caller-omittable parameter slots, they must be collected into a single trailing options object. The threshold defaults to `minimumOptionals: 2` and is configurable. The rule counts `?` parameters, defaulted parameters, parameters typed `T | undefined`, and optional members of a rest tuple. It applies to function declarations, function expressions, arrow functions, and TypeScript call, construct, function, and method signatures.
 
-**Fixable:** No · **Options:** `minOptionals` · **Suggested severity:** `error`
+**Fixable:** No · **Options:** `minimumOptionals` · **Suggested severity:** `error`
 
 ## ✗ Incorrect
 
@@ -53,10 +53,10 @@ class HttpClient {
 
 ```json
 {
-  "@studnicky/require-options-object": ["error", { "minOptionals": 2 }]
+  "@studnicky/require-options-object": ["error", { "minimumOptionals": 2 }]
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `minOptionals` | `integer` | `2` | Minimum number of optional parameters before an options object is required. Minimum value is `2`. |
+| `minimumOptionals` | `integer` | `2` | Minimum number of caller-omittable parameter slots before an options object is required. Minimum value is `2`. |

@@ -1,0 +1,44 @@
+/**
+ * @module DefaultConfig
+ * @description Default configuration values for FilterEngine
+ */
+
+import { ErrorCollectionMode } from '../enums/ErrorCollectionMode.js';
+import { FilterMode } from '../enums/FilterMode.js';
+import { DeepFreeze } from '../utils/deepFreeze.js';
+
+/**
+ * Default configuration for FilterEngine instances
+ * @readonly
+ * @type {Object}
+ */
+const DefaultConfig = DeepFreeze.deepFreeze({
+  // Performance options
+  'cacheCompiled': true,
+  'conditions': null,
+
+  // Error handling
+  'detailedErrors': false,
+  'enablePlugins': true,
+  'includeErrors': ErrorCollectionMode.FIRST,
+
+  // Depth and safety limits
+  'maximumDepth': 10,
+
+  'maximumPathDepth': 10,
+  'mode': FilterMode.CORE.BLACKLIST,
+
+  // Core engine configuration
+  'name': 'FilterEngine',
+  'optimizeSingle': true,
+
+  // Plugin system
+  'plugins': [],
+  // Will create new Plugins() instance if null
+  'registry': null,
+
+  // Validation and strictness
+  'strict': false
+});
+
+export { DefaultConfig };

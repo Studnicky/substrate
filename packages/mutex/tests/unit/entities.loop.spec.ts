@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { MutexQueueEntryEntity } from '../../src/index.js';
+import { MutexQueueEntryEntity } from '../../src/entities/index.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

@@ -6,6 +6,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
@@ -20,11 +21,9 @@ interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
 }
 
 class VirtualClockProviderInstance {
-  static belongsTo<TInstance>(
-    constructor: VirtualClockProviderSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: VirtualClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -39,7 +38,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
     counter: Readonly<VirtualTimeCounter>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [counter]);
-    if (!VirtualClockProviderInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !VirtualClockProviderInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualClockProvider.create() did not construct the requested subclass.');
     }
     return result;
@@ -59,15 +58,9 @@ export class VirtualClockProvider implements ClockProviderInterface {
     this.#counter = counter;
   }
 
-  private static isValidCounter(counter: unknown): counter is Readonly<VirtualTimeCounter> {
-    return (
-      typeof counter === 'object' &&
-      counter !== null &&
-      'nowMs' in counter &&
-      typeof counter.nowMs === 'function' &&
-      'advance' in counter &&
-      typeof counter.advance === 'function'
-    );
+  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
+    const result = Predicates.isFunction(counter.nowMs) && Predicates.isFunction(counter.advance);
+    return result;
   }
 
   /**
@@ -76,15 +69,6 @@ export class VirtualClockProvider implements ClockProviderInterface {
    */
   protected get counter(): Readonly<VirtualTimeCounter> {
     const result = this.#counter;
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to replace or instrument the raw
-   * virtual ms value before it is consumed by `hrtime()` and `now()`.
-   */
-  protected readVirtualMs(): number {
-    const result = this.#counter.nowMs();
     return result;
   }
 
@@ -109,7 +93,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
 
   /** Returns the virtual time in nanoseconds (epoch-ms * 1,000,000). */
   public hrtime(): bigint {
-    const result = BigInt(this.readVirtualMs()) * NS_PER_MS;
+    const result = BigInt(this.#counter.nowMs()) * NS_PER_MS;
 
     this.hooks.invoke('onHrtime', () => {
       const hookResult = this.onHrtime(result);
@@ -120,7 +104,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
 
   /** Returns the virtual epoch-ms (always non-negative). */
   public now(): number {
-    const ms = this.readVirtualMs();
+    const ms = this.#counter.nowMs();
     const result = ms >= 0 ? ms : 0;
 
     this.hooks.invoke('onNow', () => {

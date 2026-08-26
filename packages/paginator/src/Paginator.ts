@@ -1,4 +1,7 @@
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import {
+  HookInvocationError, HookInvoker
+} from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { PaginatorExhaustedCursorEntity } from './entities/PaginatorExhaustedCursorEntity.js';
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
@@ -9,6 +12,10 @@ import type { PaginatorHasMoreStateInterface } from './interfaces/PaginatorHasMo
 import type { PaginatorPageReceivedEventInterface } from './interfaces/PaginatorPageReceivedEventInterface.js';
 
 import { PaginatorMachine } from './PaginatorMachine.js';
+
+interface PaginatorConstructorInterface<TInstance> {
+  readonly 'prototype': TInstance;
+}
 
 /**
  * Tracks cursor/page-list state for a paginated data source. Does not fetch
@@ -59,82 +66,91 @@ export class Paginator<TPage, TCursor> {
     TCursor,
     TInstance extends Paginator<TPage, TCursor>
   >(
-    value: unknown,
+    value: object,
     constructor: Function & { readonly 'prototype': TInstance }
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+
+    return result;
   }
 
-  private static readonly OwnedHookInvoker = class PaginatorOwnedHookInvoker<TPage, TCursor> extends HookInvoker {
-    constructor(private readonly owner: Paginator<TPage, TCursor>) {
+  private static isConstructor(value: object): value is Function {
+    const result = Predicates.isFunction(value);
+
+    return result;
+  }
+
+  private static readonly OwnedHookInvoker = class PaginatorOwnedHookInvoker<TOwnedPage, TOwnedCursor> extends HookInvoker {
+    constructor(private readonly owner: Paginator<TOwnedPage, TOwnedCursor>) {
       super({ 'detectReentrancy': true });
     }
 
-    protected override onHookError(hookName: string, cause: unknown): void {
+    protected override onHookError(hookName: string, cause: Error): void {
       const failure = cause instanceof HookInvocationError
         ? cause
         : new HookInvocationError(hookName, cause);
+
       this.owner.#pendingHookPropagation = failure;
     }
   };
 
-  private static readonly OwnedMachine = class PaginatorOwnedMachine<TPage, TCursor> extends PaginatorMachine<TPage, TCursor> {
-    constructor(private readonly owner: Paginator<TPage, TCursor>) {
+  private static readonly OwnedMachine = class PaginatorOwnedMachine<TOwnedPage, TOwnedCursor> extends PaginatorMachine<TOwnedPage, TOwnedCursor> {
+    constructor(private readonly owner: Paginator<TOwnedPage, TOwnedCursor>) {
       super();
     }
 
     protected override onTransition(
       from: PaginatorIdleStateEntity.Type
-      | PaginatorHasMoreStateInterface<TPage, TCursor>
-      | PaginatorExhaustedStateInterface<TPage>,
+      | PaginatorHasMoreStateInterface<TOwnedPage, TOwnedCursor>
+      | PaginatorExhaustedStateInterface<TOwnedPage>,
       to: PaginatorIdleStateEntity.Type
-      | PaginatorHasMoreStateInterface<TPage, TCursor>
-      | PaginatorExhaustedStateInterface<TPage>,
-      event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>
+      | PaginatorHasMoreStateInterface<TOwnedPage, TOwnedCursor>
+      | PaginatorExhaustedStateInterface<TOwnedPage>,
+      event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TOwnedPage, TOwnedCursor>
     ): void {
       super.onTransition(from, to, event);
       this.owner.hooks.invoke('onTransition', () => {
         this.owner.state = to;
         const result = this.owner.onTransition(from, to, event);
+
         return result;
       });
     }
 
-    protected override onEnterState(
-      state: PaginatorIdleStateEntity.Type
-      | PaginatorHasMoreStateInterface<TPage, TCursor>
-      | PaginatorExhaustedStateInterface<TPage>
-    ): void {
+    protected override onEnterState(state: PaginatorIdleStateEntity.Type
+      | PaginatorHasMoreStateInterface<TOwnedPage, TOwnedCursor>
+      | PaginatorExhaustedStateInterface<TOwnedPage>): void {
       super.onEnterState(state);
       this.owner.hooks.invoke('onEnterState', () => {
         this.owner.state = state;
         const result = this.owner.onEnterState(state);
+
         return result;
       });
     }
 
-    protected override onExitState(
-      state: PaginatorIdleStateEntity.Type
-      | PaginatorHasMoreStateInterface<TPage, TCursor>
-      | PaginatorExhaustedStateInterface<TPage>
-    ): void {
+    protected override onExitState(state: PaginatorIdleStateEntity.Type
+      | PaginatorHasMoreStateInterface<TOwnedPage, TOwnedCursor>
+      | PaginatorExhaustedStateInterface<TOwnedPage>): void {
       super.onExitState(state);
       this.owner.hooks.invoke('onExitState', () => {
         const result = this.owner.onExitState(state);
+
         return result;
       });
     }
 
     protected override onTransitionRejected(
       state: PaginatorIdleStateEntity.Type
-      | PaginatorHasMoreStateInterface<TPage, TCursor>
-      | PaginatorExhaustedStateInterface<TPage>,
-      event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>,
+      | PaginatorHasMoreStateInterface<TOwnedPage, TOwnedCursor>
+      | PaginatorExhaustedStateInterface<TOwnedPage>,
+      event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TOwnedPage, TOwnedCursor>,
       reason: string
     ): void {
       super.onTransitionRejected(state, event, reason);
       this.owner.hooks.invoke('onTransitionRejected', () => {
         const result = this.owner.onTransitionRejected(state, event, reason);
+
         return result;
       });
     }
@@ -157,24 +173,31 @@ export class Paginator<TPage, TCursor> {
     TPage,
     TCursor,
     TInstance extends Paginator<TPage, TCursor> = Paginator<TPage, TCursor>
-  >(
-    this: Function & { readonly 'prototype': TInstance }
-  ): TInstance {
+  >(this: PaginatorConstructorInterface<TInstance>): TInstance {
+    if (!Paginator.isConstructor(this)) {
+      throw new TypeError('Paginator.create() requires a constructor');
+    }
     const result: unknown = Reflect.construct(this, []);
-    if (!Paginator.isConstructed(result, this)) {
+
+    if (!Predicates.isObjectLike(result) || !Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
       throw new TypeError('Paginator.create() must construct a Paginator instance');
     }
+
     return result;
   }
 
   /** `true` unless the source is known to be exhausted — true for both `idle` and `hasMore`. */
   hasNext(): boolean {
-    return this.state.variant !== 'exhausted';
+    const result = this.state.variant !== 'exhausted';
+
+    return result;
   }
 
   /** All pages received so far, in receipt order. Empty before the first page arrives. */
   get pages(): readonly TPage[] {
-    return this.state.variant === 'idle' ? [] : structuredClone(this.state.pages);
+    const result: readonly TPage[] = this.state.variant === 'idle' ? [] : structuredClone(this.state.pages);
+
+    return result;
   }
 
   /**
@@ -240,6 +263,7 @@ export class Paginator<TPage, TCursor> {
   /** Clears and throws a hook failure staged for propagation during a completed transition, if any. */
   #throwPendingHookPropagation(): void {
     const failure = this.#pendingHookPropagation;
+
     if (failure !== undefined) {
       this.#pendingHookPropagation = undefined;
       throw failure;
@@ -261,17 +285,13 @@ export class Paginator<TPage, TCursor> {
     _event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<TPage, TCursor>
   ): void {}
 
-  protected onEnterState(
-    _state: PaginatorIdleStateEntity.Type
+  protected onEnterState(_state: PaginatorIdleStateEntity.Type
     | PaginatorHasMoreStateInterface<TPage, TCursor>
-    | PaginatorExhaustedStateInterface<TPage>
-  ): void {}
+    | PaginatorExhaustedStateInterface<TPage>): void {}
 
-  protected onExitState(
-    _state: PaginatorIdleStateEntity.Type
+  protected onExitState(_state: PaginatorIdleStateEntity.Type
     | PaginatorHasMoreStateInterface<TPage, TCursor>
-    | PaginatorExhaustedStateInterface<TPage>
-  ): void {}
+    | PaginatorExhaustedStateInterface<TPage>): void {}
 
   protected onTransitionRejected(
     _state: PaginatorIdleStateEntity.Type

@@ -4,9 +4,9 @@ import { describe, it } from 'node:test';
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
-import { maxSwitchCases } from '../../../src/rules/v8/maxSwitchCases.js';
+import { maximumSwitchCases } from '../../../src/rules/v8/maximumSwitchCases.js';
 import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
-import scenarioGroups from './maxSwitchCases.scenarios.json' with { type: 'json' };
+import scenarioGroups from './maximumSwitchCases.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
   if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
@@ -23,12 +23,12 @@ const ruleTester = new RuleTester({
 
 void describe('max-switch-cases', () => {
   void it('validates max-switch-cases scenarios', () => {
-    ruleTester.run('max-switch-cases', maxSwitchCases, scenarioGroups);
+    ruleTester.run('max-switch-cases', maximumSwitchCases, scenarioGroups);
   });
 
   void it('returns early when cases is not an array', () => {
     const reports: unknown[] = [];
-    const listeners = maxSwitchCases.create({
+    const listeners = maximumSwitchCases.create({
       report(descriptor: unknown) {
         reports.push(descriptor);
       }

@@ -10,7 +10,7 @@ Each entry can carry its own TTL, overriding the cache-level default. This makes
 
 Entries can also carry an optional `staleMs` threshold, shorter than `ttlMs`: once past it, `get()` still serves the (still-live) value but fires `onStale` instead of `onHit`, so a subclass can flag aging data without evicting it early. `deleteWhere(predicate)` removes every entry matching a `(key, value) => boolean` predicate in one call, firing `onDelete` for each removal.
 
-`@studnicky/cache` is the sole public code entrypoint. It exports `LruCacheOptionsEntity` for construction data and `LruCacheNodeTimingEntity` for the schema-derived expiry and staleness fields composed by cache nodes.
+`@studnicky/cache` exposes `LruCache` and cache errors at its root. Import `LruCacheOptionsEntity` and `LruCacheNodeTimingEntity` from `@studnicky/cache/entities` for schema-derived construction and timing fields.
 
 ## Install
 

@@ -12,14 +12,14 @@ import { BaseError } from '@studnicky/errors';
  * throw new LoggerError('Failed to write log', originalError);
  * ```
  */
-export class LoggerError extends BaseError {
+export class LoggerError<TCause = unknown> extends BaseError {
   /**
    * Creates a new LoggerError
    *
    * @param message - Descriptive error message
    * @param cause - Optional underlying error that caused this error
    */
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: TCause) {
     super({ 'cause': cause, 'code': 'logger.error', 'message': message });
   }
 }

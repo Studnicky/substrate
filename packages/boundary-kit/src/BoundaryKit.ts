@@ -5,12 +5,17 @@
 import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
 import { Throttle } from '@studnicky/throttle';
+import { Predicates } from '@studnicky/types';
 
 import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
 import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';
 
 import { BOUNDARY_KIT_DEFAULTS } from './constants/BOUNDARY_KIT_DEFAULTS.js';
 import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
+
+interface BoundaryKitSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
 
 /**
  * Default `CircuitBreaker` options `BoundaryKit` resolves against when `circuitBreaker`
@@ -47,7 +52,7 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
  * const kit = BoundaryKit.create({
  *   throttle: { concurrencyLimit: 10 },
  *   circuitBreaker: { failureThreshold: 5, resetTimeoutMs: 30_000 },
- *   retry: { maxRetries: 3 }
+ *   retry: { maximumRetries: 3 }
  * });
  *
  * const response = await kit.execute(() => fetch('https://api.example.com/users'));
@@ -55,10 +60,11 @@ import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
  */
 export class BoundaryKit {
   private static isConstructed<TInstance extends BoundaryKit>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: BoundaryKitSubclassInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   /**
@@ -68,7 +74,7 @@ export class BoundaryKit {
    * @returns New BoundaryKit instance
    */
   static create<TInstance extends BoundaryKit = BoundaryKit>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: BoundaryKitSubclassInterface<TInstance>,
     config: BoundaryKitConfigInterface = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [{
@@ -76,6 +82,9 @@ export class BoundaryKit {
       'retry': BoundaryKit.#resolveRetry(config.retry),
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
     }]);
+    if (!Predicates.isObjectLike(result)) {
+      throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
+    }
     if (!BoundaryKit.isConstructed(result, this)) {
       throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
     }
@@ -132,21 +141,19 @@ export class BoundaryKit {
    *   explicitly (not inferred from an `undefined` result, which `Throttle#execute()`
    *   also produces whenever `fn` itself legitimately resolves `undefined`/`void`)
    */
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
+  async execute<T>(callback: () => Promise<T>): Promise<T> {
     let completion: readonly [T] | undefined;
 
     const runRetryable = async (): Promise<T> => {
-      const result = await this.#retry.execute(fn);
+      const result = await this.#retry.execute(callback);
       completion = [result];
       return result;
     };
 
-    const runProtected = (): Promise<T> => {
+    await this.#throttle.execute(() => {
       const result = this.#circuitBreaker.execute(runRetryable);
       return result;
-    };
-
-    await this.#throttle.execute(runProtected);
+    });
 
     if (completion === undefined) {
       throw new BoundaryKitAbortedError();

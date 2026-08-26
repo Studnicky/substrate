@@ -1,0 +1,50 @@
+{
+  "valid": [
+    {
+      "code": "switch (x) { case 1: return Handler.one(); case 2: return Handler.two(); default: return Handler.fallback(); }",
+      "name": "single-statement (return) case bodies - not flagged"
+    },
+    {
+      "code": "switch (x) { case 1: Handler.one(); break; case 2: Handler.two(); break; }",
+      "name": "single delegating call plus trailing break - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "switch (x) { case 1: { return Handler.one(); } }",
+      "errors": [
+        {
+          "messageId": "switchStatements"
+        }
+      ],
+      "name": "braced case body - flagged regardless of statement count (existing baseline: any explicit block wrapping a case body is disallowed, not just multi-statement ones)"
+    },
+    {
+      "code": "switch (x) { case 1: { doA(); doB(); break; } }",
+      "errors": [
+        {
+          "messageId": "switchStatements"
+        }
+      ],
+      "name": "braced multi-statement case body - flagged (existing baseline)"
+    },
+    {
+      "code": "switch (x) { case 1: doA(); doB(); break; }",
+      "errors": [
+        {
+          "messageId": "switchStatements"
+        }
+      ],
+      "name": "braceless multi-statement case body - flagged (bypass: switch-case bodies do not require braces, so consequent statements attach directly to SwitchCase with no BlockStatement node)"
+    },
+    {
+      "code": "switch (x) { case 1: doA(); doB(); }",
+      "errors": [
+        {
+          "messageId": "switchStatements"
+        }
+      ],
+      "name": "braceless multi-statement case body with no trailing terminator - flagged"
+    }
+  ]
+}

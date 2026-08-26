@@ -7,7 +7,7 @@ import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineAlreadyRegisteredError } from '../../src/MachineAlreadyRegisteredError.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './MachineRegistry.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };
@@ -112,11 +112,7 @@ const runnerMap: RunnerMap = {
     registry.register(scenarioCase.input.name, Fixture.interpreter());
     assert.throws(
       () => registry.register(scenarioCase.input.name, Fixture.interpreter()),
-      (err: unknown) => {
-        assert.ok(err instanceof MachineAlreadyRegisteredError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        return true;
-      }
+      MachineAlreadyRegisteredError
     );
   },
   'has-check': (scenarioCase) => {

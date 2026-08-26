@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/array-spread-outside-loops'
-description: 'Disallows array spread assignments inside for loops.'
+description: 'Disallows bound array literals with spread that execute once per iteration.'
 ---
 
 # @studnicky/v8/array-spread-outside-loops
 
-Disallows array spread (`[...result, item]`) in assignment inside `for` loop bodies. Each spread creates a new array and copies all existing elements, producing O(n²) work. Accumulate with `.push()` instead.
+Disallows a spread element in an array literal that is assigned to an identifier or property, or initializes a variable, when that expression executes once per iteration. Repeatedly rebuilding an array with `[...result, item]` allocates and copies the growing prefix on every iteration, producing quadratic work. A built-in per-element iteration callback is treated as a loop body.
+
+The rule targets only bound array literals. Spread passed as a call argument, such as `result.push(...items)`, and nested or unbound literals are outside its scope.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -21,10 +23,10 @@ for (const item of items) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-let merged: number[] = [];
-for (let i = 0; i < pages.length; i++) {
-  merged = [...merged, ...pages[i]];
-}
+let result: string[] = [];
+items.forEach((item) => {
+  result = [...result, item];
+});
 ```
 
 ## ✓ Correct
@@ -39,6 +41,5 @@ for (const item of items) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Spread outside loop is fine
-const merged = pages.flat();
+const merged = [...first, ...second];
 ```

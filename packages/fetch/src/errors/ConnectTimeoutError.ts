@@ -17,8 +17,6 @@
  * }
  * ```
  */
-import { DomainErrorArgs } from '@studnicky/errors';
-
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class ConnectTimeoutError extends FetchBaseError {
@@ -32,19 +30,15 @@ export class ConnectTimeoutError extends FetchBaseError {
    */
   readonly url!: string;
 
-  private static buildMessage(fields: Readonly<{ 'undiciCode': 'UND_ERR_CONNECT_TIMEOUT'; 'url': string }>): string {
-    const result = `Connection timeout for ${fields.url}`;
-    return result;
-  }
-
   constructor(url: string, cause?: Error) {
     const fields = { 'undiciCode': 'UND_ERR_CONNECT_TIMEOUT' as const, 'url': url };
-    super(DomainErrorArgs.build(fields, {
+    super({
       'cause': cause,
       'code': 'fetch.connectTimeout',
-      'message': ConnectTimeoutError.buildMessage,
+      'message': `Connection timeout for ${fields.url}`,
       'retryable': true
-    }));
-    Object.assign(this, fields);
+    });
+    this.undiciCode = fields.undiciCode;
+    this.url = fields.url;
   }
 }

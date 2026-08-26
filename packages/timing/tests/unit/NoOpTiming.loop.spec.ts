@@ -28,15 +28,15 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(afterEvent, undefined);
     assert.strictEqual(afterClear, timer);
     assert.strictEqual(scenarioCase.expected.chainResult, afterClear === timer);
-    assert.strictEqual(events.durationMs, scenarioCase.expected.durationMs);
-    assert.strictEqual(Object.keys(events).length, 1);
+    assert.strictEqual(events.get('durationMs'), scenarioCase.expected.durationMs);
+    assert.strictEqual([...events.keys()].length, 1);
     assert.strictEqual(scenarioCase.expected.sameInstance, true);
   },
 
   'get-events-empty': (scenarioCase) => {
     const timer = NoOpTiming.create();
     const events = timer.getEvents();
-    assert.deepStrictEqual(events, { durationMs: scenarioCase.expected.durationMs });
+    assert.deepStrictEqual(events, new Map([['durationMs', scenarioCase.expected.durationMs]]));
     assert.strictEqual(scenarioCase.expected.empty, true);
   }
 };

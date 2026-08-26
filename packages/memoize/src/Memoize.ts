@@ -5,12 +5,13 @@
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
 import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
 
 class MemoizeHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 interface CacheLookupInterface<T> {
@@ -25,14 +26,15 @@ class MemoizeCacheLookup {
     if (!lookup.found) {
       return false;
     }
-    return Object.hasOwn(lookup, 'value');
+    const result = Object.hasOwn(lookup, 'value');
+    return result;
   }
 }
 
-interface MemoizeDepsInterface<TArgs extends unknown[], TResult> {
+interface MemoizeDepsInterface<TArgumentList extends unknown[], TResult> {
   'cache': LruCache<string, TResult>;
-  'fn': (...args: TArgs) => TResult | Promise<TResult>;
-  'keyFn': (...args: TArgs) => string;
+  'callback': (...argumentList: TArgumentList) => TResult | Promise<TResult>;
+  'keyDeriver': (...argumentList: TArgumentList) => string;
 }
 
 interface MemoizeSubclassInterface<TInstance> extends Function {
@@ -40,23 +42,24 @@ interface MemoizeSubclassInterface<TInstance> extends Function {
 }
 
 class MemoizeInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: MemoizeSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
-// TArgs/TResult only appear in Memoize's covariant/contravariant members
+// TArgumentList/TResult only appear in Memoize's covariant/contravariant members
 // (call()'s args/return, invalidate()'s args), so a bound of
-// `Memoize<TArgs, TResult>` would force `Memoize<TArgs, TResult>` (the
-// method's own general TArgs/TResult) to satisfy `Memoize<never, never>`/
+// `Memoize<TArgumentList, TResult>` would force `Memoize<TArgumentList, TResult>` (the
+// method's own general TArgumentList/TResult) to satisfy `Memoize<never, never>`/
 // `Memoize<any, any>`, which either fails to typecheck or requires a banned
-// `any` — and TArgs sits in `fn`'s parameter position (contravariant), which
+// `any` — and TArgumentList sits in `callback`'s parameter position (contravariant), which
 // collapses `this`-context inference the moment a caller passes an untyped
 // arrow function. `clear()` is the one public member that doesn't mention
-// TArgs/TResult at all, so it constrains TInstance to "is actually
+// TArgumentList/TResult at all, so it constrains TInstance to "is actually
 // Memoize-shaped" without hitting that wall.
 interface MemoizeShapeInterface {
   clear(): void;
@@ -67,7 +70,7 @@ interface MemoizeShapeInterface {
  * (`Coalesce`) into pure function memoization keyed by a caller-supplied key
  * derivation function.
  *
- * `call(...args)` derives `key = keyFn(...args)` and checks the composed
+ * `call(...args)` derives `key = keyDeriver(...args)` and checks the composed
  * `LruCache`:
  * - Entry present → the cached result is returned without re-invoking `fn`
  *   (`onMemoHit`).
@@ -82,7 +85,7 @@ interface MemoizeShapeInterface {
  * payload alongside the cached result and throws when a key is reused for a
  * *different* payload — `Memoize` is pure memoization: the same derived key
  * always replays the cached result, with no payload fingerprint check.
- * `keyFn` is a required config field, mirroring `LruCache`'s explicit-key
+ * `keyDeriver` is a required config field, mirroring `LruCache`'s explicit-key
  * model rather than an implicit tuple hash, which is unsound for
  * object/function arguments.
  *
@@ -97,64 +100,64 @@ interface MemoizeShapeInterface {
  * ```typescript
  * const memo = Memoize.create(
  *   (userId: string) => fetchUser(userId),
- *   { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
+ *   { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
  * );
  *
  * const user = await memo.call('user-42');
  * ```
  */
-export class Memoize<TArgs extends unknown[], TResult> {
+export class Memoize<TArgumentList extends unknown[], TResult> {
   static readonly #OwnedCoalesce = class MemoizeCoalesce<
-    TOwnerArgs extends unknown[],
+    TOwnerArgumentList extends unknown[],
     TOwnerResult
   > extends Coalesce<TOwnerResult> {
-    readonly #owner: Memoize<TOwnerArgs, TOwnerResult>;
+    readonly #owner: Memoize<TOwnerArgumentList, TOwnerResult>;
 
-    constructor(owner: Memoize<TOwnerArgs, TOwnerResult>) {
+    constructor(owner: Memoize<TOwnerArgumentList, TOwnerResult>) {
       super();
       this.#owner = owner;
     }
 
     protected override onCoalesceStart(key: string): void {
       super.onCoalesceStart(key);
-      const args = this.#owner.#pendingArgsByKey.get(key);
-      if (args === undefined) {
+      const argumentList = this.#owner.#pendingArgumentListByKey.get(key);
+      if (argumentList === undefined) {
         return;
       }
       this.#owner.hooks.invoke('onMemoMiss', () => {
-        const hookResult = this.#owner.onMemoMiss(key, args);
+        const hookResult = this.#owner.onMemoMiss(key, argumentList);
         return hookResult;
       });
     }
 
     protected override onCoalesceJoin(key: string): void {
       super.onCoalesceJoin(key);
-      const args = this.#owner.#pendingArgsByKey.get(key);
-      if (args === undefined) {
+      const argumentList = this.#owner.#pendingArgumentListByKey.get(key);
+      if (argumentList === undefined) {
         return;
       }
       this.#owner.hooks.invoke('onMemoCoalesced', () => {
-        const hookResult = this.#owner.onMemoCoalesced(key, args);
+        const hookResult = this.#owner.onMemoCoalesced(key, argumentList);
         return hookResult;
       });
     }
   };
 
   /**
-   * Creates a new Memoize wrapping `fn`.
+   * Creates a new Memoize wrapping a callback.
    *
-   * @param fn - Function to memoize; may return a value or a Promise
-   * @param options - `{ keyFn, capacity, ttlMs?, staleMs? }` — `keyFn` is required
+   * @param callback - Function to memoize; may return a value or a Promise
+   * @param options - `{ keyDeriver, capacity, ttlMs?, staleMs? }` — `keyDeriver` is required
    * @returns New Memoize instance
    */
   static create<
-    TArgs extends unknown[],
+    TArgumentList extends unknown[],
     TResult,
-    TInstance extends MemoizeShapeInterface = Memoize<TArgs, TResult>
+    TInstance extends MemoizeShapeInterface = Memoize<TArgumentList, TResult>
   >(
     this: MemoizeSubclassInterface<TInstance>,
-    fn: (...args: TArgs) => TResult | Promise<TResult>,
-    options: MemoizeOptionsInterface<TArgs>
+    callback: (...argumentList: TArgumentList) => TResult | Promise<TResult>,
+    options: MemoizeOptionsInterface<TArgumentList>
   ): TInstance {
     const cache = LruCache.create<string, TResult>({
       'capacity': options.capacity,
@@ -162,14 +165,14 @@ export class Memoize<TArgs extends unknown[], TResult> {
       ...(options.ttlMs !== undefined ? { 'ttlMs': options.ttlMs } : {})
     });
 
-    const deps: MemoizeDepsInterface<TArgs, TResult> = {
+    const deps: MemoizeDepsInterface<TArgumentList, TResult> = {
       'cache': cache,
-      'fn': fn,
-      'keyFn': options.keyFn
+      'callback': callback,
+      'keyDeriver': options.keyDeriver
     };
     const result: unknown = Reflect.construct(this, [deps]);
 
-    if (!MemoizeInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !MemoizeInstance.belongsTo(this, result)) {
       throw new TypeError('Memoize.create() did not construct the requested subclass.');
     }
 
@@ -178,8 +181,8 @@ export class Memoize<TArgs extends unknown[], TResult> {
 
   readonly #cache: LruCache<string, TResult>;
   readonly #coalesce: Coalesce<TResult>;
-  readonly #fn: (...args: TArgs) => TResult | Promise<TResult>;
-  readonly #keyFn: (...args: TArgs) => string;
+  readonly #callback: (...argumentList: TArgumentList) => TResult | Promise<TResult>;
+  readonly #keyDeriver: (...argumentList: TArgumentList) => string;
   protected readonly hooks: HookInvoker = new MemoizeHookInvoker();
 
   /**
@@ -194,13 +197,13 @@ export class Memoize<TArgs extends unknown[], TResult> {
    * its first `await`), so the entry is always current when its hook reads
    * it. Removed once that `call()`'s `run()` settles.
    */
-  readonly #pendingArgsByKey = new Map<string, TArgs>();
+  readonly #pendingArgumentListByKey = new Map<string, TArgumentList>();
 
-  protected constructor(deps: MemoizeDepsInterface<TArgs, TResult>) {
-    this.#cache = deps.cache;
-    this.#coalesce = new Memoize.#OwnedCoalesce<TArgs, TResult>(this);
-    this.#fn = deps.fn;
-    this.#keyFn = deps.keyFn;
+  protected constructor(dependencies: MemoizeDepsInterface<TArgumentList, TResult>) {
+    this.#cache = dependencies.cache;
+    this.#coalesce = new Memoize.#OwnedCoalesce<TArgumentList, TResult>(this);
+    this.#callback = dependencies.callback;
+    this.#keyDeriver = dependencies.keyDeriver;
   }
 
   /**
@@ -208,41 +211,42 @@ export class Memoize<TArgs extends unknown[], TResult> {
    * most once per distinct derived key until the cache entry expires or is
    * invalidated.
    *
-   * @param args - Arguments forwarded to the wrapped function and to `keyFn`
+   * @param args - Arguments forwarded to the wrapped function and to `keyDeriver`
    * @returns The wrapped function's result — either freshly produced or replayed from cache
    */
-  async call(...args: TArgs): Promise<TResult> {
-    const key = this.#keyFn(...args);
+  async call(...argumentList: TArgumentList): Promise<TResult> {
+    const key = this.#keyDeriver(...argumentList);
 
     const cached = this.#cache.tryGet(key);
     if (MemoizeCacheLookup.isHit(cached)) {
       const value = cached.value;
       await this.hooks.invokeAsync('onMemoHit', () => {
-        const hookResult = this.onMemoHit(key, args);
+        const hookResult = this.onMemoHit(key, argumentList);
         return hookResult;
       });
       return value;
     }
 
-    this.#pendingArgsByKey.set(key, args);
+    this.#pendingArgumentListByKey.set(key, argumentList);
 
     try {
       const result = await this.#coalesce.run(key, () => {
-        const value = this.#fn(...args);
-        return Promise.resolve(value);
+        const value = this.#callback(...argumentList);
+        const resolvedValue = Promise.resolve(value);
+        return resolvedValue;
       });
 
       this.#cache.set(key, result);
 
       return result;
     } finally {
-      this.#pendingArgsByKey.delete(key);
+      this.#pendingArgumentListByKey.delete(key);
     }
   }
 
-  /** Evicts the cache entry for `keyFn(...args)` so the next matching call re-invokes the wrapped function. */
-  invalidate(...args: TArgs): void {
-    const key = this.#keyFn(...args);
+  /** Evicts the cache entry for `keyDeriver(...args)` so the next matching call re-invokes the wrapped function. */
+  invalidate(...argumentList: TArgumentList): void {
+    const key = this.#keyDeriver(...argumentList);
     this.#cache.delete(key);
   }
 
@@ -259,11 +263,11 @@ export class Memoize<TArgs extends unknown[], TResult> {
   // ---------------------------------------------------------------------------
 
   /** Fires when `call()` returns a cached result for `key` without re-invoking the wrapped function. */
-  protected onMemoHit(_key: string, _args: TArgs): void {}
+  protected onMemoHit(_key: string, _argumentList: TArgumentList): void {}
 
   /** Fires when `key` is genuinely new (or its entry expired) and the wrapped function is about to run. */
-  protected onMemoMiss(_key: string, _args: TArgs): void {}
+  protected onMemoMiss(_key: string, _argumentList: TArgumentList): void {}
 
   /** Fires when a caller joins an in-flight invocation for `key` already running. */
-  protected onMemoCoalesced(_key: string, _args: TArgs): void {}
+  protected onMemoCoalesced(_key: string, _argumentList: TArgumentList): void {}
 }

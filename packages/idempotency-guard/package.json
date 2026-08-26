@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/idempotency-guard",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Idempotency key guard composing cache, concurrency, and json: dedupes concurrent calls, replays cached results within a TTL window, rejects key reuse with a different payload",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [
@@ -59,6 +67,7 @@
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }

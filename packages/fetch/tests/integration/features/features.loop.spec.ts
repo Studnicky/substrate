@@ -85,7 +85,7 @@ void after(async () => {
 });
 
 function materializeConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const resolveValue = (value: unknown): unknown => {
+  const resolveValue = (value: boolean | null | number | object | string): unknown => {
     if (typeof value === 'string') {
       return value.split('__TEST_URL__').join(testUrl);
     }
@@ -93,7 +93,16 @@ function materializeConfig(config: Record<string, unknown>): Record<string, unkn
       return value.map(resolveValue);
     }
     if (value !== null && typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, resolveValue(nested)]));
+      return Object.fromEntries(Object.entries(value).map(([key, nested]) => {
+        const resolved = nested === null
+          || typeof nested === 'boolean'
+          || typeof nested === 'number'
+          || typeof nested === 'object'
+          || typeof nested === 'string'
+          ? resolveValue(nested)
+          : nested;
+        return [key, resolved];
+      }));
     }
     return value;
   };
@@ -156,7 +165,7 @@ async function runTimeoutFirstScenario(scenarioCase: TimeoutFirstScenario): Prom
       signal: controller.signal,
       timeout: 100
     });
-  }, (error: unknown) => error instanceof TimeoutError && error.name === scenarioCase.expected.timeoutErrorName);
+  }, (error) => error instanceof TimeoutError && error.name === scenarioCase.expected.timeoutErrorName);
 }
 
 async function runAbortFirstScenario(scenarioCase: AbortFirstScenario): Promise<void> {
@@ -167,7 +176,7 @@ async function runAbortFirstScenario(scenarioCase: AbortFirstScenario): Promise<
       signal: controller.signal,
       timeout: 5000
     });
-  }, (error: unknown) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
+  }, (error) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
 }
 
 async function runAbortInGetScenario(scenarioCase: AbortInGetScenario): Promise<void> {
@@ -175,7 +184,7 @@ async function runAbortInGetScenario(scenarioCase: AbortInGetScenario): Promise<
   setTimeout(() => { controller.abort(); }, 50);
   await assert.rejects(async () => {
     await testClient.get(`${testUrl}/delay`, { signal: controller.signal });
-  }, (error: unknown) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
+  }, (error) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
 }
 
 const runnerMap: RunnerMap = {

@@ -17,13 +17,15 @@ class ObservedFetch extends FetchClient {
     const headers: Record<string, string> = context.options.headers ?? {};
     headers['X-Observed'] = 'true';
     const result: RequestContextInterface = { ...context, 'options': { ...context.options, 'headers': headers } };
-    return Promise.resolve(result);
+    const response = Promise.resolve(result);
+    return response;
   }
 
   protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
     console.log(`[fetch] onResponse status=${context.response.status}`);
     this.hookLog.push('onResponse');
-    return Promise.resolve(context);
+    const result = Promise.resolve(context);
+    return result;
   }
 
   protected override onRequestStart(method: string, _path: string, requestId: string, url: string): void {
@@ -47,7 +49,7 @@ class ObservedFetch extends FetchClient {
     this.hookLog.push('onResponseError');
   }
 
-  protected override onRequestError(error: unknown, method: string, requestId: string, url: string, durationMs: number): void {
+  protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {
     const line = `[fetch] onRequestError method=${method} url=${url} error=${String(error)} durationMs=${durationMs} requestId=${requestId}`;
 
     console.log(line);
@@ -60,20 +62,23 @@ globalThis.fetch = (input) => {
   const url = new URL(String(input));
 
   if (url.pathname === '/ok') {
-    return Promise.resolve(new Response(JSON.stringify({ 'status': 'ok' }), {
+    const result = Promise.resolve(new Response(JSON.stringify({ 'status': 'ok' }), {
       'headers': { 'Content-Type': 'application/json' },
       'status': 200
     }));
+    return result;
   }
 
   if (url.pathname === '/error') {
-    return Promise.resolve(new Response(JSON.stringify({ 'error': 'unavailable' }), {
+    const result = Promise.resolve(new Response(JSON.stringify({ 'error': 'unavailable' }), {
       'headers': { 'Content-Type': 'application/json' },
       'status': 503
     }));
+    return result;
   }
 
-  return Promise.resolve(new Response('', { 'status': 404 }));
+  const result = Promise.resolve(new Response('', { 'status': 404 }));
+  return result;
 };
 
 const client = ObservedFetch.create({

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { CircularBufferStateEntity } from '../../../src/index.js';
+import { CircularBufferStateEntity } from '../../../src/entities/index.js';
 import scenarioGroups from './CircularBufferStateEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

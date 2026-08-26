@@ -19,6 +19,12 @@ Register named async check functions, each resolving to `{ status, metadata? }`.
 
 <<< ../../packages/health-registry/examples/observedHealthRegistry.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/health-registry/examples/observedHealthRegistry" title="Aggregating healthy, degraded, and timed-out checks" />
+
+The output shows `onCheckResult` reporting `database` as healthy, `cache` as degraded with its metadata, and `downstream-api` timing out via `onCheckTimeout`, then `onAggregate` folding all three into an overall `'unhealthy'` status.
+
 ## Aggregation
 
 The overall status is worst-status-wins: any `'unhealthy'` check makes the overall status `'unhealthy'`, else any `'degraded'` check makes it `'degraded'`, else `'healthy'`. An empty registry evaluates to `'healthy'` with an empty results map.
@@ -54,3 +60,28 @@ A hook override that throws or rejects does not abort `evaluate()` — the failu
 Full reference: https://studnicky.github.io/substrate/packages/health-registry
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/health-registry)
+
+## Entities
+
+`@studnicky/health-registry/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { HealthStatusEntity } from '@studnicky/health-registry/entities';
+```
+
+## Interfaces
+
+`@studnicky/health-registry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { HealthCheckResultInterface } from '@studnicky/health-registry/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `HealthRegistry` | Provides health registry functionality. | `@studnicky/health-registry` |
+| `HealthCheckInterface` | Defines the health check contract. | `@studnicky/health-registry` |

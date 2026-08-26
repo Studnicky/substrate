@@ -1,0 +1,76 @@
+{
+  "valid": [
+    {
+      "code": "obj.x = undefined;",
+      "name": "assignment to undefined instead of delete - not flagged"
+    },
+    {
+      "code": "declare const record: Record<string, unknown>; delete record.x;",
+      "name": "delete on a Record<string, T> target - index signature already forfeits a fixed hidden-class contract"
+    },
+    {
+      "code": "declare const record: Record<string, unknown>; declare const key: string; Reflect.deleteProperty(record, key);",
+      "name": "Reflect.deleteProperty on a Record<string, T> target - same index-signature exemption"
+    },
+    {
+      "code": "function removeValue(target: Record<string, unknown>): void { let current: unknown = target; if (current === null || typeof current !== 'object') { throw new Error(); } if (!Array.isArray(current)) { Reflect.deleteProperty(current, 'x'); } }",
+      "name": "RFC-6902 remove shape: Reflect.deleteProperty on a narrowed bare object target - TypeFlags.NonPrimitive, zero declared members, nothing for delete to break"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "delete obj.x;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete on a plain member expression - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "delete obj['x'];",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete on a bracket-notation member expression - flagged (pre-existing coverage)"
+    },
+    {
+      "code": "Reflect.deleteProperty(obj, 'x');",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Reflect.deleteProperty (bypass) - flagged"
+    },
+    {
+      "code": "delete obj?.x;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "delete through optional chaining, argument wrapped in a ChainExpression (bypass) - flagged"
+    },
+    {
+      "code": "class RetryError extends Error { cause?: unknown; wipe(): void { delete this.cause; } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "class instance delete off this (RetryError shape) - fixed shape, no index signature, still flagged with type services on"
+    },
+    {
+      "code": "interface FixedShapeInterface { own?: string; other: number; } declare const value: FixedShapeInterface; delete value.own;",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "interface with only declared members and no index signature - fixed shape, still flagged with type services on"
+    }
+  ]
+}

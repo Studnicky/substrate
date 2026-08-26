@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  CacheLookupEntity,
   Memoize,
   MemoizeConfigError
 } from '../../../src/index.js';
-import type { MemoizeOptionsInterface } from '../../../src/index.js';
+import { CacheLookupEntity } from '../../../src/entities/index.js';
+import type { MemoizeOptionsInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './memoize.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
@@ -80,34 +80,34 @@ function memoizeOptions<TArgs extends unknown[]>(
 ): MemoizeOptionsInterface<TArgs> {
   return {
     capacity: config.capacity,
-    keyFn,
+    'keyDeriver': keyFn,
     ...(config.staleMs === undefined ? {} : { staleMs: config.staleMs }),
     ...(config.ttlMs === undefined ? {} : { ttlMs: config.ttlMs })
   };
 }
 
-function readString(value: unknown, label: string): string {
+function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be a string`);
   }
   return value;
 }
 
-function readNumber(value: unknown, label: string): number {
+function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
     throw new Error(`${label} must be a number`);
   }
   return value;
 }
 
-function readStringArray(value: unknown, label: string): string[] {
+function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
     throw new Error(`${label} must be a string array`);
   }
   return value;
 }
 
-function readTupleRecord(value: unknown, label: string): Record<string, [string, number]> {
+function readTupleRecord<TValue>(value: TValue, label: string): Record<string, [string, number]> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} must be a tuple record`);
   }
@@ -130,13 +130,15 @@ function readBatchCallCount(scenarioCase: ScenarioCase): number {
   return value;
 }
 
+function noop<T>(_value: T): void {}
+
 function createPendingValue<T>(): {
   promise: Promise<T>;
   reject: (error: Error) => void;
   resolve: (value: T) => void;
 } {
-  let resolve: (value: T) => void = () => {};
-  let reject: (error: Error) => void = () => {};
+  let resolve: (value: T) => void = noop;
+  let reject: (error: Error) => void = noop;
   const promise = new Promise<T>((promiseResolve, promiseReject) => {
     resolve = promiseResolve;
     reject = promiseReject;
@@ -161,7 +163,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'async-hooks-safe': async (scenarioCase) => {
     const events: string[] = [];
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     class AsyncRejectingHooksMemoize extends Memoize<[string], string> {
@@ -278,8 +280,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.ok(follower !== undefined);
     pendingFailure.reject(new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage')));
 
-    const leaderError = await leader.catch((error: unknown) => error);
-    const followerError = await follower.catch((error: unknown) => error);
+    const leaderError = await leader.catch((error: Error) => error);
+    const followerError = await follower.catch((error: Error) => error);
     assert.ok(leaderError instanceof Error);
     assert.ok(followerError instanceof Error);
     assert.equal(leaderError.message, scenarioCase.expected.firstErrorMessage);

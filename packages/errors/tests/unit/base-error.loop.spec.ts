@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import type { JSONSchema7Type } from 'json-schema';
 
-import { Guard } from '@studnicky/types';
+import { Predicates } from '@studnicky/types';
 
 import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
 import { BaseError } from '../../src/errors/BaseError.js';
@@ -218,7 +218,7 @@ const runnerMap = {
     let node: unknown = current.toJSON();
     let found = false;
     while (node !== null && node !== undefined) {
-      if (!Guard.isObject(node)) {
+      if (!Predicates.isObject(node)) {
         break;
       }
       if (typeof node.cause === 'string' && node.cause === CAUSE_DEPTH_SENTINEL) {
@@ -253,7 +253,7 @@ const runnerMap = {
   },
   'json-roundtrip': (scenario, error) => {
     const roundtrip: unknown = JSON.parse(JSON.stringify(error.toJSON()));
-    assert.ok(Guard.isObject(roundtrip));
+    assert.ok(Predicates.isObject(roundtrip));
     const roundtripObject = roundtrip as Record<string, unknown>;
     assert.strictEqual(roundtripObject.message, scenario.expected.message);
     assert.strictEqual(roundtripObject.correlationId, scenario.expected.correlationId);

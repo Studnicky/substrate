@@ -2,30 +2,30 @@
   "cases": [
     {
       "name": "max-elapsed-ms-default-behavior",
-      "description": "behaves exactly as before when maxElapsedMs is not configured",
+      "description": "behaves exactly as before when maximumElapsedMs is not configured",
       "shape": "default-behavior",
-      "input": { "retry": { "maxRetries": 3 }, "alwaysRetryable": true, "delayMs": 10, "errorMessage": "always fails" },
+      "input": { "retry": { "maximumRetries": 3 }, "alwaysRetryable": true, "delayMs": 10, "errorMessage": "always fails" },
       "expected": { "attempts": 4, "totalRetries": 3 }
     },
     {
       "name": "max-elapsed-ms-configured-not-reached",
-      "description": "succeeds normally when maxElapsedMs is configured but never reached",
+      "description": "succeeds normally when maximumElapsedMs is configured but never reached",
       "shape": "configured-not-reached",
-      "input": { "retry": { "maxElapsedMs": 60000, "maxRetries": 3 }, "result": "ok" },
+      "input": { "retry": { "maximumElapsedMs": 60000, "maximumRetries": 3 }, "result": "ok" },
       "expected": { "result": "ok" }
     },
     {
       "name": "max-elapsed-ms-time-wins",
-      "description": "exhausts via maxElapsedMs before maxRetries when the time ceiling is tighter",
+      "description": "exhausts via maximumElapsedMs before maximumRetries when the time ceiling is tighter",
       "shape": "time-wins",
-      "input": { "retry": { "maxElapsedMs": 60, "maxRetries": 1000 }, "delayMs": 10, "errorMessage": "always fails" },
-      "expected": { "maxElapsedMs": 60, "attemptsLessThan": 1000, "elapsedLessThanFactor": 5 }
+      "input": { "retry": { "maximumElapsedMs": 60, "maximumRetries": 1000 }, "delayMs": 10, "errorMessage": "always fails" },
+      "expected": { "maximumElapsedMs": 60, "attemptsLessThan": 1000, "elapsedLessThanFactor": 5 }
     },
     {
       "name": "max-elapsed-ms-count-wins",
-      "description": "exhausts via maxRetries when maxElapsedMs is a looser ceiling",
+      "description": "exhausts via maximumRetries when maximumElapsedMs is a looser ceiling",
       "shape": "count-wins",
-      "input": { "retry": { "maxElapsedMs": 60000, "maxRetries": 2 }, "errorMessage": "always fails" },
+      "input": { "retry": { "maximumElapsedMs": 60000, "maximumRetries": 2 }, "errorMessage": "always fails" },
       "expected": { "attempts": 3, "totalRetries": 2 }
     }
   ]

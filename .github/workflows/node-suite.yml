@@ -78,6 +78,8 @@ jobs:
       - id: resolve
         shell: bash
         env:
+          AUDIT_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}',
+            github.base_ref) || '' }}
           INPUT_PRESET: ${{ inputs.preset }}
           RUN_AUDIT: ${{ inputs.run-audit }}
           RUN_BUILD: ${{ inputs.run-build }}
@@ -117,7 +119,7 @@ jobs:
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               ;;
             audit)
-              append_entry '{"name":"audit","command":"bash scripts/ci-suite.sh audit"}'
+              append_entry "{\"name\":\"audit\",\"command\":\"CI_SUITE_BASE_REF=${AUDIT_BASE_REF} bash scripts/ci-suite.sh audit\"}"
               ;;
             release-validate|publish-validate)
               append_entry '{"name":"generated-artifacts","command":"STAMP_VERSION_REQUIRE_RASTER=true bash scripts/ci-suite.sh generated-artifacts","install_rsvg":"true"}'
@@ -127,7 +129,7 @@ jobs:
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
-              append_entry '{"name":"audit","command":"bash scripts/ci-suite.sh audit"}'
+              append_entry "{\"name\":\"audit\",\"command\":\"CI_SUITE_BASE_REF=${AUDIT_BASE_REF} bash scripts/ci-suite.sh audit\"}"
               append_entry '{"name":"predocs-build","command":"bash scripts/ci-suite.sh predocs-build"}'
               ;;
             docs)
@@ -206,6 +208,22 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
+      # `full`/`release-validate`/`publish-validate` fan typecheck/lint/test-*/build
+      # out into separate parallel jobs, each independently satisfying its own
+      # `prepare_dist` (tsc -b) if dist/ isn't already present — an exact-key
+      # cache here lets a job with unchanged package sources skip that rebuild
+      # entirely instead of paying for it once per matrix entry. Exact-key only
+      # (no restore-keys fallback): `prepare_dist` trusts dist/index.js's mere
+      # presence as "done", so a partial/stale restore would silently skip a
+      # build that should have happened.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            packages/*/dist
+            packages/*/tsconfig.tsbuildinfo
+            packages/*/tsconfig.tests.tsbuildinfo
+          key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'packages/*/package.json',
+            'packages/*/tsconfig*.json', 'tsconfig.json', 'pnpm-lock.yaml') }}
       - if: matrix.install_rsvg == 'true'
         name: Install raster tooling
         run: |
@@ -216,7 +234,7 @@ jobs:
           MATRIX_COMMAND: ${{ matrix.command }}
         run: bash -euo pipefail -c "$MATRIX_COMMAND"
       - if: matrix.upload_docs == 'true' && inputs.upload-docs-dist
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ inputs.docs-dist-artifact }}
           path: docs/.vitepress/dist

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
@@ -53,7 +53,9 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
+    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "peerDependencies": {
@@ -72,14 +74,14 @@
     "@sinclair/typebox": "^0.34.52",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/eslint": "^9.6.1",
-    "@types/node": "^26.1.1",
-    "eslint": "^10.7.0",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.9.0",
     "eslint-plugin-import-x": "^4.17.1",
-    "eslint-plugin-perfectionist": "^5.10.0",
-    "eslint-plugin-regexp": "^3.1.1",
+    "eslint-plugin-perfectionist": "^5.10.1",
+    "eslint-plugin-regexp": "^3.2.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.65.0",
+    "typescript-eslint": "^8.67.0",
     "zod": "^4.4.3"
   }
 }

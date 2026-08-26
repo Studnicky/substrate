@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/scheduler",
-  "version": "9.2.0",
-  "description": "Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations",
+  "version": "11.0.0",
+  "description": "Scheduler primitives \u2014 real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,6 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [
@@ -55,8 +63,13 @@
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "@studnicky/signal": "workspace:*"
   }
 }

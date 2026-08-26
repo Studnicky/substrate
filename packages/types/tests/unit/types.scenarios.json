@@ -40,7 +40,7 @@
         }
       },
       {
-        "description": "returns NaN unchanged for NaN input — unlike isNumber, asNumber does not exclude NaN",
+        "description": "returns NaN unchanged for NaN input \u2014 unlike isNumber, asNumber does not exclude NaN",
         "input": {
           "shape": "nan"
         },
@@ -446,6 +446,661 @@
       {
         "description": "returns false for float",
         "input": 2.5,
+        "outcome": false
+      }
+    ],
+    "isArray": [
+      {
+        "description": "returns true for empty array",
+        "input": [],
+        "outcome": true
+      },
+      {
+        "description": "returns true for non-empty array",
+        "input": [
+          1,
+          2
+        ],
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "hello",
+        "outcome": false
+      },
+      {
+        "description": "returns false for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": false
+      }
+    ],
+    "isDate": [
+      {
+        "description": "returns true for Date",
+        "input": {
+          "shape": "date"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "hello",
+        "outcome": false
+      }
+    ],
+    "isError": [
+      {
+        "description": "returns true for Error instance",
+        "input": {
+          "shape": "error"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "message": "boom"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "boom",
+        "outcome": false
+      },
+      {
+        "description": "returns false for array",
+        "input": [],
+        "outcome": false
+      }
+    ],
+    "isMap": [
+      {
+        "description": "returns true for empty Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for non-empty Map",
+        "input": {
+          "shape": "mapWithEntry"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for Set",
+        "input": {
+          "shape": "set"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isSet": [
+      {
+        "description": "returns true for empty Set",
+        "input": {
+          "shape": "set"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for non-empty Set",
+        "input": {
+          "shape": "setWithEntry"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isObjectLike": [
+      {
+        "description": "returns true for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for array",
+        "input": [
+          1,
+          2
+        ],
+        "outcome": true
+      },
+      {
+        "description": "returns true for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for Set",
+        "input": {
+          "shape": "set"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for Date",
+        "input": {
+          "shape": "date"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "hello",
+        "outcome": false
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for function",
+        "input": {
+          "shape": "function"
+        },
+        "outcome": false
+      }
+    ],
+    "isRecord": [
+      {
+        "description": "returns true for plain object",
+        "input": {
+          "a": 1
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for Set",
+        "input": {
+          "shape": "set"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for array",
+        "input": [
+          1
+        ],
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isPlainObject": [
+      {
+        "description": "returns true for plain object literal",
+        "input": {
+          "a": 1
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for null-prototype object",
+        "input": {
+          "shape": "nullPrototypeObject"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for array",
+        "input": [
+          1
+        ],
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isNullish": [
+      {
+        "description": "returns true for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for undefined",
+        "input": {
+          "shape": "undefined"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for empty string",
+        "input": "",
+        "outcome": false
+      },
+      {
+        "description": "returns false for zero",
+        "input": 0,
+        "outcome": false
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isRegExp": [
+      {
+        "description": "returns true for regex literal",
+        "input": {
+          "shape": "regex"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for string",
+        "input": "value",
+        "outcome": false
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isSymbol": [
+      {
+        "description": "returns true for symbol",
+        "input": {
+          "shape": "symbol"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for string",
+        "input": "s",
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isBigInt": [
+      {
+        "description": "returns true for bigint",
+        "input": {
+          "shape": "bigint"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for number",
+        "input": 42,
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "42",
+        "outcome": false
+      }
+    ],
+    "isThenable": [
+      {
+        "description": "returns true for a thenable object",
+        "input": {
+          "shape": "thenable"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {
+          "then": "not callable"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      },
+      {
+        "description": "returns false for string",
+        "input": "value",
+        "outcome": false
+      }
+    ],
+    "isIterable": [
+      {
+        "description": "returns true for array",
+        "input": {
+          "shape": "iterable"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns true for string",
+        "input": "value",
+        "outcome": true
+      },
+      {
+        "description": "returns true for Map",
+        "input": {
+          "shape": "map"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isAsyncIterable": [
+      {
+        "description": "returns true for an async iterable object",
+        "input": {
+          "shape": "asyncIterable"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for a sync iterable array",
+        "input": [
+          1,
+          2
+        ],
+        "outcome": false
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isArrayBufferView": [
+      {
+        "description": "returns true for a typed array",
+        "input": {
+          "shape": "arrayBufferView"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain array",
+        "input": [
+          1,
+          2,
+          3
+        ],
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isBlob": [
+      {
+        "description": "returns true for Blob",
+        "input": {
+          "shape": "blob"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      },
+      {
+        "description": "returns false for null",
+        "input": {
+          "shape": "null"
+        },
+        "outcome": false
+      }
+    ],
+    "isFormData": [
+      {
+        "description": "returns true for FormData",
+        "input": {
+          "shape": "formData"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isURL": [
+      {
+        "description": "returns true for URL",
+        "input": {
+          "shape": "url"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for string URL",
+        "input": "https://example.test",
+        "outcome": false
+      }
+    ],
+    "isURLSearchParams": [
+      {
+        "description": "returns true for URLSearchParams",
+        "input": {
+          "shape": "urlSearchParams"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isHeaders": [
+      {
+        "description": "returns true for Headers",
+        "input": {
+          "shape": "headers"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isRequest": [
+      {
+        "description": "returns true for Request",
+        "input": {
+          "shape": "request"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isResponse": [
+      {
+        "description": "returns true for Response",
+        "input": {
+          "shape": "response"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isAbortSignal": [
+      {
+        "description": "returns true for AbortSignal",
+        "input": {
+          "shape": "abortSignal"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
+        "outcome": false
+      }
+    ],
+    "isReadableStream": [
+      {
+        "description": "returns true for ReadableStream",
+        "input": {
+          "shape": "readableStream"
+        },
+        "outcome": true
+      },
+      {
+        "description": "returns false for plain object",
+        "input": {},
         "outcome": false
       }
     ]

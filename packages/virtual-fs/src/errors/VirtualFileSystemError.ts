@@ -1,10 +1,10 @@
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { JSONSchema7Type } from 'json-schema';
 
-import { BaseError, DomainErrorArgs } from '@studnicky/errors';
+import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';
 
 /** Optional construction arguments for {@link VirtualFileSystemError}; the class supplies its own code and message. */
-interface VirtualFileSystemErrorArgsInterface {
+interface VirtualFileSystemErrorArgumentListInterface {
   /** Underlying cause (native `Error`, `BaseError`, or any primitive). */
   readonly 'cause'?: unknown;
   /** Optional correlation ID for distributed tracing. */
@@ -19,20 +19,17 @@ interface VirtualFileSystemErrorArgsInterface {
 }
 
 export class VirtualFileSystemError extends BaseError {
-  private static buildMessage(fields: Readonly<{ 'message': string }>): string {
-    const result = fields.message;
-    return result;
-  }
-
-  public constructor(message: string, args?: VirtualFileSystemErrorArgsInterface) {
+  public constructor(message: string, argumentList?: VirtualFileSystemErrorArgumentListInterface) {
     const fields = { 'message': message };
-    super(DomainErrorArgs.build(fields, {
-      'cause': args?.cause,
+    super(DomainErrorArgumentList.build(fields, {
+      'cause': argumentList?.cause,
       'code': 'virtualFs.error',
-      'correlationId': args?.correlationId,
-      'message': VirtualFileSystemError.buildMessage,
-      'metadata': args?.metadata,
-      'retryable': args?.retryable ?? false
+      'correlationId': argumentList?.correlationId,
+      'message': (messageFields: Readonly<{ 'message': string }>): string => {
+        return messageFields.message;
+      },
+      'metadata': argumentList?.metadata,
+      'retryable': argumentList?.retryable ?? false
     }));
   }
 }

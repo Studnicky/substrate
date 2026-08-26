@@ -15,6 +15,7 @@
   "references": [
     { "path": "../circular-buffer" },
     { "path": "../errors" },
+    { "path": "../fsm" },
     { "path": "../json" }
   ]
 }

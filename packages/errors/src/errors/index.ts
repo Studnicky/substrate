@@ -6,7 +6,7 @@
 
 export { BaseError } from './BaseError.js';
 export { CliExitError } from './CliExitError.js';
-export { DomainErrorArgs } from './DomainErrorArgs.js';
+export { DomainErrorArgumentList } from './DomainErrorArgumentList.js';
 export { HookInvocationError } from './HookInvocationError.js';
 export { HookInvoker } from './HookInvoker.js';
 export { HookTimeoutError } from './HookTimeoutError.js';

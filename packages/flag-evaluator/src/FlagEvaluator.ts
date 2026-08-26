@@ -2,6 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import type { FlagContextInterface } from './interfaces/FlagContextInterface.js';
 
@@ -10,13 +11,17 @@ import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidation
 
 const BUCKET_SPACE = 100;
 
+interface FlagEvaluatorConstructorInterface<TInstance> {
+  readonly 'prototype': TInstance;
+}
+
 /**
  * A broken observability hook must never affect the resolved flag decision
  * `evaluate()` already computed: swallow the failure rather than let
  * `HookInvoker`'s default (throwing) behavior propagate out of `evaluate()`.
  */
 class FlagEvaluationHookInvoker extends HookInvoker {
-  protected override onHookError(_hookName: string, _cause: unknown): void {}
+  protected override onHookError(_hookName: string): void {}
 }
 
 /**
@@ -44,18 +49,40 @@ class FlagEvaluationHookInvoker extends HookInvoker {
  * ```
  */
 export class FlagEvaluator {
+  private static getValidationMessage(
+    error: NonNullable<typeof FlagDefinitionEntity.validate.errors>[number]
+  ): string {
+    if (error.message === undefined) {
+      const result = String(error);
+      return result;
+    }
+    const result = error.message;
+    return result;
+  }
+
+  // `TInstance` is supplied explicitly at the call site and flows into BOTH the constructor
+  // parameter and the type predicate, so it is load-bearing rather than a phantom generic.
   private static isConstructed<TInstance extends FlagEvaluator>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: FlagEvaluatorConstructorInterface<TInstance> & Function
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
+  }
+
+  private static isConstructor(value: object): value is Function {
+    const result = Predicates.isFunction(value);
+    return result;
   }
 
   static create<TInstance extends FlagEvaluator>(
-    this: Function & { readonly 'prototype': TInstance }
+    this: FlagEvaluatorConstructorInterface<TInstance>
   ): TInstance {
+    if (!FlagEvaluator.isConstructor(this)) {
+      throw new TypeError('FlagEvaluator.create() requires a constructor');
+    }
     const result: unknown = Reflect.construct(this, []);
-    if (!FlagEvaluator.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
       throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;
@@ -74,7 +101,7 @@ export class FlagEvaluator {
   register(name: string, definition: FlagDefinitionEntity.Type): void {
     if (!FlagDefinitionEntity.validate(definition)) {
       const messages = (FlagDefinitionEntity.validate.errors ?? [])
-        .map((e) => {return e.message ?? String(e);})
+        .map(FlagEvaluator.getValidationMessage)
         .join('; ');
       throw new FlagDefinitionValidationError(messages.length > 0 ? messages : 'invalid flag definition');
     }

@@ -13,7 +13,7 @@ description: Fixed-capacity numeric sample buffer with percentile calculation.
 pnpm add @studnicky/sample-buffer
 ```
 
-`@studnicky/sample-buffer` is the sole public code entrypoint.
+`@studnicky/sample-buffer` exposes runtime operations at its root, schemas at `@studnicky/sample-buffer/entities`, and type contracts at `@studnicky/sample-buffer/interfaces`.
 
 ## Usage
 
@@ -31,7 +31,7 @@ Create a `SampleBuffer` with a fixed capacity, push numeric samples into it, and
 
 ## Public API
 
-The package root exports `SampleBuffer`, `SampleBufferInterface`, `SampleBufferOptionsEntity`, and `SampleBufferError`. Construct buffers with `SampleBuffer.create({ capacity })`.
+The package root exports `SampleBuffer` and `SampleBufferError`. Import schemas from `@studnicky/sample-buffer/entities` and the buffer contract from `@studnicky/sample-buffer/interfaces`. Construct buffers with `SampleBuffer.create({ capacity })`.
 
 ## Extending
 
@@ -56,5 +56,30 @@ Subclass `SampleBuffer` and override any hook to observe the full push/evict/com
 <<< ../../packages/sample-buffer/examples/observedSampleBuffer.ts#usage
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
+
+## Entities
+
+`@studnicky/sample-buffer/entities` exports buffer option and observable-state schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { SampleBufferOptionsEntity } from '@studnicky/sample-buffer/entities';
+```
+
+## Interfaces
+
+`@studnicky/sample-buffer/interfaces` exports the sample-buffer contract.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { SampleBufferInterface } from '@studnicky/sample-buffer/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `SampleBuffer` | Stores a fixed window of numeric samples and calculates percentiles. | `@studnicky/sample-buffer` |
+| `SampleBufferError` | Represents sample-buffer failures. | `@studnicky/sample-buffer` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/sample-buffer)

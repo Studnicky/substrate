@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/types",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Shared runtime type-guard and object helpers for @studnicky/substrate",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./filters": {
+      "types": "./dist/filters/index.d.ts",
+      "import": "./dist/filters/index.js"
     }
   },
   "files": [
@@ -53,6 +57,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@types/json-schema": "^7.0.15"
+    "@types/json-schema": "^7.0.15",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
+import { TimingOptionsEntity } from '../src/entities/index.js';
 import { Timing, TimingEvent } from '../src/index.js';
 
 class InstrumentedTiming extends Timing {
@@ -13,7 +14,7 @@ class InstrumentedTiming extends Timing {
   }
 
   static of(): InstrumentedTiming {
-    return new InstrumentedTiming({});
+    return new InstrumentedTiming(TimingOptionsEntity.create());
   }
 }
 

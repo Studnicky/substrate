@@ -42,11 +42,9 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   protected readonly hooks: HookInvoker;
   #cachedSorted: TEntity[] | undefined;
 
-  private static isConstructed<TInstance>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
-  ): value is TInstance {
-    return value instanceof constructor;
+  private static hasConstructedInstance(instance: object, constructor: Function): boolean {
+    const result = instance instanceof constructor;
+    return result;
   }
 
   static create<
@@ -54,11 +52,18 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     TId extends PropertyKey = string,
     TInstance extends EntityStore<TEntity, TId> = EntityStore<TEntity, TId>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: { readonly 'prototype': TInstance },
     options: EntityStoreOptionsInterface<TEntity, TId>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!EntityStore.isConstructed<TInstance>(result, this)) {
+  ): TInstance;
+  static create<
+    TEntity,
+    TId extends PropertyKey = string
+  >(
+    this: typeof EntityStore<TEntity, TId>,
+    options: EntityStoreOptionsInterface<TEntity, TId>
+  ): EntityStore<TEntity, TId> {
+    const result = new this(options);
+    if (!EntityStore.hasConstructedInstance(result, this)) {
       throw new TypeError('EntityStore.create() must construct an EntityStore instance');
     }
     return result;
@@ -118,7 +123,12 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
 
   /** Upserts every entity in array order. An empty array is a no-op. */
   public async upsertMany(entities: readonly TEntity[]): Promise<void> {
-    for (const entity of entities) {
+    const length = entities.length;
+    for (let index = 0; index < length; index += 1) {
+      const entity = entities[index];
+      if (entity === undefined) {
+        continue;
+      }
       await this.upsertOne(entity);
     }
   }
@@ -142,7 +152,12 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   public async removeMany(ids: readonly TId[]): Promise<number> {
     let removed = 0;
 
-    for (const id of ids) {
+    const length = ids.length;
+    for (let index = 0; index < length; index += 1) {
+      const id = ids[index];
+      if (id === undefined) {
+        continue;
+      }
       if (await this.removeOne(id)) {
         removed += 1;
       }
@@ -155,7 +170,12 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   public async setAll(entities: readonly TEntity[]): Promise<void> {
     this.#entities.clear();
 
-    for (const entity of entities) {
+    const length = entities.length;
+    for (let index = 0; index < length; index += 1) {
+      const entity = entities[index];
+      if (entity === undefined) {
+        continue;
+      }
       const retainedEntity = structuredClone(entity);
       const id = this.#selectId(retainedEntity);
       this.#entities.set(id, retainedEntity);

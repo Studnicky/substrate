@@ -9,14 +9,12 @@
  * this composition no longer has to work around an untunable bus. Run:
  * npx tsx examples/boundedDispatcherComposition.ts */
 
-import type { ScheduledTaskInterface } from '@studnicky/scheduler';
-
 // #region usage
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
 import assert from 'node:assert/strict';
 
-import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/index.js';
+import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/entities/index.js';
 
 import { Semaphore } from '../src/index.js';
 
@@ -35,11 +33,11 @@ const bus = EventBus.create<DispatchTopicMapInterface>({ 'highWaterMark': 4 });
 const scheduler = RealTimeScheduler.create();
 
 class Dispatcher {
-  static async dispatch<T extends string>(key: string, fn: () => Promise<T>): Promise<T> {
+  static async dispatch<T extends string>(key: string, callback: () => Promise<T>): Promise<T> {
     const release = await semaphore.acquire();
     try {
       await bus.publish('dispatch.started', { 'key': key });
-      const result = await fn();
+      const result = await callback();
       await bus.publish('dispatch.completed', { 'key': key, 'result': result });
       return result;
     } catch (error) {
@@ -49,27 +47,24 @@ class Dispatcher {
       await release();
     }
   }
-
-  static scheduleDispatch<T extends string>(atMs: number, key: string, fn: () => Promise<T>): ScheduledTaskInterface {
-    const task = scheduler.scheduleAt(atMs, () => { void Dispatcher.dispatch(key, fn); });
-    return task;
-  }
 }
 // #endregion usage
 
 class TrackedTask {
   static concurrentCount = 0;
-  static maxConcurrentObserved = 0;
+  static maximumConcurrentObserved = 0;
+  readonly callback: () => Promise<string>;
+  readonly #key: string;
 
-  static run(key: string): Promise<string> {
-    const result = Dispatcher.dispatch(key, async () => {
+  constructor(key: string) {
+    this.#key = key;
+    this.callback = async (): Promise<string> => {
       TrackedTask.concurrentCount += 1;
-      TrackedTask.maxConcurrentObserved = Math.max(TrackedTask.maxConcurrentObserved, TrackedTask.concurrentCount);
+      TrackedTask.maximumConcurrentObserved = Math.max(TrackedTask.maximumConcurrentObserved, TrackedTask.concurrentCount);
       await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
       TrackedTask.concurrentCount -= 1;
-      return `done-${key}`;
-    });
-    return result;
+      return `done-${this.#key}`;
+    };
   }
 }
 
@@ -78,17 +73,21 @@ class BoundedDispatcherScenarios {
     // --- Scenario A: bounded concurrency — permits=2 means at most 2 of 5 dispatched tasks
     // run at once, the rest queue on the semaphore. ---
     const boundedResults = await Promise.all(
-      ['a', 'b', 'c', 'd', 'e'].map((key) => { const result = TrackedTask.run(key); return result; })
+      ['a', 'b', 'c', 'd', 'e'].map((key) => {
+        const task = new TrackedTask(key);
+        const result = Dispatcher.dispatch(key, task.callback);
+        return result;
+      })
     );
 
     console.log(
       'Bounded dispatch results:', boundedResults,
-      'max concurrent observed:', TrackedTask.maxConcurrentObserved
+      'maximum concurrent observed:', TrackedTask.maximumConcurrentObserved
     );
     assert.deepEqual(boundedResults, ['done-a', 'done-b', 'done-c', 'done-d', 'done-e']);
     assert.ok(
-      TrackedTask.maxConcurrentObserved <= 2,
-      `expected at most 2 concurrent tasks, observed ${TrackedTask.maxConcurrentObserved}`
+      TrackedTask.maximumConcurrentObserved <= 2,
+      `expected at most 2 concurrent tasks, observed ${TrackedTask.maximumConcurrentObserved}`
     );
   }
 
@@ -120,12 +119,12 @@ class BoundedDispatcherScenarios {
     const scheduleStartedAt = Date.now();
 
     await new Promise<void>((resolve) => {
-      Dispatcher.scheduleDispatch(Date.now() + 30, 'scheduled-task', async () => {
+      scheduler.scheduleAt(Date.now() + 30, () => { void Dispatcher.dispatch('scheduled-task', async () => {
         await Promise.resolve();
         scheduledCompletedAt.push(Date.now() - scheduleStartedAt);
         resolve();
         return 'scheduled-done';
-      });
+      }); });
     });
 
     console.log('Scheduled dispatch fired after ms:', scheduledCompletedAt[0]);

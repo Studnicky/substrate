@@ -1,0 +1,45 @@
+{
+  "valid": [
+    {
+      "code": "namespace PayloadEntity { export type Type = { readonly value: string }; export function intake(input: unknown): Type { return input as Type; } }",
+      "name": "an entity intake may assert an unknown value to its named entity type"
+    },
+    {
+      "code": "const payload = { value: 'parsed' } as const;",
+      "name": "a const assertion preserves literalness without claiming a named shape"
+    },
+    {
+      "code": "declare const raw: unknown; const widened = raw as unknown;",
+      "name": "an assertion that widens an unknown value remains valid"
+    },
+    {
+      "code": "type Payload = { readonly value: string }; declare const parsed: Payload; const repeated = parsed as Payload;",
+      "name": "a well-typed source may use a named assertion because it is not unparsed"
+    },
+    {
+      "code": "type ForeignNode = { readonly kind: string }; declare const raw: unknown; const node = raw as ForeignNode;",
+      "filename": "eslint-config/src/ForeignNode.ts",
+      "name": "an assertion in the exempt eslint-config package is valid"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "type Payload = { readonly value: string }; declare const raw: unknown; const payload = raw as Payload;",
+      "errors": [
+        {
+          "messageId": "unparsedAssertion"
+        }
+      ],
+      "name": "an unknown value cannot assert a named type"
+    },
+    {
+      "code": "type Payload = { readonly value: string }; declare const raw: unknown; const payload = <Payload>raw;",
+      "errors": [
+        {
+          "messageId": "unparsedAssertion"
+        }
+      ],
+      "name": "the legacy type-assertion syntax cannot assert an unknown value to a named type"
+    }
+  ]
+}

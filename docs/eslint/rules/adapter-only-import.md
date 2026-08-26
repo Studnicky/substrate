@@ -1,71 +1,53 @@
 ---
 title: '@studnicky/adapter-only-import'
-description: 'Restricts concrete third-party dependencies to the adapters layer of a hexagonal architecture.'
+description: 'Restricts configured concrete dependencies to an adapters layer resolved by ordered layer bindings.'
 ---
 
 # @studnicky/adapter-only-import
 
-Restricts a configurable list of concrete third-party dependencies — HTTP frameworks, database drivers, external API clients — to the adapters layer of a hexagonal architecture. Business logic in domain, application, ports, or even infrastructure files should depend on a port/interface, not directly on a specific library; only the adapters layer (configurable via `adapterLayerName`, default `"adapters"`) is exempt. The rule resolves each file's layer the same way [`layer-import-boundary`](./layer-import-boundary) does (via `layers`/`sourceRoot`), then reports any import whose specifier matches (or is a submodule of) an entry in `adapterOnlyImports`. Files outside the configured layer tree are never checked; notably, infrastructure — which can otherwise import any configured layer — is still bound by this restriction, since infrastructure bootstrap code should still route concrete dependencies through adapters. This rule is typically wired together with [`layer-import-boundary`](./layer-import-boundary), [`domain-purity`](./domain-purity), and [`known-types-outside-adapters`](./known-types-outside-adapters) via the `HexagonalSuite.create({...})` factory export, since all four share the same `layers`/`sourceRoot` configuration — but it is fully usable and configurable on its own.
+Restricts configured third-party dependency roots to one adapters layer. In a file resolved to any other layer, an `ImportDeclaration` whose specifier equals an `adapterOnlyImports` entry or starts with that entry followed by `/` is reported. Files whose paths do not resolve to a layer and files in the configured adapters layer are out of scope.
+
+The rule is implemented and registered, but this repository deliberately does not enable it. `adapter-only-import` reports either 0 or 3 violations depending on which architectural band is called `adapters`; the three are `fetch` importing `undici`, and `fetch` is the adapter that wraps `undici`. This rule, [`domain-purity`](./domain-purity), and [`known-types-outside-adapters`](./known-types-outside-adapters) assume a business-logic core with a conversion boundary. Substrate has neither: it has four utility and infrastructure bands, no domain layer, and no separate intake boundary.
 
 **Fixable:** No · **Options:** Yes · **Suggested severity:** `error`
 
-### Options
+## Options
+
+The shared layer options resolve the importing file through an ordered `bindings` list. A binding has `kind`, `layer`, and (except for `builtin`) `pattern`; the first applicable match wins. `folder` and `package` match the path segment after `sourceRoot`, while `module` and `dependency` prefix-match import specifiers and `builtin` matches Node builtins. `layers` lists the configured layer names and `sourceRoot` identifies the segment before a folder or package candidate. `allowedImports` is accepted as part of the shared options but is not consulted by this rule.
 
 | Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `layers` | `string[]` | *(required)* | Ordered list of enforced layer names, e.g. `["domain", "ports", "application", "adapters", "infrastructure"]`. |
-| `sourceRoot` | `string` | *(required)* | Path segment(s) after which the layer name appears, e.g. `"src"`. |
-| `aliasPrefixes` | `object` | `undefined` | Map of path-alias prefixes (e.g. `"@domain/"`) to their layer name. |
-| `allowedImports` | `object` | `undefined` | Override of the default allow-matrix: source layer name → list of layers it may import from. |
-| `adapterLayerName` | `string` | `"adapters"` | Name of the layer treated as the adapters layer for exemption purposes. |
-| `adapterOnlyImports` | `string[]` | `undefined` | Package names/roots restricted to the adapters layer, e.g. `["express", "pg", "axios"]`. |
+|---|---|---|---|
+| `bindings` | `{ kind, layer, pattern? }[]` | *(required)* | Ordered layer-resolution bindings. |
+| `layers` | `string[]` | *(required)* | Configured layer names. |
+| `sourceRoot` | `string` | *(required)* | Path segment(s) before the folder/package candidate. |
+| `allowedImports` | `Record<string, string[]>` | `undefined` | Shared layer option; unused by this rule. |
+| `adapterLayerName` | `string` | `"adapters"` | Layer exempt from this restriction. |
+| `adapterOnlyImports` | `string[]` | `undefined` | Dependency roots reserved for the adapters layer. |
 
 ## ✗ Incorrect
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file (/repo/src/domain/user/User.ts) importing an
-// adapter-only package directly — forbidden
+// A file resolved to `domain` imports a configured adapter-only dependency.
 import axios from 'axios';
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// application-layer file importing an adapter-only package — forbidden
-import axios from 'axios';
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// infrastructure-layer file importing an adapter-only package — forbidden,
-// despite infrastructure otherwise being able to import any configured layer
-import axios from 'axios';
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// domain-layer file importing a submodule of an adapter-only root — forbidden,
-// exercises prefix match against adapterOnlyImports
+// Submodule imports match their configured root.
 import { Client } from 'pg/lib/client';
 ```
 
 ## ✓ Correct
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// adapters-layer file (/repo/src/adapters/HttpAdapter.ts) importing an
-// adapter-only package — allowed, adapters are exempt
+// A file resolved to the configured adapters layer is exempt.
 import axios from 'axios';
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// domain-layer file importing something not in adapterOnlyImports — not flagged
-import { User } from './User';
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// file outside the configured layer tree (/repo/scripts/build.ts) — out of scope
-import axios from 'axios';
+// Imports outside adapterOnlyImports are not reported by this rule.
+import { User } from './User.js';
 ```

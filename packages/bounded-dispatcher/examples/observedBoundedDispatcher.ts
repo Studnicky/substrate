@@ -23,26 +23,28 @@ class ObservedBoundedDispatcherExample {
     });
 
     let concurrentCount = 0;
-    let maxConcurrentObserved = 0;
+    let highestConcurrentObserved = 0;
 
     class TrackedTask {
-      static run(label: string): Promise<string> {
-        const result = dispatcher.dispatch(async () => {
+      static create(label: string): () => Promise<string> {
+        return async () => {
           concurrentCount += 1;
-          maxConcurrentObserved = Math.max(maxConcurrentObserved, concurrentCount);
+          highestConcurrentObserved = Math.max(highestConcurrentObserved, concurrentCount);
           await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
           concurrentCount -= 1;
           return `done-${label}`;
-        });
-        return result;
+        };
       }
     }
 
-    const boundedResults = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((label) => { const result = TrackedTask.run(label); return result; }));
+    const boundedResults = await Promise.all(['a', 'b', 'c', 'd', 'e'].map((label) => {
+      const task = dispatcher.dispatch(TrackedTask.create(label));
+      return task;
+    }));
 
-    console.log('Bounded dispatch results:', boundedResults, 'max concurrent observed:', maxConcurrentObserved);
+    console.log('Bounded dispatch results:', boundedResults, 'max concurrent observed:', highestConcurrentObserved);
     assert.deepEqual(boundedResults, ['done-a', 'done-b', 'done-c', 'done-d', 'done-e']);
-    assert.ok(maxConcurrentObserved <= 2, `expected at most 2 concurrent tasks, observed ${maxConcurrentObserved}`);
+    assert.ok(highestConcurrentObserved <= 2, `expected at most 2 concurrent tasks, observed ${highestConcurrentObserved}`);
 
     // --- Scenario B: one failing dispatch is tracked distinctly from the successful ones,
     // via the 'dispatch' subscription. ---

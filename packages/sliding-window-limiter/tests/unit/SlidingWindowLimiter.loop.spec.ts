@@ -77,8 +77,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       }
 
       const limiter = AsyncRejectingAllowLimiter.create(resolveLimiterConfig(input));
-      const rejectionEvents: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+      const rejectionEvents: Error[] = [];
+      const onUnhandledRejection = (): void => { rejectionEvents.push(new Error('unexpected unhandled rejection')); };
       process.on('unhandledRejection', onUnhandledRejection);
 
       return (async () => {
@@ -117,8 +117,8 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       let time = 0;
       const clock = (): number => time;
       const limiter = AsyncRejectingNotificationLimiter.create(resolveLimiterConfig(input, clock));
-      const rejectionEvents: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+      const rejectionEvents: Error[] = [];
+      const onUnhandledRejection = (): void => { rejectionEvents.push(new Error('unexpected unhandled rejection')); };
       process.on('unhandledRejection', onUnhandledRejection);
 
       return (async () => {
@@ -350,9 +350,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       setImmediate(() => {
         controller.abort(new Error(input.abortMessage));
       });
-      await assert.rejects(() => limiter.waitForToken({ signal: controller.signal }), (error: unknown) => {
-        return error instanceof Error && error.message === input.abortMessage;
-      });
+      await assert.rejects(() => limiter.waitForToken({ signal: controller.signal }), { 'message': input.abortMessage });
       assert.strictEqual(expected.rejectionMessage, input.abortMessage);
   },
   'within-limit': (scenarioCase) => {

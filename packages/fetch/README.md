@@ -6,7 +6,8 @@
 
 `@studnicky/fetch` wraps the native `fetch` API with a configured client and direct HTTP verb methods. Timeout, abort, body serialization, and dispatcher behavior all use the same request path. Observable behavior such as telemetry, logging, and tracing is added through lifecycle hooks.
 
-`@studnicky/fetch` is the sole public code entrypoint.
+`@studnicky/fetch` exposes runtime APIs at its package root, schema entities from
+`@studnicky/fetch/entities`, and TypeScript contracts from `@studnicky/fetch/interfaces`.
 
 `FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
 
@@ -64,7 +65,12 @@ class TracedClient extends FetchClient {
 const api = TracedClient.create({ baseURL: 'https://api.example.com' });
 ```
 
-`FetchRequestOptionsEntity` owns the schema-expressible request fields shared by `FetchOptionsInterface` and `BodyRequestOptionsInterface`. `ClientConfigDataEntity` owns the schema-expressible client settings. The interfaces compose those entity fields with runtime-only values such as headers, signals, dispatchers, metadata, and request-ID generators.
+`FetchRequestOptionsEntity` owns schema-expressible request fields shared by `FetchOptionsInterface` and `BodyRequestOptionsInterface`. `ClientConfigDataEntity.intake` owns the client configuration data boundary. `RequestIdGeneratorInterface` represents the injected request-ID collaborator; runtime request bodies, signals, and per-request dispatchers remain typed runtime values.
+
+```typescript
+import { ClientConfigDataEntity, FetchRequestOptionsEntity } from '@studnicky/fetch/entities';
+import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
+```
 
 ## Documentation
 

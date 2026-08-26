@@ -1,6 +1,7 @@
 import type { AsyncLocalStorage } from 'node:async_hooks';
 
 import { HookInvoker } from '@studnicky/errors';
+import { TransitionRejectedError } from '@studnicky/fsm';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -12,6 +13,7 @@ import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntit
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
 
 import { ContextError } from '../errors/ContextError.js';
+import { ContextScopeMachine } from './ContextScopeMachine.js';
 
 /**
  * An initialized context scope returned from Context.initialize().
@@ -82,6 +84,7 @@ import { ContextError } from '../errors/ContextError.js';
 export class ContextScope implements ContextScopeInterface {
   readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
   readonly #store: Map<string, unknown>;
+  readonly #machine: ContextScopeMachine = new ContextScopeMachine();
   #state: ContextScopeStateEntity.Type = 'created';
 
   /**
@@ -130,17 +133,22 @@ export class ContextScope implements ContextScopeInterface {
   /**
    * Guard: returns true if the from → to transition is legal.
    *
-   * Legal edges:
-   * - created → active (initialization)
-   * - active → terminated (termination)
-   *
-   * All other transitions are illegal.
+   * Delegates to `ContextScopeMachine.reduce()` — the single declarative
+   * source of truth for the legal edge set (`created → active`,
+   * `active → terminated`) — and interprets a deliberate
+   * `TransitionRejectedError` as an illegal edge. Any other thrown value (a
+   * reducer defect) propagates rather than being swallowed as `false`.
    */
   protected guard(from: ContextScopeStateEntity.Type, to: ContextScopeStateEntity.Type): boolean {
-    if (from === 'created' && to === 'active') {return true;}
-    if (from === 'active' && to === 'terminated') {return true;}
-
-    return false;
+    try {
+      this.#machine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
+      return true;
+    } catch (error) {
+      if (error instanceof TransitionRejectedError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -204,11 +212,6 @@ export class ContextScope implements ContextScopeInterface {
    * @param snapshot - The final key-value snapshot
    * @returns The (possibly augmented) snapshot returned from terminate()
    */
-  protected onTerminate(snapshot: Record<string, unknown>): Record<string, unknown> {
-    const result = snapshot;
-    return result;
-  }
-
   /**
    * Hook called when execute() is called on a terminated scope, before the throw.
    * Subclasses override to observe or log the illegal access.
@@ -223,17 +226,17 @@ export class ContextScope implements ContextScopeInterface {
    * share the same underlying store, allowing state to accumulate across calls.
    *
    * @typeParam TResult - Return type of the function
-   * @param fn - Function to execute within the context
-   * @returns The result of the function (or Promise if fn is async)
+   * @param callback - Function to execute within the context
+   * @returns The result of the function (or Promise if callback is async)
    * @throws {ContextError} If scope has been terminated
    *
    * @remarks
-   * When `fn` is async (returns a Promise), `onAfterExecute()` fires only
+   * When `callback` is async (returns a Promise), `onAfterExecute()` fires only
    * after the returned promise resolves, and `onError()` fires if it
    * rejects instead. The returned promise still resolves/rejects exactly
-   * as `fn`'s promise does.
+   * as `callback`'s promise does.
    */
-  execute<TResult>(fn: () => TResult): TResult {
+  execute<TResult>(callback: () => TResult): TResult {
     if (this.#state === 'terminated') {
       this.hooks.invoke('onTerminatedAccess', () => {
         const hookResult = this.onTerminatedAccess();
@@ -248,7 +251,7 @@ export class ContextScope implements ContextScopeInterface {
     });
     let result: TResult;
     try {
-      result = this.#storage.run(this.#store, fn);
+      result = this.#storage.run(this.#store, callback);
     } catch (error) {
       this.hooks.invoke('onError', () => {
         const hookResult = this.onError(error);
@@ -265,7 +268,7 @@ export class ContextScope implements ContextScopeInterface {
             return hookResult;
           });
         },
-        (error: unknown) => {
+        (error) => {
           this.hooks.invoke('onError', () => {
             const hookResult = this.onError(error);
             return hookResult;
@@ -290,7 +293,7 @@ export class ContextScope implements ContextScopeInterface {
    * Returns a snapshot of all values accumulated during execution.
    * After termination, execute() will throw and the internal store is cleared.
    *
-   * @returns Snapshot of all context values at termination (possibly augmented by onTerminate)
+   * @returns Snapshot of all context values at termination
    * @throws {ContextError} If already terminated
    */
   terminate(): Record<string, unknown> {
@@ -300,7 +303,10 @@ export class ContextScope implements ContextScopeInterface {
 
     this.transition('terminated');
 
-    const snapshot = Object.fromEntries(this.#store);
+    const snapshot: Record<string, unknown> = {};
+    for (const [key, value] of this.#store) {
+      Reflect.set(snapshot, key, value);
+    }
 
     this.#store.clear();
     this.hooks.invoke('onDispose', () => {
@@ -308,6 +314,7 @@ export class ContextScope implements ContextScopeInterface {
       return hookResult;
     });
 
-    return this.onTerminate(snapshot);
+    const result: Record<string, unknown> = snapshot;
+    return result;
   }
 }

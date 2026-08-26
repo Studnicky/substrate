@@ -5,28 +5,28 @@ import assert from 'node:assert/strict';
 // #region usage
 import {
   DeadLetterQueue,
-  DeadLetterQueueRetryGenerator,
-  DlqClosedError,
-  DlqFullError
+  DeadLetterQueueClosedError,
+  DeadLetterQueueFullError,
+  DeadLetterQueueRetryGenerator
 } from '../src/index.js';
 
 await (async function runDeadLetterQueueExample(): Promise<void> {
   // --- Basic enqueue and drain ---
-  const dlq = DeadLetterQueue.create<string>({ 'capacity': 5 });
+  const deadLetterQueue = DeadLetterQueue.create<string>({ 'capacity': 5 });
 
-  dlq.enqueue('job-1', 'timeout');
-  dlq.enqueue('job-2', 'network error', new Error('ECONNREFUSED'));
-  console.log('Queue size after 2 enqueues:', dlq.size);
+  deadLetterQueue.enqueue('job-1', 'timeout');
+  deadLetterQueue.enqueue('job-2', 'network error', new Error('ECONNREFUSED'));
+  console.log('Queue size after 2 enqueues:', deadLetterQueue.size);
 
   // Close before draining so the generator terminates instead of waiting.
-  dlq.close();
+  deadLetterQueue.close();
 
   const collected: string[] = [];
-  for await (const entry of dlq.drain()) {
+  for await (const entry of deadLetterQueue.drain()) {
     collected.push(entry.item);
   }
   console.log('Drained items:', collected);
-  console.log('Queue size after drain:', dlq.size);
+  console.log('Queue size after drain:', deadLetterQueue.size);
 
   // --- Capacity enforcement ---
   const bounded = DeadLetterQueue.create<number>({ 'capacity': 2 });
@@ -35,14 +35,14 @@ await (async function runDeadLetterQueueExample(): Promise<void> {
   console.log('Bounded queue size:', bounded.size);
 
   // --- DeadLetterQueueRetryGenerator re-yields entries with a pause ---
-  const retryDlq = DeadLetterQueue.create<string>();
-  retryDlq.enqueue('retry-job-1', 'failed');
-  retryDlq.enqueue('retry-job-2', 'failed');
-  retryDlq.close();
+  const retryDeadLetterQueue = DeadLetterQueue.create<string>();
+  retryDeadLetterQueue.enqueue('retry-job-1', 'failed');
+  retryDeadLetterQueue.enqueue('retry-job-2', 'failed');
+  retryDeadLetterQueue.close();
 
-  const gen = DeadLetterQueueRetryGenerator.create({ 'dlq': retryDlq, 'intervalMs': 0 });
+  const generator = DeadLetterQueueRetryGenerator.create({ 'deadLetterQueue': retryDeadLetterQueue, 'intervalMs': 0 });
   const retried: string[] = [];
-  for await (const entry of gen.generate()) {
+  for await (const entry of generator.generate()) {
     retried.push(entry.item);
   }
   console.log('Retried items:', retried);
@@ -50,17 +50,17 @@ await (async function runDeadLetterQueueExample(): Promise<void> {
   // --- AbortSignal aborts the queue on construction ---
   const controller = new AbortController();
   controller.abort();
-  const abortedDlq = DeadLetterQueue.create<string>({ 'signal': controller.signal });
+  const abortedDeadLetterQueue = DeadLetterQueue.create<string>({ 'signal': controller.signal });
   const abortedEntries: string[] = [];
-  for await (const entry of abortedDlq.drain()) {
+  for await (const entry of abortedDeadLetterQueue.drain()) {
     abortedEntries.push(entry.item);
   }
   console.log('Aborted drain count:', abortedEntries.length);
 
   assert.deepEqual(collected, ['job-1', 'job-2']);
-  assert.equal(dlq.size, 0);
-  assert.throws(() => { dlq.enqueue('job-3', 'late'); }, DlqClosedError);
-  assert.throws(() => { bounded.enqueue(3, 'overflow'); }, DlqFullError);
+  assert.equal(deadLetterQueue.size, 0);
+  assert.throws(() => { deadLetterQueue.enqueue('job-3', 'late'); }, DeadLetterQueueClosedError);
+  assert.throws(() => { bounded.enqueue(3, 'overflow'); }, DeadLetterQueueFullError);
   assert.deepEqual(retried, ['retry-job-1', 'retry-job-2']);
   assert.equal(abortedEntries.length, 0);
 

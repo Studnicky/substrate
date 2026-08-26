@@ -12,11 +12,14 @@ export class PickDefined {
     [K in keyof T as undefined extends T[K] ? never : K]: T[K];
   };
   public static from(record: Record<string, unknown>): Partial<Record<string, unknown>> {
+    const keys = Object.keys(record);
+    const length = keys.length;
     const result: Partial<Record<string, unknown>> = {};
-    for (const key of Object.keys(record)) {
-      const value = record[key];
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index]!;
+      const value: unknown = Reflect.get(record, key);
       if (value !== undefined) {
-        result[key] = value;
+        Reflect.set(result, key, value);
       }
     }
     return result;

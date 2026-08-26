@@ -8,6 +8,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
@@ -20,11 +21,9 @@ interface ClockSubclassInterface<TInstance> extends Function {
 }
 
 class ClockInstance {
-  static belongsTo<TInstance>(
-    constructor: ClockSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: ClockSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -38,7 +37,7 @@ export class Clock {
     provider: ClockProviderInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [provider]);
-    if (!ClockInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !ClockInstance.belongsTo(this, result)) {
       throw new TypeError('Clock.create() did not construct the requested subclass.');
     }
     return result;
@@ -62,32 +61,8 @@ export class Clock {
     this.#lastNow = 0;
   }
 
-  private static isValidProvider(provider: unknown): provider is ClockProviderInterface {
-    return (
-      typeof provider === 'object' &&
-      provider !== null &&
-      'now' in provider &&
-      typeof provider.now === 'function' &&
-      'hrtime' in provider &&
-      typeof provider.hrtime === 'function'
-    );
-  }
-
-  /**
-   * Extension seam: subclasses may override to intercept or replace the raw
-   * hrtime value before monotonicity clamping is applied.
-   */
-  protected readHrtime(): bigint {
-    const result = this.#provider.hrtime();
-    return result;
-  }
-
-  /**
-   * Extension seam: subclasses may override to intercept or replace the raw
-   * now value before monotonicity clamping is applied.
-   */
-  protected readNow(): number {
-    const result = this.#provider.now();
+  private static isValidProvider(provider: ClockProviderInterface): boolean {
+    const result = Predicates.isFunction(provider.now) && Predicates.isFunction(provider.hrtime);
     return result;
   }
 
@@ -115,7 +90,7 @@ export class Clock {
    * Never returns a value smaller than the previous call on this instance.
    */
   public hrtime(): bigint {
-    const candidate = this.readHrtime();
+    const candidate = this.#provider.hrtime();
 
     if (candidate > this.#lastHrtime) {
       this.#lastHrtime = candidate;
@@ -133,7 +108,7 @@ export class Clock {
    * Never returns a value smaller than the previous call on this instance.
    */
   public now(): number {
-    const candidate = this.readNow();
+    const candidate = this.#provider.now();
 
     if (candidate > this.#lastNow) {
       this.#lastNow = candidate;

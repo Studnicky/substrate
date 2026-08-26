@@ -8,6 +8,10 @@ import type { HealthStatusEntity } from '../../src/entities/HealthStatusEntity.j
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
 import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { type: 'json' };
 
+function createUnhandledRejectionAssertion(message: string): () => void {
+  return () => { assert.fail(message); };
+}
+
 type ScenarioCase =
   | {
       description: string;
@@ -100,7 +104,7 @@ type ScenarioCase =
 
 class ObservedRegistry extends HealthRegistry {
   readonly registeredCalls: string[] = [];
-  readonly resultCalls: { name: string; status: HealthStatusEntity.Type; metadata: unknown }[] = [];
+  readonly resultCalls: { name: string; result: HealthCheckResultInterface }[] = [];
   readonly aggregateCalls: { overall: HealthStatusEntity.Type; size: number }[] = [];
   readonly timeoutCalls: { name: string; timeoutMs: number }[] = [];
 
@@ -108,8 +112,8 @@ class ObservedRegistry extends HealthRegistry {
     this.registeredCalls.push(name);
   }
 
-  protected override onCheckResult(name: string, status: HealthStatusEntity.Type, metadata?: unknown): void {
-    this.resultCalls.push({ name, status, metadata });
+  protected override onCheckResult(name: string, result: HealthCheckResultInterface): void {
+    this.resultCalls.push({ name, result });
   }
 
   protected override onAggregate(overall: HealthStatusEntity.Type, results: ReadonlyMap<string, HealthCheckResultInterface>): void {
@@ -123,7 +127,7 @@ class ObservedRegistry extends HealthRegistry {
 
 async function runCheckSet(
   registry: ObservedRegistry,
-  checks: Array<{ metadata?: unknown; name: string; status: HealthStatusEntity.Type }>
+  checks: Array<HealthCheckResultInterface & { name: string }>
 ): Promise<void> {
   for (const check of checks) {
     registry.register(check.name, async () => {
@@ -148,8 +152,7 @@ const runnerMap: RunnerMap = {
         }
       }
 
-      const rejectionEvents: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = createUnhandledRejectionAssertion('asynchronous aggregate hook produced an unhandled rejection');
       process.on('unhandledRejection', onUnhandledRejection);
 
       try {
@@ -162,7 +165,7 @@ const runnerMap: RunnerMap = {
         await new Promise((resolve) => setTimeout(resolve, scenarioCase.input.waitMs));
         await new Promise((resolve) => setImmediate(resolve));
 
-        assert.equal(rejectionEvents.length, scenarioCase.expected.rejectionCount);
+        assert.equal(scenarioCase.expected.rejectionCount, 0);
         assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
         assert.equal(registry.getHookErrors()[0]?.hookName, scenarioCase.expected.hookName);
       } finally {
@@ -199,9 +202,9 @@ const runnerMap: RunnerMap = {
     },
     'hook-errors-owned-by-instance': async (scenarioCase) => {
       class ThrowingRegistrationRegistry extends HealthRegistry {
-        #cause: unknown;
+        #cause = new Error('unconfigured hook failure');
 
-        failWith(cause: unknown): void {
+        failWith(cause: Error): void {
           this.#cause = cause;
         }
 
@@ -255,7 +258,7 @@ const runnerMap: RunnerMap = {
         .then(() => {
           assert.equal(registry.timeoutCalls.length, scenarioCase.expected.timeoutCount);
           assert.equal(registry.resultCalls.length, 1);
-          assert.equal(registry.resultCalls[0]?.status, scenarioCase.expected.resultStatus);
+          assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
         });
     },
     'on-aggregate-after-settle': async (scenarioCase) => {
@@ -277,9 +280,9 @@ const runnerMap: RunnerMap = {
       assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
       for (const expected of scenarioCase.expected.resultCalls) {
         const actual = registry.resultCalls.find((entry) => entry.name === expected.name);
-        assert.equal(actual?.status, expected.status);
+        assert.equal(actual?.result.status, expected.status);
         if (expected.metadata !== undefined) {
-          assert.deepEqual(actual?.metadata, expected.metadata);
+          assert.deepEqual(actual?.result.metadata, expected.metadata);
         }
       }
     },
@@ -290,7 +293,7 @@ const runnerMap: RunnerMap = {
       });
       await registry.evaluate();
       assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
-      assert.equal(registry.resultCalls[0]?.status, scenarioCase.expected.resultCalls[0]?.status);
+      assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultCalls[0]?.status);
     },
     'throwing-on-aggregate': async (scenarioCase) => {
       class ThrowingAggregateRegistry extends HealthRegistry {
@@ -332,7 +335,7 @@ const runnerMap: RunnerMap = {
         assert.equal(registry.timeoutCalls[0]?.name, scenarioCase.expected.timeoutCalls[0]?.name);
         assert.equal(registry.timeoutCalls[0]?.timeoutMs, scenarioCase.expected.timeoutCalls[0]?.timeoutMs);
         assert.equal(registry.resultCalls.length, 1);
-        assert.equal(registry.resultCalls[0]?.status, scenarioCase.expected.resultStatus);
+        assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
       });
     }
 };

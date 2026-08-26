@@ -1,23 +1,31 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { ValidateFunction } from 'ajv';
+import type {
+  FromSchema, JSONSchema
+} from 'json-schema-to-ts';
 
-import { Guard } from '@studnicky/types';
+import { SchemaValidator } from '@studnicky/json';
+
+import { LayerBindingEntity } from './LayerBindingEntity.js';
 
 export namespace LayerOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'aliasPrefixes': {
-        'additionalProperties': { 'type': 'string' },
-        'description': 'Map of path-alias prefixes (e.g. "@domain/") to their layer name.',
+      'allowedImports': {
+        'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.',
+        'patternProperties': {
+          '.*': {
+            'items': { 'type': 'string' },
+            'type': 'array'
+          }
+        },
         'type': 'object'
       },
-      'allowedImports': {
-        'additionalProperties': {
-          'items': { 'type': 'string' },
-          'type': 'array'
-        },
-        'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.',
-        'type': 'object'
+      'bindings': {
+        'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose kind applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.',
+        'items': LayerBindingEntity.Schema,
+        'type': 'array'
       },
       'layers': {
         'description': 'Ordered list of enforced layer names, e.g. ["domain", "ports", "application", "adapters", "infrastructure"].',
@@ -25,58 +33,31 @@ export namespace LayerOptionsEntity {
         'type': 'array'
       },
       'sourceRoot': {
-        'description': 'Path segment(s) after which the layer name appears, e.g. "src".',
+        'description': 'Path segment(s) after which a folder/package binding\'s candidate segment appears, e.g. "src" or "packages".',
         'type': 'string'
       }
     },
-    'required': ['layers', 'sourceRoot'],
+    'required': [
+      'bindings',
+      'layers',
+      'sourceRoot'
+    ],
     'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  function isStringArray(value: unknown): boolean {
-    if (!Array.isArray(value)) { return false; }
+  // `validate` remains a predicate for callers checking the shared base shape inside a wider
+  // derived option object. It therefore accepts those legitimate supersets. `intake` is the
+  // closed base parser and strips properties that this schema does not declare; derived rules
+  // must compile their own intake from a schema that spreads these properties before adding its
+  // stricter `additionalProperties: false`, so their rule-specific fields survive parsing.
+  const LenientSchema = {
+    ...Schema,
+    'additionalProperties': true
+  } as const satisfies JSONSchema;
 
-    const length = value.length;
-    for (let index = 0; index < length; index += 1) {
-      if (typeof value[index] !== 'string') { return false; }
-    }
-    return true;
-  }
-
-  function isStringRecord(value: unknown): boolean {
-    if (!Guard.isObject(value)) { return false; }
-
-    const keys = Object.keys(value);
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = keys[index];
-      if (key === undefined || typeof value[key] !== 'string') { return false; }
-    }
-    return true;
-  }
-
-  function isStringArrayRecord(value: unknown): boolean {
-    if (!Guard.isObject(value)) { return false; }
-
-    const keys = Object.keys(value);
-    const length = keys.length;
-    for (let index = 0; index < length; index += 1) {
-      const key = keys[index];
-      if (key === undefined || !isStringArray(value[key])) { return false; }
-    }
-    return true;
-  }
-
-  export function validate(candidate: unknown): candidate is Type {
-    if (!Guard.isObject(candidate)) { return false; }
-
-    const aliasPrefixes = candidate.aliasPrefixes;
-    const allowedImports = candidate.allowedImports;
-    return isStringArray(candidate.layers)
-      && typeof candidate.sourceRoot === 'string'
-      && (aliasPrefixes === undefined || isStringRecord(aliasPrefixes))
-      && (allowedImports === undefined || isStringArrayRecord(allowedImports));
-  }
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(LenientSchema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

@@ -19,6 +19,12 @@ pnpm add @studnicky/request-executor
 
 <<< ../../packages/request-executor/examples/observedRequestExecutor.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/request-executor/examples/observedRequestExecutor" title="Retrying a flaky endpoint through a composed FetchClient and Retry" />
+
+The output shows the request against a flaky endpoint that fails twice before succeeding, with the composed `FetchClient` and `Retry` telemetry hooks logging each attempt and retry, and the final response status alongside the executor's retry-count report.
+
 ## Lifecycle hooks
 
 `RequestExecutor` exposes three protected lifecycle hooks, no-ops by default: `onExecuteStart()` fires before the retry loop begins, `onExecuteComplete<T>(result)` fires after it resolves, and `onExecuteError(error)` fires once retries are exhausted. All three run through an internal `HookInvoker` that swallows a throwing override — a rejected hook is recorded (see `hookErrorCount`/`getHookErrors()`) but never replaces `execute()`'s resolved result or thrown error. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:
@@ -33,7 +39,7 @@ pnpm add @studnicky/request-executor
 
 Callers retain references to any `FetchClient`, `Retry`, `Signal`, or `Context` instances supplied to `RequestExecutor.create(config)` when they need those primitives' own hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
 
-Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDepsInterface`, and `RequestExecutorExecuteOptionsInterface` from `@studnicky/request-executor`. The package root is the only public code entrypoint. Import dependency-owned configuration and context contracts directly from their owning package roots.
+Import `RequestExecutor` from `@studnicky/request-executor`, its schema namespace from `@studnicky/request-executor/entities`, and its type contracts from `@studnicky/request-executor/interfaces`. Import dependency-owned configuration and context contracts directly from their owning package roots.
 
 ## Composition order
 
@@ -46,5 +52,29 @@ Import `RequestExecutor`, `RequestExecutorConfigInterface`, `RequestExecutorDeps
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/request-executor
+
+## Entities
+
+`@studnicky/request-executor/entities` exports request deadline schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { RequestDeadlineEntity } from '@studnicky/request-executor/entities';
+```
+
+## Interfaces
+
+`@studnicky/request-executor/interfaces` exports executor configuration, dependency, and execution-option contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { RequestExecutorConfigInterface } from '@studnicky/request-executor/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `RequestExecutor` | Composes request dependencies for a retried one-shot call. | `@studnicky/request-executor` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/request-executor)

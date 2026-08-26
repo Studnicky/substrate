@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -55,7 +56,7 @@ type ScenarioCase =
     });
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
@@ -87,7 +88,7 @@ type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
 
 const runnerMap: RunnerMap = {
   'missing-worker-path': async (scenarioCase) => {
-    assert.throws(() => WorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool)), (error: unknown) => {
+    assert.throws(() => WorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool)), (error: Error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
       return true;
@@ -144,7 +145,7 @@ const runnerMap: RunnerMap = {
 
     assert.throws(() => {
       ForeignWorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    }, (error: unknown) => {
+    }, (error: Error) => {
       assert.ok(error instanceof TypeError);
       assert.ok((error as Error).message.includes('must construct a WorkerPool instance'));
       return true;

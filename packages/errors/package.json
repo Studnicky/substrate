@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/errors",
-  "version": "9.2.0",
+  "version": "11.0.0",
   "description": "Standardized error handling for all modules",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [
@@ -27,6 +35,7 @@
     "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "dependencies": {
+    "@studnicky/intake-kit": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
     "json-schema-to-ts": "^3.1.1"

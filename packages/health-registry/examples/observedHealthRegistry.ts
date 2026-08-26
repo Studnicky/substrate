@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { HealthCheckResultInterface, HealthStatusEntity } from '../src/index.js';
+import type { HealthStatusEntity } from '../src/entities/index.js';
+import type { HealthCheckResultInterface } from '../src/interfaces/index.js';
 
 import { HealthRegistry } from '../src/index.js';
 
@@ -17,9 +18,9 @@ class TelemetryHealthRegistry extends HealthRegistry {
     this.registeredChecks.push(name);
   }
 
-  protected override onCheckResult(name: string, status: HealthStatusEntity.Type, metadata?: unknown): void {
-    console.log(`[health] '${name}' -> ${status}${metadata !== undefined ? ` (${JSON.stringify(metadata)})` : ''}`);
-    this.checkResults.push({ 'name': name, 'status': status });
+  protected override onCheckResult(name: string, result: HealthCheckResultInterface): void {
+    console.log(`[health] '${name}' -> ${result.status}${result.metadata !== undefined ? ` (${JSON.stringify(result.metadata)})` : ''}`);
+    this.checkResults.push({ 'name': name, 'status': result.status });
   }
 
   protected override onCheckTimeout(name: string, timeoutMs: number): void {
@@ -45,14 +46,16 @@ registry.register('cache', async () => {
 });
 
 registry.register('downstream-api', async () => {
-  await new Promise((resolve) => { const result = setTimeout(resolve, 200); return result; });
+  await new Promise((resolve) => {
+    setTimeout(resolve, 200);
+  });
   return { 'status': 'healthy' };
 }, { 'timeoutMs': 20 });
 
 const evaluation = await registry.evaluate();
 
 console.log('Overall status:', evaluation.status);
-console.log('Per-check results:', Object.fromEntries(evaluation.results));
+console.log('Per-check results:', evaluation.results);
 // #endregion usage
 
 // worst-status-wins: the timed-out 'downstream-api' check makes the overall status unhealthy

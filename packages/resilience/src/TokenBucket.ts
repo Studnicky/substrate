@@ -2,6 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { RaceTimeout } from '@studnicky/signal';
+import { Predicates } from '@studnicky/types';
 
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
@@ -13,11 +14,12 @@ interface TokenBucketSubclassInterface<TInstance> extends Function {
 }
 
 class TokenBucketInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: TokenBucketSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -39,8 +41,12 @@ export class TokenBucket {
     this: TokenBucketSubclassInterface<TInstance>,
     options: TokenBucketOptionsInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!TokenBucketInstance.belongsTo(this, result)) {
+    const resolveSubclassConstructor = (): TokenBucketSubclassInterface<TInstance> => {
+      return this;
+    };
+
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    if (!Predicates.isObjectLike(result) || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
       throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;
@@ -52,7 +58,7 @@ export class TokenBucket {
     if (options.burstSize < 1) {throw new ResilienceConfigError('burstSize must be >= 1');}
     this.#requestsPerSecond = options.requestsPerSecond;
     this.#burstSize = options.burstSize;
-    this.#clock = options.clock ?? (() => { const result = Date.now(); return result; });
+    this.#clock = options.clock ?? Date.now;
     this.#tokens = options.burstSize;
     this.#lastRefill = this.#clock();
   }
@@ -97,10 +103,7 @@ export class TokenBucket {
       this.#refill();
       if (this.#tokens >= tokens) {
         this.#tokens -= tokens;
-        this.hooks.invoke('onTokenAcquired', () => {
-          const result = this.onTokenAcquired(tokens);
-          return result;
-        });
+        this.#invokeOnTokenAcquired(tokens);
         return;
       }
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
@@ -129,14 +132,21 @@ export class TokenBucket {
    */
   protected onRefill(_added: number): void {}
 
+  #invokeOnTokenAcquired(tokens: number): void {
+    this.hooks.invoke('onTokenAcquired', () => {
+      const result = this.onTokenAcquired(tokens);
+      return result;
+    });
+  }
+
   #refill(): void {
     const now = this.#clock();
     const elapsed = now - this.#lastRefill;
     const newTokens = (elapsed / 1000) * this.#requestsPerSecond;
-    const prev = this.#tokens;
+    const previousTokens = this.#tokens;
     this.#tokens = Math.min(this.#burstSize, this.#tokens + newTokens);
     this.#lastRefill = now;
-    const added = this.#tokens - prev;
+    const added = this.#tokens - previousTokens;
     if (added > 0) {
       this.hooks.invoke('onRefill', () => {
         const result = this.onRefill(added);
