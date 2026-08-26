@@ -31,7 +31,21 @@ runs:
         cache: pnpm
         registry-url: 'https://npm.pkg.github.com'
         scope: ${{ inputs.scope }}
+    # actions/setup-node's cache: pnpm only caches the pnpm content-addressable
+    # store (avoids re-downloading packages) — pnpm still re-resolves and
+    # re-links the full dependency graph into node_modules on every job. This
+    # caches the already-linked node_modules trees themselves, keyed on the
+    # lockfile, and skips `pnpm install` outright on an exact hit.
     - if: inputs.install == 'true'
+      id: node-modules-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          node_modules
+          packages/*/node_modules
+        key: ${{ runner.os }}-node-modules-${{ inputs.install-args }}-${{ hashFiles('pnpm-lock.yaml') }}
+    - if: inputs.install == 'true' && steps.node-modules-cache.outputs.cache-hit
+        != 'true'
       shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}

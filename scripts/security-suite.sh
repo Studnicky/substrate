@@ -5,7 +5,7 @@ set -eu
 . "$(dirname "$0")/../.githooks/lib/security-suite.sh"
 
 case "${1:-}" in
-  audit) run_audit_check ;;
+  audit) run_audit_check "${2:-}" ;;
   gitleaks-staged) run_gitleaks_check staged ;;
   gitleaks-range) run_gitleaks_check range "${2:-$(workflow_diff_range)}" ;;
   semgrep-range) run_semgrep_check "${2:-$(workflow_diff_range)}" ;;

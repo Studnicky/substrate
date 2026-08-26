@@ -1,9 +1,14 @@
 name: security
 
+# Weekly full sweep + manual trigger only — PRs are already covered by
+# audit.yml's own detect-changes-gated audit job (report-artifact: false).
+# This exists to catch a CVE disclosed against an already-merged, unchanged
+# dependency between PRs, and to keep a 30-day npm-audit-report artifact
+# trail. Running the same pnpm audit a second time on every PR added no
+# signal audit.yml didn't already have, so this no longer triggers on
+# pull_request.
+
 on:
-  pull_request:
-    branches: [ main, develop ]
-    types: [ opened, synchronize, reopened ]
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
@@ -14,20 +19,3 @@ jobs:
     uses: ./.github/workflows/security-audit.yml
     with:
       report-artifact: true
-
-  security-required:
-    name: Security audit
-    needs: [ audit ]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Gate security audit result
-        shell: bash
-        env:
-          AUDIT_RESULT: ${{ needs.audit.result }}
-        run: |
-          set -euo pipefail
-          case "$AUDIT_RESULT" in
-            success|skipped) ;;
-            *) echo "Security audit: dependency result was $AUDIT_RESULT" >&2; exit 1 ;;
-          esac

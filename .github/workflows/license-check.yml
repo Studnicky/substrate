@@ -6,8 +6,14 @@ on:
   workflow_dispatch:
 
 jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changes.yml
+
   check:
-    name: License compliance
+    name: license report
+    needs: [ detect-changes ]
+    if: needs.detect-changes.outputs.lockfiles == 'true' || github.event_name ==
+      'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -35,3 +41,23 @@ jobs:
           name: license-report
           path: license-report.csv
           retention-days: 30
+
+  required:
+    name: License compliance
+    needs: [ detect-changes, check ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate license compliance result
+        shell: bash
+        env:
+          DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
+          CHECK_RESULT: ${{ needs.check.result }}
+        run: |
+          set -euo pipefail
+          for result in "$DETECT_CHANGES_RESULT" "$CHECK_RESULT"; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "License compliance: dependency result was $result" >&2; exit 1 ;;
+            esac
+          done
