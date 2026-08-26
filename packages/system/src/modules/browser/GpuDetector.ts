@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 
 export class GpuDetector {
@@ -26,7 +28,7 @@ export class GpuDetector {
 
       const renderer: unknown = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
       const vendor: unknown = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);
-      if (typeof renderer !== 'string' || typeof vendor !== 'string') { return null; }
+      if (!Predicates.isString(renderer) || !Predicates.isString(vendor)) { return null; }
 
       const result: GpuInfoEntity.Type = {
         'computeApi': GpuDetector.#mapComputeApi(renderer, vendor),

@@ -157,7 +157,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     this: WorkerPoolConstructorInterface<TMessage, TResult, TInstance>,
     config: WorkerPoolConfigInterface
   ): TInstance {
-    if (typeof config.workerPath !== 'string' || config.workerPath.length === 0) {
+    if (!Predicates.isString(config.workerPath) || config.workerPath.length === 0) {
       throw new Error('WorkerPool: workerPath is required');
     }
 
@@ -246,7 +246,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     };
 
     const reportOperationFailure = (cause: Error, index: number): void => {
-      const error = cause instanceof Error
+      const error = Predicates.isError(cause)
         ? cause
         : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
       reportWorkerError(error, index);
@@ -307,7 +307,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           ? undefined
           : await this.#signal.compose({ 'deadlineMs': this.#timeoutMs });
       } catch (cause) {
-        const error = cause instanceof Error
+        const error = Predicates.isError(cause)
           ? cause
           : new Error('WorkerPool: task timeout signal composition failed', { 'cause': cause });
         entry.reject(error);
@@ -347,7 +347,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
       const terminateAfterAbort = (taskContext: TaskContextInterface<TMessage, TResult>): void => {
         worker.terminate().catch((cause: Error) => {
-          const terminationError = cause instanceof Error
+          const terminationError = Predicates.isError(cause)
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
           reportWorkerError(terminationError, taskContext.index);
@@ -470,7 +470,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           context.reject(error);
         });
         worker.terminate().catch((cause: Error) => {
-          const terminationError = cause instanceof Error
+          const terminationError = Predicates.isError(cause)
             ? cause
             : new Error('WorkerPool: worker termination failed', { 'cause': cause });
           reportWorkerError(terminationError, workerIndex2);
@@ -596,7 +596,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         const workerEntry = workersToTerminate.at(index);
         if (workerEntry === undefined) { return; }
         const terminationCause: unknown = outcome.reason;
-        const terminationError = terminationCause instanceof Error
+        const terminationError = Predicates.isError(terminationCause)
           ? terminationCause
           : new Error('WorkerPool: worker termination failed', { 'cause': terminationCause });
         const [, workerIndex] = workerEntry;

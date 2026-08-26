@@ -706,10 +706,10 @@ export class Throttle implements ThrottleInterface {
           // rejects execute() instead of becoming an unhandled rejection.
           callback().then(
             (successResult) => { this.handleOperationSuccess(operation, successResult, operationStartTime, resolveExecute); },
-            (error) => { this.handleOperationError(operation, error instanceof Error ? error : new Error(String(error)), rejectExecute); }
+            (error) => { this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute); }
           ).catch(rejectExecute);
         } catch (error) {
-          this.handleOperationError(operation, error instanceof Error ? error : new Error(String(error)), rejectExecute);
+          this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute);
         }
       })
         .catch(rejectExecute);
@@ -800,7 +800,7 @@ export class Throttle implements ThrottleInterface {
     operation.completed = true;
     this.activeOperations.delete(operation);
 
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
 
     try {
       this.fireLifecycleEffect({ 'reason': normalizedError, 'type': 'OperationRejected' });

@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
 
 /**
@@ -19,11 +21,10 @@ export class BodySerializer {
    * @returns True if Content-Type should be set
    */
   static needsJsonContentType(body: BodyRequestOptionsInterface['body']): boolean {
-    const result = typeof body === 'object'
-      && body !== null
+    const result = Predicates.isObjectLike(body)
       && !(body instanceof Buffer)
       && !(body instanceof ArrayBuffer)
-      && !ArrayBuffer.isView(body);
+      && !Predicates.isArrayBufferView(body);
     return result;
   }
 
@@ -41,7 +42,7 @@ export class BodySerializer {
       return result;
     }
 
-    if (typeof body === 'string') {
+    if (Predicates.isString(body)) {
       const result = body;
       return result;
     }
@@ -51,7 +52,7 @@ export class BodySerializer {
       return result;
     }
 
-    if (ArrayBuffer.isView(body)) {
+    if (Predicates.isArrayBufferView(body)) {
       const visibleBytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
       const result = Uint8Array.from(visibleBytes);
       return result;

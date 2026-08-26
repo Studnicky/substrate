@@ -15,7 +15,7 @@ import { ValidationError } from './ValidationError.js';
 namespace HookDiagnosticSnapshotEntity {
   class Intake {
     static intake(value: unknown, seen: WeakMap<object, unknown>): unknown {
-      if (!(Predicates.isObjectLike(value) || Predicates.isFunction(value))) {
+      if (!Predicates.isObjectLikeOrFunction(value)) {
         return value;
       }
 

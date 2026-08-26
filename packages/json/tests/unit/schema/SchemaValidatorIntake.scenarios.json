@@ -2,15 +2,15 @@
   "cases": [
     {
       "name": "schema-intake-transforms-without-mutating-input",
-      "description": "intake coerces, defaults, strips, and preserves the caller input",
+      "description": "intake defaults, strips, and preserves the caller input, without coercing a correctly-typed value",
       "shape": "intake-transforms",
       "input": {
-        "port": "8080",
+        "port": 8080,
         "unexpected": "discard"
       },
       "expected": {
         "original": {
-          "port": "8080",
+          "port": 8080,
           "unexpected": "discard"
         },
         "result": {
@@ -25,6 +25,18 @@
       "shape": "intake-rejection",
       "input": {
         "port": "not-a-number"
+      },
+      "expected": {
+        "path": "/port",
+        "schemaIdentifier": "https://studnicky.dev/schemas/schema-intake-rejection"
+      }
+    },
+    {
+      "name": "schema-intake-does-not-coerce-a-numeric-looking-string",
+      "description": "intake rejects a numeric-looking string rather than silently coercing it — no scalar type coercion, by default",
+      "shape": "intake-rejection",
+      "input": {
+        "port": "8080"
       },
       "expected": {
         "path": "/port",

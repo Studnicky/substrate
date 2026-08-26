@@ -34,7 +34,7 @@ export class Patch {
   }
 
   protected constructor(operations: PropertyKey | bigint | boolean | object | null | undefined = []) {
-    const candidates = Array.isArray(operations) ? operations : [operations];
+    const candidates = Predicates.isArray(operations) ? operations : [operations];
     const parsedOperations: PatchOperationEntity.Type[] = [];
     const candidateLength = candidates.length;
     for (let index = 0; index < candidateLength; index += 1) {

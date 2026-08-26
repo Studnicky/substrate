@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 /**
  * Base error class for all modules in the monorepo.
  *
@@ -194,7 +196,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
         json.cause = depth >= CAUSE_CHAIN_DEPTH_LIMIT
           ? CAUSE_DEPTH_SENTINEL
           : cause.serializeModuleNode(depth + 1);
-      } else if (cause instanceof Error) {
+      } else if (Predicates.isError(cause)) {
         json.cause = {
           'message': cause.message,
           'name': cause.name,

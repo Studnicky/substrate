@@ -92,10 +92,10 @@ export class Logger implements LoggerInterface {
       throw new ConfigurationError('metadata must be a plain object');
     }
     const suppliedTransports: unknown = options.transports;
-    if (suppliedTransports !== undefined && !Array.isArray(suppliedTransports)) {
+    if (suppliedTransports !== undefined && !Predicates.isArray(suppliedTransports)) {
       throw new ConfigurationError('transports must be an array');
     }
-    const transportInputs: unknown[] = Array.isArray(suppliedTransports) ? suppliedTransports : [];
+    const transportInputs: unknown[] = Predicates.isArray(suppliedTransports) ? [...suppliedTransports] : [];
 
     this.#level = options.level !== undefined
       ? ParseLogLevel.parse(options.level)
@@ -231,7 +231,7 @@ export class Logger implements LoggerInterface {
       this.#transportErrorHooks.invoke(
         'onTransportError',
         () => {
-          const transportError = error instanceof Error ? error : new Error(String(error));
+          const transportError = Predicates.isError(error) ? error : new Error(String(error));
           const result = this.onTransportError(transport, record, transportError);
           return result;
         }

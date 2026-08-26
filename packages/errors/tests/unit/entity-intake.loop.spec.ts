@@ -25,10 +25,10 @@ import { ValidationViolationEntity } from '../../src/entities/ValidationViolatio
 import { ValidationError } from '../../src/errors/ValidationError.js';
 
 void describe('errors entity intake boundaries', () => {
-  void it('coerces and strips a private clone without mutating the caller value', () => {
+  void it('strips a private clone without mutating the caller value, without coercing types', () => {
     const input = {
       'ignored': { 'nested': true },
-      'retryable': 'true'
+      'retryable': true
     };
 
     const result = ErrorClassificationEntity.intake(input);
@@ -36,7 +36,7 @@ void describe('errors entity intake boundaries', () => {
     assert.deepEqual(result, { 'retryable': true });
     assert.deepEqual(input, {
       'ignored': { 'nested': true },
-      'retryable': 'true'
+      'retryable': true
     });
   });
 
@@ -45,6 +45,7 @@ void describe('errors entity intake boundaries', () => {
     cyclic.self = cyclic;
 
     assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'not-a-boolean' }), ValidationError);
+    assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'true' }), ValidationError, 'a numeric-looking or boolean-looking string is rejected, not coerced');
     assert.throws(() => ErrorClassificationEntity.intake(cyclic), ValidationError);
   });
 

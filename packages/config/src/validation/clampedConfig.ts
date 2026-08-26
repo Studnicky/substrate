@@ -11,6 +11,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';
@@ -69,7 +70,7 @@ export class ClampedConfig {
       }
       const raw = configValues.get(field);
 
-      if (typeof raw !== 'number') {
+      if (!Predicates.isNumber(raw)) {
         continue;
       }
       if (raw >= rule.minimum && raw <= rule.maximum) {

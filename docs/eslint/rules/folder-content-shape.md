@@ -19,7 +19,7 @@ An entity file is a non-barrel file under an `entities/` path segment or with a 
 - `intake`: `SchemaValidator.compileIntake<Type>(Schema)`, the boundary that returns a newly proven entity value; and
 - `create`: `SchemaValidator.compileCreate<Type>(Schema)` when the `Schema` declarator is an object literal whose top-level `type` property is `'object'`.
 
-`validate` narrows in place, while `intake` returns a new value whose type proves it crossed the unparsed-input boundary. `create` has a different provenance contract: it accepts locally produced partial object data without intake's coercion, default-filling, or unknown-property stripping. Scalars do not require `create`; `Partial<'healthy' | 'degraded'>` has no useful meaning.
+`validate` narrows in place, while `intake` returns a new value whose type proves it crossed the unparsed-input boundary. `create` has a different provenance contract: it accepts locally produced partial object data without intake's default-filling or unknown-property stripping (neither `intake` nor `create` coerces a value's type). Scalars do not require `create`; `Partial<'healthy' | 'degraded'>` has no useful meaning.
 
 The object-only decision reads the `Schema` declarator's own top-level `type` property. A nested property schema does not count. When a builder call, spread, or composition does not expose a literal root type, the rule does not require `create`, avoiding a false positive.
 

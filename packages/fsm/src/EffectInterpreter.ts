@@ -2,9 +2,10 @@ import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/ent
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { Clone } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
-import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
-import type { EffectInterpreterConstructorOptionsInterface } from './EffectInterpreterConstructorOptionsInterface.js';
+import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
+import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { FsmConfigError } from './errors/FsmConfigError.js';
@@ -261,7 +262,7 @@ export class EffectInterpreter<
       this.hooks.invoke('onEffectSuccess', () => { const result = this.onEffectSuccess(effect);
         return result; });
     } catch (errorValue: unknown) {
-      const error = errorValue instanceof Error ? errorValue : new Error(String(errorValue));
+      const error = Predicates.isError(errorValue) ? errorValue : new Error(String(errorValue));
       this.hooks.invoke('onEffectError', () => { const result = this.onEffectError(effect, error);
         return result; });
       throw error;

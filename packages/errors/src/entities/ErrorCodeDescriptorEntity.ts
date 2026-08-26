@@ -40,18 +40,18 @@ export namespace ErrorCodeDescriptorEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.code !== 'string') { return false; }
-    if (typeof candidate.description !== 'string') { return false; }
-    if (typeof candidate.retryable !== 'boolean') { return false; }
+    if (!Predicates.isString(candidate.code)) { return false; }
+    if (!Predicates.isString(candidate.description)) { return false; }
+    if (!Predicates.isBoolean(candidate.retryable)) { return false; }
     return true;
   };
 
   class Parser {
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['code', 'description', 'retryable'])) { return undefined; }
-      const code = EntityIntake.string(candidate.code, options.coerce);
-      const description = EntityIntake.string(candidate.description, options.coerce);
-      const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
+      const code = EntityIntake.string(candidate.code);
+      const description = EntityIntake.string(candidate.description);
+      const retryable = EntityIntake.boolean(candidate.retryable);
       if (code === undefined || description === undefined || retryable === undefined) { return undefined; }
       return { 'code': code, 'description': description, 'retryable': retryable };
     }

@@ -71,7 +71,7 @@ export class FlagEvaluator {
   }
 
   private static isConstructor(value: object): value is Function {
-    const result = typeof value === 'function';
+    const result = Predicates.isFunction(value);
     return result;
   }
 

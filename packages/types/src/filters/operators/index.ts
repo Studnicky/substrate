@@ -5,13 +5,10 @@
  */
 
 // Export individual operator classes for advanced usage
-export { ArrayOperators } from './ArrayOperators.js';
 export { BooleanOperators } from './BooleanOperators.js';
 export { DateOperators } from './DateOperators.js';
-export { MapOperators } from './MapOperators.js';
 export { NumericOperators } from './NumericOperators.js';
 export { ObjectOperators } from './ObjectOperators.js';
-export { SetOperators } from './SetOperators.js';
 export { StringOperators } from './StringOperators.js';
 export { ValueOperators } from './ValueOperators.js';
 

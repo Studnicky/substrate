@@ -39,9 +39,9 @@ export namespace ValidationReportOptionsEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (candidate.status !== undefined && typeof candidate.status !== 'number') { return false; }
-    if (candidate.title !== undefined && typeof candidate.title !== 'string') { return false; }
-    if (candidate.type !== undefined && typeof candidate.type !== 'string') { return false; }
+    if (candidate.status !== undefined && !Predicates.isNumber(candidate.status)) { return false; }
+    if (candidate.title !== undefined && !Predicates.isString(candidate.title)) { return false; }
+    if (candidate.type !== undefined && !Predicates.isString(candidate.type)) { return false; }
     return true;
   };
 
@@ -52,15 +52,15 @@ export namespace ValidationReportOptionsEntity {
       let title: string | undefined;
       let type: string | undefined;
       if (candidate.status !== undefined) {
-        status = EntityIntake.number(candidate.status, options.coerce);
+        status = EntityIntake.number(candidate.status);
         if (status === undefined) { return undefined; }
       }
       if (candidate.title !== undefined) {
-        title = EntityIntake.string(candidate.title, options.coerce);
+        title = EntityIntake.string(candidate.title);
         if (title === undefined) { return undefined; }
       }
       if (candidate.type !== undefined) {
-        type = EntityIntake.string(candidate.type, options.coerce);
+        type = EntityIntake.string(candidate.type);
         if (type === undefined) { return undefined; }
       }
       if (status === undefined) {

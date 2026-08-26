@@ -19,6 +19,12 @@ pnpm add @studnicky/request-executor
 
 <<< ../../packages/request-executor/examples/observedRequestExecutor.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/request-executor/examples/observedRequestExecutor" title="Retrying a flaky endpoint through a composed FetchClient and Retry" />
+
+The output shows the request against a flaky endpoint that fails twice before succeeding, with the composed `FetchClient` and `Retry` telemetry hooks logging each attempt and retry, and the final response status alongside the executor's retry-count report.
+
 ## Lifecycle hooks
 
 `RequestExecutor` exposes three protected lifecycle hooks, no-ops by default: `onExecuteStart()` fires before the retry loop begins, `onExecuteComplete<T>(result)` fires after it resolves, and `onExecuteError(error)` fires once retries are exhausted. All three run through an internal `HookInvoker` that swallows a throwing override — a rejected hook is recorded (see `hookErrorCount`/`getHookErrors()`) but never replaces `execute()`'s resolved result or thrown error. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:

@@ -1,4 +1,4 @@
-import type { RegisteredInterpreterInterface } from './RegisteredInterpreterInterface.js';
+import type { RegisteredInterpreterInterface } from './interfaces/RegisteredInterpreterInterface.js';
 
 import { FsmHookInvoker } from './FsmHookInvoker.js';
 import { MachineAlreadyRegisteredError } from './MachineAlreadyRegisteredError.js';

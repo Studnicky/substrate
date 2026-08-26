@@ -40,8 +40,8 @@ export namespace ValidationViolationDetailEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.message !== 'string') { return false; }
-    if (typeof candidate.path !== 'string') { return false; }
+    if (!Predicates.isString(candidate.message)) { return false; }
+    if (!Predicates.isString(candidate.path)) { return false; }
     if (candidate.details !== undefined && !Predicates.isObject(candidate.details)) { return false; }
     return true;
   };
@@ -49,8 +49,8 @@ export namespace ValidationViolationDetailEntity {
   class Parser {
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['details', 'message', 'path'])) { return undefined; }
-      const message = EntityIntake.string(candidate.message, options.coerce);
-      const path = EntityIntake.string(candidate.path, options.coerce);
+      const message = EntityIntake.string(candidate.message);
+      const path = EntityIntake.string(candidate.path);
       if (message === undefined || path === undefined) { return undefined; }
       if (candidate.details === undefined) { return { 'message': message, 'path': path }; }
       if (!Predicates.isObject(candidate.details)) { return undefined; }

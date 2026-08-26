@@ -2,6 +2,8 @@
  * URL and query string utilities as static class methods
  */
 
+import { Predicates } from '@studnicky/types';
+
 import type { QueryParametersInterface } from '../interfaces/QueryParametersInterface.js';
 
 /**
@@ -31,7 +33,7 @@ export class UrlQueryString {
 
       const encodedKey = encodeURIComponent(key);
 
-      if (Array.isArray(value)) {
+      if (Predicates.isArray(value)) {
         const valueLength = value.length;
         for (let valueIndex = 0; valueIndex < valueLength; valueIndex += 1) {
           const item: unknown = Reflect.get(value, valueIndex);

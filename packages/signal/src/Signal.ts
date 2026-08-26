@@ -51,7 +51,7 @@ export class Signal {
     const callerSignal = options.signal;
     const deadlineMs = options.deadlineMs;
 
-    if (deadlineMs !== undefined && (typeof deadlineMs !== 'number' || isNaN(deadlineMs) || deadlineMs < 0)) {
+    if (deadlineMs !== undefined && (!Predicates.isNumber(deadlineMs) || isNaN(deadlineMs) || deadlineMs < 0)) {
       throw new SignalError('deadlineMs must be a non-negative number');
     }
 

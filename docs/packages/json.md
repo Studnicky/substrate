@@ -109,20 +109,21 @@ export namespace RecordEntity {
   export const create = SchemaValidator.compileCreate<Type>(Schema);
 }
 
-// From outside the process — coerced, defaulted, stripped, or rejected.
+// From outside the process — defaulted, stripped, or rejected. Never coerced: a wrong-typed
+// field (a string where the schema declares a number) throws, it is not silently converted.
 const record = RecordEntity.intake(await request.json());
 
 // Produced in-process — defaults merged, nothing transformed.
 const fixture = RecordEntity.create({ id: 'r-1' });
 ```
 
-`intake` runs, in order: reject cyclic input, deep-clone so the caller's value is never mutated, then coerce types, fill schema defaults and strip properties the schema does not declare. Invalid input throws `SchemaIntakeError`, which carries the formatted message, Ajv's raw `errors` array, and the schema's `$id` or `title` so the reader knows which entity rejected the payload.
+`intake` runs, in order: reject cyclic input, deep-clone so the caller's value is never mutated, then fill schema defaults and strip properties the schema does not declare. It never coerces a scalar's type. Invalid input throws `SchemaIntakeError`, which carries the formatted message, Ajv's raw `errors` array, and the schema's `$id` or `title` so the reader knows which entity rejected the payload.
 
-`create` is for data you produced yourself: defaults are merged, but nothing is coerced or stripped, and a wrong-typed value throws rather than being silently converted. The distinction is **provenance, not shape** — running transforms over your own fixture is wrong; skipping them on a request body is worse.
+`create` is for data you produced yourself: defaults are merged, but nothing is stripped, and a wrong-typed value throws exactly as it does in `intake`. The distinction is **provenance, not shape** — running transforms over your own fixture is wrong; skipping them on a request body is worse.
 
 `intake` applies to every entity. `create` is constrained at the type level to object-typed entities, because `Partial<'healthy' | 'degraded'>` is not a usable input.
 
-These run on three separate Ajv instances, because coercion and default-filling mutate the value being validated: the assert instance backing `compile` performs no mutation at all, the intake instance enables `coerceTypes`, `useDefaults` and `removeAdditional`, and the create instance enables `useDefaults` alone. Sharing one instance would silently change what `compile` does to every existing caller.
+These run on three separate Ajv instances because Ajv's transform options (`useDefaults`, `removeAdditional`) are configured once per instance, at construction, not per call — there is no per-call toggle. `compile` needs an instance with neither option set, so validating never mutates the value being checked; `compileIntake` needs `useDefaults` and `removeAdditional` on together, to fill defaults and strip undeclared properties; `compileCreate` needs `useDefaults` alone, with no stripping. One instance can only carry one of those three configurations at a time, so serving all three contracts means three instances.
 
 Import schema and validator types from their declaring packages and declare those packages directly: `JSONSchema` and `FromSchema` come from `json-schema-to-ts`, while `ValidateFunction` comes from `ajv`. The schema and `FromSchema` derivation may be split across files; each site imports the owner symbol it uses. `SchemaValidator` supplies `@studnicky/json` runtime functionality, not proxy exports for dependency-owned declarations.
 

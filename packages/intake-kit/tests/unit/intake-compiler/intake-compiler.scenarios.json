@@ -1,14 +1,14 @@
 {
   "cases": [
     {
-      "name": "intake-coerces-number-to-string",
-      "description": "intake coerces per the injected options",
-      "shape": "intake-coerces",
+      "name": "intake-does-not-coerce-number-to-string",
+      "description": "intake rejects a wrong-typed field rather than coercing it",
+      "shape": "intake-rejects-parser-undefined",
       "input": {
         "candidate": { "name": 42 }
       },
       "expected": {
-        "result": { "name": "42" }
+        "message": "WidgetEntity: does not match the declared schema"
       }
     },
     {
@@ -70,11 +70,11 @@
       "shape": "compile-independent",
       "input": {
         "createCandidate": { "name": "gear" },
-        "intakeCandidate": { "name": 42 }
+        "intakeCandidate": { "name": "cog" }
       },
       "expected": {
         "createResult": { "name": "gear" },
-        "intakeResult": { "name": "42" }
+        "intakeResult": { "name": "cog" }
       }
     }
   ]

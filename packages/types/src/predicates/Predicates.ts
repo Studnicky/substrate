@@ -31,7 +31,7 @@ export class Predicates {
     [
       'integer',
       (value: unknown): boolean => {
-        const result = typeof value === 'number' && Number.isInteger(value);
+        const result = Predicates.isIntegerValue(value);
         return result;
       }
     ],
@@ -45,7 +45,7 @@ export class Predicates {
     [
       'number',
       (value: unknown): boolean => {
-        const result = typeof value === 'number' && Number.isFinite(value);
+        const result = Predicates.isFiniteNumber(value);
         return result;
       }
     ],
@@ -106,32 +106,51 @@ export class Predicates {
     return recordArray;
   }
 
-  public static isString(value: unknown): value is string {
+  public static isString<T>(value: T): value is string & T {
     if (typeof value === 'string') {
       return true;
     }
     return false;
   }
 
-  public static isNumber(value: unknown): value is number {
+  public static isNumber<T>(value: T): value is number & T {
     if (typeof value === 'number' && !Number.isNaN(value)) {
       return true;
     }
     return false;
   }
 
-  public static isBoolean(value: unknown): value is boolean {
+  /**
+   * Type guard for the `number` primitive, including `NaN` and `±Infinity`.
+   * Use this over `isNumber` when the caller needs to route those values to
+   * a more specific downstream check (e.g. a separate "must be finite" or
+   * "must not be NaN" error) rather than reject them at the type gate.
+   */
+  public static isNumberType<T>(value: T): value is number & T {
+    const result = typeof value === 'number';
+    return result;
+  }
+
+  public static isBoolean<T>(value: T): value is boolean & T {
     if (typeof value === 'boolean') {
       return true;
     }
     return false;
   }
 
-  public static isFunction(value: unknown): value is (...argumentList: unknown[]) => unknown {
+  public static isFunction<T extends (...argumentList: unknown[]) => unknown>(value: T): value is T;
+  public static isFunction(value: unknown): value is (...argumentList: unknown[]) => unknown;
+  public static isFunction(value: unknown): boolean {
     if (typeof value === 'function') {
       return true;
     }
     return false;
+  }
+
+  /** `isObjectLike` or `isFunction` — the shape a `WeakMap`-tracked reference cycle guard accepts. */
+  public static isObjectLikeOrFunction<T>(value: T): value is object & T {
+    const result = Predicates.isObjectLike(value) || Predicates.isFunction(value);
+    return result;
   }
 
   /**
@@ -140,7 +159,7 @@ export class Predicates {
    * an object at all," not "is this a plain record"; use `isObject` instead when the code goes on
    * to do bracket-property access and genuinely needs to exclude `Array`/`Map`/`Set`.
    */
-  public static isObjectLike(value: unknown): value is object {
+  public static isObjectLike<T>(value: T): value is object & T {
     const result = typeof value === 'object' && value !== null;
     return result;
   }
@@ -149,12 +168,12 @@ export class Predicates {
    * Returns `true` when `value` is a plain, non-null, non-array object.
    * `Map` and `Set` instances return `false` — a `Record<string, unknown>`
    * must support bracket-property access, which neither collection provides.
-   * This is the canonical plain-object check for the package: `Empty.isObject`
-   * and `JsonObject.is` both delegate here rather than reimplementing the
-   * exclusion. `asRecordArray` delegates here too; static override this method
-   * in a subclass to customise what counts as a record.
+   * This is the canonical plain-object check for the package: `JsonObject.is`
+   * delegates here rather than reimplementing the exclusion. `asRecordArray`
+   * delegates here too; static override this method in a subclass to
+   * customise what counts as a record.
    */
-  public static isObject(value: unknown): value is Record<string, unknown> {
+  public static isObject<T>(value: T): value is Record<string, unknown> & T {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return false;
     }
@@ -163,25 +182,25 @@ export class Predicates {
   }
 
   /** Type guard for a `Map` instance. */
-  public static isMap(value: unknown): value is Map<unknown, unknown> {
+  public static isMap<T>(value: T): value is Map<unknown, unknown> & T {
     const result = value instanceof Map;
     return result;
   }
 
   /** Type guard for a `Set` instance. */
-  public static isSet(value: unknown): value is Set<unknown> {
+  public static isSet<T>(value: T): value is Set<unknown> & T {
     const result = value instanceof Set;
     return result;
   }
 
   /** Type guard for a `Date` instance. */
-  public static isDate(value: unknown): value is Date {
+  public static isDate<T>(value: T): value is Date & T {
     const result = value instanceof Date;
     return result;
   }
 
   /** Type guard for an array — `Array.isArray` narrowed to `readonly unknown[]`. */
-  public static isArray(value: unknown): value is readonly unknown[] {
+  public static isArray<T>(value: T): value is readonly unknown[] & T {
     const result = Array.isArray(value);
     return result;
   }
@@ -192,7 +211,7 @@ export class Predicates {
    * `isObject` (which additionally excludes `Map`/`Set`) and looser than `isPlainObject` (which
    * additionally requires `Object.prototype`/`null` as the prototype).
    */
-  public static isRecord(value: unknown): value is Record<string, unknown> {
+  public static isRecord<T>(value: T): value is Record<string, unknown> & T {
     const result = Predicates.isObjectLike(value) && !Array.isArray(value);
     return result;
   }
@@ -202,7 +221,7 @@ export class Predicates {
    * exactly `Object.prototype` or `null` (`Object.create(null)`). Stricter than `isObject`: a
    * class instance (custom prototype) fails this even though it passes `isObject`.
    */
-  public static isPlainObject(value: unknown): value is Record<string, unknown> {
+  public static isPlainObject<T>(value: T): value is Record<string, unknown> & T {
     if (!Predicates.isRecord(value)) {
       return false;
     }
@@ -212,25 +231,25 @@ export class Predicates {
   }
 
   /** Type guard for `null` or `undefined`. */
-  public static isNullish(value: unknown): value is null | undefined {
+  public static isNullish<T>(value: T): value is (null | undefined) & T {
     const result = value === null || value === undefined;
     return result;
   }
 
   /** Type guard for a `RegExp` instance. */
-  public static isRegExp(value: unknown): value is RegExp {
+  public static isRegExp<T>(value: T): value is RegExp & T {
     const result = value instanceof RegExp;
     return result;
   }
 
   /** Type guard for a `symbol`. */
-  public static isSymbol(value: unknown): value is symbol {
+  public static isSymbol<T>(value: T): value is symbol & T {
     const result = typeof value === 'symbol';
     return result;
   }
 
   /** Type guard for a `bigint`. */
-  public static isBigInt(value: unknown): value is bigint {
+  public static isBigInt<T>(value: T): value is bigint & T {
     const result = typeof value === 'bigint';
     return result;
   }
@@ -240,7 +259,7 @@ export class Predicates {
    * `Promise.resolve` uses exactly this duck-type check (not `instanceof Promise`) to decide
    * whether to adopt a value's resolution, which is why this checks structure rather than class.
    */
-  public static isThenable(value: unknown): value is PromiseLike<unknown> {
+  public static isThenable<T>(value: T): value is PromiseLike<unknown> & T {
     if (!Predicates.isObjectLike(value) && !Predicates.isFunction(value)) {
       return false;
     }
@@ -249,7 +268,7 @@ export class Predicates {
   }
 
   /** Type guard for a value implementing the iterable protocol (`Symbol.iterator`). */
-  public static isIterable(value: unknown): value is Iterable<unknown> {
+  public static isIterable<T>(value: T): value is Iterable<unknown> & T {
     if (typeof value === 'string') {
       return true;
     }
@@ -261,7 +280,7 @@ export class Predicates {
   }
 
   /** Type guard for a value implementing the async-iterable protocol (`Symbol.asyncIterator`). */
-  public static isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  public static isAsyncIterable<T>(value: T): value is AsyncIterable<unknown> & T {
     if (!Predicates.isObjectLike(value)) {
       return false;
     }
@@ -270,7 +289,7 @@ export class Predicates {
   }
 
   /** Type guard for a typed array or `DataView` over an `ArrayBuffer`. */
-  public static isArrayBufferView(value: unknown): value is ArrayBufferView {
+  public static isArrayBufferView<T>(value: T): value is ArrayBufferView & T {
     const result = ArrayBuffer.isView(value);
     return result;
   }
@@ -281,55 +300,55 @@ export class Predicates {
   // globals this package needs to guard the existence of before referencing.
 
   /** Type guard for a `Blob` instance (a `File` is a `Blob`, so this accepts both). */
-  public static isBlob(value: unknown): value is Blob {
+  public static isBlob<T>(value: T): value is Blob & T {
     const result = value instanceof Blob;
     return result;
   }
 
   /** Type guard for a `FormData` instance. */
-  public static isFormData(value: unknown): value is FormData {
+  public static isFormData<T>(value: T): value is FormData & T {
     const result = value instanceof FormData;
     return result;
   }
 
   /** Type guard for a `URL` instance. */
-  public static isURL(value: unknown): value is URL {
+  public static isURL<T>(value: T): value is T & URL {
     const result = value instanceof URL;
     return result;
   }
 
   /** Type guard for a `URLSearchParams` instance. */
-  public static isURLSearchParams(value: unknown): value is URLSearchParams {
+  public static isURLSearchParams<T>(value: T): value is T & URLSearchParams {
     const result = value instanceof URLSearchParams;
     return result;
   }
 
   /** Type guard for a `Headers` instance. */
-  public static isHeaders(value: unknown): value is Headers {
+  public static isHeaders<T>(value: T): value is Headers & T {
     const result = value instanceof Headers;
     return result;
   }
 
   /** Type guard for a `Request` instance. */
-  public static isRequest(value: unknown): value is Request {
+  public static isRequest<T>(value: T): value is Request & T {
     const result = value instanceof Request;
     return result;
   }
 
   /** Type guard for a `Response` instance. */
-  public static isResponse(value: unknown): value is Response {
+  public static isResponse<T>(value: T): value is Response & T {
     const result = value instanceof Response;
     return result;
   }
 
   /** Type guard for an `AbortSignal` instance. */
-  public static isAbortSignal(value: unknown): value is AbortSignal {
+  public static isAbortSignal<T>(value: T): value is AbortSignal & T {
     const result = value instanceof AbortSignal;
     return result;
   }
 
   /** Type guard for a `ReadableStream` instance. */
-  public static isReadableStream(value: unknown): value is ReadableStream {
+  public static isReadableStream<T>(value: T): value is ReadableStream & T {
     const result = value instanceof ReadableStream;
     return result;
   }
@@ -340,7 +359,7 @@ export class Predicates {
    * error object). Delegates to `Error.isError`, the runtime's own answer to that question, rather
    * than a hand-rolled `instanceof Error` check.
    */
-  public static isError(value: unknown): value is Error {
+  public static isError<T>(value: T): value is Error & T {
     const result = Error.isError(value);
     return result;
   }
@@ -348,7 +367,7 @@ export class Predicates {
   /**
    * Type guard for non-negative integers (>= 0).
    */
-  public static isNonNegativeInteger(value: unknown): value is number {
+  public static isNonNegativeInteger<T>(value: T): value is number & T {
     const result = typeof value === 'number' && Number.isInteger(value) && value >= 0;
     return result;
   }
@@ -356,7 +375,7 @@ export class Predicates {
   /**
    * Type guard for positive integers (> 0).
    */
-  public static isPositiveInteger(value: unknown): value is number {
+  public static isPositiveInteger<T>(value: T): value is number & T {
     const result = typeof value === 'number' && Number.isInteger(value) && value > 0;
     return result;
   }
@@ -396,6 +415,21 @@ export class Predicates {
     return true;
   }
 
+  /** Equality comparison of two `Set` instances — shallow membership, not per-element deep recursion. */
+  public static areSetsEqual(value: ReadonlySet<unknown>, filterValue: ReadonlySet<unknown>): boolean {
+    if (value.size !== filterValue.size) {
+      return false;
+    }
+
+    for (const item of value) {
+      if (!filterValue.has(item)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /** `NaN` comparison for deep equality — `NaN` is considered equal to `NaN`. */
   public static areNaNEqual(value: unknown, filterValue: unknown): boolean {
     if (Number.isNaN(value) && Number.isNaN(filterValue)) {
@@ -414,7 +448,8 @@ export class Predicates {
       return false;
     }
 
-    return false;
+    const result = value === filterValue;
+    return result;
   }
 
   /** Checks two values are not strictly equal using `Object.is` semantics. */
@@ -500,7 +535,7 @@ export class Predicates {
   }
 
   /** Validates that both values are strings. */
-  public static areStringsValid(value: unknown, filterValue: unknown): value is string {
+  public static areStringsValid<T>(value: T, filterValue: unknown): value is string & T {
     const result = typeof value === 'string' && typeof filterValue === 'string';
     return result;
   }
@@ -547,11 +582,6 @@ export class Predicates {
     return result;
   }
 
-  /** Checks whether a value can be called as a function — plain `boolean`, not a type predicate. */
-  public static isCallable(value: unknown): boolean {
-    const result = typeof value === 'function';
-    return result;
-  }
 
   /** Checks whether a numeric value is close to another within a decimal precision (default 2). */
   public static isCloseTo(value: unknown, expected: unknown, precision = 2): boolean {
@@ -634,53 +664,46 @@ export class Predicates {
 
   /** Checks whether an array is empty. */
   public static isEmptyArray(value: unknown): boolean {
-    const result = Array.isArray(value) && value.length === 0;
+    const result = Predicates.isArray(value) && value.length === 0;
     return result;
   }
 
   /** Checks whether a `Map` is empty. */
   public static isEmptyMap(value: unknown): boolean {
-    const result = value instanceof Map && value.size === 0;
+    const result = Predicates.isMap(value) && value.size === 0;
     return result;
   }
 
   /** Checks whether a value is a plain object with no enumerable properties. */
   public static isEmptyPlainObject(value: unknown): boolean {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    if (!Predicates.isPlainObject(value)) {
       return false;
     }
-
-    const prototype: unknown = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) {
-      return false;
-    }
-
-    const keys = Object.keys(value);
-    const result = keys.length === 0;
+    const result = Object.keys(value).length === 0;
     return result;
   }
 
   /** Checks whether a `RegExp` has an empty pattern (`(?:)`). */
   public static isEmptyRegExp(value: unknown): boolean {
-    const result = value instanceof RegExp && value.source === '(?:)';
+    const result = Predicates.isRegExp(value) && value.source === '(?:)';
     return result;
   }
 
   /** Checks whether a `Set` is empty. */
   public static isEmptySet(value: unknown): boolean {
-    const result = value instanceof Set && value.size === 0;
+    const result = Predicates.isSet(value) && value.size === 0;
     return result;
   }
 
   /** Checks whether a string is empty. */
   public static isEmptyString(value: unknown): boolean {
-    const result = typeof value === 'string' && value.length === 0;
+    const result = Predicates.isString(value) && value.length === 0;
     return result;
   }
 
   /** Checks whether a typed array has length 0. */
   public static isEmptyTypedArray(value: unknown): boolean {
-    const result = ArrayBuffer.isView(value) && (value as Uint8Array).length === 0;
+    const result = Predicates.isArrayBufferView(value) && (value as Uint8Array).length === 0;
     return result;
   }
 
@@ -855,7 +878,7 @@ export class Predicates {
   }
 
   /** Checks whether a value is a two-element array (a `[minimum, maximum]` range tuple). */
-  public static isRangeValid(range: unknown): range is readonly unknown[] {
+  public static isRangeValid<T>(range: T): range is readonly unknown[] & T {
     const result = Predicates.isArray(range) && range.length === 2;
     return result;
   }
@@ -1156,9 +1179,11 @@ export class Predicates {
   }
 
   /**
-   * Shared deep-equality walk backing `areArraysEqual`, `areMapsEqual`, `areObjectsEqual`,
-   * `satisfiesEnum`, and `satisfiesUniqueItems`. Handles `Map` instances in addition to arrays
-   * and plain objects — the superset of the three near-identical helpers this replaces.
+   * Runtime-type dispatcher for nested value comparison: on an array/`Map`/`Set`/object
+   * container it delegates to `areArraysEqual`/`areMapsEqual`/`areSetsEqual`/`areObjectsEqual`
+   * for the top-level comparison, which recurse back into `compareDeep` for each element —
+   * this method owns dispatch, the `areXEqual` methods own the per-container-shape walk.
+   * Backs `satisfiesEnum` and `satisfiesUniqueItems` too.
    */
   private static compareDeep(value: unknown, filterValue: unknown): boolean {
     if (value === filterValue) {
@@ -1171,57 +1196,23 @@ export class Predicates {
     }
 
     if (Array.isArray(value) && Array.isArray(filterValue)) {
-      if (value.length !== filterValue.length) {
-        return false;
-      }
-      const valueLength = value.length;
-      for (let index = 0; index < valueLength; index++) {
-        if (!Predicates.compareDeep(value[index], filterValue[index])) {
-          return false;
-        }
-      }
-
-      return true;
+      const result = Predicates.areArraysEqual(value, filterValue);
+      return result;
     }
 
     if (value instanceof Map && filterValue instanceof Map) {
-      if (value.size !== filterValue.size) {
-        return false;
-      }
-      for (const [
-        key,
-        entryValue
-      ] of value) {
-        if (!filterValue.has(key) || !Predicates.compareDeep(entryValue, filterValue.get(key))) {
-          return false;
-        }
-      }
+      const result = Predicates.areMapsEqual(value, filterValue);
+      return result;
+    }
 
-      return true;
+    if (value instanceof Set && filterValue instanceof Set) {
+      const result = Predicates.areSetsEqual(value, filterValue);
+      return result;
     }
 
     if (typeof value === 'object' && typeof filterValue === 'object') {
-      const keys1 = Object.keys(value);
-      const keys2 = Object.keys(filterValue);
-
-      if (keys1.length !== keys2.length) {
-        return false;
-      }
-
-      for (let index = 0; index < keys1.length; index++) {
-        const key = keys1[index];
-        if (key === undefined || !Object.hasOwn(filterValue, key)) {
-          return false;
-        }
-        const valueRecord = value as Record<string, unknown>;
-        const filterRecord = filterValue as Record<string, unknown>;
-
-        if (!Predicates.compareDeep(valueRecord[key], filterRecord[key])) {
-          return false;
-        }
-      }
-
-      return true;
+      const result = Predicates.areObjectsEqual(value as Record<string, unknown>, filterValue as Record<string, unknown>);
+      return result;
     }
 
     const result = value === filterValue;

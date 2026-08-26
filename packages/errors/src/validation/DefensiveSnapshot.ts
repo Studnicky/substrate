@@ -21,7 +21,7 @@ export class DefensiveSnapshot {
   }
 
   private static value(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): Parameters<EntityIntakeFunctionInterface<never>>[0] {
-    if (Array.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const result: unknown[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {

@@ -5,7 +5,7 @@ import {
 
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './StateMachineHooks.scenarios.json' with { type: 'json' };
 
 type TrafficState =

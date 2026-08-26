@@ -37,7 +37,7 @@ With a `VirtualScheduler` and `VirtualClockProvider` sharing one counter, comple
 
 ## Public API
 
-Import `Delay`, `MinimumHeap`, `RealTimeScheduler`, `VirtualScheduler`, `SchedulerError`, `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler`. The package declares separate root, entity, and interface import surfaces. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`; construct the heap through `MinimumHeap.create()`.
+Import `Delay`, `RealTimeScheduler`, `VirtualScheduler`, `SchedulerError`, `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler`. The package declares separate root, entity, and interface import surfaces. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`.
 
 ## Extending
 
@@ -113,7 +113,6 @@ import type { PendingTaskInterface } from '@studnicky/scheduler/interfaces';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Delay` | Provides delay functionality. | `@studnicky/scheduler` |
-| `MinimumHeap` | Provides minimum heap functionality. | `@studnicky/scheduler` |
 | `RealTimeScheduler` | Provides real time scheduler functionality. | `@studnicky/scheduler` |
 | `SchedulerError` | Represents scheduler failures. | `@studnicky/scheduler` |
 | `SchedulerProviderInterface` | Defines the scheduler provider contract. | `@studnicky/scheduler` |

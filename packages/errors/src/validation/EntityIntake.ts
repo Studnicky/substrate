@@ -15,13 +15,12 @@ import { ValidationError } from '../errors/ValidationError.js';
 // `@studnicky/intake-kit` has no dependency on either package — it factors out exactly that
 // generic orchestration — so this file now supplies its own error type and clone strategy to
 // `IntakeCompiler`/`BoundaryCycleGuard` instead of re-deriving them. The wrapping semantics
-// (`intake` clones-then-coerces-and-strips-unknown; `create` clones-then-fills-defaults) are
-// unchanged, and every one of the entities that call `EntityIntake.compile*` below keeps its
-// existing call signature.
+// (`intake` clones-then-strips-unknown; `create` clones-then-fills-defaults; neither coerces a
+// scalar's type) are unchanged, and every one of the entities that call `EntityIntake.compile*`
+// below keeps its existing call signature.
 
 export namespace EntityIntake {
   export interface ParseOptionsInterface {
-    readonly 'coerce': boolean;
     readonly 'rejectUnknownProperties': boolean;
   }
 
@@ -73,50 +72,23 @@ export class EntityIntake {
     return result;
   }
 
-  public static boolean(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): boolean | undefined {
+  public static boolean(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): boolean | undefined {
     if (Predicates.isBoolean(value)) {
       return value;
     }
-    if (!coerce) {
-      return undefined;
-    }
-    if (value === 'true' || value === 1) {
-      return true;
-    }
-    if (value === 'false' || value === 0 || value === null) {
-      return false;
-    }
     return undefined;
   }
 
-  public static number(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): number | undefined {
+  public static number(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): number | undefined {
     if (Predicates.isNumber(value) && Number.isFinite(value)) {
       return value;
     }
-    if (!coerce) {
-      return undefined;
-    }
-    if (value === null || Predicates.isBoolean(value) || (Predicates.isString(value) && value !== '')) {
-      const number = Number(value);
-      const result = Number.isFinite(number) ? number : undefined;
-      return result;
-    }
     return undefined;
   }
 
-  public static string(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): string | undefined {
+  public static string(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): string | undefined {
     if (Predicates.isString(value)) {
       return value;
-    }
-    if (!coerce) {
-      return undefined;
-    }
-    if (value === null) {
-      return '';
-    }
-    if (Predicates.isBoolean(value) || Predicates.isNumber(value)) {
-      const result = String(value);
-      return result;
     }
     return undefined;
   }
@@ -136,7 +108,7 @@ export class EntityIntake {
     if (!Predicates.isObjectLike(value)) {
       return value;
     }
-    if (Array.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const result: unknown[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
@@ -145,21 +117,21 @@ export class EntityIntake {
       }
       return result;
     }
-    if (value instanceof Map) {
+    if (Predicates.isMap(value)) {
       const cloned = new Map<unknown, unknown>();
       for (const [key, item] of value.entries()) {
         cloned.set(EntityIntake.cloneValue(key), EntityIntake.cloneValue(item));
       }
       return cloned;
     }
-    if (value instanceof Set) {
+    if (Predicates.isSet(value)) {
       const cloned = new Set<unknown>();
       for (const item of value.values()) {
         cloned.add(EntityIntake.cloneValue(item));
       }
       return cloned;
     }
-    if (value instanceof Date) {
+    if (Predicates.isDate(value)) {
       const result = new Date(value.getTime());
       return result;
     }

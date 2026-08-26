@@ -36,8 +36,8 @@ export namespace HookInvokerOptionsEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (candidate.detectReentrancy !== undefined && typeof candidate.detectReentrancy !== 'boolean') { return false; }
-    if (candidate.timeoutMs !== undefined && (typeof candidate.timeoutMs !== 'number' || !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)) { return false; }
+    if (candidate.detectReentrancy !== undefined && !Predicates.isBoolean(candidate.detectReentrancy)) { return false; }
+    if (candidate.timeoutMs !== undefined && (!Predicates.isNumber(candidate.timeoutMs) || !Number.isFinite(candidate.timeoutMs) || candidate.timeoutMs <= 0)) { return false; }
     return true;
   };
 
@@ -46,12 +46,12 @@ export namespace HookInvokerOptionsEntity {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['detectReentrancy', 'timeoutMs'])) { return undefined; }
       let detectReentrancy: boolean | undefined;
       if (candidate.detectReentrancy !== undefined) {
-        detectReentrancy = EntityIntake.boolean(candidate.detectReentrancy, options.coerce);
+        detectReentrancy = EntityIntake.boolean(candidate.detectReentrancy);
         if (detectReentrancy === undefined) { return undefined; }
       }
       let timeoutMs: number | undefined;
       if (candidate.timeoutMs !== undefined) {
-        timeoutMs = EntityIntake.number(candidate.timeoutMs, options.coerce);
+        timeoutMs = EntityIntake.number(candidate.timeoutMs);
         if (timeoutMs === undefined || timeoutMs <= 0) { return undefined; }
       }
       if (detectReentrancy === undefined) {

@@ -22,7 +22,8 @@ const docsRoot = path.join(repoRoot, 'docs', 'packages');
 const entrypointSource = new Map([
   ['.', 'src/index.ts'],
   ['./entities', 'src/entities/index.ts'],
-  ['./interfaces', 'src/interfaces/index.ts']
+  ['./interfaces', 'src/interfaces/index.ts'],
+  ['./filters', 'src/filters/index.ts']
 ]);
 
 const packageSpecifier = /^(@studnicky\/[^/]+)(\/.*)?$/u;

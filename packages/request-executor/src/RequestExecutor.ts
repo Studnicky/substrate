@@ -10,6 +10,7 @@ import { HookInvoker } from '@studnicky/errors';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
+import { Predicates } from '@studnicky/types';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
@@ -153,7 +154,7 @@ export class RequestExecutor {
 
         return result;
       } catch (cause) {
-        const error = cause instanceof Error ? cause : new Error(String(cause));
+        const error = Predicates.isError(cause) ? cause : new Error(String(cause));
         this.hooks.invoke('onExecuteError', () => {
           const hookResult = this.onExecuteError(error);
           return hookResult;

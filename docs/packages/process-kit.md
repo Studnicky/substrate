@@ -19,6 +19,12 @@ pnpm add @studnicky/process-kit
 
 <<< ../../packages/process-kit/examples/observedProcessKit.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/process-kit/examples/observedProcessKit" title="Same-cycle dispatch, scheduled effects, and Signal-driven cancellation" />
+
+The output shows Job A completing after a same-cycle self-acknowledgment followed by a `VirtualScheduler`-driven advance, and Job B's final state landing on `cancelled` after an `AbortSignal` fires — even though its pending scheduled advance is still cancelled out by `ProcessKit#stop()`.
+
 ## Transparency contract
 
 `ProcessKit` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to:

@@ -24,13 +24,10 @@ const CONFIG: IntakeCompiler.BoundaryConfigInterface = {
   'onInvalidCandidate': (entityName, reason) => { throw new WidgetTestError(entityName, reason); }
 };
 
-const parser: IntakeCompiler.ParserInterface<WidgetEntityInterface> = (candidate, options) => {
+const parser: IntakeCompiler.ParserInterface<WidgetEntityInterface> = (candidate) => {
   const rawName = candidate.name;
   if (typeof rawName === 'string') {
     return { 'name': rawName };
-  }
-  if (options.coerce && typeof rawName === 'number') {
-    return { 'name': String(rawName) };
   }
   return undefined;
 };
@@ -40,7 +37,6 @@ type ScenarioShape =
   | 'compile-independent'
   | 'create-passthrough'
   | 'create-throws'
-  | 'intake-coerces'
   | 'intake-rejects-invalid-candidate'
   | 'intake-rejects-parser-undefined';
 
@@ -124,11 +120,6 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const { create } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
     const candidate = requireCandidate(scenarioCase) as unknown as Partial<WidgetEntityInterface>;
     assert.throws(() => create(candidate), { 'message': requireMessage(scenarioCase) });
-  },
-  'intake-coerces': (scenarioCase) => {
-    const { intake } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
-    const result = intake(requireCandidate(scenarioCase));
-    assert.deepEqual(result, requireResult(scenarioCase));
   },
   'intake-rejects-invalid-candidate': (scenarioCase) => {
     const { intake } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);

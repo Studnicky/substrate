@@ -47,9 +47,9 @@ deliberate choice to adopt that whole domain; registering `plugin` alone enables
 | Suite | Domain |
 |---|---|
 | `entitySuite` | Entity and data-shape conventions — `all-types-are-entities`, `folder-content-shape`, `interface-must-be-contract`, `interface-suffix`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `type-alias-invariants`, `whole-canonical-types` |
-| `hygieneSuite` | General code hygiene |
-| `v8Suite` | V8 performance rules |
-| `HexagonalSuite` | Hexagonal-architecture import boundaries |
+| `hygieneSuite` | General code hygiene — `canonical-export-names`, `clean-diagnostics`, `descriptive-identifiers`, `direct-invocation-only`, `hash-private-fields`, `inline-trivial-logic`, `lexical-this-only`, `prefer-collection-types`, `require-options-object`, `single-export`, `static-method-verbs` |
+| `v8Suite` | V8 performance rules — all 27 rules in the [V8 rules](#v8-rules) table below |
+| `HexagonalSuite` | Hexagonal-architecture import boundaries — `adapter-only-import`, `domain-purity`, `known-types-outside-adapters`, `layer-import-boundary`. A factory, not a static config: call `HexagonalSuite.create(...)` with the shared layer config, since all four rules take distinct extra options on top of a common `layers`/`sourceRoot` shape. |
 
 Enable individual rules instead when a domain's conventions do not apply. `type-alias-invariants`
 governs how a type alias establishes schema provenance and stands on its own;
@@ -131,7 +131,7 @@ export default [
 
 ## Configuration rules
 
-22 rules that enforce structural, semantic, and stylistic constraints.
+26 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
@@ -142,21 +142,27 @@ export default [
 | [`@studnicky/descriptive-identifiers`](/eslint/rules/descriptive-identifiers) | No | `error` |
 | [`@studnicky/direct-invocation-only`](/eslint/rules/direct-invocation-only) | No | `error` |
 | [`@studnicky/domain-purity`](/eslint/rules/domain-purity) | No | `error` |
+| [`@studnicky/explicit-return-binding`](/eslint/rules/explicit-return-binding) | No | `error` |
 | [`@studnicky/folder-content-shape`](/eslint/rules/folder-content-shape) | No | `error` |
 | [`@studnicky/hash-private-fields`](/eslint/rules/hash-private-fields) | No | `error` |
 | [`@studnicky/inline-trivial-logic`](/eslint/rules/inline-trivial-logic) | Yes | `error` |
+| [`@studnicky/intake-parse-only`](/eslint/rules/intake-parse-only) | No | `error` |
 | [`@studnicky/interface-must-be-contract`](/eslint/rules/interface-must-be-contract) | Yes | `error` |
 | [`@studnicky/interface-suffix`](/eslint/rules/interface-suffix) | No | `error` |
 | [`@studnicky/interfaces-compose-named-types`](/eslint/rules/interfaces-compose-named-types) | No | `error` |
 | [`@studnicky/known-types-outside-adapters`](/eslint/rules/known-types-outside-adapters) | No | `error` |
 | [`@studnicky/layer-import-boundary`](/eslint/rules/layer-import-boundary) | No | `error` |
 | [`@studnicky/lexical-this-only`](/eslint/rules/lexical-this-only) | No | `error` |
+| [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
+| [`@studnicky/no-unparsed-assertion`](/eslint/rules/no-unparsed-assertion) | No | `error` |
 | [`@studnicky/prefer-collection-types`](/eslint/rules/prefer-collection-types) | No | `warn` |
 | [`@studnicky/require-options-object`](/eslint/rules/require-options-object) | No | `error` |
 | [`@studnicky/single-export`](/eslint/rules/single-export) | No | `error` |
 | [`@studnicky/static-method-verbs`](/eslint/rules/static-method-verbs) | No | `error` |
 | [`@studnicky/type-alias-invariants`](/eslint/rules/type-alias-invariants) | Partial | `error` |
 | [`@studnicky/whole-canonical-types`](/eslint/rules/whole-canonical-types) | No | `error` |
+
+`@studnicky/explicit-return-binding`, `@studnicky/intake-parse-only`, and `@studnicky/no-unparsed-assertion` are not bundled into any suite above — the latter two share the same `exemptPackages` boundary-package list (parsing primitives and the compile engine every `intake` is built from). All three are adopted individually, alongside whichever suites a consumer chooses.
 
 ## V8 rules
 

@@ -53,6 +53,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
@@ -217,7 +218,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await stageFunction(input);
       return output;
     } catch (error: unknown) {
-      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
       await this.hooks.invokeAsync('onStageError', () => {
         const result = this.onStageError(index, normalizedError);
         return result;
@@ -243,7 +244,7 @@ export class Pipeline<T> implements PipelineInterface<T> {
       const output = await this.runStage(stageFunction, input, index);
       return output;
     } catch (error: unknown) {
-      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
       await this.hooks.invokeAsync('onRunError', () => {
         const result = this.onRunError(normalizedError);
         return result;

@@ -15,6 +15,10 @@ pnpm add @studnicky/worker-pool
 
 `@studnicky/worker-pool` exposes a runtime entrypoint plus explicit entity and interface subpaths.
 
+::: info Live demo unavailable
+In-browser execution of this package is not supported. `run()` spawns real `node:worker_threads` workers, which browsers do not provide. The example below is shown statically.
+:::
+
 ## Usage
 
 Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted, and `batchConcurrency` defaults to `concurrency`:

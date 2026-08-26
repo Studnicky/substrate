@@ -38,7 +38,6 @@ const ajvInstance = new Ajv2020({
 const ajvIntakeInstance = new Ajv2020({
   'allErrors': true,
   'allowUnionTypes': true,
-  'coerceTypes': true,
   'removeAdditional': 'failing',
   'strict': true,
   'useDefaults': true

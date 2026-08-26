@@ -1,4 +1,6 @@
-import type { FsmStepInterface } from './FsmStepInterface.js';
+import { Predicates } from '@studnicky/types';
+
+import type { FsmStepInterface } from './interfaces/FsmStepInterface.js';
 
 import { FsmHookInvoker } from './FsmHookInvoker.js';
 import { MachineTerminatedError } from './MachineTerminatedError.js';
@@ -47,7 +49,7 @@ export abstract class StateMachine<
       }
       return step;
     } catch (cause: unknown) {
-      const reason = cause instanceof Error ? cause.message : String(cause);
+      const reason = Predicates.isError(cause) ? cause.message : String(cause);
       this.hooks.invoke('onTransitionRejected', () => { const result = this.onTransitionRejected(state, event, reason);
         return result; });
       if (cause instanceof TransitionRejectedError) {

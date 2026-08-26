@@ -28,16 +28,16 @@ export class SystemProvider implements SystemProviderInterface {
       : undefined;
 
     return {
-      'deviceMemory': typeof deviceMemoryValue === 'number' && Number.isFinite(deviceMemoryValue)
+      'deviceMemory': Predicates.isNumber(deviceMemoryValue) && Number.isFinite(deviceMemoryValue)
         ? deviceMemoryValue
         : 0,
-      'hardwareConcurrency': typeof hardwareConcurrencyValue === 'number'
+      'hardwareConcurrency': Predicates.isNumber(hardwareConcurrencyValue)
         && Number.isInteger(hardwareConcurrencyValue)
         && hardwareConcurrencyValue > 0
         ? hardwareConcurrencyValue
         : 1,
-      'userAgent': typeof userAgentValue === 'string' ? userAgentValue : '',
-      'userAgentData': { 'platform': typeof platformValue === 'string' ? platformValue : '' }
+      'userAgent': Predicates.isString(userAgentValue) ? userAgentValue : '',
+      'userAgentData': { 'platform': Predicates.isString(platformValue) ? platformValue : '' }
     };
   }
 

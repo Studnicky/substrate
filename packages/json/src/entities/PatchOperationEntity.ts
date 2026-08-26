@@ -7,8 +7,8 @@ import { SchemaValidator } from '../schema/SchemaValidator.js';
 export namespace PatchOperationEntity {
   // The structural shape (properties/types/`additionalProperties: false`) is ONE flat schema, not
   // a `oneOf` of per-`op` branches: verified empirically that Ajv's `removeAdditional` (which
-  // `SchemaValidator.compileIntake` enables globally for coercion) does not compose correctly with
-  // `oneOf` OR with a conditional branch that itself redeclares `properties`/`additionalProperties`
+  // `SchemaValidator.compileIntake` enables globally to strip unknown properties) does not compose
+  // correctly with `oneOf` OR with a conditional branch that itself redeclares `properties`/`additionalProperties`
   // — either shape silently corrupted valid input into `{}` before the matching branch's own
   // `required` check ever ran. The per-`op` requiredness and exclusivity (`add` needs `value` and
   // must not carry `from`; `remove` may carry neither; etc.) is instead expressed as `allOf` of

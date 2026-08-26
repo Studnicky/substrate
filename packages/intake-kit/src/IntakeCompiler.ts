@@ -8,26 +8,26 @@ import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFun
 // `@studnicky/errors` cannot depend on `@studnicky/json`'s `SchemaValidator` — `json` already
 // depends on `errors` (for `BaseError`), so the reverse edge would be a circular workspace
 // reference. Every schema-backed error entity worked around that by hand-rolling its own
-// clone/validate/coerce wrapping instead (`errors/src/validation/EntityIntake.ts`), which
-// duplicated the ONE piece of logic that doesn't vary between an Ajv-schema-driven parser and a
+// clone/validate wrapping instead (`errors/src/validation/EntityIntake.ts`), which duplicated
+// the ONE piece of logic that doesn't vary between an Ajv-schema-driven parser and a
 // hand-written one: given a candidate value and a parser capable of turning it into `TEntity` or
 // rejecting it, produce a `{create, intake}` pair with the right clone-before-parse and
-// coerce/reject-unknown semantics for each, and fail through a caller-supplied error path.
+// reject-unknown semantics for each, and fail through a caller-supplied error path. Neither path
+// coerces a scalar's type — a wrong-typed field is rejected, not silently converted.
 //
 // That orchestration is what lives here. It has no dependency on `@studnicky/errors` or
 // `@studnicky/json` — every failure path and every clone strategy is injected — so both packages
 // depend downward on it instead of on each other, and the circular-dependency comments scattered
 // across two dozen `errors` entities describe a constraint that no longer exists once they build
 // on this instead of a private copy. `@studnicky/json`'s `SchemaValidator` keeps its own
-// Ajv-specific `intake`/`create` closures — Ajv validates through three pre-configured instances
-// with baked-in coercion settings, not a single function taking per-call options, so forcing it
-// onto this exact shape would be a forced-fit rewrite of working code for no behavioral gain. Only
+// Ajv-specific `intake`/`create` closures — Ajv validates through pre-configured instances, not a
+// single function taking per-call options, so forcing it onto this exact shape would be a
+// forced-fit rewrite of working code for no behavioral gain. Only
 // `@studnicky/errors`, whose parser genuinely is a `(candidate, options) => TEntity | undefined`
 // function, adopts this scaffold directly.
 
 export namespace IntakeCompiler {
   export interface ParseOptionsInterface {
-    readonly 'coerce': boolean;
     readonly 'rejectUnknownProperties': boolean;
   }
 
@@ -68,7 +68,6 @@ export class IntakeCompiler {
     const create: EntityCreateFunctionInterface<TEntity> = (partial = {}) => {
       const candidate = config.clone(partial, entityName);
       const result = IntakeCompiler.parse(candidate, parser, entityName, config, {
-        'coerce': false,
         'rejectUnknownProperties': true
       });
       return result;
@@ -84,7 +83,6 @@ export class IntakeCompiler {
     const intake: EntityIntakeFunctionInterface<TEntity> = (input) => {
       const candidate = config.clone(input, entityName);
       const result = IntakeCompiler.parse(candidate, parser, entityName, config, {
-        'coerce': true,
         'rejectUnknownProperties': false
       });
       return result;

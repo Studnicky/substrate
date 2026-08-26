@@ -44,9 +44,10 @@ import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
  *     `create` is separate from `intake` because the distinction is provenance,
  *     not shape. `intake` parses outside data — HTTP bodies, queue messages,
  *     config blobs, file imports, database rows, and IPC payloads — and runs
- *     coercion, default-filling, and unknown-property stripping. `create` is
- *     for data produced locally: defaults merged, no transforms. Transforming
- *     a local fixture is wrong; skipping transforms on a request body is worse.
+ *     default-filling and unknown-property stripping (neither `intake` nor
+ *     `create` coerces a value's type). `create` is for data produced locally:
+ *     defaults merged, no transforms. Transforming a local fixture is wrong;
+ *     skipping transforms on a request body is worse.
  *     `create` is object-only because `Partial<'healthy' | 'degraded'>` is
  *     meaningless.
  *

@@ -5,20 +5,20 @@
  * drain cycle ends. Virtual time keeps scheduling deterministic, and Signal supplies the
  * cancellation boundary. Run: npx tsx examples/processKitComposition.ts */
 
-import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
 
-// #region usage
 import { VirtualTimeCounter } from '@studnicky/clock';
-import { VirtualScheduler } from '@studnicky/scheduler';
+// #region usage
+import { EffectInterpreter, MachineTerminatedError, StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
 import assert from 'node:assert/strict';
 
-import type { EffectHandlerInterface, FsmStepInterface } from '../src/index.js';
+import type { ScheduledTaskInterface } from '../src/interfaces/index.js';
 import type { JobEffectEntity } from './entities/JobEffectEntity.js';
 import type { JobEventEntity } from './entities/JobEventEntity.js';
 import type { JobStateEntity } from './entities/JobStateEntity.js';
 
-import { EffectInterpreter, MachineTerminatedError, StateMachine, TransitionRejectedError } from '../src/index.js';
+import { VirtualScheduler } from '../src/index.js';
 
 // --- Domain: a job that starts, self-acknowledges in the same cycle, waits for a scheduled
 // advance, then settles. Two terminal outcomes (completed, cancelled) — reduce() stays a

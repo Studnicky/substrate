@@ -282,19 +282,19 @@ const emptyExecutors = {
     expectOutcome(Empty.array() !== Empty.array(), scenario.outcome);
   },
   isArray: (scenario) => {
-    expectOutcome(Empty.isArray(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyArray(materialize(scenario.input)), scenario.outcome);
   },
   isMap: (scenario) => {
-    expectOutcome(Empty.isMap(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyMap(materialize(scenario.input)), scenario.outcome);
   },
   isObject: (scenario) => {
-    expectOutcome(Empty.isObject(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyPlainObject(materialize(scenario.input)), scenario.outcome);
   },
   isSet: (scenario) => {
-    expectOutcome(Empty.isSet(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptySet(materialize(scenario.input)), scenario.outcome);
   },
   isString: (scenario) => {
-    expectOutcome(Empty.isString(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyString(materialize(scenario.input)), scenario.outcome);
   },
   map: (scenario) => {
     expectOutcome(Empty.map(), scenario.outcome);
@@ -382,9 +382,39 @@ void describe('PickDefined', () => {
   }
 });
 
+void describe('Predicates.areNaNStrict', () => {
+  void it('returns false when either operand is NaN', () => {
+    assert.equal(Predicates.areNaNStrict(Number.NaN, Number.NaN), false);
+    assert.equal(Predicates.areNaNStrict(Number.NaN, 1), false);
+    assert.equal(Predicates.areNaNStrict(1, Number.NaN), false);
+  });
+
+  void it('falls through to strict equality when neither operand is NaN', () => {
+    assert.equal(Predicates.areNaNStrict(1, 1), true);
+    assert.equal(Predicates.areNaNStrict(1, 2), false);
+    assert.equal(Predicates.areNaNStrict('a', 'a'), true);
+  });
+});
+
+void describe('Predicates.areSetsEqual', () => {
+  void it('compares by membership, ignoring insertion order', () => {
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([3, 2, 1])), true);
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2])), false);
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2, 4])), false);
+    assert.equal(Predicates.areSetsEqual(new Set(), new Set()), true);
+  });
+});
+
+void describe('Predicates.areObjectsEqual with nested Sets', () => {
+  void it('does not silently treat two different Sets as equal via the zero-own-keys fallback', () => {
+    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([4, 5, 6]) }), false);
+    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([1, 2, 3]) }), true);
+  });
+});
+
 void describe('Predicates subclass override', () => {
   class LaxPredicates extends Predicates {
-    public static override isObject(value: unknown): value is Record<string, unknown> {
+    public static override isObject<T>(value: T): value is T & Record<string, unknown> {
       return typeof value === 'object' && value !== null;
     }
   }

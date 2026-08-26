@@ -62,7 +62,7 @@ export class Clock {
   }
 
   private static isValidProvider(provider: ClockProviderInterface): boolean {
-    const result = typeof provider.now === 'function' && typeof provider.hrtime === 'function';
+    const result = Predicates.isFunction(provider.now) && Predicates.isFunction(provider.hrtime);
     return result;
   }
 

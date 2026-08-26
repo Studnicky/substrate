@@ -21,6 +21,12 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 <<< ../../packages/entity-store/examples/observedEntityStore.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/entity-store/examples/observedEntityStore" title="Observing upsert, remove, and replaceAll on an EntityStore" />
+
+The output shows `onUpsert`/`onRemove`/`onReplaceAll` firing as a `TelemetryStore` subclass runs `upsertOne`, `upsertMany`, `removeOne` (including a no-op remove for a missing id), and `setAll`, followed by the final normalized collection and each hook's collected event log.
+
 ## Observability hooks
 
 `EntityStore` exposes protected lifecycle hooks that a subclass can override to

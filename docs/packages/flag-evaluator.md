@@ -19,6 +19,12 @@ Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `
 
 <<< ../../packages/flag-evaluator/examples/observedFlagEvaluator.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/flag-evaluator/examples/observedFlagEvaluator" title="Observing deterministic flag evaluation and rollout hooks" />
+
+The output shows `onEvaluate` firing for each `evaluate()` call, `onDefault` firing for an unregistered flag, and the same `targetingKey` resolving `new-checkout`'s 25% rollout bucket identically across two separate calls.
+
 ## Unregistered vs. disabled
 
 - **Unregistered**: `evaluate()` returns `false` unconditionally and fires `onDefault(name)`. There is no per-call default-value override.

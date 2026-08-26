@@ -47,5 +47,3 @@ export type {
   ModuleErrorOptionsInterface
 } from './interfaces/index.js';
 export { EventRecorder } from './observers/EventRecorder.js';
-export { ErrorClassificationGuard } from './validation/ErrorClassificationGuard.js';
-export { errorTypeGuards } from './validation/errorTypeGuards.js';

@@ -38,11 +38,11 @@ export namespace ValidationProblemDetailsEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.detail !== 'string') { return false; }
-    if (typeof candidate.status !== 'number') { return false; }
-    if (typeof candidate.title !== 'string') { return false; }
-    if (typeof candidate.type !== 'string') { return false; }
-    if (!Array.isArray(candidate.errors)) { return false; }
+    if (!Predicates.isString(candidate.detail)) { return false; }
+    if (!Predicates.isNumber(candidate.status)) { return false; }
+    if (!Predicates.isString(candidate.title)) { return false; }
+    if (!Predicates.isString(candidate.type)) { return false; }
+    if (!Predicates.isArray(candidate.errors)) { return false; }
     const errorsLength = candidate.errors.length;
     for (let errorIndex = 0; errorIndex < errorsLength; errorIndex += 1) {
       if (!ValidationViolationEntity.validate(Reflect.get(candidate.errors, errorIndex))) { return false; }
@@ -70,11 +70,11 @@ export namespace ValidationProblemDetailsEntity {
 
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['detail', 'errors', 'status', 'title', 'type'])) { return undefined; }
-      const detail = EntityIntake.string(candidate.detail, options.coerce);
-      const errors = Parser.parseViolations(candidate.errors, options.coerce);
-      const status = EntityIntake.number(candidate.status, options.coerce);
-      const title = EntityIntake.string(candidate.title, options.coerce);
-      const type = EntityIntake.string(candidate.type, options.coerce);
+      const detail = EntityIntake.string(candidate.detail);
+      const errors = Parser.parseViolations(candidate.errors, !options.rejectUnknownProperties);
+      const status = EntityIntake.number(candidate.status);
+      const title = EntityIntake.string(candidate.title);
+      const type = EntityIntake.string(candidate.type);
       if (detail === undefined || errors === undefined || status === undefined || title === undefined || type === undefined) { return undefined; }
       return { 'detail': detail, 'errors': errors, 'status': status, 'title': title, 'type': type };
     }

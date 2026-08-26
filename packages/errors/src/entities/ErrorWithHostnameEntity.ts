@@ -29,13 +29,13 @@ export namespace ErrorWithHostnameEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.hostname === 'string';
+    const result = Predicates.isString(candidate.hostname);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['hostname'])) { return undefined; }
-    const hostname = EntityIntake.string(candidate.hostname, options.coerce);
+    const hostname = EntityIntake.string(candidate.hostname);
     if (hostname === undefined) { return undefined; }
     const result = { 'hostname': hostname };
     return result;

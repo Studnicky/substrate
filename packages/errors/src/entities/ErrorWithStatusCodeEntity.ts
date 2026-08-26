@@ -29,13 +29,13 @@ export namespace ErrorWithStatusCodeEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.statusCode === 'number';
+    const result = Predicates.isNumber(candidate.statusCode);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['statusCode'])) { return undefined; }
-    const statusCode = EntityIntake.number(candidate.statusCode, options.coerce);
+    const statusCode = EntityIntake.number(candidate.statusCode);
     if (statusCode === undefined) { return undefined; }
     const result = { 'statusCode': statusCode };
     return result;

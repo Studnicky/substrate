@@ -36,9 +36,9 @@ export namespace CauseNodeEntity {
 
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.kind !== 'string' || !KIND_SET.has(candidate.kind)) { return false; }
-    if (typeof candidate.message !== 'string') { return false; }
-    const result = candidate.name === undefined || typeof candidate.name === 'string';
+    if (!Predicates.isString(candidate.kind) || !KIND_SET.has(candidate.kind)) { return false; }
+    if (!Predicates.isString(candidate.message)) { return false; }
+    const result = candidate.name === undefined || Predicates.isString(candidate.name);
     return result;
   };
 

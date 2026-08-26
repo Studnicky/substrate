@@ -3,10 +3,8 @@
 import { HookInvoker } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
-import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
-import type { EventHandlerInterface } from './EventHandlerInterface.js';
-import type { UnsubscribeInterface } from './UnsubscribeInterface.js';
+import type { BusQueueCreateOptionsInterface, EventHandlerInterface, UnsubscribeInterface } from './interfaces/index.js';
 
 import { BusQueue } from './BusQueue.js';
 

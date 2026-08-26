@@ -485,22 +485,15 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
-    devDependencies:
-      '@studnicky/clock':
-        specifier: workspace:*
-        version: link:../clock
-      '@studnicky/scheduler':
-        specifier: workspace:*
-        version: link:../scheduler
-      '@studnicky/signal':
-        specifier: workspace:*
-        version: link:../signal
 
   packages/health-registry:
     dependencies:
@@ -709,6 +702,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -761,6 +757,9 @@ importers:
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -860,6 +859,10 @@ importers:
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+    devDependencies:
+      '@studnicky/signal':
+        specifier: workspace:*
+        version: link:../signal
 
   packages/signal:
     dependencies:

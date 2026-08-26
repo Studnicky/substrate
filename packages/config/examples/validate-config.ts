@@ -28,7 +28,7 @@ namespace ServerConfigEntity {
   export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
 
-const config = ServerConfigEntity.intake({ 'host': 'localhost', 'ignored': true, 'port': '8081' });
+const config = ServerConfigEntity.intake({ 'host': 'localhost', 'ignored': true, 'port': 8081 });
 
 console.log('Parsed config:', config);
 

@@ -239,7 +239,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
         try {
           result = fire();
         } catch (error) {
-          const taskError = error instanceof Error ? error : new Error(String(error));
+          const taskError = Predicates.isError(error) ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
             const fireErrorResult = this.onFireError(id, taskError);
             return fireErrorResult;
@@ -248,8 +248,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
         }
 
         if (result instanceof Promise) {
-          result.catch((error) => {
-            const taskError = error instanceof Error ? error : new Error(String(error));
+          result.catch((error: unknown) => {
+            const taskError = Predicates.isError(error) ? error : new Error(String(error));
             this.hooks.invoke('onFireError', () => {
               const fireErrorResult = this.onFireError(id, taskError);
               return fireErrorResult;
@@ -309,7 +309,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
       try {
         result = fire();
       } catch (error) {
-        const taskError = error instanceof Error ? error : new Error(String(error));
+        const taskError = Predicates.isError(error) ? error : new Error(String(error));
         this.hooks.invoke('onFireError', () => {
           const fireErrorResult = this.onFireError(id, taskError);
           return fireErrorResult;
@@ -318,8 +318,8 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
       }
 
       if (result instanceof Promise) {
-        result.catch((error) => {
-          const taskError = error instanceof Error ? error : new Error(String(error));
+        result.catch((error: unknown) => {
+          const taskError = Predicates.isError(error) ? error : new Error(String(error));
           this.hooks.invoke('onFireError', () => {
             const fireErrorResult = this.onFireError(id, taskError);
             return fireErrorResult;

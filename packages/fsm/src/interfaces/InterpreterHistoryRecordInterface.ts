@@ -1,4 +1,4 @@
-import type { InterpreterHistoryRecordMetadataEntity } from './entities/InterpreterHistoryRecordMetadataEntity.js';
+import type { InterpreterHistoryRecordMetadataEntity } from '../entities/InterpreterHistoryRecordMetadataEntity.js';
 
 export interface InterpreterHistoryRecordInterface<TState, TEvent> {
   readonly 'event': TEvent;

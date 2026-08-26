@@ -151,6 +151,42 @@
       }
     },
     {
+      "name": "array-equals-matches-different-instance-same-contents",
+      "description": "ARRAY.EQUALS deep-compares — a structurally-identical array from a different instance matches",
+      "shape": "array-equals-deep",
+      "input": {
+        "entries": ["a", "b", "c"]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "map-equals-matches-different-instance-same-contents",
+      "description": "MAP.EQUALS deep-compares — a structurally-identical Map from a different instance matches",
+      "shape": "map-equals-deep",
+      "input": {
+        "entries": [["admin", true]]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
+      "name": "set-equals-matches-different-instance-same-contents",
+      "description": "SET.EQUALS deep-compares — a structurally-identical Set from a different instance matches",
+      "shape": "set-equals-deep",
+      "input": {
+        "entries": ["admin", "user"]
+      },
+      "expected": {
+        "valid": true,
+        "validFail": false
+      }
+    },
+    {
       "name": "logic-gate-operator-array-logic-enums-reachable",
       "description": "sanity check that LogicGate, Operator, and ArrayLogic enums are reachable",
       "shape": "enum-reachability-sanity",

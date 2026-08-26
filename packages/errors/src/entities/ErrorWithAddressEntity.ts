@@ -29,13 +29,13 @@ export namespace ErrorWithAddressEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.address === 'string';
+    const result = Predicates.isString(candidate.address);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['address'])) { return undefined; }
-    const address = EntityIntake.string(candidate.address, options.coerce);
+    const address = EntityIntake.string(candidate.address);
     if (address === undefined) { return undefined; }
     const result = { 'address': address };
     return result;

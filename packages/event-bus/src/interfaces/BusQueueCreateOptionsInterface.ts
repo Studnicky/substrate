@@ -1,6 +1,6 @@
 /** Full construction options for BusQueue including the handler and runtime-only fields. */
 
-import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
+import type { BusQueueOptionsEntity } from '../entities/BusQueueOptionsEntity.js';
 
 export interface BusQueueCreateOptionsInterface<T> extends BusQueueOptionsEntity.Type {
   'handler': (item: T) => Promise<void>;

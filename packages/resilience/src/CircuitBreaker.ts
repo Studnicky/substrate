@@ -118,7 +118,7 @@ export class CircuitBreaker {
       }
       return result;
     } catch (caughtError) {
-      const error = caughtError instanceof Error ? caughtError : new Error(String(caughtError));
+      const error = Predicates.isError(caughtError) ? caughtError : new Error(String(caughtError));
       const classification = this.#classifyError(error, this.#classifierAttemptCount);
       if (!classification.retryable) {
         if (!wasHalfOpen) {

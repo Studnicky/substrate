@@ -29,13 +29,13 @@ export namespace ErrorWithPortEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.port === 'number';
+    const result = Predicates.isNumber(candidate.port);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['port'])) { return undefined; }
-    const port = EntityIntake.number(candidate.port, options.coerce);
+    const port = EntityIntake.number(candidate.port);
     if (port === undefined) { return undefined; }
     const result = { 'port': port };
     return result;

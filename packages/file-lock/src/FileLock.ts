@@ -4,9 +4,8 @@ import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
-import type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
 import type { FileLockStateInterface } from './FileLockStateInterface.js';
-import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
+import type { FileLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
 
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockMachine } from './FileLockMachine.js';
@@ -183,7 +182,7 @@ export class FileLock {
           // Rename failed. ENOENT means another holder already renamed `path` away
           // (expected contention for this lock's race); any other code (or no code
           // at all) is a genuine filesystem failure that must fail fast.
-          const actualError = error instanceof Error ? error : new Error(String(error));
+          const actualError = Predicates.isError(error) ? error : new Error(String(error));
           if (!FileLock.#isContentionError(actualError)) {
             this.hooks.invoke('onError', () => {
               const errorResult = this.onError(path, actualError);

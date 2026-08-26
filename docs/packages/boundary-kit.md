@@ -20,6 +20,14 @@ Import `BoundaryKit` from `@studnicky/boundary-kit`, call
 `BoundaryKit.create({ circuitBreaker, retry, throttle })`, then pass the operation to
 `boundary.execute(fn)`. Omitted configuration fields resolve to package defaults.
 
+<<< ../../packages/boundary-kit/examples/observedBoundaryKit.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/boundary-kit/examples/observedBoundaryKit" title="Observing a composed boundary call" />
+
+The output shows the composed `throttle → circuitBreaker → retry → fn` order in practice, observed via each primitive's own hooks.
+
 ## Transparency contract
 
 `BoundaryKit` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:

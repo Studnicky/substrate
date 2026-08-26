@@ -7,7 +7,7 @@ import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import { TransitionRejectedError } from '../../src/TransitionRejectedError.js';
 import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './StateMachine.scenarios.json' with { type: 'json' };
 
 type ToggleState = { readonly variant: 'on' } | { readonly variant: 'off' };

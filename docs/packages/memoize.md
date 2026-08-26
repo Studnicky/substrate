@@ -23,6 +23,12 @@ pnpm add @studnicky/memoize
 
 <<< ../../packages/memoize/examples/observedMemoize.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/memoize/examples/observedMemoize" title="Cache hits, invalidation, and coalesced concurrent calls" />
+
+The output shows `onMemoMiss` firing on the first call for a key, `onMemoHit` on a repeat call, a fresh `onMemoMiss` after `invalidate()` forces re-computation, and `onMemoCoalesced` when two concurrent callers share the same in-flight invocation.
+
 ## Hooks
 
 | Hook | Fires when |

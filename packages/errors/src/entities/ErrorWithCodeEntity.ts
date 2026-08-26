@@ -29,13 +29,13 @@ export namespace ErrorWithCodeEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.code === 'string';
+    const result = Predicates.isString(candidate.code);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['code'])) { return undefined; }
-    const code = EntityIntake.string(candidate.code, options.coerce);
+    const code = EntityIntake.string(candidate.code);
     if (code === undefined) { return undefined; }
     const result = { 'code': code };
     return result;

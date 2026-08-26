@@ -7,7 +7,7 @@ import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineAlreadyRegisteredError } from '../../src/MachineAlreadyRegisteredError.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './MachineRegistry.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };

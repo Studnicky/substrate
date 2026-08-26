@@ -3,6 +3,7 @@ import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Clone, SchemaIntakeError, SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { DispatcherConfigEntity } from './DispatcherConfigEntity.js';
 import { FetchRequestOptionsEntity } from './FetchRequestOptionsEntity.js';
@@ -70,7 +71,7 @@ export namespace ClientConfigDataEntity {
 
   class Intake {
     static parse(input: Parameters<SchemaIntakeFunctionInterface<Type>>[0]): Type {
-      if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
+      if (Predicates.isRecord(input)) {
         const configKeys = Object.keys(input);
         const configKeyLength = configKeys.length;
         for (let index = 0; index < configKeyLength; index += 1) {
@@ -84,7 +85,7 @@ export namespace ClientConfigDataEntity {
         }
 
         const headers: unknown = Reflect.get(input, 'headers');
-        if (headers !== null && typeof headers === 'object' && !Array.isArray(headers)) {
+        if (Predicates.isRecord(headers)) {
           const headerNames = Object.keys(headers);
           const headerNameLength = headerNames.length;
           for (let index = 0; index < headerNameLength; index += 1) {
@@ -92,14 +93,14 @@ export namespace ClientConfigDataEntity {
             if (headerName === undefined) {
               continue;
             }
-            if (typeof Reflect.get(headers, headerName) !== 'string') {
+            if (!Predicates.isString(Reflect.get(headers, headerName))) {
               throw new SchemaIntakeError(`header value for "${headerName}" must be a string`, [], 'ClientConfigData');
             }
           }
         }
 
         const dispatcher: unknown = Reflect.get(input, 'dispatcher');
-        if (dispatcher !== null && typeof dispatcher === 'object' && !Array.isArray(dispatcher)) {
+        if (Predicates.isRecord(dispatcher)) {
           const dispatcherKeys = Object.keys(dispatcher);
           const dispatcherKeyLength = dispatcherKeys.length;
           for (let index = 0; index < dispatcherKeyLength; index += 1) {
@@ -115,19 +116,19 @@ export namespace ClientConfigDataEntity {
             if (value === undefined) {
               continue;
             }
-            if (DISPATCHER_BOOLEAN_FIELDS.has(key) && typeof value !== 'boolean') {
+            if (DISPATCHER_BOOLEAN_FIELDS.has(key) && !Predicates.isBoolean(value)) {
               throw new SchemaIntakeError(`dispatcher.${key} must be a boolean`, [], 'ClientConfigData');
             }
-            if (DISPATCHER_NUMBER_FIELDS.has(key) && value !== null && typeof value !== 'number') {
+            if (DISPATCHER_NUMBER_FIELDS.has(key) && value !== null && !Predicates.isNumberType(value)) {
               throw new SchemaIntakeError(`dispatcher.${key} must be a number`, [], 'ClientConfigData');
             }
             if (DISPATCHER_NUMBER_FIELDS.has(key) && value === null && !NULLABLE_DISPATCHER_FIELDS.has(key)) {
               throw new SchemaIntakeError(`dispatcher.${key} must be a number`, [], 'ClientConfigData');
             }
-            if (key === 'connections' && value !== null && typeof value !== 'number') {
+            if (key === 'connections' && value !== null && !Predicates.isNumberType(value)) {
               throw new SchemaIntakeError('dispatcher.connections must be a number', [], 'ClientConfigData');
             }
-            if (key === 'localAddress' && value !== null && typeof value !== 'string') {
+            if (key === 'localAddress' && value !== null && !Predicates.isString(value)) {
               throw new SchemaIntakeError('dispatcher.localAddress must be a string', [], 'ClientConfigData');
             }
           }
@@ -135,9 +136,9 @@ export namespace ClientConfigDataEntity {
       }
 
       const normalized = Clone.deep(input);
-      if (normalized !== null && typeof normalized === 'object' && !Array.isArray(normalized)) {
+      if (Predicates.isRecord(normalized)) {
         const dispatcher: unknown = Reflect.get(normalized, 'dispatcher');
-        if (dispatcher !== null && typeof dispatcher === 'object' && !Array.isArray(dispatcher)) {
+        if (Predicates.isRecord(dispatcher)) {
           const dispatcherKeys = Object.keys(dispatcher);
           const normalizedDispatcher: Record<string, unknown> = {};
           const dispatcherKeyLength = dispatcherKeys.length;
@@ -156,7 +157,7 @@ export namespace ClientConfigDataEntity {
         }
 
         const parameters: unknown = Reflect.get(normalized, 'parameters');
-        if (parameters !== null && typeof parameters === 'object' && !Array.isArray(parameters)) {
+        if (Predicates.isRecord(parameters)) {
           const parameterKeys = Object.keys(parameters);
           const normalizedParameters: Record<string, unknown> = {};
           const parameterKeyLength = parameterKeys.length;

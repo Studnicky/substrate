@@ -144,7 +144,7 @@ export class Timing implements TimingInterface {
       }
 
       // Wrap other errors as ConfigurationError
-      if (error instanceof Error) {
+      if (Predicates.isError(error)) {
         throw ConfigurationError.create(error.message, error);
       }
 

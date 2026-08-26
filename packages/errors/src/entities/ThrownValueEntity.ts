@@ -60,17 +60,17 @@ export namespace ThrownValueEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.kind !== 'string' || !KIND_SET.has(candidate.kind)) { return false; }
-    if (typeof candidate.message !== 'string') { return false; }
-    if (candidate.name !== undefined && typeof candidate.name !== 'string') { return false; }
-    if (candidate.stack !== undefined && typeof candidate.stack !== 'string') { return false; }
+    if (!Predicates.isString(candidate.kind) || !KIND_SET.has(candidate.kind)) { return false; }
+    if (!Predicates.isString(candidate.message)) { return false; }
+    if (candidate.name !== undefined && !Predicates.isString(candidate.name)) { return false; }
+    if (candidate.stack !== undefined && !Predicates.isString(candidate.stack)) { return false; }
     if (candidate.causes === undefined) { return true; }
-    if (!Array.isArray(candidate.causes)) { return false; }
+    if (!Predicates.isArray(candidate.causes)) { return false; }
     const result = candidate.causes.every((item) => {
       if (!Predicates.isObject(item)) { return false; }
-      if (typeof item.kind !== 'string' || !KIND_SET.has(item.kind)) { return false; }
-      if (typeof item.message !== 'string') { return false; }
-      const nameValid = item.name === undefined || typeof item.name === 'string';
+      if (!Predicates.isString(item.kind) || !KIND_SET.has(item.kind)) { return false; }
+      if (!Predicates.isString(item.message)) { return false; }
+      const nameValid = item.name === undefined || Predicates.isString(item.name);
       return nameValid;
     });
     return result;
@@ -92,7 +92,7 @@ export namespace ThrownValueEntity {
 
     public static ofError(error: Error): ClassifiedNodeInterface {
       const node: ClassifiedNodeInterface = { 'kind': 'error', 'message': error.message, 'name': error.name };
-      const result = typeof error.stack === 'string' ? { ...node, 'stack': error.stack } : node;
+      const result = Predicates.isString(error.stack) ? { ...node, 'stack': error.stack } : node;
       return result;
     }
 
@@ -107,14 +107,14 @@ export namespace ThrownValueEntity {
       let message = '';
       try {
         const candidate: unknown = Reflect.get(value, 'message');
-        if (typeof candidate === 'string') { message = candidate; }
+        if (Predicates.isString(candidate)) { message = candidate; }
       } catch {
         message = '';
       }
       let name: string | undefined;
       try {
         const candidate: unknown = Reflect.get(value, 'name');
-        if (typeof candidate === 'string') { name = candidate; }
+        if (Predicates.isString(candidate)) { name = candidate; }
       } catch {
         name = undefined;
       }
@@ -148,9 +148,9 @@ export namespace ThrownValueEntity {
         }
         if (current instanceof AggregateError) {
           nodes.push(Classifier.ofAggregate(current));
-        } else if (current instanceof Error) {
+        } else if (Predicates.isError(current)) {
           nodes.push(Classifier.ofError(current));
-        } else if (typeof current === 'string') {
+        } else if (Predicates.isString(current)) {
           nodes.push(Classifier.ofString(current));
         } else if (typeof current === 'object' || typeof current === 'function') {
           nodes.push(Classifier.ofObject(current));
@@ -158,7 +158,7 @@ export namespace ThrownValueEntity {
           nodes.push(Classifier.ofPrimitive(current as bigint | boolean | number | symbol));
         }
 
-        if (!(current instanceof Error)) { break; }
+        if (!Predicates.isError(current)) { break; }
         if (visited.has(current)) { break; }
         visited.add(current);
 

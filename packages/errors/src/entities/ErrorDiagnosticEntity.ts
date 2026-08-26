@@ -27,19 +27,19 @@ export namespace ErrorDiagnosticEntity {
   /** Validates the schema-backed diagnostic fields without introducing a json-package cycle. */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.message !== 'string' || typeof candidate.name !== 'string') { return false; }
-    const result = candidate.stack === undefined || typeof candidate.stack === 'string';
+    if (!Predicates.isString(candidate.message) || !Predicates.isString(candidate.name)) { return false; }
+    const result = candidate.stack === undefined || Predicates.isString(candidate.stack);
     return result;
   };
 
   class Parser {
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['message', 'name', 'stack'])) { return undefined; }
-      const message = EntityIntake.string(candidate.message, options.coerce);
-      const name = EntityIntake.string(candidate.name, options.coerce);
+      const message = EntityIntake.string(candidate.message);
+      const name = EntityIntake.string(candidate.name);
       if (message === undefined || name === undefined) { return undefined; }
       if (candidate.stack === undefined) { return { 'message': message, 'name': name }; }
-      const stack = EntityIntake.string(candidate.stack, options.coerce);
+      const stack = EntityIntake.string(candidate.stack);
       if (stack === undefined) { return undefined; }
       const result = { 'message': message, 'name': name, 'stack': stack };
       return result;

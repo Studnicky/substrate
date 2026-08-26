@@ -20,13 +20,13 @@ pnpm add @studnicky/intake-kit
 
 ## Usage
 
-`IntakeCompiler.compile` takes a parser — `(candidate, options) => TEntity | undefined` — and an injected `BoundaryConfigInterface` (a clone strategy and a failure path), and returns a `{create, intake}` pair with the standard semantics: `intake` clones then coerces and strips unknown properties; `create` clones then fills defaults without coercing or stripping.
+`IntakeCompiler.compile` takes a parser — `(candidate, options) => TEntity | undefined` — and an injected `BoundaryConfigInterface` (a clone strategy and a failure path), and returns a `{create, intake}` pair with the standard semantics: `intake` clones then strips unknown properties; `create` clones then fills defaults without stripping. Neither coerces a value's type — a wrong-typed field is rejected, not silently converted.
 
 ```typescript
 import { IntakeCompiler } from '@studnicky/intake-kit';
 
 const parser: IntakeCompiler.ParserInterface<MyEntity> = (candidate, options) => {
-  // validate/coerce `candidate` per `options.coerce` / `options.rejectUnknownProperties`,
+  // validate `candidate` per `options.rejectUnknownProperties`,
   // returning the parsed entity or `undefined` to reject it
 };
 

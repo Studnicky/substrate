@@ -21,6 +21,12 @@ Given a scroll offset, a viewport size, an item-size accessor (fixed or per-inde
 
 <<< ../../packages/visible-range/examples/observedVisibleRange.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/visible-range/examples/observedVisibleRange" title="Fixed and variable-size visible-range computation" />
+
+The output shows fixed-mode `onRangeChange` firing only when the computed range actually moves (not for an identical re-set scroll offset), and variable-mode range estimates shifting once `measureItem()` corrects the per-index size estimate with real measurements.
+
 ## Construction
 
 `VisibleRange.create({ count, itemSize, overscan? })` selects fixed-size arithmetic. `VisibleRange.create({ count, estimateSize, overscan? })` selects variable-size arithmetic. Exactly one sizing strategy is required.

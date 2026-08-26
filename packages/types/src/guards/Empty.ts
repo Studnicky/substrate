@@ -1,16 +1,14 @@
 /**
- * Producers and emptiness predicates for the five core collection types.
+ * Producers of fresh empty instances for the five core collection types.
  *
- * Static producer methods return fresh empty instances on every call so
- * callers never share a mutable reference. Static predicate methods are
- * strict: `isObject` returns `false` for `null`, arrays, Maps, and Sets;
- * `isArray` returns `false` for non-Array iterables; and so on.
+ * Every method returns a fresh instance on every call so callers never share
+ * a mutable reference. Emptiness predicates live on `Predicates`
+ * (`isEmptyString`, `isEmptyPlainObject`, `isEmptyArray`, `isEmptyMap`,
+ * `isEmptySet`) — this class is construction only, not checking.
  *
  * All methods are monomorphic and use consistent object shapes so V8 can
  * inline-cache them without deoptimisation.
  */
-import { Predicates } from '../predicates/Predicates.js';
-
 export class Empty {
   // ── Producers ────────────────────────────────────────────────────────────
 
@@ -41,49 +39,6 @@ export class Empty {
   /** Returns a fresh empty `Set<T>`. */
   public static set<T>(): Set<T> {
     const result = new Set<T>();
-    return result;
-  }
-
-  // ── Predicates ───────────────────────────────────────────────────────────
-
-  /** Returns `true` when `value` is exactly the empty string `''`. */
-  public static isString(value: unknown): boolean {
-    const result = value === '';
-    return result;
-  }
-
-  /**
-   * Returns `true` when `value` is a plain object with no own enumerable
-   * keys. Returns `false` for `null`, arrays, Maps, Sets, and any other
-   * non-plain-object value.
-   *
-   * Delegates the plain-object shape check to `Predicates.isObject` — the
-   * canonical predicate for the package — and adds only the emptiness check
-   * on top, so the Map/Set exclusion lives in exactly one place.
-   */
-  public static isObject(value: unknown): boolean {
-    if (!Predicates.isObject(value)) {
-      return false;
-    }
-    const result = Object.keys(value).length === 0;
-    return result;
-  }
-
-  /** Returns `true` when `value` is an `Array` with `length === 0`. */
-  public static isArray(value: unknown): boolean {
-    const result = Array.isArray(value) && value.length === 0;
-    return result;
-  }
-
-  /** Returns `true` when `value` is a `Map` with `size === 0`. */
-  public static isMap(value: unknown): boolean {
-    const result = value instanceof Map && value.size === 0;
-    return result;
-  }
-
-  /** Returns `true` when `value` is a `Set` with `size === 0`. */
-  public static isSet(value: unknown): boolean {
-    const result = value instanceof Set && value.size === 0;
     return result;
   }
 }

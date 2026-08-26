@@ -6,6 +6,7 @@
 
 import { ConfigurationError } from '@studnicky/config';
 import { SchemaIntakeError } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { DEFAULT_TIMEOUT, UNLIMITED_QUEUE_SIZE } from '../constants/index.js';
 import { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
@@ -16,17 +17,6 @@ import { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 class ConfigValidator {
   static validate(userConfig?: Partial<MutexConfigEntity.Type>): MutexConfigEntity.Type {
     try {
-      if (userConfig?.enableCoalescing !== undefined && typeof userConfig.enableCoalescing !== 'boolean') {
-        throw ConfigurationError.create('enableCoalescing must be a boolean');
-      }
-      if (userConfig?.maximumQueueSize !== undefined
-        && (typeof userConfig.maximumQueueSize !== 'number' || !Number.isFinite(userConfig.maximumQueueSize))) {
-        throw ConfigurationError.create('maximumQueueSize must be a finite number');
-      }
-      if (userConfig?.timeout !== undefined
-        && (typeof userConfig.timeout !== 'number' || !Number.isFinite(userConfig.timeout))) {
-        throw ConfigurationError.create('timeout must be a finite number');
-      }
       const config = MutexConfigEntity.intake(userConfig ?? {
         'enableCoalescing': false,
         'maximumQueueSize': UNLIMITED_QUEUE_SIZE,
@@ -40,7 +30,7 @@ class ConfigValidator {
       if (error instanceof ConfigurationError) {
         throw error;
       }
-      if (error instanceof Error) {
+      if (Predicates.isError(error)) {
         throw ConfigurationError.create(error.message);
       }
       throw ConfigurationError.create(String(error));

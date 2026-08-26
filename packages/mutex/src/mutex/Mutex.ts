@@ -777,7 +777,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
       resolveDeferred(result);
     } catch (error) {
-      rejectDeferred(error instanceof Error ? error : new Error(String(error)));
+      rejectDeferred(Predicates.isError(error) ? error : new Error(String(error)));
     } finally {
       this.inFlightOperations.delete(key);
 

@@ -47,11 +47,11 @@ export namespace ValidationErrorArgumentsEntity {
     if (!Predicates.isObject(candidate)) { return false; }
     const hasUnknownKey = Object.keys(candidate).some((key) => { const result = !ALLOWED_KEYS.has(key); return result; });
     if (hasUnknownKey) { return false; }
-    if (typeof candidate.message !== 'string') { return false; }
-    if (typeof candidate.path !== 'string') { return false; }
-    if (candidate.correlationId !== undefined && typeof candidate.correlationId !== 'string') { return false; }
+    if (!Predicates.isString(candidate.message)) { return false; }
+    if (!Predicates.isString(candidate.path)) { return false; }
+    if (candidate.correlationId !== undefined && !Predicates.isString(candidate.correlationId)) { return false; }
     if (candidate.violations === undefined) { return true; }
-    if (!Array.isArray(candidate.violations)) { return false; }
+    if (!Predicates.isArray(candidate.violations)) { return false; }
     const violationsLength = candidate.violations.length;
     for (let violationIndex = 0; violationIndex < violationsLength; violationIndex += 1) {
       if (!ValidationViolationDetailEntity.validate(Reflect.get(candidate.violations, violationIndex))) { return false; }
@@ -79,17 +79,17 @@ export namespace ValidationErrorArgumentsEntity {
 
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['correlationId', 'message', 'path', 'violations'])) { return undefined; }
-      const message = EntityIntake.string(candidate.message, options.coerce);
-      const path = EntityIntake.string(candidate.path, options.coerce);
+      const message = EntityIntake.string(candidate.message);
+      const path = EntityIntake.string(candidate.path);
       if (message === undefined || path === undefined) { return undefined; }
       let correlationId: string | undefined;
       if (candidate.correlationId !== undefined) {
-        correlationId = EntityIntake.string(candidate.correlationId, options.coerce);
+        correlationId = EntityIntake.string(candidate.correlationId);
         if (correlationId === undefined) { return undefined; }
       }
       let violations: ValidationViolationDetailEntity.Type[] | undefined;
       if (candidate.violations !== undefined) {
-        violations = Parser.parseViolations(candidate.violations, options.coerce);
+        violations = Parser.parseViolations(candidate.violations, !options.rejectUnknownProperties);
         if (violations === undefined) { return undefined; }
       }
       if (correlationId === undefined) {

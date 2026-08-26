@@ -99,7 +99,7 @@ export abstract class BaseError extends Error {
       if (current instanceof ctor) {
         return current;
       }
-      if (current instanceof Error) {
+      if (Predicates.isError(current)) {
         current = current.cause;
       } else {
         break;
@@ -121,7 +121,7 @@ export abstract class BaseError extends Error {
 
     while (!Predicates.isNullish(current) && depth < CAUSE_CHAIN_DEPTH_LIMIT) {
       chain.push(current);
-      if (current instanceof Error) {
+      if (Predicates.isError(current)) {
         current = current.cause;
       } else {
         break;
@@ -146,7 +146,7 @@ export abstract class BaseError extends Error {
       if (current instanceof ctor) {
         return true;
       }
-      if (current instanceof Error) {
+      if (Predicates.isError(current)) {
         current = current.cause;
       } else {
         break;
@@ -279,7 +279,7 @@ namespace CauseSerializationEntity {
       }
 
       const projection = ThrownValueEntity.intake(error);
-      const causeRaw = error instanceof Error ? error.cause : undefined;
+      const causeRaw = Predicates.isError(error) ? error.cause : undefined;
       let causeValue: JSONSchema7Type = null;
 
       if (!Predicates.isNullish(causeRaw)) {

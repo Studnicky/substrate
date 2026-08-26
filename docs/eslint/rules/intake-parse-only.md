@@ -13,7 +13,7 @@ Permits an `unknown` or `any` parameter only on the `intake` member of a TypeScr
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `exemptPackages` | `string[]` | `['@studnicky/types', '@studnicky/eslint-config', '@studnicky/predicates', '@studnicky/intake-kit']` | Package names whose files are excluded from the rule — the parsing primitives, coercion machinery, and compile engine every `intake` is built from can't themselves be required to go through `intake`. Replaces the default entirely; does not merge with it. |
+| `exemptPackages` | `string[]` | `['@studnicky/types', '@studnicky/eslint-config', '@studnicky/intake-kit']` | Package names whose files are excluded from the rule — the parsing primitives, coercion machinery, and compile engine every `intake` is built from can't themselves be required to go through `intake`. Replaces the default entirely; does not merge with it. |
 | `structuralProperties` | `string[]` | `['buffer', 'byteLength', 'byteOffset', 'length', 'size', 'then']` | Non-called property reads (`value.length`, not `value.map()`) that belong to a fixed JS/DOM built-in surface rather than an application-defined schema field, so reading one isn't a shape-trust decision. This package's own built-in vocabulary ships as the default; a consumer whose code reads a different built-in surface (`Blob.type`, `Blob.size`, a domain library's own structural properties) supplies their own array. Replaces the default entirely; does not merge with it. |
 
 ## ✗ Incorrect

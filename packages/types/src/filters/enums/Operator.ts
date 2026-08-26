@@ -225,7 +225,7 @@ class ArrayOperators {
       throw new Error(`ARRAY.EQUALS requires filter value to be an array, got ${typeof filterValue}`);
     }
 
-    const result = value === filterValue;
+    const result = ComparisonOperators.deepEqual(value, filterValue);
 
     return result;
   }
@@ -238,7 +238,7 @@ class ArrayOperators {
       throw new Error(`ARRAY.NOT_EQUALS requires filter value to be an array, got ${typeof filterValue}`);
     }
 
-    const result = value !== filterValue;
+    const result = !ComparisonOperators.deepEqual(value, filterValue);
 
     return result;
   }
@@ -1080,7 +1080,7 @@ class SetOperators {
       throw new Error(`SET.EQUALS requires filter value to be a Set, got ${typeof filterValue}`);
     }
 
-    const result = value === filterValue;
+    const result = ComparisonOperators.deepEqual(value, filterValue);
 
     return result;
   }
@@ -1176,7 +1176,7 @@ class MapOperators {
       throw new Error(`MAP.EQUALS requires filter value to be a Map, got ${typeof filterValue}`);
     }
 
-    const result = value === filterValue;
+    const result = ComparisonOperators.deepEqual(value, filterValue);
 
     return result;
   }

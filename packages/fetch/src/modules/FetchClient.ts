@@ -255,7 +255,7 @@ export class FetchClient implements FetchClientInterface {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      if (typeof requestContext.url !== 'string' || requestContext.url === '') {
+      if (!Predicates.isString(requestContext.url) || requestContext.url === '') {
         throw new ConfigurationError('url must be a non-empty string');
       }
 
@@ -269,7 +269,7 @@ export class FetchClient implements FetchClientInterface {
         ...standardOptions
       } = requestContext.options;
 
-      if (timeout !== undefined && (typeof timeout !== 'number' || timeout <= 0 || !Number.isFinite(timeout))) {
+      if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout))) {
         throw new ConfigurationError('timeout must be a positive number');
       }
 
@@ -330,7 +330,7 @@ export class FetchClient implements FetchClientInterface {
           : new AbortError(requestContext.url, error.message);
       }
 
-      const hookError = requestError instanceof Error ? requestError : new Error(String(requestError));
+      const hookError = Predicates.isError(requestError) ? requestError : new Error(String(requestError));
 
       if (requestError instanceof TimeoutError) {
         await this.hooks.invokeAsync('onTimeout', () => {
@@ -356,7 +356,7 @@ export class FetchClient implements FetchClientInterface {
         throw requestError;
       }
 
-      if (requestError instanceof Error) {
+      if (Predicates.isError(requestError)) {
         const wrappedError = await this.wrapUndiciError(requestError, requestContext.url, method, requestId, duration);
 
         if (wrappedError !== undefined) {
@@ -397,7 +397,7 @@ export class FetchClient implements FetchClientInterface {
    * Internal fetch method that applies configuration and lifecycle hooks
    */
   private async fetch(path: string, options: FetchOptionsInterface = {}): Promise<Response> {
-    if (typeof path !== 'string' || path === '') {
+    if (!Predicates.isString(path) || path === '') {
       throw new ConfigurationError('url must be a non-empty string');
     }
 
@@ -725,7 +725,7 @@ export class FetchClient implements FetchClientInterface {
     requestId: string,
     duration: number
   ): Promise<Error | undefined> {
-    if (!('code' in error) || typeof error.code !== 'string') {
+    if (!('code' in error) || !Predicates.isString(error.code)) {
       return undefined;
     }
     const errorCode = error.code;
@@ -758,7 +758,7 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
-    if (!Predicates.isObjectLike(config) || Predicates.isArray(config)) {
+    if (!Predicates.isRecord(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
@@ -780,25 +780,25 @@ export class FetchClient implements FetchClientInterface {
         Reflect.set(intakeData, key, value);
       }
     }
-    if (!Predicates.isNullish(configData.hookTimeoutMs) && typeof configData.hookTimeoutMs !== 'number') {
+    if (!Predicates.isNullish(configData.hookTimeoutMs) && !Predicates.isNumberType(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be a number');
     }
-    if (typeof configData.hookTimeoutMs === 'number' && configData.hookTimeoutMs <= 0) {
+    if (Predicates.isNumberType(configData.hookTimeoutMs) && configData.hookTimeoutMs <= 0) {
       throw new ConfigurationError('hookTimeoutMs must be positive');
     }
-    if (typeof configData.hookTimeoutMs === 'number' && !Number.isFinite(configData.hookTimeoutMs)) {
+    if (Predicates.isNumberType(configData.hookTimeoutMs) && !Number.isFinite(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be finite');
     }
-    if (!Predicates.isNullish(configData.timeout) && typeof configData.timeout !== 'number') {
+    if (!Predicates.isNullish(configData.timeout) && !Predicates.isNumberType(configData.timeout)) {
       throw new ConfigurationError('timeout must be a number');
     }
-    if (typeof configData.timeout === 'number' && configData.timeout <= 0) {
+    if (Predicates.isNumberType(configData.timeout) && configData.timeout <= 0) {
       throw new ConfigurationError('timeout must be positive');
     }
-    if (typeof configData.timeout === 'number' && !Number.isFinite(configData.timeout)) {
+    if (Predicates.isNumberType(configData.timeout) && !Number.isFinite(configData.timeout)) {
       throw new ConfigurationError('timeout must be finite');
     }
-    if (!Predicates.isNullish(configuredOptions) && (!Predicates.isObjectLike(configuredOptions) || Predicates.isArray(configuredOptions))) {
+    if (!Predicates.isNullish(configuredOptions) && !Predicates.isRecord(configuredOptions)) {
       throw new ConfigurationError('options must be an object');
     }
     const {
@@ -812,13 +812,13 @@ export class FetchClient implements FetchClientInterface {
     } = configuredOptions ?? {};
     const { 'timeout': optionTimeout, ...optionsWithoutTimeout } = optionData;
     const normalizedOptionData = optionTimeout === null ? optionsWithoutTimeout : optionData;
-    if (normalizedOptionData.integrity !== undefined && typeof normalizedOptionData.integrity !== 'string') {
+    if (normalizedOptionData.integrity !== undefined && !Predicates.isString(normalizedOptionData.integrity)) {
       throw new ConfigurationError('integrity must be a string');
     }
-    if (normalizedOptionData.referrer !== undefined && typeof normalizedOptionData.referrer !== 'string') {
+    if (normalizedOptionData.referrer !== undefined && !Predicates.isString(normalizedOptionData.referrer)) {
       throw new ConfigurationError('referrer must be a string');
     }
-    if (!Predicates.isNullish(optionTimeout) && typeof optionTimeout !== 'number') {
+    if (!Predicates.isNullish(optionTimeout) && !Predicates.isNumberType(optionTimeout)) {
       throw new ConfigurationError('timeout must be a number');
     }
     if (!Predicates.isNullish(signal) && !Predicates.isAbortSignal(signal)) {
@@ -863,19 +863,19 @@ export class FetchClient implements FetchClientInterface {
 
   /** Verifies the injected request-ID collaborator's runtime contract once at construction. */
   private static assertRequestIdGenerator(requestIdGenerator: RequestIdGeneratorInterface): void {
-    if (typeof requestIdGenerator !== 'function') {
+    if (!Predicates.isFunction(requestIdGenerator)) {
       throw new ConfigurationError('requestIdGenerator must be a function');
     }
 
     try {
-      if (typeof requestIdGenerator() !== 'string') {
+      if (!Predicates.isString(requestIdGenerator())) {
         throw new ConfigurationError('requestIdGenerator must return a string');
       }
     } catch (error) {
       if (error instanceof ConfigurationError) {
         throw error;
       }
-      throw new ConfigurationError(`requestIdGenerator function error: ${error instanceof Error ? error.message : String(error)}`);
+      throw new ConfigurationError(`requestIdGenerator function error: ${Predicates.isError(error) ? error.message : String(error)}`);
     }
   }
 
@@ -888,8 +888,7 @@ export class FetchClient implements FetchClientInterface {
     }
 
     const json = options.json;
-    const snapshotJson = json !== null
-      && typeof json === 'object'
+    const snapshotJson = Predicates.isObjectLike(json)
       && Object.getPrototypeOf(json) !== Object.prototype
       && Object.getPrototypeOf(json) !== null
       ? json

@@ -41,18 +41,18 @@ export namespace ErrorClassificationEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.retryable !== 'boolean') { return false; }
-    if (candidate.reason !== undefined && typeof candidate.reason !== 'string') { return false; }
+    if (!Predicates.isBoolean(candidate.retryable)) { return false; }
+    if (candidate.reason !== undefined && !Predicates.isString(candidate.reason)) { return false; }
     return true;
   };
 
   class Parser {
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['reason', 'retryable'])) { return undefined; }
-      const retryable = EntityIntake.boolean(candidate.retryable, options.coerce);
+      const retryable = EntityIntake.boolean(candidate.retryable);
       if (retryable === undefined) { return undefined; }
       if (candidate.reason === undefined) { return { 'retryable': retryable }; }
-      const reason = EntityIntake.string(candidate.reason, options.coerce);
+      const reason = EntityIntake.string(candidate.reason);
       if (reason === undefined) { return undefined; }
       const result = { 'reason': reason, 'retryable': retryable };
       return result;

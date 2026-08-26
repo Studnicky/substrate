@@ -59,7 +59,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
   }
 
   private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
-    const result = typeof counter.nowMs === 'function' && typeof counter.advance === 'function';
+    const result = Predicates.isFunction(counter.nowMs) && Predicates.isFunction(counter.advance);
     return result;
   }
 

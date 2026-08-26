@@ -38,19 +38,19 @@ export namespace ValidationAggregateViewEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (typeof candidate.count !== 'number') { return false; }
-    if (!Array.isArray(candidate.keywords) || !candidate.keywords.every((keyword) => { const result = typeof keyword === 'string'; return result; })) { return false; }
-    if (!Array.isArray(candidate.paths) || !candidate.paths.every((path) => { const result = typeof path === 'string'; return result; })) { return false; }
+    if (!Predicates.isNumber(candidate.count)) { return false; }
+    if (!Predicates.isArray(candidate.keywords) || !candidate.keywords.every((keyword) => { const result = Predicates.isString(keyword); return result; })) { return false; }
+    if (!Predicates.isArray(candidate.paths) || !candidate.paths.every((path) => { const result = Predicates.isString(path); return result; })) { return false; }
     return true;
   };
 
   class Parser {
-    public static parseStrings(value: Parameters<EntityIntakeFunctionInterface<never>>[0], coerce: boolean): string[] | undefined {
+    public static parseStrings(value: Parameters<EntityIntakeFunctionInterface<never>>[0]): string[] | undefined {
       if (!Array.isArray(value)) { return undefined; }
       const result: string[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        const string = EntityIntake.string(value[index], coerce);
+        const string = EntityIntake.string(value[index]);
         if (string === undefined) { return undefined; }
         result.push(string);
       }
@@ -59,9 +59,9 @@ export namespace ValidationAggregateViewEntity {
 
     public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['count', 'keywords', 'paths'])) { return undefined; }
-      const count = EntityIntake.number(candidate.count, options.coerce);
-      const keywords = Parser.parseStrings(candidate.keywords, options.coerce);
-      const paths = Parser.parseStrings(candidate.paths, options.coerce);
+      const count = EntityIntake.number(candidate.count);
+      const keywords = Parser.parseStrings(candidate.keywords);
+      const paths = Parser.parseStrings(candidate.paths);
       if (count === undefined || keywords === undefined || paths === undefined) { return undefined; }
       return { 'count': count, 'keywords': keywords, 'paths': paths };
     }

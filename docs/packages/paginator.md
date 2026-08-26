@@ -23,6 +23,12 @@ pnpm add @studnicky/paginator
 
 The `pages` getter returns a defensive snapshot in receipt order.
 
+## Try it
+
+<RunnableExample src="packages/paginator/examples/observedPaginator" title="Tracking idle, hasMore, and exhausted transitions" />
+
+The output shows `onTransition` recording `idle -> hasMore -> exhausted -> idle` as pages arrive and the source resets, while a same-variant `hasMore -> hasMore` page fetch fires no transition hooks at all.
+
 ## Observability hooks
 
 Subclass `Paginator` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so pagination state still wins.

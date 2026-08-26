@@ -1,4 +1,4 @@
-import type { RegisteredInterpreterMetricsEntity } from './entities/RegisteredInterpreterMetricsEntity.js';
+import type { RegisteredInterpreterMetricsEntity } from '../entities/RegisteredInterpreterMetricsEntity.js';
 
 export interface RegisteredInterpreterInterface<TState, TEvent> {
   getState(): TState;

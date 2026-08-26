@@ -1,5 +1,5 @@
+import type { StateMachine } from '../StateMachine.js';
 import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
-import type { StateMachine } from './StateMachine.js';
 
 /**
  * Options accepted by `EffectInterpreter`'s protected constructor.

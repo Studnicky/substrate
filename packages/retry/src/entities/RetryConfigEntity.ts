@@ -74,7 +74,7 @@ export namespace RetryConfigEntity {
           }
 
           const strategy: unknown = Reflect.get(value, 'strategy');
-          if (typeof strategy !== 'function') {
+          if (!Predicates.isFunction(strategy)) {
             throw new SchemaIntakeError('backoffStrategy.strategy must be a function', [], 'RetryConfig');
           }
 
@@ -84,7 +84,7 @@ export namespace RetryConfigEntity {
         }
 
         if (key === 'errorClassifier') {
-          if (typeof value === 'function') {
+          if (Predicates.isFunction(value)) {
             continue;
           }
           if (!Predicates.isObject(value)) {
@@ -92,7 +92,7 @@ export namespace RetryConfigEntity {
           }
 
           const classify: unknown = Reflect.get(value, 'classify');
-          if (typeof classify !== 'function') {
+          if (!Predicates.isFunction(classify)) {
             throw new SchemaIntakeError('errorClassifier.classify must be a function', [], 'RetryConfig');
           }
           continue;

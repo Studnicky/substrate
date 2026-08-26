@@ -202,7 +202,7 @@ export class TestDispatcher {
       return '';
     }
 
-    if (typeof body === 'string') {
+    if (Predicates.isString(body)) {
       return body;
     }
 
@@ -216,7 +216,7 @@ export class TestDispatcher {
       return result;
     }
 
-    if (ArrayBuffer.isView(body)) {
+    if (Predicates.isArrayBufferView(body)) {
       const result = new TextDecoder().decode(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
       return result;
     }
@@ -373,20 +373,20 @@ export class TestDispatcher {
     const parsedUrl = new URL(url);
     const rawBody = init.body;
     const body = rawBody === null
-      || typeof rawBody === 'string'
+      || Predicates.isString(rawBody)
       || rawBody instanceof ArrayBuffer
-      || ArrayBuffer.isView(rawBody)
+      || Predicates.isArrayBufferView(rawBody)
       || rawBody instanceof Blob
       ? rawBody
       : String(rawBody);
     return new TestRequest(
       TestDispatcher.#readBodyValue(body),
       TestDispatcher.#toPlainHeaders(init.headers as ConstructorParameters<typeof Headers>[0] | undefined),
-      typeof init.method === 'string' ? init.method.toUpperCase() : 'GET',
+      Predicates.isString(init.method) ? init.method.toUpperCase() : 'GET',
       parsedUrl.origin,
       parsedUrl.pathname,
       parsedUrl.searchParams,
-      init.signal instanceof AbortSignal ? init.signal : undefined,
+      Predicates.isAbortSignal(init.signal) ? init.signal : undefined,
       url
     );
   }

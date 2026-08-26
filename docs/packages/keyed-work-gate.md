@@ -21,6 +21,12 @@ pnpm add @studnicky/keyed-work-gate
 
 <<< ../../packages/keyed-work-gate/examples/observedKeyedWorkGate.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/keyed-work-gate/examples/observedKeyedWorkGate" title="Single-flight coalescing vs. serialized execution on the same key" />
+
+The output shows three concurrent `runSingleFlight` callers for `user-42` collapsing into one mutex acquisition and one `Coalesce` leader with two joiners, then `runSerialized` calls against the same key each actually running rather than sharing a result.
+
 ## Composition order: why Coalesce falls through to Mutex
 
 `runSingleFlight` routes through `Coalesce` first, and the `Coalesce` factory itself acquires the `Mutex` before running `fn`. This order is a deliberate, non-obvious sequencing decision — not interchangeable with mutex-first:

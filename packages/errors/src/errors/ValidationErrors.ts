@@ -1,5 +1,7 @@
 /** Iterable collection of validation violations with RFC 7807 reporting. */
 
+import { Predicates } from '@studnicky/types';
+
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
 import type { ValidationProblemDetailsEntity } from '../entities/ValidationProblemDetailsEntity.js';
 import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
@@ -106,7 +108,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
 
   protected constructor(items: readonly ValidationViolationEntity.Type[]) {
     const typedItems = items;
-    if (!Array.isArray(items)) {
+    if (!Predicates.isArray(items)) {
       throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
     }
     const snapshot: ValidationViolationEntity.Type[] = [];

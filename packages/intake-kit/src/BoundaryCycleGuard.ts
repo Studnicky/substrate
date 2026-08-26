@@ -29,14 +29,14 @@ export class BoundaryCycleGuard {
 
     seen.add(value);
     try {
-      if (Array.isArray(value)) {
+      if (Predicates.isArray(value)) {
         const result = value.some((item) => {
           const hasCycle = BoundaryCycleGuard.hasCycle(item, seen);
           return hasCycle;
         });
         return result;
       }
-      if (value instanceof Map) {
+      if (Predicates.isMap(value)) {
         for (const [key, item] of value.entries()) {
           if (BoundaryCycleGuard.hasCycle(key, seen) || BoundaryCycleGuard.hasCycle(item, seen)) {
             return true;
@@ -44,7 +44,7 @@ export class BoundaryCycleGuard {
         }
         return false;
       }
-      if (value instanceof Set) {
+      if (Predicates.isSet(value)) {
         for (const item of value.values()) {
           if (BoundaryCycleGuard.hasCycle(item, seen)) {
             return true;

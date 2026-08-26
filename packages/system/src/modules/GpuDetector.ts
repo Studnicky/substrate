@@ -1,3 +1,4 @@
+import { Predicates } from '@studnicky/types';
 import * as childProcess from 'node:child_process';
 import os from 'node:os';
 
@@ -49,9 +50,9 @@ export class GpuDetector {
       const parsed: GpuMetalProfileEntity.Type = GpuMetalProfileEntity.intake(JSON.parse(raw));
       const first = parsed.SPDisplaysDataType[0];
       if (first === undefined) { return null; }
-      const name = typeof first.sppci_model === 'string' ? first.sppci_model : 'Unknown GPU';
+      const name = Predicates.isString(first.sppci_model) ? first.sppci_model : 'Unknown GPU';
       const vramMb = GpuDetector.#parseVramString(
-        typeof first.spdisplays_vram === 'string' ? first.spdisplays_vram : null
+        Predicates.isString(first.spdisplays_vram) ? first.spdisplays_vram : null
       );
 
       const result: GpuInfoEntity.Type = { 'computeApi': 'metal', 'name': name, 'vramMb': vramMb };
@@ -119,7 +120,7 @@ export class GpuDetector {
         const gpuInfo = gpuInfos[gpuInfoIndex];
         if (gpuInfo === undefined) { continue; }
         const vramTotalString = gpuInfo['VRAM Total Memory (B)'];
-        const vramMb = typeof vramTotalString === 'string'
+        const vramMb = Predicates.isString(vramTotalString)
           ? Math.round(parseInt(vramTotalString, 10) / BYTES_PER_MB)
           : null;
 

@@ -29,13 +29,13 @@ export namespace ErrorWithErrnoEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.errno === 'number';
+    const result = Predicates.isNumber(candidate.errno);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['errno'])) { return undefined; }
-    const errno = EntityIntake.number(candidate.errno, options.coerce);
+    const errno = EntityIntake.number(candidate.errno);
     if (errno === undefined) { return undefined; }
     const result = { 'errno': errno };
     return result;

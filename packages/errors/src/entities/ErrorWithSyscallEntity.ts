@@ -29,13 +29,13 @@ export namespace ErrorWithSyscallEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.syscall === 'string';
+    const result = Predicates.isString(candidate.syscall);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['syscall'])) { return undefined; }
-    const syscall = EntityIntake.string(candidate.syscall, options.coerce);
+    const syscall = EntityIntake.string(candidate.syscall);
     if (syscall === undefined) { return undefined; }
     const result = { 'syscall': syscall };
     return result;

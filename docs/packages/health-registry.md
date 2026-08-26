@@ -19,6 +19,12 @@ Register named async check functions, each resolving to `{ status, metadata? }`.
 
 <<< ../../packages/health-registry/examples/observedHealthRegistry.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/health-registry/examples/observedHealthRegistry" title="Aggregating healthy, degraded, and timed-out checks" />
+
+The output shows `onCheckResult` reporting `database` as healthy, `cache` as degraded with its metadata, and `downstream-api` timing out via `onCheckTimeout`, then `onAggregate` folding all three into an overall `'unhealthy'` status.
+
 ## Aggregation
 
 The overall status is worst-status-wins: any `'unhealthy'` check makes the overall status `'unhealthy'`, else any `'degraded'` check makes it `'degraded'`, else `'healthy'`. An empty registry evaluates to `'healthy'` with an empty results map.

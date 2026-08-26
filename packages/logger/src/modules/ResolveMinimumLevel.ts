@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
 import type { LogLevelOptionsInterface } from '../interfaces/LogLevelOptionsInterface.js';
 
@@ -15,8 +17,8 @@ export class ResolveMinimumLevel {
    */
   public static from(options: LogLevelOptionsInterface): LogLevelEntity.Type {
     if (options.level !== undefined
-      && typeof options.level !== 'string'
-      && typeof options.level !== 'number') {
+      && !Predicates.isString(options.level)
+      && !Predicates.isNumber(options.level)) {
       throw new ConfigurationError('level must be a string or number');
     }
 

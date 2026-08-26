@@ -68,5 +68,8 @@
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "@studnicky/signal": "workspace:*"
   }
 }

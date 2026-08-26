@@ -15,7 +15,7 @@ Assertions inside an entity namespace’s `intake` member are allowed, because `
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `exemptPackages` | `string[]` | `['@studnicky/types', '@studnicky/eslint-config']` | Package names whose files are excluded from the rule. |
+| `exemptPackages` | `string[]` | `['@studnicky/types', '@studnicky/eslint-config', '@studnicky/intake-kit']` | Package names whose files are excluded from the rule. |
 
 ## ✗ Incorrect
 

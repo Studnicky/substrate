@@ -317,7 +317,7 @@ export class Retry implements RetryInterface {
       const result: { 'result': T; 'success': true } = { 'result': await callback(), 'success': true };
       return result;
     } catch (error) {
-      const caughtError = error instanceof Error ? error : new Error(String(error));
+      const caughtError = Predicates.isError(error) ? error : new Error(String(error));
       const result: { 'error': Error; 'success': false } = { 'error': caughtError, 'success': false };
       return result;
     }

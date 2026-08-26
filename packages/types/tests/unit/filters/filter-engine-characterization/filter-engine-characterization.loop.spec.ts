@@ -12,15 +12,18 @@ import { Plugins } from '../../../../src/filters/registries/index.js';
 import scenarioGroups from './filter-engine-characterization.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
+  | 'array-equals-deep'
   | 'custom-plugin-operator'
   | 'date-between-in-range'
   | 'date-between-out-of-range'
   | 'date-equals-match'
   | 'enum-reachability-sanity'
+  | 'map-equals-deep'
   | 'map-has-direct'
   | 'map-size-wildcard'
   | 'nested-or-group'
   | 'registered-custom-gate-operator'
+  | 'set-equals-deep'
   | 'set-has-direct'
   | 'set-size-wildcard'
   | 'string-gate-fail'
@@ -82,6 +85,24 @@ const runStringGate = (scenarioCase: ScenarioCase): void => {
 };
 
 const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+  'array-equals-deep': (scenarioCase) => {
+    const { entries } = scenarioCase.input;
+    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
+    const { valid, validFail } = scenarioCase.expected;
+    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
+    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+
+    const engine = new FilterEngine({
+      'conditions': [
+        { 'operator': 'ARRAY.EQUALS', 'path': 'tags', 'value': [...entries] as unknown as FilterValueEntity.Type }
+      ],
+      'gate': 'CORE.AND',
+      'mode': FilterMode.CORE.WHITELIST
+    });
+
+    assert.equal(engine.evaluate({ 'tags': [...entries] }).valid, valid);
+    assert.equal(engine.evaluate({ 'tags': [...entries, 'zzz'] }).valid, validFail);
+  },
   'custom-plugin-operator': (scenarioCase) => {
     const { failValue, matchValue } = scenarioCase.input;
     assert.ok(typeof matchValue === 'string', `${scenarioCase.name} must define input.matchValue`);
@@ -154,6 +175,25 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.equal(typeof LogicGate.CORE.AND, 'function');
     assert.equal(typeof Operator.STRING.EQUALS, 'function');
     assert.equal(typeof ArrayLogic.CORE.EVERY, 'function');
+  },
+  'map-equals-deep': (scenarioCase) => {
+    const { entries } = scenarioCase.input;
+    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
+    const { valid, validFail } = scenarioCase.expected;
+    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
+    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+
+    const mapEntries = entries as [string, unknown][];
+    const engine = new FilterEngine({
+      'conditions': [
+        { 'operator': 'MAP.EQUALS', 'path': 'roles', 'value': new Map(mapEntries) as unknown as FilterValueEntity.Type }
+      ],
+      'gate': 'CORE.AND',
+      'mode': FilterMode.CORE.WHITELIST
+    });
+
+    assert.equal(engine.evaluate({ 'roles': new Map(mapEntries) }).valid, valid);
+    assert.equal(engine.evaluate({ 'roles': new Map([...mapEntries, ['zzz', false]]) }).valid, validFail);
   },
   'map-has-direct': (scenarioCase) => {
     const { entries, matchValue } = scenarioCase.input;
@@ -240,6 +280,25 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const result = engine.evaluate(requireData(scenarioCase));
 
     assert.equal(result.valid, requireValid(scenarioCase));
+  },
+  'set-equals-deep': (scenarioCase) => {
+    const { entries } = scenarioCase.input;
+    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
+    const { valid, validFail } = scenarioCase.expected;
+    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
+    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+
+    const setEntries = entries as string[];
+    const engine = new FilterEngine({
+      'conditions': [
+        { 'operator': 'SET.EQUALS', 'path': 'tags', 'value': new Set(setEntries) as unknown as FilterValueEntity.Type }
+      ],
+      'gate': 'CORE.AND',
+      'mode': FilterMode.CORE.WHITELIST
+    });
+
+    assert.equal(engine.evaluate({ 'tags': new Set(setEntries) }).valid, valid);
+    assert.equal(engine.evaluate({ 'tags': new Set([...setEntries, 'zzz']) }).valid, validFail);
   },
   'set-has-direct': (scenarioCase) => {
     const { entries, matchValue } = scenarioCase.input;

@@ -9,10 +9,11 @@
  *
  * `compileIntake` parses data from outside the codebase; `compileCreate` builds
  * object entities from trusted data. Running transforms over your own fixture is
- * wrong; skipping them on a request body is worse. Intake therefore coerces,
- * fills defaults, and strips unknown properties, while create only fills defaults.
- * Intake applies to every entity, including scalar schemas; create is restricted
- * to object entities because a partial scalar is not meaningful.
+ * wrong; skipping them on a request body is worse. Intake therefore fills defaults
+ * and strips unknown properties, while create only fills defaults — neither coerces
+ * a scalar's type; a mismatch is rejected, not silently converted. Intake applies to
+ * every entity, including scalar schemas; create is restricted to object entities
+ * because a partial scalar is not meaningful.
  *
  * Subclass and override `protected static` hooks to customise compilation or
  * error rendering.
@@ -47,7 +48,7 @@ export class SchemaValidator {
   public static compile<TValidated>(schema: object): ValidateFunction<TValidated> {
     const id: unknown = Reflect.get(schema, '$id');
 
-    if (typeof id === 'string') {
+    if (Predicates.isString(id)) {
       const existing = AjvInstance.assert.getSchema<TValidated>(id);
       if (existing !== undefined) {
         return existing;
@@ -65,11 +66,12 @@ export class SchemaValidator {
    * before Ajv applies intake transforms, leaving the caller's value unchanged.
    *
    * Cyclic values are rejected before cloning because JSON Schema models JSON
-   * trees rather than object graphs.
+   * trees rather than object graphs. Scalar values are never coerced — a `"true"`
+   * string for a `boolean` field is rejected, not silently accepted as `true`.
    */
   public static compileIntake<TValidated>(schema: object): SchemaIntakeFunctionInterface<TValidated> {
     const id: unknown = Reflect.get(schema, '$id');
-    const existing = typeof id === 'string' ? AjvInstance.intake.getSchema<TValidated>(id) : undefined;
+    const existing = Predicates.isString(id) ? AjvInstance.intake.getSchema<TValidated>(id) : undefined;
     const validate = existing ?? AjvInstance.intake.compile<TValidated>(schema);
     const schemaIdentifier = SchemaValidator.schemaIdentifier(schema);
 
@@ -107,7 +109,7 @@ export class SchemaValidator {
     schema: object
   ): SchemaCreateFunctionInterface<TValidated> {
     const id: unknown = Reflect.get(schema, '$id');
-    const existing = typeof id === 'string' ? AjvInstance.create.getSchema<TValidated>(id) : undefined;
+    const existing = Predicates.isString(id) ? AjvInstance.create.getSchema<TValidated>(id) : undefined;
     const validate = existing ?? AjvInstance.create.compile<TValidated>(schema);
     const schemaIdentifier = SchemaValidator.schemaIdentifier(schema);
 
@@ -152,15 +154,15 @@ export class SchemaValidator {
 
   /** Finds every non-JSON value in a finite, acyclic candidate. */
   protected static collectJsonValidityErrors(value: unknown, path = ''): string[] {
-    if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+    if (value === null || Predicates.isString(value) || Predicates.isBoolean(value)) {
       return [];
     }
-    if (typeof value === 'number') {
+    if (Predicates.isNumberType(value)) {
       const message = Number.isFinite(value) ? undefined : SchemaValidator.describeInvalidJsonNumber(value);
       const result = message === undefined ? [] : [SchemaValidator.formatPathMessage(path, message)];
       return result;
     }
-    if (Array.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const messages: string[] = [];
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
@@ -210,12 +212,12 @@ export class SchemaValidator {
   /** Finds the schema label carried by intake errors. */
   protected static schemaIdentifier(schema: object): string | undefined {
     const id: unknown = Reflect.get(schema, '$id');
-    if (typeof id === 'string') {
+    if (Predicates.isString(id)) {
       return id;
     }
 
     const title: unknown = Reflect.get(schema, 'title');
-    const result = typeof title === 'string' ? title : undefined;
+    const result = Predicates.isString(title) ? title : undefined;
     return result;
   }
 

@@ -6,7 +6,7 @@ import {
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './MachineRegistryHooks.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };

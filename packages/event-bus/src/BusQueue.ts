@@ -4,7 +4,6 @@ import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
-import type { BusQueueCreateOptionsInterface } from './BusQueueCreateOptionsInterface.js';
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
 import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';
 import type { BusQueueAbortingStateEntity } from './entities/BusQueueAbortingStateEntity.js';
@@ -12,6 +11,7 @@ import type { BusQueueDrainingStateEntity } from './entities/BusQueueDrainingSta
 import type { BusQueueLoopFinishedEventEntity } from './entities/BusQueueLoopFinishedEventEntity.js';
 import type { BusQueueOpenStateEntity } from './entities/BusQueueOpenStateEntity.js';
 import type { BusQueueStartLoopEventEntity } from './entities/BusQueueStartLoopEventEntity.js';
+import type { BusQueueCreateOptionsInterface } from './interfaces/index.js';
 
 import { BusQueueLifecycleMachine } from './BusQueueLifecycleMachine.js';
 import {
@@ -119,7 +119,7 @@ export class BusQueue<T> {
   }
 
   protected constructor(options: BusQueueCreateOptionsInterface<T>) {
-    if (typeof options.handler !== 'function') {
+    if (!Predicates.isFunction(options.handler)) {
       throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
     }
     const hwmOption = options.highWaterMark;

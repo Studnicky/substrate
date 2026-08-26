@@ -19,6 +19,12 @@ pnpm add @studnicky/idempotency-guard
 
 <<< ../../packages/idempotency-guard/examples/observedIdempotencyGuard.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/idempotency-guard/examples/observedIdempotencyGuard" title="Replay, conflict, and coalescing on a shared idempotency key" />
+
+The output shows `onExecute` firing for a new key, `onReplay` replaying the cached result for a repeat call with a matching payload, `onConflict` rejecting a mismatched payload under the same key, and `onCoalesce` joining a concurrent caller into one in-flight execution.
+
 ## Hooks
 
 | Hook | Fires when |

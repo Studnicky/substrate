@@ -29,13 +29,13 @@ export namespace ErrorWithRetryAfterEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    const result = typeof candidate.retryAfter === 'number';
+    const result = Predicates.isNumber(candidate.retryAfter);
     return result;
   };
 
   const boundary = EntityIntake.compile<Type>((candidate, options) => {
     if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['retryAfter'])) { return undefined; }
-    const retryAfter = EntityIntake.number(candidate.retryAfter, options.coerce);
+    const retryAfter = EntityIntake.number(candidate.retryAfter);
     if (retryAfter === undefined) { return undefined; }
     const result = { 'retryAfter': retryAfter };
     return result;

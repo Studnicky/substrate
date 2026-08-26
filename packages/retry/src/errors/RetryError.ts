@@ -21,7 +21,7 @@ class RetryDiagnosticSnapshot {
     if (seen.has(value)) {
       const result = seen.get(value);
 
-      if (result === undefined || !(Predicates.isObjectLike(result) || Predicates.isFunction(result))) {
+      if (result === undefined || !Predicates.isObjectLikeOrFunction(result)) {
         throw new TypeError('Retry diagnostic snapshot must preserve object values.');
       }
       return result;

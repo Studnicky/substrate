@@ -27,15 +27,16 @@ dependency that used to force `errors` to hand-roll its own copy of this machine
 
 `IntakeCompiler.compile` takes a parser — `(candidate, options) => TEntity | undefined` — and an
 injected `BoundaryConfigInterface` (a clone strategy and a failure path), and returns a
-`{create, intake}` pair with the standard semantics: `intake` clones then coerces and strips unknown
-properties; `create` clones then fills defaults without coercing or stripping.
+`{create, intake}` pair with the standard semantics: `intake` clones then strips unknown
+properties; `create` clones then fills defaults without stripping. Neither coerces a value's type —
+a wrong-typed field is rejected, not silently converted.
 
 <!-- inline-ts-ok: illustrates the generic parser/config shape, not a runnable example against a concrete entity. -->
 ```typescript
 import { IntakeCompiler } from '@studnicky/intake-kit';
 
 const parser: IntakeCompiler.ParserInterface<MyEntity> = (candidate, options) => {
-  // validate/coerce `candidate` per `options.coerce` / `options.rejectUnknownProperties`,
+  // validate `candidate` per `options.rejectUnknownProperties`,
   // returning the parsed entity or `undefined` to reject it
 };
 
@@ -58,11 +59,11 @@ as a clone strategy's cycle pre-check before a deep clone.
 `@studnicky/json`'s `SchemaValidator` depends on `@studnicky/errors` (for `BaseError`). That means
 `@studnicky/errors` cannot depend back on `@studnicky/json` — the reverse edge would be a circular
 workspace reference. Every schema-backed error entity used to work around that by hand-rolling its
-own clone/validate/coerce wrapping instead of reusing `SchemaValidator`'s. That duplicated the one
+own clone/validate wrapping instead of reusing `SchemaValidator`'s. That duplicated the one
 piece of logic that doesn't actually vary between an Ajv-schema-driven parser and a hand-written
 one: given a candidate value and a parser capable of turning it into `TEntity` or rejecting it,
-produce a `{create, intake}` pair with the right clone-before-parse and coerce/reject-unknown
-semantics, and fail through a caller-supplied error path.
+produce a `{create, intake}` pair with the right clone-before-parse and reject-unknown
+semantics, and fail through a caller-supplied error path. Neither coerces a value's type.
 
 `@studnicky/intake-kit` has no dependency on `@studnicky/errors` or `@studnicky/json` — every
 failure path and clone strategy is injected — so both packages depend downward on it instead of on

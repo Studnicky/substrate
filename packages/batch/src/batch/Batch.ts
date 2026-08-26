@@ -139,7 +139,7 @@ export class Batch<TResult = unknown> {
       return result;
     } catch (error) {
       counters.set('failed', (counters.get('failed') ?? 0) + 1);
-      const itemError = error instanceof Error ? error : new Error(String(error));
+      const itemError = Predicates.isError(error) ? error : new Error(String(error));
       await this.hooks.invokeAsync('onItemError', () => {
         const hookResult = this.onItemError(globalIndex, itemError);
         return hookResult;

@@ -6,13 +6,13 @@ import { SchemaValidator } from '../schema/SchemaValidator.js';
 /**
  * Canonical finite, acyclic JSON data from an external boundary.
  *
- * A single `type` ARRAY, not `anyOf` of single-type branches. Verified empirically that Ajv's
- * `coerceTypes` mishandles a primitive union expressed as `anyOf` once it is nested as an object
- * property (as it is inside `PatchOperationEntity`'s `value` field): a plain number silently
- * coerced to a string (`10` → `'10'`) because Ajv tries each `anyOf` branch — including ones that
- * don't ultimately match — and does not always keep the first branch that matched without
- * coercion. A `type` array has no such branch-trial behavior; Ajv coerces only when the value does
- * not already satisfy one of the listed types.
+ * A single `type` ARRAY, not `anyOf` of single-type branches — the plain, canonical way to
+ * express a primitive-type union in JSON Schema. (Historical note: this shape was originally
+ * required to avoid an Ajv `coerceTypes` misbehavior with `anyOf`-expressed unions nested as an
+ * object property, as inside `PatchOperationEntity`'s `value` field — Ajv would try each `anyOf`
+ * branch and sometimes coerce a value that already matched an earlier branch. `compileIntake` no
+ * longer coerces at all, so that hazard no longer applies, but the `type` array remains the
+ * simpler, more direct expression regardless.)
  */
 export namespace JsonValueEntity {
   export const Schema = {

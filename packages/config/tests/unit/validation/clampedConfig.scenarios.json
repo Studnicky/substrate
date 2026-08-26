@@ -51,6 +51,16 @@
       "expected": { "result": { "timeoutMs": "not-a-number" } }
     },
     {
+      "name": "nan-field-untouched-no-hook",
+      "description": "leaves a NaN field untouched and does not fire onClamp — NaN is not a clampable number",
+      "shape": "nan-field-untouched-no-hook",
+      "input": {
+        "config": {},
+        "rules": { "timeoutMs": { "minimum": 100, "maximum": 5000, "reason": "timeout out of range" } }
+      },
+      "expected": { "eventCount": 0 }
+    },
+    {
       "name": "absent-field-untouched",
       "description": "leaves a field absent from config untouched",
       "shape": "absent-field-untouched",

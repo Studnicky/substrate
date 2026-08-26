@@ -42,7 +42,7 @@ console.log('Predicates.isPositiveInteger(0):', Predicates.isPositiveInteger(0))
 // ── Static-override subclass ────────────────────────────────────────────────
 
 class StrictPredicates extends Predicates {
-  public static override isObject(value: unknown): value is Record<string, unknown> {
+  public static override isObject<T>(value: T): value is Record<string, unknown> & T {
     if (super.isObject(value) && !Array.isArray(value)) {
       return true;
     }
@@ -68,13 +68,13 @@ console.log('Empty.array<number>():', emptyArray);
 console.log('Empty.map<string,number>().size:', emptyMap.size);
 console.log('Empty.set<string>().size:', emptySet.size);
 
-// ── Empty predicates ────────────────────────────────────────────────────────
+// ── Predicates emptiness checks ─────────────────────────────────────────────
 
-console.log('Empty.isString(""):', Empty.isString(''));
-console.log('Empty.isObject({}):', Empty.isObject({}));
-console.log('Empty.isArray([]):', Empty.isArray([]));
-console.log('Empty.isMap(new Map()):', Empty.isMap(new Map()));
-console.log('Empty.isSet(new Set()):', Empty.isSet(new Set()));
+console.log('Predicates.isEmptyString(""):', Predicates.isEmptyString(''));
+console.log('Predicates.isEmptyPlainObject({}):', Predicates.isEmptyPlainObject({}));
+console.log('Predicates.isEmptyArray([]):', Predicates.isEmptyArray([]));
+console.log('Predicates.isEmptyMap(new Map()):', Predicates.isEmptyMap(new Map()));
+console.log('Predicates.isEmptySet(new Set()):', Predicates.isEmptySet(new Set()));
 
 // ── JSON value boundary ─────────────────────────────────────────────────────
 
@@ -128,14 +128,14 @@ assert.deepEqual(emptyArray, [], 'Empty.array() returns empty array');
 assert.equal(emptyMap.size, 0, 'Empty.map() returns empty map');
 assert.equal(emptySet.size, 0, 'Empty.set() returns empty set');
 
-assert.equal(Empty.isString(''), true);
-assert.equal(Empty.isString('x'), false);
-assert.equal(Empty.isObject({}), true);
-assert.equal(Empty.isObject({ 'a': 1 }), false);
-assert.equal(Empty.isArray([]), true);
-assert.equal(Empty.isArray([1]), false);
-assert.equal(Empty.isMap(new Map()), true);
-assert.equal(Empty.isSet(new Set()), true);
+assert.equal(Predicates.isEmptyString(''), true);
+assert.equal(Predicates.isEmptyString('x'), false);
+assert.equal(Predicates.isEmptyPlainObject({}), true);
+assert.equal(Predicates.isEmptyPlainObject({ 'a': 1 }), false);
+assert.equal(Predicates.isEmptyArray([]), true);
+assert.equal(Predicates.isEmptyArray([1]), false);
+assert.equal(Predicates.isEmptyMap(new Map()), true);
+assert.equal(Predicates.isEmptySet(new Set()), true);
 
 assert.equal(JsonValue.is(value), true, 'JSON value validation accepts nested JSON');
 assert.deepEqual(value, { 'nested': [1, 'two', null] }, 'canonical JSON value accepts nested JSON');

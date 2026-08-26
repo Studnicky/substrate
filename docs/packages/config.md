@@ -17,7 +17,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Parse external configuration through an entity's `intake` function. Intake coerces compatible values, supplies schema defaults, and removes undeclared properties:
+Parse external configuration through an entity's `intake` function. Intake supplies schema defaults and removes undeclared properties, without coercing a value's type — a wrong-typed field is rejected, not silently converted:
 
 <<< ../../packages/config/examples/validate-config.ts#usage
 

@@ -70,7 +70,7 @@ export class FunctionTransport implements TransportInterface {
   readonly #sink: (record: LogRecordEntity.Type) => void;
 
   protected constructor(sink: (record: LogRecordEntity.Type) => void, options: FunctionTransportOptionsEntity.Type = {}) {
-    if (typeof sink !== 'function') {
+    if (!Predicates.isFunction(sink)) {
       throw new ConfigurationError('sink must be a function');
     }
     this.#sink = sink;

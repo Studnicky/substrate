@@ -21,6 +21,12 @@ pnpm add @studnicky/keyed-rate-limiter
 
 <<< ../../packages/keyed-rate-limiter/examples/observedKeyedRateLimiter.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/keyed-rate-limiter/examples/observedKeyedRateLimiter" title="Per-key token buckets with LRU eviction" />
+
+The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user-a` and `user-b`, `onLimitExceeded` firing once `user-a`'s bucket is drained, and `onKeyEvicted` firing for `user-a` when a third key (`user-c`) exceeds `maximumKeys` and evicts the LRU tail.
+
 ## The `RateLimiterStrategyInterface` extension seam
 
 `KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = TokenBucket>` is generic over an injectable rate-limiting strategy — a purely structural seam:

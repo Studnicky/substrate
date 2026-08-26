@@ -6,8 +6,8 @@ import {
 import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { EffectInterpreterConstructorOptionsInterface } from '../../src/EffectInterpreterConstructorOptionsInterface.js';
-import type { FsmStepInterface } from '../../src/FsmStepInterface.js';
+import type { EffectInterpreterConstructorOptionsInterface } from '../../src/interfaces/EffectInterpreterConstructorOptionsInterface.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import scenarioGroups from './EffectInterpreter.scenarios.json' with { type: 'json' };
 
 type DemoState = { readonly variant: 'idle' } | { readonly variant: 'active' };

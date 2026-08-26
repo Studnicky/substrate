@@ -33,6 +33,12 @@ Extend `BaseError` or `ModuleError` for a domain-specific error, and use `Domain
 
 <<< ../../packages/errors/examples/05-event-recorder.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/errors/examples/02-module-error" title="Creating structured ModuleError instances from named scenarios" />
+
+The output shows `ModuleError.create()` resolving `code`/`statusCode`/`retryable` from the `NOT_FOUND` and `CONNECTION` scenario defaults, `BaseError.getCauseChain()` walking a wrapped `TIMEOUT` error's cause chain, and `toJSON()` serializing the error's `name` and `code`.
+
 ## Entities
 
 `@studnicky/errors/entities` exports every schema namespace in `src/entities`, including error classifications, validation arguments and reports, error diagnostics, and native-error field projections. Each namespace exposes its `Schema`, inferred `Type`, and runtime `validate` predicate.
@@ -70,8 +76,6 @@ import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 | `DefaultHttpErrorClassifier` | Classifies standard HTTP failures for retry behavior. | `@studnicky/errors` |
 | `ErrorClassifier` | Base class for custom error classifiers. | `@studnicky/errors` |
 | `matchers` | Provides runtime error-classification predicates. | `@studnicky/errors` |
-| `ErrorClassificationGuard` | Validates error-classification values at runtime. | `@studnicky/errors` |
-| `errorTypeGuards` | Provides runtime type predicates for error shapes. | `@studnicky/errors` |
 | `EventRecorder` | Records detached event projections for observers. | `@studnicky/errors` |
 | `ErrorCode` | Provides standard error-code values. | `@studnicky/errors` |
 | `ErrorDefaults` | Provides named default error scenarios. | `@studnicky/errors` |
