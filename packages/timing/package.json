@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/timing",
-  "version": "10.0.0",
+  "version": "11.0.0",
   "description": "High-resolution timing tracker for collecting operation metrics",
   "type": "module",
   "sideEffects": false,
