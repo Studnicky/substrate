@@ -5,6 +5,7 @@
 
 import { Coalesce } from '@studnicky/concurrency';
 import { Mutex } from '@studnicky/mutex';
+import { Predicates } from '@studnicky/types';
 
 import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateConfigInterface.js';
 
@@ -12,6 +13,14 @@ import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateCon
 interface KeyedWorkGateDepsInterface<K extends PropertyKey> {
   'coalesce': Coalesce<unknown>;
   'mutex': Mutex<K>;
+}
+
+interface KeyedWorkGateConstructorInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
+
+interface ResultEntityInterface<T> {
+  readonly 'intake': (input: unknown) => T;
 }
 
 /**
@@ -27,12 +36,12 @@ interface KeyedWorkGateDepsInterface<K extends PropertyKey> {
  * const gate = KeyedWorkGate.create<string>({
  *   mutex: { enableCoalescing: false, timeout: 5000 }
  * });
- * const acceptsUser = (value: unknown): value is User => value instanceof User;
+ * const user = await UserEntity.intake(await fetchUser('user1'));
  *
  * // Concurrent calls with the same key share one execution
  * const [a, b] = await Promise.all([
- *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser),
- *   gate.runSingleFlight('user1', () => fetchUser('user1'), acceptsUser)
+ *   gate.runSingleFlight('user1', UserEntity, () => Promise.resolve(user)),
+ *   gate.runSingleFlight('user1', UserEntity, () => Promise.resolve(user))
  * ]);
  * ```
  *
@@ -46,24 +55,28 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param config - Composition configuration
    * @returns New KeyedWorkGate instance
    */
-  private static isConstructed<TInstance>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+  private static isConstructed<TInstance extends object>(
+    value: object,
+    constructor: KeyedWorkGateConstructorInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<
     K extends PropertyKey = string,
     TInstance extends KeyedWorkGate<K> = KeyedWorkGate<K>
   >(
-    this: Function & { readonly 'prototype': TInstance },
+    this: KeyedWorkGateConstructorInterface<TInstance>,
     config: KeyedWorkGateConfigInterface<K> = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [{
       'coalesce': KeyedWorkGate.#resolveCoalesce(config.coalesce),
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
     }]);
+    if (!Predicates.isObjectLike(result)) {
+      throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
+    }
     if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {
       throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
@@ -97,16 +110,16 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
   }
 
   /**
-   * Runs `fn` once per set of concurrent callers sharing `key`, guarded by the mutex.
+   * Runs `callback` once per set of concurrent callers sharing `key`, guarded by the mutex.
    *
    * Composition order is Coalesce-first, falling through to Mutex — not the reverse — because
    * the two primitives solve different problems that only compose correctly in this order:
    *
    * 1. `Coalesce` collapses concurrent callers requesting the identical `key` into a single
-   *    execution — every caller in the group observes the same result, and `fn` runs exactly
+   *    execution — every caller in the group observes the same result, and `callback` runs exactly
    *    once for the whole group.
    * 2. The single execution that Coalesce elects to run (the "leader") still acquires the
-   *    `Mutex` for `key` before invoking `fn`. This matters when `runSerialized` (which never
+   *    `Mutex` for `key` before invoking `callback`. This matters when `runSerialized` (which never
    *    coalesces) is also being called against the same `key` from a different call path: the
    *    mutex is what keeps the coalesced leader's execution mutually exclusive against that
    *    other, non-coalesced work. Without the mutex fall-through, a coalesced "leader" could run
@@ -121,44 +134,43 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    *
    * @param key - Coalesce join-key and mutex lock key (coalesce keys are string; `key` is
    *   stringified via `String(key)`)
-   * @param fn - The function to execute at most once per concurrent same-key group
-   * @param acceptsResult - Runtime predicate applied independently for every joined caller
+   * @param resultEntity - Entity that parses the shared result for this caller
+   * @param callback - The function to execute at most once per concurrent same-key group
    * @returns The shared result for every caller in the coalesced group
    */
   async runSingleFlight<T>(
     key: K,
-    fn: () => Promise<unknown>,
-    acceptsResult: (value: unknown) => value is T
+    resultEntity: ResultEntityInterface<T>,
+    callback: () => Promise<T>
   ): Promise<T> {
     const coalesceKey = String(key);
 
     const result = await this.#coalesce.run(coalesceKey, async () => {
-      const value = await this.runSerialized(key, fn, acceptsResult);
+      const value = await this.runSerialized(key, callback);
       return value;
     });
 
-    if (!acceptsResult(result)) {
-      throw new TypeError(`KeyedWorkGate result for key ${String(key)} does not satisfy the requested type`);
-    }
-
-    return result;
+    const parsedResult = resultEntity.intake(result);
+    return parsedResult;
   }
 
   /**
-   * Runs `fn` directly through the `Mutex`, with no coalescing. Every call runs, in order,
+   * Runs `callback` directly through the `Mutex`, with no coalescing. Every call runs, in order,
    * for a given `key` — none are skipped or shared with a concurrent caller.
    *
    * @param key - Mutex lock key
-   * @param fn - The function to execute exclusively
-   * @param acceptsResult - Runtime predicate proving the returned result type
-   * @returns The result of this specific call to `fn`
+   * @param callback - The function to execute exclusively
+   * @returns The result of this specific call to `callback`
    */
   async runSerialized<T>(
     key: K,
-    fn: () => Promise<unknown>,
-    acceptsResult: (value: unknown) => value is T
+    callback: () => Promise<T>
   ): Promise<T> {
-    const result = await this.#mutex.runExclusive(key, fn, acceptsResult);
-    return result;
+    const release = await this.#mutex.acquire(key);
+    try {
+      return await callback();
+    } finally {
+      release();
+    }
   }
 }

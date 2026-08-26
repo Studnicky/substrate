@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/eval-function'
-description: 'Disallows eval().'
+description: 'Reports recognized eval calls, aliases, indirect forms, and direct new Function expressions.'
 ---
 
 # @studnicky/v8/eval-function
 
-Disallows `eval(...)`. The presence of `eval` prevents V8 from optimizing the surrounding function because it must assume any local variable may be accessed or modified by the evaluated string. It is also a security risk.
+Reports calls through `eval`, `globalThis.eval`, `window.eval`, `self.eval`, their literal bracket forms, and sequence expressions whose final value is one of those references. It also records a `const` or `let` identifier initialized directly from a recognized reference and reports calls through that identifier. Direct `new Function(...)` expressions are reported as well.
+
+The rule treats dynamically evaluated source as both an optimization and security boundary. Replace it with a static dispatch table, a parser for a defined data format, or ordinary functions selected from known input.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,21 +15,33 @@ Disallows `eval(...)`. The presence of `eval` prevents V8 from optimizing the su
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-eval('console.log(x)');
+eval('2 + 2');
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-const result = eval(userInput);
+const execute = globalThis['eval'];
+execute('2 + 2');
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+const add = new Function('left', 'right', 'return left + right');
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// Use static code paths instead
-const handlers = new Map<string, () => void>([
-  ['log', () => { console.log(x); }]
-]);
-handlers.get(command)?.();
+const operations: Record<string, (left: number, right: number) => number> = {
+  'add': (left, right) => left + right
+};
+const result = operations.add(2, 2);
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+function isEnabled(input: string): boolean {
+  return input === 'enabled';
+}
 ```

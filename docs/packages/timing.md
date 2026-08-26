@@ -13,11 +13,11 @@ description: High-resolution operation timing tracker using process.hrtime.bigin
 pnpm add @studnicky/timing
 ```
 
-`@studnicky/timing` is the sole public code entrypoint.
+`@studnicky/timing` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
-Create a `Timing` instance with `Timing.create(options?)`, then record frozen `component.operation[.status]` data with `TimingEvent.create({ component, operation, status? })`. Elapsed milliseconds are collected in a flat map keyed by event name:
+Create a `Timing` instance with `Timing.create()` or a trusted `TimingOptionsEntity.create(...)` value, then record frozen `component.operation[.status]` data with `TimingEvent.create({ component, operation, status? })`. Elapsed milliseconds are collected in a flat map keyed by event name:
 
 <<< ../../packages/timing/examples/basic-usage.ts#usage
 
@@ -31,7 +31,7 @@ Create a `Timing` instance with `Timing.create(options?)`, then record frozen `c
 
 ### Direct factory
 
-`Timing.create({ maxEvents: 50 })` constructs the tracker. The example records a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
+`Timing.create(TimingOptionsEntity.create({ maximumEvents: 50 }))` constructs the tracker. The example records a `GraphAdapter.query` event plus three `CacheService.get` events with `start`, `complete`, and `hit` statuses. The output map shows each event key with its elapsed-milliseconds value relative to instance creation.
 
 <RunnableExample src="packages/timing/examples/basic-usage" title="Basic timing — direct factory, events, elapsed-ms output" />
 
@@ -43,7 +43,7 @@ Create a `Timing` instance with `Timing.create(options?)`, then record frozen `c
 
 ## Public API
 
-The package root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TimingInterface`, `TIMING_STATUS`, schema-backed timing entities, `TimingBuildError`, and `TimingValidator`.
+The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`. Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses `@studnicky/timing/interfaces`.
 
 ## Extending
 
@@ -66,3 +66,31 @@ The package root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TimingInterface
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/timing)
+
+## Entities
+
+`@studnicky/timing/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { TimingEventDataEntity } from '@studnicky/timing/entities';
+```
+
+## Interfaces
+
+`@studnicky/timing/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { TimingInterface } from '@studnicky/timing/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `TIMING_STATUS` | Provides supported timing status values. | `@studnicky/timing` |
+| `NoOpTiming` | Provides no op timing functionality. | `@studnicky/timing` |
+| `Timing` | Provides timing functionality. | `@studnicky/timing` |
+| `TimingBuildError` | Represents timing build failures. | `@studnicky/timing` |
+| `TimingEvent` | Provides timing event functionality. | `@studnicky/timing` |

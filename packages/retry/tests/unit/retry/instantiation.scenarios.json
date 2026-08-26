@@ -1,10 +1,10 @@
 {
   "cases": [
     {
-      "description": "creates retry with Retry.create({ maxRetries: 5 })",
+      "description": "creates retry with Retry.create({ maximumRetries: 5 })",
       "shape": "create-max-retries-5",
-      "name": "creates retry with Retry.create({ maxRetries: 5 })",
-      "input": { "retry": { "maxRetries": 5 } },
+      "name": "creates retry with Retry.create({ maximumRetries: 5 })",
+      "input": { "retry": { "maximumRetries": 5 } },
       "expected": { "instanceOf": "Retry" }
     },
     {
@@ -15,24 +15,24 @@
       "expected": { "instanceOf": "Retry" }
     },
     {
-      "description": "creates retry with Retry.create({ errorClassifier, maxRetries })",
+      "description": "creates retry with Retry.create({ errorClassifier, maximumRetries })",
       "shape": "create-error-classifier-and-max-retries",
-      "name": "creates retry with Retry.create({ errorClassifier, maxRetries })",
-      "input": { "retry": { "maxRetries": 3 } },
+      "name": "creates retry with Retry.create({ errorClassifier, maximumRetries })",
+      "input": { "retry": { "maximumRetries": 3 } },
       "expected": { "instanceOf": "Retry" }
     },
     {
-      "description": "create-configured maxRetries and backoffStrategy drive actual retry behavior",
+      "description": "create-configured maximumRetries and backoffStrategy drive actual retry behavior",
       "shape": "execute-retries-until-success",
-      "name": "create-configured maxRetries and backoffStrategy drive actual retry behavior",
-      "input": { "retry": { "maxRetries": 10 }, "batch": { "failureCountBeforeSuccess": 3 }, "errorMessage": "transient failure", "recovered": "recovered" },
+      "name": "create-configured maximumRetries and backoffStrategy drive actual retry behavior",
+      "input": { "retry": { "maximumRetries": 10 }, "batch": { "failureCountBeforeSuccess": 3 }, "errorMessage": "transient failure", "recovered": "recovered" },
       "expected": { "result": "recovered", "attempts": 4, "totalRetries": 3 }
     },
     {
       "description": "create and factory produce functionally equivalent instances",
       "shape": "factory-equivalent",
       "name": "create and factory produce functionally equivalent instances",
-      "input": { "retry": { "maxRetries": 3 }, "result": "test" },
+      "input": { "retry": { "maximumRetries": 3 }, "result": "test" },
       "expected": { "results": ["test", "test"] }
     },
     {
@@ -57,9 +57,9 @@
       "expected": { "fallbackMessage": "Unknown non-retryable error" }
     },
     {
-      "description": "MaxRetriesExceededError falls back to an unknown cause when no errors are present",
+      "description": "MaximumRetriesExceededError falls back to an unknown cause when no errors are present",
       "shape": "max-retries-empty-errors-fallback",
-      "name": "MaxRetriesExceededError falls back to an unknown cause when no errors are present",
+      "name": "MaximumRetriesExceededError falls back to an unknown cause when no errors are present",
       "input": { "failedMessage": "failed", "attemptNumber": 1, "retries": 2, "fallbackMessage": "Unknown error" },
       "expected": { "fallbackMessage": "Unknown error" }
     },

@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Empty } from '../../src/guards/Empty.js';
-import { Guard } from '../../src/guards/Guard.js';
 import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
 import { PickDefined } from '../../src/objects/PickDefined.js';
+import { Predicates } from '../../src/predicates/Predicates.js';
 
 import scenarioGroups from './types.scenarios.json' with { type: 'json' };
 
@@ -21,11 +21,19 @@ type OutcomeAssertion = (actual: unknown) => void;
 type ScenarioExecutor = (scenario: Scenario) => void;
 
 type MaterializeMarkers = {
+  readonly abortSignal: MarkerMaterializer;
+  readonly arrayBufferView: MarkerMaterializer;
+  readonly asyncIterable: MarkerMaterializer;
   readonly bigint: MarkerMaterializer;
+  readonly blob: MarkerMaterializer;
   readonly cyclicObject: MarkerMaterializer;
   readonly date: MarkerMaterializer;
+  readonly error: MarkerMaterializer;
+  readonly formData: MarkerMaterializer;
   readonly function: MarkerMaterializer;
+  readonly headers: MarkerMaterializer;
   readonly infinity: MarkerMaterializer;
+  readonly iterable: MarkerMaterializer;
   readonly map: MarkerMaterializer;
   readonly mapWithEntry: MarkerMaterializer;
   readonly namedFunction: MarkerMaterializer;
@@ -33,35 +41,61 @@ type MaterializeMarkers = {
   readonly negativeInfinity: MarkerMaterializer;
   readonly null: MarkerMaterializer;
   readonly nullPrototypeObject: MarkerMaterializer;
+  readonly readableStream: MarkerMaterializer;
   readonly regex: MarkerMaterializer;
+  readonly request: MarkerMaterializer;
+  readonly response: MarkerMaterializer;
   readonly set: MarkerMaterializer;
   readonly setWithEntry: MarkerMaterializer;
   readonly symbol: MarkerMaterializer;
+  readonly thenable: MarkerMaterializer;
   readonly undefined: MarkerMaterializer;
+  readonly url: MarkerMaterializer;
+  readonly urlSearchParams: MarkerMaterializer;
 };
 
+function named(): void {}
+
 const materializeMarkers = {
+  abortSignal: () => new AbortController().signal,
+  arrayBufferView: () => new Uint8Array([1, 2, 3]),
+  asyncIterable: () => ({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }) }),
   bigint: () => 9007199254740993n,
+  blob: () => new Blob(['payload']),
   cyclicObject: () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
     return cyclic;
   },
   date: () => new Date(0),
+  error: () => new Error('test error'),
+  formData: () => new FormData(),
   function: () => () => {},
+  headers: () => new Headers(),
   infinity: () => Number.POSITIVE_INFINITY,
+  iterable: () => [1, 2, 3],
   map: () => new Map(),
   mapWithEntry: () => new Map([['a', 1]]),
-  namedFunction: () => function named() {},
+  namedFunction: () => named,
   nan: () => Number.NaN,
   negativeInfinity: () => Number.NEGATIVE_INFINITY,
   null: () => null,
   nullPrototypeObject: () => Object.create(null),
+  readableStream: () => new ReadableStream(),
   regex: () => /value/u,
+  request: () => new Request('https://example.test'),
+  response: () => new Response(),
   set: () => new Set(),
   setWithEntry: () => new Set([1]),
   symbol: () => Symbol('s'),
-  undefined: () => undefined
+  thenable: () => {
+    const value: Record<string, unknown> = {};
+    Reflect.set(value, 'then', () => {});
+    return value;
+  },
+  undefined: () => undefined,
+  url: () => new URL('https://example.test'),
+  urlSearchParams: () => new URLSearchParams()
 } satisfies MaterializeMarkers;
 
 type OutcomeAssertions = {
@@ -171,7 +205,7 @@ function expectOutcome(actual: unknown, expected: unknown): void {
 
   if (isObjectRecord(expected) && !Array.isArray(expected)) {
     assert.ok(isObjectRecord(actual));
-    assert.deepStrictEqual(Object.keys(actual).sort(), Object.keys(expected).sort());
+    assert.deepStrictEqual(Object.keys(actual).toSorted(), Object.keys(expected).toSorted());
     for (const [key, value] of Object.entries(expected)) {
       expectOutcome(actual[key], value);
     }
@@ -186,16 +220,41 @@ type GuardExecutors = {
 };
 
 const guardExecutors = {
-  asNumber: (input) => Guard.asNumber(input),
-  asRecordArray: (input) => Guard.asRecordArray(input),
-  asStringOrNull: (input) => Guard.asStringOrNull(input),
-  isBoolean: (input) => Guard.isBoolean(input),
-  isFunction: (input) => Guard.isFunction(input),
-  isNonNegativeInteger: (input) => Guard.isNonNegativeInteger(input),
-  isNumber: (input) => Guard.isNumber(input),
-  isObject: (input) => Guard.isObject(input),
-  isPositiveInteger: (input) => Guard.isPositiveInteger(input),
-  isString: (input) => Guard.isString(input)
+  asNumber: (input) => Predicates.asNumber(input),
+  asRecordArray: (input) => Predicates.asRecordArray(input),
+  asStringOrNull: (input) => Predicates.asStringOrNull(input),
+  isAbortSignal: (input) => Predicates.isAbortSignal(input),
+  isArray: (input) => Predicates.isArray(input),
+  isArrayBufferView: (input) => Predicates.isArrayBufferView(input),
+  isAsyncIterable: (input) => Predicates.isAsyncIterable(input),
+  isBigInt: (input) => Predicates.isBigInt(input),
+  isBlob: (input) => Predicates.isBlob(input),
+  isBoolean: (input) => Predicates.isBoolean(input),
+  isDate: (input) => Predicates.isDate(input),
+  isError: (input) => Predicates.isError(input),
+  isFormData: (input) => Predicates.isFormData(input),
+  isFunction: (input) => Predicates.isFunction(input),
+  isHeaders: (input) => Predicates.isHeaders(input),
+  isIterable: (input) => Predicates.isIterable(input),
+  isMap: (input) => Predicates.isMap(input),
+  isNonNegativeInteger: (input) => Predicates.isNonNegativeInteger(input),
+  isNullish: (input) => Predicates.isNullish(input),
+  isNumber: (input) => Predicates.isNumber(input),
+  isObject: (input) => Predicates.isObject(input),
+  isObjectLike: (input) => Predicates.isObjectLike(input),
+  isPlainObject: (input) => Predicates.isPlainObject(input),
+  isPositiveInteger: (input) => Predicates.isPositiveInteger(input),
+  isReadableStream: (input) => Predicates.isReadableStream(input),
+  isRecord: (input) => Predicates.isRecord(input),
+  isRegExp: (input) => Predicates.isRegExp(input),
+  isRequest: (input) => Predicates.isRequest(input),
+  isResponse: (input) => Predicates.isResponse(input),
+  isSet: (input) => Predicates.isSet(input),
+  isString: (input) => Predicates.isString(input),
+  isSymbol: (input) => Predicates.isSymbol(input),
+  isThenable: (input) => Predicates.isThenable(input),
+  isURL: (input) => Predicates.isURL(input),
+  isURLSearchParams: (input) => Predicates.isURLSearchParams(input)
 } satisfies GuardExecutors;
 
 type EmptyExecutors = {
@@ -223,19 +282,19 @@ const emptyExecutors = {
     expectOutcome(Empty.array() !== Empty.array(), scenario.outcome);
   },
   isArray: (scenario) => {
-    expectOutcome(Empty.isArray(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyArray(materialize(scenario.input)), scenario.outcome);
   },
   isMap: (scenario) => {
-    expectOutcome(Empty.isMap(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyMap(materialize(scenario.input)), scenario.outcome);
   },
   isObject: (scenario) => {
-    expectOutcome(Empty.isObject(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyPlainObject(materialize(scenario.input)), scenario.outcome);
   },
   isSet: (scenario) => {
-    expectOutcome(Empty.isSet(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptySet(materialize(scenario.input)), scenario.outcome);
   },
   isString: (scenario) => {
-    expectOutcome(Empty.isString(materialize(scenario.input)), scenario.outcome);
+    expectOutcome(Predicates.isEmptyString(materialize(scenario.input)), scenario.outcome);
   },
   map: (scenario) => {
     expectOutcome(Empty.map(), scenario.outcome);
@@ -275,8 +334,8 @@ const jsonValueExecutors = {
 } satisfies JsonValueExecutors;
 
 for (const [groupName, groupValue] of Object.entries(scenarioGroups.guard)) {
-  const execute = getMappedValue(guardExecutors, groupName, 'Guard scenario group');
-  void describe(`Guard.${groupName}`, () => {
+  const execute = getMappedValue(guardExecutors, groupName, 'Predicates scenario group');
+  void describe(`Predicates.${groupName}`, () => {
     for (const scenario of groupValue) {
       void it(scenario.description, () => {
         const input = materialize(scenario.input);
@@ -323,22 +382,52 @@ void describe('PickDefined', () => {
   }
 });
 
-void describe('Guard subclass override', () => {
-  class LaxGuard extends Guard {
-    public static override isObject(value: unknown): value is Record<string, unknown> {
+void describe('Predicates.areNaNStrict', () => {
+  void it('returns false when either operand is NaN', () => {
+    assert.equal(Predicates.areNaNStrict(Number.NaN, Number.NaN), false);
+    assert.equal(Predicates.areNaNStrict(Number.NaN, 1), false);
+    assert.equal(Predicates.areNaNStrict(1, Number.NaN), false);
+  });
+
+  void it('falls through to strict equality when neither operand is NaN', () => {
+    assert.equal(Predicates.areNaNStrict(1, 1), true);
+    assert.equal(Predicates.areNaNStrict(1, 2), false);
+    assert.equal(Predicates.areNaNStrict('a', 'a'), true);
+  });
+});
+
+void describe('Predicates.areSetsEqual', () => {
+  void it('compares by membership, ignoring insertion order', () => {
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([3, 2, 1])), true);
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2])), false);
+    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2, 4])), false);
+    assert.equal(Predicates.areSetsEqual(new Set(), new Set()), true);
+  });
+});
+
+void describe('Predicates.areObjectsEqual with nested Sets', () => {
+  void it('does not silently treat two different Sets as equal via the zero-own-keys fallback', () => {
+    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([4, 5, 6]) }), false);
+    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([1, 2, 3]) }), true);
+  });
+});
+
+void describe('Predicates subclass override', () => {
+  class LaxPredicates extends Predicates {
+    public static override isObject<T>(value: T): value is T & Record<string, unknown> {
       return typeof value === 'object' && value !== null;
     }
   }
 
   void it('overridden isObject accepts arrays', () => {
-    assert.equal(LaxGuard.isObject([1, 2, 3]), true);
-    assert.equal(LaxGuard.isObject(null), false);
-    assert.equal(LaxGuard.isObject({}), true);
+    assert.equal(LaxPredicates.isObject([1, 2, 3]), true);
+    assert.equal(LaxPredicates.isObject(null), false);
+    assert.equal(LaxPredicates.isObject({}), true);
   });
 
   void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {
     const input: unknown[] = [[1, 2], { a: 1 }, 'skip-me', null];
-    const result = LaxGuard.asRecordArray(input);
+    const result = LaxPredicates.asRecordArray(input);
 
     assert.ok(result !== undefined);
     assert.equal(result.length, 2);
@@ -346,7 +435,7 @@ void describe('Guard subclass override', () => {
     assert.deepEqual(result[1], { a: 1 });
   });
 
-  void it('base Guard.isObject is unchanged — arrays are not records', () => {
-    assert.equal(Guard.isObject([1, 2, 3]), false);
+  void it('base Predicates.isObject is unchanged — arrays are not records', () => {
+    assert.equal(Predicates.isObject([1, 2, 3]), false);
   });
 });

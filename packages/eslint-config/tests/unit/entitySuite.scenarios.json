@@ -147,10 +147,6 @@
               {
                 "messageId": "missing-interface-suffix",
                 "ruleId": "@studnicky/interface-suffix"
-              },
-              {
-                "messageId": "inlineObjectInInterface",
-                "ruleId": "@studnicky/interfaces-compose-named-types"
               }
             ]
           },

@@ -60,8 +60,7 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | [@studnicky/cache](/packages/cache) | LRU cache with optional TTL and capacity bounds |
 | [@studnicky/entity-store](/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
-| [@studnicky/predicates](/packages/predicates) | Type-safe predicates and coercion utilities |
-| [@studnicky/types](/packages/types) | Shared zero-runtime utility types and type-guard helpers |
+| [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate/filter helpers |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
 
 ## I/O & Observability
@@ -92,3 +91,4 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | Package | Description |
 |---------|-------------|
 | [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
+| [@studnicky/intake-kit](/packages/intake-kit) | Generic boundary-crossing primitives shared by every schema-backed entity engine |

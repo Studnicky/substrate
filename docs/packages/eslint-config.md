@@ -5,7 +5,7 @@ description: Shared ESLint flat config for @studnicky packages.
 
 # @studnicky/eslint-config
 
-Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (22 `@studnicky` rules) and `v8Plugin` (27 `@studnicky/v8` rules) — plus domain-grouped suites.
+> Standard ESLint plugin for TypeScript projects. Ships two namespaced rule sets — `plugin` (26 `@studnicky` rules) and `v8Plugin` (27 `@studnicky/v8` rules) — plus domain-grouped suites.
 
 ## Install
 
@@ -42,16 +42,35 @@ export default [
 ];
 ```
 
+## Try it
+
+<<< ../../packages/eslint-config/examples/configUsage.ts#usage
+
+<RunnableExample src="packages/eslint-config/examples/configUsage" title="Registering the plugin and checking rule counts" />
+
+The output shows both plugins registered under their namespaced keys and the actual rule counts read back from `plugin.rules`/`v8Plugin.rules`.
+
 ## Public API
 
 Import `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and `HexagonalSuite` from `@studnicky/eslint-config`. Individual rule objects are available through `plugin.rules[ruleId]` and `v8Plugin.rules[ruleId]`.
 
 ## Rule reference
 
-Full documentation for all 49 custom rules is in the **ESLint Plugins** section:
+Full documentation for all 53 custom rules is in the **ESLint Plugins** section:
 
 - [ESLint Plugins Overview](/eslint/) — install, plugin registration, and rule tables
-- [Configuration rules](/eslint/) — 22 `@studnicky` structural and semantic rules
+- [Configuration rules](/eslint/) — 26 `@studnicky` structural and semantic rules
 - [V8 performance rules](/eslint/) — 27 `@studnicky/v8` optimization rules
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `plugin` | Provides the `@studnicky` ESLint plugin. | `@studnicky/eslint-config` |
+| `v8Plugin` | Provides the `@studnicky/v8` ESLint plugin. | `@studnicky/eslint-config` |
+| `entitySuite` | Provides entity-focused configuration rules. | `@studnicky/eslint-config` |
+| `hygieneSuite` | Provides code-hygiene configuration rules. | `@studnicky/eslint-config` |
+| `HexagonalSuite` | Provides hexagonal-architecture configuration rules. | `@studnicky/eslint-config` |
+| `v8Suite` | Provides V8 performance configuration rules. | `@studnicky/eslint-config` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/eslint-config)

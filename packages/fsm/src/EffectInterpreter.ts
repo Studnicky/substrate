@@ -1,8 +1,11 @@
-import { CircularBuffer, type CircularBufferOptionsEntity } from '@studnicky/circular-buffer';
-import { Clone } from '@studnicky/json';
+import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
-import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
-import type { EffectInterpreterConstructorOptionsInterface } from './EffectInterpreterConstructorOptionsInterface.js';
+import { CircularBuffer } from '@studnicky/circular-buffer';
+import { Clone } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
+
+import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
+import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { FsmConfigError } from './errors/FsmConfigError.js';
@@ -71,12 +74,13 @@ export class EffectInterpreter<
     if (options.mailboxCapacity !== undefined && (!Number.isInteger(options.mailboxCapacity) || options.mailboxCapacity <= 0)) {
       throw new FsmConfigError('mailboxCapacity must be a positive integer');
     }
-    return new EffectInterpreter<S, E, Ef>({
+    const result = new EffectInterpreter<S, E, Ef>({
       'handler': options.handler,
       'machine': options.machine,
       'machineId': options.machineId,
       'mailboxCapacity': options.mailboxCapacity
     });
+    return result;
   }
 
   readonly #machine: StateMachine<TState, TEvent, TEffect>;
@@ -84,6 +88,11 @@ export class EffectInterpreter<
   readonly #machineId: string;
   readonly #observers = new Set<(state: TState) => void>();
   readonly #mailbox: MailboxBuffer<TEvent>;
+  readonly #dispatch = (event: TEvent): void => {
+    this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(event);
+      return result; });
+    this.#mailbox.unshift({ 'event': Clone.deep(event) });
+  };
   #currentState: TState | undefined = undefined;
   #running = false;
   #draining = false;
@@ -127,7 +136,8 @@ export class EffectInterpreter<
     if (this.#currentState === undefined) {
       throw new InterpreterNotStartedError(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
     }
-    return Clone.deep(this.#currentState);
+    const result = Clone.deep(this.#currentState);
+    return result;
   }
 
   async send(event: TEvent): Promise<void> {
@@ -180,16 +190,12 @@ export class EffectInterpreter<
   /** Fires when an effect handler throws. */
   protected onEffectError(_effect: TEffect, _error: Error): void {}
 
-  static async #runEntry<
-    S extends { readonly 'variant': string },
-    E extends { readonly 'type': string },
-    Ef extends { readonly 'variant': string }
-  >(interpreter: EffectInterpreter<S, E, Ef>, entry: MailboxEntryInterface<E>): Promise<void> {
+  async #runEntry(entry: MailboxEntryInterface<TEvent>): Promise<void> {
     try {
-      await interpreter.#processEntry(entry.event);
+      await this.#processEntry(entry.event);
       entry.resolve?.();
-    } catch (err: unknown) {
-      entry.reject?.(err);
+    } catch (error: unknown) {
+      entry.reject?.(error);
     }
   }
 
@@ -199,7 +205,7 @@ export class EffectInterpreter<
       while (this.#running && this.#mailbox.length > 0) {
         const entry = this.#mailbox.shift();
         if (entry === undefined) { break; }
-        await EffectInterpreter.#runEntry(this, entry);
+        await this.#runEntry(entry);
       }
     } finally {
       this.#draining = false;
@@ -214,13 +220,13 @@ export class EffectInterpreter<
       throw new InterpreterNotStartedError(`EffectInterpreter '${this.#machineId}' not started — call start() first`);
     }
     const step = this.#machine.transition(Clone.deep(currentState), Clone.deep(event));
-    const prevState = currentState;
+    const previousState = currentState;
     const nextState = Clone.deep(step.state);
     this.#currentState = nextState;
-    if (prevState.variant !== nextState.variant) {
-      this.hooks.invoke('onExitState', () => { const result = this.onExitState(Clone.deep(prevState));
+    if (previousState.variant !== nextState.variant) {
+      this.hooks.invoke('onExitState', () => { const result = this.onExitState(Clone.deep(previousState));
         return result; });
-      this.hooks.invoke('onTransition', () => { const result = this.onTransition(Clone.deep(prevState), Clone.deep(nextState), Clone.deep(event));
+      this.hooks.invoke('onTransition', () => { const result = this.onTransition(Clone.deep(previousState), Clone.deep(nextState), Clone.deep(event));
         return result; });
       this.hooks.invoke('onEnterState', () => { const result = this.onEnterState(Clone.deep(nextState));
         return result; });
@@ -230,7 +236,9 @@ export class EffectInterpreter<
     if (handler === undefined) {
       return;
     }
-    for (const effect of step.effects) {
+    const effectsLength = step.effects.length;
+    for (let index = 0; index < effectsLength; index += 1) {
+      const effect = step.effects[index]!;
       if (!this.#running) { break; }
       await this.#invokeHandler(effect, handler);
     }
@@ -249,17 +257,12 @@ export class EffectInterpreter<
   async #invokeHandler(effect: TEffect, handler: EffectHandlerInterface<TEffect, TEvent>): Promise<void> {
     this.hooks.invoke('onEffectStart', () => { const result = this.onEffectStart(effect);
       return result; });
-    const dispatch = (event: TEvent): void => {
-      this.hooks.invoke('onEnqueue', () => { const result = this.onEnqueue(event);
-        return result; });
-      this.#mailbox.unshift({ 'event': Clone.deep(event) });
-    };
     try {
-      await handler(effect, dispatch);
+      await handler(effect, this.#dispatch);
       this.hooks.invoke('onEffectSuccess', () => { const result = this.onEffectSuccess(effect);
         return result; });
-    } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
+    } catch (errorValue: unknown) {
+      const error = Predicates.isError(errorValue) ? errorValue : new Error(String(errorValue));
       this.hooks.invoke('onEffectError', () => { const result = this.onEffectError(effect, error);
         return result; });
       throw error;
@@ -270,8 +273,12 @@ export class EffectInterpreter<
     const state = this.#currentState;
     if (state === undefined) { return; }
     for (const observer of this.#observers) {
-      this.hooks.invoke('onObserver', () => { const result = observer(Clone.deep(state));
-        return result; });
+      this.#notifyObserver(observer, state);
     }
+  }
+
+  #notifyObserver(observer: (state: TState) => void, state: TState): void {
+    this.hooks.invoke('onObserver', () => { const result = observer(Clone.deep(state));
+      return result; });
   }
 }

@@ -39,7 +39,7 @@ export interface ContextInterface extends ContextConfigEntity.Type {
   /**
    * Sets a value in the context.
    */
-  set<T>(key: string, value: T): void;
+  set(key: string, value: unknown): void;
 
   /**
    * Gets a shallow copy of all context data.

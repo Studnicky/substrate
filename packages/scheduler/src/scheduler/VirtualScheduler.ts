@@ -1,3 +1,6 @@
+import type { VirtualTimeCounter } from '@studnicky/clock';
+import type { HookInvoker } from '@studnicky/errors';
+
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -9,8 +12,7 @@
  *
  * @module
  */
-import type { VirtualTimeCounter } from '@studnicky/clock';
-import type { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -26,11 +28,9 @@ interface VirtualSchedulerSubclassInterface<TInstance> extends Function {
 }
 
 class VirtualSchedulerInstance {
-  static belongsTo<TInstance>(
-    constructor: VirtualSchedulerSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static belongsTo<TInstance extends object>(constructor: VirtualSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -61,7 +61,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    *                  `VirtualClockProvider` so `Clock.now()` and task fires stay in sync.
    */
   protected constructor(counter: Readonly<VirtualTimeCounter>) {
-    if (counter === null || typeof counter !== 'object' || typeof counter.nowMs !== 'function' || typeof counter.advance !== 'function') {
+    if (!VirtualScheduler.isValidCounter(counter)) {
       throw new SchedulerError('VirtualScheduler requires a valid VirtualTimeCounter instance with nowMs() and advance() methods');
     }
     this.#cancelledIds = new Set();
@@ -71,13 +71,18 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     this.#tasks = new Map();
   }
 
+  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
+    const result = typeof counter.nowMs === 'function' && typeof counter.advance === 'function';
+    return result;
+  }
+
   /** Creates a new `VirtualScheduler` with the given options. */
   static create<TInstance extends VirtualScheduler = VirtualScheduler>(
     this: VirtualSchedulerSubclassInterface<TInstance>,
     options: { readonly 'counter': Readonly<VirtualTimeCounter> }
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options.counter]);
-    if (!VirtualSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !VirtualSchedulerInstance.belongsTo(this, result)) {
       throw new TypeError('VirtualScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -116,23 +121,39 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    * Extracted from the hot loop bodies so V8 can optimise the loops
    * independently of try/catch deoptimisation.
    */
+  #invokeOnFire(taskId: PendingTaskInterface['id']): void {
+    this.hooks.invoke('onFire', () => {
+      const result = this.onFire(taskId);
+      return result;
+    });
+  }
+
+  #invokeOnReschedule(taskId: PendingTaskInterface['id'], nextAtMs: number): void {
+    this.hooks.invoke('onReschedule', () => {
+      const result = this.onReschedule(taskId, nextAtMs);
+      return result;
+    });
+  }
+
   #invokeTask(task: PendingTaskInterface): boolean {
     let fireResult: Promise<void> | void;
 
     try {
       fireResult = task.fire();
-    } catch (error: unknown) {
+    } catch (error) {
+      const taskError = error instanceof Error ? error : new Error(String(error));
       this.hooks.invoke('onFireError', () => {
-        const result = this.onFireError(task.id, error);
+        const result = this.onFireError(task.id, taskError);
         return result;
       });
       return false;
     }
 
     if (fireResult instanceof Promise) {
-      fireResult.catch((error: unknown) => {
+      fireResult.catch((error) => {
+        const taskError = error instanceof Error ? error : new Error(String(error));
         this.hooks.invoke('onFireError', () => {
-          const result = this.onFireError(task.id, error);
+          const result = this.onFireError(task.id, taskError);
           return result;
         });
       });
@@ -152,7 +173,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    * The error is still silently swallowed by the scheduler — this hook is the only
    * observability seam for task-level failures.
    */
-  protected onFireError(_id: string, _error: unknown): void { return; }
+  protected onFireError(_id: string, _error: Error): void { return; }
 
   /**
    * Called after an interval task is re-inserted into the heap following a successful fire.
@@ -320,10 +341,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         this.#tasks.delete(task.id);
       }
 
-      this.hooks.invoke('onFire', () => {
-        const result = this.onFire(task.id);
-        return result;
-      });
+      this.#invokeOnFire(task.id);
       const succeeded = this.#invokeTask(task);
 
       if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
@@ -337,10 +355,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         };
 
         this.#heap.insert(rescheduled);
-        this.hooks.invoke('onReschedule', () => {
-          const result = this.onReschedule(task.id, nextAtMs);
-          return result;
-        });
+        this.#invokeOnReschedule(task.id, nextAtMs);
       } else if (task.variant === 'interval') {
         this.#cancelledIds.delete(task.id);
         this.#tasks.get(task.id)?.complete();
@@ -376,10 +391,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
       this.#tasks.get(task.id)?.complete();
       this.#tasks.delete(task.id);
 
-      this.hooks.invoke('onFire', () => {
-        const result = this.onFire(task.id);
-        return result;
-      });
+      this.#invokeOnFire(task.id);
       this.#invokeTask(task);
     }
 

@@ -116,7 +116,7 @@ async function runQueuedAbortCase(scenarioCase: ScenarioCase): Promise<void> {
     const longRequest = dispatcher.fetch(requireUrl(scenarioCase.input.longUrl, 'input.longUrl'), {});
     const controller = new AbortController();
     const queuedRequest = dispatcher.fetch(requireUrl(scenarioCase.input.queuedUrl, 'input.queuedUrl'), { signal: controller.signal });
-    const queuedAssertion = assert.rejects(queuedRequest, (error: unknown) => {
+    const queuedAssertion = assert.rejects(queuedRequest, (error) => {
       assert.ok(error instanceof DOMException);
       assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);
       assert.strictEqual(error.message, scenarioCase.expected.queuedErrorMessage);
@@ -149,7 +149,7 @@ async function runSignalAbortedCase(scenarioCase: ScenarioCase): Promise<void> {
 
     await assert.rejects(
       dispatcher.fetch(scenarioCase.input.url, { signal: controller.signal }),
-      (error: unknown) => {
+      (error) => {
         assert.ok(error instanceof DOMException);
         assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);
         assert.strictEqual(error.message, scenarioCase.expected.queuedErrorMessage);
@@ -163,7 +163,7 @@ async function runNetworkErrorCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
     await assert.rejects(
       dispatcher.fetch(scenarioCase.input.url, {}),
-      (error: unknown) => {
+      (error) => {
         assert.ok(error instanceof Error);
         assert.strictEqual(Reflect.get(error, 'code'), scenarioCase.expected.errorCode);
         assert.strictEqual(error.message, scenarioCase.expected.errorMessage);
@@ -216,7 +216,7 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
     const init = { ...scenarioCase.input.init, 'body': new Blob([scenarioCase.input.body ?? '']) };
     await assert.rejects(
       dispatcher.fetch(scenarioCase.input.url, init),
-      (error: unknown) => error instanceof TypeError && error.message === scenarioCase.expected.errorMessage
+      (error) => error instanceof TypeError && error.message === scenarioCase.expected.errorMessage
     );
   });
 }

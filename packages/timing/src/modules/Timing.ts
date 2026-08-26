@@ -1,24 +1,28 @@
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
-import type { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
-import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAX_EVENTS, NS_PER_UNIT } from '../constants/index.js';
-import { TimingValidator } from '../validation/TimingValidator.js';
-
-interface TimingSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
+import { DEFAULT_MAXIMUM_EVENTS, NS_PER_UNIT } from '../constants/index.js';
+import { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 
 class TimingInstance {
-  static belongsTo<TInstance>(
-    constructor: TimingSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+  static construct(constructor: Function, argumentsList: readonly object[]): object {
+    const result: unknown = Reflect.construct(constructor, argumentsList);
+    if (!Predicates.isObjectLike(result)) {
+      throw new TypeError('Timing.create() did not construct an object.');
+    }
+    return result;
+  }
+
+  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
+  // from the constructor rather than being a phantom generic supplied only at the call site.
+  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -35,7 +39,7 @@ class TimingInstance {
  * ```typescript
  * import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
  *
- * const timing = Timing.create({ 'maxEvents': 100, 'precision': { ms: 2 } });
+ * const timing = Timing.create();
  *
  * // Record immutable event data
  * timing.event(TimingEvent.create({ 'component': 'DatabaseAdapter', 'operation': 'connect', 'status': TIMING_STATUS.START }));
@@ -48,12 +52,12 @@ class TimingInstance {
  *
  * // Get all events as logging context
  * const ctx = timing.getEvents();
- * // {
- * //   'DatabaseAdapter.connect.start': 0.1,
- * //   'GraphAdapter.query': 12.34,
- * //   'CacheService.get.hit': 15.2,
- * //   'DatabaseAdapter.connect.complete': 45.6,
- * //   durationMs: 45.7
+ * // Map(5) {
+ * //   'DatabaseAdapter.connect.start' => 0.1,
+ * //   'GraphAdapter.query' => 12.34,
+ * //   'CacheService.get.hit' => 15.2,
+ * //   'DatabaseAdapter.connect.complete' => 45.6,
+ * //   'durationMs' => 45.7
  * // }
  * ```
  */
@@ -69,29 +73,24 @@ export class Timing implements TimingInterface {
    * ```typescript
    * import { Timing } from '@studnicky/timing';
    *
-   * const timing = Timing.create({ maxEvents: 100 });
+   * const timing = Timing.create();
    * ```
    */
   static create<TInstance extends Timing = Timing>(
-    this: TimingSubclassInterface<TInstance>,
-    options: TimingOptionsEntity.Type = {}
+    this: Function & { readonly 'prototype': TInstance; },
+    options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!TimingInstance.belongsTo(this, result)) {
+    const result = TimingInstance.construct(this, [options]);
+    if (!TimingInstance.belongsTo<TInstance>(this, result)) {
       throw new TypeError('Timing.create() did not construct the requested subclass.');
     }
     return result;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
-  protected readonly maxEvents: number;
-  readonly #precisions: {
-    'h': number;
-    'm': number;
-    'ms': number;
-    'ns': number;
-    's': number;
-  };
+  protected readonly maximumEvents: number;
+  readonly #precisions: ReadonlyMap<TimeUnitEntity.Type, number>;
+  readonly #nanosecondsPerUnit: ReadonlyMap<TimeUnitEntity.Type, number>;
   protected readonly startTime: bigint;
 
   readonly #timingCache: Set<{ 'name': string;
@@ -104,28 +103,28 @@ export class Timing implements TimingInterface {
    * @throws ConfigurationError - When configuration validation fails
    * @throws HookInvocationError - When the onInitialize hook throws
    */
-  protected constructor(options: TimingOptionsEntity.Type = {}) {
+  protected constructor(options: Parameters<typeof TimingOptionsEntity.create>[0] = {}) {
     try {
-      if (options.maxEvents !== undefined) {
-        TimingValidator.validateMaxEvents(options.maxEvents);
-      }
-
-      if (options.precision !== undefined) {
-        TimingValidator.validatePrecision(options.precision);
-      }
-
-      const maxEvents = options.maxEvents ?? DEFAULT_MAX_EVENTS;
+      const timingOptions = TimingOptionsEntity.create(options);
+      const maximumEventCount = timingOptions.maximumEvents ?? DEFAULT_MAXIMUM_EVENTS;
 
       this.#timingCache = new Set();
-      this.maxEvents = maxEvents;
+      this.maximumEvents = maximumEventCount;
 
-      this.#precisions = {
-        'h': options.precision?.h ?? DEFAULT_DECIMAL_PRECISION.h,
-        'm': options.precision?.m ?? DEFAULT_DECIMAL_PRECISION.m,
-        'ms': options.precision?.ms ?? DEFAULT_DECIMAL_PRECISION.ms,
-        'ns': options.precision?.ns ?? DEFAULT_DECIMAL_PRECISION.ns,
-        's': options.precision?.s ?? DEFAULT_DECIMAL_PRECISION.s
-      };
+      this.#precisions = new Map([
+        ['h', timingOptions.precision.h],
+        ['m', timingOptions.precision.m],
+        ['ms', timingOptions.precision.ms],
+        ['ns', timingOptions.precision.ns],
+        ['s', timingOptions.precision.s]
+      ]);
+      this.#nanosecondsPerUnit = new Map([
+        ['h', NS_PER_UNIT.h],
+        ['m', NS_PER_UNIT.m],
+        ['ms', NS_PER_UNIT.ms],
+        ['ns', 1],
+        ['s', NS_PER_UNIT.s]
+      ]);
 
       this.startTime = this.readHrtime();
 
@@ -145,7 +144,7 @@ export class Timing implements TimingInterface {
       }
 
       // Wrap other errors as ConfigurationError
-      if (error instanceof Error) {
+      if (Predicates.isError(error)) {
         throw ConfigurationError.create(error.message, error);
       }
 
@@ -180,21 +179,27 @@ export class Timing implements TimingInterface {
    */
   protected convertTime(ns: bigint, unit: TimeUnitEntity.Type): number {
     if (unit === 'ns') {
-      return Number(ns);
+      const result = Number(ns);
+      return result;
     }
 
-    const rawValue = Number(ns) / NS_PER_UNIT[unit];
+    const nanosecondsPerUnit = this.#nanosecondsPerUnit.get(unit);
+    const precision = this.#precisions.get(unit);
+    if (nanosecondsPerUnit === undefined || precision === undefined) {
+      throw new RangeError(`Unsupported time unit: ${unit}`);
+    }
 
-    const precision = this.#precisions[unit];
+    const rawValue = Number(ns) / nanosecondsPerUnit;
     const factor = Math.pow(10, precision);
 
-    return Math.round(rawValue * factor) / factor;
+    const result = Math.round(rawValue * factor) / factor;
+    return result;
   }
 
   /**
    * Records an event using TimingEventDataEntity.Type.
    * Multiple events with the same name can be recorded.
-   * If maxEvents is exceeded, the oldest event is evicted.
+   * If maximumEvents is exceeded, the oldest event is evicted.
    *
    * @param data - Immutable event data from TimingEvent.create()
    *
@@ -217,9 +222,9 @@ export class Timing implements TimingInterface {
   event(data: TimingEventDataEntity.Type): void {
     const currentTime = this.readHrtime();
 
-    if (this.#timingCache.size >= this.maxEvents) {
-      // maxEvents is validated to be >= 1 (TimingValidator.validateMaxEvents), so
-      // size >= maxEvents >= 1 here, meaning the cache is non-empty and the
+    if (this.#timingCache.size >= this.maximumEvents) {
+      // maximumEvents is validated to be >= 1 by TimingOptionsEntity, so
+      // size >= maximumEvents >= 1 here, meaning the cache is non-empty and the
       // iterator always yields a value.
       const firstEvent = this.#timingCache.values().next().value!;
 
@@ -260,11 +265,11 @@ export class Timing implements TimingInterface {
    * timing.event(TimingEvent.create({ 'component': 'CacheService', 'operation': 'get' }));
    *
    * const ctx = timing.getEvents();
-   * // {
-   * //   initialize: 0.001,
-   * //   'GraphAdapter.query': 12.34,
-   * //   'CacheService.get': 15.67,
-   * //   durationMs: 15.671
+   * // Map(4) {
+   * //   'initialize' => 0.001,
+   * //   'GraphAdapter.query' => 12.34,
+   * //   'CacheService.get' => 15.67,
+   * //   'durationMs' => 15.671
    * // }
    *
    * logger.info(LogBody.create({
@@ -276,7 +281,7 @@ export class Timing implements TimingInterface {
    * }));
    * ```
    */
-  getEvents(): Record<string, number> {
+  getEvents(): ReadonlyMap<string, number> {
     this.hooks.invoke('onGetEvents', () => {
       const result = this.onGetEvents(this.#timingCache.size);
       return result;
@@ -286,15 +291,20 @@ export class Timing implements TimingInterface {
     const totalNs = currentTime - this.startTime;
     const durationMs = this.convertTime(totalNs, 'ms');
 
-    const events: Record<string, number> = {};
+    // A Map, not a plain object. Event names are runtime values, and assigning runtime
+    // string keys to a plain object drives it out of fast properties into dictionary mode
+    // (`%HasFastProperties` -> false after ~200 dynamic keys). `prefer-collection-types`
+    // and `v8/dynamic-property-access` both point here, and a Map is also the honest type:
+    // the key set is not statically known.
+    const events = new Map<string, number>();
 
     for (const event of this.#timingCache) {
       const elapsedNs = event.timestamp - this.startTime;
 
-      events[event.name] = this.convertTime(elapsedNs, 'ms');
+      events.set(event.name, this.convertTime(elapsedNs, 'ms'));
     }
 
-    events.durationMs = durationMs;
+    events.set('durationMs', durationMs);
 
     return events;
   }
@@ -334,6 +344,9 @@ export class Timing implements TimingInterface {
    *
    * @returns Current time in nanoseconds
    */
-  protected readHrtime(): bigint { const result = process.hrtime.bigint();
-    return result; }
+  protected readHrtime(): bigint {
+    const result = process.hrtime.bigint();
+    return result;
+  }
+
 }

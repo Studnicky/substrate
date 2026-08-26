@@ -10,15 +10,12 @@ import { Throttle } from '../src/index.js';
 const throttle = Throttle.create({ 'concurrencyLimit': 5 });
 
 // Submit 4 operations before draining
-const pending = Promise.all(
-  [1, 2, 3, 4].map((i) => {
-    const result = throttle.execute(async () => {
-      await setTimeout(1);
-      return i * 10;
-    });
-    return result;
-  })
-);
+const pending = Promise.all([
+  throttle.execute(async () => { await setTimeout(1); const result = 10; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 20; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 30; return result; }),
+  throttle.execute(async () => { await setTimeout(1); const result = 40; return result; })
+]);
 
 // drain() stops accepting new work and waits for all queued/active ops to finish
 await throttle.drain();

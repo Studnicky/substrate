@@ -5,14 +5,14 @@ import {
 
 import { HookInvocationError } from '@studnicky/errors';
 
-import type { VisibleRangeConfigInterface } from '../../src/index.js';
+import type { VisibleRangeConfigInterface } from '../../src/interfaces/index.js';
 
 import {
-  VisibleRange,
   VisibleRangeConfigDataEntity,
   VisibleRangeEntity,
   VisibleRangeResolvedConfigEntity
-} from '../../src/index.js';
+} from '../../src/entities/index.js';
+import { VisibleRange } from '../../src/index.js';
 import scenarioGroups from './visible-range.scenarios.json' with { type: 'json' };
 
 type EntityContractShape =
@@ -350,7 +350,7 @@ const onRangeChangeRunners = {
     const range = createConfiguredRange(scenario.input, AsyncRejectingVisibleRange);
 
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {

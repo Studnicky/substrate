@@ -1,3 +1,4 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
@@ -23,15 +24,15 @@ export namespace MergedConfigEntity {
       'connectTimeout': { 'minimum': 0, 'type': 'number' },
       'enabled': { 'type': 'boolean' },
       'headersTimeout': { 'minimum': 0, 'type': 'number' },
-      'keepAliveMaxTimeout': { 'minimum': 0, 'type': 'number' },
+      'keepAliveMaximumTimeout': { 'minimum': 0, 'type': 'number' },
       'keepAliveTimeout': { 'minimum': 0, 'type': 'number' },
       'keepAliveTimeoutThreshold': { 'minimum': 0, 'type': 'number' },
       'localAddress': { 'minLength': 1, 'type': 'string' },
-      'maxConcurrentStreams': { 'minimum': 1, 'type': 'integer' },
-      'maxHeaderSize': { 'minimum': 1, 'type': 'integer' },
-      'maxOrigins': { 'minimum': 1, 'type': 'integer' },
-      'maxRequestsPerClient': { 'minimum': 1, 'type': 'integer' },
-      'maxResponseSize': { 'minimum': -1, 'type': 'integer' },
+      'maximumConcurrentStreams': { 'minimum': 1, 'type': 'integer' },
+      'maximumHeaderSize': { 'minimum': 1, 'type': 'integer' },
+      'maximumOrigins': { 'minimum': 1, 'type': 'integer' },
+      'maximumRequestsPerClient': { 'minimum': 1, 'type': 'integer' },
+      'maximumResponseSize': { 'minimum': -1, 'type': 'integer' },
       'pipelining': { 'minimum': 0, 'type': 'integer' },
       'strictContentLength': { 'type': 'boolean' }
     },
@@ -43,12 +44,12 @@ export namespace MergedConfigEntity {
       'connections',
       'connectTimeout',
       'headersTimeout',
-      'keepAliveMaxTimeout',
+      'keepAliveMaximumTimeout',
       'keepAliveTimeout',
       'keepAliveTimeoutThreshold',
-      'maxConcurrentStreams',
-      'maxHeaderSize',
-      'maxResponseSize',
+      'maximumConcurrentStreams',
+      'maximumHeaderSize',
+      'maximumResponseSize',
       'pipelining',
       'strictContentLength'
     ],
@@ -59,4 +60,6 @@ export namespace MergedConfigEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }

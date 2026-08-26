@@ -8,7 +8,7 @@
         "boundaryKit": {
           "config": {
             "circuitBreaker": { "failureThreshold": 3, "resetTimeoutMs": 1000 },
-            "retry": { "maxRetries": 5 },
+            "retry": { "maximumRetries": 5 },
             "throttle": { "concurrencyLimit": 4 }
           }
         }
@@ -66,7 +66,7 @@
                 "reason": "always retryable",
                 "retryable": true
               },
-              "maxRetries": 2
+              "maximumRetries": 2
             }
           }
         }

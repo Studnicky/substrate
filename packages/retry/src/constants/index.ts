@@ -2,7 +2,7 @@
  * Constants for @studnicky/retry
  */
 
-export const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_MAXIMUM_RETRIES = 3;
 export const EMPTY_LENGTH = 0;
 export const INCREMENT_BY_ONE = 1;
 export const INITIAL_COUNTER = 0;
@@ -16,6 +16,6 @@ export const RETRY_CONFIG_KEYS = new Set<string>([
   'backoffStrategy',
   'errorClassifier',
   'hookTimeoutMs',
-  'maxElapsedMs',
-  'maxRetries'
+  'maximumElapsedMs',
+  'maximumRetries'
 ]);

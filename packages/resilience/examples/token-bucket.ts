@@ -8,7 +8,7 @@ import { TokenBucket, TokenBucketExhaustedError } from '../src/index.js';
 // Deterministic clock: start at t=0, advance manually.
 let now = 0;
 class Clock {
-  static now(): number { const result = now; return result; }
+  static now(): number { const result = now + 0; return result; }
 }
 
 // 2 tokens/s, burst capacity 3 → starts full (3 tokens).

@@ -47,7 +47,7 @@ Subclass `Batch` and override its protected lifecycle hooks to observe each stag
 
 ## Public API
 
-Import `Batch`, `BatchStatsEntity`, and `BatchError` from `@studnicky/batch`. The package root is the only public code entrypoint; batching constants are implementation details.
+Import `Batch` and `BatchError` from `@studnicky/batch`; import `BatchStatsEntity` from `@studnicky/batch/entities`. Batching constants are implementation details.
 
 `BatchError.retryable` uses the canonical `ErrorClassificationEntity.Type['retryable']` field. Import `ErrorClassificationEntity` directly from `@studnicky/errors`; `@studnicky/batch` does not proxy-export dependency functionality.
 
@@ -66,5 +66,21 @@ Run a batch of items with concurrency 2 and watch results arrive batch-by-batch.
 Each overridden hook fires in order — `onBatchStart`, then per-item `onItemStart`/`onItemSuccess` (or `onItemError`)/`onItemSettled`, then `onBatchComplete`. Item 3 rejects intentionally so `onItemError` is visible.
 
 <RunnableExample src="packages/batch/examples/observedBatch" title="Batch lifecycle hooks" />
+
+## Entities
+
+`@studnicky/batch/entities` exports batch statistics schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { BatchStatsEntity } from '@studnicky/batch/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Batch` | Processes items in bounded concurrent batches. | `@studnicky/batch` |
+| `BatchError` | Represents batch processing failures. | `@studnicky/batch` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/batch)

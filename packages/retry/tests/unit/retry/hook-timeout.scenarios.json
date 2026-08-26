@@ -4,42 +4,42 @@
       "name": "hook-timeout-fast-hook",
       "description": "a hook that resolves before hookTimeoutMs behaves identically to no timeout at all",
       "shape": "fast-hook",
-      "input": { "retry": { "hookTimeoutMs": 30, "maxRetries": 1 }, "result": "ok", "delayMs": 1 },
+      "input": { "retry": { "hookTimeoutMs": 30, "maximumRetries": 1 }, "result": "ok", "delayMs": 1 },
       "expected": { "result": "ok" }
     },
     {
       "name": "hook-timeout-hung-attempt-with-timeout",
       "description": "a hung onAttempt hook with hookTimeoutMs configured is swallowed and does not hang execute()",
       "shape": "hung-attempt-with-timeout",
-      "input": { "retry": { "hookTimeoutMs": 30, "maxRetries": 1 }, "result": "ok despite hung hook" },
+      "input": { "retry": { "hookTimeoutMs": 30, "maximumRetries": 1 }, "result": "ok despite hung hook" },
       "expected": { "result": "ok despite hung hook", "elapsedLessThanMs": 1000 }
     },
     {
       "name": "hook-timeout-hung-give-up-with-timeout",
       "description": "a hung onGiveUp hook with hookTimeoutMs configured is swallowed and does not hang the non-retryable failure path",
       "shape": "hung-give-up-with-timeout",
-      "input": { "retry": { "hookTimeoutMs": 30, "maxRetries": 1 }, "errorMessage": "fatal" },
+      "input": { "retry": { "hookTimeoutMs": 30, "maximumRetries": 1 }, "errorMessage": "fatal" },
       "expected": { "errorShape": "NonRetryableError", "elapsedLessThanMs": 1000 }
     },
     {
       "name": "hook-timeout-hung-attempt-without-timeout",
       "description": "a hung onAttempt hook with hookTimeoutMs unset hangs execute() forever",
       "shape": "hung-attempt-without-timeout",
-      "input": { "retry": { "maxRetries": 1 } },
+      "input": { "retry": { "maximumRetries": 1 } },
       "expected": { "raceResult": "timed-out" }
     },
     {
       "name": "hook-timeout-enter-call-unset",
       "description": "a throwing enterCall hook is still swallowed via RetryCallFsm when hookTimeoutMs is unset",
       "shape": "enter-call-unset",
-      "input": { "retry": { "maxRetries": 1 }, "message": "enterCall boom", "result": "ok" },
+      "input": { "retry": { "maximumRetries": 1 }, "message": "enterCall boom", "result": "ok" },
       "expected": { "result": "ok" }
     },
     {
       "name": "hook-timeout-hung-retry-scheduled",
       "description": "a hung onRetryScheduled hook is bounded and the scheduled retry proceeds",
       "shape": "hung-retry-scheduled",
-      "input": { "retry": { "hookTimeoutMs": 30, "maxRetries": 1 }, "batch": { "failureCountBeforeSuccess": 1 }, "errorMessage": "transient", "result": "recovered" },
+      "input": { "retry": { "hookTimeoutMs": 30, "maximumRetries": 1 }, "batch": { "failureCountBeforeSuccess": 1 }, "errorMessage": "transient", "result": "recovered" },
       "expected": { "result": "recovered", "attempts": 2, "elapsedLessThanMs": 1000 }
     }
   ]

@@ -33,7 +33,8 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   cpuModel(): string {
-    const result = os.cpus()[0]?.model ?? 'Unknown';
+    const snapshot = this.cpuInfo();
+    const result = snapshot.model;
     return result;
   }
 
@@ -43,7 +44,8 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   freeMb(): number {
-    const result = Math.floor(os.freemem() / BYTES_PER_MB);
+    const freeMemoryBytes = os.freemem();
+    const result = Math.floor(freeMemoryBytes / BYTES_PER_MB);
     return result;
   }
 
@@ -65,7 +67,8 @@ export class SystemProvider implements SystemProviderInterface {
    * callers sizing thread/worker pools off this value.
    */
   physicalCpuCount(): number {
-    const result = os.cpus().length;
+    const snapshot = this.cpuInfo();
+    const result = snapshot.physicalCount;
     return result;
   }
 
@@ -80,7 +83,8 @@ export class SystemProvider implements SystemProviderInterface {
   }
 
   totalMb(): number {
-    const result = Math.floor(os.totalmem() / BYTES_PER_MB);
+    const totalMemoryBytes = os.totalmem();
+    const result = Math.floor(totalMemoryBytes / BYTES_PER_MB);
     return result;
   }
 }

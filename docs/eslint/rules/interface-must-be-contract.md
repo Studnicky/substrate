@@ -5,9 +5,9 @@ description: 'Interfaces express runtime, callable, nominal, and readonly access
 
 # @studnicky/interface-must-be-contract
 
-Requires every interface to carry a runtime or access-contract signal.
+Requires every non-canonical interface to carry a runtime or access-contract signal. The rule requires TypeScript parser services; when they are unavailable, it does not report.
 
-Pure JSON data belongs in a schema-derived entity type or a named composition of canonical entity types. An interface containing only serializable data is reported, including an empty interface, an index-only interface, and a generic data container.
+Pure JSON data belongs in a schema-derived entity type or a named composition of canonical entity types. An interface containing only serializable data is reported, including an empty interface, an index-only interface, and a generic data container. The canonical schema-derived entity-interface form is exempt: an exported interface named `Type`, with exactly one schema-derived `extends` type, in an `*Entity` namespace that exports its own `Schema`.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -15,7 +15,7 @@ Pure JSON data belongs in a schema-derived entity type or a named composition of
 
 An interface is a contract when its own or inherited shape includes at least one of these signals:
 
-- a method or call signature;
+- a method or call signature (except a zero-argument `toString` or `valueOf` decoy);
 - a construct signature;
 - a function or constructor member;
 - a class-instance or runtime-library type such as `Date`, `Map`, `Set`, or `Promise`;
@@ -23,52 +23,11 @@ An interface is a contract when its own or inherited shape includes at least one
 - readonly property, index, array, tuple, or intrinsic readonly policy; or
 - a conditional, mapped, indexed-access, `keyof`, or other non-schema contract computation.
 
-Readonly on an interface describes consumer access policy. It is valid even when the referenced value is canonical pure data.
+Readonly on an interface describes consumer access policy. A lone readonly member does not establish a contract when the interface also has three or more mutable pure-data members; make the access policy comprehensive or use a runtime, callable, nominal, or type-level contract signal instead.
 
 Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal.
 
-## Incorrect
-
-### Pure-data interface
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface UserRecordInterface {
-  id: string;
-  name: string;
-}
-```
-
-Define the data in an entity schema:
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-
-export namespace UserEntity {
-  export const Schema = {
-    properties: {
-      id: { type: 'string' },
-      name: { type: 'string' }
-    },
-    required: ['id', 'name'],
-    type: 'object'
-  } as const satisfies JSONSchema;
-
-  export type Type = FromSchema<typeof Schema>;
-}
-```
-
-### Named pure-data reference without a contract signal
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface UserEnvelopeInterface {
-  user: UserEntity.Type;
-}
-```
-
-### Index-only data
+## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
@@ -77,8 +36,6 @@ interface FeatureFlagsInterface {
 }
 ```
 
-### Generic pure data
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 interface BoxInterface<T> {
@@ -86,87 +43,59 @@ interface BoxInterface<T> {
 }
 ```
 
-### Empty interface
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface PluginRegistryInterface {}
-```
+type UserIdType = string;
 
-An empty interface has no runtime or access-contract signal, so it is pure data while this rule is enabled.
-
-## Correct
-
-### Method contract
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface UserRepositoryInterface {
-  find(id: string): Promise<UserEntity.Type | undefined>;
-  save(user: UserEntity.Type): Promise<void>;
+interface UserEnvelopeInterface {
+  user: UserIdType;
 }
 ```
 
-### Readonly access policy
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface UserSnapshotInterface {
-  readonly value: UserEntity.Type;
+interface RecordInterface {
+  toString(): string;
+  value: string;
 }
 ```
 
-### Callable contract
+## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface UserHandlerInterface {
-  (user: UserEntity.Type): Promise<void>;
+interface RunnerInterface {
+  run(): void;
 }
 ```
-
-`entitySuite` disables `@typescript-eslint/prefer-function-type` so this minimal callable interface receives one consistent verdict. Re-enabling that upstream preference after the suite conflicts with the required interface representation.
-
-### Constructor contract
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface ServiceFactoryInterface {
-  new (options: ServiceOptionsEntity.Type): Service;
+interface RecordInterface {
+  readonly id: string;
+  value: string;
 }
 ```
-
-### Runtime member
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface RuntimeStateInterface {
-  startedAt: Date;
-  stop(): Promise<void>;
+interface RecordInterface {
+  readonly a: string;
+  readonly b: number;
+  readonly c: boolean;
+  readonly d: boolean;
 }
 ```
-
-### Brand marker
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-interface UserIdBrandInterface {
-  readonly __brand: unique symbol;
+interface RecordInterface {
+  toString(radix: number): string;
+  a: string;
+  b: number;
+  c: boolean;
 }
 ```
-
-### Inline callable contract object
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface DispatcherInterface {
-  handler: {
-    (event: DomainEventType): Promise<void>;
-  };
-}
-```
-
-The inline object is callable contract structure, not a pure-data portion.
 
 ## Remediation
 

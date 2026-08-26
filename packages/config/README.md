@@ -79,10 +79,11 @@ try {
 
 ## Clamping
 
-`ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{min, max, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
+`ClampedConfig` is the soft-correction sibling to `ConfigValidation`'s hard-fail assertions: given a flat config object and a declarative table of `{minimum, maximum, reason}` per numeric field, `apply` returns a **new** object with out-of-range numeric fields clamped into range instead of throwing. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 ```typescript
-import { ClampRuleEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampRuleEntity } from '@studnicky/config/entities';
 
 interface WorkerConfig {
   timeoutMs: number;
@@ -90,8 +91,8 @@ interface WorkerConfig {
 }
 
 const rules: Readonly<Record<string, ClampRuleEntity.Type>> = {
-  timeoutMs: { min: 100, max: 5000, reason: 'timeout must stay within safe bounds' },
-  concurrency: { min: 1, max: 8, reason: 'concurrency must stay within pool capacity' },
+  timeoutMs: { minimum: 100, maximum: 5000, reason: 'timeout must stay within safe bounds' },
+  concurrency: { minimum: 1, maximum: 8, reason: 'concurrency must stay within pool capacity' },
 };
 
 const raw: WorkerConfig = { timeoutMs: 10, concurrency: 4 };
@@ -102,7 +103,8 @@ const clamped = ClampedConfig.apply(raw, rules);
 Override the protected `onClamp` static method to observe clamp events — logging is the caller's responsibility, `ClampedConfig` has no dependency on any logging package:
 
 ```typescript
-import { ClampEventEntity, ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config';
+import { ClampEventEntity } from '@studnicky/config/entities';
 
 class LoggingClampedConfig extends ClampedConfig {
   protected static override onClamp(event: ClampEventEntity.Type): void {

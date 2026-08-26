@@ -3,6 +3,7 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import {
   type InterfaceDeclaration,
+  isIndexedAccessTypeNode,
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
   isIntersectionTypeNode,
@@ -10,6 +11,7 @@ import {
   isUnionTypeNode,
   type Node,
   type Program,
+  type TypeChecker,
   type TypeNode
 } from 'typescript';
 
@@ -33,7 +35,8 @@ class ParserServices {
     const nodeMap = value.esTreeNodeToTSNodeMap;
     if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
 
-    return typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
+    return result;
   }
 }
 
@@ -42,7 +45,8 @@ class NodeType {
     if (!ObjectGuard.isObject(rawNode)) { return ''; }
 
     const nodeType = rawNode.type;
-    return typeof nodeType === 'string' ? nodeType : '';
+    const result = typeof nodeType === 'string' ? nodeType : '';
+    return result;
   }
 }
 
@@ -55,12 +59,14 @@ class Member {
 
     if (key.type === 'Identifier') {
       const name = key.name;
-      return typeof name === 'string' && name.length > 0 ? name : '<unnamed>';
+      const result = typeof name === 'string' && name.length > 0 ? name : '<unnamed>';
+      return result;
     }
 
     if (key.type === 'Literal') {
       const value = key.value;
-      return typeof value === 'string' && value.length > 0 ? value : '<unnamed>';
+      const result = typeof value === 'string' && value.length > 0 ? value : '<unnamed>';
+      return result;
     }
 
     return '<unnamed>';
@@ -69,7 +75,8 @@ class Member {
 
 class Parent {
   public static get(rawNode: unknown): unknown {
-    return ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
+    const result = ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
+    return result;
   }
 }
 
@@ -80,7 +87,7 @@ class InlineDataPortion {
     const children = node.getChildren();
     const length = children.length;
     for (let index = 0; index < length; index++) {
-      const child = children[index];
+      const child = children.at(index);
       if (child !== undefined && InlineDataPortion.contains(child, classification)) { return true; }
     }
     return false;
@@ -104,6 +111,31 @@ class InlineDataPortion {
       current = current.parent;
     }
     return false;
+  }
+}
+
+/**
+ * Resolves an indexed-access member type (`Big['a']`) to the `TypeNode` that actually declares
+ * the referenced property's shape, so it can be run through the same inline-data classification
+ * that would apply if that shape were written directly at the member. Without this, `a:
+ * Big['a']` escapes detection entirely — the shape lives in a separate declaration, and
+ * `findInterfaceTypeContract` treats the indexed-access node itself as inert ("nonJson")
+ * type-level computation.
+ */
+class IndexedAccessResolution {
+  public static resolveMemberTypeNode(node: TypeNode, checker: TypeChecker): TypeNode | undefined {
+    if (!isIndexedAccessTypeNode(node)) { return undefined; }
+
+    const objectType = checker.getTypeFromTypeNode(node.objectType);
+    const indexType = checker.getTypeFromTypeNode(node.indexType);
+    if (!indexType.isStringLiteral()) { return undefined; }
+
+    const property = objectType.getProperty(indexType.value);
+    if (property === undefined) { return undefined; }
+
+    const declaration = property.valueDeclaration ?? (property.getDeclarations() ?? []).at(0);
+    const result = declaration !== undefined && isPropertySignature(declaration) ? declaration.type : undefined;
+    return result;
   }
 }
 
@@ -184,6 +216,7 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
     if (!ParserServices.has(servicesUnknown)) { return {}; }
 
     const classification = TypeContractClassification.forProgram(servicesUnknown.program);
+    const checker = servicesUnknown.program.getTypeChecker();
 
     const visitInlineData = (node: Rule.Node): void => {
       const ancestor = AncestorInfo.collect(node);
@@ -228,6 +261,39 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       if (classification.isBrandDeclarationMember(member)) { return; }
       if (classification.isInlineContractPortion(member.parent)) { return; }
       if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
+
+      // A bare type-parameter reference (`handler: T`) or an indexed-access reference into a
+      // separately-declared shape (`a: Big['a']`) each launder an inline pure-data shape away
+      // from the checks below — the parameter's own `extends { ... }` constraint, or the
+      // indexed property's own declared type, is the actual shape a consumer sees, even though
+      // neither is written inline at this member.
+      const resolvedConstraint = classification.resolveTypeParameterConstraint(memberType);
+      const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
+        ? IndexedAccessResolution.resolveMemberTypeNode(memberType, checker)
+        : undefined;
+      const substituted = resolvedConstraint ?? resolvedIndexedAccess;
+
+      if (substituted !== undefined) {
+        // A substituted shape lives in a different declaration entirely (the type parameter's own
+        // heritage, or the indexed property's own interface) — no other listener independently
+        // classifies it from THIS member's position. `visitInlineData` deliberately exempts a
+        // type literal that is itself a type parameter's constraint (so the constraint
+        // declaration is never flagged on its own), so deferring to "some other listener already
+        // covers it" via `InlineDataPortion.contains` would silently drop the diagnostic. Apply
+        // the same inline-data check `visitInlineData` applies directly instead.
+        if (classification.isInlinePureDataPortion(substituted) || classification.requiresNamedDataComposition(substituted)) {
+          context.report({
+            'data': {
+              'interfaceName': ancestor.interfaceName,
+              'memberName': Member.getName(node)
+            },
+            'messageId': 'inlineObjectInInterface',
+            'node': node
+          });
+        }
+        return;
+      }
+
       if (InlineDataPortion.contains(memberType, classification)) { return; }
       if (!classification.requiresNamedDataComposition(memberType)) { return; }
 

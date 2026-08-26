@@ -6,7 +6,7 @@
 
 A fixed-capacity sliding window of numeric samples. When the buffer reaches capacity, the oldest sample is automatically evicted to make room for the new one. Supports percentile calculation with linear interpolation and extensible lifecycle hooks.
 
-`@studnicky/sample-buffer` is the sole public code entrypoint.
+`@studnicky/sample-buffer` exposes runtime operations at its root, schemas at `@studnicky/sample-buffer/entities`, and type contracts at `@studnicky/sample-buffer/interfaces`.
 
 ## Install
 

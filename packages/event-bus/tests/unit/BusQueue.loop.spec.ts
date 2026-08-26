@@ -12,6 +12,7 @@ type ScenarioShape =
   | 'admission-and-overflow-order'
   | 'admission-hook-on-hook-error'
   | 'abort-initially-cancelled'
+  | 'abort-mid-drain-fires-exactly-once'
   | 'abort-releases-drain-waiter'
   | 'abort-releases-pending'
   | 'abort-signal-cancels'
@@ -50,9 +51,12 @@ type ScenarioRunner<K extends ScenarioShape> = (context: ScenarioRunContext<K>) 
 
 type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
-function itemAt(items: unknown, index: number): number {
-  const value = (items as number[])[index];
-  if (value === undefined) {
+function itemAt<TValue>(items: TValue, index: number): number {
+  if (!Array.isArray(items)) {
+    throw new Error('Scenario items must be an array');
+  }
+  const value: unknown = items[index];
+  if (typeof value !== 'number') {
     throw new Error(`Missing scenario item at index ${String(index)}`);
   }
   return value;
@@ -132,10 +136,10 @@ const runnerMap: RunnerMap = {
       const handlerErrors: unknown[] = [];
       const received: number[] = [];
       const unhandledRejections: unknown[] = [];
-      const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+      const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
 
       class ObservedQueue extends BusQueue<number> {
-        protected override onHandlerError(error: unknown): void {
+        protected override onHandlerError<TError>(error: TError): void {
           handlerErrors.push(error);
         }
       }
@@ -261,6 +265,55 @@ const runnerMap: RunnerMap = {
           assert.deepStrictEqual(received, expected.received);
         });
     },
+    'abort-mid-drain-fires-exactly-once': ({ expected, input }) => {
+      // Proves the lifecycle FSM's `releaseForAbort` effect fires exactly
+      // once for an abort requested mid-drain: the in-flight item is left to
+      // finish (its handler already started, so cancellation cannot un-run
+      // it), every backpressure waiter is released so the still-pending
+      // `enqueue()` calls settle rather than hang, both concurrent `drain()`
+      // callers resolve exactly once each, and the loop does not go on to
+      // start any further queued item (`draining` -> `aborting` stops the
+      // loop before its next iteration).
+      const controller = new AbortController();
+      const dequeued: number[] = [];
+      const received: number[] = [];
+      const handlerGate = Promise.withResolvers<void>();
+      const handlerStarted = Promise.withResolvers<void>();
+
+      class ObservedQueue extends BusQueue<number> {
+        protected override onDequeue(_depth: number): void {
+          dequeued.push(1);
+        }
+      }
+
+      const queue = ObservedQueue.create<number>({
+        'handler': async (item) => {
+          handlerStarted.resolve();
+          await handlerGate.promise;
+          received.push(item);
+        },
+        'highWaterMark': input.highWaterMark as number,
+        'signal': controller.signal
+      });
+
+      const enqueues = (input.items as number[]).map((item) => queue.enqueue(item));
+
+      let drainResolutions = 0;
+      const drainA = queue.drain().then(() => { drainResolutions += 1; });
+      const drainB = queue.drain().then(() => { drainResolutions += 1; });
+
+      return handlerStarted.promise
+        .then(() => {
+          controller.abort();
+          handlerGate.resolve();
+          return Promise.all([drainA, drainB, ...enqueues]);
+        })
+        .then(() => {
+          assert.strictEqual(dequeued.length, expected.dequeuedCount as number);
+          assert.deepStrictEqual(received, expected.received);
+          assert.strictEqual(drainResolutions, expected.drainResolutions as number);
+        });
+    },
     'on-drop-noop': ({ expected, input }) => {
       const dropped: number[] = [];
       class DropObservedQueue extends BusQueue<number> {
@@ -355,7 +408,7 @@ const runnerMap: RunnerMap = {
       const seen: Array<{ 'hookName': string; 'cause': unknown }> = [];
       const failure = new Error(input.errorMessage as string);
       class RecordingHookInvoker extends HookInvoker {
-        protected override onHookError(hookName: string, cause: unknown): void {
+        protected override onHookError(hookName: string, cause: Error): void {
           seen.push({ 'hookName': hookName, 'cause': cause });
         }
       }
@@ -506,7 +559,7 @@ const runnerMap: RunnerMap = {
     'handler-error-hook': ({ expected, input }) => {
       const errors: unknown[] = [];
       class ObservedQueue extends BusQueue<number> {
-        protected override onHandlerError(err: unknown): void { errors.push(err); }
+        protected override onHandlerError<TError>(err: TError): void { errors.push(err); }
       }
       const queue = ObservedQueue.create<number>({
         'handler': async () => { throw new Error(input.errorMessage as string); }

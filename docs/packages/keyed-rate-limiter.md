@@ -13,13 +13,19 @@ description: Per-key rate limiting composing cache and resilience — one strate
 pnpm add @studnicky/keyed-rate-limiter
 ```
 
-`@studnicky/keyed-rate-limiter` is the sole public code entrypoint.
+`@studnicky/keyed-rate-limiter` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
 `KeyedRateLimiter#consume(key, tokens?)` / `#waitForToken(key, options?)` lazily create one rate-limiting strategy per key on first use, backed by a composed `LruCache` that bounds and evicts idle keys. Draining one key's strategy has no effect on any other key:
 
 <<< ../../packages/keyed-rate-limiter/examples/observedKeyedRateLimiter.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/keyed-rate-limiter/examples/observedKeyedRateLimiter" title="Per-key token buckets with LRU eviction" />
+
+The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user-a` and `user-b`, `onLimitExceeded` firing once `user-a`'s bucket is drained, and `onKeyEvicted` firing for `user-a` when a third key (`user-c`) exceeds `maximumKeys` and evicts the LRU tail.
 
 ## The `RateLimiterStrategyInterface` extension seam
 
@@ -66,3 +72,30 @@ The composed cache remains private. Callers observe rate-limiter behavior throug
 Full reference: https://studnicky.github.io/substrate/packages/keyed-rate-limiter
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/keyed-rate-limiter)
+
+## Entities
+
+`@studnicky/keyed-rate-limiter/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { RateLimitRequestEntity } from '@studnicky/keyed-rate-limiter/entities';
+```
+
+## Interfaces
+
+`@studnicky/keyed-rate-limiter/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { KeyedRateLimiterCreateConfigInterface } from '@studnicky/keyed-rate-limiter/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `KeyedRateLimiter` | Provides keyed rate limiter functionality. | `@studnicky/keyed-rate-limiter` |
+| `KeyedRateLimiterConfigError` | Represents keyed rate limiter config failures. | `@studnicky/keyed-rate-limiter` |
+| `KeyedRateLimiterError` | Represents keyed rate limiter failures. | `@studnicky/keyed-rate-limiter` |
+| `RateLimiterStrategyInterface` | Defines the rate limiter strategy contract. | `@studnicky/keyed-rate-limiter` |

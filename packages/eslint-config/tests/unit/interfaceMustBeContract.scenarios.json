@@ -3,6 +3,18 @@
     {
       "code": "interface RunnerInterface { run(): void; }",
       "name": "a method signature makes the interface a contract"
+    },
+    {
+      "code": "interface RecordInterface {\n  readonly id: string;\n  value: string;\n}",
+      "name": "a lone readonly property with fewer than 3 mutable-data siblings remains sufficient contract evidence"
+    },
+    {
+      "code": "interface RecordInterface {\n  readonly a: string;\n  readonly b: number;\n  readonly c: boolean;\n  readonly d: boolean;\n}",
+      "name": "every property readonly is a genuine immutability contract regardless of property count"
+    },
+    {
+      "code": "interface RecordInterface {\n  toString(radix: number): string;\n  a: string;\n  b: number;\n  c: boolean;\n}",
+      "name": "a toString overload with parameters is a genuine method, not the builtin-shadow decoy shape"
     }
   ],
   "invalid": [
@@ -10,7 +22,9 @@
       "code": "interface FeatureFlagsInterface {\n  [key: string]: boolean;\n}",
       "errors": [
         {
-          "data": { "name": "FeatureFlagsInterface" },
+          "data": {
+            "name": "FeatureFlagsInterface"
+          },
           "messageId": "dataShapeMustBeType"
         }
       ],
@@ -20,7 +34,9 @@
       "code": "interface BoxInterface<T> {\n  value: T;\n}",
       "errors": [
         {
-          "data": { "name": "BoxInterface" },
+          "data": {
+            "name": "BoxInterface"
+          },
           "messageId": "dataShapeMustBeType"
         }
       ],
@@ -30,11 +46,37 @@
       "code": "type UserIdType = string;\ninterface UserEnvelopeInterface {\n  user: UserIdType;\n}",
       "errors": [
         {
-          "data": { "name": "UserEnvelopeInterface" },
+          "data": {
+            "name": "UserEnvelopeInterface"
+          },
           "messageId": "dataShapeMustBeType"
         }
       ],
       "name": "a named pure-data reference carries no contract signal"
+    },
+    {
+      "code": "interface RecordInterface {\n  toString(): string;\n  value: string;\n}",
+      "errors": [
+        {
+          "data": {
+            "name": "RecordInterface"
+          },
+          "messageId": "dataShapeMustBeType"
+        }
+      ],
+      "name": "a throwaway parameterless toString(): string decoy does not rescue an otherwise pure-data interface"
+    },
+    {
+      "code": "interface RecordInterface {\n  readonly id: string;\n  a: string;\n  b: number;\n  c: boolean;\n}",
+      "errors": [
+        {
+          "data": {
+            "name": "RecordInterface"
+          },
+          "messageId": "dataShapeMustBeType"
+        }
+      ],
+      "name": "a lone readonly property among 3 or more plain mutable-data properties is not sufficient contract evidence"
     }
   ]
 }

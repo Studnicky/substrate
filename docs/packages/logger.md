@@ -58,15 +58,49 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 `Logger` composes a plain `HookInvoker` with no override, so a throwing `onLog`, `onDropped`, or `onChildCreate` propagates the default `HookInvocationError` to the caller rather than being recorded. `onTransportError` is the one hook `Logger` itself guards: a throwing override is caught and recorded instead of aborting fan-out to the remaining transports — inspect it via `hookErrorCount`/`getHookErrors()`.
 
-## Declaration boundaries
+## Entities
 
-Serializable log records, bodies, faults, levels, and statuses are owned by their entity namespaces: `LogRecordEntity.Type`, `LogBodyDataEntity.Type`, `LogFaultDataEntity.Type`, `LogLevelEntity.Type`, and `LogStatusEntity.Type`. Runtime and access contracts remain interfaces, including `TransportInterface` and `LogMetadataInterface`.
+`@studnicky/logger/entities` exports every schema namespace in `src/entities`, including serializable log records, bodies, faults, levels, statuses, and transport options.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { LogRecordEntity } from '@studnicky/logger/entities';
+```
+
+## Interfaces
+
+`@studnicky/logger/interfaces` exports every TypeScript interface in `src/interfaces`, including logger configuration, metadata, schema, and request contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { LoggerOptionsInterface } from '@studnicky/logger/interfaces';
+```
 
 Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both dependencies are declared directly by `@studnicky/logger`; dependency-owned types are not proxy-exported.
 
-## Public API
+## Exports
 
-Import logger classes, immutable entry factories, transports, entities, constants, errors, and contracts from `@studnicky/logger`. The package root is the sole code entrypoint.
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Logger` | Creates loggers and emits structured entries. | `@studnicky/logger` |
+| `LogBody` | Creates validated immutable non-fault log entries. | `@studnicky/logger` |
+| `LogFault` | Creates validated immutable fault log entries. | `@studnicky/logger` |
+| `ConsoleTransport` | Writes log records to the console. | `@studnicky/logger` |
+| `FunctionTransport` | Delivers log records to a supplied function. | `@studnicky/logger` |
+| `MemoryTransport` | Captures log records in memory. | `@studnicky/logger` |
+| `NoOpTransport` | Discards log records. | `@studnicky/logger` |
+| `TransportInterface` | Defines the contract for custom transports. | `@studnicky/logger` |
+| `ParseLogLevel` | Normalizes named and numeric log levels. | `@studnicky/logger` |
+| `EVENT_COMPONENTS` | Provides supported event-component values. | `@studnicky/logger` |
+| `LOG_LEVEL` | Provides numeric log-level values. | `@studnicky/logger` |
+| `LOG_STATUS` | Provides supported log-status values. | `@studnicky/logger` |
+| `STATUS_CATEGORIES` | Groups log statuses for result filtering. | `@studnicky/logger` |
+| `CircularReferenceError` | Represents circular-reference serialization failures. | `@studnicky/logger` |
+| `ConfigurationError` | Represents invalid logger configuration. | `@studnicky/logger` |
+| `FileDestinationError` | Represents file transport destination failures. | `@studnicky/logger` |
+| `InvalidLogLevelError` | Represents invalid log-level configuration. | `@studnicky/logger` |
+| `LogBuildError` | Represents invalid log-entry construction. | `@studnicky/logger` |
+| `LoggerError` | Base error for logger failures. | `@studnicky/logger` |
 
 ## Try it
 

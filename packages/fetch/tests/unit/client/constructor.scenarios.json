@@ -98,12 +98,12 @@
       "expected": {}
     },
     {
-      "name": "valid-default-params",
-      "description": "FetchClient.create creates a client with default params",
-      "shape": "valid-default-params",
+      "name": "valid-default-parameters",
+      "description": "FetchClient.create creates a client with default parameters",
+      "shape": "valid-default-parameters",
       "input": {
         "fetchClient": {
-          "params": {
+          "parameters": {
             "api_key": "test-key"
           }
         }
@@ -366,7 +366,7 @@
               }
             }
           },
-          "params": {
+          "parameters": {
             "tag": [
               "one",
               "two"
@@ -389,7 +389,7 @@
               "X-Option": "replacement-option"
             }
           },
-          "params": {
+          "parameters": {
             "tag": [
               "replacement"
             ]
@@ -417,7 +417,7 @@
             "value": "initial-json"
           }
         },
-        "params": {
+        "parameters": {
           "shape": "undefined"
         }
       }

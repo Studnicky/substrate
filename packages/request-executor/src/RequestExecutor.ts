@@ -10,6 +10,7 @@ import { HookInvoker } from '@studnicky/errors';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
+import { Predicates } from '@studnicky/types';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
@@ -20,7 +21,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  * into a one-shot request execution pattern.
  *
  * `execute()` composes a cancellation signal via `Signal#compose()`, runs the caller-supplied
- * `fn` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
+ * `callback` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
  * `onExecuteComplete` / `onExecuteError` lifecycle hooks, and — if a `Context` was composed —
  * runs the entire call inside a fresh context scope.
  *
@@ -34,7 +35,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  * ```typescript
  * const executor = RequestExecutor.create({
  *   fetchClient: { baseURL: 'https://api.example.com' },
- *   retry: { maxRetries: 3 },
+ *   retry: { maximumRetries: 3 },
  *   deadlineMs: 5000
  * });
  *
@@ -52,7 +53,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
  *     console.log('request complete', result);
  *   }
  *
- *   protected override onExecuteError(error: unknown): void {
+ *   protected override onExecuteError(error: Error): void {
  *     console.error('request failed', error);
  *   }
  * }
@@ -61,7 +62,7 @@ import type { RequestExecutorExecuteOptionsInterface } from './interfaces/Reques
 export class RequestExecutor {
   /** Keeps request execution intact when a lifecycle hook fails. */
   static readonly #OwnedHookInvoker = class RequestExecutorHookInvoker extends HookInvoker {
-    protected override onHookError(_hookName: string, _cause: unknown): void {}
+    protected override onHookError(): void {}
   };
 
   /**
@@ -115,17 +116,17 @@ export class RequestExecutor {
   }
 
   /**
-   * Runs `fn` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
+   * Runs `callback` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
    * in the retry loop and (when configured) a Context scope. The retry loop is bracketed by the
    * `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks.
    *
-   * @param fn - Receives the composed FetchClient and the composed AbortSignal for this call.
+   * @param callback - Receives the composed FetchClient and the composed AbortSignal for this call.
    *   The caller passes the signal into whichever verb call it makes (e.g. `client.get(path, { signal })`).
    * @param options - Per-call signal/deadline/context-seed overrides
-   * @returns The result of `fn`, after retries succeed
+   * @returns The result of `callback`, after retries succeed
    */
   async execute<T>(
-    fn: (client: FetchClient, signal: AbortSignal) => Promise<T>,
+    callback: (client: FetchClient, signal: AbortSignal) => Promise<T>,
     options?: RequestExecutorExecuteOptionsInterface
   ): Promise<T> {
     const deadlineMs = options?.deadlineMs ?? this.#deadlineMs;
@@ -134,14 +135,6 @@ export class RequestExecutor {
       ...(options?.signal !== undefined ? { 'signal': options.signal } : {})
     });
 
-    const runRetryable = (): Promise<T> => {
-      const result = this.#retry.execute((): Promise<T> => {
-        const result = fn(this.#fetchClient, composedSignal);
-        return result;
-      });
-      return result;
-    };
-
     const runObserved = async (): Promise<T> => {
       this.hooks.invoke('onExecuteStart', () => {
         const result = this.onExecuteStart();
@@ -149,7 +142,10 @@ export class RequestExecutor {
       });
 
       try {
-        const result = await runRetryable();
+        const result = await this.#retry.execute((): Promise<T> => {
+          const callbackResult = callback(this.#fetchClient, composedSignal);
+          return callbackResult;
+        });
 
         this.hooks.invoke('onExecuteComplete', () => {
           const hookResult = this.onExecuteComplete(result);
@@ -157,13 +153,14 @@ export class RequestExecutor {
         });
 
         return result;
-      } catch (error) {
+      } catch (cause) {
+        const error = Predicates.isError(cause) ? cause : new Error(String(cause));
         this.hooks.invoke('onExecuteError', () => {
           const hookResult = this.onExecuteError(error);
           return hookResult;
         });
 
-        throw error;
+        throw cause;
       }
     };
 
@@ -176,8 +173,8 @@ export class RequestExecutor {
 
     try {
       const result = await scope.execute((): Promise<T> => {
-        const result = runObserved();
-        return result;
+        const observedResult = runObserved();
+        return observedResult;
       });
       return result;
     } finally {
@@ -199,13 +196,14 @@ export class RequestExecutor {
    * Fires after the retry loop resolves, immediately before `execute()` returns.
    * `result` is the value `execute()` is about to resolve with.
    */
-  protected onExecuteComplete<T>(_result: T): void {}
+  protected onExecuteComplete(_result: unknown): void {}
 
   /**
    * Fires once the retry loop's final attempt has failed, immediately before `execute()`
-   * rethrows. `error` is the raw failure — the same value `execute()` throws.
+   * rethrows. Non-Error failures are represented as an Error for this hook while
+   * `execute()` rethrows the original value unchanged.
    */
-  protected onExecuteError(_error: unknown): void {}
+  protected onExecuteError(_error: Error): void {}
 
   /** Count of hook failures recorded since construction. */
   get hookErrorCount(): number {

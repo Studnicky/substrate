@@ -12,56 +12,59 @@ class StorageError extends ModuleError {
     message: string,
     options?: { 'cause'?: Error; 'context'?: Record<string, unknown> }
   ): StorageError {
-    const opts: ModuleErrorOptionsInterface = {
+    const optionsData: ModuleErrorOptionsInterface = {
       'cause': options?.cause,
       'code': 'STORAGE_ERROR',
       'context': options?.context,
       'retryable': false,
       'statusCode': 500
     };
-    return new StorageError(message, opts);
+    const result = new StorageError(message, optionsData);
+    return result;
   }
 
   protected override serializeExtra(): Record<string, unknown> {
-    const extra: Record<string, unknown> = { 'domain': 'storage' };
-    return extra;
+    return { 'domain': 'storage' };
   }
 
   protected override formatUserMessage(): string {
-    const result = 'Storage unavailable. Please try again later.';
+    const result = String.raw`Storage unavailable. Please try again later.`;
     return result;
   }
 }
 
-const err = StorageError.create('Write failed', { 'context': { 'bucket': 'uploads', 'key': 'img.png' } });
+const error = StorageError.create('Write failed', { 'context': { 'bucket': 'uploads', 'key': 'img.png' } });
 
-console.log('StorageError.name:', err.name);
-console.log('StorageError.code:', err.code);
-console.log('StorageError.statusCode:', err.statusCode);
-console.log('StorageError.toUserMessage():', err.toUserMessage());
+console.log('StorageError.name:', error.name);
+console.log('StorageError.code:', error.code);
+console.log('StorageError.statusCode:', error.statusCode);
+console.log('StorageError.toUserMessage():', error.toUserMessage());
 
-const json = err.toJSON();
+const json = error.toJSON();
 console.log('toJSON().domain:', json.domain);
 console.log('toJSON().name:', json.name);
 
 // Wrapping: inspect the canonical BaseError cause chain
 const outer = ModuleError.create('Operation failed', {
-  'cause': err,
+  'cause': error,
   'scenario': 'INTERNAL'
 });
 
-const found = BaseError.getCauseChain(outer).find((cause) => { return cause instanceof StorageError; });
+const found = BaseError.getCauseChain(outer).find((cause) => {
+  const result = cause instanceof StorageError;
+  return result;
+});
 console.log('StorageError in cause chain:', found?.code);
 // #endregion usage
 
-assert.ok(err instanceof StorageError, 'instanceof StorageError');
-assert.ok(err instanceof ModuleError, 'instanceof ModuleError');
-assert.ok(err instanceof BaseError, 'instanceof BaseError');
-assert.strictEqual(err.name, 'StorageError', 'name = class name');
-assert.strictEqual(err.code, 'STORAGE_ERROR');
-assert.strictEqual(err.statusCode, 500);
-assert.strictEqual(err.retryable, false);
-assert.strictEqual(err.toUserMessage(), 'Storage unavailable. Please try again later.');
+assert.ok(error instanceof StorageError, 'instanceof StorageError');
+assert.ok(error instanceof ModuleError, 'instanceof ModuleError');
+assert.ok(error instanceof BaseError, 'instanceof BaseError');
+assert.strictEqual(error.name, 'StorageError', 'name = class name');
+assert.strictEqual(error.code, 'STORAGE_ERROR');
+assert.strictEqual(error.statusCode, 500);
+assert.strictEqual(error.retryable, false);
+assert.strictEqual(error.toUserMessage(), 'Storage unavailable. Please try again later.');
 assert.strictEqual(json.domain, 'storage', 'serializeExtra() in toJSON()');
 assert.strictEqual(json.name, 'StorageError');
 assert.ok(found instanceof StorageError, 'BaseError.getCauseChain() found StorageError');

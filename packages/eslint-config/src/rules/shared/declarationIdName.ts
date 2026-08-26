@@ -6,6 +6,7 @@ export class DeclarationIdName {
     const idNode: unknown = rawNode.id;
     if (!ObjectGuard.isObject(idNode)) { return ''; }
     const name: unknown = idNode.name;
-    return typeof name === 'string' ? name : '';
+    const result = typeof name === 'string' ? name : '';
+    return result;
   }
 }

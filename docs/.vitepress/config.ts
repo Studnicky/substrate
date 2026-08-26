@@ -60,7 +60,7 @@ const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#7c5aed';
-const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,predicates,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
+const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -74,9 +74,9 @@ const twitterHandle = seo.twitterHandle ?? '';
 const ESLINT_CONFIG_RULES = [
   'adapter-only-import', 'all-types-are-entities', 'canonical-export-names', 'clean-diagnostics',
   'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'folder-content-shape',
-  'hash-private-fields', 'inline-trivial-logic', 'interface-must-be-contract', 'interface-suffix',
+  'explicit-return-binding', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract', 'interface-suffix',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'prefer-collection-types', 'require-options-object', 'single-export',
+  'lexical-this-only', 'no-mixed-callable-shapes', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object', 'single-export',
   'static-method-verbs', 'type-alias-invariants', 'whole-canonical-types'
 ] as const;
 
@@ -99,7 +99,7 @@ const STATEFUL = [
 ] as const;
 
 const STATELESS = [
-  'config', 'errors', 'eslint-config', 'fetch', 'json', 'predicates',
+  'config', 'errors', 'eslint-config', 'fetch', 'intake-kit', 'json',
   'signal', 'system', 'types'
 ] as const;
 

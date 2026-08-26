@@ -6,7 +6,7 @@
 
 Wraps an arbitrary function and caches its result keyed by a caller-supplied key derivation over its arguments, with LRU+TTL eviction and in-flight call dedup. It composes two existing primitives into the "check cache → check in-flight → run → store" sequence: an `LruCache` for TTL-bounded result storage and a `Coalesce` for in-flight dedup — no new storage engine, no implicit argument hashing.
 
-`MemoizeOptionsInterface` indexes its cache fields from `LruCacheOptionsEntity.Type`, and `CacheLookupEntity` owns the serializable hit/miss state used by the generic lookup contract. `CacheLookupEntity` is exported from the package root with its schema-derived type and runtime validator.
+`MemoizeOptionsInterface` indexes its cache fields from `LruCacheOptionsEntity.Type`, and `CacheLookupEntity` owns the serializable hit/miss state used by the generic lookup contract. Import `CacheLookupEntity` from `@studnicky/memoize/entities` and `MemoizeOptionsInterface` from `@studnicky/memoize/interfaces`.
 
 **`@studnicky/memoize` vs. `@studnicky/idempotency-guard`:** both compose `LruCache` + `Coalesce`, but solve different problems. `Memoize` is pure memoization — the same derived key always replays the cached result, no conflict detection. `IdempotencyGuard` fingerprints a payload alongside the cached result and *errors* when a key is reused for a different payload — pick `IdempotencyGuard` when key reuse with a different payload is a bug you want to catch, pick `Memoize` when you just want to cache a function's result.
 
@@ -29,7 +29,7 @@ import { Memoize } from '@studnicky/memoize';
 
 const memo = Memoize.create(
   (userId: string) => fetchUser(userId),
-  { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
+  { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
 );
 
 const user = await memo.call('user-42');
@@ -46,7 +46,7 @@ memo.clear();
 
 Concurrent calls with the same derived key, issued before the first resolves, share one invocation — the wrapped function runs exactly once via the composed `Coalesce`.
 
-`keyFn` is a required config field — it mirrors `LruCache`'s explicit-key model rather than an implicit tuple hash, which is unsound for object/function arguments.
+`keyDeriver` is a required config field — it mirrors `LruCache`'s explicit-key model rather than an implicit tuple hash, which is unsound for object/function arguments.
 
 ## API
 
@@ -54,21 +54,21 @@ Concurrent calls with the same derived key, issued before the first resolves, sh
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `keyFn` | `(...args) => string` | Derives the cache/coalesce key from a call's arguments (required) |
+| `keyDeriver` | `(...args) => string` | Derives the cache/coalesce key from a call's arguments (required) |
 | `capacity` | `number` | Maximum number of distinct derived keys retained at once (composed `LruCache` capacity) |
 | `ttlMs` | `number?` | Time-to-live (ms) for a cached result |
 | `staleMs` | `number?` | Staleness threshold (ms) for a cached result |
 
 ### `call(...args): Promise<TResult>`
 
-Derives `key = keyFn(...args)` and checks the composed cache:
+Derives `key = keyDeriver(...args)` and checks the composed cache:
 
 - Entry present → the cached result is returned without re-invoking `fn`.
 - No entry → runs through the composed `Coalesce` so concurrent callers sharing the key share one invocation, then caches the result.
 
 ### `invalidate(...args): void`
 
-Evicts the cache entry for `keyFn(...args)` so the next matching call re-invokes `fn`.
+Evicts the cache entry for `keyDeriver(...args)` so the next matching call re-invokes `fn`.
 
 ### `clear(): void`
 
@@ -99,7 +99,7 @@ class TelemetryMemoize extends Memoize<[string], User> {
   readonly events: string[] = [];
 
   static tracked(fn: (userId: string) => Promise<User>): TelemetryMemoize {
-    return TelemetryMemoize.create(fn, { keyFn: (userId) => userId, capacity: 1000, ttlMs: 60_000 });
+    return TelemetryMemoize.create(fn, { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 });
   }
 
   protected override onMemoHit(key: string): void {

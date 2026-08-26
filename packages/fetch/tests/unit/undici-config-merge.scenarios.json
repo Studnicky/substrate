@@ -15,15 +15,15 @@
           "connectTimeout": 0,
           "enabled": true,
           "headersTimeout": 0,
-          "keepAliveMaxTimeout": 0,
+          "keepAliveMaximumTimeout": 0,
           "keepAliveTimeout": 0,
           "keepAliveTimeoutThreshold": 0,
           "localAddress": "127.0.0.1",
-          "maxConcurrentStreams": 1,
-          "maxHeaderSize": 1,
-          "maxOrigins": 1,
-          "maxRequestsPerClient": 1,
-          "maxResponseSize": 1,
+          "maximumConcurrentStreams": 1,
+          "maximumHeaderSize": 1,
+          "maximumOrigins": 1,
+          "maximumRequestsPerClient": 1,
+          "maximumResponseSize": 1,
           "pipelining": 0,
           "strictContentLength": false
         }
@@ -128,7 +128,7 @@
           "headersTimeout": 30000,
           "bodyTimeout": 30000,
           "keepAliveTimeout": 4000,
-          "keepAliveMaxTimeout": 600000,
+          "keepAliveMaximumTimeout": 600000,
           "keepAliveTimeoutThreshold": 1000
         }
       }
@@ -155,8 +155,8 @@
       "expected": {
         "shape": "defaults",
         "values": {
-          "maxHeaderSize": 16384,
-          "maxResponseSize": -1
+          "maximumHeaderSize": 16384,
+          "maximumResponseSize": -1
         }
       }
     },
@@ -222,15 +222,15 @@
           "connections": 30,
           "connectTimeout": 8000,
           "headersTimeout": 240000,
-          "keepAliveMaxTimeout": 480000,
+          "keepAliveMaximumTimeout": 480000,
           "keepAliveTimeout": 45000,
           "keepAliveTimeoutThreshold": 1500,
           "localAddress": "172.16.0.1",
-          "maxConcurrentStreams": 150,
-          "maxHeaderSize": 24576,
-          "maxOrigins": 75,
-          "maxRequestsPerClient": 500,
-          "maxResponseSize": 2097152,
+          "maximumConcurrentStreams": 150,
+          "maximumHeaderSize": 24576,
+          "maximumOrigins": 75,
+          "maximumRequestsPerClient": 500,
+          "maximumResponseSize": 2097152,
           "pipelining": 2,
           "strictContentLength": false
         }
@@ -306,15 +306,15 @@
             "connectTimeout": 0,
             "enabled": true,
             "headersTimeout": 0,
-            "keepAliveMaxTimeout": 0,
+            "keepAliveMaximumTimeout": 0,
             "keepAliveTimeout": 0,
             "keepAliveTimeoutThreshold": 0,
             "localAddress": "127.0.0.1",
-            "maxConcurrentStreams": 1,
-            "maxHeaderSize": 1,
-            "maxOrigins": 1,
-            "maxRequestsPerClient": 1,
-            "maxResponseSize": 1,
+            "maximumConcurrentStreams": 1,
+            "maximumHeaderSize": 1,
+            "maximumOrigins": 1,
+            "maximumRequestsPerClient": 1,
+            "maximumResponseSize": 1,
             "pipelining": 0,
             "strictContentLength": false
           }

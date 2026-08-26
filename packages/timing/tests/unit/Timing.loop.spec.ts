@@ -6,9 +6,9 @@ import {
 import { ConfigurationError } from '@studnicky/config';
 import { HookInvocationError } from '@studnicky/errors';
 
-import { DEFAULT_MAX_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
+import { DEFAULT_MAXIMUM_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
 import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEntity.js';
-import type { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
+import { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import scenarioGroups from './Timing.scenarios.json' with { type: 'json' };
@@ -45,7 +45,7 @@ type ScenarioCaseByShape = {
   'cumulative-timing': ScenarioBase<'cumulative-timing', { events: TimingEventFixture[]; stageWaitMs: number[] }, { keys: string[]; minimums: Record<string, number> }>;
   'domain-status': ScenarioBase<'domain-status', { events: TimingEventFixture[] }, { keys: string[] }>;
   'evicts-default-max-events': ScenarioBase<'evicts-default-max-events', { event: { component: string; operationPrefix: string }; overflowMargin: number }, { defaultMaxEvents: number; retainedLastEventPrefix: string; retainedLastIndex: number }>;
-  'evicts-when-max-events-exceeded': ScenarioBase<'evicts-when-max-events-exceeded', { events: TimingEventFixture[]; timing: { maxEvents: number } }, { evictedKeys: string[]; retainedKeys: string[] }>;
+  'evicts-when-max-events-exceeded': ScenarioBase<'evicts-when-max-events-exceeded', { events: TimingEventFixture[]; timing: { maximumEvents: number } }, { evictedKeys: string[]; retainedKeys: string[] }>;
   'high-resolution-timing': ScenarioBase<'high-resolution-timing', { busyWaitMs: number; event: TimingEventFixture }, { minElapsedMs: number }>;
   'hook-error-instance': ScenarioBase<'hook-error-instance', { errorMessage: string; event: TimingEventFixture }, { instanceOf: 'HookInvocationError' }>;
   'immediate-operations': ScenarioBase<'immediate-operations', { event: TimingEventFixture }, Record<string, never>>;
@@ -55,14 +55,14 @@ type ScenarioCaseByShape = {
   'initial-only-initialize': ScenarioBase<'initial-only-initialize', { observeInitialize: boolean }, { durationMsType: 'number'; eventKeys: string[] }>;
   'json-serializable': ScenarioBase<'json-serializable', { event: TimingEventFixture }, { serializable: boolean }>;
   'logbody-context': ScenarioBase<'logbody-context', { events: TimingEventFixture[] }, { allValuesAreNumbers: boolean; keys: string[] }>;
-  'maintains-most-recent-events': ScenarioBase<'maintains-most-recent-events', { cases: Array<{ eventNames: string[]; timing: { maxEvents: number } }> }, { retainedSets: string[][] }>;
-  'maxEvents-accessible': ScenarioBase<'maxEvents-accessible', { timing: { maxEvents: number } }, { maxEvents: number; startTimeType: 'bigint' }>;
-  'maxEvents-defaults': ScenarioBase<'maxEvents-defaults', { defaultMaxEvents: number }, { maxEvents: number }>;
+  'maintains-most-recent-events': ScenarioBase<'maintains-most-recent-events', { cases: Array<{ eventNames: string[]; timing: { maximumEvents: number } }> }, { retainedSets: string[][] }>;
+  'maximumEvents-accessible': ScenarioBase<'maximumEvents-accessible', { timing: { maximumEvents: number } }, { maximumEvents: number; startTimeType: 'bigint' }>;
+  'maximumEvents-defaults': ScenarioBase<'maximumEvents-defaults', { defaultMaxEvents: number }, { maximumEvents: number }>;
   'mixes-status-and-plain': ScenarioBase<'mixes-status-and-plain', { events: TimingEventFixture[] }, { keys: string[] }>;
   'non-negative-values': ScenarioBase<'non-negative-values', { events: TimingEventFixture[] }, { allElapsedNonNegative: boolean }>;
   'onClear-hook-called': ScenarioBase<'onClear-hook-called', { batch: { clearCount: number } }, { clearCount: number }>;
   'onEvent-hook-called': ScenarioBase<'onEvent-hook-called', { event: TimingEventFixture }, { eventCountDelta: number; lastEventData: string }>;
-  'onEvict-hook-called': ScenarioBase<'onEvict-hook-called', { events: TimingEventFixture[]; timing: { maxEvents: number } }, { evictCountAtLeast: number }>;
+  'onEvict-hook-called': ScenarioBase<'onEvict-hook-called', { events: TimingEventFixture[]; timing: { maximumEvents: number } }, { evictCountAtLeast: number }>;
   'onGetEvents-hook-fires': ScenarioBase<'onGetEvents-hook-fires', { events: TimingEventFixture[] }, { getEventsCount: number; lastEventCounts: number[] }>;
   'onInitialize-hook-fires': ScenarioBase<'onInitialize-hook-fires', { construct: boolean }, { initCount: number; startTimeType: 'bigint' }>;
   'optional-status': ScenarioBase<'optional-status', { events: TimingEventFixture[] }, { keys: string[] }>;
@@ -72,7 +72,7 @@ type ScenarioCaseByShape = {
   'starts-immediately': ScenarioBase<'starts-immediately', { busyWaitMs: number }, { hasInitialize: boolean; minDurationMs: number }>;
   'throwing-onClear': ScenarioBase<'throwing-onClear', { errorMessage: string; event: TimingEventFixture }, { errorName: 'HookInvocationError' }>;
   'throwing-onEvent': ScenarioBase<'throwing-onEvent', { errorMessage: string; event: TimingEventFixture }, { errorName: 'HookInvocationError' }>;
-  'throwing-onEvict': ScenarioBase<'throwing-onEvict', { errorMessage: string; event: TimingEventFixture; timing: { maxEvents: number } }, { errorName: 'HookInvocationError' }>;
+  'throwing-onEvict': ScenarioBase<'throwing-onEvict', { errorMessage: string; event: TimingEventFixture; timing: { maximumEvents: number } }, { errorName: 'HookInvocationError' }>;
   'throwing-onGetEvents': ScenarioBase<'throwing-onGetEvents', { errorMessage: string }, { errorName: 'HookInvocationError' }>;
   'throwing-onInitialize': ScenarioBase<'throwing-onInitialize', { errorMessage: string }, { errorName: 'HookInvocationError' }>;
   'timing-status-constants': ScenarioBase<'timing-status-constants', { events: TimingEventFixture[] }, { keys: string[] }>;
@@ -104,7 +104,7 @@ class TracedTiming extends Timing {
   public getEventsCount = 0;
   public lastGetEventsEventCount: number | undefined = undefined;
 
-  public constructor(options: TimingOptionsEntity.Type = {}) {
+  public constructor(options: Parameters<typeof TimingOptionsEntity.create>[0] = {}) {
     super(options);
   }
 
@@ -133,7 +133,7 @@ class TracedTiming extends Timing {
     return this.convertTime(ns, unit);
   }
   public get testMaxEvents(): number {
-    return this.maxEvents;
+    return this.maximumEvents;
   }
   public get testStartTime(): bigint {
     return this.startTime;
@@ -161,19 +161,19 @@ function createTimingEventFromName(eventName: string): TimingEventDataEntity.Typ
   });
 }
 
-function eventKeys(events: Record<string, number>): string[] {
-  return Object.keys(events).filter((key) => key !== 'durationMs');
+function eventKeys(events: ReadonlyMap<string, number>): string[] {
+  return [...events.keys()].filter((key) => key !== 'durationMs');
 }
 
-function assertEventKeysPresent(events: Record<string, number>, keys: string[]): void {
+function assertEventKeysPresent(events: ReadonlyMap<string, number>, keys: string[]): void {
   for (const eventName of keys) {
-    assert.ok(events[eventName] !== undefined, `${eventName} should exist`);
+    assert.ok(events.get(eventName) !== undefined, `${eventName} should exist`);
   }
 }
 
-function assertEventKeysAbsent(events: Record<string, number>, keys: string[]): void {
+function assertEventKeysAbsent(events: ReadonlyMap<string, number>, keys: string[]): void {
   for (const eventName of keys) {
-    assert.ok(events[eventName] === undefined, `${eventName} should be evicted`);
+    assert.ok(events.get(eventName) === undefined, `${eventName} should be evicted`);
   }
 }
 
@@ -193,9 +193,9 @@ const runnerMap: RunnerMap = {
     const timer = Timing.create();
     TestClock.busyWait(scenarioCase.input.busyWaitMs);
     const events = timer.getEvents();
-    assert.ok(events.durationMs !== undefined);
-    assert.ok(events.durationMs >= scenarioCase.expected.minDurationMs, `Expected durationMs >= ${scenarioCase.expected.minDurationMs}ms, got ${events.durationMs}ms`);
-    assert.strictEqual(events.initialize !== undefined, scenarioCase.expected.hasInitialize);
+    assert.ok(events.get('durationMs') !== undefined);
+    assert.ok(events.get('durationMs')! >= scenarioCase.expected.minDurationMs, `Expected durationMs >= ${scenarioCase.expected.minDurationMs}ms, got ${events.get('durationMs')}ms`);
+    assert.strictEqual(events.get('initialize') !== undefined, scenarioCase.expected.hasInitialize);
     return;
   },
 
@@ -219,7 +219,7 @@ const runnerMap: RunnerMap = {
 
     assert.throws(() => {
       ThrowingHrtimeTiming.create();
-    }, (error: unknown) => {
+    }, (error) => {
       assert.ok(error instanceof ConfigurationError);
       assert.ok(error.cause instanceof Error);
       assert.equal(error.cause.message, scenarioCase.input.errorMessage);
@@ -250,8 +250,8 @@ const runnerMap: RunnerMap = {
       const currentKey = scenarioCase.expected.keysInOrder[index];
       assert.ok(previousKey !== undefined);
       assert.ok(currentKey !== undefined);
-      const previousValue = events[previousKey];
-      const currentValue = events[currentKey];
+      const previousValue = events.get(previousKey);
+      const currentValue = events.get(currentKey);
       assert.ok(previousValue !== undefined);
       assert.ok(currentValue !== undefined);
       assert.ok(previousValue < currentValue);
@@ -307,7 +307,7 @@ const runnerMap: RunnerMap = {
     const timer = Timing.create(scenarioCase.input.timing);
     recordTimingEvents(timer, scenarioCase.input.events);
     const events = timer.getEvents();
-    assert.strictEqual(eventKeys(events).length, scenarioCase.input.timing.maxEvents);
+    assert.strictEqual(eventKeys(events).length, scenarioCase.input.timing.maximumEvents);
     assertEventKeysAbsent(events, scenarioCase.expected.evictedKeys);
     assertEventKeysPresent(events, scenarioCase.expected.retainedKeys);
     return;
@@ -320,7 +320,7 @@ const runnerMap: RunnerMap = {
         timer.event(createTimingEventFromName(eventName));
       }
       const events = timer.getEvents();
-      assert.strictEqual(eventKeys(events).length, caseData.timing.maxEvents);
+      assert.strictEqual(eventKeys(events).length, caseData.timing.maximumEvents);
       const expectedEventNames = scenarioCase.expected.retainedSets[index] ?? [];
       assertEventKeysPresent(events, expectedEventNames);
     }
@@ -328,11 +328,11 @@ const runnerMap: RunnerMap = {
   },
 
   'evicts-default-max-events': (scenarioCase) => {
-    assert.ok(Number.isFinite(DEFAULT_MAX_EVENTS));
-    assert.ok(DEFAULT_MAX_EVENTS <= 10_000);
-    assert.strictEqual(DEFAULT_MAX_EVENTS, scenarioCase.expected.defaultMaxEvents);
+    assert.ok(Number.isFinite(DEFAULT_MAXIMUM_EVENTS));
+    assert.ok(DEFAULT_MAXIMUM_EVENTS <= 10_000);
+    assert.strictEqual(DEFAULT_MAXIMUM_EVENTS, scenarioCase.expected.defaultMaxEvents);
     const timer = Timing.create();
-    const totalEvents = DEFAULT_MAX_EVENTS + scenarioCase.input.overflowMargin;
+    const totalEvents = DEFAULT_MAXIMUM_EVENTS + scenarioCase.input.overflowMargin;
     for (let i = 0; i < totalEvents; i++) {
       timer.event(createTimingEvent({
         'component': scenarioCase.input.event.component,
@@ -340,10 +340,10 @@ const runnerMap: RunnerMap = {
       }));
     }
     const events = timer.getEvents();
-    assert.ok(eventKeys(events).length <= DEFAULT_MAX_EVENTS);
-    assert.ok(events.initialize === undefined, 'initialize should be evicted');
-    assert.ok(events[`${scenarioCase.input.event.component}.${scenarioCase.input.event.operationPrefix}0`] === undefined, 'oldest events should be evicted');
-    assert.ok(events[`${scenarioCase.input.event.component}.${scenarioCase.input.event.operationPrefix}${scenarioCase.expected.retainedLastIndex}`] !== undefined, 'most recent event should remain');
+    assert.ok(eventKeys(events).length <= DEFAULT_MAXIMUM_EVENTS);
+    assert.ok(events.get('initialize') === undefined, 'initialize should be evicted');
+    assert.ok(events.get(`${scenarioCase.input.event.component}.${scenarioCase.input.event.operationPrefix}0`) === undefined, 'oldest events should be evicted');
+    assert.ok(events.get(`${scenarioCase.input.event.component}.${scenarioCase.input.event.operationPrefix}${scenarioCase.expected.retainedLastIndex}`) !== undefined, 'most recent event should remain');
     assert.ok(`${scenarioCase.input.event.component}.${scenarioCase.input.event.operationPrefix}${scenarioCase.expected.retainedLastIndex}`.startsWith(scenarioCase.expected.retainedLastEventPrefix));
     return;
   },
@@ -351,10 +351,10 @@ const runnerMap: RunnerMap = {
   'initial-only-initialize': (scenarioCase) => {
     const timer = Timing.create();
     const events = timer.getEvents();
-    assert.strictEqual(typeof events.durationMs, scenarioCase.expected.durationMsType);
+    assert.strictEqual(typeof events.get('durationMs'), scenarioCase.expected.durationMsType);
     assert.ok(typeof events === 'object');
     assert.deepEqual(eventKeys(events), scenarioCase.expected.eventKeys);
-    assert.strictEqual(events.initialize !== undefined, scenarioCase.input.observeInitialize);
+    assert.strictEqual(events.get('initialize') !== undefined, scenarioCase.input.observeInitialize);
     return;
   },
 
@@ -364,9 +364,9 @@ const runnerMap: RunnerMap = {
     const events1 = timer.getEvents();
     TestClock.busyWait(scenarioCase.input.waitBeforeSecondMs);
     const events2 = timer.getEvents();
-    assert.ok(events1.durationMs !== undefined);
-    assert.ok(events2.durationMs !== undefined);
-    assert.strictEqual(events2.durationMs > events1.durationMs, scenarioCase.expected.durationIncreases);
+    assert.ok(events1.get('durationMs') !== undefined);
+    assert.ok(events2.get('durationMs') !== undefined);
+    assert.strictEqual((events2.get('durationMs') ?? 0) > (events1.get('durationMs') ?? 0), scenarioCase.expected.durationIncreases);
     return;
   },
 
@@ -386,7 +386,7 @@ const runnerMap: RunnerMap = {
     timer.event(createTimingEvent(scenarioCase.input.secondEvent));
     const events2 = timer.getEvents();
     assert.ok(eventKeys(events2).length > eventKeys(events1).length);
-    assert.ok(events2[scenarioCase.expected.newKey] !== undefined);
+    assert.ok(events2.get(scenarioCase.expected.newKey) !== undefined);
     return;
   },
 
@@ -482,8 +482,8 @@ const runnerMap: RunnerMap = {
       }
     }
     const timer = AsyncRejectingEventTiming.create();
-    const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
+    let rejectionCount = 0;
+    const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     return (async () => {
       try {
@@ -491,7 +491,7 @@ const runnerMap: RunnerMap = {
         for (let tick = 0; tick < scenarioCase.input.settleTicks; tick++) {
           await new Promise<void>((resolve) => { setImmediate(resolve); });
         }
-        assert.strictEqual(rejectionEvents.length, scenarioCase.expected.unhandledRejections);
+        assert.strictEqual(rejectionCount, scenarioCase.expected.unhandledRejections);
       } finally {
         process.off('unhandledRejection', onUnhandledRejection);
       }
@@ -504,8 +504,8 @@ const runnerMap: RunnerMap = {
     const events = timer.getEvents();
     const parsed = structuredClone(events);
     const eventName = createTimingEvent(scenarioCase.input.event).event;
-    assert.ok(typeof parsed.durationMs === 'number');
-    assert.ok(typeof parsed[eventName] === 'number');
+    assert.ok(typeof parsed.get('durationMs') === 'number');
+    assert.ok(typeof parsed.get(eventName) === 'number');
     assert.strictEqual(scenarioCase.expected.serializable, true);
     return;
   },
@@ -515,8 +515,8 @@ const runnerMap: RunnerMap = {
     TestClock.busyWait(scenarioCase.input.busyWaitMs);
     timer.event(createTimingEvent(scenarioCase.input.event));
     const events = timer.getEvents();
-    assert.ok(events.durationMs !== undefined);
-    assert.ok(events.durationMs >= scenarioCase.expected.minDurationMs);
+    assert.ok(events.get('durationMs') !== undefined);
+    assert.ok(events.get('durationMs')! >= scenarioCase.expected.minDurationMs);
     return;
   },
 
@@ -545,9 +545,9 @@ const runnerMap: RunnerMap = {
     timer.clear();
     TestClock.busyWait(scenarioCase.input.waitAfterClearMs);
     const afterClear = timer.getEvents();
-    assert.ok(beforeClear.durationMs !== undefined);
-    assert.ok(afterClear.durationMs !== undefined);
-    assert.strictEqual(afterClear.durationMs > beforeClear.durationMs, scenarioCase.expected.durationIncreasesAfterClear);
+    assert.ok(beforeClear.get('durationMs') !== undefined);
+    assert.ok(afterClear.get('durationMs') !== undefined);
+    assert.strictEqual((afterClear.get('durationMs') ?? 0) > (beforeClear.get('durationMs') ?? 0), scenarioCase.expected.durationIncreasesAfterClear);
     return;
   },
 
@@ -571,8 +571,8 @@ const runnerMap: RunnerMap = {
     const events = timer.getEvents();
     assertEventKeysPresent(events, scenarioCase.expected.keys);
     for (const [key, minimum] of Object.entries(scenarioCase.expected.minimums)) {
-      assert.ok(events[key] !== undefined);
-      assert.ok(events[key] >= minimum, `${key} should be at least ${minimum}`);
+      assert.ok(events.get(key) !== undefined);
+      assert.ok((events.get(key) ?? -1) >= minimum, `${key} should be at least ${minimum}`);
     }
     return;
   },
@@ -580,13 +580,13 @@ const runnerMap: RunnerMap = {
   'immediate-operations': (scenarioCase) => {
     const timer = Timing.create();
     const events = timer.getEvents();
-    assert.ok(events.durationMs !== undefined);
-    assert.ok(events.durationMs >= 0);
+    assert.ok(events.get('durationMs') !== undefined);
+    assert.ok(events.get('durationMs')! >= 0);
     timer.event(createTimingEvent(scenarioCase.input.event));
     const events2 = timer.getEvents();
     const eventName = createTimingEvent(scenarioCase.input.event).event;
-    assert.ok(events2[eventName] !== undefined);
-    assert.ok(events2[eventName] >= 0);
+    assert.ok(events2.get(eventName) !== undefined);
+    assert.ok((events2.get(eventName) ?? -1) >= 0);
     return;
   },
 
@@ -594,7 +594,7 @@ const runnerMap: RunnerMap = {
     const timer = Timing.create();
     recordTimingEvents(timer, scenarioCase.input.events);
     const events = timer.getEvents();
-    for (const elapsed of Object.values(events)) {
+    for (const elapsed of events.values()) {
       assert.strictEqual(elapsed >= 0, scenarioCase.expected.allElapsedNonNegative);
     }
     return;
@@ -606,9 +606,9 @@ const runnerMap: RunnerMap = {
     timer.event(createTimingEvent(scenarioCase.input.event));
     const events = timer.getEvents();
     const eventName = createTimingEvent(scenarioCase.input.event).event;
-    assert.ok(events[eventName] !== undefined);
-    assert.ok(Number.isFinite(events[eventName]));
-    assert.ok(events[eventName] >= scenarioCase.expected.minElapsedMs);
+    assert.ok(events.get(eventName) !== undefined);
+    assert.ok(Number.isFinite(events.get(eventName)));
+    assert.ok((events.get(eventName) ?? -1) >= scenarioCase.expected.minElapsedMs);
     return;
   },
 
@@ -661,17 +661,17 @@ const runnerMap: RunnerMap = {
     return;
   },
 
-  'maxEvents-accessible': (scenarioCase) => {
+  'maximumEvents-accessible': (scenarioCase) => {
     const traced = new TracedTiming(scenarioCase.input.timing);
-    assert.strictEqual(traced.testMaxEvents, scenarioCase.expected.maxEvents);
+    assert.strictEqual(traced.testMaxEvents, scenarioCase.expected.maximumEvents);
     assert.strictEqual(typeof traced.testStartTime, scenarioCase.expected.startTimeType);
     return;
   },
 
-  'maxEvents-defaults': (scenarioCase) => {
+  'maximumEvents-defaults': (scenarioCase) => {
     const traced = new TracedTiming({});
-    assert.strictEqual(DEFAULT_MAX_EVENTS, scenarioCase.input.defaultMaxEvents);
-    assert.strictEqual(traced.testMaxEvents, scenarioCase.expected.maxEvents);
+    assert.strictEqual(DEFAULT_MAXIMUM_EVENTS, scenarioCase.input.defaultMaxEvents);
+    assert.strictEqual(traced.testMaxEvents, scenarioCase.expected.maximumEvents);
     return;
   },
 

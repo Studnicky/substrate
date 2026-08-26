@@ -15,7 +15,7 @@ pnpm add @studnicky/file-lock
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/file-lock` is the sole public code entrypoint.
+`@studnicky/file-lock` declares a root usage API and explicit public subpaths.
 
 ## Usage
 
@@ -118,3 +118,23 @@ Two `FileLock` instances share the same `VirtualFileSystem` path. The holder acq
 | `timeoutMs` | `number` | Timeout that elapsed |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/file-lock)
+
+## Entities
+
+`@studnicky/file-lock/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { FileLockOptionsEntity } from '@studnicky/file-lock/entities';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `FileLock` | Provides file lock functionality. | `@studnicky/file-lock` |
+| `FileLockConfigError` | Represents file lock config failures. | `@studnicky/file-lock` |
+| `FileLockCreateOptionsInterface` | Defines the file lock create options contract. | `@studnicky/file-lock` |
+| `FileLockError` | Represents file lock failures. | `@studnicky/file-lock` |
+| `FileLockTimeoutError` | Represents file lock timeout failures. | `@studnicky/file-lock` |
+| `OwnerTokenInterface` | Defines the owner token contract. | `@studnicky/file-lock` |

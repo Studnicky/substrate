@@ -58,7 +58,7 @@
         "clientConfig": {
           "headers": {
             "X-Custom": {
-              "__shape": "undefined"
+              "shape": "undefined"
             }
           }
         }

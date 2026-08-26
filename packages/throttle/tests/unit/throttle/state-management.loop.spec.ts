@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 
 import { Batch } from '@studnicky/batch';
 
-import { Throttle, ThrottleStatsEntity } from '../../../src/index.js';
+import { Throttle } from '../../../src/index.js';
+import { ThrottleStatsEntity } from '../../../src/entities/index.js';
 import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
 import scenarioGroups from './state-management.scenarios.json' with { type: 'json' };

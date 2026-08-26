@@ -59,8 +59,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 4,
-            "minConcurrency": 1,
+            "maximumConcurrency": 4,
+            "minimumConcurrency": 1,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.5,
             "scaleUpThreshold": 1,
@@ -90,8 +90,8 @@
           "adaptive": {
             "adjustmentInterval": 100,
             "enabled": true,
-            "maxConcurrency": 4,
-            "minConcurrency": 2,
+            "maximumConcurrency": 4,
+            "minimumConcurrency": 2,
             "sampleWindow": 10,
             "scaleDownThreshold": 1.1,
             "scaleUpThreshold": 0.5,

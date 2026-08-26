@@ -1,3 +1,7 @@
+import { Predicates } from '@studnicky/types';
+
+import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
+
 /**
  * Request body serialization utilities as static class methods
  */
@@ -16,12 +20,12 @@ export class BodySerializer {
    * @param body - Request body to check
    * @returns True if Content-Type should be set
    */
-  static needsJsonContentType(body: unknown): boolean {
-    return typeof body === 'object'
-      && body !== null
+  static needsJsonContentType(body: BodyRequestOptionsInterface['body']): boolean {
+    const result = Predicates.isObjectLike(body)
       && !(body instanceof Buffer)
       && !(body instanceof ArrayBuffer)
-      && !ArrayBuffer.isView(body);
+      && !Predicates.isArrayBufferView(body);
+    return result;
   }
 
   /**
@@ -32,24 +36,29 @@ export class BodySerializer {
    * - ArrayBufferView: copied into a detached Uint8Array of the visible byte range
    * - any other value: JSON.stringify
    */
-  static serialize(body: unknown): ArrayBuffer | string | Uint8Array | undefined {
+  static serialize(body: BodyRequestOptionsInterface['body']): ArrayBuffer | string | Uint8Array | undefined {
     if (body === undefined || body === null) {
-      return undefined;
+      const result = undefined;
+      return result;
     }
 
-    if (typeof body === 'string') {
-      return body;
+    if (Predicates.isString(body)) {
+      const result = body;
+      return result;
     }
 
     if (body instanceof ArrayBuffer) {
-      return body;
+      const result = body;
+      return result;
     }
 
-    if (ArrayBuffer.isView(body)) {
+    if (Predicates.isArrayBufferView(body)) {
       const visibleBytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-      return Uint8Array.from(visibleBytes);
+      const result = Uint8Array.from(visibleBytes);
+      return result;
     }
 
-    return JSON.stringify(body);
+    const result = JSON.stringify(body);
+    return result;
   }
 }

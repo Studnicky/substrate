@@ -6,4 +6,3 @@
 
 export { BoundaryKit } from './BoundaryKit.js';
 export { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
-export type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';

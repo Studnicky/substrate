@@ -1,23 +1,63 @@
 {
-  "valid": [
-    {
-      "code": "const a = Array.from(iterable);",
-      "name": "single-argument Array.from (no mapper) - not flagged, measurably cheap"
-    },
-    {
-      "code": "const a = new Array(n); for (let i = 0; i < n; i++) { a[i] = i * 2; }",
-      "name": "manual index-fill loop - the measured-faster, recommended form"
-    }
-  ],
   "invalid": [
     {
-      "code": "const a = Array.from({ length: n }, (_, i) => i * 2);",
+      "code": "declare const n: number; const a = Array.from({ length: n }, (_, i) => i * 2);",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
-      "name": "Array.from with a map callback - flagged (measured ~58x slower than manual fill)"
+      "name": "A19: Array.from with a map callback - flagged (measured 12.65x slower than a manual index-fill loop at 5,000,000 elements)"
+    },
+    {
+      "code": "declare const source: number[]; const a = Array['from'](source, (x) => x * 2);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed string-literal key Array['from'](iter, fn) - flagged (CallIdentity resolves the signature, not the spelling)"
+    },
+    {
+      "code": "declare const source: number[]; const FROM = 'from' as const; const a = Array[FROM](source, (x) => x * 2);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "const-held computed key Array[FROM](iter, fn) - flagged"
+    },
+    {
+      "code": "declare const source: number[]; const from = Array.from; const a = from(source, (x) => x * 2);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "aliased `const from = Array.from` reference - flagged (resolved by signature, not by the callee's own name)"
+    },
+    {
+      "code": "declare const sources: readonly number[][]; sources.forEach((source) => { const a = Array.from(source, (x) => x * 2); void a; });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "Array.from(iterable, mapFn) inside a .forEach() callback - flagged (not loop-gated: the per-call cost is independent of surrounding context, see the rule source)"
+    }
+  ],
+  "valid": [
+    {
+      "code": "declare const iterable: number[]; const a = Array.from(iterable);",
+      "name": "single-argument Array.from (no mapper) - not flagged, a distinct rule (array-from-iterators) owns that concern"
+    },
+    {
+      "code": "declare const n: number; const a = new Array(n); for (let i = 0; i < n; i += 1) { a[i] = i * 2; }",
+      "name": "manual index-fill loop - the measured-faster, recommended form"
+    },
+    {
+      "code": "class RingBuffer { static from(source: number[], mapFn: (x: number) => number): number[] { return source.map(mapFn); } } declare const source: number[]; const a = RingBuffer.from(source, (x) => x * 2);",
+      "name": "same-named static `from` on an unrelated class - not flagged (CallIdentity requires the ArrayConstructor origin, not just the name)"
     }
   ]
 }

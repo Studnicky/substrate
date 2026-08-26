@@ -1,0 +1,28 @@
+import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { ValidateFunction } from 'ajv';
+import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+
+import { SchemaValidator } from '@studnicky/json';
+
+/**
+ * Canonical non-negative integer count/limit — reused for every plain counter or
+ * concurrency-limit field carried by `OperationLifecycleEffect`/`OperationLifecycleEvent`
+ * (`activeCount`, `queuedCount`, `totalExecuted`, `cancelledCount`, `newLimit`,
+ * `previousLimit`).
+ */
+export namespace NonNegativeCountEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'count': { 'minimum': 0, 'type': 'integer' }
+    },
+    'required': ['count'],
+    'type': 'object'
+  } as const satisfies JSONSchema;
+
+  export type Type = FromSchema<typeof Schema>;
+
+  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+}

@@ -108,6 +108,51 @@
               "mode": "structural"
             }
           ]
+        },
+        {
+          "code": "export const utils = { identity(x) { return x; } };",
+          "name": "object-literal method shorthand with a trivial body - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "namespace Utils { export function identity(x) { return x; } }",
+          "name": "namespace-wrapped function with a trivial body - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export default function(x) { return x; }",
+          "name": "anonymous default-exported function with a trivial body - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const { foo } = { foo: (x) => x };",
+          "name": "destructured object export of a trivial arrow - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const [foo] = [(x) => x];",
+          "name": "destructured array export of a trivial arrow - exempt",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
         }
       ],
       "invalid": [
@@ -189,6 +234,111 @@
             }
           ],
           "name": "unexported top-level function declaration - still module scope, flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const utils = { calculate(x) { const y = x + 1; return y; } };",
+          "errors": [
+            {
+              "data": { "name": "utils.calculate" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "object-literal method shorthand dodging isFunctionInit - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const utils = { calculate: (x) => { const y = x + 1; return y; } };",
+          "errors": [
+            {
+              "data": { "name": "utils.calculate" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "object-literal function-valued property (non-shorthand) - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "namespace Utils { export function calculate(x) { const y = x + 1; return y; } }",
+          "errors": [
+            {
+              "data": { "name": "calculate" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "namespace-wrapped function escaping isModuleScope - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export namespace Utils { export function calculate(x) { const y = x + 1; return y; } }",
+          "errors": [
+            {
+              "data": { "name": "calculate" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "exported namespace-wrapped function - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export default function(x) { const y = x + 1; return y; }",
+          "errors": [
+            {
+              "data": { "name": "(default export)" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "anonymous default-exported function bailing on missing name - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const { foo } = { foo: (x) => { const y = x + 1; return y; } };",
+          "errors": [
+            {
+              "data": { "name": "foo" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "destructured object export of a non-trivial arrow - flagged",
+          "options": [
+            {
+              "mode": "structural"
+            }
+          ]
+        },
+        {
+          "code": "export const [foo] = [(x) => { const y = x + 1; return y; }];",
+          "errors": [
+            {
+              "data": { "name": "foo" },
+              "messageId": "freestandingFunction"
+            }
+          ],
+          "name": "destructured array export of a non-trivial arrow - flagged",
           "options": [
             {
               "mode": "structural"

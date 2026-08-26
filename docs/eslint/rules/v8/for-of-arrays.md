@@ -1,11 +1,13 @@
 ---
 title: '@studnicky/v8/for-of-arrays'
-description: 'Disallows for...of over arrays; prefer index loops.'
+description: 'Reports for...of over arrays, tuples, and resolved Array iterator methods; use an index loop.'
 ---
 
 # @studnicky/v8/for-of-arrays
 
-Disallows `for...of` over arrays or tuples. When type services are available the rule uses the TypeScript checker to confirm the iterated value is an array type. Without type services, only literal array expressions are flagged. Use a counted `for` loop for arrays — index access on typed arrays is faster than the iterator protocol.
+Reports `for...of` when TypeScript resolves the iterated expression as an array or tuple. With type services it also resolves standard-library `Array` and `ReadonlyArray` calls to `.entries()`, `.values()`, and `.keys()`, so similarly named user methods do not match. Without type services, it reports only a literal array expression and leaves identifiers and calls unreported rather than guessing their iterable type.
+
+Use a counted index loop for array traversal. At 5,000,000 elements, an index loop took 2.607 ms; direct `for...of` took 24.313 ms (9.32×), `.values()` 24.279 ms (9.31×), `.keys()` 24.672 ms (9.46×), and `.entries()` 35.813 ms (13.74×). `for...of` over a non-array iterable such as a `Map` remains outside the rule.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -13,15 +15,15 @@ Disallows `for...of` over arrays or tuples. When type services are available the
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-for (const item of arr) {
-  process(item);
+for (const value of values) {
+  total += value;
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-for (const item of [1, 2, 3]) {
-  total += item;
+for (const [index, value] of values.entries()) {
+  total += index + value;
 }
 ```
 
@@ -29,16 +31,17 @@ for (const item of [1, 2, 3]) {
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-for (let i = 0; i < arr.length; i++) {
-  const item = arr[i];
-  if (item !== undefined) { process(item); }
+for (let index = 0; index < values.length; index += 1) {
+  const value = values[index];
+  if (value !== undefined) {
+    total += value;
+  }
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// for...of over non-array iterables (Set, Map, generator) is fine
-for (const [key, value] of map) {
+for (const [key, value] of entries) {
   register(key, value);
 }
 ```

@@ -97,7 +97,7 @@
     },
     {
       "name": "json-clone-deep-map",
-      "description": "Clone.deep clones Map values deeply",
+      "description": "Clone.deep clones JSON map descriptors deeply",
       "shape": "clone-deep-map",
       "input": {
         "json": {
@@ -121,7 +121,7 @@
     },
     {
       "name": "json-clone-deep-set",
-      "description": "Clone.deep clones Set values",
+      "description": "Clone.deep clones JSON set descriptors",
       "shape": "clone-deep-set",
       "input": {
         "json": {
@@ -146,7 +146,7 @@
     },
     {
       "name": "json-clone-deep-date",
-      "description": "Clone.deep clones Date objects",
+      "description": "Clone.deep preserves date text values",
       "shape": "clone-deep-date",
       "input": {
         "json": {
@@ -154,8 +154,7 @@
         }
       },
       "expected": {
-        "distinct": true,
-        "sameTime": true
+        "cloned": "2024-06-01"
       }
     },
     {
@@ -479,26 +478,20 @@
     },
     {
       "name": "json-data-deepequal-negative-branches",
-      "description": "DataType.deepEqual rejects mixed dates, regexps, sets, maps, arrays, and object key shapes",
+      "description": "DataType.deepEqual rejects unequal JSON arrays and objects",
       "shape": "data-deepequal-negative-branches",
       "input": {
         "json": {
           "checks": [
-            "date-mixed",
-            "regexp-mixed",
-            "set-size",
-            "set-missing",
-            "map-size",
-            "map-missing",
-            "map-value",
+            "array-size",
+            "array-value",
             "object-size",
             "object-missing"
           ]
         }
       },
       "expected": {
-        "allNegativeChecksFail": true,
-        "regexpEqual": true
+        "allNegativeChecksFail": true
       }
     },
     {
@@ -781,15 +774,18 @@
     },
     {
       "name": "json-hash-distinct-shapes",
-      "description": "Hash.value distinguishes Map, Set, Date, and plain objects",
+      "description": "Hash.value distinguishes JSON value shapes",
       "shape": "hash-distinct-shapes",
       "input": {
         "json": {
           "values": [
-            "map",
-            "set",
-            "date",
-            "object"
+            "array",
+            "false",
+            "null",
+            "number",
+            "object",
+            "string",
+            "true"
           ]
         }
       },
@@ -858,21 +854,21 @@
     },
     {
       "name": "json-hash-edge-values",
-      "description": "Hash.value distinguishes booleans and non-JSON JavaScript input shapes",
+      "description": "Hash.value distinguishes JSON primitive value shapes",
       "shape": "hash-edge-values",
       "input": {
         "json": {
           "values": [
             "true",
             "false",
-            "undefined",
-            "function"
+            "null",
+            "string"
           ]
         }
       },
       "expected": {
         "booleanDistinct": true,
-        "functionDistinctFromUndefined": true
+        "nullDistinctFromString": true
       }
     },
     {

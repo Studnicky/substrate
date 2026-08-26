@@ -116,11 +116,6 @@ function createNumberBatch(batch: BatchInput): number[] {
   return Array.from({ length: batch.itemCount }, (_v, index) => index);
 }
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
-  assert.equal(error.message.includes(expectedMessage), true);
-}
-
 type ScenarioRunner<K extends ScenarioCase['shape']> = (
   scenarioCase: Extract<ScenarioCase, { shape: K }>
 ) => Promise<void>;
@@ -199,10 +194,11 @@ const runnerMap: RunnerMap = {
       yield 1;
       throw new Error(scenarioCase.input.errorMessage);
     }
-    await assert.rejects(() => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))), (error: unknown) => {
-      assertErrorMessageIncludes(error, scenarioCase.expected.errorMessage);
-      return true;
-    });
+    await assert.rejects(
+      () => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))),
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- errorMessage is repo-authored fixture data, not attacker input
+      new RegExp(scenarioCase.expected.errorMessage)
+    );
   },
   'merge-single': async (scenarioCase) => {
     const items = await collect(AsyncIter.merge(...makeNumberSources(scenarioCase.input.sources)));

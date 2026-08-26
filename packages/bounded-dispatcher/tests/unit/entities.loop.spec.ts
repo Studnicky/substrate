@@ -5,7 +5,7 @@ import {
   BoundedDispatcherErrorEventEntity,
   BoundedDispatcherStartEventEntity,
   BoundedDispatcherSuccessEventEntity
-} from '../../src/index.js';
+} from '../../src/entities/index.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
 type ValidationName =
@@ -46,4 +46,37 @@ void describe('bounded dispatcher event entities', () => {
       runCase(scenario);
     });
   }
+
+  void it('intakes event entities without mutating caller input', () => {
+    const startInput: Record<string, unknown> = { 'ignored': true, 'phase': 'start' };
+    const successInput: Record<string, unknown> = { 'ignored': true, 'phase': 'success' };
+    const errorInput: Record<string, unknown> = { 'ignored': true, 'phase': 'error' };
+
+    assert.deepEqual(BoundedDispatcherStartEventEntity.intake(startInput), { 'phase': 'start' });
+    assert.deepEqual(BoundedDispatcherSuccessEventEntity.intake(successInput), { 'phase': 'success' });
+    assert.deepEqual(BoundedDispatcherErrorEventEntity.intake(errorInput), { 'phase': 'error' });
+    assert.deepEqual(startInput, { 'ignored': true, 'phase': 'start' });
+    assert.deepEqual(successInput, { 'ignored': true, 'phase': 'success' });
+    assert.deepEqual(errorInput, { 'ignored': true, 'phase': 'error' });
+  });
+
+  void it('rejects invalid intake and creates complete event entities', () => {
+    const inheritedStart = Object.setPrototypeOf({}, { 'phase': 'start' });
+    const startWithUndeclaredProperty: BoundedDispatcherStartEventEntity.Type = { 'phase': 'start' };
+
+    Reflect.set(startWithUndeclaredProperty, 'ignored', true);
+
+    assert.throws(() => BoundedDispatcherStartEventEntity.intake({ 'phase': 'success' }));
+    assert.throws(() => BoundedDispatcherSuccessEventEntity.intake({ 'phase': 'error' }));
+    assert.throws(() => BoundedDispatcherErrorEventEntity.intake({ 'phase': 'start' }));
+    assert.throws(() => BoundedDispatcherStartEventEntity.create());
+    assert.throws(() => BoundedDispatcherSuccessEventEntity.create());
+    assert.throws(() => BoundedDispatcherErrorEventEntity.create());
+    assert.throws(() => BoundedDispatcherStartEventEntity.create(startWithUndeclaredProperty));
+    assert.deepEqual(startWithUndeclaredProperty, { 'ignored': true, 'phase': 'start' });
+    assert.equal(BoundedDispatcherStartEventEntity.validate(inheritedStart), false);
+    assert.deepEqual(BoundedDispatcherStartEventEntity.create({ 'phase': 'start' }), { 'phase': 'start' });
+    assert.deepEqual(BoundedDispatcherSuccessEventEntity.create({ 'phase': 'success' }), { 'phase': 'success' });
+    assert.deepEqual(BoundedDispatcherErrorEventEntity.create({ 'phase': 'error' }), { 'phase': 'error' });
+  });
 });

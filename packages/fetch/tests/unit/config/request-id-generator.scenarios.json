@@ -8,7 +8,7 @@
       },
       "input": {
         "requestIdGenerator": {
-          "__shape": "undefined"
+          "shape": "undefined"
         }
       }
     },
@@ -20,7 +20,7 @@
       },
       "input": {
         "requestIdGenerator": {
-          "__shape": "null"
+          "shape": "null"
         }
       }
     },
@@ -45,7 +45,7 @@
       },
       "input": {
         "requestIdGenerator": {
-          "__shape": "function-return-string",
+          "shape": "function-return-string",
           "value": "request-id"
         }
       }
@@ -61,7 +61,7 @@
       },
       "input": {
         "requestIdGenerator": {
-          "__shape": "function-return-value",
+          "shape": "function-return-value",
           "value": 123
         }
       }
@@ -77,7 +77,7 @@
       },
       "input": {
         "requestIdGenerator": {
-          "__shape": "function-throws",
+          "shape": "function-throws",
           "message": "boom"
         }
       }

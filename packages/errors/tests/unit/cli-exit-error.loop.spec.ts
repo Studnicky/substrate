@@ -20,8 +20,8 @@ type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
-function isOmittedTag(value: unknown): value is { __shape: 'undefined' } {
-  return value !== null && typeof value === 'object' && Reflect.get(value, '__shape') === 'undefined';
+function isOmittedTag(value: number | object): value is { __shape: 'undefined' } {
+  return typeof value === 'object' && value !== null && Reflect.get(value, '__shape') === 'undefined';
 }
 
 const runnerMap: RunnerMap = {

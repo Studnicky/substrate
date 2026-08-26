@@ -56,15 +56,40 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 | `SlidingWindowExhaustedError` | class | Thrown by `consume()` when admission would exceed `limit` |
 | `SlidingWindowLimiterConfigError` | class | Thrown by `create()` on invalid configuration |
 | `SlidingWindowLimiterError` | class | Package-level abstract error ancestor |
-| `SlidingWindowLimiterOptionsEntity` | entity | Schema-backed limiter configuration |
-| `SlidingWindowLimiterOptionsInterface` | interface | `{ limit, windowMs, algorithm: 'log' \| 'counter', clock? }` |
 
 ### `SlidingWindowLimiter`
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `static create(options: SlidingWindowLimiterOptionsInterface) => SlidingWindowLimiter` | Constructs a validated limiter |
+| `create` | `static create(options: SlidingWindowLimiterOptionsInterface) => SlidingWindowLimiter` | Constructs a validated limiter; import the contract from `@studnicky/sliding-window-limiter/interfaces` |
 | `consume` | `(tokens?: number) => void` | Admits one request; throws `SlidingWindowExhaustedError` if it would exceed `limit` |
 | `waitForToken` | `(options?: { signal?, tokens? }) => Promise<void>` | Polls until `consume()` would succeed, then consumes |
+
+## Entities
+
+`@studnicky/sliding-window-limiter/entities` exports the limiter option schema.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { SlidingWindowLimiterOptionsEntity } from '@studnicky/sliding-window-limiter/entities';
+```
+
+## Interfaces
+
+`@studnicky/sliding-window-limiter/interfaces` exports the limiter option contract.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { SlidingWindowLimiterOptionsInterface } from '@studnicky/sliding-window-limiter/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `SlidingWindowLimiter` | Enforces an exact or approximate sliding-window limit. | `@studnicky/sliding-window-limiter` |
+| `SlidingWindowExhaustedError` | Signals that a request exceeds the available window capacity. | `@studnicky/sliding-window-limiter` |
+| `SlidingWindowLimiterConfigError` | Represents invalid limiter configuration. | `@studnicky/sliding-window-limiter` |
+| `SlidingWindowLimiterError` | Base error for sliding-window-limiter failures. | `@studnicky/sliding-window-limiter` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/sliding-window-limiter)

@@ -3,5 +3,5 @@ import type { DeadLetterQueueRetryGeneratorOptionsEntity } from '../entities/Dea
 
 export interface DeadLetterQueueRetryGeneratorOptionsInterface<T>
   extends DeadLetterQueueRetryGeneratorOptionsEntity.Type {
-  readonly 'dlq': DeadLetterQueue<T>;
+  readonly 'deadLetterQueue': DeadLetterQueue<T>;
 }

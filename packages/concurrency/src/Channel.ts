@@ -2,11 +2,13 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
-import type { ChannelStateEntity } from './entities/ChannelStateEntity.js';
+import type { ChannelKeyStateInterface } from './interfaces/ChannelKeyStateInterface.js';
 
+import { ChannelKeyMachine } from './ChannelKeyMachine.js';
 import { ChannelError } from './errors/ChannelError.js';
 
 interface ChannelEntryInterface<T> {
@@ -18,9 +20,20 @@ interface ChannelEntryInterface<T> {
 
 interface ChannelStateInterface<T> {
   readonly 'buffer': CircularBuffer<ChannelEntryInterface<T>>;
-  'closed': ChannelStateEntity.Type['closed'];
   'notify': (() => void) | null;
-  'subscriber': ChannelStateEntity.Type['subscriber'];
+  'state': ChannelKeyStateInterface;
+}
+
+class ChannelVariantGuards {
+  public static isClosedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
+    const result = variant === 'closed-idle' || variant === 'closed-subscribed';
+    return result;
+  }
+
+  public static isSubscribedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
+    const result = variant === 'open-subscribed' || variant === 'closed-subscribed';
+    return result;
+  }
 }
 
 interface ChannelSubclassInterface<TInstance> extends Function {
@@ -30,9 +43,10 @@ interface ChannelSubclassInterface<TInstance> extends Function {
 class ChannelInstance {
   static belongsTo<TInstance>(
     constructor: ChannelSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    return value instanceof constructor;
+    value: object
+  ): value is object & TInstance {
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -54,17 +68,22 @@ export class Channel<T> {
     this: ChannelSubclassInterface<TInstance>,
     options?: ChannelOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!ChannelInstance.belongsTo(this, result)) {
+    const getCurrentConstructor = (): ChannelSubclassInterface<TInstance> => { return this; };
+    const currentConstructor = getCurrentConstructor();
+
+    const result: unknown = Reflect.construct(currentConstructor, [options]);
+    if (!Predicates.isObjectLike(result) || !ChannelInstance.belongsTo(currentConstructor, result)) {
       throw new TypeError('Channel.create() did not construct the requested subclass.');
     }
-    return result;
+    const instance: TInstance = result;
+    return instance;
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
   #closed = false;
   readonly #channels = new Map<string, ChannelStateInterface<T>>();
   readonly #highWaterMark: number | undefined;
+  readonly #keyMachine = new ChannelKeyMachine();
 
   protected constructor(options?: ChannelOptionsEntity.Type) {
     this.#highWaterMark = options?.highWaterMark;
@@ -73,7 +92,7 @@ export class Channel<T> {
   async close(): Promise<void> {
     this.#closed = true;
     for (const ch of this.#channels.values()) {
-      ch.closed = true;
+      ch.state = this.#keyMachine.transition(ch.state, { 'type': 'close' }).state;
       if (ch.notify !== null) {
         const notify = ch.notify;
         ch.notify = null;
@@ -118,11 +137,11 @@ export class Channel<T> {
 
   async *subscribe(key: string): AsyncGenerator<T> {
     const ch = this.#getOrCreate(key);
-    if (ch.subscriber) {
+    if (ChannelVariantGuards.isSubscribedVariant(ch.state.variant)) {
       throw new ChannelError(key);
     }
-    if (this.#closed) { ch.closed = true; }
-    ch.subscriber = true;
+    if (this.#closed) { ch.state = this.#keyMachine.transition(ch.state, { 'type': 'close' }).state; }
+    ch.state = this.#keyMachine.transition(ch.state, { 'type': 'subscribe' }).state;
 
     try {
       while (true) {
@@ -133,20 +152,20 @@ export class Channel<T> {
             continue;
           }
           const item = entry.item;
-          await this.hooks.invokeAsync('onDequeue', () => { const result = this.onDequeue(key, item); return result; });
+          await this.#invokeOnDequeue(key, item);
           yield item;
           continue;
         }
-        if (ch.closed) { return; }
-        await new Promise<void>((resolve) => { ch.notify = resolve; });
+        if (ChannelVariantGuards.isClosedVariant(ch.state.variant)) { return; }
+        await this.#awaitNotify(ch);
       }
     } finally {
-      ch.subscriber = false;
+      ch.state = this.#keyMachine.transition(ch.state, { 'type': 'unsubscribe' }).state;
       // The channel-level close() has fired and this key's buffer is fully
-      // drained (the only ways out of the loop above with ch.closed true) —
+      // drained (the only ways out of the loop above with ch.state closed —
       // no further publish() or subscribe() can ever be useful for this key,
       // so the per-key entry is safe to evict.
-      if (ch.closed && this.#channels.get(key) === ch) {
+      if (ChannelVariantGuards.isClosedVariant(ch.state.variant) && this.#channels.get(key) === ch) {
         this.#channels.delete(key);
       }
     }
@@ -163,12 +182,19 @@ export class Channel<T> {
     if (existing !== undefined) { return existing; }
     const fresh: ChannelStateInterface<T> = {
       'buffer': CircularBuffer.create<ChannelEntryInterface<T>>({ 'overflow': 'grow' }),
-      'closed': false,
       'notify': null,
-      'subscriber': false
+      'state': this.#keyMachine.getInitialState()
     };
     this.#channels.set(key, fresh);
     return fresh;
+  }
+
+  async #invokeOnDequeue(key: string, item: T): Promise<void> {
+    await this.hooks.invokeAsync('onDequeue', () => { const result = this.onDequeue(key, item); return result; });
+  }
+
+  async #awaitNotify(ch: ChannelStateInterface<T>): Promise<void> {
+    await new Promise<void>((resolve) => { ch.notify = resolve; });
   }
 
   /**

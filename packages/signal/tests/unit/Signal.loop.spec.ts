@@ -189,7 +189,7 @@ async function runOnComposeRecording(
   input: { composeOptions: SerializableComposeOptions },
   expected: { callCount: 1; resultMatches: true }
 ): Promise<void> {
-  const s = RecordingSignal.create();
+  const s = RecordingSignal.create<RecordingSignal>();
   const options = materializeComposeOptions(input.composeOptions);
   const result = await s.compose(options);
   assert.equal(s.calls.length, expected.callCount);
@@ -253,7 +253,7 @@ const runnerMap: RunnerMap = {
   'compose-invalid-deadline': async (scenarioCase) => {
     await assert.rejects(
       Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err: unknown) => {
+      (err) => {
         assert.ok(err instanceof SignalError);
         assert.ok(err.message.includes(scenarioCase.expected.errorMessageIncludes));
         return true;
@@ -305,7 +305,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(
       ThrowingSignal.build().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err: unknown) => {
+      (err) => {
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
@@ -327,7 +327,7 @@ const runnerMap: RunnerMap = {
 
     await assert.rejects(
       AsyncThrowingSignal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err: unknown) => {
+      (err) => {
         assert.ok(err instanceof HookInvocationError);
         assert.equal(err.hookName, scenarioCase.expected.hookName);
         assert.equal(err.cause, originalError);
@@ -339,7 +339,7 @@ const runnerMap: RunnerMap = {
 
   'swallowing-hook-invoker': async (scenarioCase) => {
     class SwallowingHookInvoker extends HookInvoker {
-      protected override onHookError(_hookName: string, _cause: unknown): void {}
+      protected override onHookError(_hookName: string): void {}
     }
 
     class SwallowingSignal extends Signal {

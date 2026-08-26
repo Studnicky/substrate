@@ -25,8 +25,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids standalone eslint-disable comment and removes line",
-      "output": "const x = 1;"
+      "name": "forbids standalone eslint-disable comment (no autofix)",
+      "output": null
     },
     {
       "code": "// eslint-disable-next-line no-console\nconsole.log('hi');",
@@ -35,8 +35,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids eslint-disable-next-line and removes comment line",
-      "output": "console.log('hi');"
+      "name": "forbids eslint-disable-next-line (no autofix)",
+      "output": null
     },
     {
       "code": "// @ts-ignore\nconst x: number = 'oops';",
@@ -45,8 +45,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids @ts-ignore and removes comment line",
-      "output": "const x: number = 'oops';"
+      "name": "forbids @ts-ignore (no autofix)",
+      "output": null
     },
     {
       "code": "// @ts-expect-error\nconst x: number = 'oops';",
@@ -55,8 +55,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids @ts-expect-error and removes comment line",
-      "output": "const x: number = 'oops';"
+      "name": "forbids @ts-expect-error (no autofix)",
+      "output": null
     },
     {
       "code": "// @ts-nocheck\nconst x = 1;",
@@ -65,8 +65,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids @ts-nocheck and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids @ts-nocheck (no autofix)",
+      "output": null
     },
     {
       "code": "// tslint:disable\nconst x = 1;",
@@ -75,8 +75,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids tslint:disable and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids tslint:disable (no autofix)",
+      "output": null
     },
     {
       "code": "// tslint:disable-next-line\nconst x = 1;",
@@ -85,8 +85,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids tslint:disable-next-line and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids tslint:disable-next-line (no autofix)",
+      "output": null
     },
     {
       "code": "// eslint-enable no-console\nconst x = 1;",
@@ -95,8 +95,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids eslint-enable and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids eslint-enable (no autofix)",
+      "output": null
     },
     {
       "code": "// c8 ignore next\nconst x = 1;",
@@ -105,8 +105,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids c8 ignore and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids c8 ignore (no autofix)",
+      "output": null
     },
     {
       "code": "// c8-ignore next\nconst x = 1;",
@@ -115,18 +115,68 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids c8-ignore and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids c8-ignore (no autofix)",
+      "output": null
     },
     {
-      "code": "/* istanbul ignore entirely */\nconst x = 1;",
+      "code": "/* istanbul ignore next */\nconst x = 1;",
       "errors": [
         {
           "messageId": "suppression"
         }
       ],
-      "name": "forbids istanbul ignore entirely and removes comment line",
-      "output": "const x = 1;"
+      "name": "forbids real istanbul ignore next directive (no autofix)",
+      "output": null
+    },
+    {
+      "code": "/* istanbul ignore if */\nif (x) { y(); }",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids real istanbul ignore if directive (no autofix)",
+      "output": null
+    },
+    {
+      "code": "/* istanbul ignore else */\nif (x) { y(); } else { z(); }",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids real istanbul ignore else directive (no autofix)",
+      "output": null
+    },
+    {
+      "code": "/* eslint no-console: \"off\" */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment double-quoted off form (no autofix)",
+      "output": null
+    },
+    {
+      "code": "/* eslint no-console: 'off' */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment single-quoted off form (no autofix)",
+      "output": null
+    },
+    {
+      "code": "/* eslint no-console: 0 */\nconst x = 1;",
+      "errors": [
+        {
+          "messageId": "suppression"
+        }
+      ],
+      "name": "forbids bare eslint config-comment numeric-off form (no autofix)",
+      "output": null
     },
     {
       "code": "console.log('hi'); // eslint-disable-line no-console",
@@ -135,8 +185,8 @@
           "messageId": "suppression"
         }
       ],
-      "name": "forbids a trailing suppression comment on a code line and removes only the comment, leaving the code intact",
-      "output": "console.log('hi'); "
+      "name": "forbids a trailing suppression comment on a code line (no autofix)",
+      "output": null
     }
   ]
 }

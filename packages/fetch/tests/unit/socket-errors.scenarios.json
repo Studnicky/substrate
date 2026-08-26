@@ -9,7 +9,7 @@
       },
       "expected": {
         "dispatcherStats": "__UNDEFINED__",
-        "maxConnections": 0,
+        "maximumConnections": 0,
         "pendingRequests": 0,
         "queuedRequests": 0,
         "url": "https://api.example.com/data"
@@ -39,7 +39,7 @@
           "running": 20,
           "size": 40
         },
-        "maxConnections": 20,
+        "maximumConnections": 20,
         "pendingRequests": 15,
         "queuedRequests": 5,
         "url": "https://api.example.com/data"
@@ -108,7 +108,7 @@
       "expected": {
         "dispatcherStatsType": "object",
         "freeConnectionsType": "number",
-        "maxConnectionsType": "number",
+        "maximumConnectionsType": "number",
         "pendingRequestsType": "number",
         "queuedRequestsType": "number",
         "urlType": "string"
@@ -132,7 +132,7 @@
       "expected": {
         "dispatcherStatsDefined": true,
         "freeConnections": 0,
-        "maxConnections": 10,
+        "maximumConnections": 10,
         "pendingRequests": 5,
         "url": "https://api.com/test"
       }

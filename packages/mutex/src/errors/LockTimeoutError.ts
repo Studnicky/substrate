@@ -6,11 +6,11 @@
  */
 import { MutexError } from './MutexError.js';
 
-export class LockTimeoutError extends MutexError {
-  public readonly key: unknown;
+export class LockTimeoutError<K extends PropertyKey> extends MutexError {
+  public readonly key: K;
   public readonly timeoutMs: number;
 
-  constructor(key: unknown, timeoutMs: number) {
+  constructor(key: K, timeoutMs: number) {
     super({
       'code': 'mutex.lockTimeout',
       'message': `Lock acquisition timed out for key "${String(key)}" after ${timeoutMs}ms.`,

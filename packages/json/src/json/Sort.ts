@@ -23,6 +23,10 @@ export class Sort {
    * ['file1', 'file10', 'file2'].sort(Sort.natural) // ['file1', 'file2', 'file10']
    */
   public static natural(a: string, b: string): number {
+    if (a === b) {
+      return 0;
+    }
+
     const result = a.localeCompare(b, undefined, { 'numeric': true, 'sensitivity': 'base' });
     return result;
   }
@@ -35,7 +39,8 @@ export class Sort {
    */
   public static longestFirst(a: string, b: string): number {
     if (a.length > b.length) {
-      return -1;
+      const result = -1;
+      return result;
     }
     if (b.length > a.length) {
       return 1;
@@ -44,7 +49,8 @@ export class Sort {
       return 0;
     }
 
-    return a < b ? 1 : -1;
+    const result = a < b ? 1 : -1;
+    return result;
   }
 
   /**
@@ -55,7 +61,8 @@ export class Sort {
    */
   public static shortestFirst(a: string, b: string): number {
     if (a.length < b.length) {
-      return -1;
+      const result = -1;
+      return result;
     }
     if (b.length < a.length) {
       return 1;
@@ -64,6 +71,7 @@ export class Sort {
       return 0;
     }
 
-    return a < b ? -1 : 1;
+    const result = a < b ? -1 : 1;
+    return result;
   }
 }

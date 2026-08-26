@@ -4,7 +4,7 @@ import type { OperationLogMetadataInterface } from './OperationLogMetadataInterf
 /** Readonly CloudWatch log record contract. */
 export interface LogSchemaInterface extends OperationLogMetadataInterface {
   readonly 'level': CloudWatchLogSchemaFieldsEntity.Type['level'];
-  readonly 'msg': CloudWatchLogSchemaFieldsEntity.Type['msg'];
+  readonly 'message': CloudWatchLogSchemaFieldsEntity.Type['message'];
   readonly 'service': CloudWatchLogSchemaFieldsEntity.Type['service'];
   readonly 'time': CloudWatchLogSchemaFieldsEntity.Type['time'];
 }

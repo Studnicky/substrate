@@ -8,7 +8,7 @@ import type { LogMetadataInterface } from './LogMetadataInterface.js';
  * Extends the JSON Schema-derived level and metadata data with runtime
  * transport instances and readonly construction access.
  */
-export interface LoggerOptionsInterface extends LoggerOptionsEntity.Type {
+export interface LoggerOptionsInterface extends Omit<LoggerOptionsEntity.Type, 'metadata' | 'transports'> {
   readonly 'metadata'?: LogMetadataInterface;
   readonly 'transports'?: readonly TransportInterface[];
 }

@@ -14,7 +14,7 @@ const examplesRoot = resolve(currentDir, '../../examples');
 const exampleFiles = readdirSync(examplesRoot, { withFileTypes: true })
   .filter((entry) => entry.isFile() && entry.name.endsWith('.ts'))
   .map((entry) => join(examplesRoot, entry.name))
-  .sort();
+  .toSorted();
 
 assert.ok(exampleFiles.length > 0, 'Expected at least one example in examples/');
 

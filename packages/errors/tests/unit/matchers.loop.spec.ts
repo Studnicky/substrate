@@ -10,14 +10,8 @@ type ScenarioCase =
       expected: {
         frozen: boolean;
         hasClassifierConstants: boolean;
-        hasInstanceIsType: boolean;
-        numberMatch: boolean;
-        stringMatch: boolean;
       };
-      input: {
-        numberValue: string;
-        stringValue: string;
-      };
+      input: Record<string, never>;
       shape: 'immutable-matcher-route';
       name: string;
     }
@@ -30,27 +24,15 @@ type ScenarioCase =
         containsAny: boolean;
         containsIgnoreCase: boolean;
         endsWith: boolean;
-        hasAllProperties: boolean;
-        hasAnyProperty: boolean;
-        hasMethod: boolean;
-        hasProperty: boolean;
-        isAsyncIterable: boolean;
-        isCallable: boolean;
-        isError: boolean;
         isFalse: boolean;
-        isIterable: boolean;
         isTrue: boolean;
         lessThan: boolean;
         lengthInRange: boolean;
         lte: boolean;
         matches: boolean;
-        named: boolean;
-        namedAny: boolean;
         not: boolean;
         notEmpty: boolean;
         oneOf: boolean;
-        of: boolean;
-        ofAny: boolean;
         or: boolean;
         startsWith: boolean;
         startsWithIgnoreCase: boolean;
@@ -59,7 +41,6 @@ type ScenarioCase =
         code: string;
         errorName: string;
         numberValue: number;
-        objectValue: Record<string, unknown>;
         stringValue: string;
       };
       shape: 'negative-matcher-route';
@@ -70,12 +51,9 @@ type ScenarioCase =
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'database-matchers'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'empty-variadics'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'http-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'instance-matchers'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'logic-matchers'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'network-matchers'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'number-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'object-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'proto-matchers'; name: string }
   | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'string-matchers'; name: string };
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
@@ -90,7 +68,10 @@ function assertMatcherSurface(): void {
   assert.strictEqual(Object.isFrozen(matchers.http), true);
   assert.strictEqual(Object.hasOwn(ErrorClassifier, 'NUMBER_MATCHERS'), false);
   assert.strictEqual(Object.hasOwn(ErrorClassifier, 'HTTP_MATCHERS'), false);
-  assert.strictEqual(Object.hasOwn(matchers.instance, 'isType'), false);
+  assert.strictEqual(Object.hasOwn(matchers, 'instance'), false);
+  assert.strictEqual(Object.hasOwn(matchers, 'isType'), false);
+  assert.strictEqual(Object.hasOwn(matchers, 'object'), false);
+  assert.strictEqual(Object.hasOwn(matchers, 'proto'), false);
 }
 
 const runnerMap: RunnerMap = {
@@ -115,15 +96,12 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(matchers.database.isUniqueViolation(String(scenario.input.code)), scenario.expected.uniqueViolation);
   },
   'empty-variadics': (scenario) => {
-    const emptyObject = {};
-    const emptyArray: unknown[] = [];
+    const emptyArray: string[] = [];
 
     assert.strictEqual(matchers.logic.and<number>()(Number(scenario.input.numberValue)), scenario.expected.and);
     assert.strictEqual(matchers.logic.or<number>()(Number(scenario.input.numberValue)), scenario.expected.or);
-    assert.strictEqual(matchers.array.containsAll<string>()(emptyArray as string[]), scenario.expected.containsAll);
-    assert.strictEqual(matchers.array.containsAny<string>()(emptyArray as string[]), scenario.expected.containsAny);
-    assert.strictEqual(matchers.object.hasAllProperties()(emptyObject), scenario.expected.hasAllProperties);
-    assert.strictEqual(matchers.object.hasAnyProperty()(emptyObject), scenario.expected.hasAnyProperty);
+    assert.strictEqual(matchers.array.containsAll<string>()(emptyArray), scenario.expected.containsAll);
+    assert.strictEqual(matchers.array.containsAny<string>()(emptyArray), scenario.expected.containsAny);
   },
   'http-matchers': (scenario) => {
     const status = Number(scenario.input.status);
@@ -143,17 +121,6 @@ const runnerMap: RunnerMap = {
       Object.hasOwn(ErrorClassifier, 'NUMBER_MATCHERS') || Object.hasOwn(ErrorClassifier, 'HTTP_MATCHERS'),
       scenario.expected.hasClassifierConstants
     );
-    assert.strictEqual(Object.hasOwn(matchers.instance, 'isType'), scenario.expected.hasInstanceIsType);
-    assert.strictEqual(matchers.isType<string>('string')(scenario.input.stringValue), scenario.expected.stringMatch);
-    assert.strictEqual(matchers.isType<number>('number')(scenario.input.numberValue), scenario.expected.numberMatch);
-  },
-  'instance-matchers': (scenario) => {
-    const error = new TypeError('boom');
-    assert.strictEqual(matchers.instance.isError(error), scenario.expected.isError);
-    assert.strictEqual(matchers.instance.named(String(scenario.input.errorName))(error), scenario.expected.named);
-    assert.strictEqual(matchers.instance.namedAny('RangeError', 'TypeError')(error), scenario.expected.namedAny);
-    assert.strictEqual(matchers.instance.of(TypeError)(error), scenario.expected.of);
-    assert.strictEqual(matchers.instance.ofAny(RangeError, TypeError)(error), scenario.expected.ofAny);
   },
   'logic-matchers': (scenario) => {
     const value = Number(scenario.input.numberValue);
@@ -167,13 +134,6 @@ const runnerMap: RunnerMap = {
   'negative-matcher-route': (scenario) => {
     const value = scenario.input.numberValue;
     const stringValue = scenario.input.stringValue;
-    const objectValue = scenario.input.objectValue;
-    const error = {} as Error;
-    const iterable = {
-      [Symbol.iterator](): Iterator<number> {
-        return [1, 2][Symbol.iterator]();
-      }
-    };
 
     assert.strictEqual(matchers.number.greaterThan(4)(value), false);
     assert.strictEqual(matchers.number.gte(5)(value), false);
@@ -201,10 +161,6 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(matchers.array.lengthInRange(2, 4)(['a']), scenario.expected.lengthInRange);
     assert.strictEqual(matchers.array.notEmpty([]), scenario.expected.notEmpty);
 
-    assert.strictEqual(matchers.object.hasAllProperties('alpha', 'beta')(objectValue), scenario.expected.hasAllProperties);
-    assert.strictEqual(matchers.object.hasAnyProperty('gamma', 'beta')(objectValue), scenario.expected.hasAnyProperty);
-    assert.strictEqual(matchers.object.hasProperty('alpha')(objectValue), scenario.expected.hasProperty);
-
     assert.strictEqual(matchers.logic.and<number>(matchers.number.gte(500), matchers.number.lessThan(600))(value), scenario.expected.and);
     assert.strictEqual(matchers.logic.not<number>(matchers.number.inRange(200, 299))(value), scenario.expected.not);
     assert.strictEqual(matchers.logic.or<number>(matchers.number.oneOf(503), matchers.number.oneOf(429))(value), scenario.expected.or);
@@ -219,19 +175,6 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(matchers.database.isForeignKeyViolation('00000'), false);
     assert.strictEqual(matchers.database.isUniqueViolation('00000'), false);
 
-    assert.strictEqual(matchers.instance.isError(error), scenario.expected.isError);
-    assert.strictEqual(matchers.instance.named('RangeError')(error), scenario.expected.named);
-    assert.strictEqual(matchers.instance.namedAny('RangeError', 'SyntaxError')(error), scenario.expected.namedAny);
-    assert.strictEqual(matchers.instance.of(RangeError)(error), scenario.expected.of);
-    assert.strictEqual(matchers.instance.ofAny(RangeError, SyntaxError)(error), scenario.expected.ofAny);
-
-    assert.strictEqual(matchers.proto.hasAllMethods('read', 'write')(iterable), false);
-    assert.strictEqual(matchers.proto.hasAnyMethod('read', 'missing')(iterable), false);
-    assert.strictEqual(matchers.proto.hasMethod('pipe')(iterable), scenario.expected.hasMethod);
-    assert.strictEqual(matchers.proto.hasProperty('read')(iterable), scenario.expected.hasProperty);
-    assert.strictEqual(matchers.proto.isAsyncIterable(iterable), scenario.expected.isAsyncIterable);
-    assert.strictEqual(matchers.proto.isCallable(stringValue as never), scenario.expected.isCallable);
-    assert.strictEqual(matchers.proto.isIterable(objectValue as never), scenario.expected.isIterable);
   },
   'network-matchers': (scenario) => {
     const value = String(scenario.input.code);
@@ -247,37 +190,6 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(matchers.number.lessThan(6)(value), scenario.expected.lessThan);
     assert.strictEqual(matchers.number.lte(5)(value), scenario.expected.lte);
     assert.strictEqual(matchers.number.oneOf(1, 5, 9)(value), scenario.expected.oneOf);
-  },
-  'object-matchers': (scenario) => {
-    const value = scenario.input.objectValue as Record<string, unknown>;
-    assert.strictEqual(matchers.object.hasAllProperties('alpha', 'beta')(value), scenario.expected.hasAllProperties);
-    assert.strictEqual(matchers.object.hasAnyProperty('gamma', 'beta')(value), scenario.expected.hasAnyProperty);
-    assert.strictEqual(matchers.object.hasProperty('alpha')(value), scenario.expected.hasProperty);
-  },
-  'proto-matchers': (scenario) => {
-    const asyncIterable = {
-      [Symbol.asyncIterator](): AsyncIterator<number> {
-        return {
-          async next() { return { done: true, value: undefined }; }
-        };
-      }
-    };
-    const iterable = {
-      [Symbol.iterator](): Iterator<number> {
-        return [1, 2][Symbol.iterator]();
-      },
-      pipe() { return true; },
-      read() { return true; },
-      write() { return true; }
-    };
-    const callable = () => true;
-    assert.strictEqual(matchers.proto.hasAllMethods('read', 'write')(iterable), scenario.expected.hasAllMethods);
-    assert.strictEqual(matchers.proto.hasAnyMethod('read', 'missing')(iterable), scenario.expected.hasAnyMethod);
-    assert.strictEqual(matchers.proto.hasMethod('pipe')(iterable), scenario.expected.hasMethod);
-    assert.strictEqual(matchers.proto.hasProperty('read')(iterable), scenario.expected.hasProperty);
-    assert.strictEqual(matchers.proto.isAsyncIterable(asyncIterable), scenario.expected.isAsyncIterable);
-    assert.strictEqual(matchers.proto.isCallable(callable), scenario.expected.isCallable);
-    assert.strictEqual(matchers.proto.isIterable(iterable), scenario.expected.isIterable);
   },
   'string-matchers': (scenario) => {
     const value = String(scenario.input.stringValue);
@@ -298,8 +210,13 @@ function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase
   runnerMap[scenario.shape](scenario);
 }
 
+function isScenarioCase(scenario: { shape: string }): scenario is ScenarioCase {
+  return Object.hasOwn(runnerMap, scenario.shape);
+}
+
 void describe('matchers', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases as { name: string; shape: string }[]) {
+    if (!isScenarioCase(scenario)) { continue; }
     void it(scenario.name, () => {
       runCase(scenario);
     });

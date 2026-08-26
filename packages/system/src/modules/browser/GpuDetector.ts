@@ -1,42 +1,6 @@
+import { Predicates } from '@studnicky/types';
+
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
-
-/**
- * The browser surface this detector reads, declared structurally. The package
- * compiles against `ESNext` only, so DOM lib types are unavailable here.
- */
-interface WebglDebugRendererInfoInterface {
-  readonly 'UNMASKED_RENDERER_WEBGL': unknown;
-  readonly 'UNMASKED_VENDOR_WEBGL': unknown;
-}
-
-interface WebglContextInterface {
-  getExtension(name: 'WEBGL_debug_renderer_info'): WebglDebugRendererInfoInterface | null;
-  getParameter(parameter: unknown): unknown;
-}
-
-interface BrowserCanvasInterface {
-  getContext(contextId: 'webgl'): WebglContextInterface | null;
-}
-
-interface BrowserDocumentInterface {
-  createElement(tagName: 'canvas'): BrowserCanvasInterface;
-}
-
-/** Resolves the ambient browser `document`, which `globalThis` does not declare. */
-class BrowserGlobals {
-  static isDocument(value: unknown): value is BrowserDocumentInterface {
-    if (typeof value !== 'object' || value === null) { return false; }
-
-    const createElement: unknown = Reflect.get(value, 'createElement');
-    return typeof createElement === 'function';
-  }
-
-  /** Returns the document as-is, so its methods keep their receiver. */
-  static findDocument(): BrowserDocumentInterface | undefined {
-    const candidate: unknown = Reflect.get(globalThis, 'document');
-    return BrowserGlobals.isDocument(candidate) ? candidate : undefined;
-  }
-}
 
 export class GpuDetector {
   static detect(): GpuInfoEntity.Type | null {
@@ -45,13 +9,11 @@ export class GpuDetector {
         return null;
       }
 
-      const doc = BrowserGlobals.findDocument();
-
-      if (doc === undefined) {
+      if (typeof document === 'undefined') {
         return null;
       }
 
-      const canvas = doc.createElement('canvas');
+      const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl');
 
       if (gl === null) {
@@ -66,13 +28,14 @@ export class GpuDetector {
 
       const renderer: unknown = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
       const vendor: unknown = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);
-      if (typeof renderer !== 'string' || typeof vendor !== 'string') { return null; }
+      if (!Predicates.isString(renderer) || !Predicates.isString(vendor)) { return null; }
 
-      return {
+      const result: GpuInfoEntity.Type = {
         'computeApi': GpuDetector.#mapComputeApi(renderer, vendor),
         'name': renderer,
         'vramMb': null
       };
+      return result;
     } catch {
       return null;
     }

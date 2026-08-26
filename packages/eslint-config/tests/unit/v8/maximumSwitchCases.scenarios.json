@@ -1,0 +1,65 @@
+{
+  "valid": [
+    {
+      "code": "switch (k) { case 0: return 1; default: return -1; }",
+      "name": "trivial 1-case int switch - not flagged"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  case 19: return 19;\n  default: return -1;\n} }",
+      "name": "dense-int switch, 20 cases - NOT flagged: integer-keyed switches have no cap (measured: switch wins or ties a dispatch map at every count 3-100)"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case 0: return 0;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  case 17: return 17;\n  case 18: return 18;\n  case 19: return 19;\n  case 20: return 20;\n  case 21: return 21;\n  case 22: return 22;\n  case 23: return 23;\n  case 24: return 24;\n  case 25: return 25;\n  case 26: return 26;\n  case 27: return 27;\n  case 28: return 28;\n  case 29: return 29;\n  case 30: return 30;\n  case 31: return 31;\n  case 32: return 32;\n  case 33: return 33;\n  case 34: return 34;\n  case 35: return 35;\n  case 36: return 36;\n  case 37: return 37;\n  case 38: return 38;\n  case 39: return 39;\n  case 40: return 40;\n  case 41: return 41;\n  case 42: return 42;\n  case 43: return 43;\n  case 44: return 44;\n  case 45: return 45;\n  case 46: return 46;\n  case 47: return 47;\n  case 48: return 48;\n  case 49: return 49;\n  case 50: return 50;\n  case 51: return 51;\n  case 52: return 52;\n  case 53: return 53;\n  case 54: return 54;\n  case 55: return 55;\n  case 56: return 56;\n  case 57: return 57;\n  case 58: return 58;\n  case 59: return 59;\n  case 60: return 60;\n  case 61: return 61;\n  case 62: return 62;\n  case 63: return 63;\n  case 64: return 64;\n  case 65: return 65;\n  case 66: return 66;\n  case 67: return 67;\n  case 68: return 68;\n  case 69: return 69;\n  case 70: return 70;\n  case 71: return 71;\n  case 72: return 72;\n  case 73: return 73;\n  case 74: return 74;\n  case 75: return 75;\n  case 76: return 76;\n  case 77: return 77;\n  case 78: return 78;\n  case 79: return 79;\n  case 80: return 80;\n  case 81: return 81;\n  case 82: return 82;\n  case 83: return 83;\n  case 84: return 84;\n  case 85: return 85;\n  case 86: return 86;\n  case 87: return 87;\n  case 88: return 88;\n  case 89: return 89;\n  case 90: return 90;\n  case 91: return 91;\n  case 92: return 92;\n  case 93: return 93;\n  case 94: return 94;\n  case 95: return 95;\n  case 96: return 96;\n  case 97: return 97;\n  case 98: return 98;\n  case 99: return 99;\n  default: return -1;\n} }",
+      "name": "dense-int switch, 100 cases - NOT flagged, no cap holds far above the old 20-case threshold"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case \"k0\": return 0;\n  case \"k1\": return 1;\n  case \"k2\": return 2;\n  case \"k3\": return 3;\n  case \"k4\": return 4;\n  default: return -1;\n} }",
+      "name": "string-keyed switch, 5 cases - not flagged, below the 6-case threshold (measured: switch still 1.10x faster than a function-valued dispatch map at 5 cases)"
+    },
+    {
+      "code": "function f(x, y) { switch (x) {\n  case \"x0\": return 0;\n  case \"x1\": return 1;\n  case \"x2\": return 2;\n  case \"x3\": return 3;\n  default: return -1;\n}\nswitch (y) {\n  case \"y0\": return 0;\n  case \"y1\": return 1;\n  case \"y2\": return 2;\n  case \"y3\": return 3;\n  default: return -1;\n} }",
+      "name": "two adjacent 4-case string switches on DIFFERENT discriminants (x vs y) in the same block - not merged, neither reaches the string threshold alone, not flagged"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case true: return 1;\n  case false: return 0;\n  default: return -1;\n} }",
+      "name": "boolean-literal case labels (neither all-int nor all-string) - classified as the unproven 'other' fallback, 2 cases is far below its 20-case threshold, not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function f(k) { switch (k) {\n  case \"k0\": return 0;\n  case \"k1\": return 1;\n  case \"k2\": return 2;\n  case \"k3\": return 3;\n  case \"k4\": return 4;\n  case \"k5\": return 5;\n  default: return -1;\n} }",
+      "errors": [
+        {
+          "messageId": "tooManyCases"
+        }
+      ],
+      "name": "string-keyed switch, 6 cases - at the corrected threshold, flagged (measured: map overtakes switch at 6 cases, 1.01x)"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case \"k0\": return 0;\n  case \"k1\": return 1;\n  case \"k2\": return 2;\n  case \"k3\": return 3;\n  case \"k4\": return 4;\n  case \"k5\": return 5;\n  case \"k6\": return 6;\n  case \"k7\": return 7;\n  case \"k8\": return 8;\n  case \"k9\": return 9;\n  case \"k10\": return 10;\n  case \"k11\": return 11;\n  case \"k12\": return 12;\n  case \"k13\": return 13;\n  case \"k14\": return 14;\n  case \"k15\": return 15;\n  case \"k16\": return 16;\n  case \"k17\": return 17;\n  case \"k18\": return 18;\n  case \"k19\": return 19;\n  default: return -1;\n} }",
+      "errors": [
+        {
+          "messageId": "tooManyCases"
+        }
+      ],
+      "name": "string-keyed switch, 20 cases - well above threshold, flagged"
+    },
+    {
+      "code": "function f(x) { switch (x) {\n  case \"a0\": return 0;\n  case \"a1\": return 1;\n  case \"a2\": return 2;\n  case \"a3\": return 3;\n  default: return -1;\n}\nswitch (x) {\n  case \"b0\": return 4;\n  case \"b1\": return 5;\n  case \"b2\": return 6;\n  case \"b3\": return 7;\n  default: return -1;\n} }",
+      "errors": [
+        { "messageId": "tooManyCasesGrouped" },
+        { "messageId": "tooManyCasesGrouped" }
+      ],
+      "name": "one 8-case string dispatch split into two adjacent 4-case switches on the identical discriminant `x` - EACH half is individually below the 6-case threshold, but the total (8) is not - bypass closed, both flagged"
+    },
+    {
+      "code": "function f(k) { switch (k) {\n  case true: return 1;\n  case false: return 0;\n  case null: return -1;\n  case undefined: return -2;\n  case 1: return 1;\n  case 2: return 2;\n  case 3: return 3;\n  case 4: return 4;\n  case 5: return 5;\n  case 6: return 6;\n  case 7: return 7;\n  case 8: return 8;\n  case 9: return 9;\n  case 10: return 10;\n  case 11: return 11;\n  case 12: return 12;\n  case 13: return 13;\n  case 14: return 14;\n  case 15: return 15;\n  case 16: return 16;\n  default: return -100;\n} }",
+      "errors": [
+        {
+          "messageId": "tooManyCases"
+        }
+      ],
+      "name": "20 mixed-literal-type case labels (booleans, null, undefined, numbers) - classified as the unproven 'other' fallback, at its inherited 20-case threshold, flagged"
+    }
+  ]
+}

@@ -35,7 +35,11 @@ const stats = throttle.getStats();
 console.log(`Executed: ${stats.totalExecuted}, active: ${stats.activeCount}`);
 ```
 
-`ThrottleAbortOptionsEntity` validates the optional abort grace period. `ActiveOperationStateEntity` owns the serializable completion state retained alongside each active operation's runtime resolver.
+Schema-backed configuration, statistics, and lifecycle types are exported from `@studnicky/throttle/entities`.
+
+```typescript
+import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
+```
 
 ## Extending
 

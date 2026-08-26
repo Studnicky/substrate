@@ -94,7 +94,7 @@ Supplying neither `itemSize` nor `estimateSize`, or supplying both, throws a `Vi
 Subclass `VisibleRange` and override `onRangeChange` to add telemetry without coupling the base class to a metrics library. The hook fires from `getRange()` only when the computed range differs from the previously computed range — the very first call always fires.
 
 ```typescript
-import type { VisibleRangeEntity } from '@studnicky/visible-range';
+import type { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 
 import { VisibleRange } from '@studnicky/visible-range';
 

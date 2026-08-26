@@ -15,14 +15,14 @@ import { LoggerError } from './LoggerError.js';
  * }
  * ```
  */
-export class FileDestinationError extends LoggerError {
+export class FileDestinationError<TCause = unknown> extends LoggerError<TCause> {
   /**
    * Creates a new FileDestinationError
    *
    * @param message - Descriptive error message
    * @param cause - Optional underlying filesystem error
    */
-  constructor(message: string, cause?: unknown) {
+  constructor(message: string, cause?: TCause) {
     super(message, cause);
   }
 }

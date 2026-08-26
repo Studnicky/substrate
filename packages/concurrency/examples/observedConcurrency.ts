@@ -84,6 +84,12 @@ class ObservedCoalesce<T> extends Coalesce<T> {
 }
 
 class ObservedConcurrencyDemo {
+  private static resolveImmediatelyFactory(): Promise<string> {
+    return new Promise<string>((resolve) => {
+      setImmediate(() => { resolve('v'); });
+    });
+  }
+
   static async runSemaphore(): Promise<ObservedSemaphore> {
     console.log('\n=== Semaphore ===');
     const sem = new ObservedSemaphore(1);
@@ -130,20 +136,14 @@ class ObservedConcurrencyDemo {
     const coalesce: ObservedCoalesce<string> = new ObservedCoalesce<string>();
 
     // 3 concurrent calls for same key: 1 leader + 2 joiners
-    const factory = (): Promise<string> => {
-      return new Promise<string>((resolve) => {
-        setImmediate(() => { resolve('v'); });
-      });
-    };
-
     await Promise.all([
-      coalesce.run('batch', factory),
-      coalesce.run('batch', factory),
-      coalesce.run('batch', factory)
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory),
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory),
+      coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory)
     ]);
 
     // Sequential call: new leader
-    await coalesce.run('batch', factory);
+    await coalesce.run('batch', ObservedConcurrencyDemo.resolveImmediatelyFactory);
     return coalesce;
   }
 }
@@ -171,7 +171,10 @@ class ObservedConcurrencyAssertions {
     assert.equal(coalesce.startEvents.length, 2, 'startEvents: 2 leaders (one batch, one sequential)');
     assert.equal(coalesce.joinEvents.length, 2, 'joinEvents: 2 joiners in concurrent batch');
     assert.ok(
-      coalesce.settledEvents.every((e) => { return e.success === true; }),
+      coalesce.settledEvents.every((event) => {
+        const result = event.success === true;
+        return result;
+      }),
       'all settled with success=true'
     );
   }

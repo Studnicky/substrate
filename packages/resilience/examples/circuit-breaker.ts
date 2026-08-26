@@ -8,7 +8,7 @@ import { CircuitBreaker, CircuitBreakerOpenError } from '../src/index.js';
 // Deterministic clock so tests are instant with no real waits.
 let now = 0;
 class Clock {
-  static now(): number { const result = now; return result; }
+  static now(): number { const result = now + 0; return result; }
 }
 
 const breaker = CircuitBreaker.create({
@@ -33,8 +33,8 @@ for (let i = 0; i < 3; i++) {
 console.log('State after 3 failures:', breaker.state);
 
 // --- OPEN: next call is fast-rejected with CircuitBreakerOpenError ---
-await breaker.execute(() => { const result = Promise.resolve('should not run'); return result; }).catch((err: unknown) => {
-  console.log('Open-circuit rejection:', err instanceof CircuitBreakerOpenError ? 'CircuitBreakerOpenError' : 'other');
+await breaker.execute(() => { const result = Promise.resolve('should not run'); return result; }).catch((error) => {
+  console.log('Open-circuit rejection:', error instanceof CircuitBreakerOpenError ? 'CircuitBreakerOpenError' : 'other');
 });
 
 // --- Advance past resetTimeoutMs → halfOpen on next call ---

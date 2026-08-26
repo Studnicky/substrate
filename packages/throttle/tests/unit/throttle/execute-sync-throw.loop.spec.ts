@@ -8,8 +8,7 @@ import scenarioGroups from './execute-sync-throw.scenarios.json' with { type: 'j
 type ScenarioCase =
   | { name: string; description: string; expected: Record<string, unknown>; input: { errorMessage: string; failureMessage?: string; result?: string; throttle: { concurrencyLimit: number } }; shape: 'sync-throw-releases-slot' | 'sync-throw-reject-hook' };
 
-function assertErrorMessageIncludes(error: unknown, expectedMessage: string): void {
-  assert.ok(error instanceof Error);
+function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
@@ -24,7 +23,8 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     for (let i = 0; i < input.throttle.concurrencyLimit; i += 1) {
       await assert.rejects(
         throttle.execute(throwingFn),
-        (error: unknown) => {
+        (error) => {
+          if (!(error instanceof Error)) { return false; }
           assertErrorMessageIncludes(error, String(input.errorMessage));
           return true;
         }
@@ -50,7 +50,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       throw new Error(String(input.failureMessage));
     };
 
-    await assert.rejects(throttle.execute(throwingFn), (error: unknown) => {
+    await assert.rejects(throttle.execute(throwingFn), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;

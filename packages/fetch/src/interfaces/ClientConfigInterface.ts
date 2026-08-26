@@ -5,7 +5,8 @@
 import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { FetchOptionsInterface } from './FetchOptionsInterface.js';
-import type { QueryParamsInterface } from './QueryParamsInterface.js';
+import type { QueryParametersInterface } from './QueryParametersInterface.js';
+import type { RequestIdGeneratorInterface } from './RequestIdGeneratorInterface.js';
 
 /**
  * Client configuration options
@@ -92,7 +93,7 @@ export interface ClientConfigInterface {
   /**
    * Default query parameters for all requests
    */
-  'params'?: QueryParamsInterface;
+  'parameters'?: QueryParametersInterface;
 
   /**
    * Custom function to generate request IDs
@@ -107,7 +108,7 @@ export interface ClientConfigInterface {
    * }
    * ```
    */
-  'requestIdGenerator'?: () => string;
+  'requestIdGenerator'?: RequestIdGeneratorInterface;
 
   /**
    * Default timeout in milliseconds

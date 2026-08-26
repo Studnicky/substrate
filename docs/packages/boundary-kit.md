@@ -20,6 +20,14 @@ Import `BoundaryKit` from `@studnicky/boundary-kit`, call
 `BoundaryKit.create({ circuitBreaker, retry, throttle })`, then pass the operation to
 `boundary.execute(fn)`. Omitted configuration fields resolve to package defaults.
 
+<<< ../../packages/boundary-kit/examples/observedBoundaryKit.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/boundary-kit/examples/observedBoundaryKit" title="Observing a composed boundary call" />
+
+The output shows the composed `throttle → circuitBreaker → retry → fn` order in practice, observed via each primitive's own hooks.
+
 ## Transparency contract
 
 `BoundaryKit` introduces no hook of its own — every observable stage is already covered by the primitive it delegates to. Each composed primitive accepts either a pre-built instance (subclassed or not) or the config shape passed straight to that primitive's own `create()`:
@@ -47,5 +55,21 @@ Throttle bounds concurrency first, so the circuit breaker and retry never observ
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/boundary-kit
+
+## Interfaces
+
+`@studnicky/boundary-kit/interfaces` exports boundary configuration and resolved-dependency contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { BoundaryKitConfigInterface } from '@studnicky/boundary-kit/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `BoundaryKit` | Applies throttle, circuit breaking, and retry in a fixed order. | `@studnicky/boundary-kit` |
+| `BoundaryKitAbortedError` | Signals a detached throttle call that never ran. | `@studnicky/boundary-kit` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/boundary-kit)

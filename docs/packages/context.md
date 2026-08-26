@@ -15,7 +15,7 @@ pnpm add @studnicky/context
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/context` is the sole public code entrypoint.
+`@studnicky/context` declares a root usage API and explicit public subpaths.
 
 ::: info Live demo unavailable
 In-browser execution of this package is not supported. Async context propagation across `await` boundaries relies on Node's `AsyncLocalStorage` from `node:async_hooks`, which browsers do not provide. The examples below are shown statically.
@@ -33,7 +33,7 @@ Create a named context, initialize a scope with seed values, run code inside `ex
 
 ## Public API
 
-The package root exports `Context`, `ContextConfigEntity`, `ContextInterface`, `ContextScopeInterface`, `ContextError`, and `ContextConfigError`.
+The root exports `Context`, `ContextError`, and `ContextConfigError`. Context schemas use `@studnicky/context/entities`, while context contracts use `@studnicky/context/interfaces`.
 
 ## Extending
 
@@ -58,3 +58,29 @@ Override `onInitialize` to seed default values into every scope without requirin
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/context)
+
+## Entities
+
+`@studnicky/context/entities` exports every schema namespace in `src/entities`.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { ContextConfigEntity } from '@studnicky/context/entities';
+```
+
+## Interfaces
+
+`@studnicky/context/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { ContextScopeInterface } from '@studnicky/context/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `Context` | Provides context functionality. | `@studnicky/context` |
+| `ContextConfigError` | Represents context config failures. | `@studnicky/context` |
+| `ContextError` | Represents context failures. | `@studnicky/context` |

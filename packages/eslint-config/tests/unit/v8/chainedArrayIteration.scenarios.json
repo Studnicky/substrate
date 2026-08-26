@@ -1,17 +1,7 @@
 {
-  "valid": [
-    {
-      "code": "const names = users.map((u) => u.name);",
-      "name": "standalone map() - not flagged"
-    },
-    {
-      "code": "const active = users.filter((u) => u.active);",
-      "name": "standalone filter() - not flagged"
-    }
-  ],
   "invalid": [
     {
-      "code": "const names = users.filter((u) => u.active).map((u) => u.name);",
+      "code": "declare const users: { name: string; active: boolean }[]; const names = users.filter((u) => u.active).map((u) => u.name);",
       "errors": [
         {
           "messageId": "forbidden"
@@ -20,13 +10,84 @@
       "name": "filter().map() chain - flagged"
     },
     {
-      "code": "const doubled = values.map((v) => v * 2).filter((v) => v > 0);",
+      "code": "declare const values: number[]; const doubled = values.map((v) => v * 2).filter((v) => v > 0);",
       "errors": [
         {
           "messageId": "forbidden"
         }
       ],
       "name": "map().filter() chain - flagged"
+    },
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const tmp = users.filter((u) => u.active); const names = tmp.map((u) => u.name);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "split-statement chain (bypass #1) - flagged when temp var is used exactly once in the very next statement"
+    },
+    {
+      "code": "declare const values: number[]; const result = values.map((v) => v * 2).slice(0).filter((v) => v > 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "interposed non-iterating call between two iteration methods (bypass #2) - flagged"
+    },
+    {
+      "code": "declare const values: number[]; const result = values.map((v) => v).reduce((sum, v) => sum + v, 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "generalized iteration-method pair (map + reduce) - flagged"
+    },
+    {
+      "code": "declare const values: number[]; const doubled = values['map']((v) => v * 2).filter((v) => v > 0);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "computed string-literal key .['map']() chain - flagged (CallIdentity resolves the signature, not the spelling)"
+    },
+    {
+      "code": "declare const valueGroups: number[][]; valueGroups.forEach((values) => { const doubled = values.map((v) => v * 2).filter((v) => v > 0); void doubled; });",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ],
+      "name": "chain nested inside a .forEach() callback - still flagged (detection is structural, not loop-gated)"
+    }
+  ],
+  "valid": [
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const names = users.map((u) => u.name);",
+      "name": "standalone map() - not flagged"
+    },
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const active = users.filter((u) => u.active);",
+      "name": "standalone filter() - not flagged"
+    },
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const tmp = users.filter((u) => u.active); console.log(tmp); const r = tmp.map((u) => u.name);",
+      "name": "split-statement chain - not flagged when temp var is used more than once"
+    },
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const tmp = users.filter((u) => u.active); const unrelated = 1; const r = tmp.map((u) => u.name); void unrelated;",
+      "name": "split-statement chain - not flagged when a statement intervenes between declaration and use"
+    },
+    {
+      "code": "declare const users: { name: string; active: boolean }[]; const tmp = users.filter((u) => u.active); const r = tmp.slice(0, 1);",
+      "name": "split-statement - not flagged when the next-statement read is not itself an iteration method"
+    },
+    {
+      "code": "class Chain { filter(pred: (x: number) => boolean): Chain { void pred; return this; } map(fn: (x: number) => number): Chain { void fn; return this; } } declare const chain: Chain; const result = chain.filter((x) => x > 0).map((x) => x * 2);",
+      "name": "same-named filter()/map() on an unrelated fluent builder class - not flagged (CallIdentity requires the Array/ReadonlyArray origin, not just the name)"
     }
   ]
 }

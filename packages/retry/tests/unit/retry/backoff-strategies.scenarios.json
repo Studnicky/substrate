@@ -623,28 +623,6 @@
         "attempt": 2,
         "baseDelay": 100
       }
-    },
-    {
-      "name": "is-valid-function",
-      "description": "isValid accepts function values",
-      "shape": "is-valid",
-      "input": {
-        "value": "() => 1"
-      },
-      "expected": {
-        "isValid": true
-      }
-    },
-    {
-      "name": "is-valid-non-function",
-      "description": "isValid rejects non-function values",
-      "shape": "is-valid",
-      "input": {
-        "value": "bad"
-      },
-      "expected": {
-        "isValid": false
-      }
     }
   ]
 }

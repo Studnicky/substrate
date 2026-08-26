@@ -1,193 +1,88 @@
 {
-  "listenerCases": [
+  "invalid": [
     {
-      "expected": {
-        "messageIds": [
-          "forbidden"
-        ]
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "arrayFrom"
-          },
-          "firstArgument": {
-            "constructorName": "Set",
-            "shape": "newExpression"
-          },
-          "parent": {
-            "shape": "none"
-          }
-        },
-        "parserServices": {
-          "shape": "empty"
+      "code": "declare const source: Set<number>; const output = []; for (const value of source) { output.push(value); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "reports map and set constructors without type services"
+      ],
+      "name": "A8: for-of + push draining a Set into a fresh empty array - flagged"
     },
     {
-      "expected": {
-        "messageIds": [
-          "forbidden"
-        ]
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "arrayFrom"
-          },
-          "firstArgument": {
-            "shape": "tracked"
-          },
-          "parent": {
-            "shape": "none"
-          }
-        },
-        "parserServices": {
-          "hasTsNode": true,
-          "isArrayType": false,
-          "shape": "typed"
+      "code": "declare const source: Map<number, string>; const output = []; for (const entry of source) { output.push(entry); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "reports non-arrays through typed parser services"
+      ],
+      "name": "A8: for-of + push draining a Map into a fresh empty array - flagged"
     },
     {
-      "expected": {
-        "messageIds": []
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "arrayFrom"
-          },
-          "firstArgument": {
-            "shape": "tracked"
-          },
-          "parent": {
-            "shape": "none"
-          }
-        },
-        "parserServices": {
-          "hasTsNode": true,
-          "isArrayType": true,
-          "shape": "typed"
+      "code": "declare const source: Set<number>; const output = []; for (const value of source) { output['push'](value); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "does not report arrays through typed parser services"
+      ],
+      "name": "computed string-literal key push() - flagged (CallIdentity resolves the signature, not the spelling)"
     },
     {
-      "expected": {
-        "messageIds": []
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "nullish"
-          },
-          "firstArgument": {
-            "shape": "plainObject"
-          },
-          "parent": {
-            "shape": "none"
-          }
-        },
-        "parserServices": {
-          "shape": "empty"
+      "code": "declare const source: Set<number>; const PUSH = 'push' as const; const output = []; for (const value of source) { output[PUSH](value); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "ignores malformed callee shapes"
+      ],
+      "name": "const-held computed key push() - flagged"
     },
     {
-      "expected": {
-        "messageIds": [
-          "forbidden"
-        ]
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "arrayFrom"
-          },
-          "firstArgument": {
-            "constructorName": "Set",
-            "shape": "newExpression"
-          },
-          "parent": {
-            "shape": "node",
-            "nodeType": "ForOfStatement"
-          }
-        },
-        "parserServices": {
-          "shape": "empty"
+      "code": "declare const sources: readonly Set<number>[]; sources.forEach((source) => { const output = []; for (const value of source) { output.push(value); } });",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "reports Array.from on a Set inside a loop without type services"
+      ],
+      "name": "for-of + push nested inside a .forEach() callback - still flagged (detection is structural, not loop-gated)"
     },
     {
-      "expected": {
-        "messageIds": [
-          "forbidden"
-        ]
-      },
-      "input": {
-        "callExpression": {
-          "callee": {
-            "shape": "arrayFrom"
-          },
-          "firstArgument": {
-            "constructorName": "Map",
-            "shape": "newExpression"
-          },
-          "parent": {
-            "shape": "node",
-            "nodeType": "WhileStatement"
-          }
-        },
-        "parserServices": {
-          "shape": "empty"
+      "code": "function* ids() { yield 1; } const output = []; for (const value of ids()) { output.push(value); }",
+      "errors": [
+        {
+          "messageId": "forbidden"
         }
-      },
-      "name": "reports Array.from on a Map inside a loop without type services"
+      ],
+      "name": "for-of + push draining a generator result - flagged"
     }
   ],
-  "ruleTester": {
-    "invalid": [
-      {
-        "code": "const output = Array.from(new Set([1, 2, 3]));",
-        "errors": [
-          {
-            "messageId": "forbidden"
-          }
-        ],
-        "name": "Array.from on a Set constructor - flagged"
-      },
-      {
-        "code": "const output = Array.from(new Map([[1, 2]]));",
-        "errors": [
-          {
-            "messageId": "forbidden"
-          }
-        ],
-        "name": "Array.from on a Map constructor - flagged"
-      }
-    ],
-    "valid": [
-      {
-        "code": "declare const values: number[]; const output = Array.from(values);",
-        "name": "Array.from on an array - not flagged by this rule"
-      },
-      {
-        "code": "const output = Array.from([1, 2, 3]);",
-        "name": "Array.from on an array literal - not flagged by this rule"
-      },
-      {
-        "code": "const output = Array.from();",
-        "name": "Array.from without arguments - not flagged"
-      },
-      {
-        "code": "function* ids() { yield 1; } const output = Array.from(ids());",
-        "name": "Array.from on a generator result - left to the typed listener path"
-      }
-    ]
-  }
+  "valid": [
+    {
+      "code": "declare const source: Set<number>; const output = Array.from(source);",
+      "name": "Array.from(iterable) itself - not flagged (retargeted: no longer the anti-pattern this rule targets, see A8 in the rule source)"
+    },
+    {
+      "code": "declare const source: Set<number>; const output = [...source];",
+      "name": "[...iterable] spread - not flagged (the recommended replacement, performance-neutral with Array.from)"
+    },
+    {
+      "code": "declare const source: number[]; const output = []; for (const value of source) { output.push(value); }",
+      "name": "for-of + push where the source is already an array - not flagged (copy/filter idiom, not the iterator-drain this rule targets)"
+    },
+    {
+      "code": "declare const source: Set<number>; const output = [1]; for (const value of source) { output.push(value); }",
+      "name": "for-of + push onto a non-empty pre-existing array - not flagged (Array.from/spread cannot reproduce this as a drop-in replacement)"
+    },
+    {
+      "code": "declare const source: Set<number>; let output; output = []; for (const value of source) { output.push(value); }",
+      "name": "accumulator declared without an initializer, assigned separately - not flagged (declaration statement is not `const x = [];`)"
+    },
+    {
+      "code": "declare const source: Set<number>; const output = []; for (const value of source) { output.push(value * 2); }",
+      "name": "pushed value is a transform of the loop binding, not the binding itself - not flagged (not equivalent to a bare Array.from/spread)"
+    },
+    {
+      "code": "declare const source: Set<number>; const output = []; for (const value of source) { console.log(value); output.push(value); }",
+      "name": "loop body has more than one statement - not flagged (not the pure single-statement drain shape)"
+    }
+  ]
 }

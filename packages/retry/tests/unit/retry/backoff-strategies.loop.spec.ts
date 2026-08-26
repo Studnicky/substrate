@@ -12,7 +12,6 @@ type ScenarioShape =
   | 'decorrelated-range'
   | 'decorrelated-zero'
   | 'exponential'
-  | 'is-valid'
   | 'jitter-range'
   | 'jitter-varying'
   | 'linear';
@@ -79,10 +78,6 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => void> = {
   },
   'exponential': (scenarioCase) => {
     assertStrategyResult(BackoffStrategy.exponential, scenarioCase);
-  },
-  'is-valid': (scenarioCase) => {
-    const value = scenarioCase.expected.isValid ? (() => 1) : scenarioCase.input.value;
-    assert.strictEqual(BackoffStrategy.isValid(value), Boolean(scenarioCase.expected.isValid), scenarioCase.description);
   },
   'jitter-range': (scenarioCase) => {
     const { attempt, baseDelay } = readAttemptInput(scenarioCase);

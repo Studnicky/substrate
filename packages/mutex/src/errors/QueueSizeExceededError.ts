@@ -4,26 +4,25 @@
  * Thrown by Mutex when attempting to acquire a lock while the wait queue
  * for that key has reached the configured maximum size.
  */
-import { DomainErrorArgs } from '@studnicky/errors';
+import { DomainErrorArgumentList } from '@studnicky/errors';
 
 import { MutexError } from './MutexError.js';
 
-export class QueueSizeExceededError extends MutexError {
-  public readonly key!: unknown;
-  public readonly maxQueueSize!: number;
+export class QueueSizeExceededError<K extends PropertyKey> extends MutexError {
+  public readonly key: K;
+  public readonly maximumQueueSize!: number;
 
-  private static buildMessage(fields: Readonly<{ 'key': unknown; 'maxQueueSize': number }>): string {
-    const result = `Queue size exceeded for key "${String(fields.key)}". Maximum queue size is ${fields.maxQueueSize}.`;
-    return result;
-  }
-
-  constructor(key: unknown, maxQueueSize: number) {
-    const fields = { 'key': key, 'maxQueueSize': maxQueueSize };
-    super(DomainErrorArgs.build(fields, {
+  constructor(key: K, maximumQueueSize: number) {
+    const fields = { 'key': key, 'maximumQueueSize': maximumQueueSize };
+    super(DomainErrorArgumentList.build(fields, {
       'code': 'mutex.queueSizeExceeded',
-      'message': QueueSizeExceededError.buildMessage,
+      'message': (messageFields: Readonly<{ 'key': K; 'maximumQueueSize': number }>): string => {
+        const result = `Queue size exceeded for key "${String(messageFields.key)}". Maximum queue size is ${messageFields.maximumQueueSize}.`;
+        return result;
+      },
       'retryable': false
     }));
-    Object.assign(this, fields);
+    this.key = key;
+    this.maximumQueueSize = maximumQueueSize;
   }
 }

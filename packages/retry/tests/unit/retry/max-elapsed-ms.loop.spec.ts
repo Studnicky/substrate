@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { MaxRetriesExceededError } from '../../../src/errors/index.js';
+import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './max-elapsed-ms.scenarios.json' with { type: 'json' };
 
 type RetryScenarioInput = Record<string, unknown> & {
-  retry?: Partial<Pick<RetryConfigInterface, 'maxElapsedMs' | 'maxRetries'>>;
+  retry?: Partial<Pick<RetryConfigInterface, 'maximumElapsedMs' | 'maximumRetries'>>;
 };
 
 type ScenarioCase =
@@ -40,7 +40,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         attempts += 1;
         throw new Error(String(input.errorMessage));
       }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
 
     assert.strictEqual(attempts, Number(expected.attempts));
@@ -60,7 +60,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
         throw new Error(String(input.errorMessage));
       }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
 
     assert.strictEqual(attempts, Number(expected.attempts));
@@ -68,7 +68,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'time-wins': async (scenario) => {
     const { expected, input } = scenario;
-    const maxElapsedMs = Number(input.retry?.maxElapsedMs);
+    const maximumElapsedMs = Number(input.retry?.maximumElapsedMs);
     let attempts = 0;
 
     const retry = Retry.create({
@@ -84,12 +84,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
         throw new Error(String(input.errorMessage));
       }),
-      MaxRetriesExceededError
+      MaximumRetriesExceededError
     );
 
     const elapsed = Date.now() - start;
     assert.ok(attempts < Number(expected.attemptsLessThan));
-    assert.ok(elapsed < maxElapsedMs * Number(expected.elapsedLessThanFactor));
+    assert.ok(elapsed < maximumElapsedMs * Number(expected.elapsedLessThanFactor));
   }
 };
 
@@ -97,7 +97,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
   await runnerMap[scenario.shape](scenario);
 }
 
-void describe('Retry maxElapsedMs', () => {
+void describe('Retry maximumElapsedMs', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);

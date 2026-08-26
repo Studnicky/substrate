@@ -6,28 +6,19 @@
  * - DataType   — type guards + structural deep equality (NaN/Date/RegExp/Set/Map)
  * - Draft      — Proxy-based "mutate a draft, get an immutable result" primitive
  * - Frozen     — cycle-safe deep freeze
- * - Hash       — FNV-1a 32-bit hash for JSON-compatible values
+ * - Hash       — FNV-1a 32-bit hash for arbitrary in-memory values
  * - Merge      — V8-monomorphic deep merge
  * - Patch      — RFC-6902 JSON Patch (add/remove/replace/move/copy/test)
  * - JsonError  — abstract base error for all json package errors
  * - PatchError — error thrown when a patch operation fails
+ * - SchemaIntakeError — error thrown when schema intake rejects a payload
  * - Path       — JSON Pointer → access notation + proto-safe dot-path get
  * - Sort       — natural sort + length comparators
  * - StructuralHash — schema hash with metadata-key stripping
  * - SchemaValidator — compile a JSON Schema 2020-12 into a type-guard predicate (Ajv-backed)
  */
 
-export { DraftNodeStateEntity } from './entities/DraftNodeStateEntity.js';
-export { PatchApplyResultStatusEntity } from './entities/PatchApplyResultStatusEntity.js';
-export { PatchOperationCoreEntity } from './entities/PatchOperationCoreEntity.js';
-export { PathGetOptionsEntity } from './entities/PathGetOptionsEntity.js';
-export { PathWildcardResultEntity } from './entities/PathWildcardResultEntity.js';
-export { FrozenMutationError, JsonError, PatchError } from './errors/index.js';
-export type {
-  PatchApplyResultInterface,
-  PatchOperationInterface,
-  PathWildcardResultInterface
-} from './interfaces/index.js';
+export { FrozenMutationError, JsonError, PatchError, SchemaIntakeError } from './errors/index.js';
 export { Clone } from './json/index.js';
 export { DataType } from './json/index.js';
 export { Draft } from './json/index.js';

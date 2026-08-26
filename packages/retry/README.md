@@ -25,7 +25,7 @@ import { DefaultHttpErrorClassifier } from '@studnicky/errors';
 import { Retry } from '@studnicky/retry';
 
 const retry = Retry.create({
-  maxRetries: 3,
+  maximumRetries: 3,
   errorClassifier: DefaultHttpErrorClassifier.create()
 });
 
@@ -47,7 +47,7 @@ Config-based, using a shipped `BackoffStrategy`:
 import { Retry, BackoffStrategy } from '@studnicky/retry';
 
 const retry = Retry.create({
-  maxRetries: 3,
+  maximumRetries: 3,
   backoffStrategy: { strategy: BackoffStrategy.exponential, baseDelayMs: 100 }
 });
 ```
@@ -55,7 +55,7 @@ const retry = Retry.create({
 Subclass-override, for full control over `context.delayMs`:
 
 ```typescript
-import type { RetryContextInterface } from '@studnicky/retry';
+import type { RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import { Retry, BackoffStrategy } from '@studnicky/retry';
 
@@ -68,16 +68,16 @@ class CustomBackoffRetry extends Retry {
 
 ### Time ceiling
 
-`maxElapsedMs` bounds total wall-clock time across all attempts, independent of `maxRetries`. Whichever ceiling is hit first — attempt count or elapsed time — ends the retry loop, mirroring Python `tenacity`'s `stop_after_attempt(N) | stop_after_delay(T)` combined policy. Time-ceiling exhaustion is treated identically to attempt-count exhaustion: `onGiveUp` fires with `reason: 'exhausted'` and a `MaxRetriesExceededError` is thrown.
+`maximumElapsedMs` bounds total wall-clock time across all attempts, independent of `maximumRetries`. Whichever ceiling is hit first — attempt count or elapsed time — ends the retry loop, mirroring Python `tenacity`'s `stop_after_attempt(N) | stop_after_delay(T)` combined policy. Time-ceiling exhaustion is treated identically to attempt-count exhaustion: `onGiveUp` fires with `reason: 'exhausted'` and a `MaximumRetriesExceededError` is thrown.
 
 ```typescript
 const retry = Retry.create({
-  maxRetries: 10,
-  maxElapsedMs: 5000 // give up after 5s even if maxRetries hasn't been reached
+  maximumRetries: 10,
+  maximumElapsedMs: 5000 // give up after 5s even if maximumRetries hasn't been reached
 });
 ```
 
-Omitting `maxElapsedMs` preserves the default behavior: only `maxRetries` governs exhaustion.
+Omitting `maximumElapsedMs` preserves the default behavior: only `maximumRetries` governs exhaustion.
 
 ### Hook timeout
 
@@ -85,7 +85,7 @@ All lifecycle hooks, including behavioral `onRetryScheduled` and FSM `enterCall`
 
 ```typescript
 const retry = Retry.create({
-  maxRetries: 3,
+  maximumRetries: 3,
   hookTimeoutMs: 5000
 });
 ```
@@ -96,7 +96,7 @@ Subclass `Retry` and override any of the protected lifecycle hooks to add teleme
 
 ```typescript
 import type { ErrorClassificationEntity } from '@studnicky/errors';
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 
 import { Retry } from '@studnicky/retry';
 
@@ -120,7 +120,7 @@ class InstrumentedRetry extends Retry {
   }
 }
 
-const retry = new InstrumentedRetry({ maxRetries: 2 });
+const retry = new InstrumentedRetry({ maximumRetries: 2 });
 // retry.events is populated as the FSM progresses
 ```
 

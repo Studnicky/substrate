@@ -3,6 +3,7 @@
  */
 
 import { HookInvoker } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
 
@@ -13,10 +14,16 @@ import {
   INITIAL_BUFFER_COUNT,
   INITIAL_BUFFER_HEAD,
   LAST_ARRAY_INDEX,
-  PERCENTILE_MAX
+  PERCENTILE_MAXIMUM
 } from '../constants/index.js';
 import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
+
+interface SampleBufferConstructorInterface<
+  TInstance extends SampleBuffer
+> extends Function {
+  readonly 'prototype': TInstance;
+}
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -55,21 +62,29 @@ import { SampleBufferError } from '../errors/index.js';
  */
 export class SampleBuffer implements SampleBufferInterface {
   private static isConstructed<TInstance extends SampleBuffer>(
-    value: unknown,
-    constructor: Function & { readonly 'prototype': TInstance }
+    value: object,
+    constructor: SampleBufferConstructorInterface<TInstance>
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 
   static create<TInstance extends SampleBuffer = SampleBuffer>(
-    this: Function & { readonly 'prototype': TInstance },
+    this: SampleBufferConstructorInterface<TInstance>,
     options: SampleBufferOptionsEntity.Type
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!SampleBuffer.isConstructed(result, this)) {
-      throw new TypeError('SampleBuffer.create() must construct a SampleBuffer instance');
+    const constructed: unknown = Reflect.construct(this, [options]);
+    if (!Predicates.isObjectLike(constructed)) {
+      throw new TypeError(
+        'SampleBuffer.create() must construct a SampleBuffer instance'
+      );
     }
-    return result;
+    if (!SampleBuffer.isConstructed(constructed, this)) {
+      throw new TypeError(
+        'SampleBuffer.create() must construct a SampleBuffer instance'
+      );
+    }
+    return constructed;
   }
 
   static #validate(options: SampleBufferOptionsEntity.Type): void {
@@ -77,10 +92,13 @@ export class SampleBuffer implements SampleBufferInterface {
       const errors = SampleBufferOptionsEntity.validate.errors ?? [];
       const parts = errors.map((e) => {
         const part = `${e.instancePath} ${e.message}`.trim();
-        return part;
+        const result = part;
+        return result;
       });
       const message = parts.join('; ');
-      throw new SampleBufferError(message.length > 0 ? message : 'invalid options');
+      throw new SampleBufferError(
+        message.length > 0 ? message : 'invalid options'
+      );
     }
     // Domain invariant: capacity must be a positive integer (schema enforces minimum:1 and type:integer)
   }
@@ -135,28 +153,29 @@ export class SampleBuffer implements SampleBufferInterface {
     const result: number[] = Array.from<number>({ 'length': length });
 
     for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-      const index = length < capacity
-        ? i
-        : (head + i) % capacity;
+      const index = length < capacity ? i : (head + i) % capacity;
 
       result[i] = samples[index]!;
     }
 
     result.sort((left, right) => {
-      return left - right;
+      const sortOrder = left - right;
+      return sortOrder;
     });
     this.hooks.invoke('onComputeComplete', () => {
       const hookResult = this.onComputeComplete(length, result);
       return hookResult;
     });
-    return result;
+    const sortedSamples = result;
+    return sortedSamples;
   }
 
   /**
    * Whether the buffer has reached capacity
    */
   get isFull(): boolean {
-    return this.count === this.capacity;
+    const result = this.count === this.capacity;
+    return result;
   }
 
   /**
@@ -238,7 +257,10 @@ export class SampleBuffer implements SampleBufferInterface {
    * @param _length - Number of samples that were sorted
    * @param _sorted - The sorted sample array (do not mutate)
    */
-  protected onComputeComplete(_length: number, _sorted: readonly number[]): void {}
+  protected onComputeComplete(
+    _length: number,
+    _sorted: readonly number[]
+  ): void {}
 
   /**
    * Calculate a percentile from the buffered samples using linear interpolation
@@ -266,7 +288,7 @@ export class SampleBuffer implements SampleBufferInterface {
       });
       return result;
     }
-    if (pct >= PERCENTILE_MAX) {
+    if (pct >= PERCENTILE_MAXIMUM) {
       result = sorted.at(LAST_ARRAY_INDEX)!;
       this.hooks.invoke('onPercentile', () => {
         const hookResult = this.onPercentile(pct, result);
@@ -276,7 +298,8 @@ export class SampleBuffer implements SampleBufferInterface {
     }
 
     // Linear interpolation for percentile
-    const rank = (pct / PERCENTILE_MAX) * (sorted.length - INCREMENT_BY_ONE);
+    const rank =
+      (pct / PERCENTILE_MAXIMUM) * (sorted.length - INCREMENT_BY_ONE);
     const lowerIndex = Math.floor(rank);
     const upperIndex = Math.ceil(rank);
 

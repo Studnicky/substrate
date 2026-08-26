@@ -25,7 +25,7 @@ The rule inspects every union and intersection type node in the file, at any nes
 
 A purely callable union (`(() => void) | (() => number)`) or a purely data union (`{ a: 1 } | { b: 2 }`) is not reported. `type-alias-invariants` continues to own the purely callable case with its `aliasMustBeInterface` advice, since converting that shape to an interface is possible.
 
-## Incorrect
+## ✗ Incorrect
 
 ### Union of callable and data
 
@@ -41,29 +41,12 @@ type MixedType = (() => void) | { a: 1 };
 type MixedIntersectionType = { a: 1 } & (() => void);
 ```
 
-### Constructor mixed with data
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-type MixedCtorType = (new () => object) | { a: 1 };
-```
-
 ### Named callable reference mixed with data
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 type CallbackType = () => void;
 type IndirectMixedType = CallbackType | { a: 1 };
-```
-
-### Callable interface reference mixed with data
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface CallableInterface {
-  (): void;
-}
-type ViaInterfaceType = CallableInterface | { a: 1 };
 ```
 
 ### Nested inside a property
@@ -75,48 +58,29 @@ type NestedMixedType = {
 };
 ```
 
-## Correct
-
-### Split into an interface and a schema-derived type
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-interface HandlerInterface {
-  (): void;
-}
-
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-
-export namespace PayloadEntity {
-  export const Schema = {
-    properties: { a: { const: 1 } },
-    required: ['a'],
-    type: 'object'
-  } as const satisfies JSONSchema;
-
-  export type Type = FromSchema<typeof Schema>;
-}
-```
-
-Consumers that need either shape declare a union of the two named types at the use site — the union lives at the call site, not baked into a single declaration.
-
-### Purely callable union
+## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 type DispatcherType = (() => void) | ((value: string) => void);
 ```
 
-Reported by `type-alias-invariants`'s `aliasMustBeInterface`, not by this rule — the whole shape converts to a single callable interface.
-
-### Optional callable
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 type MaybeCallbackType = (() => void) | undefined;
 ```
 
-`undefined` is neutral; this remains a single callable shape.
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type EitherDataType = { a: 1 } | { b: 2 };
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+type PolymorphicFactoryType<TInstance> = Function & { readonly 'prototype': TInstance };
+```
+
+Consumers that need either shape split the callable contract and data representation before composing them at the use site.
 
 ## Rule boundary
 

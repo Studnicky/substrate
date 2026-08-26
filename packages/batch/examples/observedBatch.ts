@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { BatchStatsEntity } from '../src/index.js';
+import type { BatchStatsEntity } from '../src/entities/index.js';
 
 import { Batch } from '../src/index.js';
 import { ObservedBatchFixture } from './fixtures/ObservedBatchFixture.js';
@@ -16,7 +16,7 @@ class ObservedBatch extends Batch<string> {
   public capturedSaturations = 0;
   public capturedStats: BatchStatsEntity.Type | undefined;
 
-  public constructor(maxConcurrent?: number) { super(maxConcurrent); }
+  public constructor(maximumConcurrent?: number) { super(maximumConcurrent); }
 
   protected override onBatchStart(total: number): void {
     console.log(`[batch] start — ${total} items`);
@@ -32,10 +32,10 @@ class ObservedBatch extends Batch<string> {
     this.capturedSaturations++;
   }
 
-  protected override onItemError(index: number, error: unknown): void {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.log(`[batch] item[${index}] error — ${msg}`);
-    this.capturedErrors.push({ 'index': index, 'message': msg });
+  protected override onItemError(index: number, error: Error): void {
+    const message = error.message;
+    console.log(`[batch] item[${index}] error — ${message}`);
+    this.capturedErrors.push({ 'index': index, 'message': message });
   }
 
   protected override onItemSettled(index: number): void {
@@ -52,6 +52,15 @@ class ObservedBatch extends Batch<string> {
     console.log(`[batch] item[${index}] success → ${result}`);
     this.capturedSuccesses.push({ 'index': index, 'value': result });
   }
+
+  static processTask(task: typeof ObservedBatchFixture.Tasks[number]): Promise<string> {
+    if (task.id === 3) {
+      const result = Promise.reject(new Error(`task ${task.id} (${task.label}) failed`));
+      return result;
+    }
+    const result = Promise.resolve(`processed-${task.label}`);
+    return result;
+  }
 }
 
 class ObservedBatchExample {
@@ -61,12 +70,7 @@ class ObservedBatchExample {
 
     for await (const batchResults of observed.processSettled(
       ObservedBatchFixture.Tasks,
-      (task) => {
-        if (task.id === 3) {
-          return Promise.reject(new Error(`task ${task.id} (${task.label}) failed`));
-        }
-        return Promise.resolve(`processed-${task.label}`);
-      }
+      ObservedBatch.processTask
     )) {
       allSettled.push(...batchResults);
     }
@@ -77,7 +81,7 @@ class ObservedBatchExample {
     // onItemStart fired for all 5 items; indices cover 0–4
     assert.strictEqual(observed.capturedItemStarts.length, 5, 'onItemStart must fire for every item');
     assert.deepStrictEqual(
-      observed.capturedItemStarts.slice().sort((a, b) => { return a - b; }),
+      observed.capturedItemStarts.slice().toSorted((a, b) => { const result = a - b; return result; }),
       [0, 1, 2, 3, 4]
     );
 
@@ -85,10 +89,12 @@ class ObservedBatchExample {
     assert.strictEqual(observed.capturedSuccesses.length, 4, 'onItemSuccess must fire for 4 successes');
 
     const successIndices: number[] = [];
-    for (const e of observed.capturedSuccesses) {
-      successIndices.push(e.index);
+    const capturedSuccessesLength = observed.capturedSuccesses.length;
+    for (let index = 0; index < capturedSuccessesLength; index += 1) {
+      const capturedSuccess = observed.capturedSuccesses[index]!;
+      successIndices.push(capturedSuccess.index);
     }
-    successIndices.sort((a, b) => { return a - b; });
+    successIndices.sort((a, b) => { const result = a - b; return result; });
 
     assert.deepStrictEqual(successIndices, [0, 1, 3, 4]);
 
@@ -105,7 +111,8 @@ class ObservedBatchExample {
 
     // onBatchComplete: once, after processSettled finishes all batches
     assert.ok(observed.capturedStats !== undefined, 'onBatchComplete must fire');
-    assert.deepStrictEqual(observed.capturedStats, { 'failed': 1, 'succeeded': 4, 'total': 5 });
+    const expectedStats: BatchStatsEntity.Type = { 'failed': 1, 'succeeded': 4, 'total': 5 };
+    assert.deepStrictEqual(observed.capturedStats, expectedStats);
 
     // processSettled produces 5 settled results
     assert.strictEqual(allSettled.length, 5);

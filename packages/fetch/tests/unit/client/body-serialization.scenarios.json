@@ -662,7 +662,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "undefined"
+            "shape": "undefined"
           }
         }
       },
@@ -681,7 +681,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "buffer",
+            "shape": "buffer",
             "text": "test buffer content"
           }
         }
@@ -701,7 +701,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "array-buffer",
+            "shape": "array-buffer",
             "text": "test arraybuffer content"
           }
         }
@@ -721,7 +721,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "uint8-array",
+            "shape": "uint8-array",
             "text": "test uint8array content"
           }
         }
@@ -741,7 +741,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "buffer",
+            "shape": "buffer",
             "text": ""
           }
         }
@@ -761,7 +761,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "filled-buffer",
+            "shape": "filled-buffer",
             "fill": "a",
             "length": 1048576
           }
@@ -837,7 +837,7 @@
           "path": "/posts",
           "body": {
             "createdAt": {
-              "__shape": "date",
+              "shape": "date",
               "iso": "2026-07-22T12:34:56.000Z"
             }
           }
@@ -1032,7 +1032,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "circular",
+            "shape": "circular",
             "name": "test"
           }
         }
@@ -1052,7 +1052,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "symbol-properties",
+            "shape": "symbol-properties",
             "name": "test"
           }
         }
@@ -1073,7 +1073,7 @@
           "method": "POST",
           "path": "/posts",
           "body": {
-            "__shape": "function-properties",
+            "shape": "function-properties",
             "data": "test"
           }
         }
@@ -1095,7 +1095,7 @@
           "path": "/posts",
           "body": {
             "bigNumber": {
-              "__shape": "bigint",
+              "shape": "bigint",
               "value": "9007199254740991"
             },
             "name": "test"
@@ -1119,7 +1119,7 @@
           "body": {
             "defined": "value",
             "undefined": {
-              "__shape": "undefined"
+              "shape": "undefined"
             }
           }
         }

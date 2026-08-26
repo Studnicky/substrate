@@ -1,13 +1,13 @@
 /** observedRetry — override onRetryScheduled and onGiveUp to collect telemetry. Run: npx tsx examples/observedRetry.ts */
 
 // #region usage
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import assert from 'node:assert/strict';
 
-import type { RetryConfigInterface, RetryContextInterface } from '../src/index.js';
+import type { RetryConfigInterface, RetryContextInterface } from '../src/interfaces/index.js';
 
-import { MaxRetriesExceededError, Retry } from '../src/index.js';
+import { MaximumRetriesExceededError, Retry } from '../src/index.js';
 
 class TelemetryRetry extends Retry {
   constructor(config?: RetryConfigInterface) {
@@ -52,9 +52,9 @@ class TelemetryRetry extends Retry {
   }
 }
 
-const maxRetries = 2;
+const retryLimit = 2;
 const retry = new TelemetryRetry({
-  'maxRetries': maxRetries
+  'maximumRetries': retryLimit
 });
 
 // Operation always fails — exercises scheduled and giveUp hooks
@@ -62,8 +62,8 @@ try {
   await retry.execute(() => {
     throw new Error('always fails');
   });
-} catch (err) {
-  assert.ok(err instanceof MaxRetriesExceededError, 'Expected MaxRetriesExceededError');
+} catch (error) {
+  assert.ok(error instanceof MaximumRetriesExceededError, 'Expected MaximumRetriesExceededError');
 }
 
 console.log('Scheduled events:', retry.scheduledEvents);
@@ -71,16 +71,19 @@ console.log('GiveUp events:', retry.giveUpEvents);
 console.log('Stats:', retry.getStats());
 // #endregion usage
 
-// onRetryScheduled fires once per scheduled retry (maxRetries times)
-assert.equal(retry.scheduledEvents.length, maxRetries);
-assert.ok(retry.scheduledEvents.every((e) => {return e.delayMs === 0;}));
+// onRetryScheduled fires once per scheduled retry (maximumRetries times)
+assert.equal(retry.scheduledEvents.length, retryLimit);
+assert.ok(retry.scheduledEvents.every((scheduledEvent) => {
+  const result = scheduledEvent.delayMs === 0;
+  return result;
+}));
 
 // onGiveUp fires once with reason 'exhausted'
 assert.equal(retry.giveUpEvents.length, 1);
 assert.equal(retry.giveUpEvents[0]!.reason, 'exhausted');
-assert.equal(retry.giveUpEvents[0]!.attemptNumber, maxRetries);
+assert.equal(retry.giveUpEvents[0]!.attemptNumber, retryLimit);
 
-assert.equal(retry.getStats().totalRetries, maxRetries);
+assert.equal(retry.getStats().totalRetries, retryLimit);
 assert.equal(retry.getStats().failedRequests, 1);
 
 console.log('observedRetry: all assertions passed');

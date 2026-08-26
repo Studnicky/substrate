@@ -13,8 +13,10 @@ const ruleTester = new RuleTester({
   languageOptions: {
     parser,
     parserOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module'
+      projectService: {
+        allowDefaultProject: ['*.ts']
+      },
+      tsconfigRootDir: import.meta.dirname
     }
   }
 });

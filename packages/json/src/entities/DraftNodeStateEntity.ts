@@ -16,4 +16,6 @@ export namespace DraftNodeStateEntity {
   export type Type = FromSchema<typeof Schema>;
 
   export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }

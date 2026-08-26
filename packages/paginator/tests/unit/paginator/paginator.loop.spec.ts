@@ -4,14 +4,16 @@ import { describe, it } from 'node:test';
 import { HookInvocationError } from '@studnicky/errors';
 
 import type {
-  PaginatorAvailableCursorInterface,
   PaginatorExhaustedCursorEntity,
+  PaginatorIdleStateEntity,
+  PaginatorResetEventEntity
+} from '../../../src/entities/index.js';
+import type {
+  PaginatorAvailableCursorInterface,
   PaginatorExhaustedStateInterface,
   PaginatorHasMoreStateInterface,
-  PaginatorIdleStateEntity,
-  PaginatorPageReceivedEventInterface,
-  PaginatorResetEventEntity
-} from '../../../src/index.js';
+  PaginatorPageReceivedEventInterface
+} from '../../../src/interfaces/index.js';
 
 import { Paginator } from '../../../src/index.js';
 
@@ -290,8 +292,8 @@ function itemAt<T>(values: readonly T[], index: number): T {
   return value;
 }
 
-function cursorFrom<TCursor>(
-  value: unknown
+function cursorFrom<TCursor, TValue = unknown>(
+  value: TValue
 ): PaginatorAvailableCursorInterface<TCursor> | PaginatorExhaustedCursorEntity.Type {
   const cursor = value as { cursor?: unknown; exhausted: boolean };
   if (cursor.exhausted) {
@@ -493,7 +495,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     const paginator = ThrowingOnEnterPaginator.create();
     assert.throws(
       () => { paginator.next(stringField(input, 'page'), cursorFrom<number>(input.nextCursor)); },
-      (err: unknown) => {
+      (err: Error) => {
         if (!(err instanceof HookInvocationError) || !(err.cause instanceof Error)) {
           return false;
         }
@@ -510,7 +512,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     const pages = arrayField(input, 'pages') as string[];
     const nextCursors = arrayField(input, 'nextCursors');
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
+    const onUnhandledRejection = (reason: Error): void => {
       rejectionEvents.push(reason);
     };
     process.on('unhandledRejection', onUnhandledRejection);
@@ -522,7 +524,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       assert.deepEqual(rejectionEvents, expected.rejectionEvents);
       assert.throws(
         () => { paginator.next(itemAt(pages, 1), cursorFrom<number>(nextCursors[1])); },
-        (err: unknown) => {
+        (err: Error) => {
           if (!(err instanceof HookInvocationError) || !(err.cause instanceof Error)) {
             return false;
           }
@@ -545,7 +547,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     failing.configure(stringField(failingInput, 'name'), true);
     healthy.configure(stringField(healthyInput, 'name'), false);
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: unknown): void => {
+    const onUnhandledRejection = (reason: Error): void => {
       rejectionEvents.push(reason);
     };
     process.on('unhandledRejection', onUnhandledRejection);
@@ -568,7 +570,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       assert.throws(
         () => { failing.next(itemAt(failingPages, 1), cursorFrom<number>(failingCursors[1])); },
-        (err: unknown) => {
+        (err: Error) => {
           if (!(err instanceof HookInvocationError)) {
             return false;
           }

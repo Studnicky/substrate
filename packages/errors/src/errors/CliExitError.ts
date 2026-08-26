@@ -32,22 +32,9 @@ export class CliExitError extends BaseError {
   public constructor(exitCode = 1) {
     super({
       'code': 'cli.exit',
-      'message': CliExitError.buildExitMessage(exitCode),
+      'message': '',
       'retryable': false
     });
     this.exitCode = exitCode;
-  }
-
-  /**
-   * Builds the message string for the given exit code.
-   * Subclasses may override to customize the exit message; they must pass the
-   * result as the `message` to `super()` in their own constructor.
-   *
-   * Fire-point: called as a static helper from the constructor initializer.
-   * Default returns `''` (empty string — CLI exit errors are silent by design).
-   */
-  protected static buildExitMessage(_exitCode: number): string {
-    const result = '';
-    return result;
   }
 }

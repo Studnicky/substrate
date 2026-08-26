@@ -1,43 +1,36 @@
-/**
- * Clone — deep cloning with Map/Set/Date/Array support.
- *
- * Deep-clones plain objects, arrays, Map, Set and Date; other values (including
- * class instances) are returned as-is.
- *
- * Subclass `Clone` and override any `protected static clone*` step to customise
- * cloning behaviour.
- */
+/** Deep cloning for JavaScript values. */
 
-import { DataType } from './DataType.js';
+import { Predicates } from '@studnicky/types';
 
 export class Clone {
-  // ---------------------------------------------------------------------------
-  // Protected steps — override in subclasses to customise cloning
-  // ---------------------------------------------------------------------------
-
   /** Clone an array element-by-element. */
-  protected static cloneArray(value: unknown[]): unknown[] {
-    const result = value.map((item) => { const result = this.deep(item); return result; });
+  protected static cloneArray(value: (PropertyKey | bigint | boolean | object | null | undefined)[]): (PropertyKey | bigint | boolean | object | null | undefined)[] {
+    const result: (PropertyKey | bigint | boolean | object | null | undefined)[] = [];
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = value[index];
+      result.push(this.deep(item));
+    }
     return result;
   }
 
   /** Clone a Map, deep-cloning both keys and values. */
-  protected static cloneMap(value: Map<unknown, unknown>): Map<unknown, unknown> {
-    const cloned = new Map<unknown, unknown>();
+  protected static cloneMap(value: Map<PropertyKey | bigint | boolean | object | null | undefined, PropertyKey | bigint | boolean | object | null | undefined>): Map<PropertyKey | bigint | boolean | object | null | undefined, PropertyKey | bigint | boolean | object | null | undefined> {
+    const cloned = new Map<PropertyKey | bigint | boolean | object | null | undefined, PropertyKey | bigint | boolean | object | null | undefined>();
 
-    for (const [k, v] of value.entries()) {
-      cloned.set(this.deep(k), this.deep(v));
+    for (const [key, item] of value.entries()) {
+      cloned.set(this.deep(key), this.deep(item));
     }
 
     return cloned;
   }
 
   /** Clone a Set, deep-cloning each member. */
-  protected static cloneSet(value: Set<unknown>): Set<unknown> {
-    const cloned = new Set<unknown>();
+  protected static cloneSet(value: Set<PropertyKey | bigint | boolean | object | null | undefined>): Set<PropertyKey | bigint | boolean | object | null | undefined> {
+    const cloned = new Set<PropertyKey | bigint | boolean | object | null | undefined>();
 
-    for (const v of value.values()) {
-      cloned.add(this.deep(v));
+    for (const item of value.values()) {
+      cloned.add(this.deep(item));
     }
 
     return cloned;
@@ -49,70 +42,74 @@ export class Clone {
     return result;
   }
 
-  /**
-   * Clone a plain/class object by own enumerable keys.
-   * Override to customise per-object behaviour (e.g. tag injection).
-   */
-  protected static cloneObject(value: Record<string, unknown>): Record<string, unknown> {
-    const cloned: Record<string, unknown> = {};
+  /** Clone an object's own enumerable keys. */
+  protected static cloneObject(value: Record<string, PropertyKey | bigint | boolean | object | null | undefined>): Record<string, PropertyKey | bigint | boolean | object | null | undefined> {
+    const cloned: Record<string, PropertyKey | bigint | boolean | object | null | undefined> = {};
 
-    const keys = Object.keys(value);
-    const keysLen = keys.length;
-    for (let i = 0; i < keysLen; i += 1) {
-      const key = keys[i]!;
-      cloned[key] = this.deep(value[key]);
+    const entries = Object.entries(value);
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      if (entry === undefined) {
+        continue;
+      }
+      const [key, item] = entry;
+      Reflect.set(cloned, key, this.deep(item));
     }
 
     return cloned;
   }
 
-  // ---------------------------------------------------------------------------
-  // Public static API
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Recursively deep-clone a value.
-   *
-   * Handles: primitives, arrays, Map, Set, Date, and plain objects.
-   * Class instances with custom prototypes are shallow-property-cloned
-   * (own enumerable keys only) — use `structuredClone` when you need
-   * transfer semantics for non-plain classes.
-   */
+  /** Recursively deep-clone a value. */
   public static deep<T>(value: T): T;
-  public static deep(value: unknown): unknown;
-  public static deep(value: unknown): unknown {
-    if (value === null || typeof value !== 'object') {
+  public static deep(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
+    const result = this.clone(value);
+    return result;
+  }
+
+  /** Implement `deep` across the full JavaScript value domain. */
+  protected static clone(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
+    if (!Predicates.isObjectLike(value)) {
       return value;
     }
 
     if (Array.isArray(value)) {
-      return this.cloneArray(value);
+      const result = this.cloneArray(value);
+      return result;
     }
 
     if (value instanceof Map) {
-      return this.cloneMap(value);
+      const result = this.cloneMap(value);
+      return result;
     }
 
     if (value instanceof Set) {
-      return this.cloneSet(value);
+      const result = this.cloneSet(value);
+      return result;
     }
 
     if (value instanceof Date) {
-      return this.cloneDate(value);
+      const result = this.cloneDate(value);
+      return result;
     }
 
-    if (DataType.isRecord(value)) {
-      return this.cloneObject(value);
+    if (this.isRecord(value)) {
+      const result = this.cloneObject(value);
+      return result;
     }
 
     return value;
   }
 
-  /**
-   * Shallow clone a plain-object record.
-   */
-  public static shallow<T extends Record<string, unknown>>(value: T): T {
-    const clone: T = { ...value };
-    return clone;
+  /** Shallow clone an object. */
+  public static shallow<T extends object>(value: T): T {
+    const result = { ...value };
+    return result;
+  }
+
+  /** Identify the remaining object values whose own enumerable keys are cloned. */
+  protected static isRecord(value: object): value is Record<string, PropertyKey | bigint | boolean | object | null | undefined> {
+    const valueType = typeof value;
+    const result = valueType === 'object';
+    return result;
   }
 }

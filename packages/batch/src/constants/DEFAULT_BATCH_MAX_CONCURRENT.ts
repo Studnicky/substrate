@@ -1,1 +1,0 @@
-export const DEFAULT_BATCH_MAX_CONCURRENT = 10;

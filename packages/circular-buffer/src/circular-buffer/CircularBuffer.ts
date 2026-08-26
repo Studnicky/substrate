@@ -36,6 +36,7 @@
  */
 
 import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
+import { Predicates } from '@studnicky/types';
 
 import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
@@ -57,11 +58,12 @@ interface CircularBufferSubclassInterface<TInstance> extends Function {
 }
 
 class CircularBufferInstance {
-  static belongsTo<TInstance>(
+  static belongsTo<TInstance extends object>(
     constructor: CircularBufferSubclassInterface<TInstance>,
-    value: unknown
+    value: object
   ): value is TInstance {
-    return value instanceof constructor;
+    const result = value instanceof constructor;
+    return result;
   }
 }
 
@@ -77,18 +79,32 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * const buf = CircularBuffer.create<number>({ capacity: 16 });
    * ```
    */
-  static create<
-    T,
-    TInstance extends CircularBuffer<T> = CircularBuffer<T>
-  >(
+  static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
     this: CircularBufferSubclassInterface<TInstance>,
     options: CircularBufferOptionsEntity.Type = {}
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!CircularBufferInstance.belongsTo(this, result)) {
-      throw new TypeError('CircularBuffer.create() did not construct the requested subclass.');
+    const resolveSubclassConstructor =
+      (): CircularBufferSubclassInterface<TInstance> => {
+        return this;
+      };
+
+    const constructed: unknown = Reflect.construct(
+      resolveSubclassConstructor(),
+      [options]
+    );
+    if (!Predicates.isObjectLike(constructed)) {
+      throw new TypeError(
+        'CircularBuffer.create() did not construct the requested subclass.'
+      );
     }
-    return result;
+    if (
+      !CircularBufferInstance.belongsTo(resolveSubclassConstructor(), constructed)
+    ) {
+      throw new TypeError(
+        'CircularBuffer.create() did not construct the requested subclass.'
+      );
+    }
+    return constructed;
   }
 
   protected count = INITIAL_BUFFER_COUNT;
@@ -96,10 +112,28 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   protected items: (T | undefined)[];
   protected tail = INITIAL_BUFFER_TAIL;
   protected capacity: number;
-  protected readonly hooks: HookInvoker = new HookInvoker({ 'detectReentrancy': true });
+  protected readonly hooks: HookInvoker = new HookInvoker({
+    'detectReentrancy': true
+  });
 
   readonly #overflow: 'grow' | 'overwrite';
 
+  // Deliberately NOT formalized onto `@studnicky/fsm`'s `StateMachine`, unlike
+  // Throttle/Mutex/BusQueue/CircuitBreaker/CancellableTask/etc. this session.
+  // Two structural reasons: (1) `@studnicky/fsm`'s `EffectInterpreter`/
+  // `InterpreterHistory` already `extends CircularBuffer` at module top level;
+  // making this package depend on `@studnicky/fsm` in turn creates a real
+  // circular package dependency that deadlocks at both build time (TS6202,
+  // circular project-reference graph) and runtime (`ReferenceError: Cannot
+  // access 'X' before initialization` from the mutual top-level `class X
+  // extends Y` eval-time race) — confirmed by attempting the refactor and
+  // reverting. (2) Even setting the cycle aside, `#dispatching`/`#growing`
+  // are correctly-independent, already-bug-free reentrancy guards (see their
+  // own comments below) — there is no scattered/ambiguous state to fix, only
+  // a cosmetic-consistency argument, which does not justify introducing a
+  // circular dependency into a package four other formalized modules
+  // transitively depend on.
+  //
   // Guards push()/unshift()/shift(): true for the entire duration of one of
   // these calls (mutation through every hook it fires), so a hook override
   // that reentrantly calls back into any of them on this same instance is
@@ -154,7 +188,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       const items = this.items;
 
       for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-        newItems[i] = items[(head + i) % capacity];
+        Reflect.set(newItems, i, items.at((head + i) % capacity));
       }
 
       this.items = newItems;
@@ -265,7 +299,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
           // overwrite: evict oldest, advance head, keep length at capacity.
           // Buffer is full (count === capacity), so the slot at head always
           // holds a real item — occupancy is already known, no value check needed.
-          const evicted = this.items[this.head]!;
+          const evicted = this.items.at(this.head)!;
           this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
           this.#writeTail(item);
 
@@ -304,7 +338,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * for the operation is committed.
    */
   #writeTail(item: T): void {
-    this.items[this.tail] = item;
+    Reflect.set(this.items, this.tail, item);
     this.tail = (this.tail + INCREMENT_BY_ONE) % this.capacity;
   }
 
@@ -345,10 +379,11 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
         } else {
           // overwrite: evict from tail (opposite end from insertion), retreat
           // tail, keep length at capacity.
-          this.tail = (this.tail - INCREMENT_BY_ONE + this.capacity) % this.capacity;
+          this.tail =
+            (this.tail - INCREMENT_BY_ONE + this.capacity) % this.capacity;
           // Buffer is full (count === capacity), so the slot before tail always
           // holds a real item — occupancy is already known, no value check needed.
-          const evicted = this.items[this.tail]!;
+          const evicted = this.items.at(this.tail)!;
           this.#writeHead(item);
 
           // State (head/tail/items) is fully committed above before any hook
@@ -387,7 +422,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    */
   #writeHead(item: T): void {
     this.head = (this.head - INCREMENT_BY_ONE + this.capacity) % this.capacity;
-    this.items[this.head] = item;
+    Reflect.set(this.items, this.head, item);
   }
 
   /**
@@ -421,9 +456,9 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     try {
       // Past the EMPTY_LENGTH guard above, count > 0 means the slot at head
       // always holds a real item — occupancy is already known, no value check needed.
-      const item = this.items[this.head]!;
+      const item = this.items.at(this.head)!;
 
-      this.items[this.head] = undefined;
+      Reflect.set(this.items, this.head, undefined);
       this.head = (this.head + INCREMENT_BY_ONE) % this.capacity;
       this.count--;
 

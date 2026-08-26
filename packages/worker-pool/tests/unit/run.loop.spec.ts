@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
@@ -36,7 +37,7 @@ interface BoundedConcurrencyBatchInputInterface {
 }
 
 function resolveWorkerPath(relativePath: string): string {
-  return new URL(relativePath, import.meta.url).pathname;
+  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
@@ -155,7 +156,7 @@ const runnerMap: RunnerMap = {
     });
 
     await assert.rejects(pool.run(items), /boom/);
-    assert.deepStrictEqual([...observedResults].sort(), [...scenarioCase.expected.observedResults].sort());
+    assert.deepStrictEqual([...observedResults].toSorted(), [...scenarioCase.expected.observedResults].toSorted());
   },
   'exit-retry': async (scenarioCase) => {
     const createdThreads: number[] = [];
@@ -194,7 +195,7 @@ const runnerMap: RunnerMap = {
 
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: unknown) => {
+    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
       return true;
@@ -204,7 +205,7 @@ const runnerMap: RunnerMap = {
   'timeout-rejects': async (scenarioCase) => {
     const pool = WorkerPool.create<{ ms?: number; value: string }, string>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: unknown) => {
+    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
       assert.ok(error instanceof Error);
       assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
       return true;

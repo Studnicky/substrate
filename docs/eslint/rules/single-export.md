@@ -9,7 +9,7 @@ Each non-index source file must export exactly one named symbol, and the export 
 
 Index files (`index.ts`, `index.mts`, `index.cts`, `index.tsx`) are exempt from the single-symbol limit but still forbid default exports.
 
-Restricted topology may be expressed either as folders (`entities/`, `errors/`, `interfaces/`, `constants/`, `types/`) or as filename suffixes such as `user.constants.ts` and `request.types.ts`. Those modules are exempt from the single-symbol and filename-match checks. Outside that topology, enum files are exempt only when every export is an `enum` or a const value.
+Restricted topology may be expressed either as folders (`entities/`, `errors/`, `interfaces/`, `constants/`, `types/`) or as filename suffixes such as `user.constants.ts` and `request.types.ts`. The `entities`, `errors`, `interfaces`, and `types` exemptions apply only when at least one export has the matching shape; a path alone does not earn an exemption. Constant modules are content-gated by their naming rule. Outside that topology, enum files are exempt only when every export is an `enum` or a const value.
 
 Constant modules have an additional constraint: every exported symbol must use `SCREAMING_SNAKE_CASE`.
 
@@ -53,7 +53,7 @@ export { AdminService } from './AdminService.js';
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// entities/UserEntity.ts — entity files may export their schema trio
+// entities/UserEntity.ts — a genuine entity-shaped file may have multiple exports
 export const UserEntitySchema = { type: 'object' } as const;
 export type UserEntity = { id: string };
 export function validateUserEntity(candidate: unknown): candidate is UserEntity { return true; }

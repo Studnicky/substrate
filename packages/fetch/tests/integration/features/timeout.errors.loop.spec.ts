@@ -12,9 +12,9 @@ import {
 } from '../../helpers/test-server/index.js';
 
 type RuntimeTag =
-  | { __shape: 'infinity' }
-  | { __shape: 'nan' }
-  | { __shape: 'undefined' };
+  | { shape: 'infinity' }
+  | { shape: 'nan' }
+  | { shape: 'undefined' };
 
 type RuntimeValue =
   | null
@@ -75,7 +75,7 @@ void after(async () => {
 });
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && '__shape' in value;
+  return typeof value === 'object' && value !== null && 'shape' in value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -89,13 +89,13 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   if (value !== null && typeof value === 'object') {
     if (isRuntimeTag(value)) {
-      if (value.__shape === 'undefined') {
+      if (value.shape === 'undefined') {
         return undefined;
       }
-      if (value.__shape === 'infinity') {
+      if (value.shape === 'infinity') {
         return Number.POSITIVE_INFINITY;
       }
-      if (value.__shape === 'nan') {
+      if (value.shape === 'nan') {
         return Number.NaN;
       }
       const exhaustiveCheck: never = value;
@@ -179,7 +179,7 @@ async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.crea
   }
 }
 
-function assertRejectedExpectation(error: unknown, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
+function assertRejectedExpectation(error: Error, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
   assert.ok(error instanceof Error);
 
   if (expectation.error === 'TimeoutError') {
@@ -214,6 +214,7 @@ async function assertRequestExpectation(
   }
 
   assert.ok(!result.ok, 'expected request rejection');
+  assert.ok(result.error instanceof Error);
   assertRejectedExpectation(result.error, expectation);
 }
 

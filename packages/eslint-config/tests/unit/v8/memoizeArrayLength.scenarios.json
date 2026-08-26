@@ -1,0 +1,104 @@
+{
+  "valid": [
+    {
+      "code": "for (let i = 0, len = arr.length; i < len; i++) { use(arr[i]); }",
+      "name": "properly memoized length variable, never reassigned in the body - not flagged"
+    },
+    {
+      "code": "for (let i = 0; i < 10; i++) { use(i); }",
+      "name": "unrelated bound (Literal, not a memoized length or a direct .length re-read) - not flagged"
+    },
+    {
+      "code": "let len = arr.length; let i = 0; while (i < len) { use(arr[i]); i++; }",
+      "name": "while loop with a properly memoized length variable, never reassigned - not flagged"
+    },
+    {
+      "code": "let len = arr.length; for (let i = 0; i < len; i++) { total += other.length; }",
+      "name": "loop body reassigns an UNRELATED variable's .length, not the compared memo variable itself - not flagged"
+    },
+    {
+      "code": "for (let i = 0; i < arr.length; i++) { use(arr[i]); }",
+      "name": "unmemoized direct arr.length re-read every iteration - NOT flagged: memoizing measures 1.4x SLOWER at 5,000,000 iterations (TurboFan hoists the read via LICM), so the primary 'must memoize' check was removed"
+    },
+    {
+      "code": "for (let i = 0; arr.length > i; i++) { use(arr[i]); }",
+      "name": "reversed operands (arr.length > i), unmemoized - not flagged, same reason as the direct case"
+    },
+    {
+      "code": "for (let i = 0; i < arr['length']; i++) { use(arr[i]); }",
+      "name": "bracket notation arr[\"length\"], unmemoized - not flagged, equivalent to dot notation"
+    },
+    {
+      "code": "let i = 0; while (i < arr.length) { use(arr[i]); i++; }",
+      "name": "while loop instead of for, unmemoized - not flagged"
+    },
+    {
+      "code": "for (let i = 0; i <= arr.length; i++) { use(arr[i]); }",
+      "name": "<= comparison operator, unmemoized - not flagged, alongside <"
+    },
+    {
+      "code": "for (let i = 0; arr.length >= i; i++) { use(arr[i]); }",
+      "name": ">= comparison operator, reversed operands, unmemoized - not flagged"
+    },
+    {
+      "code": "let len = arr.length; for (let i = 0; i < len; i++) { if (use(arr[i])) { total += len; } }",
+      "name": "memoized variable READ (not reassigned) inside a conditional in the loop body - not flagged"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "let len = arr.length; for (let i = 0; i < len; i++) { len = arr.length; use(arr[i]); }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "\"memoized\" variable reassigned to arr.length inside the loop body every iteration - defeats the memoization, flagged"
+    },
+    {
+      "code": "let len = arr.length; let i = 0; while (i < len) { len = arr.length; i++; }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "while-loop variant of the reassigned-memo bypass - flagged"
+    },
+    {
+      "code": "let len = arr.length; for (let i = 0; i < len; i++) { len = arr['length']; use(arr[i]); }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "reassignment via bracket notation arr[\"length\"] - flagged the same as dot notation"
+    },
+    {
+      "code": "let len = arr.length; for (let i = 0; len >= i; i++) { len = arr.length; use(arr[i]); }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "reversed-operand (len >= i) memoized test, reassignment still tracked by identifier name regardless of operand order - flagged"
+    },
+    {
+      "code": "let len = arr.length; for (let i = 0; i < len; i++) { if (use(arr[i])) { len = arr.length; } }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "reassignment nested inside a conditional in the loop body - still flagged, the check does not require the reassignment to be unconditional"
+    },
+    {
+      "code": "let outerLen = outer.length; for (let i = 0; i < outerLen; i++) { let innerLen = inner.length; for (let j = 0; j < innerLen; j++) { innerLen = inner.length; } }",
+      "errors": [
+        {
+          "messageId": "reassignedMemo"
+        }
+      ],
+      "name": "nested loops, only the INNER memo variable is reassigned - only the inner loop is flagged, reassignment is scoped to its nearest enclosing loop"
+    }
+  ]
+}

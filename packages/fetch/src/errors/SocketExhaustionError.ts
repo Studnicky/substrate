@@ -18,7 +18,7 @@ import { FetchBaseError } from './FetchBaseError.js';
  * } catch (error) {
  *   if (error instanceof SocketExhaustionError) {
  *     console.error('Connection pool exhausted');
- *     console.error(`Max connections: ${error.maxConnections}`);
+ *     console.error(`Max connections: ${error.maximumConnections}`);
  *     console.error(`Free connections: ${error.freeConnections}`);
  *     console.error(`Pending requests: ${error.pendingRequests}`);
  *   }
@@ -42,7 +42,7 @@ export class SocketExhaustionError extends FetchBaseError {
    * Maximum number of connections in the pool (0 if stats unavailable)
    * Always present for V8 optimization
    */
-  readonly maxConnections: number;
+  readonly maximumConnections: number;
 
   /**
    * Number of pending requests waiting for a connection (0 if stats unavailable)
@@ -76,7 +76,7 @@ export class SocketExhaustionError extends FetchBaseError {
     });
     this.url = url;
 
-    this.maxConnections = dispatcherStats?.connected ?? 0;
+    this.maximumConnections = dispatcherStats?.connected ?? 0;
     this.freeConnections = dispatcherStats?.free ?? 0;
     this.pendingRequests = dispatcherStats?.pending ?? 0;
     this.queuedRequests = dispatcherStats?.queued ?? 0;

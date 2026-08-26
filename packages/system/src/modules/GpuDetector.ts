@@ -1,14 +1,17 @@
+import { Predicates } from '@studnicky/types';
 import * as childProcess from 'node:child_process';
 import os from 'node:os';
 
 import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 
 import { BYTES_PER_MB, EXEC_TIMEOUT_MS, VRAM_STRING_PATTERN } from '../constants/index.js';
+import { GpuAmdProfileEntity } from '../entities/GpuAmdProfileEntity.js';
+import { GpuMetalProfileEntity } from '../entities/GpuMetalProfileEntity.js';
 
 interface GpuDetectorDepsInterface {
   readonly 'execFileSync': (
     command: string,
-    args: readonly string[],
+    argumentList: readonly string[],
     options: { readonly 'timeout': number }
   ) => Buffer | string;
   readonly 'platform': () => NodeJS.Platform;
@@ -22,19 +25,17 @@ export class GpuDetector {
     };
   }
 
-  static #isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
   static detect(deps: GpuDetectorDepsInterface = GpuDetector.#defaultDeps()): GpuInfoEntity.Type | null {
     const platform = deps.platform();
 
     if (platform === 'darwin') {
-      return GpuDetector.#detectMetal(deps);
+      const result = GpuDetector.#detectMetal(deps);
+      return result;
     }
 
     if (platform === 'linux') {
-      return GpuDetector.#detectLinux(deps);
+      const result = GpuDetector.#detectLinux(deps);
+      return result;
     }
 
     return null;
@@ -46,22 +47,16 @@ export class GpuDetector {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 
-      const parsed: unknown = JSON.parse(raw);
-      if (!GpuDetector.#isRecord(parsed)) { return null; }
-      const displays = parsed.SPDisplaysDataType;
-
-      if (!Array.isArray(displays) || displays.length === 0) {
-        return null;
-      }
-
-      const first: unknown = displays[0];
-      if (!GpuDetector.#isRecord(first)) { return null; }
-      const name = typeof first.sppci_model === 'string' ? first.sppci_model : 'Unknown GPU';
+      const parsed: GpuMetalProfileEntity.Type = GpuMetalProfileEntity.intake(JSON.parse(raw));
+      const first = parsed.SPDisplaysDataType[0];
+      if (first === undefined) { return null; }
+      const name = Predicates.isString(first.sppci_model) ? first.sppci_model : 'Unknown GPU';
       const vramMb = GpuDetector.#parseVramString(
-        typeof first.spdisplays_vram === 'string' ? first.spdisplays_vram : null
+        Predicates.isString(first.spdisplays_vram) ? first.spdisplays_vram : null
       );
 
-      return { 'computeApi': 'metal', 'name': name, 'vramMb': vramMb };
+      const result: GpuInfoEntity.Type = { 'computeApi': 'metal', 'name': name, 'vramMb': vramMb };
+      return result;
     } catch {
       return null;
     }
@@ -73,7 +68,8 @@ export class GpuDetector {
       return nvidia;
     }
 
-    return GpuDetector.#detectAmd(deps);
+    const result = GpuDetector.#detectAmd(deps);
+    return result;
   }
 
   static #detectNvidia(deps: GpuDetectorDepsInterface): GpuInfoEntity.Type | null {
@@ -91,8 +87,10 @@ export class GpuDetector {
 
       const rawParts = firstLine.split(',');
       const parts: string[] = [];
-      for (const raw of rawParts) {
-        parts.push(raw.trim());
+      const rawPartsLength = rawParts.length;
+      for (let rawPartIndex = 0; rawPartIndex < rawPartsLength; rawPartIndex += 1) {
+        const rawPart = rawParts[rawPartIndex]!;
+        parts.push(rawPart.trim());
       }
       const name = parts[0] ?? 'Unknown NVIDIA GPU';
       const vramMbRaw = parts[1];
@@ -114,38 +112,38 @@ export class GpuDetector {
         'timeout': EXEC_TIMEOUT_MS
       }).toString();
 
-      const parsed: unknown = JSON.parse(raw);
-      if (!GpuDetector.#isRecord(parsed)) { return null; }
-      const keys = Object.keys(parsed);
-      const firstKey = keys[0];
+      const parsed: GpuAmdProfileEntity.Type = GpuAmdProfileEntity.intake(JSON.parse(raw));
 
-      if (firstKey === undefined) {
-        return null;
+      const gpuInfos = Object.values(parsed);
+      const gpuInfosLength = gpuInfos.length;
+      for (let gpuInfoIndex = 0; gpuInfoIndex < gpuInfosLength; gpuInfoIndex += 1) {
+        const gpuInfo = gpuInfos[gpuInfoIndex];
+        if (gpuInfo === undefined) { continue; }
+        const vramTotalString = gpuInfo['VRAM Total Memory (B)'];
+        const vramMb = Predicates.isString(vramTotalString)
+          ? Math.round(parseInt(vramTotalString, 10) / BYTES_PER_MB)
+          : null;
+
+        const result: GpuInfoEntity.Type = {
+          'computeApi': 'opencl',
+          'name': 'AMD GPU',
+          'vramMb': vramMb !== null && !isNaN(vramMb) ? vramMb : null
+        };
+        return result;
       }
 
-      const gpuInfo: unknown = parsed[firstKey];
-      if (!GpuDetector.#isRecord(gpuInfo)) { return null; }
-      const vramTotalStr = gpuInfo['VRAM Total Memory (B)'];
-      const vramMb = typeof vramTotalStr === 'string'
-        ? Math.round(parseInt(vramTotalStr, 10) / BYTES_PER_MB)
-        : null;
-
-      return {
-        'computeApi': 'opencl',
-        'name': 'AMD GPU',
-        'vramMb': vramMb !== null && !isNaN(vramMb) ? vramMb : null
-      };
+      return null;
     } catch {
       return null;
     }
   }
 
-  static #parseVramString(vramStr: string | null): number | null {
-    if (vramStr === null) {
+  static #parseVramString(vramString: string | null): number | null {
+    if (vramString === null) {
       return null;
     }
 
-    const match = VRAM_STRING_PATTERN.exec(vramStr);
+    const match = VRAM_STRING_PATTERN.exec(vramString);
     if (match === null) {
       return null;
     }
@@ -154,9 +152,11 @@ export class GpuDetector {
     const unit = (match[2] ?? 'MB').toUpperCase();
 
     if (unit === 'GB') {
-      return Math.round(value * 1024);
+      const result = Math.round(value * 1024);
+      return result;
     }
 
-    return Math.round(value);
+    const result = Math.round(value);
+    return result;
   }
 }

@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import {
-  ActiveOperationStateEntity,
-  ThrottleAbortOptionsEntity,
-  ThrottleAbortedError,
-  ThrottleDrainingError
-} from '../../../src/index.js';
+import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/index.js';
+import { ActiveOperationStateEntity, ThrottleAbortOptionsEntity } from '../../../src/entities/index.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

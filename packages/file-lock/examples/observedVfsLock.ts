@@ -11,10 +11,11 @@ import { FileLock } from '../src/index.js';
 import { VfsLockFixtures } from './fixtures/VfsLockFixtures.js';
 
 class TracedFileLock extends FileLock {
-  static readonly #recorders = new WeakMap<FileLock, EventRecorder<LockEventEntity.Type>>();
+  readonly #recorder = new EventRecorder<LockEventEntity.Type>();
 
   static events(lock: FileLock): readonly LockEventEntity.Type[] {
-    return this.#recorders.get(lock)?.events ?? [];
+    const result: readonly LockEventEntity.Type[] = lock instanceof TracedFileLock ? lock.#recorder.events : [];
+    return result;
   }
 
   protected override onAcquire(p: string): void {
@@ -34,12 +35,7 @@ class TracedFileLock extends FileLock {
   }
 
   #record(event: LockEventEntity.Type, message: string): void {
-    let recorder = TracedFileLock.#recorders.get(this);
-    if (recorder === undefined) {
-      recorder = new EventRecorder<LockEventEntity.Type>();
-      TracedFileLock.#recorders.set(this, recorder);
-    }
-    recorder.record(event, message);
+    this.#recorder.record(event, message);
   }
 }
 
@@ -88,10 +84,10 @@ const results = await VfsLockScenario.run();
 // Assertions
 const holderEvents = TracedFileLock.events(results.holder);
 const waiterEvents = TracedFileLock.events(results.waiter);
-const holderAcquires = holderEvents.filter((e) => { return e.hook === 'onAcquire'; });
-const holderReleases = holderEvents.filter((e) => { return e.hook === 'onRelease'; });
-const waiterContentions = waiterEvents.filter((e) => { return e.hook === 'onContended'; });
-const waiterAcquires = waiterEvents.filter((e) => { return e.hook === 'onAcquire'; });
+const holderAcquires = holderEvents.filter((event) => { const result = event.hook === 'onAcquire'; return result; });
+const holderReleases = holderEvents.filter((event) => { const result = event.hook === 'onRelease'; return result; });
+const waiterContentions = waiterEvents.filter((event) => { const result = event.hook === 'onContended'; return result; });
+const waiterAcquires = waiterEvents.filter((event) => { const result = event.hook === 'onAcquire'; return result; });
 
 assert.equal(holderAcquires.length, 1, 'holder: onAcquire fires once');
 assert.equal(holderReleases.length, 1, 'holder: onRelease fires once');

@@ -19,6 +19,12 @@ Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `
 
 <<< ../../packages/flag-evaluator/examples/observedFlagEvaluator.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/flag-evaluator/examples/observedFlagEvaluator" title="Observing deterministic flag evaluation and rollout hooks" />
+
+The output shows `onEvaluate` firing for each `evaluate()` call, `onDefault` firing for an unregistered flag, and the same `targetingKey` resolving `new-checkout`'s 25% rollout bucket identically across two separate calls.
+
 ## Unregistered vs. disabled
 
 - **Unregistered**: `evaluate()` returns `false` unconditionally and fires `onDefault(name)`. There is no per-call default-value override.
@@ -51,5 +57,30 @@ Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `
 ## Documentation
 
 Full reference: https://studnicky.github.io/substrate/packages/flag-evaluator
+
+## Entities
+
+`@studnicky/flag-evaluator/entities` exports flag context and definition schemas.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { FlagDefinitionEntity } from '@studnicky/flag-evaluator/entities';
+```
+
+## Interfaces
+
+`@studnicky/flag-evaluator/interfaces` exports the evaluation-context contract.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { FlagContextInterface } from '@studnicky/flag-evaluator/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator` |
+| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/flag-evaluator)

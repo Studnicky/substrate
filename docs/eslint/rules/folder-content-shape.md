@@ -1,166 +1,131 @@
 ---
 title: '@studnicky/folder-content-shape'
-description: 'Folder location signals what a file top-level declarations must look like: entity Schema/Type/validate namespaces, interfaces/ vs types/ declaration form, and constants placement.'
+description: 'Constrains entity boundaries, declaration folders, top-level data constants, and inline regex literals.'
 ---
 
 # @studnicky/folder-content-shape
 
-Folder location signals what a file's top-level declarations must look like. A file matches at most one of three mutually-exclusive categories, dispatched per-file — entity detection takes priority over folder-based declaration-form checking, which takes priority over the constants-count check:
-
-1. **Entity files** (`entities/` folder, or `*Entity.ts`-style basenames, excluding barrel `index.*` files) must export a single namespace containing `Schema` (a `const`, value-first authored — either declared `as const` or built via a schema-builder call, e.g. `Type.Object({...})` or `z.object({...})`), `Type` (a type reference applying any schema-deriving type to `typeof Schema` — `FromSchema<typeof Schema>`, TypeBox's `Static<typeof Schema>`, Zod's `z.infer<typeof Schema>`, or a project-local equivalent are all accepted identically), and `validate` (a type guard — either `SchemaValidator.compile<Type>(Schema)` or a hand-written `candidate is Type` predicate function).
-2. **`interfaces/` vs `types/` folders** — files under an `interfaces/` folder must declare an `interface`, not a `type` alias; files under a `types/` folder must declare a `type` alias, not an `interface`. Only top-level declarations are judged. There is no path-based exemption from this check — a file under `tests/` or inside the `eslint-config` package itself is judged exactly like any other file.
-3. **Constants placement** — all other files with 2+ top-level `const` declarations (excluding function/class-bound consts) must live under a `constants/` folder, or a `fixtures/` folder for test/example data.
-
-None of the three categories above, nor the constants-placement check, is decided by folder name, package path, or declared identifier names — every determination is structural, from the parsed source:
-
-- A file is an **entity file** because its basename structurally matches `*Entity.ts` (or it lives under an `entities/` folder) — never because some other file nearby happens to be one.
-- A file is exempt from the constants-placement check (and, transitively, from the inline-regex check below) when it is structurally one of:
-  - a **pure constants module** — every top-level statement is an import, a type declaration, or a `const` declaration whose declarators are all genuine data constants (no function, class, or non-collection `new` value mixed in). Such a file is, by its own content, already nothing but constants — moving it changes nothing, regardless of which folder it happens to live in.
-  - a module that exports a namespace whose name ends in `Entity` — the same signal the entity-namespace check looks for, so a file carrying it is entity-shaped by content even if it lives outside an `entities/` folder.
-  - a **pure re-export barrel** — every top-level statement re-exports from another module (`export … from '…'` / `export * from '…'`), with no local declaration of its own. A re-export carries no data of its own to relocate, whatever the file is named.
-
-Renaming a directory, moving a file into a folder named `constants/`, or naming a declaration `Schema`/`validate`/`ajv` buys nothing on its own — a file that mixes a data constant with a function or class is still flagged for the data constant, no matter which folder it lives in.
-
-A fourth, independent check runs alongside whichever category above a file falls into (except in files structurally exempt from the constants-placement check, per the same three bullets above): regex literals — `/pattern/flags` syntax, or `new RegExp('pattern', ...)` with an inlined string pattern — are data constants exactly like magic numbers and enums, and must never be declared inline. **This check is zero-tolerance** — a single inline regex is enough to flag it, unlike the 2+ threshold that applies to other constants.
+Constrains a file through one of three mutually exclusive categories, with entity detection taking precedence over declaration-folder checks, which take precedence over the constants check. An independent inline-regex check runs for every category unless the module is structurally exempt from the constants check.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
-## ✗ Incorrect
+## Entity files
 
-### Entity namespace shape
+An entity file is a non-barrel file under an `entities/` path segment or with a basename matching `*Entity` plus a TypeScript or JavaScript extension. It must export a namespace whose name matches the filename base. The namespace must export:
 
-<!-- inline-ts-ok: eslint rule example -->
+- `Schema`: a value-first `const`, either authored with `as const` or built by a schema-builder call;
+- `Type`: a type alias derived from `typeof Schema`; and
+- `validate`: either `SchemaValidator.compile<Type>(Schema)` or a function type guard;
+- `intake`: `SchemaValidator.compileIntake<Type>(Schema)`, the boundary that returns a newly proven entity value; and
+- `create`: `SchemaValidator.compileCreate<Type>(Schema)` when the `Schema` declarator is an object literal whose top-level `type` property is `'object'`.
+
+`validate` narrows in place, while `intake` returns a new value whose type proves it crossed the unparsed-input boundary. `create` has a different provenance contract: it accepts locally produced partial object data without intake's default-filling or unknown-property stripping (neither `intake` nor `create` coerces a value's type). Scalars do not require `create`; `Partial<'healthy' | 'degraded'>` has no useful meaning.
+
+The object-only decision reads the `Schema` declarator's own top-level `type` property. A nested property schema does not count. When a builder call, spread, or composition does not expose a literal root type, the rule does not require `create`, avoiding a false positive.
+
+The rule reports a missing namespace and every namespace export that does not match the entity filename. It checks every exported namespace rather than silently choosing one.
+
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// missing namespace entirely
-// (filename: src/FooEntity.ts)
-export const FooEntity = {};
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Schema present but not declared as const
-// (filename: src/FooEntity.ts)
+// src/entities/UserEntity.ts
+import { SchemaValidator } from '@studnicky/json';
 import type { FromSchema } from 'json-schema-to-ts';
 
-export namespace FooEntity {
-  export const Schema = { type: 'object' };
-  export type Type = FromSchema<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return true;
-  }
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// Type hand-written instead of derived from Schema
-// (filename: src/FooEntity.ts)
-export namespace FooEntity {
+export namespace UserEntity {
   export const Schema = { type: 'object' } as const;
-  export type Type = { id: string };
-  export function validate(candidate: unknown): candidate is Type {
-    return true;
-  }
+  export type Type = FromSchema<typeof Schema>;
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: scalar entity example -->
 ```ts
-// validate returns boolean instead of being a type guard
-// (filename: src/FooEntity.ts)
+// src/entities/HealthStatusEntity.ts
+import { SchemaValidator } from '@studnicky/json';
 import type { FromSchema } from 'json-schema-to-ts';
 
-export namespace FooEntity {
-  export const Schema = { type: 'object' } as const;
+export namespace HealthStatusEntity {
+  export const Schema = { enum: ['healthy', 'degraded'], type: 'string' } as const;
   export type Type = FromSchema<typeof Schema>;
-  export function validate(_candidate: unknown): boolean {
-    return true;
-  }
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
 }
 ```
 
-### interfaces/ vs types/ declaration form
+## `interfaces/` and `types/` folders
 
-<!-- inline-ts-ok: eslint rule example -->
+Outside entity files, a top-level `type` alias under an `interfaces/` path segment is reported, as is a top-level `interface` under a `types/` path segment. A declaration remains top-level when wrapped by export declarations or TypeScript namespaces; declarations inside functions, classes, and ordinary blocks are out of scope. For paths in `packages/<package>/…`, the package name itself does not count as a convention-folder segment.
+
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// pure-data type alias declared under interfaces/ — reserved for `interface` declarations
-// (filename: src/interfaces/FooType.ts)
-export type FooType = { readonly id: string };
+// src/interfaces/UserInterface.ts
+export interface UserInterface {
+  readonly id: string;
+}
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// interface declared under types/ — reserved for `type` alias declarations
-// (filename: src/types/FooInterface.ts)
-export interface FooInterface { readonly id: string; }
+// src/types/UserType.ts
+export type UserType = {
+  readonly id: string;
+};
 ```
 
-### Constants placement
+## Data constants
 
-<!-- inline-ts-ok: eslint rule example -->
+For files that are neither entity nor declaration-folder files, the rule reports two or more top-level data-constant declarators when the module also contains other top-level content. Function-valued constants, member references, non-literal factory calls, dispatch maps, and non-collection instances are not data constants. `Set`, `Map`, `WeakSet`, and `WeakMap` constructions are data constants; `Number`, `String`, and `Boolean` calls with one literal argument are also data constants.
+
+A module is structurally exempt from both this check and the inline-regex check when it is one of the following:
+
+- a pure constants module: every top-level statement is an import, type declaration, or data `const` declaration;
+- a module exporting a namespace whose name ends in `Entity`; or
+- a pure re-export barrel with no local declarations.
+
+The report directs authors to isolate a flagged group in a `constants/` folder, or a `fixtures/` folder for test and example data, under one exported frozen object literal.
+
+Folder names and declaration names do not grant an exemption. Moving a mixed module into `constants/`, renaming its directory, or naming declarations `Schema`, `validate`, or `ajv` does not change its parsed structure.
+
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// two data consts mixed with a function const — still flagged for the two data consts;
-// the folder name alone does not exempt the file, since mixing a function disqualifies
-// the pure-constants-module exemption
-// (filename: src/constants/mixed.ts)
-export const MAX = 3;
-export const MIN = 1;
-export const handler = (): void => {};
+// A pure constants module is exempt regardless of its path.
+export const TIMEOUT_MS = 1000;
+export const MAX_RETRIES = 3;
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// index.ts mixing local consts with a re-export — still flagged; it is neither
-// a pure re-export barrel nor a pure constants module
-// (filename: src/index.ts)
-export * from './helpers.js';
-export const ALPHA = 1;
-export const BETA = 2;
+// A data-constant group mixed with another top-level declaration is reported.
+export const MAX_RETRIES = 3;
+export const MIN_RETRIES = 1;
+export function run(): void {}
 ```
 
-### Inline regex literals (zero-tolerance)
+## Inline regex literals
 
-<!-- inline-ts-ok: eslint rule example -->
+Regex literals and `new RegExp(...)` calls whose first argument is a static string are reported outside the structural exemptions above. A static pattern is a string literal, a template literal without expressions, or a `+` expression composed only of static strings. One inline pattern is sufficient to report; there is no two-constant threshold for regexes.
+
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// single inline regex literal nested inside a function body — flagged, unlike the 2+ threshold for other constants
-// (filename: src/validation/isEmail.ts)
 export function isEmail(value: string): boolean {
   return /^[^@]+@[^@]+$/u.test(value);
 }
 ```
 
-<!-- inline-ts-ok: eslint rule example -->
+<!-- inline-ts-ok: conceptual rule example -->
 ```ts
-// inline new RegExp(...) construction with a literal string pattern — flagged
-// (filename: src/validation/normalize.ts)
-export function normalize(value: string): string {
-  return value.replace(new RegExp('[\\s]+', 'g'), ' ');
+export function matches(value: string, pattern: string): boolean {
+  return new RegExp(pattern).test(value);
 }
 ```
 
-## ✓ Correct
-
-### Entity namespace shape
+## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// valid entity: Schema as const, Type from FromSchema, function type guard
-// (filename: src/FooEntity.ts)
-import type { FromSchema } from 'json-schema-to-ts';
-
-export namespace FooEntity {
-  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;
-  export type Type = FromSchema<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof (candidate as Record<string, unknown>).id === 'string';
-  }
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// valid entity: validate compiled from schema via SchemaValidator.compile<Type>(Schema)
-// (filename: src/FooEntity.ts)
+// filename: /project/src/FooEntity.ts
 import { SchemaValidator } from '@studnicky/json';
 import type { FromSchema } from 'json-schema-to-ts';
 
@@ -168,138 +133,65 @@ export namespace FooEntity {
   export const Schema = { type: 'object' } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = SchemaValidator.compile<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// valid entity: TypeBox Schema builder call, Type from Static<typeof Schema>
-// (filename: src/FooEntity.ts)
-import { Type, type Static } from '@sinclair/typebox';
-
-export namespace FooEntity {
-  export const Schema = Type.Object({ id: Type.String() });
-  export type Type = Static<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof (candidate as Record<string, unknown>).id === 'string';
-  }
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>
-// (filename: src/FooEntity.ts)
-import { z } from 'zod';
-
-export namespace FooEntity {
-  export const Schema = z.object({ id: z.string() });
-  export type Type = z.infer<typeof Schema>;
-  export function validate(candidate: unknown): candidate is Type {
-    return typeof (candidate as Record<string, unknown>).id === 'string';
-  }
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// index.ts barrel under entities/ is exempt from namespace checks
-// (filename: src/entities/index.ts)
-export * from './FooEntity.js';
-export * from './BarEntity.js';
-```
-
-### interfaces/ vs types/ declaration form
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// interface declared under interfaces/ — not flagged
-// (filename: src/interfaces/FooInterface.ts)
-export interface FooInterface { readonly id: string; run(): void; }
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// type alias declared under types/ — not flagged
-// (filename: src/types/FooType.ts)
+// filename: /project/src/interfaces/FooType.ts
 export type FooType = { readonly id: string };
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// type alias not under interfaces/ or types/ — unrelated folder, not flagged
-// (filename: src/models/FooType.ts)
-export type FooType = { readonly id: string };
-```
-
-### Constants placement
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// single top-level const — not flagged
-// (filename: src/http/client.ts)
+// filename: /project/src/http/mixedWithFunction.ts
 export const MAX_RETRIES = 3;
+export const TIMEOUT_MS = 1000;
+export const onClick = (): void => {};
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// validate is a function const, structurally excluded; only Schema remains,
-// below the 2+ threshold
-// (filename: src/schemas/thing.ts)
-const Schema = {};
-export const validate = (): boolean => true;
+// filename: /project/src/validation/normalize.ts
+export function normalize(value: string): string {
+  return value.replace(new RegExp("[\\s]+", "g"), " ");
+}
+```
+
+## ✓ Correct
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// filename: /project/src/FooEntity.ts
+import type { FromSchema } from 'json-schema-to-ts';
+
+export namespace FooEntity {
+  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;
+  export type Type = FromSchema<typeof Schema>;
+  export const validate = SchemaValidator.compile<Type>(Schema);
+  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const create = SchemaValidator.compileCreate<Type>(Schema);
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// a pure constants module — every top-level declaration is a data const,
-// nothing else in the file — exempt by content, regardless of folder
-// (filename: src/http/client.ts)
+// filename: /project/src/http/client.ts
 export const TIMEOUT_MS = 1000;
 export const MAX_RETRIES = 3;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// two top-level function consts — not flagged, functions are not data constants
-// (filename: src/components/Button.ts)
-export const handleClick = (): void => {};
-export const handleSubmit = (): void => {};
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// a pure re-export barrel, not named index.ts — exempt by content, not filename
-// (filename: src/aggregate.ts)
+// filename: /project/src/aggregate.ts
 export * from './helpers.js';
 export * from './other.js';
 ```
 
-### Inline regex literals
-
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// a pure constants module holding a single regex data const — exempt by
-// content, coincidentally under constants/
-// (filename: src/constants/patterns.ts)
-export const EMAIL_PATTERN = /^[^@]+@[^@]+$/u;
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// regex imported from constants/ and only referenced by name — no inline literal present, not flagged
-// (filename: src/validation/isEmail.ts)
-import { EMAIL_PATTERN } from '../constants/patterns.js';
-
-export function isEmail(value: string): boolean {
-  return EMAIL_PATTERN.test(value);
-}
-```
-
-<!-- inline-ts-ok: eslint rule example -->
-```ts
-// "new RegExp(pattern)" built from a runtime variable, not an inlined string literal — not flagged
-// (filename: src/validation/matches.ts)
+// filename: /project/src/validation/matches.ts
 export function matches(value: string, pattern: string): boolean {
   return new RegExp(pattern).test(value);
 }

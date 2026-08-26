@@ -1,0 +1,85 @@
+{
+  "valid": [
+    {
+      "name": "concat() outside any loop - not flagged",
+      "code": "declare const items: number[]; declare const more: number[]; items.concat(more);"
+    },
+    {
+      "name": "user-defined concat() on a non-array type inside a loop - not flagged (identity is resolved, not name-matched)",
+      "code": "class Rope { concat(other: Rope): Rope { return other; } } declare const ropes: Rope[]; declare const seed: Rope; let acc = seed; const n = ropes.length; for (let i = 0; i < n; i += 1) { acc = acc.concat(ropes[i] ?? seed); }"
+    },
+    {
+      "name": "concat.call() indirection - owned by direct-invocation-only, resolves to CallableFunction.call not Array.concat",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; for (const id of ids) { items.concat.call(items, more); }"
+    },
+    {
+      "name": "concat.apply() indirection - owned by direct-invocation-only",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; for (const id of ids) { items.concat.apply(items, [more]); }"
+    },
+    {
+      "name": "helper's concat() called from both inside and outside a loop - not provably per-iteration, not flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; function helper() { items.concat(more); } helper(); for (const id of ids) { helper(); }"
+    },
+    {
+      "name": "helper referenced as a value (not only called) - unprovable, not flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; function helper() { items.concat(more); } const ref = helper; for (const id of ids) { ref(); }"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "concat() inside for loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; for (let i = 0; i < items.length; i++) { items.concat(more); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "concat() inside while loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; let i = 0; while (i < 3) { items.concat(more); i += 1; }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "concat() inside do...while loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; let i = 0; do { items.concat(more); i += 1; } while (i < 3);",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "concat() inside for...of loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; for (const id of ids) { items.concat(more); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "concat() inside for...in loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const rec: Record<string, number>; for (const key in rec) { items.concat(more); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "computed literal key evades name matching but not signature resolution - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; for (const id of ids) { items['concat'](more); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "const-held method name evades name matching but not signature resolution - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; declare const key: 'concat'; for (const id of ids) { items[key](more); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "forEach callback is a loop body - flagged (LoopContext, not syntactic loop keywords)",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; ids.forEach((id) => { items.concat(more); });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "map callback is a loop body - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; ids.map((id) => { return items.concat(more); });",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "helper function's only call site is inside a loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; function helper() { items.concat(more); } for (const id of ids) { helper(); }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "const arrow-function helper's only call site is inside a loop - flagged",
+      "code": "declare const items: number[]; declare const more: number[]; declare const ids: number[]; const helper = () => { items.concat(more); }; for (const id of ids) { helper(); }",
+      "errors": [{ "messageId": "forbidden" }]
+    }
+  ]
+}

@@ -6,52 +6,57 @@ import assert from 'node:assert/strict';
 import { BaseError } from '../src/index.js';
 
 class AppError extends BaseError {
-  static of(message: string, code: string, cause?: Error): AppError {
-    return new AppError({ 'cause': cause, 'code': code, 'message': message, 'retryable': false });
+  public constructor(argumentList: { 'cause'?: Error; 'code': string; 'message': string; 'retryable': boolean }) {
+    super(argumentList);
   }
 
   protected override serializeExtra(): Record<string, unknown> {
-    const extra: Record<string, unknown> = { 'domain': 'app' };
-    return extra;
+    return { 'domain': 'app' };
   }
 
   protected override formatUserMessage(): string {
-    const result = `Application error: ${this.message}`;
+    const result = String.raw`Application error: ${this.message}`;
     return result;
   }
 }
 
-const err = AppError.of('Something failed', 'app.failure');
+const error = new AppError({ 'code': 'app.failure', 'message': 'Something failed', 'retryable': false });
 
-console.log('AppError.code:', err.code);
-console.log('AppError.timestamp:', err.timestamp);
-console.log('AppError.retryable:', err.retryable);
-console.log('AppError.toUserMessage():', err.toUserMessage());
+console.log('AppError.code:', error.code);
+console.log('AppError.timestamp:', error.timestamp);
+console.log('AppError.retryable:', error.retryable);
+console.log('AppError.toUserMessage():', error.toUserMessage());
 
-const json = err.toJSON();
+const json = error.toJSON();
 console.log('AppError.toJSON().code:', json.code);
 console.log('AppError.toJSON().domain:', json.domain);
 
 const cause = new Error('DB connection refused');
-const wrapped = AppError.of('Query failed', 'app.queryFailed', cause);
+const wrapped = new AppError({ 'cause': cause, 'code': 'app.queryFailed', 'message': 'Query failed', 'retryable': false });
 const chain = BaseError.getCauseChain(wrapped);
+const firstCause = chain[0];
+const secondCause = chain[1];
+
+if (!(firstCause instanceof Error) || !(secondCause instanceof Error)) {
+  throw new Error('cause chain contains a non-error value');
+}
 
 console.log('Cause chain length:', chain.length);
-console.log('Cause chain[0]:', (chain[0] as Error).message);
-console.log('Cause chain[1]:', (chain[1] as Error).message);
+console.log('Cause chain[0]:', firstCause.message);
+console.log('Cause chain[1]:', secondCause.message);
 // #endregion usage
 
-assert.ok(err instanceof AppError, 'instanceof AppError');
-assert.ok(err instanceof BaseError, 'instanceof BaseError');
-assert.ok(err instanceof Error, 'instanceof Error');
-assert.strictEqual(err.code, 'app.failure');
-assert.strictEqual(err.retryable, false);
-assert.ok(typeof err.timestamp === 'number' && err.timestamp > 0, 'timestamp is a positive number');
-assert.strictEqual(err.toUserMessage(), 'Application error: Something failed');
+assert.ok(error instanceof AppError, 'instanceof AppError');
+assert.ok(error instanceof BaseError, 'instanceof BaseError');
+assert.ok(error instanceof Error, 'instanceof Error');
+assert.strictEqual(error.code, 'app.failure');
+assert.strictEqual(error.retryable, false);
+assert.ok(typeof error.timestamp === 'number' && error.timestamp > 0, 'timestamp is a positive number');
+assert.strictEqual(error.toUserMessage(), 'Application error: Something failed');
 assert.strictEqual(json.code, 'app.failure');
 assert.strictEqual(json.domain, 'app', 'serializeExtra() merged into toJSON()');
 assert.strictEqual(chain.length, 2, 'Cause chain has 2 nodes');
-assert.strictEqual((chain[0] as Error).message, 'Query failed');
-assert.strictEqual((chain[1] as Error).message, 'DB connection refused');
+assert.strictEqual(firstCause.message, 'Query failed');
+assert.strictEqual(secondCause.message, 'DB connection refused');
 
 console.log('01-base-error: all assertions passed');

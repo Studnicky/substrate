@@ -13,7 +13,11 @@ description: Bounded node:worker_threads pool that fans work items across worker
 pnpm add @studnicky/worker-pool
 ```
 
-`@studnicky/worker-pool` is the sole public code entrypoint.
+`@studnicky/worker-pool` exposes a runtime entrypoint plus explicit entity and interface subpaths.
+
+::: info Live demo unavailable
+In-browser execution of this package is not supported. `run()` spawns real `node:worker_threads` workers, which browsers do not provide. The example below is shown statically.
+:::
 
 ## Usage
 
@@ -21,7 +25,7 @@ Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a
 
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
-The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with one of four exported interface contracts: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
 ## Ordering and failure semantics
 
@@ -49,6 +53,31 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 | `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, or termination fails |
 
 A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating; inspect it via `getHookErrorCount()` (a running total) and `getHookErrors()` (a defensive copy of every recorded failure), backed internally by `@studnicky/errors`'s `HookInvoker`.
+
+## Entities
+
+`@studnicky/worker-pool/entities` exports every schema namespace in `src/entities`, including worker-pool configuration, worker envelopes, task state, and lifecycle state, event, and effect values.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import { WorkerPoolConfigEntity } from '@studnicky/worker-pool/entities';
+```
+
+## Interfaces
+
+`@studnicky/worker-pool/interfaces` exports every TypeScript interface in `src/interfaces`, including the envelope contracts used by worker entry scripts.
+
+<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+```typescript
+import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/interfaces';
+```
+
+## Exports
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `WorkerPool` | Creates a bounded Node.js worker-thread pool. | `@studnicky/worker-pool` |
+| `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool` |
 
 ## Scope
 

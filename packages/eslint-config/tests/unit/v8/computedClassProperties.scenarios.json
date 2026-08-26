@@ -1,0 +1,63 @@
+{
+  "valid": [
+    {
+      "name": "computed field at module scope - class body evaluates once, %HaveSameMap true across instances",
+      "code": "const KEY = 'dyn'; class Widget { [KEY] = 1; alpha = 2; }"
+    },
+    {
+      "name": "computed method name at module scope - evaluated once at class-definition time",
+      "code": "const KEY = 'run'; class Widget { [KEY]() { return 1; } }"
+    },
+    {
+      "name": "computed field in a module-scope ClassExpression - same once-only evaluation",
+      "code": "const KEY = 'dyn'; const Widget = class { [KEY] = 1; };"
+    },
+    {
+      "name": "literal computed key inside a factory - resolves identically every call",
+      "code": "function makeClass() { return class { ['fixedName'] = 1; }; }"
+    },
+    {
+      "name": "well-known symbol inside a factory - no non-computed spelling exists in JavaScript",
+      "code": "function makeClass() { return class { [Symbol.iterator]() { return [][Symbol.iterator](); } }; }"
+    },
+    {
+      "name": "Symbol.asyncIterator at module scope - unconditionally exempt",
+      "code": "class Stream { [Symbol.asyncIterator]() { return this; } }"
+    },
+    {
+      "name": "non-computed class members are never matched",
+      "code": "class Widget { alpha = 1; run() { return this.alpha; } }"
+    },
+    {
+      "name": "nested class members are not double-matched through the outer class",
+      "code": "const KEY = 'dyn'; class Outer { static Inner = class { [KEY] = 1; }; }"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "variable computed field in a factory function - each call mints a distinct runtime class",
+      "code": "function makeClass(key) { return class { [key] = 1; }; }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "variable computed method name in a factory function",
+      "code": "function makeClass(key) { return class { [key]() { return 1; } }; }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "variable computed field in a class declared inside a loop",
+      "code": "declare const keys: readonly string[]; const length = keys.length; for (let index = 0; index < length; index += 1) { const key = keys[index] ?? ''; class Widget { [key] = 1; } }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "template-literal computed key in a factory - not a compile-time constant",
+      "code": "function makeClass(suffix) { return class { [`field_${suffix}`] = 1; }; }",
+      "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "variable computed field in an arrow-function factory",
+      "code": "const makeClass = (key) => { return class { [key] = 1; }; };",
+      "errors": [{ "messageId": "forbidden" }]
+    }
+  ]
+}

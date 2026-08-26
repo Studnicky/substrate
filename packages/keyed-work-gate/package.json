@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/keyed-work-gate",
-  "version": "9.2.0",
+  "version": "10.0.0",
   "description": "Keyed single-flight and serialized work gate composing @studnicky/mutex and @studnicky/concurrency's Coalesce",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [

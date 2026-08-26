@@ -1,63 +1,62 @@
 ---
 title: '@studnicky/all-types-are-entities'
-description: "Requires canonical pure-data aliases to use the exact schema-derived '*Entity.Type' form."
+description: "Requires canonical pure-data declarations to use the exact schema-derived '*Entity.Type' form."
 ---
 
 # @studnicky/all-types-are-entities
 
-Owns the declaration form for aliases already verified as canonical pure data.
+Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`, and the declaration must derive directly from `typeof Schema`.
 
-The only accepted alias is an exported `Type` member inside an `*Entity` namespace, derived directly from the exported `Schema` value in that same namespace. File paths, package names, test files, arbitrary namespaces, and source comments do not change the result.
+The rule accepts both canonical spellings:
+
+- `export type Type = F<typeof Schema>`
+- `export interface Type extends F<typeof Schema> {}`
+
+`F` must have verified schema-derived provenance. A pure-data declaration that does not meet the exact entity ownership and derivation shape is reported. The rule does nothing when TypeScript parser services are unavailable.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
-## Required form
+## ✗ Incorrect
 
-| Component | Requirement |
-|---|---|
-| Namespace | An exported name ending in `Entity`, such as `UserEntity` |
-| Schema | An exported `Schema` value in that namespace satisfying `JSONSchema` |
-| Type | The exact declaration `export type Type = F<typeof Schema>` in the same namespace, for a verified schema-deriving `F` |
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+export type User = {
+  readonly id: string;
+};
+```
 
-The rule verifies the syntax and ownership of this relationship:
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+import type { FromSchema } from 'json-schema-to-ts';
 
-- the namespace name ends in `Entity`;
-- `Type` and `Schema` are exported members of the same namespace; and
-- `Type` is exactly `F<typeof Schema>` with verified schema provenance — `F`'s name and origin package carry no weight, only its structure and the resolved result do.
+export namespace UserEntity {
+  export const Schema = { type: 'object' } as const;
+  export type User = FromSchema<typeof Schema>;
+}
+```
 
-A canonical composition remains JSON-Schema-expressible data, so it belongs in a composed schema rather than a free-standing alias. For example, `export type DomainEventType = UserCreatedEntity.Type | UserDeletedEntity.Type` is invalid.
+## ✓ Correct
 
-The example is invalid in every path, including `src/types`, `tests`, configuration packages, and arbitrary namespaces.
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+import type { FromSchema } from 'json-schema-to-ts';
+
+export namespace UserEntity {
+  export const Schema = { type: 'object' } as const;
+  export type Type = FromSchema<typeof Schema>;
+}
+```
+
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+import type { FromSchema } from 'json-schema-to-ts';
+
+export namespace UserEntity {
+  export const Schema = { type: 'object' } as const;
+  export interface Type extends FromSchema<typeof Schema> {}
+}
+```
 
 ## Diagnostic ownership
 
-[`type-alias-invariants`](./type-alias-invariants.md) owns invalid provenance, alias identity, declaration shape, naming, and readonly output. This rule reports only canonical pure-data aliases whose declaration is not the exact entity form, preventing duplicate diagnostics for callable, inline, unresolved, or otherwise invalid aliases.
-
-Classification and ownership checks resolve through TypeScript symbols and verified schema provenance. Unresolved provenance, structural similarity, near matches, and broader or narrower shapes do not establish canonical identity.
-
-## Configuration
-
-The rule takes no options and recognizes no comment, declaration-name, member-name, package, or path exemptions. Enable or disable the complete rule through flat configuration:
-
-```js
-export default [
-  {
-    files: ['src/**/*.ts'],
-    rules: {
-      '@studnicky/all-types-are-entities': 'error'
-    }
-  },
-  {
-    files: ['generated/**/*.ts'],
-    rules: {
-      '@studnicky/all-types-are-entities': 'off'
-    }
-  }
-];
-```
-
-## Related rules
-
-- [`type-alias-invariants`](./type-alias-invariants.md) owns alias identity, declaration shape, canonical source, naming, and readonly output.
-- [`interface-must-be-contract`](./interface-must-be-contract.md) rejects interfaces containing only pure data.
-- [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) requires named entity references for pure-data portions of contract interfaces.
+[`type-alias-invariants`](./type-alias-invariants.md) owns aliases that fail its own identity, declaration-shape, naming, provenance, or readonly checks. This rule reports only declarations the shared classifier identifies as canonical pure data but that are not in the canonical entity form.

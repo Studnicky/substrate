@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types';
+
 import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
 import type { NavigatorCompatEntity } from '../../entities/NavigatorCompatEntity.js';
@@ -8,7 +10,7 @@ import { GpuDetector } from '../../modules/browser/GpuDetector.js';
 export class SystemProvider implements SystemProviderInterface {
   static #navigator(): NavigatorCompatEntity.Type {
     const navigatorValue: unknown = Reflect.get(globalThis, 'navigator');
-    if (typeof navigatorValue !== 'object' || navigatorValue === null) {
+    if (!Predicates.isObjectLike(navigatorValue)) {
       return {
         'deviceMemory': 0,
         'hardwareConcurrency': 1,
@@ -21,21 +23,21 @@ export class SystemProvider implements SystemProviderInterface {
     const hardwareConcurrencyValue: unknown = Reflect.get(navigatorValue, 'hardwareConcurrency');
     const userAgentValue: unknown = Reflect.get(navigatorValue, 'userAgent');
     const userAgentDataValue: unknown = Reflect.get(navigatorValue, 'userAgentData');
-    const platformValue: unknown = typeof userAgentDataValue === 'object' && userAgentDataValue !== null
+    const platformValue: unknown = Predicates.isObjectLike(userAgentDataValue)
       ? Reflect.get(userAgentDataValue, 'platform')
       : undefined;
 
     return {
-      'deviceMemory': typeof deviceMemoryValue === 'number' && Number.isFinite(deviceMemoryValue)
+      'deviceMemory': Predicates.isNumber(deviceMemoryValue) && Number.isFinite(deviceMemoryValue)
         ? deviceMemoryValue
         : 0,
-      'hardwareConcurrency': typeof hardwareConcurrencyValue === 'number'
+      'hardwareConcurrency': Predicates.isNumber(hardwareConcurrencyValue)
         && Number.isInteger(hardwareConcurrencyValue)
         && hardwareConcurrencyValue > 0
         ? hardwareConcurrencyValue
         : 1,
-      'userAgent': typeof userAgentValue === 'string' ? userAgentValue : '',
-      'userAgentData': { 'platform': typeof platformValue === 'string' ? platformValue : '' }
+      'userAgent': Predicates.isString(userAgentValue) ? userAgentValue : '',
+      'userAgentData': { 'platform': Predicates.isString(platformValue) ? platformValue : '' }
     };
   }
 
@@ -91,7 +93,8 @@ export class SystemProvider implements SystemProviderInterface {
    * over-estimating available parallelism with an unreliable heuristic.
    */
   physicalCpuCount(): number {
-    const result = this.logicalCpuCount();
+    const snapshot = this.cpuInfo();
+    const result = snapshot.physicalCount;
     return result;
   }
 

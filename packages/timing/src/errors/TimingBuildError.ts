@@ -25,12 +25,12 @@ export class TimingBuildError extends BaseError {
    * @param message - Description of the configuration validation failure
    * @param cause   - Optional underlying cause
    */
-  public static create(message: string, cause?: unknown): TimingBuildError {
+  public static create(message: string, cause?: Error): TimingBuildError {
     const result = new TimingBuildError({ 'cause': cause, 'code': TimingBuildError.errorCode, 'message': message, 'retryable': false });
     return result;
   }
 
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
   }
 }

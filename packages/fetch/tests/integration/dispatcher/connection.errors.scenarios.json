@@ -67,11 +67,11 @@
     },
     {
       "name": "invalid-keep-alive-max-timeout-negative",
-      "description": "validateDispatcher rejects negative keepAliveMaxTimeout",
+      "description": "validateDispatcher rejects negative keepAliveMaximumTimeout",
       "shape": "invalid-config",
       "input": {
         "dispatcher": {
-          "keepAliveMaxTimeout": -1000
+          "keepAliveMaximumTimeout": -1000
         }
       },
       "expected": {
@@ -85,7 +85,7 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__shape": "infinity"
+            "shape": "infinity"
           }
         }
       },
@@ -100,7 +100,7 @@
       "input": {
         "dispatcher": {
           "connections": {
-            "__shape": "nan"
+            "shape": "nan"
           }
         }
       },

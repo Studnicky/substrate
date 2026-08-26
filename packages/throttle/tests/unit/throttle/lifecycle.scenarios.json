@@ -268,6 +268,59 @@
         "activeResult": "nope"
       },
       "expected": {}
+    },
+    {
+      "name": "on-release-fires-exactly-once-still-busy",
+      "description": "onRelease fires exactly once per completed operation when the throttle remains busy afterward (no queue to hand off to)",
+      "shape": "on-release-fires-exactly-once-still-busy",
+      "input": {
+        "throttle": { "concurrencyLimit": 2 },
+        "activeResult": "first-result",
+        "queuedResult": "second-result"
+      },
+      "expected": { "releaseCount": 2 }
+    },
+    {
+      "name": "on-release-fires-exactly-once-became-idle",
+      "description": "onRelease fires exactly once when the last active operation completes and the throttle becomes idle",
+      "shape": "on-release-fires-exactly-once-became-idle",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "solo-result"
+      },
+      "expected": { "releaseCount": 1 }
+    },
+    {
+      "name": "on-release-fires-exactly-once-handoff-granted",
+      "description": "onRelease fires exactly once per operation when a release hands the slot off to a queued waiter",
+      "shape": "on-release-fires-exactly-once-handoff-granted",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "leader-result",
+        "queuedResult": "waiter-result"
+      },
+      "expected": { "releaseCount": 2 }
+    },
+    {
+      "name": "on-release-fires-exactly-once-on-rejection",
+      "description": "onRelease fires exactly once when an operation completes via rejection rather than success",
+      "shape": "on-release-fires-exactly-once-on-rejection",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "operationErrorMessage": "operation failed"
+      },
+      "expected": { "releaseCount": 1 }
+    },
+    {
+      "name": "on-release-fires-exactly-once-on-acquire-rollback",
+      "description": "onRelease fires exactly once when a throwing onAcquire hook rolls the slot back",
+      "shape": "on-release-fires-exactly-once-on-acquire-rollback",
+      "input": {
+        "throttle": { "concurrencyLimit": 1 },
+        "activeResult": "unused",
+        "hookErrorMessage": "acquire boom"
+      },
+      "expected": { "releaseCount": 1 }
     }
   ]
 }

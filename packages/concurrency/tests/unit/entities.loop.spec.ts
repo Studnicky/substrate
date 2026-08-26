@@ -12,7 +12,7 @@ import {
   DispatchCompletedEventEntity,
   DispatchStartedEventEntity,
   SemaphoreWaiterStateEntity
-} from '../../src/index.js';
+} from '../../src/entities/index.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
 type ValidationName =
