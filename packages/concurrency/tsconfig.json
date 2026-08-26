@@ -13,9 +13,26 @@
     "dist"
   ],
   "references": [
-    { "path": "../circular-buffer" },
-    { "path": "../errors" },
-    { "path": "../fsm" },
-    { "path": "../json" }
+    {
+      "path": "../circular-buffer"
+    },
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../event-bus"
+    },
+    {
+      "path": "../fsm"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../scheduler"
+    },
+    {
+      "path": "../types"
+    }
   ]
 }

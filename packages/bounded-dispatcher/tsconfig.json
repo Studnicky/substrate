@@ -14,13 +14,25 @@
   ],
   "references": [
     {
+      "path": "../clock"
+    },
+    {
       "path": "../concurrency"
+    },
+    {
+      "path": "../errors"
     },
     {
       "path": "../event-bus"
     },
     {
+      "path": "../json"
+    },
+    {
       "path": "../scheduler"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

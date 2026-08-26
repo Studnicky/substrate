@@ -14,10 +14,16 @@
   ],
   "references": [
     {
+      "path": "../concurrency"
+    },
+    {
       "path": "../config"
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../fsm"
     },
     {
       "path": "../json"

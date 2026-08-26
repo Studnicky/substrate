@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../errors"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

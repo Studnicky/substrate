@@ -2,7 +2,10 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "outDir": "./dist",
     "rootDir": "./src"
   },
@@ -19,6 +22,9 @@
     },
     {
       "path": "../json"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

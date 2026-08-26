@@ -17,13 +17,16 @@
       "path": "../errors"
     },
     {
-      "path": "../throttle"
-    },
-    {
       "path": "../resilience"
     },
     {
       "path": "../retry"
+    },
+    {
+      "path": "../throttle"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

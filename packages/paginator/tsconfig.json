@@ -14,7 +14,16 @@
   ],
   "references": [
     {
+      "path": "../errors"
+    },
+    {
       "path": "../fsm"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

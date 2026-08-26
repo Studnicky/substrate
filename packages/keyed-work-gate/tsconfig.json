@@ -14,10 +14,13 @@
   ],
   "references": [
     {
+      "path": "../concurrency"
+    },
+    {
       "path": "../mutex"
     },
     {
-      "path": "../concurrency"
+      "path": "../types"
     }
   ]
 }

@@ -17,7 +17,13 @@
       "path": "../errors"
     },
     {
+      "path": "../fsm"
+    },
+    {
       "path": "../json"
+    },
+    {
+      "path": "../types"
     },
     {
       "path": "../virtual-fs"
