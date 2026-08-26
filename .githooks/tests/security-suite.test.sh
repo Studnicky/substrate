@@ -43,5 +43,63 @@ assert_security_suite_calls_shared_commands() {
   pass_count=$((pass_count + 1))
 }
 
+assert_audit_check_baseline_diff() {
+  local repo
+
+  repo=$(make_repo)
+  (
+    cd "$repo" || exit 1
+    echo '{}' > package.json
+    echo 'lockfileVersion: 9.0' > pnpm-lock.yaml
+    git add package.json pnpm-lock.yaml
+    git commit -q -m "add manifest"
+
+    cat > base-audit.json <<'JSON'
+{"advisories":{"1001":{"id":1001,"github_advisory_id":"GHSA-aaaa-bbbb-cccc","severity":"high","title":"Pre-existing issue","module_name":"old-dep"}},"metadata":{"vulnerabilities":{"high":1}}}
+JSON
+
+    cat > head-audit-same.json <<'JSON'
+{"advisories":{"1001":{"id":1001,"github_advisory_id":"GHSA-aaaa-bbbb-cccc","severity":"high","title":"Pre-existing issue","module_name":"old-dep"}},"metadata":{"vulnerabilities":{"high":1}}}
+JSON
+
+    cat > head-audit-new.json <<'JSON'
+{"advisories":{"1001":{"id":1001,"github_advisory_id":"GHSA-aaaa-bbbb-cccc","severity":"high","title":"Pre-existing issue","module_name":"old-dep"},"2002":{"id":2002,"github_advisory_id":"GHSA-xxxx-yyyy-zzzz","severity":"high","title":"New issue","module_name":"new-dep"}},"metadata":{"vulnerabilities":{"high":2}}}
+JSON
+
+    stub_cmd "$repo" pnpm "
+if [ -d .git ]; then
+  cat '$repo/head-audit-same.json'
+else
+  cat '$repo/base-audit.json'
+fi
+"
+    if ! PATH="$repo/bin:$PATH" run_audit_check HEAD >/dev/null 2>audit-out.log; then
+      fail "audit baseline: no new vulnerabilities" "expected exit 0, got failure: $(cat audit-out.log)"
+    fi
+    assert_contains "audit baseline: pre-existing not blocking" "pre-existing vulnerability" "$(cat audit-out.log)"
+
+    stub_cmd "$repo" pnpm "
+if [ -d .git ]; then
+  cat '$repo/head-audit-new.json'
+else
+  cat '$repo/base-audit.json'
+fi
+"
+    if PATH="$repo/bin:$PATH" run_audit_check HEAD >/dev/null 2>audit-out.log; then
+      fail "audit baseline: new vulnerability" "expected failure, got exit 0"
+    fi
+    assert_contains "audit baseline: reports new vulnerability" "GHSA-xxxx-yyyy-zzzz" "$(cat audit-out.log)"
+
+    stub_cmd "$repo" pnpm 'echo "registry error" >&2; exit 1'
+    if PATH="$repo/bin:$PATH" run_audit_check HEAD >/dev/null 2>audit-out.log; then
+      fail "audit baseline: broken audit report" "a report with no metadata (audit itself failed) must not silently pass"
+    fi
+    assert_contains "audit baseline: broken report fails loud" "did not produce a usable report" "$(cat audit-out.log)"
+  )
+  rm -rf "$repo"
+  pass_count=$((pass_count + 1))
+}
+
 assert_security_suite_calls_shared_commands
+assert_audit_check_baseline_diff
 test_main
