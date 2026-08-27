@@ -512,6 +512,15 @@ export const typeAliasInvariants: Rule.RuleModule = {
           return;
         }
 
+        // A top-level union of independently-declared, pure-data contract interfaces (every
+        // constituent readonly-evidenced, none callable) has no interface remedy either — the
+        // same "TypeScript cannot express a union as one interface" limitation above, just
+        // without a callable constituent to name it after. See
+        // `isTopLevelUnionOfDataContractInterfaces`'s doc comment.
+        if (classification?.isTopLevelUnionOfDataContractInterfaces(declaration.type) === true) {
+          return;
+        }
+
         const sourceFile = declaration.getSourceFile();
         const evidenceStart = analysis.evidence.getStart(sourceFile);
         const evidenceEnd = analysis.evidence.getEnd();

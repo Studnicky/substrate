@@ -9,6 +9,10 @@ const RunnableExample = defineAsyncComponent(async () => {
   return await import('./components/RunnableExample.vue');
 });
 
+const DrilldownTreeDemo = defineAsyncComponent(async () => {
+  return await import('./components/DrilldownTreeDemo.vue');
+});
+
 // The sidebar header logo is injected into the default layout's
 // `sidebar-nav-before` slot and rendered as a CSS block in base.css.
 // The home-page package grid is a real component (not frontmatter features),
@@ -23,6 +27,7 @@ export const theme: Theme = {
   enhanceApp({ app }) {
     app.component('PackageGrid', PackageGrid);
     app.component('RunnableExample', RunnableExample);
+    app.component('DrilldownTreeDemo', DrilldownTreeDemo);
   },
 };
 export default theme;

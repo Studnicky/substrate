@@ -80,13 +80,13 @@ function makeTimersShim(): Record<string, unknown> {
   };
 }
 
-function makeAssertShim(): unknown {
-  function assert(value: unknown, message?: string | Error): void {
-    if (value !== true && !value) {
-      throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
-    }
+function assert(value: unknown, message?: string | Error): void {
+  if (value !== true && !value) {
+    throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
   }
+}
 
+function makeAssertShim(): unknown {
   assert.ok = assert;
 
   assert.equal = (a: unknown, b: unknown, msg?: string | Error): void => {
@@ -163,6 +163,22 @@ function buildStaticModules(): Record<string, unknown> {
   out['node:crypto'] = { randomUUID: () => { return globalThis.crypto.randomUUID(); } };
 
   return out;
+}
+
+let fakerModulePromise: Promise<unknown> | undefined;
+
+/**
+ * Third-party npm packages aren't resolvable through the source glob or the
+ * Node-builtin shims above — this registers `@faker-js/faker` as its own static
+ * module the first time any example needs it, awaited before execution starts
+ * so `require('@faker-js/faker')` resolves synchronously during the run.
+ */
+async function ensureFakerLoaded(): Promise<void> {
+  if ('@faker-js/faker' in STATIC_MODULES) {
+    return;
+  }
+  fakerModulePromise ??= import('@faker-js/faker');
+  STATIC_MODULES['@faker-js/faker'] = await fakerModulePromise;
 }
 
 /** Canonicalize a relative `spec` against the directory of `fromCanonical`. */
@@ -293,7 +309,7 @@ const processShim = { cwd: () => { return '/'; }, env: processEnvironment, platf
 function evaluate(source: string, canonical: string, runtimeConsole: Console): Record<string, unknown> {
   const { code } = transform(source, { filePath: `${canonical}.ts`, transforms: ['imports', 'typescript'] });
   const moduleObject: LoadedModuleInterface = { exports: {} };
-  const requireShim = makeRequire(canonical, runtimeConsole);
+  const requireShim = makeRequire(canonical);
 
   // new Function is the playground's mechanism for evaluating sucrase-transpiled
   // CJS source with an injected require shim. This is the runner's entire purpose
@@ -308,7 +324,7 @@ function evaluate(source: string, canonical: string, runtimeConsole: Console): R
   return moduleObject.exports;
 }
 
-function makeRequire(fromCanonical: string, runtimeConsole: Console): (specifier: string) => unknown {
+function makeRequire(fromCanonical: string): (specifier: string) => unknown {
   return (specifier: string): unknown => {
     if (specifier in STATIC_MODULES) {
       return STATIC_MODULES[specifier];
@@ -352,8 +368,13 @@ function makeRequire(fromCanonical: string, runtimeConsole: Console): (specifier
  */
 export async function runExample(source: string, path: string, runtimeConsole: Console): Promise<void> {
   const { code } = transform(source, { filePath: `${path}.ts`, transforms: ['imports', 'typescript'] });
+
+  if (collectRequireSpecifiers(code).includes('@faker-js/faker')) {
+    await ensureFakerLoaded();
+  }
+
   await preloadDependencies(code, path, new Set<string>());
-  const requireShim = makeRequire(path, runtimeConsole);
+  const requireShim = makeRequire(path);
   const moduleObject: LoadedModuleInterface = { exports: {} };
 
   // new Function executes user-edited example source (CJS from sucrase) with an

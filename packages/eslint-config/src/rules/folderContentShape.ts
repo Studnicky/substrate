@@ -580,6 +580,11 @@ class NamespaceScanner {
           result.hasType = true;
           result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
         }
+      } else if (declType === 'TSInterfaceDeclaration') {
+        if (FolderShapeHelpers.getIdName(decl) === 'Type') {
+          result.hasType = true;
+          result.hasTypeFromSchema = SchemaMemberGuards.isInterfaceSchemaDerived(decl);
+        }
       } else if (declType === 'FunctionDeclaration') {
         if (FolderShapeHelpers.getIdName(decl) === 'validate') {
           result.hasValidate = true;
