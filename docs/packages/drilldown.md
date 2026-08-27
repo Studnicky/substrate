@@ -19,6 +19,22 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 `DrillDown.group` builds a hierarchical grouping tree from an array of records, either from explicit `GroupRuleInterface` rules (alphabetic, range, date, semver, CIDR, sequential, or string matchers) or from `DataAnalyzer`-recommended properties. `FacetedDiscovery` narrows a record set by concurrently-selectable facet dimensions. `DrilldownRulesEntity` and `DrillDownConfigEntity` are self-referential, schema-validated rule trees that can nest per-value grouping rules to unbounded depth.
 
+## Usage
+
+`propertyPriority` fixes the drilldown order explicitly — each entry adds one level to the tree:
+
+<<< ../../packages/drilldown/examples/basic-drilldown.ts#usage
+
+## Try it
+
+<RunnableExample src="packages/drilldown/examples/basic-drilldown" title="Multi-level grouping by propertyPriority" />
+
+## Live demo
+
+A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`, drilled down four levels deep (`region → category → status → brand`) to demonstrate the module's core promise: recursion bounded only by how many properties are discoverable in the data, not by a fixed depth. Click a node to expand or collapse its children.
+
+<DrilldownTreeDemo />
+
 ## Exports
 
 | Symbol | Purpose | Import path |
