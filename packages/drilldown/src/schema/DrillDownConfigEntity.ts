@@ -15,6 +15,7 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
 
+import { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
 import { DrilldownRulesEntity } from './DrilldownRulesEntity.js';
 
 export namespace DrillDownConfigEntity {
@@ -56,84 +57,7 @@ export namespace DrillDownConfigEntity {
       },
       'filter': {
         'description': 'Filter rules applied to records before grouping. Multiple rules are ANDed. Three variants are available, discriminated by the type field: date (UTC epoch-ms range), numeric (minimum/maximum range), and value (exact include/exclude list).',
-        'items': {
-          'oneOf': [
-            {
-              'additionalProperties': false,
-              'properties': {
-                'maximum': {
-                  'description': 'UTC epoch-ms upper bound (inclusive).',
-                  'type': 'number'
-                },
-                'minimum': {
-                  'description': 'UTC epoch-ms lower bound (inclusive).',
-                  'type': 'number'
-                },
-                'property': {
-                  'description': 'Record property name.',
-                  'type': 'string'
-                },
-                'type': {
-                  'description': 'Filter on a date property.',
-                  'enum': ['date'],
-                  'type': 'string'
-                }
-              },
-              'required': ['type', 'property'],
-              'type': 'object'
-            },
-            {
-              'additionalProperties': false,
-              'properties': {
-                'maximum': {
-                  'description': 'Inclusive upper bound.',
-                  'type': 'number'
-                },
-                'minimum': {
-                  'description': 'Inclusive lower bound.',
-                  'type': 'number'
-                },
-                'property': {
-                  'description': 'Record property name.',
-                  'type': 'string'
-                },
-                'type': {
-                  'description': 'Filter on a numeric property.',
-                  'enum': ['numeric'],
-                  'type': 'string'
-                }
-              },
-              'required': ['type', 'property'],
-              'type': 'object'
-            },
-            {
-              'additionalProperties': false,
-              'properties': {
-                'operator': {
-                  'description': 'include keeps only matching records; exclude removes them.',
-                  'enum': ['include', 'exclude'],
-                  'type': 'string'
-                },
-                'property': {
-                  'description': 'Record property name.',
-                  'type': 'string'
-                },
-                'type': {
-                  'description': 'Filter on exact property values.',
-                  'enum': ['value'],
-                  'type': 'string'
-                },
-                'values': {
-                  'description': 'Set of values to match.',
-                  'items': { 'type': 'string' },
-                  'type': 'array'
-                }
-              },
-              'required': ['type', 'property', 'operator', 'values'],
-              'type': 'object'
-            }
-          ]
-        },
+        'items': FilterRuleEntity.Schema,
         'type': 'array'
       },
       'granularity': {
@@ -178,10 +102,6 @@ export namespace DrillDownConfigEntity {
         'description': 'Minimum number of records a subgroup must contain to be recursed into. Groups at or below this size are treated as leaf nodes. Use to suppress noise from rare combinations.',
         'minimum': 1,
         'type': 'integer'
-      },
-      'numericGrouping': {
-        'description': 'When true, numeric properties are automatically bucketed into ranges rather than grouped by exact value. Useful for continuous measurements such as scores, counts, or durations.',
-        'type': 'boolean'
       },
       'propertyPriority': {
         'description': 'Ordered list of record property names to group by. Each entry adds one level to the tree (e.g. ["device", "daypart"] groups first by device, then by daypart within each device group). When omitted, the engine selects and orders properties automatically via autoGrouping.',

@@ -13,6 +13,7 @@
  */
 
 import {
+  ALL_DIGITS_PATTERN,
   ALPHANUMERIC_PATTERN,
   DATE_LIKE_TIMESTAMP_RANGE,
   MULTIPLE_OF_EPSILON_FACTOR,
@@ -24,6 +25,7 @@ import {
 } from './constants/index.js';
 
 interface ParsedSemverInterface {
+  readonly 'hasExplicitMinor': boolean
   readonly 'major': number
   readonly 'minor': number
   readonly 'patch': number
@@ -989,7 +991,7 @@ export class Predicates {
       return 1;
     }
     if (parsedFirst.prerelease !== '' && parsedSecond.prerelease !== '') {
-      const result = parsedFirst.prerelease.localeCompare(parsedSecond.prerelease);
+      const result = Predicates.comparePrereleaseIdentifiers(parsedFirst.prerelease, parsedSecond.prerelease);
       return result;
     }
 
@@ -1151,6 +1153,9 @@ export class Predicates {
       if (target.major === 0 && parsed.minor !== target.minor) {
         return false;
       }
+      if (target.major === 0 && target.minor === 0 && parsed.patch !== target.patch) {
+        return false;
+      }
 
       const result = Predicates.compareParsedSemver(parsed, target) >= 0;
       return result;
@@ -1162,7 +1167,10 @@ export class Predicates {
       if (target === undefined) {
         return false;
       }
-      if (parsed.major !== target.major || parsed.minor !== target.minor) {
+      if (parsed.major !== target.major) {
+        return false;
+      }
+      if (target.hasExplicitMinor && parsed.minor !== target.minor) {
         return false;
       }
 
@@ -1509,6 +1517,56 @@ export class Predicates {
     return 0;
   }
 
+  /**
+   * Compares two dot-separated semver prerelease strings per semver precedence rules: identifiers
+   * are compared pairwise, numeric identifiers compare numerically and always precede alphanumeric
+   * ones, alphanumeric identifiers compare lexicographically (ASCII), and a prerelease with fewer
+   * fields has lower precedence when all preceding fields are equal.
+   */
+  private static comparePrereleaseIdentifiers(first: string, second: string): number {
+    const firstFields = first.split('.');
+    const secondFields = second.split('.');
+    const fieldCount = Math.max(firstFields.length, secondFields.length);
+
+    for (let index = 0; index < fieldCount; index++) {
+      const firstField = firstFields[index];
+      const secondField = secondFields[index];
+
+      if (firstField === undefined) {
+        const result = -1;
+        return result;
+      }
+      if (secondField === undefined) {
+        const result = 1;
+        return result;
+      }
+      if (firstField === secondField) {
+        continue;
+      }
+
+      const firstIsNumeric = ALL_DIGITS_PATTERN.test(firstField);
+      const secondIsNumeric = ALL_DIGITS_PATTERN.test(secondField);
+
+      if (firstIsNumeric && secondIsNumeric) {
+        const result = Number.parseInt(firstField, 10) - Number.parseInt(secondField, 10);
+        return result;
+      }
+      if (firstIsNumeric) {
+        const result = -1;
+        return result;
+      }
+      if (secondIsNumeric) {
+        const result = 1;
+        return result;
+      }
+
+      const result = firstField < secondField ? -1 : 1;
+      return result;
+    }
+
+    return 0;
+  }
+
   /** Converts an IPv4 dotted-decimal string to its 32-bit unsigned integer representation, or `undefined` when malformed. */
   public static ipv4ToUint32(ip: string): number | undefined {
     const parts = ip.trim().split('.');
@@ -1520,9 +1578,15 @@ export class Predicates {
     let accumulator = 0;
 
     for (let index = 0; index < parts.length; index++) {
-      const number = Number.parseInt(parts[index]!, 10);
+      const octet = parts[index]!;
 
-      if (Number.isNaN(number) || number < 0 || number > 255) {
+      if (!ALL_DIGITS_PATTERN.test(octet)) {
+        return undefined;
+      }
+
+      const number = Number.parseInt(octet, 10);
+
+      if (number > 255) {
         return undefined;
       }
       accumulator = (accumulator << 8) + number;
@@ -1553,9 +1617,13 @@ export class Predicates {
       return undefined;
     }
 
+    if (!ALL_DIGITS_PATTERN.test(prefixPart)) {
+      return undefined;
+    }
+
     const prefix = Number.parseInt(prefixPart, 10);
 
-    if (Number.isNaN(prefix) || prefix < 0 || prefix > 32) {
+    if (prefix > 32) {
       return undefined;
     }
 
@@ -1569,9 +1637,11 @@ export class Predicates {
     };
   }
 
-  /** Parses a semantic version string into its major, minor, patch, and prerelease components, or `undefined` when malformed. */
+  /** Parses a semantic version string into its major, minor, patch, and prerelease components, or `undefined` when malformed. Build metadata (`+...`) is stripped and ignored per semver precedence rules. */
   private static parseSemverVersion(version: string): ParsedSemverInterface | undefined {
-    const trimmed = version.trim().replace(SEMVER_LEADING_V_PATTERN, '');
+    const withoutV = version.trim().replace(SEMVER_LEADING_V_PATTERN, '');
+    const buildIndex = withoutV.indexOf('+');
+    const trimmed = buildIndex >= 0 ? withoutV.slice(0, buildIndex) : withoutV;
     const prereleaseIndex = trimmed.indexOf('-');
     const versionPart = prereleaseIndex >= 0 ? trimmed.slice(0, prereleaseIndex) : trimmed;
     const prerelease = prereleaseIndex >= 0 ? trimmed.slice(prereleaseIndex + 1) : '';
@@ -1585,7 +1655,13 @@ export class Predicates {
     const minorPart = parts[1];
     const patchPart = parts[2];
 
-    if (majorPart === undefined) {
+    if (majorPart === undefined || !ALL_DIGITS_PATTERN.test(majorPart)) {
+      return undefined;
+    }
+    if (minorPart !== undefined && !ALL_DIGITS_PATTERN.test(minorPart)) {
+      return undefined;
+    }
+    if (patchPart !== undefined && !ALL_DIGITS_PATTERN.test(patchPart)) {
       return undefined;
     }
 
@@ -1593,14 +1669,8 @@ export class Predicates {
     const minor = minorPart !== undefined ? Number.parseInt(minorPart, 10) : 0;
     const patch = patchPart !== undefined ? Number.parseInt(patchPart, 10) : 0;
 
-    if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
-      return undefined;
-    }
-    if (major < 0 || minor < 0 || patch < 0) {
-      return undefined;
-    }
-
     return {
+      'hasExplicitMinor': minorPart !== undefined,
       'major': major,
       'minor': minor,
       'patch': patch,

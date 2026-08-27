@@ -14,7 +14,6 @@ export namespace GroupingOptionsEntity {
       'hideSingleValueGroups': { 'type': 'boolean' },
       'maximumDepth': { 'type': 'integer' },
       'minimumGroupSize': { 'type': 'integer' },
-      'numericGrouping': { 'type': 'boolean' },
       'propertyPriority': { 'items': { 'type': 'string' }, 'type': 'array' }
     },
     'type': 'object'

@@ -1,3 +1,4 @@
+export { ALL_DIGITS_PATTERN } from './AllDigitsPattern.js';
 export { ALPHANUMERIC_PATTERN } from './AlphanumericPattern.js';
 export { DATE_LIKE_TIMESTAMP_RANGE } from './DateLikeTimestampRange.js';
 export {
