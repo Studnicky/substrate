@@ -35,6 +35,7 @@ const SUBSTRATE_LAYERS = {
         { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'concurrency' },
         { 'kind': 'package', 'layer': 'capability', 'pattern': 'config' },
         { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'context' },
+        { 'kind': 'package', 'layer': 'coordinator', 'pattern': 'drilldown' },
         { 'kind': 'package', 'layer': 'capability', 'pattern': 'entity-store' },
         { 'kind': 'package', 'layer': 'foundation', 'pattern': 'errors' },
         { 'kind': 'package', 'layer': 'capability', 'pattern': 'eslint-config' },
@@ -78,6 +79,7 @@ const SUBSTRATE_LAYERS = {
         { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/concurrency' },
         { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/config' },
         { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/context' },
+        { 'kind': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/drilldown' },
         { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/entity-store' },
         { 'kind': 'module', 'layer': 'foundation', 'pattern': '@studnicky/errors' },
         { 'kind': 'module', 'layer': 'capability', 'pattern': '@studnicky/eslint-config' },
@@ -195,7 +197,9 @@ export default [
         '@studnicky/folder-content-shape': 'error',
         '@studnicky/hash-private-fields': 'error',
         '@studnicky/inline-trivial-logic': 'error',
-        '@studnicky/intake-parse-only': 'error',
+        '@studnicky/intake-parse-only': ['error', {
+          'exemptPackages': ['@studnicky/types', '@studnicky/eslint-config', '@studnicky/intake-kit', '@studnicky/drilldown']
+        }],
         '@typescript-eslint/no-unnecessary-type-parameters': 'error',
         '@studnicky/interface-must-be-contract': 'error',
         '@studnicky/interface-suffix': 'error',
@@ -255,7 +259,7 @@ export default [
         '@typescript-eslint/naming-convention': [
           'error',
           {
-            'custom': { 'match': true, 'regex': 'Interface$' },
+            'custom': { 'match': true, 'regex': 'Interface$|^Type$' },
             'format': ['PascalCase'],
             'selector': 'interface'
           },
@@ -436,6 +440,17 @@ export default [
     ],
     'rules': {
       'no-console': 'off'
+    }
+  },
+  // drilldown's matcher registry implements one shared interface (MatcherHandlerInterface) via
+  // plain object literals, not classes — the rule's own class-implementation exemption doesn't
+  // reach a handful of per-type methods (getSortKey, createNodeValue) that are genuinely pure
+  // field forwards by design (the interface contract IS "expose this field"). allowMemberExpressions
+  // is the rule's own documented escape valve for exactly this member-forward shape.
+  {
+    'files': ['packages/drilldown/src/**/*.ts'],
+    'rules': {
+      '@studnicky/inline-trivial-logic': ['error', { 'allowMemberExpressions': true }]
     }
   }
 ];

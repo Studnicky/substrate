@@ -16,6 +16,7 @@ p__studnicky_clock["@studnicky/clock"]
 p__studnicky_concurrency["@studnicky/concurrency"]
 p__studnicky_config["@studnicky/config"]
 p__studnicky_context["@studnicky/context"]
+p__studnicky_drilldown["@studnicky/drilldown"]
 p__studnicky_entity_store["@studnicky/entity-store"]
 p__studnicky_errors["@studnicky/errors"]
 p__studnicky_eslint_config["@studnicky/eslint-config"]
@@ -85,6 +86,9 @@ p__studnicky_context --> p__studnicky_errors
 p__studnicky_context --> p__studnicky_fsm
 p__studnicky_context --> p__studnicky_json
 p__studnicky_context --> p__studnicky_types
+p__studnicky_drilldown --> p__studnicky_cache
+p__studnicky_drilldown --> p__studnicky_json
+p__studnicky_drilldown --> p__studnicky_types
 p__studnicky_entity_store --> p__studnicky_errors
 p__studnicky_errors --> p__studnicky_intake_kit
 p__studnicky_errors --> p__studnicky_types

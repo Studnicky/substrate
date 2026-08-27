@@ -1,5 +1,18 @@
 # Changelog
 
+## 11.1.0
+
+### Patch Changes
+
+- Updated dependencies [44865fd]
+  - @studnicky/types@11.1.0
+  - @studnicky/context@11.1.0
+  - @studnicky/errors@11.1.0
+  - @studnicky/fetch@11.1.0
+  - @studnicky/json@11.1.0
+  - @studnicky/retry@11.1.0
+  - @studnicky/signal@11.1.0
+
 ## 11.0.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/resilience",
-  "version": "11.0.1",
+  "version": "11.1.0",
   "description": "Async resilience primitives: CircuitBreaker, TokenBucket, DeadLetterQueue",
   "type": "module",
   "sideEffects": false,

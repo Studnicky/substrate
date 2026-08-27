@@ -32,9 +32,15 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.9
         version: 6.43.9
+      '@faker-js/faker':
+        specifier: ^10.6.0
+        version: 10.6.0
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
+      '@studnicky/drilldown':
+        specifier: workspace:*
+        version: link:packages/drilldown
       '@studnicky/eslint-config':
         specifier: workspace:*
         version: link:packages/eslint-config
@@ -286,6 +292,24 @@ importers:
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
+
+  packages/drilldown:
+    dependencies:
+      '@studnicky/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -1657,6 +1681,10 @@ packages:
   '@eslint/plugin-kit@0.7.2':
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
+
+  '@faker-js/faker@10.6.0':
+    resolution: {integrity: sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4547,6 +4575,8 @@ snapshots:
     dependencies:
       '@eslint/core': 1.2.1
       levn: 0.4.1
+
+  '@faker-js/faker@10.6.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:
