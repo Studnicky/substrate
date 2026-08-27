@@ -4,8 +4,7 @@
   "commit": false,
   "fixed": [
     [
-      "@studnicky/*",
-      "!@studnicky/eslint-config"
+      "@studnicky/*"
     ]
   ],
   "linked": [],

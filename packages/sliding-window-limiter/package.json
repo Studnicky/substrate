@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/sliding-window-limiter",
-  "version": "11.0.1",
+  "version": "11.1.0",
   "description": "Sliding-window rate limiter: exact timestamp-log or approximate blended-counter algorithm",
   "type": "module",
   "sideEffects": false,
