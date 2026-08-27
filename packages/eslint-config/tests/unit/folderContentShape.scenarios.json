@@ -229,6 +229,11 @@
       "code": "import { SchemaValidator } from '@studnicky/json';\nimport { z } from 'zod';\nexport namespace FooEntity {\n  export const Schema = z.object({ id: z.string() });\n  export type Type = z.infer<typeof Schema>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n}",
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace RecursiveEntity {\n  const selfPointerKey = '$ref';\n  const nested = { title: 'RecursiveNested' } as { title: 'RecursiveNested' };\n  Object.defineProperty(nested, selfPointerKey, { enumerable: true, value: '#' });\n  export const Schema = { $id: 'urn:test:recursive', properties: { child: nested }, type: 'object' } as const;\n  export interface Type extends FromSchema<typeof Schema, { deserialize: [{ output: Type; pattern: { title: 'RecursiveNested' } }] }> {}\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}",
+      "filename": "/project/src/entities/RecursiveEntity.ts",
+      "name": "[entities] self-referential entity: interface Type extends FromSchema<typeof Schema> {} recognized as the Type member"
     }
   ],
   "invalid": [

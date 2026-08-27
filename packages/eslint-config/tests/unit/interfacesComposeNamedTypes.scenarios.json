@@ -15,6 +15,10 @@
     {
       "code": "interface DispatcherInterface {\n  handler: (() => void) | { a: 1 };\n}",
       "name": "a member whose type mixes a callable constituent with data defers to no-mixed-callable-shapes instead of reporting a second diagnostic"
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace RecursiveEntity {\n  const selfPointerKey = '$ref';\n  const nested = { title: 'RecursiveNested' } as { title: 'RecursiveNested' };\n  Object.defineProperty(nested, selfPointerKey, { enumerable: true, value: '#' });\n  export const Schema = { $id: 'urn:test:recursive', properties: { child: nested }, type: 'object' } as const;\n  export interface Type extends FromSchema<typeof Schema, { deserialize: [{ output: Type; pattern: { title: 'RecursiveNested' } }] }> {}\n  export const validate = SchemaValidator.compile<Type>(Schema);\n  export const intake = SchemaValidator.compileIntake<Type>(Schema);\n  export const create = SchemaValidator.compileCreate<Type>(Schema);\n}\nexport interface WrapperInterface {\n  readonly 'nested'?: RecursiveEntity.Type;\n}",
+      "name": "a member referencing a self-referential entity's interface-form Type composes a named schema-derived type, not inline pure data"
     }
   ],
   "invalid": [

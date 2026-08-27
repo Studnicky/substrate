@@ -46,6 +46,11 @@
         "code": "import type { ImportedPureDataInterface } from './tests/fixtures/ImportedPureDataInterface.js';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst LocalSchema = {\n  additionalProperties: false,\n  properties: { first: { type: 'string' }, second: { type: 'number' } },\n  required: ['first', 'second'],\n  type: 'object'\n} as const satisfies JSONSchema;\ntype LocalType = FromSchema<typeof LocalSchema>;",
         "filename": "packages/eslint-config/ExactCanonical.ts",
         "name": "structural equality does not override independent canonical provenance"
+      },
+      {
+        "code": "export interface AlphaVariantInterface {\n  readonly 'kind': 'alpha';\n  readonly 'value': string;\n}\nexport interface BetaVariantInterface {\n  readonly 'kind': 'beta';\n  readonly 'value': number;\n}\nexport type VariantUnionType = AlphaVariantInterface | BetaVariantInterface;",
+        "filename": "packages/eslint-config/Canonical.ts",
+        "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface)"
       }
     ],
     "invalid": [

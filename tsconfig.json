@@ -260,6 +260,12 @@
     },
     {
       "path": "packages/worker-pool/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/drilldown"
+    },
+    {
+      "path": "packages/drilldown/tsconfig.tests.json"
     }
   ],
   "files": []

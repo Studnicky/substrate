@@ -116,6 +116,45 @@ export class SchemaMemberGuards {
     return false;
   }
 
+  // `interface Type extends FromSchema<typeof Schema, {...}> {}` — the only way to make `Type`
+  // self-referential, since a type alias cannot reference its own name in its own type arguments.
+  // A heritage clause (`TSInterfaceHeritage`) carries the deriving-type reference on `expression`/
+  // `typeArguments` rather than `typeName`/`typeParameters`, so it is adapted to the same
+  // `TSTypeReference` shape `isSchemaDerivedReference` already recognizes rather than duplicating
+  // its `typeof Schema` argument scan.
+  static isInterfaceSchemaDerived(declaration: unknown): boolean {
+    if (!ObjectGuard.isObject(declaration)) {
+      return false;
+    }
+    const heritageClauses: unknown = Reflect.get(declaration, 'extends');
+
+    if (!Array.isArray(heritageClauses)) {
+      return false;
+    }
+
+    const heritageLength = heritageClauses.length;
+
+    for (let index = 0; index < heritageLength; index++) {
+      const heritage: unknown = heritageClauses.at(index);
+
+      if (!ObjectGuard.isObject(heritage)) {
+        continue;
+      }
+
+      const adapted = {
+        ...heritage,
+        'type': 'TSTypeReference',
+        'typeName': Reflect.get(heritage, 'expression')
+      };
+
+      if (SchemaMemberGuards.isSchemaDerivedReference(adapted)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   static isTypeFromSchema(decl: unknown): boolean {
     if (!ObjectGuard.isObject(decl)) {
       return false;

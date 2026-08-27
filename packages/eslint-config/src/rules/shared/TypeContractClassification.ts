@@ -539,6 +539,80 @@ export class TypeContractClassification {
     return result;
   }
 
+  /**
+   * A top-level union where every constituent is a reference to an interface that classifies as
+   * a pure-data contract (readonly-evidenced, not callable/constructor/brand) has no interface
+   * remedy either: TypeScript cannot express a union of interfaces as itself one interface, the
+   * same limitation {@link isTopLevelMixedCallableData} documents for a callable+data mix. Each
+   * constituent is already a legitimate, independently-declared contract interface — the union
+   * exists only to name "one of these shapes" for a discriminated-union call site — so there is
+   * no schema-derived-data remedy available either when a constituent (like a matcher holding a
+   * live in-memory record) is not itself JSON-representable.
+   */
+  public isTopLevelUnionOfDataContractInterfaces(node: TypeNode): boolean {
+    if (isParenthesizedTypeNode(node)) {
+      const result = this.isTopLevelUnionOfDataContractInterfaces(node.type);
+
+      return result;
+    }
+    if (!isUnionTypeNode(node)) {
+      return false;
+    }
+
+    const members = node.types;
+
+    if (members.length === 0) {
+      return false;
+    }
+
+    for (let index = 0; index < members.length; index++) {
+      const member = members.at(index);
+
+      if (member === undefined || !this.isDataContractInterfaceReference(member, new Set(), 0)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isDataContractInterfaceReference(node: TypeNode, visiting: Set<Symbol>, depth: number): boolean {
+    if (depth > MAXIMUM_RECURSION_DEPTH) {
+      return false;
+    }
+    if (isParenthesizedTypeNode(node) || isOptionalTypeNode(node) || isRestTypeNode(node)) {
+      const result = this.isDataContractInterfaceReference(node.type, visiting, depth + 1);
+
+      return result;
+    }
+    if (isTypeOperatorNode(node) && node.operator === SyntaxKind.ReadonlyKeyword) {
+      const result = this.isDataContractInterfaceReference(node.type, visiting, depth + 1);
+
+      return result;
+    }
+    if (!isTypeReferenceNode(node)) {
+      return false;
+    }
+
+    const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
+    const declarations = symbol?.getDeclarations() ?? [];
+    const interfaceDeclaration = declarations.find(isInterfaceDeclaration);
+
+    if (interfaceDeclaration === undefined) {
+      return false;
+    }
+
+    const classified = this.classifyInterface(interfaceDeclaration, visiting, depth + 1);
+
+    if (classified.classification !== 'contract') {
+      return false;
+    }
+
+    const result = classified.reason === 'readonly';
+
+    return result;
+  }
+
   private static isAnyConstituent(node: TypeNode): boolean {
     if (isParenthesizedTypeNode(node) || isOptionalTypeNode(node) || isRestTypeNode(node)) {
       const result = TypeContractClassification.isAnyConstituent(node.type);
@@ -1239,8 +1313,21 @@ export class TypeContractClassification {
       }
 
       const declarations = symbol?.getDeclarations() ?? [];
+      const interfaceDeclaration = declarations.find(isInterfaceDeclaration);
 
-      if (declarations.find(isInterfaceDeclaration) !== undefined) {
+      if (interfaceDeclaration !== undefined) {
+        // `interface Type extends FromSchema<typeof Schema>` is the self-referential entity
+        // form (see `isCanonicalEntityInterface`'s doc comment) — a type alias cannot reference
+        // its own name in its own type arguments, so a self-referential entity's `Type` has no
+        // choice but to be an interface. That still makes it genuine schema-derived data, not a
+        // behavioral contract, so it composes here the same way a `FromSchema`-derived type
+        // alias would.
+        if (this.isCanonicalEntityInterface(interfaceDeclaration)) {
+          return {
+            'canonicalRoot': true, 'evidence': node, 'reason': 'canonicalComposition', 'valid': true
+          };
+        }
+
         return {
           'canonicalRoot': false, 'evidence': node, 'reason': 'interfaceReference', 'valid': false
         };
