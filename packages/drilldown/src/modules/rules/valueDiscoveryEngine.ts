@@ -452,15 +452,19 @@ class SequentialValues {
     const handler = matcherRegistry.byType.sequential as MatcherHandlerInterface<SequentialGroupValueInterface>;
 
     if (strategy === GroupingStrategy.QUANTILE) {
-      const seqPattern = new RegExp(`^${prefix.replace(DRILLDOWN_DEFAULTS.regexSpecialCharsPattern, '\\$&')}(\\d+)${suffix.replace(DRILLDOWN_DEFAULTS.regexSpecialCharsPattern, '\\$&')}$`);
       const numbers: number[] = [];
 
       for (let index = 0; index < values.length; index++) {
         const string = String(values[index]);
-        const match = seqPattern.exec(string);
 
-        if (match !== null) {
-          numbers.push(parseInt(match[1]!, 10));
+        if (string.length < prefix.length + suffix.length || !string.startsWith(prefix) || !string.endsWith(suffix)) {
+          continue;
+        }
+
+        const digits = string.slice(prefix.length, string.length - suffix.length);
+
+        if (DRILLDOWN_DEFAULTS.allDigitsPattern.test(digits)) {
+          numbers.push(parseInt(digits, 10));
         }
       }
 

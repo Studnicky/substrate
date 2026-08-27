@@ -180,7 +180,8 @@ export class DrilldownUtilities {
     }
 
     if (!path.includes('.') && !path.includes('[')) {
-      return (object as Record<string, unknown>)[path];
+      const result = DrilldownUtilities.readOwnProperty(object, path);
+      return result;
     }
 
     let parts = DrilldownUtilities.pathCache.get(path);
@@ -196,10 +197,26 @@ export class DrilldownUtilities {
       if (Predicates.isNullish(current)) {
         return undefined;
       }
-      current = (current as Record<number | string, unknown>)[parts[index]!];
+
+      current = DrilldownUtilities.readOwnProperty(current, parts[index]!);
     }
 
     return current;
+  }
+
+  /** Reads one property by key, refusing prototype-chain keys to prevent prototype pollution. */
+  private static readOwnProperty(source: unknown, key: number | string): unknown {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      return undefined;
+    }
+    if (typeof source !== 'object' || source === null) {
+      return undefined;
+    }
+
+    const record = source as Record<number | string, unknown>;
+    const value = record[key];
+
+    return value;
   }
 
   /**

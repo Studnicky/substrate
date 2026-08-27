@@ -1,5 +1,6 @@
 /** Tuning defaults and precompiled regex patterns used throughout the drilldown engine. */
 export const DRILLDOWN_DEFAULTS = {
+  'allDigitsPattern': new RegExp('^\\d+$'),
   'dateCapturePattern': new RegExp('^(\\d{4}-\\d{2}-\\d{2})'),
   'datePattern': new RegExp('^\\d{4}-\\d{2}-\\d{2}'),
   'defaultDensityThreshold': 0.8,
@@ -9,7 +10,6 @@ export const DRILLDOWN_DEFAULTS = {
   'maximumPathCacheSize': 1000,
   'minimumPropertyScore': 20,
   'minimumSequentialValues': 5,
-  'regexSpecialCharsPattern': new RegExp('[.*+?^${}()|[\\]\\\\]', 'g'),
   'semverDigitPattern': new RegExp('^\\d+\\.\\d+'),
   'semverPrefixPattern': new RegExp('^[\\^~>=<]+'),
   'sequentialPattern': new RegExp('^(.+?)(\\d+)(.*)$'),
