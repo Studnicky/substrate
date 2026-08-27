@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/types",
-  "version": "11.0.1",
+  "version": "11.1.0",
   "description": "Shared runtime type-guard and object helpers for @studnicky/substrate",
   "type": "module",
   "sideEffects": false,

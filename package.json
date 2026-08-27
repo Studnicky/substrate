@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "11.0.1",
+  "version": "11.1.0",
   "description": "A subclass-first toolkit of TypeScript primitives \u2014 retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",

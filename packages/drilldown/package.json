@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/drilldown",
-  "version": "11.0.1",
+  "version": "11.1.0",
   "description": "Deterministic multi-level grouping, faceting, and sorting engine that discovers filterable/groupable properties from arbitrary record data.",
   "type": "module",
   "sideEffects": false,

@@ -1,5 +1,16 @@
 # Changelog
 
+## 11.1.0
+
+### Patch Changes
+
+- Updated dependencies [44865fd]
+  - @studnicky/types@11.1.0
+  - @studnicky/errors@11.1.0
+  - @studnicky/resilience@11.1.0
+  - @studnicky/retry@11.1.0
+  - @studnicky/throttle@11.1.0
+
 ## 11.0.1
 
 ### Patch Changes
