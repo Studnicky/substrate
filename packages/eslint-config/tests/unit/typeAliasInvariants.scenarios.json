@@ -48,9 +48,9 @@
         "name": "structural equality does not override independent canonical provenance"
       },
       {
-        "code": "export interface AlphaVariantInterface {\n  readonly 'kind': 'alpha';\n  readonly 'value': string;\n}\nexport interface BetaVariantInterface {\n  readonly 'kind': 'beta';\n  readonly 'value': number;\n}\nexport type VariantUnionType = AlphaVariantInterface | BetaVariantInterface;",
+        "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst VariantKindSchema = { enum: ['alpha', 'beta'], type: 'string' } as const satisfies JSONSchema;\ntype VariantKindType = FromSchema<typeof VariantKindSchema>;\nexport interface AlphaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'alpha'>;\n  readonly 'value': string;\n}\nexport interface BetaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'beta'>;\n  readonly 'value': number;\n}\nexport type VariantUnionType = AlphaVariantInterface | BetaVariantInterface;",
         "filename": "packages/eslint-config/Canonical.ts",
-        "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface)"
+        "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface) — each member is schema-anchored via its discriminant"
       }
     ],
     "invalid": [
@@ -62,6 +62,16 @@
           }
         ],
         "name": "callable alias receives the declaration-shape verdict"
+      },
+      {
+        "code": "export interface UnanchoredAlphaInterface {\n  readonly 'value': string;\n}\nexport interface UnanchoredBetaInterface {\n  readonly 'value': number;\n}\nexport type UnanchoredVariantUnionType = UnanchoredAlphaInterface | UnanchoredBetaInterface;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "filename": "packages/eslint-config/UnanchoredUnion.ts",
+        "name": "a union of readonly-evidenced interfaces with no property or heritage tracing back to any schema-derived type is not a legitimate data-contract union — bare unconstrained primitives alone are not proof of canonical data"
       },
       {
         "code": "type ConstructorType = new (value: string) => object;",

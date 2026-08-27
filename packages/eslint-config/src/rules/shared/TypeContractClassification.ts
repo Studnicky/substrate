@@ -576,6 +576,122 @@ export class TypeContractClassification {
     return true;
   }
 
+  /**
+   * A `readonly`-evidenced contract interface is not on its own proof the shape is schema-derived
+   * data — a hand-authored interface with plain unconstrained primitive properties (`{ readonly
+   * value: string }`) classifies as `'contract'`/`'readonly'` too, and no other rule in this
+   * codebase's family catches that case when it appears as a union member: `interfaces-compose-
+   * named-types` only bans an INLINE object-literal member, not a bare primitive; `type-alias-
+   * invariants` only inspects named type-alias declarations, not interface property types. This
+   * requires at least one anchor — a heritage clause or a property whose type traces (directly, or
+   * through one level of named-type indirection, e.g. `SomeEntity.Type`) back to a real
+   * `FromSchema<typeof Schema>` derivation — before `isTopLevelUnionOfDataContractInterfaces` may
+   * treat the interface as a legitimate schema-derived union member. A member may still carry
+   * additional free-typed leaf properties alongside that anchor (`StringGroupValueInterface.match:
+   * string` next to its schema-derived `type` discriminant) — only total absence of any anchor is
+   * rejected.
+   */
+  private hasSchemaAnchoredMember(declaration: InterfaceDeclaration, depth: number): boolean {
+    if (depth > MAXIMUM_RECURSION_DEPTH) {
+      return false;
+    }
+
+    const heritageClauses = declaration.heritageClauses ?? [];
+    const heritageLength = heritageClauses.length;
+
+    for (let index = 0; index < heritageLength; index++) {
+      const clause = heritageClauses.at(index);
+
+      if (clause === undefined) {
+        continue;
+      }
+      const types = clause.types;
+      const typesLength = types.length;
+
+      for (let typeIndex = 0; typeIndex < typesLength; typeIndex++) {
+        const type = types.at(typeIndex);
+
+        if (type !== undefined && this.isSchemaDerivedHeritageType(type)) {
+          return true;
+        }
+      }
+    }
+
+    const members = declaration.members;
+    const memberCount = members.length;
+
+    for (let index = 0; index < memberCount; index++) {
+      const member = members.at(index);
+
+      if (member !== undefined && isPropertySignature(member) && member.type !== undefined
+        && this.isSchemaAnchoredPropertyType(member.type, depth + 1)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private isSchemaAnchoredPropertyType(node: TypeNode, depth: number): boolean {
+    if (depth > MAXIMUM_RECURSION_DEPTH) {
+      return false;
+    }
+    if (isParenthesizedTypeNode(node) || isOptionalTypeNode(node) || isRestTypeNode(node)) {
+      const result = this.isSchemaAnchoredPropertyType(node.type, depth + 1);
+
+      return result;
+    }
+    if (isTypeOperatorNode(node) && node.operator === SyntaxKind.ReadonlyKeyword) {
+      const result = this.isSchemaAnchoredPropertyType(node.type, depth + 1);
+
+      return result;
+    }
+    if (this.isSchemaDerivedApplication(node)) {
+      return true;
+    }
+    if (!isTypeReferenceNode(node)) {
+      return false;
+    }
+
+    // `Extract<SomeEntity.Type, 'literal'>`, `Readonly<SomeEntity.Type>`, and similar wrappers
+    // carry the schema-derived reference as a type argument rather than as the reference itself.
+    const typeArguments = node.typeArguments;
+
+    if (typeArguments !== undefined) {
+      const argumentCount = typeArguments.length;
+
+      for (let index = 0; index < argumentCount; index++) {
+        const argument = typeArguments.at(index);
+
+        if (argument !== undefined && this.isSchemaAnchoredPropertyType(argument, depth + 1)) {
+          return true;
+        }
+      }
+    }
+
+    // A bare named reference, e.g. `SomeEntity.Type` — resolve to its declaring alias/interface
+    // and check whether THAT declaration is itself schema-derived.
+    const symbol = this.resolveSymbol(this.checker.getSymbolAtLocation(node.typeName));
+    const declarations = symbol?.getDeclarations() ?? [];
+    const declarationCount = declarations.length;
+
+    for (let index = 0; index < declarationCount; index++) {
+      const declaration = declarations.at(index);
+
+      if (declaration === undefined) {
+        continue;
+      }
+      if (isTypeAliasDeclaration(declaration) && this.isSchemaDerivedApplication(declaration.type)) {
+        return true;
+      }
+      if (isInterfaceDeclaration(declaration) && this.hasSchemaAnchoredMember(declaration, depth + 1)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private isDataContractInterfaceReference(node: TypeNode, visiting: Set<Symbol>, depth: number): boolean {
     if (depth > MAXIMUM_RECURSION_DEPTH) {
       return false;
@@ -605,6 +721,9 @@ export class TypeContractClassification {
     const classified = this.classifyInterface(interfaceDeclaration, visiting, depth + 1);
 
     if (classified.classification !== 'contract') {
+      return false;
+    }
+    if (!this.hasSchemaAnchoredMember(interfaceDeclaration, depth + 1)) {
       return false;
     }
 
