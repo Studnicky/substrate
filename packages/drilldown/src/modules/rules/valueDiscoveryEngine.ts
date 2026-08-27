@@ -106,7 +106,7 @@ class CidrValues {
     for (let index = 0; index < values.length; index++) {
       const value = String(values[index]);
 
-      if (DrilldownUtilities.ipToNumber(value) !== null) {
+      if (Predicates.ipv4ToUint32(value) !== undefined) {
         ips.push(value);
       }
     }
@@ -133,8 +133,8 @@ class CidrValues {
 
     const computedResult = Array.from(subnets)
       .toSorted((first, second) => {
-        const rangeA = DrilldownUtilities.parseCidr(first);
-        const rangeB = DrilldownUtilities.parseCidr(second);
+        const rangeA = Predicates.parseCidrRange(first);
+        const rangeB = Predicates.parseCidrRange(second);
 
         const result = (rangeA?.start ?? 0) - (rangeB?.start ?? 0);
         return result;
@@ -284,7 +284,7 @@ class PropertyTypeDetector {
       if (Predicates.isString(value)) {
         const trimmed = value.trim();
 
-        if (DrilldownUtilities.ipToNumber(trimmed) !== null) {
+        if (Predicates.ipv4ToUint32(trimmed) !== undefined) {
           ipCount++;
         }
         else if (DrilldownUtilities.parseSemver(trimmed) !== null && DRILLDOWN_DEFAULTS.semverDigitPattern.test(trimmed.replace(DRILLDOWN_DEFAULTS.leadingVPattern, ''))) {

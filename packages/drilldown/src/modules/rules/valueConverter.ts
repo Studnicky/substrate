@@ -25,22 +25,8 @@ export const valueConverter = {
    * @returns Parsed number, or null if invalid or empty
    */
   'toStrictNumber': function (value: unknown): null | number {
-    if (Predicates.isNumberType(value)) {
-      const result = isNaN(value) ? null : value;
-      return result;
-    }
-    if (Predicates.isString(value)) {
-      const trimmed = value.trim();
-
-      if (trimmed === '') {
-        return null;
-      }
-      const number = Number(trimmed);
-
-      const result = isNaN(number) ? null : number;
-      return result;
-    }
-
-    return null;
+    const parsed = Predicates.asStrictNumber(value);
+    const result = parsed ?? null;
+    return result;
   }
 };

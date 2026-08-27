@@ -17,10 +17,23 @@ import {
   DATE_LIKE_TIMESTAMP_RANGE,
   MULTIPLE_OF_EPSILON_FACTOR,
   REDOS_VULNERABLE_PATTERNS,
+  SEMVER_LEADING_V_PATTERN,
   SUPPORTED_CONTENT_ENCODINGS,
   SUPPORTED_CONTENT_MEDIA_TYPES,
   TIME_ONLY_PATTERN
 } from './constants/index.js';
+
+interface ParsedSemverInterface {
+  readonly 'major': number
+  readonly 'minor': number
+  readonly 'patch': number
+  readonly 'prerelease': string
+}
+
+interface Uint32RangeInterface {
+  readonly 'end': number
+  readonly 'start': number
+}
 
 export class Predicates {
   private static readonly typeMatchers = new Map<string, (value: unknown) => boolean>([
@@ -65,6 +78,33 @@ export class Predicates {
   public static asNumber(value: unknown): number | undefined {
     const result = typeof value === 'number' ? value : undefined;
     return result;
+  }
+
+  /**
+   * Returns the value as a finite `number`, coercing a non-empty numeric
+   * string. Returns `undefined` for `NaN`, an empty/whitespace-only string,
+   * or any other non-numeric input.
+   */
+  public static asStrictNumber(value: unknown): number | undefined {
+    if (typeof value === 'number') {
+      const result = Number.isNaN(value) ? undefined : value;
+      return result;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+
+      if (trimmed === '') {
+        return undefined;
+      }
+
+      const parsed = Number(trimmed);
+
+      const result = Number.isNaN(parsed) ? undefined : parsed;
+      return result;
+    }
+
+    return undefined;
   }
 
   /**
@@ -913,6 +953,67 @@ export class Predicates {
     return result;
   }
 
+  /**
+   * Compares two semantic version strings by major, minor, patch, then
+   * prerelease (a prerelease version sorts before its release, per semver
+   * precedence; two prereleases compare lexicographically). A malformed
+   * version sorts after a well-formed one; two malformed versions compare
+   * equal.
+   */
+  public static compareSemverVersions(first: string, second: string): number {
+    const parsedFirst = Predicates.parseSemverVersion(first);
+    const parsedSecond = Predicates.parseSemverVersion(second);
+
+    if (parsedFirst === undefined && parsedSecond === undefined) {
+      return 0;
+    }
+    if (parsedFirst === undefined) {
+      return 1;
+    }
+    if (parsedSecond === undefined) {
+      const result = -1;
+      return result;
+    }
+
+    const coreResult = Predicates.compareParsedSemver(parsedFirst, parsedSecond);
+
+    if (coreResult !== 0) {
+      return coreResult;
+    }
+
+    if (parsedFirst.prerelease !== '' && parsedSecond.prerelease === '') {
+      const result = -1;
+      return result;
+    }
+    if (parsedFirst.prerelease === '' && parsedSecond.prerelease !== '') {
+      return 1;
+    }
+    if (parsedFirst.prerelease !== '' && parsedSecond.prerelease !== '') {
+      const result = parsedFirst.prerelease.localeCompare(parsedSecond.prerelease);
+      return result;
+    }
+
+    return 0;
+  }
+
+  /** Checks whether an IPv4 address falls within a CIDR range. Malformed input returns `false`. */
+  public static isIpInCidr(ip: string, cidr: string): boolean {
+    const ipNumber = Predicates.ipv4ToUint32(ip);
+
+    if (ipNumber === undefined) {
+      return false;
+    }
+
+    const range = Predicates.parseCidrRange(cidr);
+
+    if (range === undefined) {
+      return false;
+    }
+
+    const result = ipNumber >= range.start && ipNumber <= range.end;
+    return result;
+  }
+
   /** Checks whether a regex pattern is vulnerable to ReDoS via known-catastrophic constructs. */
   public static isVulnerablePattern(pattern: string | RegExp): boolean {
     const patternSource = pattern instanceof RegExp ? pattern.source : String(pattern);
@@ -929,20 +1030,28 @@ export class Predicates {
    * Range comparison with type checking across numbers, `Date`, and strings.
    * `inclusive` selects `>=`/`<=` (in-range) vs `<`/`>` (out-of-range) semantics.
    */
-  public static performRangeComparison(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean {
-    const numericResult = Predicates.compareNumericRange(value, minimum, maximum, inclusive);
+  public static performRangeComparison(
+    value: unknown,
+    minimum: unknown,
+    maximum: unknown,
+    inclusive: boolean,
+    options: Readonly<{ 'boundary'?: 'closed' | 'half-open', 'caseSensitive'?: boolean }> = {}
+  ): boolean {
+    const { boundary = 'closed', caseSensitive = true } = options;
+
+    const numericResult = Predicates.compareNumericRange(value, minimum, maximum, inclusive, boundary);
 
     if (numericResult !== null) {
       return numericResult;
     }
 
-    const dateResult = Predicates.compareDateRange(value, minimum, maximum, inclusive);
+    const dateResult = Predicates.compareDateRange(value, minimum, maximum, inclusive, boundary);
 
     if (dateResult !== null) {
       return dateResult;
     }
 
-    const stringResult = Predicates.compareStringRange(value, minimum, maximum, inclusive);
+    const stringResult = Predicates.compareStringRange(value, minimum, maximum, inclusive, caseSensitive);
 
     if (stringResult !== null) {
       return stringResult;
@@ -1010,6 +1119,120 @@ export class Predicates {
       }
     }
     return false;
+  }
+
+  /**
+   * Checks whether a semantic version string satisfies a range expression
+   * (`*`, `^1.2.3`, `~1.2.3`, `>=`, `<=`, `>`, `<`, `=`, or a bare version for
+   * exact match). Malformed version or range input returns `false`.
+   */
+  public static satisfiesSemverRange(version: string, range: string): boolean {
+    const parsed = Predicates.parseSemverVersion(version);
+
+    if (parsed === undefined) {
+      return false;
+    }
+
+    const trimmedRange = range.trim();
+
+    if (trimmedRange === '*') {
+      return true;
+    }
+
+    if (trimmedRange.startsWith('^')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(1));
+
+      if (target === undefined) {
+        return false;
+      }
+      if (parsed.major !== target.major) {
+        return false;
+      }
+      if (target.major === 0 && parsed.minor !== target.minor) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('~')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(1));
+
+      if (target === undefined) {
+        return false;
+      }
+      if (parsed.major !== target.major || parsed.minor !== target.minor) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('>=')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(2).trim());
+
+      if (target === undefined) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('<=')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(2).trim());
+
+      if (target === undefined) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) <= 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('>')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
+
+      if (target === undefined) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) > 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('<')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
+
+      if (target === undefined) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) < 0;
+      return result;
+    }
+
+    if (trimmedRange.startsWith('=')) {
+      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
+
+      if (target === undefined) {
+        return false;
+      }
+
+      const result = Predicates.compareParsedSemver(parsed, target) === 0;
+      return result;
+    }
+
+    const target = Predicates.parseSemverVersion(trimmedRange);
+
+    if (target === undefined) {
+      return false;
+    }
+
+    const result = Predicates.compareParsedSemver(parsed, target) === 0;
+    return result;
   }
 
   public static checkMinimum(value: number, minimum: number, exclusive: boolean): boolean {
@@ -1220,12 +1443,13 @@ export class Predicates {
   }
 
   /** Checks if all values are numbers and performs numeric range comparison. */
-  private static compareNumericRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+  private static compareNumericRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, boundary: 'closed' | 'half-open'): boolean | null {
     if (typeof value === 'number' && typeof minimum === 'number' && typeof maximum === 'number') {
-      const result = inclusive
-        ? value >= minimum && value <= maximum
-        : value < minimum || value > maximum;
+      const inRange = boundary === 'half-open'
+        ? value >= minimum && value < maximum
+        : value >= minimum && value <= maximum;
 
+      const result = inclusive ? inRange : !inRange;
       return result;
     }
 
@@ -1233,16 +1457,17 @@ export class Predicates {
   }
 
   /** Checks if all values are Dates and performs date range comparison. */
-  private static compareDateRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+  private static compareDateRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, boundary: 'closed' | 'half-open'): boolean | null {
     if (value instanceof Date && minimum instanceof Date && maximum instanceof Date) {
       const valueTime = value.getTime();
       const minimumTime = minimum.getTime();
       const maximumTime = maximum.getTime();
 
-      const result = inclusive
-        ? valueTime >= minimumTime && valueTime <= maximumTime
-        : valueTime < minimumTime || valueTime > maximumTime;
+      const inRange = boundary === 'half-open'
+        ? valueTime >= minimumTime && valueTime < maximumTime
+        : valueTime >= minimumTime && valueTime <= maximumTime;
 
+      const result = inclusive ? inRange : !inRange;
       return result;
     }
 
@@ -1250,16 +1475,137 @@ export class Predicates {
   }
 
   /** Checks if all values are strings and performs lexicographic range comparison. */
-  private static compareStringRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean): boolean | null {
+  private static compareStringRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, caseSensitive: boolean): boolean | null {
     if (typeof value === 'string' && typeof minimum === 'string' && typeof maximum === 'string') {
+      const comparisonValue = caseSensitive ? value : value.toLowerCase();
+      const comparisonMinimum = caseSensitive ? minimum : minimum.toLowerCase();
+      const comparisonMaximum = caseSensitive ? maximum : maximum.toLowerCase();
+
       const result = inclusive
-        ? value >= minimum && value <= maximum
-        : value < minimum || value > maximum;
+        ? comparisonValue >= comparisonMinimum && comparisonValue <= comparisonMaximum
+        : comparisonValue < comparisonMinimum || comparisonValue > comparisonMaximum;
 
       return result;
     }
 
     return null;
+  }
+
+  /** Compares two parsed semantic versions by major, minor, then patch. */
+  private static compareParsedSemver(first: ParsedSemverInterface, second: ParsedSemverInterface): number {
+    if (first.major !== second.major) {
+      const result = first.major - second.major;
+      return result;
+    }
+    if (first.minor !== second.minor) {
+      const result = first.minor - second.minor;
+      return result;
+    }
+    if (first.patch !== second.patch) {
+      const result = first.patch - second.patch;
+      return result;
+    }
+
+    return 0;
+  }
+
+  /** Converts an IPv4 dotted-decimal string to its 32-bit unsigned integer representation, or `undefined` when malformed. */
+  public static ipv4ToUint32(ip: string): number | undefined {
+    const parts = ip.trim().split('.');
+
+    if (parts.length !== 4) {
+      return undefined;
+    }
+
+    let accumulator = 0;
+
+    for (let index = 0; index < parts.length; index++) {
+      const number = Number.parseInt(parts[index]!, 10);
+
+      if (Number.isNaN(number) || number < 0 || number > 255) {
+        return undefined;
+      }
+      accumulator = (accumulator << 8) + number;
+    }
+
+    const result = accumulator >>> 0;
+    return result;
+  }
+
+  /** Parses CIDR notation into its inclusive `[start, end]` IPv4 range, or `undefined` when malformed. */
+  public static parseCidrRange(cidr: string): Uint32RangeInterface | undefined {
+    const parts = cidr.trim().split('/');
+
+    if (parts.length !== 2) {
+      return undefined;
+    }
+
+    const ipPart = parts[0];
+    const prefixPart = parts[1];
+
+    if (ipPart === undefined || prefixPart === undefined) {
+      return undefined;
+    }
+
+    const ip = Predicates.ipv4ToUint32(ipPart);
+
+    if (ip === undefined) {
+      return undefined;
+    }
+
+    const prefix = Number.parseInt(prefixPart, 10);
+
+    if (Number.isNaN(prefix) || prefix < 0 || prefix > 32) {
+      return undefined;
+    }
+
+    const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+    const start = (ip & mask) >>> 0;
+    const end = (start | (~mask >>> 0)) >>> 0;
+
+    return {
+      'end': end,
+      'start': start
+    };
+  }
+
+  /** Parses a semantic version string into its major, minor, patch, and prerelease components, or `undefined` when malformed. */
+  private static parseSemverVersion(version: string): ParsedSemverInterface | undefined {
+    const trimmed = version.trim().replace(SEMVER_LEADING_V_PATTERN, '');
+    const prereleaseIndex = trimmed.indexOf('-');
+    const versionPart = prereleaseIndex >= 0 ? trimmed.slice(0, prereleaseIndex) : trimmed;
+    const prerelease = prereleaseIndex >= 0 ? trimmed.slice(prereleaseIndex + 1) : '';
+    const parts = versionPart.split('.');
+
+    if (parts.length < 1 || parts.length > 3) {
+      return undefined;
+    }
+
+    const majorPart = parts[0];
+    const minorPart = parts[1];
+    const patchPart = parts[2];
+
+    if (majorPart === undefined) {
+      return undefined;
+    }
+
+    const major = Number.parseInt(majorPart, 10);
+    const minor = minorPart !== undefined ? Number.parseInt(minorPart, 10) : 0;
+    const patch = patchPart !== undefined ? Number.parseInt(patchPart, 10) : 0;
+
+    if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
+      return undefined;
+    }
+    if (major < 0 || minor < 0 || patch < 0) {
+      return undefined;
+    }
+
+    return {
+      'major': major,
+      'minor': minor,
+      'patch': patch,
+      'prerelease': prerelease
+    };
   }
 
   /** Returns true as soon as `target` code points have been counted; stops early. */

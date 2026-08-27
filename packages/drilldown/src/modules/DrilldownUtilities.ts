@@ -76,45 +76,6 @@ export class DrilldownUtilities {
   }
 
   /**
-   * Compares two semantic version strings.
-   */
-  static compareSemver(first: string, second: string): number {
-    const parsedA = DrilldownUtilities.parseSemver(first);
-    const parsedB = DrilldownUtilities.parseSemver(second);
-
-    if (parsedA === null && parsedB === null) {
-      return 0;
-    }
-    if (parsedA === null) {
-      return 1;
-    }
-    if (parsedB === null) {
-      const result = -1;
-      return result;
-    }
-
-    const coreResult = DrilldownUtilities.compareParsedSemver(parsedA, parsedB);
-
-    if (coreResult !== 0) {
-      return coreResult;
-    }
-
-    if (parsedA.prerelease !== '' && parsedB.prerelease === '') {
-      const result = -1;
-      return result;
-    }
-    if (parsedA.prerelease === '' && parsedB.prerelease !== '') {
-      return 1;
-    }
-    if (parsedA.prerelease !== '' && parsedB.prerelease !== '') {
-      const result = parsedA.prerelease.localeCompare(parsedB.prerelease);
-      return result;
-    }
-
-    return 0;
-  }
-
-  /**
    * Creates numeric range groups that evenly span the minimum/maximum of the provided values.
    */
   static createGroups(values: number[], groupCount: number): NumericGroupEntity.Type[] {
@@ -264,90 +225,6 @@ export class DrilldownUtilities {
   }
 
   /**
-   * Determines if an IPv4 address falls within a CIDR range.
-   */
-  static ipInCidr(ip: string, cidr: string): boolean {
-    const ipNumber = DrilldownUtilities.ipToNumber(ip);
-
-    if (ipNumber === null) {
-      return false;
-    }
-
-    const range = DrilldownUtilities.parseCidr(cidr);
-
-    if (range === null) {
-      return false;
-    }
-
-    const result = ipNumber >= range.start && ipNumber <= range.end;
-    return result;
-  }
-
-  /**
-   * Converts an IPv4 address string to its 32-bit unsigned integer representation.
-   */
-  static ipToNumber(ip: string): null | number {
-    const parts = ip.trim().split('.');
-
-    if (parts.length !== 4) {
-      return null;
-    }
-
-    let accumulator = 0;
-
-    for (let index = 0; index < parts.length; index++) {
-      const number = parseInt(parts[index]!, 10);
-
-      if (isNaN(number) || number < 0 || number > 255) {
-        return null;
-      }
-      accumulator = (accumulator << 8) + number;
-    }
-
-    const result = accumulator >>> 0;
-    return result;
-  }
-
-  /**
-   * Parses a CIDR notation string into its numeric IP range.
-   */
-  static parseCidr(cidr: string): null | RangeIndicesEntity.Type {
-    const parts = cidr.trim().split('/');
-
-    if (parts.length !== 2) {
-      return null;
-    }
-
-    const ipPart = parts[0];
-    const prefixPart = parts[1];
-
-    if (ipPart === undefined || prefixPart === undefined) {
-      return null;
-    }
-
-    const ip = DrilldownUtilities.ipToNumber(ipPart);
-
-    if (ip === null) {
-      return null;
-    }
-
-    const prefix = parseInt(prefixPart, 10);
-
-    if (isNaN(prefix) || prefix < 0 || prefix > 32) {
-      return null;
-    }
-
-    const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
-    const start = (ip & mask) >>> 0;
-    const end = (start | (~mask >>> 0)) >>> 0;
-
-    return {
-      'end': end,
-      'start': start
-    };
-  }
-
-  /**
    * Parses a semantic version string into its major, minor, patch, and prerelease components.
    */
   static parseSemver(version: string): null | ParsedSemverEntity.Type {
@@ -389,99 +266,6 @@ export class DrilldownUtilities {
     };
   }
 
-  /**
-   * Checks if a version string satisfies a semver range expression.
-   */
-  static semverSatisfies(version: string, range: string): boolean {
-    const parsed = DrilldownUtilities.parseSemver(version);
-
-    if (parsed === null) {
-      return false;
-    }
-
-    const trimmedRange = range.trim();
-
-    if (trimmedRange === '*') {
-      return true;
-    }
-
-    if (trimmedRange.startsWith('^')) {
-      const target = DrilldownUtilities.parseSemver(trimmedRange.slice(1));
-
-      if (target === null) {
-        return false;
-      }
-
-      if (parsed.major !== target.major) {
-        return false;
-      }
-
-      if (target.major === 0 && parsed.minor !== target.minor) {
-        return false;
-      }
-
-      const result = DrilldownUtilities.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('~')) {
-      const target = DrilldownUtilities.parseSemver(trimmedRange.slice(1));
-
-      if (target === null) {
-        return false;
-      }
-
-      if (parsed.major !== target.major || parsed.minor !== target.minor) {
-        return false;
-      }
-
-      const result = DrilldownUtilities.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('>=')) {
-      const target = DrilldownUtilities.parseSemver(trimmedRange.slice(2).trim());
-
-      if (target === null) {
-        return false;
-      }
-
-      const result = DrilldownUtilities.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-    if (trimmedRange.startsWith('<=')) {
-      const result = DrilldownUtilities.compareSemver(version, trimmedRange.slice(2).trim()) <= 0;
-      return result;
-    }
-    if (trimmedRange.startsWith('>')) {
-      const result = DrilldownUtilities.compareSemver(version, trimmedRange.slice(1).trim()) > 0;
-      return result;
-    }
-    if (trimmedRange.startsWith('<')) {
-      const result = DrilldownUtilities.compareSemver(version, trimmedRange.slice(1).trim()) < 0;
-      return result;
-    }
-    if (trimmedRange.startsWith('=')) {
-      const result = DrilldownUtilities.compareSemver(version, trimmedRange.slice(1).trim()) === 0;
-      return result;
-    }
-
-    const result = DrilldownUtilities.compareSemver(version, trimmedRange) === 0;
-    return result;
-  }
-
-  /**
-   * Determines if a string falls within an alphabetic range (case-insensitive).
-   */
-  static stringInAlphabeticRange(value: string, start: string, end: string): boolean {
-    const lowerValue = value.toLowerCase();
-    const lowerStart = start.toLowerCase();
-    const lowerEnd = end.toLowerCase();
-
-    const result = lowerValue.localeCompare(lowerStart) >= 0 && lowerValue.localeCompare(lowerEnd) <= 0;
-    return result;
-  }
-
   private static civilFromDays(days: number): { 'day': number, 'month': number, 'year': number } {
     const shiftedDays = days + 719_468;
     const era = Math.floor(shiftedDays / 146_097);
@@ -499,23 +283,6 @@ export class DrilldownUtilities {
       'month': month,
       'year': year
     };
-  }
-
-  private static compareParsedSemver(first: ParsedSemverEntity.Type, second: ParsedSemverEntity.Type): number {
-    if (first.major !== second.major) {
-      const result = first.major - second.major;
-      return result;
-    }
-    if (first.minor !== second.minor) {
-      const result = first.minor - second.minor;
-      return result;
-    }
-    if (first.patch !== second.patch) {
-      const result = first.patch - second.patch;
-      return result;
-    }
-
-    return 0;
   }
 
   private static parsePath(path: string): (number | string)[] {

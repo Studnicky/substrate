@@ -32,7 +32,6 @@ import type { GroupValueUnionType } from '../../types/index.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import { TypeGuards } from '../../typeguards/index.js';
-import { DrilldownUtilities } from '../DrilldownUtilities.js';
 
 const stringHandler: MatcherHandlerInterface<StringGroupValueInterface, StringMatcherInterface, string> = {
   'compare': function (first: string, second: string): number {
@@ -120,7 +119,7 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
       return false;
     }
 
-    const result = numericValue >= matcher.minimum && numericValue < matcher.maximum;
+    const result = Predicates.performRangeComparison(numericValue, matcher.minimum, matcher.maximum, true, { 'boundary': 'half-open' });
     return result;
   },
 
@@ -147,16 +146,16 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
 
 const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherInterface, CidrRangeEntity.Type> = {
   'compare': function (first: CidrRangeEntity.Type, second: CidrRangeEntity.Type): number {
-    const rangeFirst = DrilldownUtilities.parseCidr(first.cidr);
-    const rangeSecond = DrilldownUtilities.parseCidr(second.cidr);
+    const rangeFirst = Predicates.parseCidrRange(first.cidr);
+    const rangeSecond = Predicates.parseCidrRange(second.cidr);
 
-    if (rangeFirst === null && rangeSecond === null) {
+    if (rangeFirst === undefined && rangeSecond === undefined) {
       return 0;
     }
-    if (rangeFirst === null) {
+    if (rangeFirst === undefined) {
       return 1;
     }
-    if (rangeSecond === null) {
+    if (rangeSecond === undefined) {
       const result = -1;
       return result;
     }
@@ -165,9 +164,9 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
     return result;
   },
   'createMatcher': function (valueDef: CidrGroupValueInterface, group: PartitionGroupInterface): CidrMatcherInterface | null {
-    const range = DrilldownUtilities.parseCidr(valueDef.cidr);
+    const range = Predicates.parseCidrRange(valueDef.cidr);
 
-    if (range === null) {
+    if (range === undefined) {
       return null;
     }
 
@@ -190,13 +189,13 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
   'isNodeValue': TypeGuards.isCidrRange,
 
   'match': function (matcher: CidrMatcherInterface, _value: unknown, stringValue: string): boolean {
-    const ipNumber = DrilldownUtilities.ipToNumber(stringValue);
+    const ipNumber = Predicates.ipv4ToUint32(stringValue);
 
-    if (ipNumber === null) {
+    if (ipNumber === undefined) {
       return false;
     }
 
-    const result = ipNumber >= matcher.start && ipNumber <= matcher.end;
+    const result = Predicates.performRangeComparison(ipNumber, matcher.start, matcher.end, true);
     return result;
   },
 
@@ -210,7 +209,7 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
     if (valueDef.cidr === '') {
       errors.push(`${path}: missing 'cidr' field`);
     }
-    else if (DrilldownUtilities.parseCidr(valueDef.cidr) === null) {
+    else if (Predicates.parseCidrRange(valueDef.cidr) === undefined) {
       errors.push(`${path}: invalid CIDR notation '${valueDef.cidr}'`);
     }
 
@@ -223,7 +222,7 @@ const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMa
     const firstVersion = first.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
     const secondVersion = second.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
 
-    const result = DrilldownUtilities.compareSemver(firstVersion, secondVersion);
+    const result = Predicates.compareSemverVersions(firstVersion, secondVersion);
     return result;
   },
   'createMatcher': function (valueDef: SemverGroupValueInterface, group: PartitionGroupInterface): SemverMatcherInterface {
@@ -245,7 +244,7 @@ const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMa
   'isNodeValue': TypeGuards.isSemverRange,
 
   'match': function (matcher: SemverMatcherInterface, _value: unknown, stringValue: string): boolean {
-    const result = DrilldownUtilities.semverSatisfies(stringValue, matcher.range);
+    const result = Predicates.satisfiesSemverRange(stringValue, matcher.range);
     return result;
   },
 
@@ -309,7 +308,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
       return false;
     }
 
-    const result = dateValue >= matcher.afterTs && dateValue < matcher.beforeTs;
+    const result = Predicates.performRangeComparison(dateValue, matcher.afterTs, matcher.beforeTs, true, { 'boundary': 'half-open' });
     return result;
   },
 
@@ -457,7 +456,7 @@ const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueInterface, 
   'isNodeValue': TypeGuards.isAlphabeticRange,
 
   'match': function (matcher: AlphabeticMatcherInterface, _value: unknown, stringValue: string): boolean {
-    const isInRange = DrilldownUtilities.stringInAlphabeticRange(stringValue, matcher.start, matcher.end);
+    const isInRange = Predicates.performRangeComparison(stringValue, matcher.start, matcher.end, true, { 'caseSensitive': false });
 
     return isInRange;
   },

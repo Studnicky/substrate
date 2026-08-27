@@ -6,4 +6,5 @@ export {
   SUPPORTED_CONTENT_MEDIA_TYPES
 } from './PredicatesConstants.js';
 export { REDOS_VULNERABLE_PATTERNS } from './RedosVulnerablePatterns.js';
+export { SEMVER_LEADING_V_PATTERN } from './SemverLeadingVPattern.js';
 export { TIME_ONLY_PATTERN } from './TimeOnlyPattern.js';
