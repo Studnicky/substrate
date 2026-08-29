@@ -1,5 +1,17 @@
 # Changelog
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae381ef]
+  - @studnicky/types@12.0.1
+  - @studnicky/concurrency@12.0.1
+  - @studnicky/errors@12.0.1
+  - @studnicky/event-bus@12.0.1
+  - @studnicky/json@12.0.1
+  - @studnicky/scheduler@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

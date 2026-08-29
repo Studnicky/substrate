@@ -1,5 +1,12 @@
 # @studnicky/intake-kit
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae381ef]
+  - @studnicky/types@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

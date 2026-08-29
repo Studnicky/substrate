@@ -1,5 +1,15 @@
 # @studnicky/virtual-fs
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae381ef]
+  - @studnicky/types@12.0.1
+  - @studnicky/clock@12.0.1
+  - @studnicky/errors@12.0.1
+  - @studnicky/json@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

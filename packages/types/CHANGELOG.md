@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.0.1
+
+### Patch Changes
+
+- ae381ef: Enforces the protected target-branch release lifecycle for delivery, release, hotfix, and direct main-to-develop back-merge pull requests.
+
 ## 12.0.0
 
 ## 11.1.0
