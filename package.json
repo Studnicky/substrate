@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/substrate",
-  "version": "11.1.0",
-  "description": "A subclass-first toolkit of TypeScript primitives \u2014 retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
+  "version": "12.0.0",
+  "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
   "homepage": "https://studnicky.github.io/substrate/",
@@ -64,7 +64,7 @@
     "predev": "bash scripts/install-hooks.sh",
     "setup-hooks": "bash scripts/install-hooks.sh",
     "worktree:clean": "bash scripts/worktree-clean.sh",
-    "test:hooks": "for f in .githooks/tests/*.test.sh; do echo \"\u2192 $f\"; bash \"$f\" || exit $?; done"
+    "test:hooks": "for f in .githooks/tests/*.test.sh; do echo \"→ $f\"; bash \"$f\" || exit $?; done"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.1",
@@ -89,9 +89,9 @@
     "eslint-plugin-perfectionist": "^5.10.1",
     "eslint-plugin-regexp": "^3.2.0",
     "eslint-plugin-unused-imports": "^4.4.1",
-    "mermaid": "^11.17.0",
-    "madge": "^8.0.0",
     "lint-staged": "^17.3.0",
+    "madge": "^8.0.0",
+    "mermaid": "^11.17.0",
     "oxlint": "^1.79.0",
     "sucrase": "^3.35.1",
     "tsx": "^4.23.12",
