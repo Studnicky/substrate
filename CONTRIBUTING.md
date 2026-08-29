@@ -27,15 +27,16 @@ pnpm run docs:build  # VitePress documentation build
 
 ## Branching
 
-| Branch type | Naming | Target |
-|---|---|---|
-| Feature | `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<topic>` | `develop` |
-| Release | `release/<version>` | `main` |
-| Hotfix | `hotfix/<topic>` | `main` |
+| Branch type | Naming | Target | Merge strategy |
+|---|---|---|---|
+| Delivery | `feature/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<topic>` | `develop` | Squash |
+| Release | `release/<version>` | `main` | Merge commit |
+| Hotfix | `hotfix/<topic>` | `main` | Merge commit |
+| Back-merge | `main` | `develop` | Merge commit |
 
-`main` and `develop` are protected. All changes land via pull request. Feature PRs target `develop`. Release and hotfix PRs target `main`.
+`main` and `develop` are protected. All changes land via pull request. Delivery PRs target `develop`. Release and hotfix PRs target `main`. The canonical back-merge pull request targets `develop` directly from `main`.
 
-Squash-merge features into `develop`. Release branches back-merge into `develop` after the `main` merge.
+The pull-request lifecycle gate rejects incompatible branch and target pairs.
 
 ## Commits
 
@@ -51,7 +52,7 @@ the computed window.
 
 ## Changesets and releases
 
-Every contributor PR, including a release or hotfix PR, adds a non-empty valid changeset. The `changelog-check` workflow enforces this on PRs targeting `main` and `develop`.
+Delivery PRs add a non-empty valid changeset. The pull-request lifecycle gate requires it for ordinary branches targeting `develop`.
 
 ```bash
 pnpm changeset
@@ -59,9 +60,9 @@ pnpm changeset
 
 This prompts for the affected package(s) (all `@studnicky/*` packages version together as one fixed group, so selecting any one bumps them all), a bump type, and a summary. It writes a `.changeset/<random-name>.md` file — commit it with your PR.
 
-When `main` contains pending changesets, the automated release workflow opens a `release/prepare-*` pull request. It runs `pnpm changeset:version`, commits the versioned package manifests and changelogs, and contains no pending changesets. Its required check verifies lockstep versions and the absence of unconsumed changesets.
+Release and hotfix PRs targeting `main` contain the final versioned release state: packages are lockstep and no pending Changesets remain. The lifecycle gate validates that state through the shared release contract. The release workflow tags the merge commit and publishes it to GitHub Packages. Don't hand-edit a package's `CHANGELOG.md`; `changeset:version` owns each generated release section.
 
-After the release-preparation pull request merges, `main` contains the versioned release commit. The automated release workflow tags that commit, and the tag triggers publication to GitHub Packages. Don't hand-edit a package's `CHANGELOG.md`; `changeset:version` owns each generated release section.
+After a release or hotfix merge, the sync workflow opens a `main`-to-`develop` pull request. It merges that pull request with a merge commit so `main` remains an ancestor of `develop`.
 
 ## Design rules
 

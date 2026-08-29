@@ -1,7 +1,5 @@
-#!/bin/sh
-set -eu
-
-pass_count=0
+#!/usr/bin/env bash
+set -euo pipefail
 
 fail() {
   printf 'FAIL: %s\n  %s\n' "$1" "$2" >&2
@@ -22,8 +20,16 @@ assert_not_contains() {
   fi
 }
 
-test_main() {
-  printf 'PASS: %s\n' "$pass_count"
+assert_resolve_pull_request_head_action() {
+  local label="$1" workflow="$2"
+
+  assert_contains "$label uses the trusted submitted-head action" "uses: ./.github/actions/resolve-pull-request-head" "$workflow"
+  assert_contains "$label passes the target branch to the submitted-head action" "base-ref: \${{ github.base_ref }}" "$workflow"
+  assert_contains "$label passes the pull request number to the submitted-head action" "pull-request-number: \${{ github.event.pull_request.number }}" "$workflow"
+  assert_contains "$label passes the immutable commit to the submitted-head action" "expected-head-sha: \${{ github.event.pull_request.head.sha }}" "$workflow"
+  assert_not_contains "$label does not fetch submitted code by raw SHA" 'git fetch --no-tags origin "$HEAD_SHA"' "$workflow"
+  assert_not_contains "$label does not fetch the pull request head directly" 'git fetch --no-tags origin "pull/$PR_NUMBER/head' "$workflow"
+  assert_not_contains "$label does not check out submitted workflow code" "ref: \${{ github.event.pull_request.head.sha }}" "$workflow"
 }
 
 make_repo() {
@@ -50,4 +56,29 @@ stub_cmd() {
 $body
 EOF
   chmod +x "$repo/bin/$cmd"
+}
+
+setup_pre_push_fixture() {
+  local repo="$1" repo_root="$2"
+  mkdir -p "$repo/.githooks" "$repo/scripts" "$repo/packages/example"
+  cp -R "$repo_root/.githooks/lib" "$repo/.githooks/lib"
+  cp "$repo_root/.githooks/pre-push" "$repo/.githooks/pre-push"
+  chmod +x "$repo/.githooks/pre-push"
+}
+
+stub_pre_push_hook_suite() {
+  local repo="$1" failure_mode="${2:-none}"
+  cat > "$repo/scripts/hook-suite.sh" <<'HOOK'
+#!/bin/sh
+printf '%s\n' "$*" >> hook-suite.calls
+if [ -f .hook-suite-fail-generated-artifacts ] && [ "$1" = generated-artifacts ]; then
+  exit 1
+fi
+exit 0
+HOOK
+  chmod +x "$repo/scripts/hook-suite.sh"
+
+  if [ "$failure_mode" = "generated-artifacts" ]; then
+    : > "$repo/.hook-suite-fail-generated-artifacts"
+  fi
 }

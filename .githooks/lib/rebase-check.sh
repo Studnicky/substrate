@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 rebase_base_for_branch() {
   case "$1" in
@@ -47,9 +47,9 @@ check_rebased_onto_base() {
 # satisfy that check (main was a superset of develop at that moment) while
 # still carrying main-only content (a version bump, a stamped CHANGELOG) that
 # develop hasn't absorbed yet. Landing that in develop corrupts the "main is
-# an ancestor of develop" invariant sync-main-to-develop.yml depends on: the
-# next real sync then has to 3-way-merge two independently-diverged copies of
-# every release-owned file, which conflicts on principle, not by accident.
+# an ancestor of develop" invariant the direct main-to-develop backmerge
+# depends on: the next backmerge then has to 3-way-merge two independently
+# diverged copies of every release-owned file, which conflicts on principle.
 check_no_leaked_main_commits() {
   local sha="${1:-HEAD}"
   local label="${2:-Branch}"

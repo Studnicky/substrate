@@ -30,13 +30,11 @@ repo=$(make_repo)
   assert_eq "docs workflow" "false" "$CHANGED_DOCS_WORKFLOW"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 _set_all_changed
 assert_eq "all unit tests" "true" "$CHANGED_UNIT_TESTS"
 assert_eq "all integration tests" "true" "$CHANGED_INTEGRATION_TESTS"
 assert_eq "all smoke tests" "true" "$CHANGED_SMOKE_TESTS"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo)
 (
@@ -52,7 +50,6 @@ repo=$(make_repo)
   assert_eq "docs workflow" "true" "$CHANGED_DOCS_WORKFLOW"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo)
 (
@@ -67,6 +64,3 @@ repo=$(make_repo)
   assert_eq "audit" "true" "$CHANGED_AUDIT"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-
-test_main

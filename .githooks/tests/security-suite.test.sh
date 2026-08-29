@@ -40,7 +40,6 @@ assert_security_suite_calls_shared_commands() {
     fi
   )
   rm -rf "$repo"
-  pass_count=$((pass_count + 1))
 }
 
 assert_audit_check_baseline_diff() {
@@ -97,9 +96,7 @@ fi
     assert_contains "audit baseline: broken report fails loud" "did not produce a usable report" "$(cat audit-out.log)"
   )
   rm -rf "$repo"
-  pass_count=$((pass_count + 1))
 }
 
 assert_security_suite_calls_shared_commands
 assert_audit_check_baseline_diff
-test_main

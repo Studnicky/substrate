@@ -23,7 +23,6 @@ assert_seeds_env_files() {
   assert_eq "root env seeded" "ROOT=1" "$(cat "$linked/.env")"
   assert_eq "app env seeded" "FOO=1" "$(cat "$linked/apps/foo/.env")"
   [ ! -f "$linked/.env.local" ] || fail "local env not seeded" ".env.local copied"
-  pass_count=$((pass_count + 1))
   rm -rf "$repo" "$linked"
 }
 
@@ -39,7 +38,6 @@ assert_pnpm_install_gates_on_manifest_changes() {
     source "$HOOKS_DIR/lib/dependency-install.sh"
     needs_pnpm "$old" "$new"
   )
-  pass_count=$((pass_count + 1))
   rm -rf "$repo"
 }
 
@@ -56,11 +54,9 @@ assert_dependency_install_returns_success_after_successful_install() {
     PATH="$repo/bin:$PATH" run_dependency_install "test" "$old" "$new" >/tmp/dependency-install.out
   )
   assert_contains "dependency install ran" "test — pnpm install --frozen-lockfile" "$(cat /tmp/dependency-install.out)"
-  pass_count=$((pass_count + 1))
   rm -rf "$repo"
 }
 
 assert_seeds_env_files
 assert_pnpm_install_gates_on_manifest_changes
 assert_dependency_install_returns_success_after_successful_install
-test_main

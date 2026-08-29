@@ -23,4 +23,3 @@ assert_clean_removes_merged_worktree() {
 }
 
 assert_clean_removes_merged_worktree
-test_main

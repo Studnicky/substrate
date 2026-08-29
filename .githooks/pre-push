@@ -8,11 +8,11 @@ fi
 echo "pre-push: running substrate checks"
 
 git_root=$(git rev-parse --show-toplevel)
-default_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@origin/@')
-default_ref=${default_ref:-origin/develop}
+main_ref=origin/main
+develop_ref=origin/develop
 
-if ! git show-ref --verify --quiet "refs/remotes/${default_ref}"; then
-  remote_branch=${default_ref#origin/}
+if ! git show-ref --verify --quiet "refs/remotes/${develop_ref}"; then
+  remote_branch=${develop_ref#origin/}
   git fetch --quiet origin "+refs/heads/${remote_branch}:refs/remotes/origin/${remote_branch}" || true
 fi
 
@@ -27,40 +27,41 @@ push_info=$(cat)
 
 empty_sha=0000000000000000000000000000000000000000
 
+base_ref_for_branch() {
+  case "$1" in
+    release/*|hotfix/*) printf '%s\n' "$main_ref" ;;
+    *) printf '%s\n' "$develop_ref" ;;
+  esac
+}
+
 # Git names the refs being pushed on stdin, and they need not include the
 # checked-out branch: `git push origin v1.2.3` pushes a tag and no branch at
 # all. Branch policy therefore reads the refs in the push, not HEAD.
 push_range=""
 pushed_branches=""
 pushed_tags=""
-while read -r local_ref local_sha remote_ref remote_sha; do
+while read -r local_ref local_sha _; do
   case "$local_ref" in
     refs/heads/*)
-      pushed_branches="$pushed_branches ${local_ref#refs/heads/}"
+      head_branch=${local_ref#refs/heads/}
+      if ! check_branch_name "$head_branch"; then
+        exit 1
+      fi
+      pushed_branches="$pushed_branches $head_branch"
       if [ "$local_sha" != "$empty_sha" ] && [ -z "$push_range" ]; then
         push_range=$(compute_push_range "$local_sha") || true
       fi
-      case "$local_ref" in
-        refs/heads/release/*|refs/heads/hotfix/*) base_ref=origin/main ;;
-        *) base_ref="$default_ref" ;;
-      esac
+      base_ref=$(base_ref_for_branch "$head_branch")
       if ! git show-ref --verify --quiet "refs/remotes/${base_ref}"; then
         remote_branch=${base_ref#origin/}
         git fetch --quiet origin "+refs/heads/${remote_branch}:refs/remotes/origin/${remote_branch}" || true
       fi
-      if [ -n "$base_ref" ] && [ "$local_sha" != "$empty_sha" ]; then
+      if [ "$local_sha" != "$empty_sha" ]; then
         check_rebased_onto_base "${base_ref#origin/}" "$local_sha" "$local_ref"
       fi
-      # chore/sync-main-to-develop's whole job is carrying main's commits into
-      # develop, so it is exempt; every other develop-bound branch is not.
-      case "$local_ref" in
-        refs/heads/release/*|refs/heads/hotfix/*|refs/heads/main|refs/heads/develop|refs/heads/chore/sync-main-to-develop) ;;
-        *)
-          if [ "$local_sha" != "$empty_sha" ]; then
-            check_no_leaked_main_commits "$local_sha" "$local_ref"
-          fi
-          ;;
-      esac
+      if [ "$base_ref" = "$develop_ref" ] && [ "$head_branch" != main ] && [ "$head_branch" != develop ] && [ "$local_sha" != "$empty_sha" ]; then
+        check_no_leaked_main_commits "$local_sha" "$local_ref"
+      fi
       ;;
     refs/tags/*)
       pushed_tags="$pushed_tags ${local_ref#refs/tags/}"
@@ -71,7 +72,6 @@ $push_info
 EOF
 
 for pushed_branch in $pushed_branches; do
-  check_branch_name "$pushed_branch"
   case "$pushed_branch" in
     main|develop)
       echo "pre-push: protected branch '$pushed_branch' cannot be pushed directly" >&2
@@ -134,12 +134,12 @@ wait_stage() {
 }
 
 policy_stage=()
-# Release gates ask whether changed packages still owe a changeset, which is a
-# question about a branch proposing a release. A tag names a commit that has
-# already been versioned and merged, so its changesets are spent by definition
-# and the gate would report every released package as owing one.
 if [ "$tag_only_push" = false ] && { [ "$CHANGED_RELEASE" = true ] || [ "$CHANGED_SOURCE" = true ]; }; then
-  policy_stage+=("release_gates:bash scripts/hook-suite.sh release-gates '$default_ref'")
+  for pushed_branch in $pushed_branches; do
+    base_ref=$(base_ref_for_branch "$pushed_branch")
+    stage_label="release_gates_${pushed_branch//\//_}"
+    policy_stage+=("${stage_label}:bash scripts/hook-suite.sh release-gates '$base_ref' 'refs/heads/$pushed_branch' '$pushed_branch'")
+  done
 fi
 
 if [ "$CHANGED_CI" = true ]; then
@@ -192,7 +192,7 @@ fi
 
 if [ "$CHANGED_ANALYSIS" = true ]; then
   echo "pre-push: blast radius"
-  validation_stage+=("diagram:bash scripts/hook-suite.sh diagram '$default_ref'")
+  validation_stage+=("diagram:bash scripts/hook-suite.sh diagram '$develop_ref'")
 fi
 
 if [ "${#validation_stage[@]}" -gt 0 ]; then

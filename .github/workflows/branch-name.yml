@@ -1,11 +1,11 @@
 name: branch-name
 
 on:
-  pull_request:
+  pull_request_target:
     types: [ opened, synchronize, reopened ]
 
 concurrency:
-  group: branch-name-${{ github.ref }}
+  group: branch-name-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -17,7 +17,31 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Run branch check
+        with:
+          fetch-depth: 0
+      - name: Verify trusted base revision
+        shell: bash
         env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: bash scripts/policy-suite.sh branch "$BRANCH"
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"
+          if [ "$(git rev-parse --verify HEAD)" != "$(git rev-parse --verify refs/substrate/pull-request-base)" ]; then
+            echo "::error::Checked-out base revision does not match the event base SHA." >&2
+            exit 1
+          fi
+      - uses: ./.github/actions/pnpm-node-setup
+      - uses: ./.github/actions/resolve-pull-request-head
+        with:
+          base-ref: ${{ github.base_ref }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          expected-head-sha: ${{ github.event.pull_request.head.sha }}
+      - name: Validate the branch route and release state
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          bash scripts/policy-suite.sh branch "$HEAD_REF"
+          bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"

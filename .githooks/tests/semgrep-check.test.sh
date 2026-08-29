@@ -5,6 +5,7 @@ cd "$(dirname "$0")" || exit 1
 # shellcheck source=_helpers.sh
 source "_helpers.sh"
 HOOKS_DIR="$(cd "$PWD/.." && pwd)"
+export HOOKS_DIR
 # shellcheck source=../lib/semgrep-check.sh
 source "../lib/semgrep-check.sh"
 
@@ -15,8 +16,6 @@ repo=$(make_repo)
   git add file.ts
   git commit -q -m "add file"
   stub_cmd "$repo" semgrep 'exit 0'
-  check_semgrep_findings "HEAD~1..HEAD"
+  PATH="$repo/bin:$PATH" check_semgrep_findings "HEAD~1..HEAD"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-printf 'PASS: %s\n' "$pass_count"

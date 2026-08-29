@@ -1,7 +1,7 @@
 name: changelog-check
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [ main, develop ]
     types: [ opened, synchronize, reopened ]
 
@@ -10,28 +10,36 @@ jobs:
     name: Changeset required
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify trusted base revision
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"
+          if [ "$(git rev-parse --verify HEAD)" != "$(git rev-parse --verify refs/substrate/pull-request-base)" ]; then
+            echo "::error::Checked-out base revision does not match the event base SHA." >&2
+            exit 1
+          fi
       - uses: ./.github/actions/pnpm-node-setup
+      - uses: ./.github/actions/resolve-pull-request-head
+        with:
+          base-ref: ${{ github.base_ref }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          expected-head-sha: ${{ github.event.pull_request.head.sha }}
 
-      - name: Verify a changeset was added
-        if: ${{ !startsWith(github.head_ref, 'release/prepare-') }}
+      - name: Validate branch route and release state
         shell: bash
         env:
           BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          git fetch origin "$BASE_REF"
-          bash scripts/policy-suite.sh changeset-required "origin/$BASE_REF"
-
-      - name: Verify prepared release assets
-        if: ${{ startsWith(github.head_ref, 'release/prepare-') }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(node -p "require('./package.json').version")
-          bash scripts/release-suite.sh publish-gates "$version"
+          bash scripts/policy-suite.sh branch "$HEAD_REF"
+          bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"

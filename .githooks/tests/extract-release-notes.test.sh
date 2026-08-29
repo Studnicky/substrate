@@ -42,7 +42,6 @@ workspace=$(make_workspace 1.0.0 200 3)
   assert_not_contains "small release has no overflow list" "Remaining packages" "$out"
 )
 rm -rf "$workspace"
-pass_count=$((pass_count + 1))
 
 # A release whose sections exceed the cap stays publishable: the body fits, and
 # every package that was not inlined is linked instead of dropped.
@@ -70,7 +69,6 @@ workspace=$(make_workspace 2.0.0 20000 20)
     "https://github.com/Test/workspace/blob/v2.0.0/packages/" "$out"
 )
 rm -rf "$workspace"
-pass_count=$((pass_count + 1))
 
 # With no changelog entry for the version, the body names the release anyway.
 workspace=$(make_workspace 3.0.0 100 2)
@@ -82,6 +80,3 @@ workspace=$(make_workspace 3.0.0 100 2)
   assert_eq "empty release names the version" "Release v3.0.0" "$out"
 )
 rm -rf "$workspace"
-pass_count=$((pass_count + 1))
-
-test_main

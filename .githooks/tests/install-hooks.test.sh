@@ -47,7 +47,6 @@ assert_install() {
     [ -x "$repo/.git/hooks/pre-push" ] || fail "install-hooks" "pre-push forwarder missing"
     grep -q -- '--show-toplevel' "$repo/.git/hooks/pre-commit" || fail "install-hooks" "forwarder body missing show-toplevel"
     rm -rf "$repo"
-    pass_count=$((pass_count + 1))
 }
 
 assert_local_hooks_path_is_cleared() {
@@ -62,7 +61,6 @@ assert_local_hooks_path_is_cleared() {
         fi
     )
     rm -rf "$repo"
-    pass_count=$((pass_count + 1))
 }
 
 assert_missing_post_checkout_is_tolerated() {
@@ -75,7 +73,6 @@ assert_missing_post_checkout_is_tolerated() {
         .git/hooks/post-checkout >/tmp/post-checkout-forwarder.out 2>&1
     )
     rm -rf "$repo"
-    pass_count=$((pass_count + 1))
 }
 
 assert_missing_pre_push_fails() {
@@ -90,11 +87,9 @@ assert_missing_pre_push_fails() {
         fi
     )
     rm -rf "$repo"
-    pass_count=$((pass_count + 1))
 }
 
 assert_install
 assert_local_hooks_path_is_cleared
 assert_missing_post_checkout_is_tolerated
 assert_missing_pre_push_fails
-test_main

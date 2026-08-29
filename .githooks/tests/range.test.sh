@@ -15,5 +15,3 @@ repo=$(make_repo)
   assert_eq "root range" "${root}..HEAD" "$out"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-test_main

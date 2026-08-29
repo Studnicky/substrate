@@ -43,6 +43,3 @@ JSON
   assert_not_contains "runner dir filter excludes sibling" "packages/bar/tests/unit/bar.loop.spec.ts" "$out"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-
-test_main
