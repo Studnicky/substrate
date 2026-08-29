@@ -1,5 +1,11 @@
 # @studnicky/intake-kit
 
+## 12.0.0
+
+### Patch Changes
+
+- @studnicky/types@12.0.0
+
 ## 11.1.0
 
 ### Patch Changes

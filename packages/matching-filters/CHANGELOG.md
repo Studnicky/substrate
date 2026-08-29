@@ -1,5 +1,15 @@
 # Changelog
 
+## 12.0.0
+
+### Patch Changes
+
+- Updated dependencies [46e9a40]
+  - @studnicky/errors@12.0.0
+  - @studnicky/filters@12.0.0
+  - @studnicky/matching@12.0.0
+  - @studnicky/types@12.0.0
+
 ## 11.1.0
 
 ### Minor Changes
