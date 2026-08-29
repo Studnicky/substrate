@@ -17,6 +17,9 @@
       "path": "../batch"
     },
     {
+      "path": "../concurrency"
+    },
+    {
       "path": "../fsm"
     },
     {
@@ -27,6 +30,9 @@
     },
     {
       "path": "../system"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

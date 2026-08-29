@@ -2,7 +2,7 @@
 
 import { Predicates } from '@studnicky/types';
 
-import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
+import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN, SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import { PatchError } from '../errors/PatchError.js';
@@ -10,6 +10,7 @@ import { ARRAY_INDEX_PATTERN } from './constants/PatchConstants.js';
 import { DataType } from './DataType.js';
 
 interface PatchSubclassInterface<TInstance extends Patch> extends Function {
+  create(operations?: unknown): TInstance;
   readonly 'prototype': TInstance;
 }
 
@@ -33,6 +34,16 @@ export class Patch {
     return result;
   }
 
+  /** Build the RFC-6902 patch that transforms one JSON value into another. */
+  public static diff<TInstance extends Patch = Patch>(this: PatchSubclassInterface<TInstance>, before: unknown, after: unknown): TInstance {
+    const base = JsonValueEntity.intake(before);
+    const next = JsonValueEntity.intake(after);
+    const operations: PatchOperationEntity.Type[] = [];
+    Patch.diffValues(base, next, '', operations);
+    const result = this.create(operations);
+    return result;
+  }
+
   protected constructor(operations: PropertyKey | bigint | boolean | object | null | undefined = []) {
     const candidates = Predicates.isArray(operations) ? operations : [operations];
     const parsedOperations: PatchOperationEntity.Type[] = [];
@@ -42,6 +53,54 @@ export class Patch {
       parsedOperations.push(PatchOperationEntity.intake(candidate));
     }
     this.#operations = structuredClone(parsedOperations);
+  }
+
+  private static diffArray(base: unknown[], next: unknown[], path: string, operations: PatchOperationEntity.Type[]): void {
+    if (base.length !== next.length) {
+      operations.push({ 'op': 'replace', 'path': path, 'value': JsonValueEntity.intake(next) });
+      return;
+    }
+    for (let index = 0; index < base.length; index += 1) {
+      Patch.diffValues(base[index], next[index], `${path}/${index}`, operations);
+    }
+  }
+
+  private static diffObject(base: object, next: object, path: string, operations: PatchOperationEntity.Type[]): void {
+    const baseKeys = Object.keys(base);
+    for (let index = 0; index < baseKeys.length; index += 1) {
+      const key = baseKeys[index];
+      if (key !== undefined && !(key in next)) {
+        operations.push({ 'op': 'remove', 'path': `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}` });
+      }
+    }
+    const nextKeys = Object.keys(next);
+    for (let index = 0; index < nextKeys.length; index += 1) {
+      const key = nextKeys[index];
+      if (key === undefined) {
+        continue;
+      }
+      const childPath = `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}`;
+      if (!(key in base)) {
+        operations.push({ 'op': 'add', 'path': childPath, 'value': JsonValueEntity.intake(Reflect.get(next, key)) });
+      } else {
+        Patch.diffValues(Reflect.get(base, key), Reflect.get(next, key), childPath, operations);
+      }
+    }
+  }
+
+  private static diffValues(base: unknown, next: unknown, path: string, operations: PatchOperationEntity.Type[]): void {
+    if (Object.is(base, next)) {
+      return;
+    }
+    if (Array.isArray(base) && Array.isArray(next)) {
+      Patch.diffArray(base, next, path, operations);
+      return;
+    }
+    if (DataType.isPlainObject(base) && DataType.isPlainObject(next)) {
+      Patch.diffObject(base, next, path, operations);
+      return;
+    }
+    operations.push({ 'op': 'replace', 'path': path, 'value': JsonValueEntity.intake(next) });
   }
 
   /** Return a deeply isolated projection of the patch operations. */

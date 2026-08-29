@@ -1,0 +1,41 @@
+{
+  "cases": [
+    {
+      "name": "adapts each matching primitive through one plugin operation",
+      "shape": "valid-adapters",
+      "input": {
+        "text": {
+          "value": "audit",
+          "comparison": "audit",
+          "threshold": 0.8,
+          "transpositionValue": "ab",
+          "transpositionComparison": "ba",
+          "transpositionThreshold": 0.5,
+          "jaroValue": "martha",
+          "jaroComparison": "marhta",
+          "jaroThreshold": 0.94,
+          "jaroWinklerThreshold": 0.95
+        },
+        "ngram": { "value": "audit.logger", "comparison": "audit.event", "size": 3, "threshold": 0.2 },
+        "token": { "value": ["audit", "event"], "comparison": ["audit", "logger"], "threshold": 0.3 },
+        "cosine": { "key": "audit", "value": 1, "comparison": 2, "threshold": 0.9 }
+      },
+      "expected": {
+        "levenshtein": true,
+        "damerauLevenshtein": true,
+        "jaro": true,
+        "jaroWinkler": true,
+        "ngram": true,
+        "jaccard": true,
+        "sorensenDice": true,
+        "cosine": true
+      }
+    },
+    {
+      "name": "rejects malformed composed filter inputs",
+      "shape": "malformed-inputs",
+      "input": { "text": "audit", "threshold": 0.8, "tokens": ["audit"], "number": 1 },
+      "expected": { "levenshtein": false, "ngram": false, "jaccard": false, "cosine": false }
+    }
+  ]
+}

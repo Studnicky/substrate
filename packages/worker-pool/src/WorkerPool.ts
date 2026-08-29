@@ -20,6 +20,7 @@ import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInt
 import type { WorkerProgressEnvelopeInterface } from './interfaces/WorkerProgressEnvelopeInterface.js';
 import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
 
+import { WorkerPoolError } from './errors/index.js';
 import { RetryGuardMachine } from './RetryGuardMachine.js';
 import { TaskSettlementMachine } from './TaskSettlementMachine.js';
 import { WorkerFailureMachine } from './WorkerFailureMachine.js';
@@ -158,7 +159,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     config: WorkerPoolConfigInterface
   ): TInstance {
     if (!Predicates.isString(config.workerPath) || config.workerPath.length === 0) {
-      throw new Error('WorkerPool: workerPath is required');
+      throw new WorkerPoolError({
+        'code': 'workerPool.invalidWorkerPath',
+        'message': 'WorkerPool: workerPath is required'
+      });
     }
 
     const concurrency = config.concurrency ?? System.optimalWorkerCount;
@@ -170,7 +174,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       'workerPath': config.workerPath
     }]);
     if (!Predicates.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
-      throw new TypeError('WorkerPool.create() must construct a WorkerPool instance');
+      throw new WorkerPoolError({
+        'code': 'workerPool.invalidConstruction',
+        'message': 'WorkerPool.create() must construct a WorkerPool instance'
+      });
     }
     return result;
   }

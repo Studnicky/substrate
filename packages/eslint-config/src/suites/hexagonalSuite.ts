@@ -26,8 +26,11 @@ export class HexagonalSuite {
     'knownTypesOutsideAdapters'?: {
       'adapterLayerName'?: string;
     };
+    'noThreadedVocabulary'?: {
+      'adapterLayerName'?: string;
+    };
   }): Linter.Config {
-    const { adapterOnlyImport, domainPurity, knownTypesOutsideAdapters, ...layerOptions } = options;
+    const { adapterOnlyImport, domainPurity, knownTypesOutsideAdapters, noThreadedVocabulary, ...layerOptions } = options;
 
     return {
       'plugins': { '@studnicky': plugin },
@@ -35,7 +38,8 @@ export class HexagonalSuite {
         '@studnicky/adapter-only-import': ['error', { ...layerOptions, ...adapterOnlyImport }],
         '@studnicky/domain-purity': ['error', { ...layerOptions, ...domainPurity }],
         '@studnicky/known-types-outside-adapters': ['error', { ...layerOptions, ...knownTypesOutsideAdapters }],
-        '@studnicky/layer-import-boundary': ['error', layerOptions]
+        '@studnicky/layer-import-boundary': ['error', layerOptions],
+        '@studnicky/no-threaded-vocabulary': ['error', { ...layerOptions, ...noThreadedVocabulary }]
       }
     };
   }

@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "name": "reuses a released worker and queues a second lease at capacity",
+      "shape": "reuse-and-bound",
+      "input": { "maximumLeases": 1, "workerId": "worker-a" },
+      "expected": { "factoryCalls": 1, "sameWorker": true }
+    },
+    {
+      "name": "initializes each worker before leasing it",
+      "shape": "initializes-before-leasing",
+      "input": { "maximumLeases": 1, "workerId": "worker-a" },
+      "expected": { "initializedWorkers": 1 }
+    },
+    {
+      "name": "evicts a worker that dies while leased",
+      "shape": "evicts-dead-worker",
+      "input": { "maximumLeases": 1, "workerId": "worker-a" },
+      "expected": { "factoryCalls": 2, "terminatedBeforeClose": 1 }
+    },
+    {
+      "name": "delegates caller protocol through generic transport",
+      "shape": "delegates-generic-transport",
+      "input": { "maximumLeases": 1, "workerId": "worker-a", "request": "ping" },
+      "expected": { "response": "worker-a-1:ping" }
+    },
+    {
+      "name": "close terminates an active lease and prevents further acquisition",
+      "shape": "close-terminates-active-lease",
+      "input": { "maximumLeases": 1, "workerId": "worker-a" },
+      "expected": { "rejectedMessage": "WorkerLeasePool is closed", "terminatedWorkers": 1 }
+    },
+    {
+      "name": "close leaves caller-owned transport cancellation to the transport",
+      "shape": "close-during-request",
+      "input": { "maximumLeases": 1, "workerId": "worker-a", "request": "ping" },
+      "expected": { "response": "transport-settled" }
+    }
+  ]
+}

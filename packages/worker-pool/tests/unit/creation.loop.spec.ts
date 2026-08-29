@@ -2,9 +2,10 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { BaseError } from '@studnicky/errors';
 import { Signal } from '@studnicky/signal';
 
-import { WorkerPool } from '../../src/WorkerPool.js';
+import { WorkerPool, WorkerPoolError } from '../../src/index.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 import scenarioGroups from './creation.scenarios.json' with { type: 'json' };
 
@@ -73,7 +74,10 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
 
 function resolveRequiredPoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface & { batchConcurrency: number; concurrency: number } {
   if (config.batch?.concurrency === undefined || config.concurrency === undefined) {
-    throw new Error('foreign-construction scenario input.workerPool requires batch.concurrency and concurrency');
+    throw new WorkerPoolError({
+      'code': 'workerPool.invalidForeignConstructionScenario',
+      'message': 'foreign-construction scenario input.workerPool requires batch.concurrency and concurrency'
+    });
   }
   return {
     ...resolvePoolConfig(config),
@@ -139,15 +143,15 @@ const runnerMap: RunnerMap = {
           ...resolveRequiredPoolConfig(scenarioCase.input.workerPool),
           'signal': Signal.create(),
         });
-        return { 'not': 'a worker pool' } as never;
+        return Object.create(null);
       }
     }
 
     assert.throws(() => {
       ForeignWorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    }, (error: Error) => {
-      assert.ok(error instanceof TypeError);
-      assert.ok((error as Error).message.includes('must construct a WorkerPool instance'));
+    }, (error: unknown): boolean => {
+      assert.ok(error instanceof BaseError);
+      assert.ok(error instanceof Error && error.message.includes('must construct a WorkerPool instance'));
       return true;
     });
   }

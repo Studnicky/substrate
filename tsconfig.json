@@ -226,6 +226,36 @@
       "path": "packages/types/tsconfig.tests.json"
     },
     {
+      "path": "packages/matching"
+    },
+    {
+      "path": "packages/matching/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/matching-filters"
+    },
+    {
+      "path": "packages/matching-filters/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/topic-router"
+    },
+    {
+      "path": "packages/topic-router/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/semantic-matching"
+    },
+    {
+      "path": "packages/semantic-matching/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/topic-router-models"
+    },
+    {
+      "path": "packages/topic-router-models/tsconfig.tests.json"
+    },
+    {
       "path": "packages/system"
     },
     {

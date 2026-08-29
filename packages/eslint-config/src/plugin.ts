@@ -7,6 +7,7 @@ import { intakeParseOnly } from './rules/arch/intakeParseOnly.js';
 import { knownTypesOutsideAdapters } from './rules/arch/knownTypesOutsideAdapters.js';
 import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
+import { noThreadedVocabulary } from './rules/arch/noThreadedVocabulary.js';
 import { noUnparsedAssertion } from './rules/arch/noUnparsedAssertion.js';
 import { canonicalExportNames } from './rules/canonicalExportNames.js';
 import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
@@ -19,6 +20,7 @@ import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
 import { interfaceSuffix } from './rules/interfaceSuffix.js';
+import { noFunctionRegistries } from './rules/noFunctionRegistries.js';
 import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
@@ -47,7 +49,9 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'known-types-outside-adapters': knownTypesOutsideAdapters,
     'layer-import-boundary': layerImportBoundary,
     'lexical-this-only': lexicalThisOnly,
+    'no-function-registries': noFunctionRegistries,
     'no-mixed-callable-shapes': noMixedCallableShapes,
+    'no-threaded-vocabulary': noThreadedVocabulary,
     'no-unparsed-assertion': noUnparsedAssertion,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,

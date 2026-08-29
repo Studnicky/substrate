@@ -63,6 +63,14 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate/filter helpers |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
 
+## Matching & Routing
+
+| Package | Description |
+|---------|-------------|
+| [@studnicky/matching](/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
+| [@studnicky/matching-filters](/packages/matching-filters) | Optional one-operation filter adapters for deterministic matching scores |
+| [@studnicky/topic-router](/packages/topic-router) | Pattern-based multi-subscriber event fan-out |
+
 ## I/O & Observability
 
 | Package | Description |

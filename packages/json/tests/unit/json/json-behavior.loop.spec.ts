@@ -685,3 +685,24 @@ void describe('Draft runtime value pass-through', () => {
     assert.equal(next.label, 'after');
   });
 });
+
+void describe('Patch diff', () => {
+  void it('emits an RFC-6902 patch between independently obtained JSON values', () => {
+    const before = { 'items': ['one', 'two'], 'nested': { '/~': 1, 'value': 'before' }, 'remove': true };
+    const after = { 'added': false, 'items': ['one', 'three'], 'nested': { '/~': 2, 'value': 'after' } };
+    const patch = Patch.diff(before, after);
+    const replay = structuredClone(before);
+
+    patch.apply(replay);
+
+    assert.deepEqual(replay, after);
+    assert.deepEqual(patch.operations, [
+      { 'op': 'remove', 'path': '/remove' },
+      { 'op': 'add', 'path': '/added', 'value': false },
+      { 'op': 'replace', 'path': '/items/1', 'value': 'three' },
+      { 'op': 'replace', 'path': '/nested/~1~0', 'value': 2 },
+      { 'op': 'replace', 'path': '/nested/value', 'value': 'after' }
+    ]);
+    assert.ok(StrictPatch.diff(before, after) instanceof StrictPatch);
+  });
+});

@@ -57,6 +57,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",

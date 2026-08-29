@@ -1,0 +1,153 @@
+{
+  "cases": [
+    {
+      "name": "normalization-encoding-scoring",
+      "description": "Deterministic text normalization, encoding, extraction, and scoring preserve their contracts",
+      "shape": "normalization-encoding-scoring",
+      "input": {
+        "normalizerInput": " Café ",
+        "unicodeInput": " Ａudit ",
+        "soundexLeft": "Robert",
+        "soundexRight": "Rupert",
+        "metaphoneLeft": "Smith",
+        "metaphoneRight": "Smyth",
+        "doubleMetaphoneInput": "Smith",
+        "levenshteinLeft": "kitten",
+        "levenshteinRight": "sitten",
+        "damerauLeft": "ab",
+        "damerauRight": "ba",
+        "jaroLeft": "martha",
+        "jaroRight": "marhta",
+        "jaccardLeft": ["a", "b"],
+        "jaccardRight": ["b", "c"],
+        "ngramLeft": "abc-123",
+        "ngramRight": "abc123",
+        "ngramSize": 3,
+        "cosineKey": "a",
+        "cosineLeft": 1,
+        "cosineRight": 2,
+        "tokenInput": "Café—Audit",
+        "ngramInput": "audit",
+        "tfIdfInput": "audit audit",
+        "tfIdfToken": "audit",
+        "documentFrequency": 1,
+        "documentCount": 3,
+        "minHashLeft": "audit logger",
+        "minHashRight": "logger audit",
+        "seed": 7,
+        "signatureSize": 8
+      },
+      "expected": {
+        "normalizer": "café",
+        "unicode": "audit",
+        "doubleMetaphone": ["SM0", "XMT"],
+        "levenshteinMinimum": 0.8,
+        "damerau": 0.5,
+        "jaroMinimum": 0.94,
+        "jaroWinklerMinimum": 0.95,
+        "jaccard": 0.3333333333333333,
+        "sorensenDice": 0.5,
+        "tokens": ["café", "audit"],
+        "ngrams": ["aud", "udi", "dit"]
+      }
+    },
+    {
+      "name": "structural-matching",
+      "description": "Exact, glob, trie, radix, suffix, and substring matching retain their independent semantics",
+      "shape": "structural-matching",
+      "input": {
+        "exactPattern": "api.v1.users",
+        "exactValue": "api.v1.users",
+        "exactMiss": "api.v1.events",
+        "globDeepPattern": "api.**",
+        "globBracePattern": "api.{v1,v2}.users",
+        "globClassPattern": "api.[vw]1.users",
+        "globQuestionPattern": "api.?1.users",
+        "globValue": "api.v1.users",
+        "triePattern": "api.*.users",
+        "customDelimiter": "/",
+        "customDelimiterPattern": "api/*/users",
+        "customDelimiterValue": "api/v1/users",
+        "trieDeepPattern": "api.**.users",
+        "trieDeepValue": "api.v1.internal.users",
+        "trieMiss": "api.v1.internal.groups",
+        "radixPattern": "api.v1.*",
+        "radixValue": "api.v1.users",
+        "suffixPattern": "**.error",
+        "suffixValue": "api.gateway.error",
+        "suffixMiss": "api.gateway.warning",
+        "ahoPatterns": { "audit": "audit", "logger": "logger", "dit": "dit" },
+        "ahoValue": "audit.logger"
+      },
+      "expected": {
+        "exact": true,
+        "aho": ["audit", "dit", "logger"]
+      }
+    },
+    {
+      "name": "candidate-materialization",
+      "description": "Probabilistic prefilters and deterministic indexes materialize and remove candidate identifiers",
+      "shape": "candidate-materialization",
+      "input": {
+        "id": "audit",
+        "bloomBitCount": 128,
+        "bloomHashCount": 3,
+        "cuckooBucketCount": 16,
+        "ngramSize": 3,
+        "ngramRegisteredValue": "audit.logger",
+        "ngramQuery": "audit.event",
+        "minHashValue": "audit logger",
+        "seed": 1,
+        "signatureSize": 8,
+        "rowsPerBand": 2
+      },
+      "expected": {
+        "ngramCandidates": ["audit"],
+        "lshCandidates": ["audit"]
+      }
+    },
+    {
+      "name": "cuckoo-rollback",
+      "description": "Failed relocation preserves existing fingerprints",
+      "shape": "cuckoo-rollback",
+      "input": {
+        "bucketCount": 1,
+        "options": { "bucketSize": 1, "relocationLimit": 1 },
+        "first": "audit",
+        "second": "logger"
+      },
+      "expected": {
+        "secondAdded": false
+      }
+    },
+    {
+      "name": "tree-candidates",
+      "description": "One hierarchical registry materializes literal, single-wildcard, and deep-wildcard candidates",
+      "shape": "tree-candidates",
+      "input": {
+        "literalPattern": "api.v1.users",
+        "singlePattern": "api.*.users",
+        "deepPattern": "api.**",
+        "topic": "api.v1.users"
+      },
+      "expected": {
+        "beforeUnregister": ["literal", "single", "deep"],
+        "afterUnregister": ["literal", "deep"]
+      }
+    },
+    {
+      "name": "radix-candidates",
+      "description": "A prefix-compressed trailing-wildcard index excludes nested remaining paths",
+      "shape": "radix-candidates",
+      "input": {
+        "usersPattern": "api.v1.*",
+        "errorsPattern": "api.v2.*",
+        "topic": "api.v1.users",
+        "nestedTopic": "api.v1.users.detail"
+      },
+      "expected": {
+        "candidates": ["users"]
+      }
+    }
+  ]
+}

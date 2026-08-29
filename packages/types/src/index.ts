@@ -15,5 +15,7 @@
 export { Empty } from './guards/Empty.js';
 export { JsonObject } from './guards/JsonObject.js';
 export { JsonValue } from './guards/JsonValue.js';
+export type { PredicateFunctionInterface } from './interfaces/index.js';
 export { PickDefined } from './objects/PickDefined.js';
+export { Predicate } from './predicates/Predicate.js';
 export { Predicates } from './predicates/Predicates.js';

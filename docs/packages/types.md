@@ -15,7 +15,7 @@ pnpm add @studnicky/types
 
 ## Usage
 
-`Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation — every type guard, atomic comparator, and coercion-free predicate the package exposes lives on it. `Empty` produces fresh empty collection instances (a distinct job from checking emptiness — `Predicates.isEmptyString`/`isEmptyPlainObject`/`isEmptyArray`/`isEmptyMap`/`isEmptySet` cover that). `JsonObject` and `JsonValue` implement runtime JSON boundaries. `PickDefined` assembles objects without retaining `undefined` properties. A declarative `FilterEngine` composes `Predicates`-backed comparators into multi-condition filter specs, importable from the `@studnicky/types/filters` subpath (not the package root) — see `src/filters/index.ts`'s own barrel for the full condition/gate/operator surface.
+`Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation. `Predicate` composes atomic type guards while preserving their narrowed types: use `and`, `or`, `not`, `field`, `arrayItems`, and `mapEntries` to parse an untrusted value once into a canonical structural shape. `Empty` produces fresh empty collection instances. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `PickDefined` assembles objects without retaining `undefined` properties. A declarative `FilterEngine` composes normalized application conditions through the `@studnicky/types/filters` subpath.
 
 <<< ../../packages/types/examples/predicates-accessors.ts#usage
 
@@ -86,6 +86,8 @@ The output shows direct configuration with required defaults and an optional `cl
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Predicates` | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class. | `@studnicky/types` |
+| `Predicate` | Typed runtime predicate composition for boolean algebra and record, array, and map structure. | `@studnicky/types` |
+| `PredicateFunctionInterface` | Contract for a runtime predicate that narrows `unknown` to its value type. | `@studnicky/types` |
 | `FilterEngine` | Evaluates a declarative condition tree against a value, composing `Predicates`-backed comparators. | `@studnicky/types/filters` |
 | `Empty` | Produces fresh empty collection instances. | `@studnicky/types` |
 | `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types` |

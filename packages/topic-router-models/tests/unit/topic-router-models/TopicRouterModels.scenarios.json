@@ -1,0 +1,1 @@
+{"cases":[{"name":"keeps provider inference and delivery selection as separate consumer-owned steps","shape":"inference-to-selection","input":{"content":"user profile created","id":"user-events","origin":"classifier","score":0.98},"expected":{"id":"user-events","origin":"classifier","score":0.98}}]}

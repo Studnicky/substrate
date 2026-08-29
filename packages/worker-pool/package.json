@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "@studnicky/batch": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
