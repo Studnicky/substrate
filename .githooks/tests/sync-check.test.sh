@@ -149,7 +149,7 @@ repo=$(make_repo main)
     fail "merging the sync branch restores ancestry" "main is still not an ancestor of develop"
   fi
 
-  assert_eq "the empty changeset rides along" "" "$(sed -n '1,2p' .changeset/sync-main-to-develop.md | tr -d '-\n')"
+  assert_eq "the empty changeset rides along" "" "$(sed -n '1,2p' .changeset/sync-main-to-develop.md | tr -d '\n-')"
 )
 rm -rf "$repo"
 pass_count=$((pass_count + 1))

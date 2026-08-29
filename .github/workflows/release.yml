@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
 
           release_needed=false
-          if [ -d .changeset ] && find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
+          if [ -d .changeset ] && find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
             release_needed=true
           fi
 
@@ -54,7 +54,6 @@ jobs:
             fi
           elif [ "$INPUT_PUBLISH" = "true" ]; then
             publish=true
-            release_needed=true
           fi
 
           echo "release_needed=$release_needed" >> "$GITHUB_OUTPUT"
@@ -88,30 +87,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin
-      - name: Apply pending changesets, if any
+      - name: Apply pending changesets
         shell: bash
         run: |
-          set -uo pipefail
-
-          output=$(pnpm changeset version 2>&1)
-          status=$?
-
-          echo "$output"
-
-          if [ "$status" -eq 0 ]; then
-            exit 0
-          fi
-
-          # A release branch's own pre-push gate (release-gates.sh) requires
-          # changesets already consumed and versions already aligned before
-          # push, so by the time this runs there is usually nothing left for
-          # changeset version to do — that is success, not failure, here.
-          if printf '%s' "$output" | grep -q "No unreleased changesets found"; then
-            echo "No pending changesets — version already prepared before this release branch was pushed."
-            exit 0
-          fi
-
-          exit "$status"
+          set -euo pipefail
+          pnpm changeset version
       - name: Stamp docs assets and extract release notes
         shell: bash
         run: |

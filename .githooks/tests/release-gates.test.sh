@@ -23,12 +23,27 @@ pass_count=$((pass_count + 2))
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
+  stub_cmd "$repo" pnpm '
+if [ -f .changeset/invalid.md ]; then
+  exit 1
+fi
+'
+  PATH="$repo/bin:$PATH"
   if assert_changeset_required 2>/dev/null; then
     fail "release gates" "expected missing changeset to fail"
   fi
   mkdir -p .changeset
-  printf '%s\n' '# note' > .changeset/a.md
+  : > .changeset/empty.md
+  if assert_changeset_required 2>/dev/null; then
+    fail "release gates" "expected empty changeset to fail"
+  fi
+  printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/a.md
   assert_changeset_required
+  printf '%s\n' 'invalid' > .changeset/invalid.md
+  if assert_changeset_required 2>/dev/null; then
+    fail "release gates" "expected invalid changeset to fail"
+  fi
+  rm .changeset/invalid.md
   if assert_no_pending_changesets 2>/dev/null; then
     fail "release gates" "expected pending changesets to fail"
   fi
