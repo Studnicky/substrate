@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+RELEASE_GATES_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+
 release_root_version() {
   release_manifest_value "${1:-}" package.json version
 }
@@ -111,46 +113,24 @@ pending_changeset_count() {
 }
 
 assert_pending_changesets_are_valid() {
-  local base_ref="$1" head_ref="${2:-}" head_sha checked_out_sha worktree validation_status
+  local base_ref="$1" head_ref="${2:-}" head_commit base_commit
 
   if [ -z "$head_ref" ]; then
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
-    return
-  fi
-
-  if ! head_sha=$(git rev-parse --verify "${head_ref}^{commit}"); then
-    echo "::error::Cannot resolve changeset validation ref ${head_ref}." >&2
+    echo "ERROR: Changeset validation requires an explicit head ref." >&2
     return 1
   fi
 
-  checked_out_sha=$(git rev-parse --verify HEAD)
-  if [ "$head_sha" = "$checked_out_sha" ]; then
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
-    return
-  fi
-
-  worktree=$(mktemp -d "${TMPDIR:-/tmp}/substrate-release-gates.XXXXXX")
-  if ! git worktree add --quiet --detach "$worktree" "$head_sha"; then
-    rmdir "$worktree" 2>/dev/null || true
-    echo "::error::Cannot create an isolated worktree for changeset validation." >&2
+  if ! base_commit=$(git rev-parse --verify --quiet "${base_ref}^{commit}" 2>/dev/null); then
+    echo "ERROR: Cannot resolve Changeset validation base ref ${base_ref}." >&2
     return 1
   fi
 
-  if (
-    cd "$worktree"
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
-  ); then
-    validation_status=0
-  else
-    validation_status=1
-  fi
-
-  if ! git worktree remove "$worktree"; then
-    echo "::error::Cannot remove the isolated changeset validation worktree." >&2
+  if ! head_commit=$(git rev-parse --verify --quiet "${head_ref}^{commit}" 2>/dev/null); then
+    echo "ERROR: Cannot resolve Changeset validation head ref ${head_ref}." >&2
     return 1
   fi
 
-  return "$validation_status"
+  node "$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$head_commit"
 }
 
 assert_workspace_lockstep_version() {

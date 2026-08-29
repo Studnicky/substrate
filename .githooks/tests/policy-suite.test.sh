@@ -43,14 +43,12 @@ YAML
   assert_contains "ci secrets runner" "ci-secrets.json is in sync" "$out"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 (
   cd "$REPO_ROOT" || exit 1
   out=$(bash "$POLICY_RUNNER" config-schema)
   assert_contains "config schema runner" "config-schema: schemas are in sync" "$out"
 )
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo)
 (
@@ -71,6 +69,5 @@ SUITE
   assert_contains "release flow runner requires source branch" "missing source branch" "$missing_source_output"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 test_main

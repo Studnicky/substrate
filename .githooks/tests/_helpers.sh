@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pass_count=0
-
 fail() {
   printf 'FAIL: %s\n  %s\n' "$1" "$2" >&2
   exit 1
@@ -23,7 +21,7 @@ assert_not_contains() {
 }
 
 test_main() {
-  printf 'PASS: %s\n' "$pass_count"
+  printf 'PASS\n'
 }
 
 make_repo() {

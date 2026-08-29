@@ -16,14 +16,14 @@ release_suite_verify_lockstep() {
 }
 
 release_suite_verify_backmerge() {
-  local expected_version="$1" base_ref="$2" head_ref="$3"
+  local expected_version="$1" main_ref="$2" base_ref="$3" head_ref="$4"
 
   assert_workspace_lockstep_version "$expected_version" "$head_ref"
   if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
     echo "::error::The canonical main-to-develop backmerge requires ${base_ref}." >&2
     return 1
   fi
-  release_suite_verify_backmerge_result origin/main "$head_ref"
+  release_suite_verify_backmerge_result "$main_ref" "$head_ref"
 }
 
 release_suite_verify_backmerge_result() {
@@ -70,7 +70,7 @@ release_suite_verify_flow() {
 
   case "$base_branch:$head_branch" in
     develop:main)
-      release_suite_verify_backmerge "$version" "$base_ref" "$head_ref"
+      release_suite_verify_backmerge "$version" origin/main "$base_ref" "$head_ref"
       ;;
     develop:release/*|develop:hotfix/*)
       echo "::error::${head_branch} must target main, not develop." >&2
@@ -101,7 +101,7 @@ case "${1:-}" in
     release_suite_verify_lockstep "${2:?missing version}" "${3:-}"
     ;;
   verify-backmerge)
-    release_suite_verify_backmerge "${2:?missing version}" "${3:?missing base ref}" "${4:?missing head ref}"
+    release_suite_verify_backmerge "${2:?missing version}" origin/main "${3:?missing base ref}" "${4:?missing head ref}"
     ;;
   verify-backmerge-result)
     release_suite_verify_backmerge_result "${2:?missing main ref}" "${3:?missing merged develop ref}"

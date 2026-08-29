@@ -32,5 +32,4 @@ repo=$(make_repo)
   assert_contains "ci test all" "run test:all" "$out"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 test_main

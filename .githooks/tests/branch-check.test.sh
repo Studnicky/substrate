@@ -25,5 +25,4 @@ check_branch_name "dependabot/npm_and_yarn/types/node-24.0.0" || fail "valid dep
 check_branch_name "bad-branch" >/dev/null 2>&1 && fail "invalid branch rejected" "accepted"
 check_branch_name "release/1.2.3" >/dev/null 2>&1 && fail "release branch requires v prefix" "accepted"
 check_branch_name "feature/ENG-123-do-stuff';touch-injected" >/dev/null 2>&1 && fail "unsafe branch rejected" "accepted"
-pass_count=$((pass_count + 18))
 test_main

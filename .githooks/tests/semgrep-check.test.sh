@@ -19,5 +19,4 @@ repo=$(make_repo)
   PATH="$repo/bin:$PATH" check_semgrep_findings "HEAD~1..HEAD"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-printf 'PASS: %s\n' "$pass_count"
+test_main

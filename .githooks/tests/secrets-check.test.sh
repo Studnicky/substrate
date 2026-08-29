@@ -17,5 +17,4 @@ repo=$(make_repo)
   check_staged_secrets
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
-printf 'PASS: %s\n' "$pass_count"
+test_main

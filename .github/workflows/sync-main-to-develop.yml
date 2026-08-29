@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ develop ]
-    types: [ closed ]
+    types: [ opened, reopened, synchronize, closed ]
   workflow_dispatch:
 
 concurrency:
@@ -13,8 +13,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify-merged-backmerge:
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged && github.event.pull_request.base.ref == 'develop' && github.event.pull_request.head.ref == 'main'
+  verify-backmerge-source:
+    name: Validate canonical backmerge
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'main' && github.event.pull_request.base.ref == 'develop'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,24 +23,43 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: develop
+
+      - name: Verify the server merge test result
+        shell: bash
+        env:
+          MERGE_TEST_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main "refs/pull/${PR_NUMBER}/merge:refs/substrate/backmerge-merge-test"
+          if [ "$(git rev-parse refs/substrate/backmerge-merge-test)" != "$MERGE_TEST_SHA" ]; then
+            echo "::error::The server merge test result does not match the pull request event." >&2
+            exit 1
+          fi
+          bash scripts/release-suite.sh verify-backmerge-result origin/main refs/substrate/backmerge-merge-test
+
+  verify-merged-backmerge:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'main' && github.event.pull_request.base.ref == 'develop'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: develop
 
       - name: Verify the merged back-merge result
         shell: bash
-        env:
-          MAIN_SHA: ${{ github.event.pull_request.head.sha }}
-          MERGED_DEVELOP_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           set -euo pipefail
-          git fetch origin main develop
-          if ! git merge-base --is-ancestor "$MERGED_DEVELOP_SHA" origin/develop; then
-            echo "::error::The pull request merge result is not retained in develop."
-            exit 1
-          fi
-          bash scripts/release-suite.sh verify-backmerge-result "$MAIN_SHA" "$MERGED_DEVELOP_SHA"
+          git fetch --no-tags origin main develop
+          bash scripts/release-suite.sh verify-backmerge-result origin/main origin/develop
 
   sync:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [ verify-merged-backmerge ]
+    if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.action == 'closed' && needs.verify-merged-backmerge.result == 'failure'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main develop
+          git fetch --no-tags origin main develop
 
           if bash scripts/policy-suite.sh sync-ancestry origin/main origin/develop; then
             echo "in_sync=true" >> "$GITHUB_OUTPUT"

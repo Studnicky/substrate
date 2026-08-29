@@ -36,7 +36,6 @@ repo=$(make_repo main)
   assert_eq "nothing unreachable after a merge back-merge" "0" "$(sync_unreachable_count main develop)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 # A squashed back-merge copies the content but not the commits, so main stops
 # being an ancestor. This is the failure that reached a release branch.
@@ -77,7 +76,6 @@ repo=$(make_repo main)
   assert_contains "diagnosis names the remedy" "merge commit" "$message"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 # The policy-suite entry point exposes the same verdict.
 repo=$(make_repo main)
@@ -106,7 +104,6 @@ repo=$(make_repo main)
   fi
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 # The back-merge branch the sync workflow builds — main plus an empty changeset —
 # keeps main reachable, and merging it into develop with a merge commit restores
@@ -152,6 +149,5 @@ repo=$(make_repo main)
   assert_eq "the empty changeset rides along" "" "$(sed -n '1,2p' .changeset/sync-main-to-develop.md | tr -d '\n-')"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 test_main

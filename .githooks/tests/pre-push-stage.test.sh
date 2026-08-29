@@ -38,7 +38,6 @@ repo=$(make_repo)
   fi
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo release/v1.0.0)
 (
@@ -63,7 +62,6 @@ repo=$(make_repo release/v1.0.0)
   assert_contains "pre-push release pair" "release-gates origin/main refs/heads/release/v1.0.0 release/v1.0.0" "$(cat hook-suite.calls)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo feature/holding)
 (
@@ -90,7 +88,6 @@ repo=$(make_repo feature/holding)
   assert_contains "pre-push resolves non-checked branch" "release-gates origin/develop refs/heads/feature/pushed feature/pushed" "$(cat hook-suite.calls)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo feature/holding)
 (
@@ -124,7 +121,6 @@ repo=$(make_repo feature/holding)
   assert_contains "pre-push second branch gate" "release-gates origin/develop refs/heads/feature/second feature/second" "$calls"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo feature/holding)
 (
@@ -146,7 +142,6 @@ repo=$(make_repo feature/holding)
   [ ! -e hook-suite.calls ] || fail "pre-push unsafe branch stage" "branch name reached a hook suite stage"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo release/1.0.0)
 (
@@ -165,7 +160,6 @@ repo=$(make_repo release/1.0.0)
   assert_contains "tag-only smoke tests" "test-smoke" "$(cat hook-suite.calls)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 # Branch policy reads the refs being pushed, not HEAD. Pushing a tag while the
 # release branch is checked out on main must not be mistaken for pushing main.
@@ -188,7 +182,6 @@ repo=$(make_repo main)
   assert_not_contains "tag push skips release gates" "release-gates" "$(cat hook-suite.calls)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 # A branch push is still judged by the branch in the push, so main stays refused
 # even when some other branch is checked out.
@@ -208,6 +201,5 @@ repo=$(make_repo feature/holding)
   assert_contains "main ref push names the protected branch" "protected branch 'main'" "$(cat /tmp/pre-push-main-ref.out)"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 test_main

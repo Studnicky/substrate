@@ -7,8 +7,6 @@ source "_helpers.sh"
 # shellcheck source=../lib/release-gates.sh
 source "../lib/release-gates.sh"
 
-REPO_ROOT="$(cd "$PWD/../.." && pwd)"
-
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
@@ -36,7 +34,6 @@ repo=$(make_repo)
   assert_no_pending_changesets "$release_ref"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 6))
 
 repo=$(make_repo)
 (
@@ -56,21 +53,19 @@ repo=$(make_repo)
   assert_contains "invalid workspace manifest property diagnostic" "::error::packages/a/package.json property \"version\" must be a non-empty string." "$property_error"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 2))
 
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
-  stub_cmd "$repo" pnpm '
-printf "%s\\n" "$*" > .pnpm-command
-if [ -f .changeset/invalid.md ]; then
-  exit 1
-fi
-'
-  PATH="$repo/bin:$PATH"
+  mkdir -p packages/a
+  printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
   git add -A
   git commit -q -m "chore: base release state"
   git update-ref refs/remotes/origin/main HEAD
+  if assert_pending_changesets_are_valid origin/main refs/heads/missing >missing-ref.out 2>&1; then
+    fail "release gates" "expected missing changeset validation ref to fail"
+  fi
+  assert_eq "missing changeset validation ref diagnostic" "ERROR: Cannot resolve Changeset validation head ref refs/heads/missing." "$(cat missing-ref.out)"
   if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected missing changeset to fail"
   fi
@@ -81,11 +76,13 @@ fi
   if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected empty changeset to fail"
   fi
+  git rm -q .changeset/empty.md
+  git commit -q -m "chore: remove empty changeset"
+  mkdir -p .changeset
   printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/a.md
   git add .changeset/a.md
   git commit -q -m "chore: add changeset"
   assert_changeset_required origin/main
-  assert_eq "changeset status base" "changeset status --since=origin/main" "$(cat .pnpm-command)"
   printf '%s\n' 'invalid' > .changeset/invalid.md
   git add .changeset/invalid.md
   git commit -q -m "chore: invalid changeset"
@@ -98,36 +95,49 @@ fi
   fi
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
   mkdir -p .changeset packages/example
-  cp "$REPO_ROOT/.changeset/config.json" .changeset/config.json
-  ln -s "$REPO_ROOT/node_modules" node_modules
-  printf '%s\n' '{"name":"fixture","version":"1.0.0","scripts":{"changeset":"changeset"}}' > package.json
+  marker="$repo/candidate-code-executed"
+  printf '%s\n' '{"name":"fixture","version":"1.0.0"}' > package.json
   printf '%s\n' 'packages:' '  - "packages/*"' > pnpm-workspace.yaml
   printf '%s\n' '{"name":"@fixture/example","version":"1.0.0"}' > packages/example/package.json
   git add -A
   git commit -q -m "chore: base changeset fixture"
   git update-ref refs/remotes/origin/develop HEAD
 
+  git switch -q -c feature/valid-changeset
+  mkdir -p packages/introduced
+  printf '{"name":"fixture","version":"1.0.0","scripts":{"changeset":"touch %s"}}\n' "$marker" > package.json
+  printf '%s\n' '{"changelog":"./malicious-changelog.cjs"}' > .changeset/config.json
+  printf 'require("node:fs").writeFileSync("%s", "executed");\n' "$marker" > malicious-changelog.cjs
+  printf '%s\n' '{"name":"@fixture/introduced","version":"1.0.0"}' > packages/introduced/package.json
+  printf '%s\n' '---' '"@fixture/introduced": patch' '---' '' 'Releases the introduced package.' > .changeset/introduced.md
+  git add -A
+  git commit -q -m "chore: add valid introduced changeset"
+  valid_ref=$(git rev-parse HEAD)
+
+  git switch -q develop
+  assert_changeset_required origin/develop "$valid_ref"
+  [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
+
   git switch -q -c feature/invalid-changeset
+  mkdir -p .changeset
   printf '%s\n' '---' '"@fixture/missing": patch' '---' '' 'References a package that does not exist.' > .changeset/invalid.md
   git add .changeset/invalid.md
   git commit -q -m "chore: add invalid changeset"
-  candidate_ref=$(git rev-parse HEAD)
+  invalid_ref=$(git rev-parse HEAD)
 
   git switch -q develop
-  if assert_changeset_required origin/develop "$candidate_ref" >changeset-validation.out 2>&1; then
+  if assert_changeset_required origin/develop "$invalid_ref" >changeset-validation.out 2>&1; then
     fail "release gates validate supplied ref" "expected semantic validation of the non-checked-out ref to fail"
   fi
 
-  assert_contains "release gates validate supplied ref" "Pending changeset input is invalid." "$(cat changeset-validation.out)"
-  assert_eq "release gates remove validation worktree" "1" "$(git worktree list | wc -l | tr -d ' ')"
+  assert_contains "release gates validate supplied ref" "ERROR: .changeset/invalid.md references workspace package @fixture/missing" "$(cat changeset-validation.out)"
+  [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
 )
 rm -rf "$repo"
-pass_count=$((pass_count + 1))
 
 test_main

@@ -10,7 +10,7 @@ source "../lib/title-check.sh"
 assert_commit_subject() {
   check_commit_subject "feat(core): add thing" || fail "commit subject" "valid subject rejected"
   check_commit_subject "bad subject" >/dev/null 2>&1 && fail "commit subject" "invalid subject accepted"
-  pass_count=$((pass_count + 2))
+  return 0
 }
 
 assert_pr_title() {
@@ -23,7 +23,7 @@ assert_pr_title() {
   check_pr_title "develop" "release/1.2" "release: v1.2.3" >/dev/null 2>&1 && fail "pr title" "release branch targeting develop accepted"
   check_pr_title "develop" "main" "chore: wrong sync title" >/dev/null 2>&1 && fail "pr title" "invalid back-merge title accepted"
   check_pr_title "staging" "feature/ENG-123-test" "feat(core): add thing" >/dev/null 2>&1 && fail "pr title" "unsupported base branch accepted"
-  pass_count=$((pass_count + 9))
+  return 0
 }
 
 assert_commit_subject

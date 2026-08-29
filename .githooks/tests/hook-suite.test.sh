@@ -63,7 +63,6 @@ assert_hook_suite_dispatches_shared_presets() {
     assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-flow origin/main refs/heads/hotfix/fix-publish hotfix/fix-publish" "$out"
   )
   rm -rf "$repo"
-  pass_count=$((pass_count + 1))
 }
 
 assert_hook_suite_backmerge_verifies_lockstep() {
@@ -92,7 +91,6 @@ assert_hook_suite_backmerge_verifies_lockstep() {
     assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-flow origin/develop refs/heads/main main" "$out"
   )
   rm -rf "$repo"
-  pass_count=$((pass_count + 1))
 }
 
 assert_hook_suite_dispatches_shared_presets
