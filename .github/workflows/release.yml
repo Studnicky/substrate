@@ -6,15 +6,9 @@ on:
     branches: [ main ]
     types: [ completed ]
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Create the release tag after versioning and validation
-        required: true
-        type: boolean
-        default: true
 
 concurrency:
-  group: release-${{ github.event.workflow_run.head_branch || github.ref }}
+  group: release-main
   cancel-in-progress: false
 
 jobs:
@@ -23,58 +17,79 @@ jobs:
     timeout-minutes: 5
     outputs:
       release_needed: ${{ steps.detect.outputs.release_needed }}
-      publish: ${{ steps.detect.outputs.publish }}
+      release_ready: ${{ steps.detect.outputs.release_ready }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      - uses: ./.github/actions/pnpm-node-setup
+        with:
+          install: false
       - id: detect
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
-          ACTOR: ${{ github.actor }}
-          INPUT_PUBLISH: ${{ inputs.publish }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
 
           release_needed=false
-          if [ -d .changeset ] && find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | grep -q .; then
-            release_needed=true
+          release_ready=false
+          triggered_by_main_ci=false
+
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ "$WORKFLOW_RUN_CONCLUSION" != "success" ] ||
+               [ "$WORKFLOW_RUN_EVENT" != "push" ] ||
+               [ "$WORKFLOW_RUN_HEAD_BRANCH" != "main" ]; then
+              echo "release_needed=$release_needed" >> "$GITHUB_OUTPUT"
+              echo "release_ready=$release_ready" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            triggered_by_main_ci=true
+          elif [ "$REF_NAME" != "main" ]; then
+            echo "::error::Manual release preparation runs on main."
+            exit 1
           fi
 
-          publish=false
-          if [ "$EVENT_NAME" = "workflow_run" ]; then
-            if [ "$WORKFLOW_RUN_CONCLUSION" = "success" ] &&
-               [ "$WORKFLOW_RUN_EVENT" = "push" ] &&
-               [ "$ACTOR" != "github-actions[bot]" ]; then
-              publish=true
-            fi
-          elif [ "$INPUT_PUBLISH" = "true" ]; then
-            publish=true
+          if [ -d .changeset ] && find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
             release_needed=true
+          elif [ "$triggered_by_main_ci" = "true" ]; then
+            version=$(node -p "require('./package.json').version")
+
+            if ! git rev-parse --verify --quiet "refs/tags/v${version}^{commit}" >/dev/null; then
+              parent_count=$(git rev-list --parents -n 1 HEAD | awk '{ print NF - 1 }')
+              if [ "$parent_count" -ne 2 ]; then
+                echo "::error::An untagged release version on main must arrive through a merge commit."
+                exit 1
+              fi
+              bash scripts/release-suite.sh publish-gates "$version"
+              release_ready=true
+            elif ! git merge-base --is-ancestor "v${version}^{commit}" HEAD; then
+              echo "::error::v${version} exists but is not an ancestor of main. Release tags are immutable; prepare a new version instead."
+              exit 1
+            fi
           fi
 
           echo "release_needed=$release_needed" >> "$GITHUB_OUTPUT"
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "release_ready=$release_ready" >> "$GITHUB_OUTPUT"
 
   validate:
     needs: [ plan ]
-    if: needs.plan.outputs.release_needed == 'true' && needs.plan.outputs.publish ==
-      'true'
+    if: needs.plan.outputs.release_needed == 'true'
     uses: ./.github/workflows/node-suite.yml
     with:
       preset: release-validate
 
-  release:
+  prepare:
     needs: [ plan, validate ]
-    if: needs.plan.outputs.release_needed == 'true' && needs.plan.outputs.publish ==
-      'true'
+    if: needs.plan.outputs.release_needed == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
-      actions: write
       contents: write
       pull-requests: write
     steps:
@@ -88,30 +103,28 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin
-      - name: Apply pending changesets, if any
+      - name: Apply pending changesets
         shell: bash
         run: |
-          set -uo pipefail
-
-          output=$(pnpm changeset version 2>&1)
-          status=$?
-
-          echo "$output"
-
-          if [ "$status" -eq 0 ]; then
-            exit 0
+          set -euo pipefail
+          pnpm changeset version
+      - name: Synchronize root version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/types/package.json').version")
+          npm pkg set version="$version"
+          bash scripts/release-suite.sh verify-lockstep "$version"
+      - name: Reject an occupied release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          git fetch origin --tags
+          if git rev-parse --verify --quiet "refs/tags/v${version}^{commit}" >/dev/null; then
+            echo "::error::v${version} already exists. Release tags are immutable; prepare a new version instead."
+            exit 1
           fi
-
-          # A release branch's own pre-push gate (release-gates.sh) requires
-          # changesets already consumed and versions already aligned before
-          # push, so by the time this runs there is usually nothing left for
-          # changeset version to do — that is success, not failure, here.
-          if printf '%s' "$output" | grep -q "No unreleased changesets found"; then
-            echo "No pending changesets — version already prepared before this release branch was pushed."
-            exit 0
-          fi
-
-          exit "$status"
       - name: Stamp docs assets and extract release notes
         shell: bash
         run: |
@@ -139,6 +152,7 @@ jobs:
           cp "$tmpdir/release_notes.md" release_notes.md
           STAMP_VERSION_REQUIRE_RASTER=true bash scripts/ci-suite.sh generated-artifacts
       - name: Commit versioned release assets
+        id: commit
         shell: bash
         run: |
           set -euo pipefail
@@ -148,21 +162,84 @@ jobs:
             exit 1
           fi
           version=$(node -p "require('./package.json').version")
+          source_sha=$(git rev-parse --short=12 HEAD)
+          release_branch="release/prepare-${source_sha}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: release v${version}"
-      - name: Tag release
+          echo "branch=$release_branch" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Push the release branch
+        shell: bash
+        env:
+          RELEASE_BRANCH: ${{ steps.commit.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
+      - name: Open the release pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          RELEASE_BRANCH: ${{ steps.commit.outputs.branch }}
+          VERSION: ${{ steps.commit.outputs.version }}
+        run: |
+          set -euo pipefail
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')
+
+          if [ -z "$number" ]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$RELEASE_BRANCH" \
+              --title "release: v${VERSION}" \
+              --body "Contains the versioned release assets for v${VERSION}. Merge with a merge commit after required checks pass. The release workflow tags the merge commit and publishes GitHub Packages after main CI succeeds."
+          fi
+
+  tag:
+    needs: [ plan ]
+    if: needs.plan.outputs.release_ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/pnpm-node-setup
+        with:
+          install: false
+      - name: Verify the merged release
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          actual_sha=$(git rev-parse HEAD)
+          if [ "$actual_sha" != "$EXPECTED_SHA" ]; then
+            echo "::error::main advanced after the completed CI run; wait for CI on the current main commit."
+            exit 1
+          fi
+          version=$(node -p "require('./package.json').version")
+          bash scripts/release-suite.sh publish-gates "$version"
+          if git rev-parse --verify --quiet "refs/tags/v${version}^{commit}" >/dev/null; then
+            echo "::error::v${version} already exists. Release tags are immutable."
+            exit 1
+          fi
+      - name: Tag the merged release
         shell: bash
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v${version}" -m "Release v${version}"
-      - name: Push release commit and tag
-        env:
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
-        run: git push origin HEAD:main --tags
-      - name: Dispatch publish workflow when using GITHUB_TOKEN
+          git push origin "v${version}"
+      - name: Dispatch the GitHub Packages workflow when using GITHUB_TOKEN
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HAS_PAT: ${{ secrets.PAT != '' }}

@@ -1,5 +1,16 @@
 # Changelog
 
+## 12.0.0
+
+### Patch Changes
+
+- Updated dependencies [46e9a40]
+  - @studnicky/errors@12.0.0
+  - @studnicky/fsm@12.0.0
+  - @studnicky/json@12.0.0
+  - @studnicky/virtual-fs@12.0.0
+  - @studnicky/types@12.0.0
+
 ## 11.1.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/semantic-matching",
-  "version": "11.1.0",
+  "version": "12.0.0",
   "description": "Composable contracts for vectorization, vector indexes, reranking, classification, and adjudication",
   "type": "module",
   "sideEffects": false,

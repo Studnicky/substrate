@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/boundary-kit",
-  "version": "11.1.0",
+  "version": "12.0.0",
   "description": "Boundary Kit \u2014 composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern",
   "type": "module",
   "sideEffects": false,

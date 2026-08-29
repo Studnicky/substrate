@@ -50,7 +50,7 @@ run_hook_suite_release_gates() {
   case "$branch" in
     release/*|hotfix/*)
       version=$(node -p "require('./package.json').version")
-      bash scripts/release-suite.sh publish-gates "$version"
+      bash scripts/release-suite.sh verify-release-branch "$version" origin/main
       ;;
     *)
       if is_release_backmerge "$branch" "$base_ref"; then

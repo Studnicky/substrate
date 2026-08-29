@@ -16,6 +16,7 @@ assert_hook_suite_dispatches_shared_presets() {
     stub_cmd "$repo" bash 'printf "%s\n" "$*"'
     stub_cmd "$repo" pnpm 'printf "%s\n" "$*"'
     mkdir -p .changeset
+    printf '%s\n' '{"name":"repo","version":"1.0.0"}' > package.json
 
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" full)
     assert_contains "hook full suite" "scripts/ci-suite.sh generated-artifacts typecheck lint test-all build" "$out"
@@ -52,6 +53,14 @@ assert_hook_suite_dispatches_shared_presets() {
 
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
     assert_contains "hook release gates" "scripts/release-suite.sh changeset-status origin/develop" "$out"
+
+    git switch -q -c release/v1.0.0
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
+    assert_contains "release branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
+
+    git switch -q -c hotfix/fix-publish
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
+    assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
   )
   rm -rf "$repo"
   pass_count=$((pass_count + 1))
