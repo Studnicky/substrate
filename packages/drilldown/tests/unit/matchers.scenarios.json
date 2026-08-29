@@ -1,0 +1,402 @@
+[
+  {
+    "name": "alphabetic-banana",
+    "description": "alphabetic matches case-insensitive lexicographic range",
+    "shape": "match",
+    "input": {
+      "type": "alphabetic",
+      "matcher": {
+        "end": "mango",
+        "start": "apple"
+      },
+      "numeric": null,
+      "text": "banana",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "alphabetic-kiwi",
+    "description": "alphabetic matches case-insensitive lexicographic range",
+    "shape": "match",
+    "input": {
+      "type": "alphabetic",
+      "matcher": {
+        "end": "mango",
+        "start": "apple"
+      },
+      "numeric": null,
+      "text": "Kiwi",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "alphabetic-zebra",
+    "description": "alphabetic matches case-insensitive lexicographic range",
+    "shape": "match",
+    "input": {
+      "type": "alphabetic",
+      "matcher": {
+        "end": "mango",
+        "start": "apple"
+      },
+      "numeric": null,
+      "text": "zebra",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "alphabetic-aardvark",
+    "description": "alphabetic matches case-insensitive lexicographic range",
+    "shape": "match",
+    "input": {
+      "type": "alphabetic",
+      "matcher": {
+        "end": "mango",
+        "start": "apple"
+      },
+      "numeric": null,
+      "text": "aardvark",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "range-10",
+    "description": "range matches inclusive-minimum, exclusive-maximum window",
+    "shape": "match",
+    "input": {
+      "type": "range",
+      "matcher": {
+        "maximum": 20,
+        "minimum": 10
+      },
+      "numeric": 10,
+      "text": "10",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "range-15",
+    "description": "range matches inclusive-minimum, exclusive-maximum window",
+    "shape": "match",
+    "input": {
+      "type": "range",
+      "matcher": {
+        "maximum": 20,
+        "minimum": 10
+      },
+      "numeric": 15,
+      "text": "15",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "range-20",
+    "description": "range matches inclusive-minimum, exclusive-maximum window",
+    "shape": "match",
+    "input": {
+      "type": "range",
+      "matcher": {
+        "maximum": 20,
+        "minimum": 10
+      },
+      "numeric": 20,
+      "text": "20",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "range-25",
+    "description": "range matches inclusive-minimum, exclusive-maximum window",
+    "shape": "match",
+    "input": {
+      "type": "range",
+      "matcher": {
+        "maximum": 20,
+        "minimum": 10
+      },
+      "numeric": 25,
+      "text": "25",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "date-at-after",
+    "description": "date matches inclusive-after, exclusive-before epoch-ms window",
+    "shape": "match",
+    "input": {
+      "type": "date",
+      "matcher": {
+        "afterTs": 1704067200000,
+        "beforeTs": 1706745600000
+      },
+      "numeric": 1704067200000,
+      "text": "",
+      "context": "date"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "date-mid",
+    "description": "date matches inclusive-after, exclusive-before epoch-ms window",
+    "shape": "match",
+    "input": {
+      "type": "date",
+      "matcher": {
+        "afterTs": 1704067200000,
+        "beforeTs": 1706745600000
+      },
+      "numeric": 1705276800000,
+      "text": "",
+      "context": "date"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "date-at-before",
+    "description": "date matches inclusive-after, exclusive-before epoch-ms window",
+    "shape": "match",
+    "input": {
+      "type": "date",
+      "matcher": {
+        "afterTs": 1704067200000,
+        "beforeTs": 1706745600000
+      },
+      "numeric": 1706745600000,
+      "text": "",
+      "context": "date"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "date-before-window",
+    "description": "date matches inclusive-after, exclusive-before epoch-ms window",
+    "shape": "match",
+    "input": {
+      "type": "date",
+      "matcher": {
+        "afterTs": 1704067200000,
+        "beforeTs": 1706745600000
+      },
+      "numeric": 1703980800000,
+      "text": "",
+      "context": "date"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "semver-1-2-0",
+    "description": "semver matches caret-range satisfaction",
+    "shape": "match",
+    "input": {
+      "type": "semver",
+      "matcher": {
+        "range": "^1.2.0"
+      },
+      "numeric": null,
+      "text": "1.2.0",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "semver-1-9-9",
+    "description": "semver matches caret-range satisfaction",
+    "shape": "match",
+    "input": {
+      "type": "semver",
+      "matcher": {
+        "range": "^1.2.0"
+      },
+      "numeric": null,
+      "text": "1.9.9",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "semver-1-1-0",
+    "description": "semver matches caret-range satisfaction",
+    "shape": "match",
+    "input": {
+      "type": "semver",
+      "matcher": {
+        "range": "^1.2.0"
+      },
+      "numeric": null,
+      "text": "1.1.0",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "semver-2-0-0",
+    "description": "semver matches caret-range satisfaction",
+    "shape": "match",
+    "input": {
+      "type": "semver",
+      "matcher": {
+        "range": "^1.2.0"
+      },
+      "numeric": null,
+      "text": "2.0.0",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "cidr-10-0-0-5",
+    "description": "cidr matches IPv4 addresses within the subnet",
+    "shape": "create-and-match",
+    "input": {
+      "type": "cidr",
+      "definition": {
+        "cidr": "10.0.0.0/24",
+        "type": "cidr"
+      },
+      "numeric": null,
+      "text": "10.0.0.5",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "cidr-10-0-1-5",
+    "description": "cidr matches IPv4 addresses within the subnet",
+    "shape": "create-and-match",
+    "input": {
+      "type": "cidr",
+      "definition": {
+        "cidr": "10.0.0.0/24",
+        "type": "cidr"
+      },
+      "numeric": null,
+      "text": "10.0.1.5",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "sequential-server_5",
+    "description": "sequential matches numbers within a shared prefix/suffix window",
+    "shape": "match",
+    "input": {
+      "type": "sequential",
+      "matcher": {
+        "maximum": 10,
+        "minimum": 1,
+        "prefix": "server-",
+        "suffix": ""
+      },
+      "numeric": null,
+      "text": "server-5",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "sequential-server_10",
+    "description": "sequential matches numbers within a shared prefix/suffix window",
+    "shape": "match",
+    "input": {
+      "type": "sequential",
+      "matcher": {
+        "maximum": 10,
+        "minimum": 1,
+        "prefix": "server-",
+        "suffix": ""
+      },
+      "numeric": null,
+      "text": "server-10",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": true
+    }
+  },
+  {
+    "name": "sequential-server_11",
+    "description": "sequential matches numbers within a shared prefix/suffix window",
+    "shape": "match",
+    "input": {
+      "type": "sequential",
+      "matcher": {
+        "maximum": 10,
+        "minimum": 1,
+        "prefix": "server-",
+        "suffix": ""
+      },
+      "numeric": null,
+      "text": "server-11",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  },
+  {
+    "name": "sequential-other_5",
+    "description": "sequential matches numbers within a shared prefix/suffix window",
+    "shape": "match",
+    "input": {
+      "type": "sequential",
+      "matcher": {
+        "maximum": 10,
+        "minimum": 1,
+        "prefix": "server-",
+        "suffix": ""
+      },
+      "numeric": null,
+      "text": "other-5",
+      "context": "numeric"
+    },
+    "expected": {
+      "matches": false
+    }
+  }
+]

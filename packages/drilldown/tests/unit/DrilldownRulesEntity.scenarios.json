@@ -1,0 +1,27 @@
+[
+  {
+    "name": "validate-depth-5",
+    "description": "accepts a rules tree nested 5 levels deep",
+    "shape": "validate-nested",
+    "input": { "depth": 5 },
+    "expected": { "valid": true }
+  },
+  {
+    "name": "validate-corrupt-depth-3",
+    "description": "rejects a structurally invalid value nested 3 levels deep",
+    "shape": "validate-corrupted",
+    "input": { "corruptAfter": 2, "depth": 3 },
+    "expected": { "valid": false }
+  },
+  {
+    "name": "group-nested-depth-4",
+    "description": "honors per-value nested rules 4 levels deep end to end",
+    "shape": "group-nested",
+    "input": {
+      "properties": ["region", "tier", "channel", "status"],
+      "values": [["east", "west"], ["gold", "silver"], ["online", "retail"], ["open", "closed"]],
+      "path": ["east", "gold", "online"]
+    },
+    "expected": { "leafValues": ["open", "closed"], "firstLeafUngroupedLength": 1 }
+  }
+]

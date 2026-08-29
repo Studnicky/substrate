@@ -1,0 +1,58 @@
+[
+  {
+    "name": "top-level-property",
+    "description": "reads a top-level property",
+    "shape": "property-value",
+    "input": { "source": { "name": "alpha" }, "path": "name" },
+    "expected": { "value": "alpha" }
+  },
+  {
+    "name": "nested-dot-path",
+    "description": "reads a nested dot-notation path",
+    "shape": "property-value",
+    "input": { "source": { "a": { "b": "value" } }, "path": "a.b" },
+    "expected": { "value": "value" }
+  },
+  {
+    "name": "bare-proto",
+    "description": "refuses a bare __proto__ path",
+    "shape": "property-value",
+    "input": { "source": {}, "path": "__proto__" },
+    "expected": { "value": null }
+  },
+  {
+    "name": "bare-constructor",
+    "description": "refuses a bare constructor path",
+    "shape": "property-value",
+    "input": { "source": {}, "path": "constructor" },
+    "expected": { "value": null }
+  },
+  {
+    "name": "bare-prototype",
+    "description": "refuses a bare prototype path",
+    "shape": "property-value",
+    "input": { "source": {}, "path": "prototype" },
+    "expected": { "value": null }
+  },
+  {
+    "name": "nested-proto",
+    "description": "refuses a __proto__ segment inside a nested path",
+    "shape": "property-value",
+    "input": { "source": { "a": {} }, "path": "a.__proto__" },
+    "expected": { "value": null }
+  },
+  {
+    "name": "nested-constructor",
+    "description": "refuses a constructor segment inside a nested path",
+    "shape": "property-value",
+    "input": { "source": { "a": {} }, "path": "a.constructor" },
+    "expected": { "value": null }
+  },
+  {
+    "name": "nested-prototype",
+    "description": "refuses a prototype segment inside a nested path",
+    "shape": "property-value",
+    "input": { "source": { "a": {} }, "path": "a.prototype" },
+    "expected": { "value": null }
+  }
+]
