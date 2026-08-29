@@ -35,6 +35,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           ACTOR: ${{ github.actor }}
           INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
@@ -49,6 +50,7 @@ jobs:
           if [ "$EVENT_NAME" = "workflow_run" ]; then
             if [ "$WORKFLOW_RUN_CONCLUSION" = "success" ] &&
                [ "$WORKFLOW_RUN_EVENT" = "push" ] &&
+               [ "$WORKFLOW_RUN_HEAD_BRANCH" = "main" ] &&
                [ "$ACTOR" != "github-actions[bot]" ]; then
               publish=true
             fi
@@ -92,6 +94,13 @@ jobs:
         run: |
           set -euo pipefail
           pnpm changeset version
+      - name: Synchronize root version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/types/package.json').version")
+          npm pkg set version="$version"
+          bash scripts/release-suite.sh verify-lockstep "$version"
       - name: Stamp docs assets and extract release notes
         shell: bash
         run: |
