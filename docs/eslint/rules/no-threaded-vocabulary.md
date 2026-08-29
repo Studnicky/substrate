@@ -77,8 +77,20 @@ Extends the shared layer options (`layers`, `bindings`, `sourceRoot`) with:
 
 Files that resolve to no configured layer are skipped.
 
+## Checked positions
+
+Parameters (including defaults, rest elements, and TS parameter properties), class fields (including `abstract` and `accessor`), interface and type-literal property signatures, and index signatures. A token laundered through a container — `TransportMode[]`, `readonly boolean[]`, a tuple member — or through a generic constraint (`<T extends boolean>`) resolves to the same verdict.
+
+Not checked: return types, local variables, and an explicit `this` parameter. A returned boolean was computed by the callee, so its decision was made locally; a token a frame can return is one it already holds, which the field check covers. Contents of a `declare module 'pkg'` augmentation are skipped — that block describes a third-party surface, not a frame in this architecture.
+
+## Resolution
+
+Without type information the rule resolves `boolean`, literal types, literal unions, and enums or aliases declared in the same file (namespace members are indexed by qualified name, so `Domain.Mode` never resolves to an unrelated `Transport.Mode`).
+
+With `parserServices` available, every annotation the syntactic walk cannot settle is put to the type checker: cross-file enums, generic alias instantiations, `keyof`, indexed access, `typeof` queries, and `import('...')` types. Typed linting is therefore the supported configuration — the syntactic path is a degraded fallback, not the intended mode.
+
 ## Limitations
 
-A vocabulary declared in another file resolves only when type information is available (`parserServices`). Without it the rule sees `boolean`, inline literal unions, and enums or aliases declared in the same file.
+Value flow is out of scope. A token widened to `string`, or inferred into an object literal and forwarded, has no closed-vocabulary annotation at any checked position and is not reported. Catching those needs a whole-program pass over the call graph, not a per-file rule.
 
-A vocabulary carried as cargo — recorded in a telemetry or persistence shape, never compared — is reported. That case is a genuine false positive; the value/discriminant split that would exempt it is not implemented.
+A vocabulary carried as cargo — recorded in a telemetry or persistence shape, never compared — is reported. The value/discriminant split that would exempt it is not implemented.

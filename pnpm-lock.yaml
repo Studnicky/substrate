@@ -113,9 +113,6 @@ importers:
 
   packages/batch:
     dependencies:
-      '@studnicky/concurrency':
-        specifier: workspace:*
-        version: link:../concurrency
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors

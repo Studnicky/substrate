@@ -20,12 +20,14 @@ pnpm add @studnicky/matching
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `BloomCandidateFilter` | Probabilistic membership prefilter with false-positive evidence. | `@studnicky/matching` |
+| `CandidateSetInterface` | Defines a materialized candidate identifier set. | `@studnicky/matching` |
 | `CuckooCandidateFilter` | Deletable probabilistic membership prefilter. | `@studnicky/matching` |
 | `LshCandidateIndex` | Locality-sensitive candidate materialization index. | `@studnicky/matching` |
 | `NgramCandidateIndex` | Candidate index keyed by character n-grams. | `@studnicky/matching` |
 | `DoubleMetaphoneEncoder` | Primary and alternate phonetic encoding. | `@studnicky/matching` |
 | `MetaphoneEncoder` | Deterministic phonetic encoding. | `@studnicky/matching` |
 | `MinimumHashEncoder` | Fixed-seed approximate set-similarity signature. | `@studnicky/matching` |
+| `MatchEvidenceInterface` | Defines deterministic match evidence for a candidate. | `@studnicky/matching` |
 | `SoundexEncoder` | English phonetic encoding. | `@studnicky/matching` |
 | `TfIdfEncoder` | Sparse TF-IDF vector encoder. | `@studnicky/matching` |
 | `NgramExtractor` | Character n-gram extraction. | `@studnicky/matching` |
@@ -46,6 +48,8 @@ pnpm add @studnicky/matching
 | `LevenshteinScorer` | Edit-distance similarity. | `@studnicky/matching` |
 | `NgramScorer` | Character n-gram similarity. | `@studnicky/matching` |
 | `SorensenDiceScorer` | Set overlap similarity. | `@studnicky/matching` |
+| `ScoreEvidenceInterface` | Defines a score and its deterministic evidence. | `@studnicky/matching` |
+| `SelectionInterface` | Defines a selected candidate and score. | `@studnicky/matching` |
 
 Each category is also available from its named subpath: `candidate-sources`, `encoders`, `extractors`, `matchers`, `normalizers`, and `scorers`.
 

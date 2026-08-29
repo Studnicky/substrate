@@ -134,7 +134,17 @@ import { FileLockOptionsEntity } from '@studnicky/file-lock/entities';
 |---|---|---|
 | `FileLock` | Provides file lock functionality. | `@studnicky/file-lock` |
 | `FileLockConfigError` | Represents file lock config failures. | `@studnicky/file-lock` |
+| `FileLockContentionError` | Represents an unsuccessful atomic lock acquisition. | `@studnicky/file-lock` |
 | `FileLockCreateOptionsInterface` | Defines the file lock create options contract. | `@studnicky/file-lock` |
 | `FileLockError` | Represents file lock failures. | `@studnicky/file-lock` |
+| `FileLockInspection` | Inspects a lock path without changing it. | `@studnicky/file-lock` |
+| `FileLockInspectionOptionsInterface` | Defines the lock inspection input contract. | `@studnicky/file-lock` |
+| `FileLockRecovery` | Recovers an explicitly verified stale lock. | `@studnicky/file-lock` |
+| `FileLockRecoveryConflictError` | Represents recovery blocked by a changed lock state. | `@studnicky/file-lock` |
+| `FileLockRecoveryOptionsInterface` | Defines the explicit stale-lock recovery contract. | `@studnicky/file-lock` |
 | `FileLockTimeoutError` | Represents file lock timeout failures. | `@studnicky/file-lock` |
+| `FileRenameLock` | Provides atomic rename-based acquire and release. | `@studnicky/file-lock` |
+| `FileRenameLockCreateOptionsInterface` | Defines the atomic rename-lock construction contract. | `@studnicky/file-lock` |
+| `NodeOwnerLiveness` | Checks Node process liveness for a lock owner. | `@studnicky/file-lock` |
+| `OwnerLivenessInterface` | Defines a lock-owner liveness check. | `@studnicky/file-lock` |
 | `OwnerTokenInterface` | Defines the owner token contract. | `@studnicky/file-lock` |

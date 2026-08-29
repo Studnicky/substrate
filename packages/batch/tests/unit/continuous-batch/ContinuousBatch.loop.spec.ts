@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { Predicates } from '@studnicky/types';
 
 import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
-import { Batch } from '../../../src/index.js';
+import { Batch, BatchError } from '../../../src/index.js';
 import scenarioGroups from './ContinuousBatch.scenarios.json' with { type: 'json' };
 
 type ImmediateRefillScenarioCase = {
@@ -30,7 +30,7 @@ type EmptyInputScenarioCase = {
 
 type FailFastCompletionScenarioCase = {
   readonly 'expected': { readonly 'rejectedMessage': string; readonly 'stats': BatchStatsEntity.Type };
-  readonly 'input': { readonly 'failure': number; readonly 'items': readonly number[]; readonly 'maximumConcurrent': number };
+  readonly 'input': { readonly 'failure': number; readonly 'items': readonly number[]; readonly 'maximumConcurrent': number; readonly 'rejectionDeadlineMs': number };
   readonly 'name': string;
   readonly 'shape': 'fail-fast-completion';
 };
@@ -40,6 +40,7 @@ type ScenarioCase = EmptyInputScenarioCase | FailFastCompletionScenarioCase | Im
 class LifecycleBatch extends Batch<number> {
   public batchCompleteStats: BatchStatsEntity.Type[] = [];
   public batchStartCount = 0;
+  public readonly batchCompleted = Promise.withResolvers<void>();
 
   public constructor(maximumConcurrent: number) {
     super(maximumConcurrent);
@@ -51,26 +52,27 @@ class LifecycleBatch extends Batch<number> {
 
   protected override onBatchComplete(stats: BatchStatsEntity.Type): void {
     this.batchCompleteStats.push(stats);
+    this.batchCompleted.resolve();
   }
 }
 
 function requireBoolean(value: unknown, name: string): boolean {
   if (!Predicates.isBoolean(value)) {
-    throw new TypeError(`${name} must be a boolean`);
+    throw new BatchError(`${name} must be a boolean`);
   }
   return value;
 }
 
 function requireNonNegativeNumber(value: unknown, name: string): number {
   if (!Predicates.isNumber(value) || value < 0) {
-    throw new TypeError(`${name} must be a non-negative number`);
+    throw new BatchError(`${name} must be a non-negative number`);
   }
   return value;
 }
 
 function requireNumberArray(value: unknown, name: string): readonly number[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError(`${name} must be an array`);
+    throw new BatchError(`${name} must be an array`);
   }
   const result: number[] = [];
   for (const item of value) {
@@ -81,14 +83,14 @@ function requireNumberArray(value: unknown, name: string): readonly number[] {
 
 function requireRecord(value: unknown, name: string): Record<string, unknown> {
   if (!Predicates.isObject(value)) {
-    throw new TypeError(`${name} must be an object`);
+    throw new BatchError(`${name} must be an object`);
   }
   return value;
 }
 
 function requireStatusArray(value: unknown): readonly ('fulfilled' | 'rejected')[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError('scenario expected statuses must be an array');
+    throw new BatchError('scenario expected statuses must be an array');
   }
   const result: ('fulfilled' | 'rejected')[] = [];
   for (const item of value) {
@@ -96,14 +98,14 @@ function requireStatusArray(value: unknown): readonly ('fulfilled' | 'rejected')
       result.push(item);
       continue;
     }
-    throw new TypeError('scenario expected statuses must contain settlement statuses');
+    throw new BatchError('scenario expected statuses must contain settlement statuses');
   }
   return result;
 }
 
 function requireString(value: unknown, name: string): string {
   if (!Predicates.isString(value)) {
-    throw new TypeError(`${name} must be a string`);
+    throw new BatchError(`${name} must be a string`);
   }
   return value;
 }
@@ -123,7 +125,7 @@ function parseScenarioCase(value: unknown): ScenarioCase {
   const input = requireRecord(record['input'], 'scenario input');
   const maximumConcurrent = requireNonNegativeNumber(input['maximumConcurrent'], 'scenario input maximumConcurrent');
   if (maximumConcurrent === 0) {
-    throw new TypeError('scenario input maximumConcurrent must be positive');
+    throw new BatchError('scenario input maximumConcurrent must be positive');
   }
   const name = requireString(record['name'], 'scenario name');
   const shape = requireString(record['shape'], 'scenario shape');
@@ -176,20 +178,24 @@ function parseScenarioCase(value: unknown): ScenarioCase {
         'rejectedMessage': requireString(expected['rejectedMessage'], 'scenario expected rejectedMessage'),
         'stats': requireStats(expected['stats'])
       },
-      'input': { ...normalizedInput, 'failure': requireNonNegativeNumber(input['failure'], 'scenario input failure') },
+      'input': {
+        ...normalizedInput,
+        'failure': requireNonNegativeNumber(input['failure'], 'scenario input failure'),
+        'rejectionDeadlineMs': requireNonNegativeNumber(input['rejectionDeadlineMs'], 'scenario input rejectionDeadlineMs')
+      },
       'name': name,
       'shape': shape
     };
   }
 
-  throw new TypeError(`Unknown continuous batch scenario shape: ${shape}`);
+  throw new BatchError(`Unknown continuous batch scenario shape: ${shape}`);
 }
 
 function parseScenarioCases(value: unknown): readonly ScenarioCase[] {
   const record = requireRecord(value, 'scenario groups');
   const cases = record['cases'];
   if (!Predicates.isArray(cases)) {
-    throw new TypeError('scenario groups cases must be an array');
+    throw new BatchError('scenario groups cases must be an array');
   }
   const result: ScenarioCase[] = [];
   for (const scenarioCase of cases) {
@@ -225,7 +231,7 @@ void describe('Batch continuous operations', () => {
             scenarioCase.input.items,
             async (item): Promise<number> => {
               if (item === scenarioCase.input.failure) {
-                throw new Error('failed item');
+                throw new BatchError('failed item');
               }
               return item;
             },
@@ -243,15 +249,32 @@ void describe('Batch continuous operations', () => {
         }
         case 'fail-fast-completion': {
           const batch = new LifecycleBatch(scenarioCase.input.maximumConcurrent);
-          await assert.rejects(
-            batch.processContinuous(scenarioCase.input.items, async (item): Promise<number> => {
-              if (item === scenarioCase.input.failure) {
-                throw new Error('failed item');
-              }
-              return item;
-            }),
-            new Error(scenarioCase.expected.rejectedMessage)
-          );
+          const slowItemStarted = Promise.withResolvers<void>();
+          const releaseSlowItem = Promise.withResolvers<void>();
+          const process = batch.processContinuous(scenarioCase.input.items, async (item): Promise<number> => {
+            if (item === scenarioCase.input.failure) {
+              await slowItemStarted.promise;
+              throw new BatchError(scenarioCase.expected.rejectedMessage);
+            }
+            slowItemStarted.resolve();
+            await releaseSlowItem.promise;
+            return item;
+          });
+          const deadline = Promise.withResolvers<void>();
+          const deadlineTimer = setTimeout(() => {
+            deadline.reject(new BatchError('processContinuous did not reject before the slow item settled'));
+          }, scenarioCase.input.rejectionDeadlineMs);
+          try {
+            await Promise.race([
+              assert.rejects(process, new BatchError(scenarioCase.expected.rejectedMessage)),
+              deadline.promise
+            ]);
+          } finally {
+            clearTimeout(deadlineTimer);
+          }
+          assert.deepEqual(batch.batchCompleteStats, []);
+          releaseSlowItem.resolve();
+          await batch.batchCompleted.promise;
           assert.deepEqual(batch.batchCompleteStats, [scenarioCase.expected.stats]);
           return;
         }

@@ -263,6 +263,402 @@
           "adapterLayerName": "adapters"
         }
       ]
+    },
+    {
+      "name": "generic constrained to a port",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface ReporterInterface { notFound(id: string): void }\nfunction withResolved<T extends ReporterInterface>(port: T): void { void port; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "unconstrained generic",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function identity<T>(value: T): T { return value; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "array of open data",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function filter(values: string[]): void { void values; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "tuple of open data",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface ReporterInterface { notFound(id: string): void }\nfunction process(pair: [string, ReporterInterface]): void { void pair; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "index signature of open data",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface BagInterface { [key: string]: string }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "collection of ports",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface ReporterInterface { notFound(id: string): void }\nfunction wire(ports: Map<string, ReporterInterface>): void { void ports; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "branded string is not a closed vocabulary",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "type EntityId = string & { readonly brand: string };\nfunction load(id: EntityId): void { void id; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "getter returning a token is a return position",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nclass Resolver { get transport(): TransportMode { return TransportMode.Cli; } }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "a namespaced name does not collide with an unrelated enum of the same bare name",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "namespace Transport { export enum Mode { Cli = 'cli' } }\nnamespace Domain { export interface Mode { readonly read: () => void } }\nfunction use(mode: Domain.Mode): void { void mode; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "explicit this parameter is erased, never supplied by a caller",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function compare(this: boolean, value: string): void { void value; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "module augmentation describes a third-party surface",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "declare module 'external-sdk' { export interface ClientOptionsInterface { enabled: boolean } }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "branded intersection is not a closed vocabulary",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function load(flag: boolean & { readonly brand: string }): void { void flag; }",
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
     }
   ],
   "invalid": [
@@ -873,6 +1269,651 @@
       "errors": [
         {
           "messageId": "threadedParameter"
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "abstract class field holds the token",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nabstract class Base { protected abstract transport: TransportMode; }",
+      "errors": [
+        {
+          "messageId": "threadedField",
+          "data": {
+            "name": "transport",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "accessor field holds the token",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nclass Resolver { accessor transport: TransportMode = TransportMode.Cli; }",
+      "errors": [
+        {
+          "messageId": "threadedField",
+          "data": {
+            "name": "transport",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "setter parameter receives the token",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nclass Resolver { set transport(value: TransportMode) { void value; } }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "value",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "index signature of flags",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface FlagsInterface { [key: string]: boolean }",
+      "errors": [
+        {
+          "messageId": "threadedProperty",
+          "data": {
+            "name": "index signature",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "generic constraint launders the token",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report<T extends boolean>(flag: T): void { void flag; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "flag",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "tuple smuggles the token",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report(pair: [string, boolean]): void { void pair; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "pair",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "array of tokens",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nfunction report(modes: TransportMode[]): void { void modes; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "modes",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "readonly array of flags",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report(flags: readonly boolean[]): void { void flags; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "flags",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "rest parameter of flags",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report(...flags: boolean[]): void { void flags; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "flags",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "namespace-scoped enum",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "namespace Transports { export enum TransportMode { Cli = 0 } }\nfunction report(mode: Transports.TransportMode): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "object literal method shorthand",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "const handlers = { report(isMcp: boolean): void { void isMcp; } };",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "isMcp",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "ambient declared function",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "declare function report(isMcp: boolean): void;",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "isMcp",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "negative numeric literal union",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report(direction: -1 | 1): void { void direction; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "direction",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "bigint literal union",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function report(mode: 1n | 2n): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
+        }
+      ],
+      "options": [
+        {
+          "bindings": [
+            {
+              "kind": "folder",
+              "layer": "domain",
+              "pattern": "domain"
+            },
+            {
+              "kind": "folder",
+              "layer": "application",
+              "pattern": "application"
+            },
+            {
+              "kind": "folder",
+              "layer": "adapters",
+              "pattern": "adapters"
+            }
+          ],
+          "layers": [
+            "domain",
+            "application",
+            "adapters"
+          ],
+          "sourceRoot": "src",
+          "adapterLayerName": "adapters"
+        }
+      ]
+    },
+    {
+      "name": "template literal union without substitutions",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "type TemplateMode = `cli` | `mcp`;\nfunction report(mode: TemplateMode): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode",
+            "layer": "domain",
+            "adapterLayer": "adapters"
+          }
         }
       ],
       "options": [

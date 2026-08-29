@@ -21,7 +21,7 @@
     {
       "name": "completes lifecycle accounting after fail-fast rejection",
       "shape": "fail-fast-completion",
-      "input": { "maximumConcurrent": 2, "items": [1, 2, 3], "failure": 2 },
+      "input": { "maximumConcurrent": 2, "items": [1, 2, 3], "failure": 2, "rejectionDeadlineMs": 100 },
       "expected": {
         "rejectedMessage": "failed item",
         "stats": { "failed": 1, "succeeded": 2, "total": 3 }
