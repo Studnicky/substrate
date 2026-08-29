@@ -80,7 +80,7 @@ Stateless utilities are pure-static classes. Stateful primitives are created exp
 
 ## Package families
 
-The 43 packages split into stateful primitives and stateless utilities. See the [Packages Index](/packages/) for the complete package list.
+The 50 packages group into stateful primitives, stateless utilities, and matching/routing tools. The matching/routing family can feed filters, discovery, selection, or delivery without imposing a required pipeline. See the [Packages Index](/packages/) for the complete package list.
 
 ```mermaid
 flowchart TD
@@ -97,11 +97,16 @@ flowchart TD
         B["Buffers\nCircular-Buffer · Sample-Buffer"]
         F["Foundation\nESLint Config"]
     end
+    subgraph MatchingAndRouting["Matching & routing (composable evidence and delivery)"]
+        direction LR
+        M["Filters · Matching · Matching-Filters\nSemantic-Matching · Topic-Router\nTopic-Router-Models"]
+    end
     Consumer["Consumer code"] -->|"create or extend"| Stateful
     Consumer -->|"static call"| Stateless
+    Consumer -->|"compose"| MatchingAndRouting
 ```
 
-Text equivalent: consumer code creates or subclasses a stateful primitive, or makes a static call into a stateless utility. Cross-package composition retains one owning package for each behavior and one root import for each owner.
+Text equivalent: consumer code creates or subclasses a stateful primitive, makes a static call into a stateless utility, and composes matching/routing tools with its own policies and collaborators. Cross-package composition retains one owning package for each behavior and one root import for each owner.
 
 ## FSM overview
 

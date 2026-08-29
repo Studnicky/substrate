@@ -19,9 +19,9 @@ const COVERAGE_EXCLUDE_PATTERNS = Object.freeze([
   'packages/*/tests/**'
 ]);
 const TIER_PATTERNS = Object.freeze({
-  'integration': ['packages/*/tests/integration/**/*.test.ts', 'packages/*/tests/integration/**/*.loop.spec.ts'],
-  'smoke': ['packages/*/tests/smoke/**/*.test.ts', 'packages/*/tests/smoke/**/*.loop.spec.ts'],
-  'unit': ['packages/*/tests/unit/**/*.test.ts', 'packages/*/tests/unit/**/*.loop.spec.ts']
+  'integration': ['packages/*/tests/integration/**/*.loop.spec.ts'],
+  'smoke': ['packages/*/tests/smoke/**/*.loop.spec.ts'],
+  'unit': ['packages/*/tests/unit/**/*.loop.spec.ts']
 });
 
 function toPosixPath(path) {

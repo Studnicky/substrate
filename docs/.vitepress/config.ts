@@ -55,12 +55,12 @@ const substrateBrowserSwap = (): {
 };
 
 const SITE_TITLE = 'Substrate';
-const SITE_DESCRIPTION = 'A subclass-first toolkit of TypeScript primitives: retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base.';
+const SITE_DESCRIPTION = 'Composable TypeScript primitives for builders: matching, routing, filtering, state, concurrency, time, I/O, and structured errors. Each package supplies focused contracts and operations that consumers combine into their own applications.';
 const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#7c5aed';
-const SITE_KEYWORDS = 'typescript,subclass,primitives,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
+const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,semantic-matching,vectorization,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -101,6 +101,11 @@ const STATEFUL = [
 const STATELESS = [
   'config', 'errors', 'eslint-config', 'fetch', 'intake-kit', 'json',
   'signal', 'system', 'types'
+] as const;
+
+const MATCHING_AND_ROUTING = [
+  'filters', 'matching', 'matching-filters', 'semantic-matching',
+  'topic-router', 'topic-router-models'
 ] as const;
 
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
@@ -242,6 +247,11 @@ export default withMermaid(defineConfig({
           text: 'Stateless utilities',
           collapsed: false,
           items: STATELESS.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
+        },
+        {
+          text: 'Matching & routing',
+          collapsed: false,
+          items: MATCHING_AND_ROUTING.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
         },
         {
           text: 'ESLint Plugins',
