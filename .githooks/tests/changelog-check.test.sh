@@ -4,17 +4,19 @@ set -eu
 cd "$(dirname "$0")" || exit 1
 # shellcheck source=_helpers.sh
 source "_helpers.sh"
-# shellcheck source=../lib/changelog-check.sh
-source "../lib/changelog-check.sh"
 
-repo=$(make_repo)
-(
-  cd "$repo" || exit 1
-  printf '%s\n' '# Changelog' '## [Unreleased]' > CHANGELOG.md
-  git add CHANGELOG.md
-  git commit -q -m changelog
-)
-check_changelog_format "$repo" >/dev/null 2>&1 || true
+WORKFLOW="$(cd "$PWD/../.." && pwd)/.github/workflows/changelog-check.yml"
+workflow=$(cat "$WORKFLOW")
+
+assert_contains "PR checks use the contributor head" "ref: \${{ github.event.pull_request.head.sha }}" "$workflow"
+assert_contains "ordinary PRs require changesets" "name: Verify a changeset was added" "$workflow"
+assert_contains "ordinary PRs exclude prepared releases" "!startsWith(github.head_ref, 'release/prepare-')" "$workflow"
+assert_contains "ordinary PRs target protected branches" "branches: [ main, develop ]" "$workflow"
+assert_contains "ordinary PRs fetch their target" 'git fetch origin "$BASE_REF"' "$workflow"
+assert_contains "ordinary PRs run changeset policy" "bash scripts/policy-suite.sh changeset-required" "$workflow"
+assert_contains "prepared releases have a dedicated gate" "name: Verify prepared release assets" "$workflow"
+assert_contains "prepared release branch selector" "startsWith(github.head_ref, 'release/prepare-')" "$workflow"
+assert_contains "prepared releases use publish gates" "bash scripts/release-suite.sh publish-gates" "$workflow"
 pass_count=$((pass_count + 1))
-rm -rf "$repo"
+
 test_main

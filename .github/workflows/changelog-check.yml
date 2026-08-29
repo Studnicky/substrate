@@ -2,7 +2,7 @@ name: changelog-check
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
     types: [ opened, synchronize, reopened ]
 
 jobs:
@@ -15,7 +15,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/pnpm-node-setup
 
       - name: Verify a changeset was added
-        run: bash scripts/policy-suite.sh changeset-required
+        if: ${{ !startsWith(github.head_ref, 'release/prepare-') }}
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_REF"
+          bash scripts/policy-suite.sh changeset-required "origin/$BASE_REF"
+
+      - name: Verify prepared release assets
+        if: ${{ startsWith(github.head_ref, 'release/prepare-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          bash scripts/release-suite.sh publish-gates "$version"

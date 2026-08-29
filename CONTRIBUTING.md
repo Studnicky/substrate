@@ -49,9 +49,9 @@ load spikes. The new `jitter` option randomises the delay within
 the computed window.
 ```
 
-## Changesets (mandatory)
+## Changesets and releases
 
-Every PR, including a release or hotfix PR, must include a non-empty changeset. The `changelog-check` workflow enforces this on PRs targeting `main`.
+Every contributor PR, including a release or hotfix PR, adds a non-empty valid changeset. The `changelog-check` workflow enforces this on PRs targeting `main` and `develop`.
 
 ```bash
 pnpm changeset
@@ -59,7 +59,9 @@ pnpm changeset
 
 This prompts for the affected package(s) (all `@studnicky/*` packages version together as one fixed group, so selecting any one bumps them all), a bump type, and a summary. It writes a `.changeset/<random-name>.md` file — commit it with your PR.
 
-After a release or hotfix PR merges to `main`, the automated release workflow runs `pnpm changeset:version`. It consumes every pending changeset, bumps `package.json#version` in lockstep across all packages, and prepends the summaries to each affected package's own `CHANGELOG.md`. Don't hand-edit a package's `CHANGELOG.md` — the next `changeset:version` run overwrites hand-written entries at the same heading. The publish workflow's changeset gate verifies that the release tag contains no unconsumed `.changeset/*.md` files.
+When `main` contains pending changesets, the automated release workflow opens a `release/prepare-*` pull request. It runs `pnpm changeset:version`, commits the versioned package manifests and changelogs, and contains no pending changesets. Its required check verifies lockstep versions and the absence of unconsumed changesets.
+
+After the release-preparation pull request merges, `main` contains the versioned release commit. The automated release workflow tags that commit, and the tag triggers publication to GitHub Packages. Don't hand-edit a package's `CHANGELOG.md`; `changeset:version` owns each generated release section.
 
 ## Design rules
 

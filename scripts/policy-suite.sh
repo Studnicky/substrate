@@ -17,8 +17,9 @@ run_pr_title_check() {
 }
 
 run_changeset_required_check() {
+  local base_ref="$1"
   . .githooks/lib/release-gates.sh
-  assert_changeset_required
+  assert_changeset_required "$base_ref"
 }
 
 run_sync_ancestry_check() {
@@ -43,7 +44,7 @@ case "${1:-}" in
     run_pr_title_check "${2:?missing base ref}" "${3:?missing head ref}" "${4:?missing title}"
     ;;
   changeset-required)
-    run_changeset_required_check
+    run_changeset_required_check "${2:?missing base ref}"
     ;;
   sync-ancestry)
     run_sync_ancestry_check "${2:-origin/main}" "${3:-origin/develop}"
