@@ -1,5 +1,6 @@
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from './astHelpers.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 // Shared between `folder-content-shape`, which REQUIRES an entity namespace to expose a
 // `validate` type guard, and `static-method-verbs`, which would otherwise report that same
@@ -9,7 +10,7 @@ import { ObjectGuard } from './ObjectGuard.js';
 
 export class SchemaMemberGuards {
   static isConstTypeAnnotation(typeAnnotation: unknown): boolean {
-    if (!ObjectGuard.isObject(typeAnnotation)) {
+    if (!Predicates.isRecord(typeAnnotation)) {
       return false;
     }
     // @typescript-eslint/parser represents `as const` as either:
@@ -22,7 +23,7 @@ export class SchemaMemberGuards {
     }
     if (AstHelpers.getNodeType(typeAnnotation) === 'TSTypeReference') {
       const { typeName } = typeAnnotation;
-      const result = ObjectGuard.isObject(typeName) && (typeName).name === 'const';
+      const result = Predicates.isRecord(typeName) && (typeName).name === 'const';
 
       return result;
     }
@@ -35,12 +36,12 @@ export class SchemaMemberGuards {
   // binds `Type = FromSchema<typeof Schema>` (or an equivalent deriving type) to a value the schema
   // itself owns, rather than to a hand-written type.
   static isSchemaValueAuthored(declarator: unknown): boolean {
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return false;
     }
     const { init } = declarator;
 
-    if (!ObjectGuard.isObject(init)) {
+    if (!Predicates.isRecord(init)) {
       return false;
     }
     const initType = AstHelpers.getNodeType(init);
@@ -56,7 +57,7 @@ export class SchemaMemberGuards {
     if (initType === 'TSSatisfiesExpression') {
       const { expression } = init;
 
-      if (!ObjectGuard.isObject(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') {
+      if (!Predicates.isRecord(expression) || AstHelpers.getNodeType(expression) !== 'TSAsExpression') {
         return false;
       }
 
@@ -74,22 +75,22 @@ export class SchemaMemberGuards {
   }
 
   static isSchemaDerivedReference(typeAnnotation: unknown): boolean {
-    if (!ObjectGuard.isObject(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') {
+    if (!Predicates.isRecord(typeAnnotation) || AstHelpers.getNodeType(typeAnnotation) !== 'TSTypeReference') {
       return false;
     }
-    if (!ObjectGuard.isObject(typeAnnotation.typeName)) {
+    if (!Predicates.isRecord(typeAnnotation.typeName)) {
       return false;
     }
     // The deriving type is whatever the package uses to turn a schema value into a type.
     // Its identity carries no weight; the `typeof Schema` argument is what binds the type to the value.
     let typeParameters: Record<string, unknown> | undefined;
 
-    if (ObjectGuard.isObject(typeAnnotation.typeParameters)) {
+    if (Predicates.isRecord(typeAnnotation.typeParameters)) {
       typeParameters = typeAnnotation.typeParameters;
-    } else if (ObjectGuard.isObject(typeAnnotation.typeArguments)) {
+    } else if (Predicates.isRecord(typeAnnotation.typeArguments)) {
       typeParameters = typeAnnotation.typeArguments;
     }
-    if (!ObjectGuard.isObject(typeParameters)) {
+    if (!Predicates.isRecord(typeParameters)) {
       return false;
     }
     const parameters: unknown = Reflect.get(typeParameters, 'params');
@@ -103,12 +104,12 @@ export class SchemaMemberGuards {
     for (let index = 0; index < parameterCount; index++) {
       const argument: unknown = parameters.at(index);
 
-      if (!ObjectGuard.isObject(argument) || AstHelpers.getNodeType(argument) !== 'TSTypeQuery') {
+      if (!Predicates.isRecord(argument) || AstHelpers.getNodeType(argument) !== 'TSTypeQuery') {
         continue;
       }
       const { exprName } = argument;
 
-      if (ObjectGuard.isObject(exprName) && exprName.name === 'Schema') {
+      if (Predicates.isRecord(exprName) && exprName.name === 'Schema') {
         return true;
       }
     }
@@ -123,7 +124,7 @@ export class SchemaMemberGuards {
   // `TSTypeReference` shape `isSchemaDerivedReference` already recognizes rather than duplicating
   // its `typeof Schema` argument scan.
   static isInterfaceSchemaDerived(declaration: unknown): boolean {
-    if (!ObjectGuard.isObject(declaration)) {
+    if (!Predicates.isRecord(declaration)) {
       return false;
     }
     const heritageClauses: unknown = Reflect.get(declaration, 'extends');
@@ -137,7 +138,7 @@ export class SchemaMemberGuards {
     for (let index = 0; index < heritageLength; index++) {
       const heritage: unknown = heritageClauses.at(index);
 
-      if (!ObjectGuard.isObject(heritage)) {
+      if (!Predicates.isRecord(heritage)) {
         continue;
       }
 
@@ -156,12 +157,12 @@ export class SchemaMemberGuards {
   }
 
   static isTypeFromSchema(decl: unknown): boolean {
-    if (!ObjectGuard.isObject(decl)) {
+    if (!Predicates.isRecord(decl)) {
       return false;
     }
     const { typeAnnotation } = decl;
 
-    if (!ObjectGuard.isObject(typeAnnotation)) {
+    if (!Predicates.isRecord(typeAnnotation)) {
       return false;
     }
     // Plain: `type Type = FromSchema<typeof Schema>`
@@ -190,31 +191,31 @@ export class SchemaMemberGuards {
   // `(candidate: unknown) => candidate is Type` predicate, so a `const validate`
   // bound to it is a valid type guard with zero hand-written constraint logic.
   static isSchemaValidatorCompile(init: unknown): boolean {
-    if (!ObjectGuard.isObject(init) || AstHelpers.getNodeType(init) !== 'CallExpression') {
+    if (!Predicates.isRecord(init) || AstHelpers.getNodeType(init) !== 'CallExpression') {
       return false;
     }
     const { callee } = init;
 
-    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
+    if (!Predicates.isRecord(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
       return false;
     }
     const {
       object, property
     } = callee;
 
-    if (!ObjectGuard.isObject(object) || (object).name !== 'SchemaValidator') {
+    if (!Predicates.isRecord(object) || (object).name !== 'SchemaValidator') {
       return false;
     }
-    if (!ObjectGuard.isObject(property) || (property).name !== 'compile') {
+    if (!Predicates.isRecord(property) || (property).name !== 'compile') {
       return false;
     }
     // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
     let typeParameters: unknown = init.typeArguments;
 
-    if (!ObjectGuard.isObject(typeParameters)) {
+    if (!Predicates.isRecord(typeParameters)) {
       typeParameters = init.typeParameters;
     }
-    if (!ObjectGuard.isObject(typeParameters)) {
+    if (!Predicates.isRecord(typeParameters)) {
       return false;
     }
     const parameters: unknown = Reflect.get(typeParameters, 'params');
@@ -224,17 +225,17 @@ export class SchemaMemberGuards {
     }
     const argument: unknown = parameters.at(0);
 
-    if (!ObjectGuard.isObject(argument) || AstHelpers.getNodeType(argument) !== 'TSTypeReference') {
+    if (!Predicates.isRecord(argument) || AstHelpers.getNodeType(argument) !== 'TSTypeReference') {
       return false;
     }
     const { typeName } = argument;
-    const result = ObjectGuard.isObject(typeName) && (typeName).name === 'Type';
+    const result = Predicates.isRecord(typeName) && (typeName).name === 'Type';
 
     return result;
   }
 
   static isValidateTypeGuard(decl: unknown): boolean {
-    if (!ObjectGuard.isObject(decl)) {
+    if (!Predicates.isRecord(decl)) {
       return false;
     }
     const declType = AstHelpers.getNodeType(decl);
@@ -245,7 +246,7 @@ export class SchemaMemberGuards {
       const { declarations } = decl;
       const firstDeclarator: unknown = Array.isArray(declarations) ? declarations.at(0) : undefined;
 
-      if (ObjectGuard.isObject(firstDeclarator)) {
+      if (Predicates.isRecord(firstDeclarator)) {
         if (SchemaMemberGuards.isSchemaValidatorCompile(firstDeclarator.init)) {
           return true;
         }
@@ -260,8 +261,8 @@ export class SchemaMemberGuards {
       const parameters: unknown = Reflect.get(decl, 'params');
       const p: unknown = Array.isArray(parameters) ? parameters.at(0) : undefined;
 
-      if (ObjectGuard.isObject(p)) {
-        if (ObjectGuard.isObject(p.name)) {
+      if (Predicates.isRecord(p)) {
+        if (Predicates.isRecord(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
           firstParamName = p.name as string | undefined;
@@ -276,12 +277,12 @@ export class SchemaMemberGuards {
       }
       const declarator: unknown = declarations.at(0);
 
-      if (!ObjectGuard.isObject(declarator)) {
+      if (!Predicates.isRecord(declarator)) {
         return false;
       }
       const { init } = declarator;
 
-      if (!ObjectGuard.isObject(init)) {
+      if (!Predicates.isRecord(init)) {
         return false;
       }
       const initType = AstHelpers.getNodeType(init);
@@ -294,8 +295,8 @@ export class SchemaMemberGuards {
       const parameters: unknown = Reflect.get(init, 'params');
       const p: unknown = Array.isArray(parameters) ? parameters.at(0) : undefined;
 
-      if (ObjectGuard.isObject(p)) {
-        if (ObjectGuard.isObject(p.name)) {
+      if (Predicates.isRecord(p)) {
+        if (Predicates.isRecord(p.name)) {
           firstParamName = (p.name).name as string | undefined;
         } else {
           firstParamName = p.name as string | undefined;
@@ -308,16 +309,16 @@ export class SchemaMemberGuards {
     // returnType may be wrapped in a TSTypeAnnotation node
     let predicateNode: unknown = returnType;
 
-    if (ObjectGuard.isObject(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
+    if (Predicates.isRecord(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
       predicateNode = (predicateNode).typeAnnotation;
     }
-    if (!ObjectGuard.isObject(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') {
+    if (!Predicates.isRecord(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') {
       return false;
     }
     const predicate = predicateNode;
 
     // parameterName must match firstParamName
-    if (ObjectGuard.isObject(predicate.parameterName)) {
+    if (Predicates.isRecord(predicate.parameterName)) {
       const pName = (predicate.parameterName).name;
 
       if (pName !== firstParamName) {
@@ -330,7 +331,7 @@ export class SchemaMemberGuards {
     // typeAnnotation of predicate must reference Type
     const predTypeAnnotation = predicate.typeAnnotation;
 
-    if (!ObjectGuard.isObject(predTypeAnnotation)) {
+    if (!Predicates.isRecord(predTypeAnnotation)) {
       return false;
     }
     // May be wrapped in TSTypeAnnotation
@@ -339,12 +340,12 @@ export class SchemaMemberGuards {
     if (AstHelpers.getNodeType(typeReferenceNode) === 'TSTypeAnnotation') {
       typeReferenceNode = (typeReferenceNode as Record<string, unknown>).typeAnnotation;
     }
-    if (!ObjectGuard.isObject(typeReferenceNode) || AstHelpers.getNodeType(typeReferenceNode) !== 'TSTypeReference') {
+    if (!Predicates.isRecord(typeReferenceNode) || AstHelpers.getNodeType(typeReferenceNode) !== 'TSTypeReference') {
       return false;
     }
     const { typeName } = typeReferenceNode;
 
-    if (!ObjectGuard.isObject(typeName)) {
+    if (!Predicates.isRecord(typeName)) {
       return false;
     }
 

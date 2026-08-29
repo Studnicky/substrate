@@ -1,7 +1,7 @@
+import assert from 'node:assert/strict';
 /** 01-base-error — BaseError subclass with code, timestamp, retryable, toJSON(), toUserMessage(). Run: npx tsx packages/errors/examples/01-base-error.ts */
 
-import assert from 'node:assert/strict';
-
+import { RuntimeError } from '../src/errors/RuntimeError.js';
 // #region usage
 import { BaseError } from '../src/index.js';
 
@@ -31,14 +31,14 @@ const json = error.toJSON();
 console.log('AppError.toJSON().code:', json.code);
 console.log('AppError.toJSON().domain:', json.domain);
 
-const cause = new Error('DB connection refused');
+const cause = RuntimeError.create('DB connection refused');
 const wrapped = new AppError({ 'cause': cause, 'code': 'app.queryFailed', 'message': 'Query failed', 'retryable': false });
 const chain = BaseError.getCauseChain(wrapped);
 const firstCause = chain[0];
 const secondCause = chain[1];
 
 if (!(firstCause instanceof Error) || !(secondCause instanceof Error)) {
-  throw new Error('cause chain contains a non-error value');
+  throw RuntimeError.create('cause chain contains a non-error value');
 }
 
 console.log('Cause chain length:', chain.length);

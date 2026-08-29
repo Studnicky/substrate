@@ -1,10 +1,11 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import {
   REQUIRES_BINDING_TYPES, TS_WRAPPER_EXPRESSION_TYPES
 } from './constants/ExplicitReturnBindingConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 
 // WHAT THIS RULE ENFORCES, AND WHY IT DID NOT EXIST BEFORE.
 //
@@ -149,7 +150,7 @@ class ReturnArgumentClassification {
     let current = node;
 
     while (
-      ObjectGuard.isObject(current)
+      Predicates.isRecord(current)
       && typeof current.type === 'string'
       && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)
     ) {

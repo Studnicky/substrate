@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -240,7 +241,7 @@ const runnerMap: RunnerMap = {
       callCount += 1;
 
       if (callCount <= scenarioCase.input.boundaryKit.failuresBeforeSuccess) {
-        throw new Error('transient failure');
+        throw RuntimeError.create('transient failure');
       }
 
       return scenarioCase.expected.result;
@@ -293,7 +294,7 @@ const runnerMap: RunnerMap = {
 
     const alwaysFails = async (): Promise<never> => {
       callCount += 1;
-      throw new Error('always fails');
+      throw RuntimeError.create('always fails');
     };
 
     await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);

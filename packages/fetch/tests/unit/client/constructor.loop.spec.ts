@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
@@ -80,7 +81,7 @@ function responseJson(data: ScenarioCase['expected'][string], status = 200): Res
 
 function requireString(value: ScenarioCase['expected'][string], label: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`${label} must be a string`);
+    throw RuntimeError.create(`${label} must be a string`);
   }
 
   return value;
@@ -88,7 +89,7 @@ function requireString(value: ScenarioCase['expected'][string], label: string): 
 
 function requireRecord(value: ScenarioCase['expected'][string], label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be an object`);
+    throw RuntimeError.create(`${label} must be an object`);
   }
 
   return value as Record<string, unknown>;
@@ -103,7 +104,7 @@ const configRuntimeTagMap: { [Shape in ConfigRuntimeTag['shape']]: ConfigRuntime
     return () => value.value;
   },
   'throwing-request-id': (value) => {
-    return () => { throw new Error(value.message); };
+    return () => { throw RuntimeError.create(value.message); };
   }
 };
 

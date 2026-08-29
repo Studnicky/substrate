@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 
 const TERMINATOR_TYPES: ReadonlySet<string> = new Set([
   'BreakStatement',
@@ -18,7 +18,7 @@ class SwitchCaseShape {
     }
 
     const last = consequent.at(-1);
-    const lastType = ObjectGuard.isObject(last) ? last.type : undefined;
+    const lastType = Predicates.isRecord(last) ? last.type : undefined;
     const hasTrailingTerminator = typeof lastType === 'string' && TERMINATOR_TYPES.has(lastType);
 
     const result = hasTrailingTerminator ? consequent.length - 1 : consequent.length;
@@ -62,7 +62,7 @@ export const switchStatements: Rule.RuleModule = {
       const raw = node as unknown as Record<string, unknown>;
       const consequent = raw.consequent;
 
-      if (!ObjectGuard.isArray(consequent)) {
+      if (!Predicates.isArray(consequent)) {
         return;
       }
 
@@ -71,7 +71,7 @@ export const switchStatements: Rule.RuleModule = {
       if (consequent.length === 1) {
         const only = consequent.at(0);
 
-        if (ObjectGuard.isObject(only) && only.type === 'BlockStatement') {
+        if (Predicates.isRecord(only) && only.type === 'BlockStatement') {
           return;
         }
       }

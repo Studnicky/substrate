@@ -5,7 +5,7 @@
 import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 import type { ErrorDiagnosticEntity } from '../entities/ErrorDiagnosticEntity.js';
 import type { ErrorWithCodeEntity } from '../entities/ErrorWithCodeEntity.js';
-import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
+import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 
 export interface ModuleErrorInterface {
   /** Underlying error that caused this error (typed as `Error | undefined` for `ModuleError`). */
@@ -30,7 +30,7 @@ export interface ModuleErrorInterface {
   readonly 'stack'?: ErrorDiagnosticEntity.Type['stack'];
 
   /** HTTP status code (optional) */
-  readonly 'statusCode': ErrorWithStatusCodeEntity.Type['statusCode'] | undefined;
+  readonly 'status': ErrorWithStatusEntity.Type['status'] | undefined;
 
   /**
    * Serialize error for structured logging

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -40,7 +41,7 @@ type RunnerMap = { [K in ScenarioShape]: (scenarioCase: ScenarioCaseMap[K]) => v
 const runnerMap: RunnerMap = {
   'error-args': (scenarioCase) => {
     const err = new SampleBufferError(scenarioCase.input.message, {
-      'cause': new Error(scenarioCase.input.causeMessage),
+      'cause': RuntimeError.create(scenarioCase.input.causeMessage),
       'correlationId': scenarioCase.input.correlationId,
       ...(scenarioCase.input.retryable === undefined ? {} : { 'retryable': scenarioCase.input.retryable })
     });

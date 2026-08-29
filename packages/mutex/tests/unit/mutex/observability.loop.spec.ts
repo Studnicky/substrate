@@ -1,8 +1,9 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
@@ -71,7 +72,7 @@ function isMutexErrorTypeName(value: string): value is keyof typeof mutexErrorTy
 
 function mutexErrorTypeInput(value: string): (typeof mutexErrorTypes)[keyof typeof mutexErrorTypes] {
   if (!isMutexErrorTypeName(value)) {
-    throw new Error(`Unknown mutex error type name: ${value}`);
+    throw RuntimeError.create(`Unknown mutex error type name: ${value}`);
   }
   return mutexErrorTypes[value];
 }
@@ -131,7 +132,7 @@ class AfterReleaseHandoffTrackingMutex extends Mutex<string> {
 
 class HookErrorRecordingMutex extends Mutex<string> {
   protected override beforeAcquire(_key: string): void {
-    throw new Error('beforeAcquire boom');
+    throw RuntimeError.create('beforeAcquire boom');
   }
 
   getHookErrorCount(): number {
@@ -145,11 +146,11 @@ class HookErrorRecordingMutex extends Mutex<string> {
 
 class ThrowingMutex extends Mutex<string> {
   protected override afterAcquire(_key: string, _waitTimeMs: number): void {
-    throw new Error('Hook error');
+    throw RuntimeError.create('Hook error');
   }
 
   protected override beforeRelease(_key: string, _holdTimeMs: number): void {
-    throw new Error('Hook error');
+    throw RuntimeError.create('Hook error');
   }
 }
 
@@ -160,7 +161,7 @@ class ThrowingQueueMutex extends Mutex<string> {
     this.acquireKeys.push(`acquired-${key}`);
 
     if (key === 'key1') {
-      throw new Error('Hook error');
+      throw RuntimeError.create('Hook error');
     }
   }
 }
@@ -185,52 +186,52 @@ class AllHooksMutex extends Mutex<string> {
 class AsyncRejectingHooksMutex extends Mutex<string> {
   protected override async beforeAcquire(): Promise<void> {
     await Promise.resolve();
-    throw new Error('beforeAcquire async boom');
+    throw RuntimeError.create('beforeAcquire async boom');
   }
 
   protected override async afterAcquire(): Promise<void> {
     await Promise.resolve();
-    throw new Error('afterAcquire async boom');
+    throw RuntimeError.create('afterAcquire async boom');
   }
 
   protected override async onContended(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onContended async boom');
+    throw RuntimeError.create('onContended async boom');
   }
 
   protected override async beforeRelease(): Promise<void> {
     await Promise.resolve();
-    throw new Error('beforeRelease async boom');
+    throw RuntimeError.create('beforeRelease async boom');
   }
 
   protected override async afterRelease(): Promise<void> {
     await Promise.resolve();
-    throw new Error('afterRelease async boom');
+    throw RuntimeError.create('afterRelease async boom');
   }
 
   protected override async onTimeout(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onTimeout async boom');
+    throw RuntimeError.create('onTimeout async boom');
   }
 
   protected override async onAcquireWait(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onAcquireWait async boom');
+    throw RuntimeError.create('onAcquireWait async boom');
   }
 
   protected override async onRelease(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onRelease async boom');
+    throw RuntimeError.create('onRelease async boom');
   }
 
   protected override async onQueueDrain(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onQueueDrain async boom');
+    throw RuntimeError.create('onQueueDrain async boom');
   }
 
   protected override async onEnterKey(): Promise<void> {
     await Promise.resolve();
-    throw new Error('onEnterKey async boom');
+    throw RuntimeError.create('onEnterKey async boom');
   }
 
   getHookErrors(): readonly HookInvocationError[] {
@@ -264,19 +265,19 @@ class QueueDrainTrackingMutex extends Mutex<string> {
 
 class ThrowingReleaseHookMutex extends Mutex<string> {
   protected override onRelease(): void {
-    throw new Error('Hook error');
+    throw RuntimeError.create('Hook error');
   }
 }
 
 class ThrowingQueueDrainMutex extends Mutex<string> {
   protected override onQueueDrain(): void {
-    throw new Error('Hook error');
+    throw RuntimeError.create('Hook error');
   }
 }
 
 class ThrowingTimeoutHookMutex extends Mutex<string> {
   protected override onTimeout(): void {
-    throw new Error('Hook error');
+    throw RuntimeError.create('Hook error');
   }
 }
 
@@ -287,42 +288,42 @@ function mutexConfig(scenarioCase: ScenarioCase): Partial<MutexConfigEntity.Type
 function readPendingCount(input: MutexScenarioInput): number {
   const value = input.batch?.pendingCount;
   if (typeof value !== 'number') {
-    throw new Error('Scenario input.batch.pendingCount must be a number');
+    throw RuntimeError.create('Scenario input.batch.pendingCount must be a number');
   }
   return value;
 }
 
 function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
-    throw new Error(`${label} must be a number`);
+    throw RuntimeError.create(`${label} must be a number`);
   }
   return value;
 }
 
 function readBoolean<TValue>(value: TValue, label: string): boolean {
   if (typeof value !== 'boolean') {
-    throw new Error(`${label} must be a boolean`);
+    throw RuntimeError.create(`${label} must be a boolean`);
   }
   return value;
 }
 
 function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`${label} must be a string`);
+    throw RuntimeError.create(`${label} must be a string`);
   }
   return value;
 }
 
 function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
-    throw new Error(`${label} must be a string array`);
+    throw RuntimeError.create(`${label} must be a string array`);
   }
   return value;
 }
 
 function readNumberArray<TValue>(value: TValue, label: string): number[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'number')) {
-    throw new Error(`${label} must be a number array`);
+    throw RuntimeError.create(`${label} must be a number array`);
   }
   return value;
 }
@@ -338,7 +339,7 @@ function readStringKeys(input: MutexScenarioInput): string[] {
 function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
   const item = items[index];
   if (item === undefined) {
-    throw new Error(`${label} is missing item ${index}`);
+    throw RuntimeError.create(`${label} is missing item ${index}`);
   }
   return item;
 }

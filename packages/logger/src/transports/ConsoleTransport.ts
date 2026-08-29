@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { ConsoleTransportOptionsEntity } from '../entities/ConsoleTransportOptionsEntity.js';
@@ -95,7 +96,7 @@ export class ConsoleTransport implements TransportInterface {
     const result: unknown = Reflect.construct(this, [options]);
 
     if (!Predicates.isObjectLike(result) || !ConsoleTransportInstance.belongsTo(this, result)) {
-      throw new TypeError('ConsoleTransport.create() did not construct the requested subclass.');
+      throw RuntimeError.create('ConsoleTransport.create() did not construct the requested subclass.');
     }
 
     return result;

@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
 import {
   isIndexedAccessTypeNode,
   isLiteralTypeNode,
@@ -22,7 +23,6 @@ import {
 } from 'typescript';
 
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 
 /**
  * whole-canonical-types — canonical data shapes (named `type`/`interface` declarations
@@ -55,11 +55,11 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value) || typeof value.getTypeAtLocation !== 'function') { return false; }
-    if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
+    if (!Predicates.isRecord(value) || typeof value.getTypeAtLocation !== 'function') { return false; }
+    if (!Predicates.isRecord(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
       return false;
     }
-    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = Predicates.isRecord(value.program) && typeof value.program.getTypeChecker === 'function';
     return result;
   }
 }
@@ -83,7 +83,7 @@ class SubsettingUtilityMatch {
 
   public static getFirstTypeArgument(node: Record<string, unknown>): unknown {
     const wrapper = node.typeArguments ?? node.typeParameters;
-    if (!ObjectGuard.isObject(wrapper)) { return undefined; }
+    if (!Predicates.isRecord(wrapper)) { return undefined; }
     const parameters: unknown = wrapper.params;
     if (!Array.isArray(parameters)) { return undefined; }
     const result: unknown = parameters.at(0);
@@ -93,7 +93,7 @@ class SubsettingUtilityMatch {
 
 class CanonicalTypeResolution {
   public static isCanonicalOwnedType(typeArgNode: unknown, services: ParserServicesInterface): boolean {
-    if (!ObjectGuard.isObject(typeArgNode)) { return false; }
+    if (!Predicates.isRecord(typeArgNode)) { return false; }
     if (AstHelpers.getNodeType(typeArgNode) !== 'TSTypeReference') { return false; }
 
     const type = services.getTypeAtLocation(typeArgNode);
@@ -283,7 +283,7 @@ export const wholeCanonicalTypes: Rule.RuleModule = {
 
     const onTSTypeReference = (node: Rule.Node): void => {
       const rawNode: unknown = node;
-      if (!ObjectGuard.isObject(rawNode)) { return; }
+      if (!Predicates.isRecord(rawNode)) { return; }
       const literalUtilityName = SubsettingUtilityMatch.getUtilityName(rawNode);
 
       if (literalUtilityName !== undefined) {

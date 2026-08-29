@@ -1,0 +1,18 @@
+{
+  "name": "@studnicky/matching-filters",
+  "version": "11.1.0",
+  "description": "FilterEngine adapters for deterministic matching primitives",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "scripts": { "build": "tsc", "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo", "type-check": "tsc --noEmit", "test": "node ../../scripts/test-suite.mjs unit --package ." },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/matching-filters" },
+  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
+  "engines": { "node": ">=24.0.0" },
+  "dependencies": { "@studnicky/errors": "workspace:*", "@studnicky/filters": "workspace:*", "@studnicky/matching": "workspace:*", "@studnicky/types": "workspace:*" }
+}

@@ -1,6 +1,6 @@
 /** Local deterministic feature-flag evaluation with percentage rollout and observability hooks */
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Hash } from '@studnicky/json';
 import { Predicates } from '@studnicky/types';
 
@@ -79,11 +79,11 @@ export class FlagEvaluator {
     this: FlagEvaluatorConstructorInterface<TInstance>
   ): TInstance {
     if (!FlagEvaluator.isConstructor(this)) {
-      throw new TypeError('FlagEvaluator.create() requires a constructor');
+      throw RuntimeError.create('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
     if (!Predicates.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('FlagEvaluator.create() must construct a FlagEvaluator instance');
+      throw RuntimeError.create('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;
   }

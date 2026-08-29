@@ -4,7 +4,7 @@
 
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
@@ -173,7 +173,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     const result: unknown = Reflect.construct(this, [deps]);
 
     if (!Predicates.isObjectLike(result) || !MemoizeInstance.belongsTo(this, result)) {
-      throw new TypeError('Memoize.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Memoize.create() did not construct the requested subclass.');
     }
 
     return result;

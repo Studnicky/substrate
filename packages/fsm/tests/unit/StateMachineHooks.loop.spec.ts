@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -127,7 +128,7 @@ class ThrowingMachine extends StateMachine<TrafficState, TrafficEvent> {
   override getInitialState(): TrafficState { return { variant: 'red' }; }
 
   override reduce(_state: TrafficState, _event: TrafficEvent): FsmStepInterface<TrafficState> {
-    throw new Error('reducer error');
+    throw RuntimeError.create('reducer error');
   }
 }
 
@@ -173,7 +174,7 @@ const runnerMap: RunnerMap = {
   'async-rejection': async (scenarioCase) => {
     class AsyncRejectingEnterStateMachine extends TrafficMachine {
       readonly failureDetails = { labels: ['initial'] };
-      readonly failure = new Error('async onEnterState boom', { cause: this.failureDetails });
+      readonly failure = RuntimeError.create('async onEnterState boom', { cause: this.failureDetails });
 
       diagnostics() {
         return this.hooks.getHookErrors();
@@ -247,7 +248,7 @@ const runnerMap: RunnerMap = {
   'throwing-rejection-hook': (scenarioCase) => {
     class ThrowingRejectedHookMachine extends ThrowingMachine {
       protected override onTransitionRejected(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
     }
 
@@ -258,7 +259,7 @@ const runnerMap: RunnerMap = {
   'throwing-transition-hook': (scenarioCase) => {
     class ThrowingTransitionHookMachine extends TrafficMachine {
       protected override onTransition(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
     }
 

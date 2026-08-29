@@ -1,0 +1,318 @@
+{
+  "valid": [
+    {
+      "name": "imported port interface is not a vocabulary",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport function withResolved(reporter: ImportedReporterInterface): void { void reporter; }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "imported open-data type is not a vocabulary",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport function configure(config: ImportedTransportConfig): void { void config; }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "generic constrained to an imported port",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport function withPort<T extends ImportedReporterInterface>(port: T): void { void port; }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "a tagged-union variant tag is pinned to one inhabitant",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "type Variant = 'done' | 'error' | 'value';\nexport interface DoneInterface { readonly variant: Extract<Variant, 'done'> }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "indexed access onto a single-literal tag",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "type DoneShape = { variant: 'done' };\nexport interface DoneInterface { readonly variant: DoneShape['variant'] }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "boolean-pinned overload signatures narrow, they do not select",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "export declare function topicMap(topic: string, create: true): number;\nexport declare function topicMap(topic: string, create: false): number | undefined;",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    }
+  ],
+  "invalid": [
+    {
+      "name": "imported enum resolves through the checker",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport function withResolved(mode: ImportedTransportMode): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "generic alias instantiation resolves through the checker",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "type Identity<T> = T;\nexport function report(mode: Identity<'cli' | 'mcp'>): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "keyof derives a literal union",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "type TransportKeys = { cli: never; mcp: never };\nexport function report(mode: keyof TransportKeys): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "indexed access into an imported shape",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport function report(mode: ImportedTransportConfig['transport']): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "typeof query over a literal-typed binding",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "declare const selected: 'cli' | 'mcp';\ntype SelectedMode = typeof selected;\nexport function report(mode: SelectedMode): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "inline import type of an enum",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "export function report(mode: import('./tests/fixtures/ImportedTransportMode.js').ImportedTransportMode): void { void mode; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "mode"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "imported enum stored on a field",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport class Resolver { #transport: ImportedTransportMode | undefined; }",
+      "errors": [
+        {
+          "messageId": "threadedField",
+          "data": {
+            "name": "transport"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "imported enum on a contract property",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "import type { ImportedReporterInterface, ImportedTransportConfig, ImportedTransportMode } from './tests/fixtures/ImportedTransportMode.js';\nexport interface ResolveOptionsInterface { readonly transport: ImportedTransportMode }",
+      "errors": [
+        {
+          "messageId": "threadedProperty",
+          "data": {
+            "name": "transport"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    },
+    {
+      "name": "overload implementation multiplexes even when its signatures narrow",
+      "filename": "packages/eslint-config/DomainProbe.ts",
+      "code": "export function topicMap(topic: string, create: true): number;\nexport function topicMap(topic: string, create: false): number | undefined;\nexport function topicMap(topic: string, create: boolean): number | undefined { void topic; return create ? 1 : undefined; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "create"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "package",
+              "pattern": "json"
+            }
+          ],
+          "sourceRoot": "packages"
+        }
+      ]
+    }
+  ]
+}

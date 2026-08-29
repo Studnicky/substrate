@@ -1,5 +1,6 @@
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from './astHelpers.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 /**
  * Extracts the set of names a function-like node's own parameter list binds directly. Consumed
@@ -17,9 +18,9 @@ export class ParameterNames {
    */
   public static of(node: unknown): ReadonlySet<string> {
     const result = new Set<string>();
-    const parameterNodes: unknown = ObjectGuard.isObject(node) ? node.params : undefined;
+    const parameterNodes: unknown = Predicates.isRecord(node) ? node.params : undefined;
 
-    if (!ObjectGuard.isArray(parameterNodes)) {
+    if (!Predicates.isArray(parameterNodes)) {
       return result;
     }
 
@@ -38,7 +39,7 @@ export class ParameterNames {
   }
 
   static #boundName(parameterNode: unknown): string | undefined {
-    if (!ObjectGuard.isObject(parameterNode)) {
+    if (!Predicates.isRecord(parameterNode)) {
       return undefined;
     }
     if (parameterNode.type === 'Identifier') {

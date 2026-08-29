@@ -9,6 +9,7 @@ import { domainPurity } from '../../src/rules/arch/domainPurity.js';
 import { intakeParseOnly } from '../../src/rules/arch/intakeParseOnly.js';
 import { knownTypesOutsideAdapters } from '../../src/rules/arch/knownTypesOutsideAdapters.js';
 import { layerImportBoundary } from '../../src/rules/arch/layerImportBoundary.js';
+import { noThreadedVocabulary } from '../../src/rules/arch/noThreadedVocabulary.js';
 import { LayerOptionsEntity } from '../../src/rules/layers/LayerOptionsEntity.js';
 import { inlineTrivialLogic } from '../../src/rules/inlineTrivialLogic.js';
 import { preferCollectionTypes } from '../../src/rules/preferCollectionTypes.js';
@@ -32,13 +33,14 @@ const malformedOptionCases: readonly RuleOptionCase[] = [
   { 'malformedOptions': { 'exemptPackages': [1] }, 'rule': intakeParseOnly, 'ruleName': 'intake-parse-only' },
   { 'malformedOptions': { 'adapterOnlyImports': [1] }, 'rule': adapterOnlyImport, 'ruleName': 'adapter-only-import' },
   { 'malformedOptions': { 'domainLayerName': 1 }, 'rule': domainPurity, 'ruleName': 'domain-purity' },
-  { 'malformedOptions': { 'adapterLayerName': 1 }, 'rule': knownTypesOutsideAdapters, 'ruleName': 'known-types-outside-adapters' }
+  { 'malformedOptions': { 'adapterLayerName': 1 }, 'rule': knownTypesOutsideAdapters, 'ruleName': 'known-types-outside-adapters' },
+  { 'malformedOptions': { 'resolutionSites': [1], 'sourceRoot': 'src' }, 'rule': noThreadedVocabulary, 'ruleName': 'no-threaded-vocabulary' }
 ];
 
 const layerOptions: Record<string, unknown> = {
   'bindings': [
-    { 'kind': 'folder', 'layer': 'domain', 'pattern': 'domain' },
-    { 'kind': 'folder', 'layer': 'adapters', 'pattern': 'adapters' }
+    { 'unit': 'folder', 'layer': 'domain', 'pattern': 'domain' },
+    { 'unit': 'folder', 'layer': 'adapters', 'pattern': 'adapters' }
   ],
   'layers': ['domain', 'adapters'],
   'sourceRoot': 'src'

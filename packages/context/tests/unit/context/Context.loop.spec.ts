@@ -1,10 +1,11 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it, beforeEach
 } from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { Context } from '../../../src/context/index.js';
 import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
@@ -87,7 +88,7 @@ function isRecord<TValue>(value: TValue): value is TValue & Record<string, unkno
 
 function requireRecord<TValue>(value: TValue, label: string): Record<string, unknown> {
   if (!isRecord(value)) {
-    throw new TypeError(`${label} must be an object`);
+    throw RuntimeError.create(`${label} must be an object`);
   }
 
   return value;
@@ -97,7 +98,7 @@ function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {
-    throw new TypeError('input.context.name must be a string');
+    throw RuntimeError.create('input.context.name must be a string');
   }
 
   return { name };
@@ -119,7 +120,7 @@ function scopeInitial(scenarioCase: ScenarioCase, key = 'initial'): Record<strin
 function scopeString(scenarioCase: ScenarioCase, key: string): string {
   const value = scopeInput(scenarioCase)[key];
   if (typeof value !== 'string') {
-    throw new TypeError(`input.scope.${key} must be a string`);
+    throw RuntimeError.create(`input.scope.${key} must be a string`);
   }
 
   return value;
@@ -128,13 +129,13 @@ function scopeString(scenarioCase: ScenarioCase, key: string): string {
 function expectedStringArray(scenarioCase: ScenarioCase, key: string): string[] {
   const value = scenarioCase.expected[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`expected.${key} must be an array`);
+    throw RuntimeError.create(`expected.${key} must be an array`);
   }
 
   const strings: string[] = [];
   for (const item of value) {
     if (typeof item !== 'string') {
-      throw new TypeError(`expected.${key} must contain only strings`);
+      throw RuntimeError.create(`expected.${key} must contain only strings`);
     }
     strings.push(item);
   }
@@ -156,7 +157,7 @@ function multiContextInput(scenarioCase: ScenarioCase, key: string): {
   const scope = requireRecord(entry.scope, `input.contexts.${key}.scope`);
   const name = context.name;
   if (typeof name !== 'string') {
-    throw new TypeError(`input.contexts.${key}.context.name must be a string`);
+    throw RuntimeError.create(`input.contexts.${key}.context.name must be a string`);
   }
 
   return {
@@ -224,7 +225,7 @@ const runnerMap = {
     const result = scope.execute(() => {
       const value = context.get('value');
       if (typeof value !== 'number') {
-        throw new TypeError('Expected numeric context value');
+        throw RuntimeError.create('Expected numeric context value');
       }
       return value * 2;
     });
@@ -239,7 +240,7 @@ const runnerMap = {
       await Promise.resolve();
       const value = context.get('value');
       if (typeof value !== 'number') {
-        throw new TypeError('Expected numeric context value');
+        throw RuntimeError.create('Expected numeric context value');
       }
       assert.strictEqual(value * 3, scenarioCase.expected.result);
     });
@@ -251,14 +252,14 @@ const runnerMap = {
     scope.execute(() => {
       const count = context.get('count');
       if (typeof count !== 'number') {
-        throw new TypeError('Expected numeric context count');
+        throw RuntimeError.create('Expected numeric context count');
       }
       context.set('count', count + 1);
     });
     scope.execute(() => {
       const count = context.get('count');
       if (typeof count !== 'number') {
-        throw new TypeError('Expected numeric context count');
+        throw RuntimeError.create('Expected numeric context count');
       }
       context.set('count', count + 1);
     });
@@ -738,7 +739,7 @@ const runnerMap = {
   'throwing-on-initialize': (scenarioCase) => {
     class ThrowingInitializeContext extends Context {
       protected override onInitialize(): void {
-        throw new Error(String(scenarioCase.expected.message));
+        throw RuntimeError.create(String(scenarioCase.expected.message));
       }
     }
     const context = ThrowingInitializeContext.create(contextConfig(scenarioCase));
@@ -752,7 +753,7 @@ const runnerMap = {
   'throwing-on-set': (scenarioCase) => {
     class ThrowingSetContext extends Context {
       protected override onSet(): void {
-        throw new Error(String(scenarioCase.expected.message));
+        throw RuntimeError.create(String(scenarioCase.expected.message));
       }
     }
     const context = ThrowingSetContext.create(contextConfig(scenarioCase));
@@ -772,7 +773,7 @@ const runnerMap = {
   'throwing-on-get': (scenarioCase) => {
     class ThrowingGetContext extends Context {
       protected override onGet(): void {
-        throw new Error(String(scenarioCase.expected.message));
+        throw RuntimeError.create(String(scenarioCase.expected.message));
       }
     }
     const context = ThrowingGetContext.create(contextConfig(scenarioCase));
@@ -790,7 +791,7 @@ const runnerMap = {
   'throwing-on-delete': (scenarioCase) => {
     class ThrowingDeleteContext extends Context {
       protected override onDelete(): void {
-        throw new Error(String(scenarioCase.expected.message));
+        throw RuntimeError.create(String(scenarioCase.expected.message));
       }
     }
     const context = ThrowingDeleteContext.create(contextConfig(scenarioCase));
@@ -810,7 +811,7 @@ const runnerMap = {
     class AsyncRejectingContext extends Context {
       protected override async onSet(): Promise<void> {
         await setTimeout(5);
-        throw new Error('onSet boom');
+        throw RuntimeError.create('onSet boom');
       }
     }
     const unhandled: unknown[] = [];
@@ -847,7 +848,7 @@ function isScenarioShape(shape: string): shape is ScenarioShape {
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   const { shape } = scenarioCase;
   if (!isScenarioShape(shape)) {
-    throw new TypeError(`Unsupported scenario shape: ${shape}`);
+    throw RuntimeError.create(`Unsupported scenario shape: ${shape}`);
   }
 
   return runnerMap[shape](scenarioCase);

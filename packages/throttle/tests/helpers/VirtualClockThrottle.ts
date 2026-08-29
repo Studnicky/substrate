@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 /**
  * `Throttle` subclass whose `now()` reads a virtual clock instead of the wall
  * clock, so adaptive-concurrency tests can drive operation latency
@@ -51,7 +52,7 @@ export class VirtualClockThrottle extends Throttle {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, input]);
     if (typeof result !== 'object' || result === null || !VirtualClockThrottleInstance.belongsTo(this, result)) {
-      throw new TypeError('VirtualClockThrottle.createWithClock() did not construct the requested subclass.');
+      throw RuntimeError.create('VirtualClockThrottle.createWithClock() did not construct the requested subclass.');
     }
     return result;
   }

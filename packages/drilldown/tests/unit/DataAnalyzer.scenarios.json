@@ -1,0 +1,166 @@
+{
+  "fixtures": {
+    "default": [
+      {
+        "category": "alpha",
+        "launchedEpochMs": 1704067200000,
+        "notes": "first",
+        "score": 10,
+        "verified": true
+      },
+      {
+        "category": "alpha",
+        "launchedEpochMs": 1706745600000,
+        "notes": null,
+        "score": 20,
+        "verified": false
+      },
+      {
+        "category": "beta",
+        "launchedEpochMs": 1709251200000,
+        "notes": null,
+        "score": 30,
+        "verified": true
+      },
+      {
+        "category": "beta",
+        "launchedEpochMs": null,
+        "notes": null,
+        "score": 40,
+        "verified": false
+      },
+      {
+        "category": "gamma",
+        "launchedEpochMs": 1711929600000,
+        "notes": "fifth",
+        "score": 50,
+        "verified": true
+      }
+    ],
+    "empty": []
+  },
+  "cases": [
+    {
+      "name": "category-string",
+      "description": "detects a string property with its cardinality and full coverage",
+      "shape": "property-analysis",
+      "input": {
+        "fixture": "default",
+        "property": "category"
+      },
+      "expected": {
+        "type": "string",
+        "cardinality": 3,
+        "coverage": 1
+      }
+    },
+    {
+      "name": "launched-date",
+      "description": "detects an EpochMs-suffixed property as a date with bounds and null coverage",
+      "shape": "property-analysis",
+      "input": {
+        "fixture": "default",
+        "property": "launchedEpochMs"
+      },
+      "expected": {
+        "type": "date",
+        "nullCount": 1,
+        "coverage": 0.8,
+        "bounds": {
+          "type": "date",
+          "minimum": 1704067200000,
+          "maximum": 1711929600000
+        }
+      }
+    },
+    {
+      "name": "score-number",
+      "description": "detects a number property with bounds",
+      "shape": "property-analysis",
+      "input": {
+        "fixture": "default",
+        "property": "score"
+      },
+      "expected": {
+        "type": "number",
+        "cardinality": 5,
+        "bounds": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 50
+        }
+      }
+    },
+    {
+      "name": "verified-boolean",
+      "description": "detects a boolean property with binary cardinality",
+      "shape": "property-analysis",
+      "input": {
+        "fixture": "default",
+        "property": "verified"
+      },
+      "expected": {
+        "type": "boolean",
+        "cardinality": 2
+      }
+    },
+    {
+      "name": "low-coverage-excluded",
+      "description": "excludes a low-coverage property from the groupable set and recommendedGrouping",
+      "shape": "property-absent",
+      "input": {
+        "fixture": "default",
+        "property": "notes"
+      },
+      "expected": {
+        "present": false,
+        "inRecommended": false
+      }
+    },
+    {
+      "name": "recommended-ascending",
+      "description": "orders recommendedGrouping by ascending cardinality",
+      "shape": "cardinality-order",
+      "input": {
+        "fixture": "default"
+      },
+      "expected": {
+        "ascending": true
+      }
+    },
+    {
+      "name": "exclude-option",
+      "description": "respects the excludeProperties option",
+      "shape": "exclude-option",
+      "input": {
+        "fixture": "default",
+        "exclude": [
+          "category",
+          "score"
+        ]
+      },
+      "expected": {
+        "absent": [
+          "category",
+          "score"
+        ],
+        "present": [
+          "verified"
+        ]
+      }
+    },
+    {
+      "name": "empty-dataset",
+      "description": "returns no groupable properties for an empty dataset",
+      "shape": "empty-dataset",
+      "input": {
+        "fixture": "empty"
+      },
+      "expected": {
+        "totalRecords": 0,
+        "propertyCount": 0,
+        "recommendedGrouping": []
+      }
+    }
+  ]
+}

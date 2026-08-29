@@ -1,7 +1,7 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
@@ -73,7 +73,7 @@ export class Channel<T> {
 
     const result: unknown = Reflect.construct(currentConstructor, [options]);
     if (!Predicates.isObjectLike(result) || !ChannelInstance.belongsTo(currentConstructor, result)) {
-      throw new TypeError('Channel.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Channel.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;

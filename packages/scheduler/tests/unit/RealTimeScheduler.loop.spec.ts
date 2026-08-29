@@ -1,3 +1,4 @@
+import { RuntimeError, HookInvoker } from '@studnicky/errors';
 /**
  * Unit tests for `RealTimeScheduler`.
  */
@@ -7,7 +8,7 @@ import {
   describe, it, mock
 } from 'node:test';
 
-import { HookInvoker } from '@studnicky/errors';
+
 
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import scenarioGroups from './RealTimeScheduler.scenarios.json' with { type: 'json' };
@@ -58,7 +59,7 @@ class AuditScheduler extends RealTimeScheduler {
 function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
-    throw new Error(`Expected numeric field '${key}'`);
+    throw RuntimeError.create(`Expected numeric field '${key}'`);
   }
   return value;
 }
@@ -180,7 +181,7 @@ const scenarioRunners = {
     process.on('unhandledRejection', onUnhandledRejection);
     sched.scheduleAt(atMs, async () => {
       await Promise.resolve();
-      throw new Error('scheduleAt reject');
+      throw RuntimeError.create('scheduleAt reject');
     });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
@@ -199,7 +200,7 @@ const scenarioRunners = {
     process.on('unhandledRejection', onUnhandledRejection);
     const task = sched.scheduleEvery(numberField(input, 'intervalMs'), async () => {
       await Promise.resolve();
-      throw new Error('scheduleEvery reject');
+      throw RuntimeError.create('scheduleEvery reject');
     });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();
@@ -309,7 +310,7 @@ const scenarioRunners = {
       }
     }
     const sched = new FireErrorHookScheduler();
-    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), () => { throw new Error('sync throw'); });
+    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), () => { throw RuntimeError.create('sync throw'); });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
       sched.cancelAll();
@@ -325,7 +326,7 @@ const scenarioRunners = {
       }
     }
     const sched = new FireErrorHookScheduler();
-    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), async () => { throw new Error('async reject'); });
+    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), async () => { throw RuntimeError.create('async reject'); });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
       sched.cancelAll();
@@ -449,7 +450,7 @@ const scenarioRunners = {
       }
     }
 
-    const rejectionError = new Error('async onFire rejection');
+    const rejectionError = RuntimeError.create('async onFire rejection');
 
     class AsyncRejectingFireScheduler extends RealTimeScheduler {
       protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
@@ -528,7 +529,7 @@ const scenarioRunners = {
     }
 
     const sched = new FireErrorScheduler();
-    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { throw new Error('interval sync throw'); });
+    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { throw RuntimeError.create('interval sync throw'); });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();
       assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
@@ -548,7 +549,7 @@ const scenarioRunners = {
     const sched = new FireErrorScheduler();
     const task = sched.scheduleEvery(numberField(input, 'intervalMs'), async () => {
       await Promise.resolve();
-      throw new Error('interval async reject');
+      throw RuntimeError.create('interval async reject');
     });
     return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
       task.cancel();

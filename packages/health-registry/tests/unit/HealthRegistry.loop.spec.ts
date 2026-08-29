@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -165,14 +166,14 @@ function makeCheck(def: HealthCheckDefinitionInterface): HealthCheckInterface {
   }
 
   if (def.outcome === 'throw') {
-    return async () => { throw new Error('boom'); };
+    return async () => { throw RuntimeError.create('boom'); };
   }
 
   if (def.outcome === 'late-throw') {
     return async () => {
       assert.ok(def.delayMs !== undefined);
       await new Promise((resolve) => setTimeout(resolve, def.delayMs));
-      throw new Error('late health failure');
+      throw RuntimeError.create('late health failure');
     };
   }
 

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -192,7 +193,7 @@ const runnerMap: RunnerMap = {
   'merge-propagates-error': async (scenarioCase) => {
     async function* erroring(): AsyncGenerator<number> {
       yield 1;
-      throw new Error(scenarioCase.input.errorMessage);
+      throw RuntimeError.create(scenarioCase.input.errorMessage);
     }
     await assert.rejects(
       () => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))),

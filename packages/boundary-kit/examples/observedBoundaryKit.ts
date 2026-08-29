@@ -1,10 +1,10 @@
-/** observedBoundaryKit — default construction, then direct composition of subclassed primitives. Run: npx tsx examples/observedBoundaryKit.ts */
-
 // #region usage
 import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience';
+/** observedBoundaryKit — default construction, then direct composition of subclassed primitives. Run: npx tsx examples/observedBoundaryKit.ts */
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
+import { RuntimeError } from '@studnicky/errors';
 import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
 import { Throttle } from '@studnicky/throttle';
@@ -72,7 +72,7 @@ class ObservedBoundaryKitExample {
       defaultAttempts += 1;
 
       if (defaultAttempts < 2) {
-        throw new Error('transient failure');
+        throw RuntimeError.create('transient failure');
       }
 
       const result = Promise.resolve('default-ok');
@@ -97,7 +97,7 @@ class ObservedBoundaryKitExample {
       flakyAttempts += 1;
 
       if (flakyAttempts < 2) {
-        throw new Error('transient failure');
+        throw RuntimeError.create('transient failure');
       }
 
       const result = Promise.resolve('observed-ok');

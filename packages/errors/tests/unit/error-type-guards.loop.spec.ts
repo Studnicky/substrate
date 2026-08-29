@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -15,7 +16,7 @@ type ErrorFixture = string | Record<string, number | string>;
 
 function materializeError(error: ErrorFixture): ErrorFixture | Error {
   if (error !== null && typeof error === 'object' && 'shape' in error && (error as { shape?: string }).shape === 'native-error') {
-    const nativeError = new Error('native error');
+    const nativeError = RuntimeError.create('native error');
     Object.assign(nativeError, error);
     Reflect.deleteProperty(nativeError, 'shape');
     return nativeError;

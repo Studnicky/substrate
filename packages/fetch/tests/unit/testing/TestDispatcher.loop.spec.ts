@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -103,7 +104,7 @@ const requestBodyMap: Record<BodyScenarioShape, (scenarioCase: ScenarioCase) => 
 
 function requireUrl(value: string | undefined, label: string): string {
   if (value === undefined) {
-    throw new Error(`${label} is required for this scenario`);
+    throw RuntimeError.create(`${label} is required for this scenario`);
   }
 
   return value;
@@ -216,7 +217,12 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
     const init = { ...scenarioCase.input.init, 'body': new Blob([scenarioCase.input.body ?? '']) };
     await assert.rejects(
       dispatcher.fetch(scenarioCase.input.url, init),
-      (error) => error instanceof TypeError && error.message === scenarioCase.expected.errorMessage
+      (error) => {
+        assert.ok(error instanceof RuntimeError);
+        assert.strictEqual(error.code, scenarioCase.expected.errorCode);
+        assert.strictEqual(error.message, scenarioCase.expected.errorMessage);
+        return true;
+      }
     );
   });
 }

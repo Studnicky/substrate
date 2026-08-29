@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -65,35 +66,35 @@ function applyClamp<T extends Record<string, unknown>>(
 
 function requiredRecord(value: Record<string, unknown> | undefined, label: string): Record<string, unknown> {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
 
 function requiredBoolean(value: boolean | undefined, label: string): boolean {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
 
 function requiredNumber(value: number | undefined, label: string): number {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
 
 function requiredStrings(value: readonly string[] | undefined, label: string): readonly string[] {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
 
 function requiredEvent(value: ClampEventEntity.Type | undefined, label: string): ClampEventEntity.Type {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
@@ -115,7 +116,7 @@ function captureClampEvents(scenarioCase: ScenarioCase): CapturedClampResult {
 function applyWithThrowingHook(scenarioCase: ScenarioCase): Record<string, unknown> {
   class ThrowingClampedConfig extends ClampedConfig {
     protected static override onClamp(): void {
-      throw new Error('onClamp boom');
+      throw RuntimeError.create('onClamp boom');
     }
   }
 
@@ -137,13 +138,13 @@ const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
     class AsyncOverrideClampedConfig extends ClampedConfig {
       protected static override async onClamp(_event: ClampEventEntity.Type): Promise<void> {
         hookInvoked = true;
-        throw new Error('async onClamp boom');
+        throw RuntimeError.create('async onClamp boom');
       }
     }
 
     const rejectionEvents: Error[] = [];
     const onUnhandledRejection = (): void => {
-      rejectionEvents.push(new Error('unexpected unhandled rejection'));
+      rejectionEvents.push(RuntimeError.create('unexpected unhandled rejection'));
     };
     process.on('unhandledRejection', onUnhandledRejection);
 

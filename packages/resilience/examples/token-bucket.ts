@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** token-bucket — consume() throws when exhausted; waitForToken() blocks until refill. Run: npx tsx examples/token-bucket.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -35,7 +35,7 @@ console.log('Available at t=1500ms:', bucket.available);
 bucket.consume();
 bucket.consume();
 const controller = new AbortController();
-const abortError = new Error('cancelled');
+const abortError = RuntimeError.create('cancelled');
 // Abort after a microtask so waitForToken is already suspended in the Promise.
 const waitPromise = bucket.waitForToken({ 'signal': controller.signal, 'tokens': 1 });
 queueMicrotask(() => { controller.abort(abortError); });

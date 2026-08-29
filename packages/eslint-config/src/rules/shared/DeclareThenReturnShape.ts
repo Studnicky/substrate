@@ -1,5 +1,6 @@
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from './astHelpers.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 interface DeclareThenReturnShapeInterface {
   readonly 'declarationKind': string;
@@ -32,19 +33,19 @@ export class DeclareThenReturnShape {
     if (AstHelpers.getNodeType(second) !== 'ReturnStatement') {
       return undefined;
     }
-    if (!ObjectGuard.isObject(first) || !ObjectGuard.isObject(second)) {
+    if (!Predicates.isRecord(first) || !Predicates.isRecord(second)) {
       return undefined;
     }
 
     const declarations = first.declarations;
 
-    if (!ObjectGuard.isArray(declarations) || declarations.length !== 1) {
+    if (!Predicates.isArray(declarations) || declarations.length !== 1) {
       return undefined;
     }
 
     const declarator = declarations.at(0);
 
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return undefined;
     }
 

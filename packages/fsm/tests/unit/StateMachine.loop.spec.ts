@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -107,7 +108,7 @@ class ThrowingMachine extends StateMachine<ToggleState, ToggleEvent> {
   override getInitialState(): ToggleState { return { variant: 'off' }; }
 
   override reduce(_state: ToggleState, _event: ToggleEvent): FsmStepInterface<ToggleState> {
-    throw new Error('boom');
+    throw RuntimeError.create('boom');
   }
 }
 

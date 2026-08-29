@@ -17,7 +17,7 @@ class StorageError extends ModuleError {
       'code': 'STORAGE_ERROR',
       'context': options?.context,
       'retryable': false,
-      'statusCode': 500
+      'status': 500
     };
     const result = new StorageError(message, optionsData);
     return result;
@@ -37,12 +37,12 @@ const error = StorageError.create('Write failed', { 'context': { 'bucket': 'uplo
 
 console.log('StorageError.name:', error.name);
 console.log('StorageError.code:', error.code);
-console.log('StorageError.statusCode:', error.statusCode);
+console.log('StorageError.status:', error.status);
 console.log('StorageError.toUserMessage():', error.toUserMessage());
 
 const json = error.toJSON();
 console.log('toJSON().domain:', json.domain);
-console.log('toJSON().name:', json.name);
+console.log('toJSON().title:', json.title);
 
 // Wrapping: inspect the canonical BaseError cause chain
 const outer = ModuleError.create('Operation failed', {
@@ -62,11 +62,11 @@ assert.ok(error instanceof ModuleError, 'instanceof ModuleError');
 assert.ok(error instanceof BaseError, 'instanceof BaseError');
 assert.strictEqual(error.name, 'StorageError', 'name = class name');
 assert.strictEqual(error.code, 'STORAGE_ERROR');
-assert.strictEqual(error.statusCode, 500);
+assert.strictEqual(error.status, 500);
 assert.strictEqual(error.retryable, false);
 assert.strictEqual(error.toUserMessage(), 'Storage unavailable. Please try again later.');
 assert.strictEqual(json.domain, 'storage', 'serializeExtra() in toJSON()');
-assert.strictEqual(json.name, 'StorageError');
+assert.strictEqual(json.title, 'StorageError');
 assert.ok(found instanceof StorageError, 'BaseError.getCauseChain() found StorageError');
 assert.strictEqual(found?.code, 'STORAGE_ERROR');
 

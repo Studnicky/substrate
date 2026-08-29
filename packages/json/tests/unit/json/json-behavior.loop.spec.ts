@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -421,7 +422,7 @@ const scenarioRunnerMap = {
     const first = patch.operations;
     const firstOperation = first[0];
     if (firstOperation === undefined || !('value' in firstOperation)) {
-      throw new Error('Expected patch operation with a value');
+      throw RuntimeError.create('Expected patch operation with a value');
     }
     const firstValue = firstOperation.value;
     assert.ok(firstValue !== null && typeof firstValue === 'object' && !Array.isArray(firstValue));
@@ -574,7 +575,7 @@ function requireScenarioShape(shape: string): ScenarioShape {
     return shape;
   }
 
-  throw new Error(`Unhandled json behavior scenario shape: ${shape}`);
+  throw RuntimeError.create(`Unhandled json behavior scenario shape: ${shape}`);
 }
 
 function readJson(scenarioCase: ScenarioCase): JsonObject {
@@ -590,7 +591,7 @@ function requireJsonObject<T>(value: T, context: string): JsonObject {
     return value;
   }
 
-  throw new TypeError(`Expected object for ${context}`);
+  throw RuntimeError.create(`Expected object for ${context}`);
 }
 
 function cloneJsonObject<T>(value: T, context: string): JsonObject {
@@ -602,7 +603,7 @@ function requireArray<T>(value: T, context: string): unknown[] {
     return value;
   }
 
-  throw new TypeError(`Expected array for ${context}`);
+  throw RuntimeError.create(`Expected array for ${context}`);
 }
 
 function requireString<T>(value: T, context: string): string {
@@ -610,7 +611,7 @@ function requireString<T>(value: T, context: string): string {
     return value;
   }
 
-  throw new TypeError(`Expected string for ${context}`);
+  throw RuntimeError.create(`Expected string for ${context}`);
 }
 
 function requireNumber<T>(value: T, context: string): number {
@@ -618,7 +619,7 @@ function requireNumber<T>(value: T, context: string): number {
     return value;
   }
 
-  throw new TypeError(`Expected number for ${context}`);
+  throw RuntimeError.create(`Expected number for ${context}`);
 }
 
 function requiredValue(record: JsonObject, key: string): unknown {
@@ -626,7 +627,7 @@ function requiredValue(record: JsonObject, key: string): unknown {
     return Reflect.get(record, key);
   }
 
-  throw new TypeError(`Missing scenario value: ${key}`);
+  throw RuntimeError.create(`Missing scenario value: ${key}`);
 }
 
 function applyJsonMutation(target: JsonObject, mutation: JsonObject): void {
@@ -648,7 +649,7 @@ function requireInvalidPatchValueShape<T>(value: T): InvalidPatchValueShape {
   if (value === 'nan') return 'nan';
   if (value === 'symbol') return 'symbol';
 
-  throw new TypeError(`Unknown invalid patch value shape: ${String(value)}`);
+  throw RuntimeError.create(`Unknown invalid patch value shape: ${String(value)}`);
 }
 
 function assertContainsAll<T>(text: string, expectedValues: T, context: string): void {
@@ -683,5 +684,26 @@ void describe('Draft runtime value pass-through', () => {
     assert.strictEqual(next.attributes, attributes);
     assert.strictEqual(next.widget, widget);
     assert.equal(next.label, 'after');
+  });
+});
+
+void describe('Patch diff', () => {
+  void it('emits an RFC-6902 patch between independently obtained JSON values', () => {
+    const before = { 'items': ['one', 'two'], 'nested': { '/~': 1, 'value': 'before' }, 'remove': true };
+    const after = { 'added': false, 'items': ['one', 'three'], 'nested': { '/~': 2, 'value': 'after' } };
+    const patch = Patch.diff(before, after);
+    const replay = structuredClone(before);
+
+    patch.apply(replay);
+
+    assert.deepEqual(replay, after);
+    assert.deepEqual(patch.operations, [
+      { 'op': 'remove', 'path': '/remove' },
+      { 'op': 'add', 'path': '/added', 'value': false },
+      { 'op': 'replace', 'path': '/items/1', 'value': 'three' },
+      { 'op': 'replace', 'path': '/nested/~1~0', 'value': 2 },
+      { 'op': 'replace', 'path': '/nested/value', 'value': 'after' }
+    ]);
+    assert.ok(StrictPatch.diff(before, after) instanceof StrictPatch);
   });
 });

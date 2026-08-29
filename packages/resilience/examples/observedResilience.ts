@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedResilience — trace every lifecycle hook across CircuitBreaker, TokenBucket, and DeadLetterQueue. Run: npx tsx examples/observedResilience.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -46,8 +46,8 @@ const deadLetterQueue = new TracedDeadLetterQueue<string>({ 'capacity': 10 });
 
 // Trip the breaker open with 2 failures
 console.log('\n--- Tripping open ---');
-try { await circuitBreaker.execute(() => { throw new Error('service down'); }); } catch { deadLetterQueue.enqueue('msg-1', 'service-failure'); events.push('failure-1'); }
-try { await circuitBreaker.execute(() => { throw new Error('service down'); }); } catch { deadLetterQueue.enqueue('msg-2', 'service-failure'); events.push('failure-2'); }
+try { await circuitBreaker.execute(() => { throw RuntimeError.create('service down'); }); } catch { deadLetterQueue.enqueue('msg-1', 'service-failure'); events.push('failure-1'); }
+try { await circuitBreaker.execute(() => { throw RuntimeError.create('service down'); }); } catch { deadLetterQueue.enqueue('msg-2', 'service-failure'); events.push('failure-2'); }
 
 // Call while open — should be rejected and sent to DLQ
 console.log('\n--- Rejecting while open ---');

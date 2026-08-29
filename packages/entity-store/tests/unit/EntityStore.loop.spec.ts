@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -254,7 +255,7 @@ function makeThrowingUpsertStore(errorFactory: () => Error): EntityStore<UserTyp
 function makeThrowingRemoveStore(message: string): EntityStore<UserType, string> {
   class ThrowingRemoveStore extends EntityStore<UserType, string> {
     protected override onRemove(): void {
-      throw new Error(message);
+      throw RuntimeError.create(message);
     }
   }
 
@@ -264,7 +265,7 @@ function makeThrowingRemoveStore(message: string): EntityStore<UserType, string>
 function makeThrowingReplaceAllStore(message: string): EntityStore<UserType, string> {
   class ThrowingReplaceAllStore extends EntityStore<UserType, string> {
     protected override onReplaceAll(): void {
-      throw new Error(message);
+      throw RuntimeError.create(message);
     }
   }
 
@@ -275,7 +276,7 @@ function makeSelectiveThrowingUpsertStore(failure: SelectiveHookFailureType): En
   class SelectiveThrowingStore extends EntityStore<UserType, string> {
     protected override onUpsert(id: string): void {
       if (id === failure.id) {
-        throw new Error(failure.message);
+        throw RuntimeError.create(failure.message);
       }
     }
   }
@@ -287,7 +288,7 @@ function makeAsyncRejectingUpsertStore(message: string): EntityStore<UserType, s
   class AsyncRejectingUpsertStore extends EntityStore<UserType, string> {
     protected override async onUpsert(): Promise<void> {
       await Promise.resolve();
-      throw new Error(message);
+      throw RuntimeError.create(message);
     }
   }
 
@@ -297,7 +298,7 @@ function makeAsyncRejectingUpsertStore(message: string): EntityStore<UserType, s
 function makeIsolatedFailureStore(messagePrefix: string): EntityStore<UserType, string> {
   class IsolatedFailureStore extends EntityStore<UserType, string> {
     protected override onUpsert(id: string): void {
-      throw new Error(`${messagePrefix} ${id}`);
+      throw RuntimeError.create(`${messagePrefix} ${id}`);
     }
   }
 
@@ -554,7 +555,7 @@ async function runHooksAllOverridden(scenarioCase: ScenarioCaseMap['hooks-all-ov
 }
 
 async function runThrowingOnUpsertPreservesStore(scenarioCase: ScenarioCaseMap['throwing-on-upsert-preserves-store']): Promise<void> {
-  const store = makeThrowingUpsertStore(() => new Error(scenarioCase.input.failure.message));
+  const store = makeThrowingUpsertStore(() => RuntimeError.create(scenarioCase.input.failure.message));
   await store.upsertOne(scenarioCase.input.entity);
   assert.equal(store.size, scenarioCase.expected.size);
   assert.deepEqual(store.getById(scenarioCase.input.entity.id), scenarioCase.expected.entity);
@@ -595,7 +596,7 @@ async function runHookFailureRecordedBatchContinues(scenarioCase: ScenarioCaseMa
 }
 
 async function runHookErrorsDefensiveCopy(scenarioCase: ScenarioCaseMap['hook-errors-defensive-copy']): Promise<void> {
-  const store = makeThrowingUpsertStore(() => new Error(scenarioCase.input.failure.message));
+  const store = makeThrowingUpsertStore(() => RuntimeError.create(scenarioCase.input.failure.message));
   await store.upsertOne(scenarioCase.input.entity);
   assert.equal(store.hookErrorCount, scenarioCase.expected.hookErrorCount);
   const errors = [...store.getHookErrors()];
@@ -605,7 +606,7 @@ async function runHookErrorsDefensiveCopy(scenarioCase: ScenarioCaseMap['hook-er
 }
 
 async function runHookErrorsDeeplyDetached(scenarioCase: ScenarioCaseMap['hook-errors-deeply-detached']): Promise<void> {
-  const error = new Error(scenarioCase.input.failure.message, { cause: scenarioCase.input.cause });
+  const error = RuntimeError.create(scenarioCase.input.failure.message, { cause: scenarioCase.input.cause });
   const store = makeThrowingUpsertStore(() => error);
   await store.upsertOne(scenarioCase.input.entity);
   assert.equal(store.hookErrorCount, scenarioCase.expected.hookErrorCount);

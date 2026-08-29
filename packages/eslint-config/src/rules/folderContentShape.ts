@@ -3,6 +3,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
+import { Predicates } from '@studnicky/types';
 import path from 'node:path';
 
 import {
@@ -16,7 +17,6 @@ import {
   TS_WRAPPER_EXPRESSION_TYPES
 } from './constants/FolderContentShapeConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 
 /**
@@ -123,7 +123,7 @@ class FolderCategory {
 
 class TopLevelScope {
   public static getName(rawNode: unknown): string | undefined {
-    if (!ObjectGuard.isObject(rawNode) || !ObjectGuard.isObject(rawNode.id)) {
+    if (!Predicates.isRecord(rawNode) || !Predicates.isRecord(rawNode.id)) {
       return undefined;
     }
 
@@ -139,12 +139,12 @@ class TopLevelScope {
   // folder-shape convention. Any OTHER kind of nesting (a function body, a class body, a plain
   // block) breaks the chain and stays genuinely non-top-level.
   public static isTopLevel(rawNode: unknown): boolean {
-    if (!ObjectGuard.isObject(rawNode)) {
+    if (!Predicates.isRecord(rawNode)) {
       return false;
     }
     let parent: unknown = rawNode.parent;
 
-    while (ObjectGuard.isObject(parent)) {
+    while (Predicates.isRecord(parent)) {
       const parentType = parent.type;
 
       if (parentType === 'Program') {
@@ -159,7 +159,7 @@ class TopLevelScope {
       if (parentType === 'TSModuleBlock') {
         const moduleDeclaration = parent.parent;
 
-        if (!ObjectGuard.isObject(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
+        if (!Predicates.isRecord(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
           return false;
         }
         parent = moduleDeclaration.parent;
@@ -175,7 +175,7 @@ class TopLevelScope {
 
 class DeclaratorName {
   static collectPatternNames(patternNode: unknown, names: string[]): void {
-    if (!ObjectGuard.isObject(patternNode)) {
+    if (!Predicates.isRecord(patternNode)) {
       return;
     }
 
@@ -215,7 +215,7 @@ class DeclaratorName {
       for (let index = 0; index < propertiesLength; index += 1) {
         const property: unknown = properties.at(index);
 
-        if (!ObjectGuard.isObject(property)) {
+        if (!Predicates.isRecord(property)) {
           continue;
         }
 
@@ -251,7 +251,7 @@ class DeclaratorName {
   }
 
   static getAll(declarator: unknown): string[] {
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return [];
     }
 
@@ -268,7 +268,7 @@ class DeclaratorName {
   static unwrapTsExpression(node: unknown): unknown {
     let current = node;
 
-    while (ObjectGuard.isObject(current) && typeof current.type === 'string' && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)) {
+    while (Predicates.isRecord(current) && typeof current.type === 'string' && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)) {
       current = current.expression;
     }
 
@@ -279,13 +279,13 @@ class DeclaratorName {
   // single literal argument produces a plain primitive value, not a function/reference — a magic
   // constant spelled `Number(3)` is still the magic constant `3`, not a factory or dispatch map.
   static isPrimitiveWrapperLiteralCall(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'CallExpression') {
+    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
       return false;
     }
 
     const callee: unknown = node.callee;
 
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'Identifier') {
+    if (!Predicates.isRecord(callee) || callee.type !== 'Identifier') {
       return false;
     }
 
@@ -302,7 +302,7 @@ class DeclaratorName {
     }
 
     const argument: unknown = argumentList.at(0);
-    const result = ObjectGuard.isObject(argument) && argument.type === 'Literal';
+    const result = Predicates.isRecord(argument) && argument.type === 'Literal';
 
     return result;
   }
@@ -321,7 +321,7 @@ class DeclaratorName {
   static isFunctionOrReferenceValue(node: unknown): boolean {
     const unwrapped = DeclaratorName.unwrapTsExpression(node);
 
-    if (!ObjectGuard.isObject(unwrapped)) {
+    if (!Predicates.isRecord(unwrapped)) {
       return false;
     }
 
@@ -357,7 +357,7 @@ class DeclaratorName {
   // function- or reference-valued. An object literal with zero such
   // properties is pure data and still counts as a data constant.
   static isFunctionValuedObjectExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -368,7 +368,7 @@ class DeclaratorName {
     }
 
     const result = properties.some((property) => {
-      if (!ObjectGuard.isObject(property) || property.type !== 'Property') {
+      if (!Predicates.isRecord(property) || property.type !== 'Property') {
         return false;
       }
 
@@ -385,7 +385,7 @@ class DeclaratorName {
   // forms and remain data constants. Any other `new` expression (e.g.
   // `new AjvClass(...)`) constructs a stateful instance, not data.
   static isBuiltinCollectionConstructor(calleeNode: unknown): boolean {
-    if (!ObjectGuard.isObject(calleeNode) || calleeNode.type !== 'Identifier') {
+    if (!Predicates.isRecord(calleeNode) || calleeNode.type !== 'Identifier') {
       return false;
     }
     const { name } = calleeNode;
@@ -395,13 +395,13 @@ class DeclaratorName {
   }
 
   static isNonDataConstantInit(declarator: unknown): boolean {
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return false;
     }
 
     const initNode: unknown = declarator.init;
 
-    if (!ObjectGuard.isObject(initNode)) {
+    if (!Predicates.isRecord(initNode)) {
       return false;
     }
 
@@ -433,12 +433,12 @@ class DeclaratorName {
 
 class FolderShapeHelpers {
   public static getIdName(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
     const { id } = node;
 
-    if (!ObjectGuard.isObject(id)) {
+    if (!Predicates.isRecord(id)) {
       return undefined;
     }
     const { name } = id;
@@ -448,7 +448,7 @@ class FolderShapeHelpers {
   }
 
   public static getDeclaration(node: unknown): unknown {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -462,13 +462,13 @@ class NamespaceScanner {
   // literal root `type`. That is undecidable from this one declarator, so do
   // not require `create` and risk a false positive.
   private static hasObjectRootType(schemaDeclarator: unknown): boolean {
-    if (!ObjectGuard.isObject(schemaDeclarator)) {
+    if (!Predicates.isRecord(schemaDeclarator)) {
       return false;
     }
 
     const schemaExpression = DeclaratorName.unwrapTsExpression(schemaDeclarator.init);
 
-    if (!ObjectGuard.isObject(schemaExpression) || AstHelpers.getNodeType(schemaExpression) !== 'ObjectExpression') {
+    if (!Predicates.isRecord(schemaExpression) || AstHelpers.getNodeType(schemaExpression) !== 'ObjectExpression') {
       return false;
     }
 
@@ -483,12 +483,12 @@ class NamespaceScanner {
     for (let propertyIndex = 0; propertyIndex < propertiesLength; propertyIndex += 1) {
       const property: unknown = properties.at(propertyIndex);
 
-      if (!ObjectGuard.isObject(property) || AstHelpers.getNodeType(property) !== 'Property' || property.computed === true) {
+      if (!Predicates.isRecord(property) || AstHelpers.getNodeType(property) !== 'Property' || property.computed === true) {
         continue;
       }
 
       const key: unknown = property.key;
-      const isTypeKey = ObjectGuard.isObject(key)
+      const isTypeKey = Predicates.isRecord(key)
         && ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type')
           || (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
 
@@ -497,7 +497,7 @@ class NamespaceScanner {
       }
 
       const value = DeclaratorName.unwrapTsExpression(property.value);
-      const result = ObjectGuard.isObject(value)
+      const result = Predicates.isRecord(value)
         && AstHelpers.getNodeType(value) === 'Literal'
         && value.value === 'object';
 
@@ -520,7 +520,7 @@ class NamespaceScanner {
       'hasValidateTypeGuard': false
     };
 
-    if (!ObjectGuard.isObject(bodyNode)) {
+    if (!Predicates.isRecord(bodyNode)) {
       return result;
     }
     const { body } = bodyNode;
@@ -541,7 +541,7 @@ class NamespaceScanner {
       const declType = AstHelpers.getNodeType(decl);
 
       if (declType === 'VariableDeclaration') {
-        if (!ObjectGuard.isObject(decl)) {
+        if (!Predicates.isRecord(decl)) {
           continue;
         }
         const { declarations } = decl;
@@ -554,7 +554,7 @@ class NamespaceScanner {
         for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
           const d: unknown = declarations.at(declIndex);
 
-          if (!ObjectGuard.isObject(d) || !ObjectGuard.isObject(d.id)) {
+          if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
             continue;
           }
           const { name } = d.id;
@@ -600,7 +600,7 @@ class NamespaceScanner {
 class EntityNamespaceCheck {
   static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], expectedName: string): void {
     const rawProgram: unknown = program;
-    const body = ObjectGuard.isObject(rawProgram) && Array.isArray(rawProgram.body) ? rawProgram.body : [];
+    const body = Predicates.isRecord(rawProgram) && Array.isArray(rawProgram.body) ? rawProgram.body : [];
 
     const namespaceExports = body.filter((stmt) => {
       if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') {
@@ -630,7 +630,7 @@ class EntityNamespaceCheck {
       }
       const decl = FolderShapeHelpers.getDeclaration(exportStmt);
 
-      if (!ObjectGuard.isObject(decl)) {
+      if (!Predicates.isRecord(decl)) {
         continue;
       }
 
@@ -702,11 +702,11 @@ class RegexLiteralCheck {
   static isRegexLiteral(node: Rule.Node): boolean {
     const rawNode: unknown = node;
 
-    if (!ObjectGuard.isObject(rawNode)) {
+    if (!Predicates.isRecord(rawNode)) {
       return false;
     }
 
-    const result = rawNode.type === 'Literal' && ObjectGuard.isObject(rawNode.regex);
+    const result = rawNode.type === 'Literal' && Predicates.isRecord(rawNode.regex);
 
     return result;
   }
@@ -717,7 +717,7 @@ class RegexLiteralCheck {
   // such static operands (`"^a" + "bc$"`). A reference to a runtime variable is never inlined,
   // regardless of how the variable itself was built elsewhere.
   static isStaticStringArgument(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -747,7 +747,7 @@ class RegexLiteralCheck {
   static isInlineRegExpConstruction(node: Rule.Node): boolean {
     const rawNode: unknown = node;
 
-    if (!ObjectGuard.isObject(rawNode)) {
+    if (!Predicates.isRecord(rawNode)) {
       return false;
     }
     if (rawNode.type !== 'NewExpression') {
@@ -756,7 +756,7 @@ class RegexLiteralCheck {
 
     const callee: unknown = rawNode.callee;
 
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'Identifier' || callee.name !== 'RegExp') {
+    if (!Predicates.isRecord(callee) || callee.type !== 'Identifier' || callee.name !== 'RegExp') {
       return false;
     }
 
@@ -800,7 +800,7 @@ class ModuleShape {
   // `new` instance — reusing the exact same per-declarator test the
   // constants-count check applies (`DeclaratorName.isNonDataConstantInit`).
   private static isPureConstDeclaration(variableDeclaration: unknown): boolean {
-    if (!ObjectGuard.isObject(variableDeclaration) || variableDeclaration.kind !== 'const') {
+    if (!Predicates.isRecord(variableDeclaration) || variableDeclaration.kind !== 'const') {
       return false;
     }
 
@@ -828,7 +828,7 @@ class ModuleShape {
   // data constants with functions or classes still needs relocating, exactly
   // as before.
   static isPureConstantsModule(program: unknown): boolean {
-    if (!ObjectGuard.isObject(program)) {
+    if (!Predicates.isRecord(program)) {
       return false;
     }
     const body: unknown = program.body;
@@ -840,7 +840,7 @@ class ModuleShape {
     let hasConstDeclarator = false;
 
     const isPure = body.every((statement) => {
-      if (!ObjectGuard.isObject(statement)) {
+      if (!Predicates.isRecord(statement)) {
         return false;
       }
       const statementType: unknown = statement.type;
@@ -868,7 +868,7 @@ class ModuleShape {
         if (decl === null || decl === undefined) {
           return false;
         }
-        if (!ObjectGuard.isObject(decl)) {
+        if (!Predicates.isRecord(decl)) {
           return false;
         }
 
@@ -903,7 +903,7 @@ class ModuleShape {
   // carries it is entity-shaped by content, so its remaining top-level consts
   // (support constants alongside the namespace) are exempt too.
   static hasEntityNamespaceExport(program: unknown): boolean {
-    if (!ObjectGuard.isObject(program)) {
+    if (!Predicates.isRecord(program)) {
       return false;
     }
     const body: unknown = program.body;
@@ -933,7 +933,7 @@ class ModuleShape {
   }
 
   private static isPureReExportStatement(statement: unknown): boolean {
-    if (!ObjectGuard.isObject(statement)) {
+    if (!Predicates.isRecord(statement)) {
       return false;
     }
     const statementType: unknown = statement.type;
@@ -951,7 +951,7 @@ class ModuleShape {
       return false;
     }
 
-    const result = ObjectGuard.isObject(statement.source);
+    const result = Predicates.isRecord(statement.source);
 
     return result;
   }
@@ -961,7 +961,7 @@ class ModuleShape {
   // declaration of its own. A re-export carries no data of its own to
   // relocate, so the file is exempt regardless of its filename.
   static isPureBarrel(program: unknown): boolean {
-    if (!ObjectGuard.isObject(program)) {
+    if (!Predicates.isRecord(program)) {
       return false;
     }
     const body: unknown = program.body;
@@ -1004,7 +1004,7 @@ class ConstantsCountCheck {
   static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], physicalFilename: string): void {
     const rawProgram: unknown = program;
 
-    if (!ObjectGuard.isObject(rawProgram)) {
+    if (!Predicates.isRecord(rawProgram)) {
       return;
     }
     const programBody: unknown = rawProgram.body;
@@ -1020,7 +1020,7 @@ class ConstantsCountCheck {
     for (let bodyIndex = 0; bodyIndex < programBodyLength; bodyIndex += 1) {
       const statement: unknown = programBody.at(bodyIndex);
 
-      if (!ObjectGuard.isObject(statement)) {
+      if (!Predicates.isRecord(statement)) {
         continue;
       }
 
@@ -1032,12 +1032,12 @@ class ConstantsCountCheck {
       } else if (statementType === 'ExportNamedDeclaration') {
         const decl: unknown = statement.declaration;
 
-        if (ObjectGuard.isObject(decl) && decl.type === 'VariableDeclaration') {
+        if (Predicates.isRecord(decl) && decl.type === 'VariableDeclaration') {
           variableDeclaration = decl;
         }
       }
 
-      if (!ObjectGuard.isObject(variableDeclaration)) {
+      if (!Predicates.isRecord(variableDeclaration)) {
         continue;
       }
       if (variableDeclaration.kind !== 'const') {

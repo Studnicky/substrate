@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
@@ -6,7 +7,7 @@ import parser from '@typescript-eslint/parser';
 import { RuleTester } from 'eslint';
 
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
-import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 import scenarioFile from './forOfArrays.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
@@ -115,13 +116,13 @@ const rightFactories: Record<string, RightFactory> = {
 
 function requireFixtureFactory<T>(factory: T | undefined, shape: string): T {
   if (factory === undefined) {
-    throw new Error(`Unsupported scenario fixture shape: ${shape}`);
+    throw RuntimeError.create(`Unsupported scenario fixture shape: ${shape}`);
   }
   return factory;
 }
 
 function toMessageId(report: unknown): string {
-  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
   const { messageId } = report;
   return typeof messageId === 'string' ? messageId : '<no-messageId>';
 }

@@ -1,8 +1,7 @@
 /**
  * Fixed-capacity circular buffer for numeric samples with percentile calculation
  */
-
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
@@ -75,12 +74,12 @@ export class SampleBuffer implements SampleBufferInterface {
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(constructed)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'SampleBuffer.create() must construct a SampleBuffer instance'
       );
     }
     if (!SampleBuffer.isConstructed(constructed, this)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'SampleBuffer.create() must construct a SampleBuffer instance'
       );
     }

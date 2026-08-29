@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** 03-telemetry-hooks — FetchClient subclass with telemetry lifecycle hooks. Run: npx tsx packages/fetch/examples/03-telemetry-hooks.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -54,7 +54,7 @@ client.simulateRequest('GET', '/users', 'req-001', 'https://api.example.com/user
 client.simulateSuccess('GET', 'req-001', 200, 45);
 
 // Simulate an error
-const error = new Error('connection refused');
+const error = RuntimeError.create('connection refused');
 client.simulateError(error, 'POST', 'req-002', 'https://api.example.com/data', 120);
 
 console.log('TelemetryClient — hooks fire correctly:');

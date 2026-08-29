@@ -68,14 +68,14 @@
       "description": "BaseError.findCauseOfType() works on subclass instance",
       "shape": "network-find-cause",
       "input": { "causeMessage": "bad address", "message": "Connection refused" },
-      "expected": { "found": true, "name": "TypeError" }
+      "expected": { "found": true, "name": "RuntimeError" }
     },
     {
       "name": "network-has-cause",
       "description": "BaseError.hasCauseOfType() works on subclass instance",
       "shape": "network-has-cause",
       "input": { "causeMessage": "port out of range", "message": "Connection refused" },
-      "expected": { "rangeError": true, "typeError": false }
+      "expected": { "runtimeError": true }
     },
     {
       "name": "network-json-name",
@@ -86,10 +86,10 @@
     },
     {
       "name": "network-json-status-code",
-      "description": "toJSON includes statusCode from CONNECTION scenario",
+      "description": "toJSON includes status from CONNECTION scenario",
       "shape": "network-json-status-code",
       "input": { "message": "Connection refused" },
-      "expected": { "statusCode": 503 }
+      "expected": { "status": 503 }
     },
     {
       "name": "network-json-context",

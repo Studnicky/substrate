@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 
-import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
+
 import {
   MESSAGE, RULE_NAME
 } from './constants/ObjectSpreadConstants.js';
@@ -86,7 +87,7 @@ class ClassMemberScope {
     }
     const key = raw.key;
 
-    if (!ObjectGuard.isObject(key) || key.type !== 'Identifier') {
+    if (!Predicates.isRecord(key) || key.type !== 'Identifier') {
       return undefined;
     }
 
@@ -111,7 +112,7 @@ class ClassMemberScope {
     const raw = member as unknown as Record<string, unknown>;
     const value = raw.value;
 
-    const result = ObjectGuard.isObject(value) && value.type === 'ArrowFunctionExpression';
+    const result = Predicates.isRecord(value) && value.type === 'ArrowFunctionExpression';
 
     return result;
   }
@@ -144,7 +145,7 @@ class ClassMemberScope {
     for (let index = 0; index < membersLength; index += 1) {
       const item = members.at(index);
 
-      if (ObjectGuard.isObject(item) && item.type === 'MethodDefinition' && item.kind === 'constructor') {
+      if (Predicates.isRecord(item) && item.type === 'MethodDefinition' && item.kind === 'constructor') {
         return item as unknown as Rule.Node;
       }
     }
@@ -190,17 +191,17 @@ class ClassMemberScope {
       }
       const callee = candidate.callee;
 
-      if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
         return false;
       }
       const object = callee.object;
 
-      if (!ObjectGuard.isObject(object) || object.type !== 'ThisExpression') {
+      if (!Predicates.isRecord(object) || object.type !== 'ThisExpression') {
         return false;
       }
       const property = callee.property;
 
-      if (!ObjectGuard.isObject(property) || property.type !== 'Identifier') {
+      if (!Predicates.isRecord(property) || property.type !== 'Identifier') {
         return false;
       }
 
@@ -221,7 +222,7 @@ class NodeWalk {
     const seen = new Set<unknown>();
 
     const visit = (current: unknown): boolean => {
-      if (!ObjectGuard.isObject(current) || seen.has(current)) {
+      if (!Predicates.isRecord(current) || seen.has(current)) {
         return false;
       }
       seen.add(current);
@@ -264,7 +265,7 @@ class NodeWalk {
           continue;
         }
 
-        if (ObjectGuard.isObject(value) && visit(value)) {
+        if (Predicates.isRecord(value) && visit(value)) {
           return true;
         }
       }
@@ -288,17 +289,17 @@ class ThisReaching {
   public static of(node: Rule.Node): boolean {
     const parent = node.parent;
 
-    if (parent === null || !ObjectGuard.isObject(parent)) {
+    if (parent === null || !Predicates.isRecord(parent)) {
       return false;
     }
 
     if (parent.type === 'AssignmentExpression' && parent.right === node) {
       const left = parent.left;
 
-      if (ObjectGuard.isObject(left) && left.type === 'MemberExpression' && !left.computed) {
+      if (Predicates.isRecord(left) && left.type === 'MemberExpression' && !left.computed) {
         const object = left.object;
 
-        if (ObjectGuard.isObject(object) && object.type === 'ThisExpression') {
+        if (Predicates.isRecord(object) && object.type === 'ThisExpression') {
           return true;
         }
       }
@@ -327,12 +328,12 @@ class AssignCallShape {
 
     const argumentList = node.arguments;
 
-    if (!ObjectGuard.isArray(argumentList) || argumentList.length === 0) {
+    if (!Predicates.isArray(argumentList) || argumentList.length === 0) {
       return false;
     }
     const firstArg = argumentList.at(0);
 
-    const result = ObjectGuard.isObject(firstArg) && firstArg.type === 'ObjectExpression' && Array.isArray(firstArg.properties) && firstArg.properties.length === 0;
+    const result = Predicates.isRecord(firstArg) && firstArg.type === 'ObjectExpression' && Array.isArray(firstArg.properties) && firstArg.properties.length === 0;
 
     return result;
   }
@@ -347,12 +348,12 @@ class AssignCallShape {
 
     const argumentList = node.arguments;
 
-    if (!ObjectGuard.isArray(argumentList) || argumentList.length === 0) {
+    if (!Predicates.isArray(argumentList) || argumentList.length === 0) {
       return false;
     }
     const firstArg = argumentList.at(0);
 
-    const result = ObjectGuard.isObject(firstArg) && firstArg.type === 'ThisExpression';
+    const result = Predicates.isRecord(firstArg) && firstArg.type === 'ThisExpression';
 
     return result;
   }
@@ -363,17 +364,17 @@ class AssignCallShape {
     }
     const callee = node.callee;
 
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
       return false;
     }
     const object = callee.object;
     const property = callee.property;
 
-    if (!ObjectGuard.isObject(object) || object.type !== 'Identifier' || object.name !== 'Object') {
+    if (!Predicates.isRecord(object) || object.type !== 'Identifier' || object.name !== 'Object') {
       return false;
     }
 
-    const result = ObjectGuard.isObject(property) && property.type === 'Identifier' && property.name === 'assign';
+    const result = Predicates.isRecord(property) && property.type === 'Identifier' && property.name === 'assign';
 
     return result;
   }

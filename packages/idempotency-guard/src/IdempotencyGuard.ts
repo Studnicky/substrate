@@ -4,7 +4,7 @@
 
 import { LruCache } from '@studnicky/cache';
 import { Coalesce } from '@studnicky/concurrency';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
@@ -109,11 +109,11 @@ export class IdempotencyGuard<TResult = unknown> {
     const result: unknown = Reflect.construct(this, [options]);
 
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
+      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 
     if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
+      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 
     return result;
@@ -213,7 +213,7 @@ export class IdempotencyGuard<TResult = unknown> {
       const entry = await this.#coalesce.run(key, executeFactory);
 
       if (entry.fingerprint !== fingerprint) {
-        throw new TypeError('Idempotency guard result entry does not match its payload fingerprint.');
+        throw RuntimeError.create('Idempotency guard result entry does not match its payload fingerprint.');
       }
       this.#cache.set(key, entry);
 

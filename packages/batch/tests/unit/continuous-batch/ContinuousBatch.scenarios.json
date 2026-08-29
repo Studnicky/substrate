@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "name": "refills a released permit before the slowest item settles",
+      "shape": "immediate-refill",
+      "input": { "maximumConcurrent": 2, "items": [1, 2, 3], "slowDelayMs": 30, "fastDelayMs": 5 },
+      "expected": { "results": [10, 20, 30], "refilledBeforeSlowestFinished": true }
+    },
+    {
+      "name": "collects every settlement without changing permit scheduling",
+      "shape": "settled-results",
+      "input": { "maximumConcurrent": 2, "items": [1, 2, 3], "failure": 2 },
+      "expected": { "statuses": ["fulfilled", "rejected", "fulfilled"] }
+    },
+    {
+      "name": "skips lifecycle hooks for empty input",
+      "shape": "empty-input",
+      "input": { "maximumConcurrent": 2, "items": [] },
+      "expected": { "results": [], "batchStartCount": 0, "batchCompleteCount": 0 }
+    },
+    {
+      "name": "completes lifecycle accounting after fail-fast rejection",
+      "shape": "fail-fast-completion",
+      "input": { "maximumConcurrent": 2, "items": [1, 2, 3], "failure": 2, "rejectionDeadlineMs": 100 },
+      "expected": {
+        "rejectedMessage": "failed item",
+        "stats": { "failed": 1, "succeeded": 2, "total": 3 }
+      }
+    }
+  ]
+}

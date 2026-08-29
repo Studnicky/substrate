@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   afterEach, beforeEach, describe, it
@@ -86,7 +87,7 @@ function assertMessagePattern(message: string, pattern: string): void {
   const predicate = messagePatternPredicates[pattern];
 
   if (predicate === undefined) {
-    throw new Error(`Unsupported fetch message pattern scenario: ${pattern}`);
+    throw RuntimeError.create(`Unsupported fetch message pattern scenario: ${pattern}`);
   }
 
   assert.equal(predicate(message), true);
@@ -120,7 +121,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
       }
 
       const exhaustiveCheck: never = value;
-      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
+      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -195,7 +196,7 @@ function createClient(request: ScenarioCase['input']['request']): FetchClient {
 }
 
 function buildNetworkError(message: string): Error {
-  return new Error(`fetch failed: ${message}`);
+  return RuntimeError.create(`fetch failed: ${message}`);
 }
 
 async function waitForAbort(ms: number, signal?: AbortSignal | null): Promise<void> {
@@ -258,13 +259,13 @@ async function fakeFetch(input: Request | URL | string, init?: RequestInit): Pro
   }
 
   if (parsedUrl.pathname === '/error-unknown-code') {
-    const error = new Error('unknown error') as Error & { code?: string };
+    const error = RuntimeError.create('unknown error') as Error & { code?: string };
     error.code = 'UND_ERR_SOMETHING_ELSE';
     throw error;
   }
 
   if (parsedUrl.pathname === '/error-connect') {
-    const error = new Error('connect timeout') as Error & { code?: string };
+    const error = RuntimeError.create('connect timeout') as Error & { code?: string };
     error.code = 'UND_ERR_CONNECT_TIMEOUT';
     throw error;
   }

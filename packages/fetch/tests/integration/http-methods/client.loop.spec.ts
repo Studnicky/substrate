@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
@@ -28,7 +29,7 @@ const ctx: { client: FetchClient | undefined; testUrl: string } = {
 /** The client is built in `before()`; reading it earlier is a suite-ordering defect. */
 function requireClient(): FetchClient {
   if (ctx.client === undefined) {
-    throw new Error('client is unavailable because before() has not run');
+    throw RuntimeError.create('client is unavailable because before() has not run');
   }
 
   return ctx.client;

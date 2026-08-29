@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
@@ -259,7 +260,7 @@ const runnerMap: ScenarioRunnerMap = {
 
   'fanout-transport-throws': (_scenarioCase) => {
     const received: number[] = [];
-    const throwingTransport = FunctionTransport.create(() => { throw new Error('transport failure'); });
+    const throwingTransport = FunctionTransport.create(() => { throw RuntimeError.create('transport failure'); });
     const countingTransport = FunctionTransport.create(() => { received.push(1); });
     const logger = Logger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [throwingTransport, countingTransport] });
     logger.info(TestFactory.body('msg'));
@@ -271,10 +272,10 @@ const runnerMap: ScenarioRunnerMap = {
     const received: number[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
-        throw new Error('onTransportError boom');
+        throw RuntimeError.create('onTransportError boom');
       }
     }
-    const throwingTransport = FunctionTransport.create(() => { throw new Error('transport failure'); });
+    const throwingTransport = FunctionTransport.create(() => { throw RuntimeError.create('transport failure'); });
     const countingTransport = FunctionTransport.create(() => { received.push(1); });
     const logger = ThrowingTransportErrorLogger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [throwingTransport, countingTransport] });
     assert.doesNotThrow(() => {
@@ -346,7 +347,7 @@ const runnerMap: ScenarioRunnerMap = {
   'child-create-hook': (_scenarioCase) => {
     class ThrowingChildLogger extends Logger {
       protected override onChildCreate(): void {
-        throw new Error('onChildCreate boom');
+        throw RuntimeError.create('onChildCreate boom');
       }
     }
     const parent = ThrowingChildLogger.create({ 'level': LOG_LEVEL.TRACE });
@@ -394,7 +395,7 @@ const runnerMap: ScenarioRunnerMap = {
   'record-onLog-throws': (_scenarioCase) => {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
-        throw new Error('onLog boom');
+        throw RuntimeError.create('onLog boom');
       }
     }
     const memory = MemoryTransport.create();
@@ -533,7 +534,7 @@ const runnerMap: ScenarioRunnerMap = {
     class ThrowingDroppedLogger extends Logger {
       constructor() { super({ 'level': LOG_LEVEL.ERROR }); }
       protected override onDropped(): void {
-        throw new Error('onDropped boom');
+        throw RuntimeError.create('onDropped boom');
       }
     }
     const memory = MemoryTransport.create();
@@ -579,7 +580,7 @@ const runnerMap: ScenarioRunnerMap = {
     const capturedTransports: TransportInterface[] = [];
     class ObservedLogger extends Logger {
       constructor() {
-        const throwing = FunctionTransport.create(() => { throw new Error('transport boom'); });
+        const throwing = FunctionTransport.create(() => { throw RuntimeError.create('transport boom'); });
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing] });
         capturedTransports.push(throwing);
       }
@@ -618,8 +619,8 @@ const runnerMap: ScenarioRunnerMap = {
     const errors: Error[] = [];
     class ObservedLogger extends Logger {
       constructor() {
-        const throwing1 = FunctionTransport.create(() => { throw new Error('first'); });
-        const throwing2 = FunctionTransport.create(() => { throw new Error('second'); });
+        const throwing1 = FunctionTransport.create(() => { throw RuntimeError.create('first'); });
+        const throwing2 = FunctionTransport.create(() => { throw RuntimeError.create('second'); });
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing1, throwing2] });
       }
       protected override onTransportError(_transport: TransportInterface, _record: LogRecordEntity.Type, error: Error): void {
@@ -634,9 +635,9 @@ const runnerMap: ScenarioRunnerMap = {
 
   'onTransportError-isolation': (_scenarioCase) => {
     class ThrowingTransportErrorLogger extends Logger {
-      readonly hookFailure = new Error('onTransportError boom');
+      readonly hookFailure = RuntimeError.create('onTransportError boom');
       constructor() {
-        const throwing = FunctionTransport.create(() => { throw new Error('transport boom'); });
+        const throwing = FunctionTransport.create(() => { throw RuntimeError.create('transport boom'); });
         super({ 'level': LOG_LEVEL.TRACE, 'transports': [throwing] });
       }
       protected override onTransportError(): void {
@@ -672,13 +673,13 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onTransportError-detached-cause': (_scenarioCase) => {
-    const hookFailure = new Error('onTransportError boom', { 'cause': { 'transports': ['primary'] } });
+    const hookFailure = RuntimeError.create('onTransportError boom', { 'cause': { 'transports': ['primary'] } });
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
         throw hookFailure;
       }
     }
-    const throwingTransport = FunctionTransport.create(() => { throw new Error('transport boom'); });
+    const throwingTransport = FunctionTransport.create(() => { throw RuntimeError.create('transport boom'); });
     const logger = ThrowingTransportErrorLogger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [throwingTransport] });
     logger.info(TestFactory.body('diagnostic'));
     assert.strictEqual(logger.hookErrorCount, 1);
@@ -702,11 +703,11 @@ const runnerMap: ScenarioRunnerMap = {
     const deliveries: string[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
-        throw new Error('onTransportError boom');
+        throw RuntimeError.create('onTransportError boom');
       }
     }
     const transport1 = FunctionTransport.create(() => { deliveries.push('t1'); });
-    const transport2 = FunctionTransport.create(() => { throw new Error('t2 write failure'); });
+    const transport2 = FunctionTransport.create(() => { throw RuntimeError.create('t2 write failure'); });
     const transport3 = FunctionTransport.create(() => { deliveries.push('t3'); });
     const logger = ThrowingTransportErrorLogger.create({ 'level': LOG_LEVEL.TRACE, 'transports': [transport1, transport2, transport3] });
     assert.doesNotThrow(() => {
@@ -720,7 +721,7 @@ const runnerMap: ScenarioRunnerMap = {
 
   'async-onTransportError': async (_scenarioCase) => {
     const deliveries: string[] = [];
-    const hookFailure = new Error('async onTransportError boom');
+    const hookFailure = RuntimeError.create('async onTransportError boom');
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = <TReason>(reason: TReason): void => { rejectionEvents.push(reason); };
     class AsyncRejectingTransportErrorLogger extends Logger {
@@ -729,7 +730,7 @@ const runnerMap: ScenarioRunnerMap = {
         throw hookFailure;
       }
     }
-    const throwingTransport = FunctionTransport.create(() => { throw new Error('transport write failure'); });
+    const throwingTransport = FunctionTransport.create(() => { throw RuntimeError.create('transport write failure'); });
     const laterTransport = FunctionTransport.create(() => { deliveries.push('later'); });
     process.on('unhandledRejection', onUnhandledRejection);
     try {
@@ -755,7 +756,7 @@ const runnerMap: ScenarioRunnerMap = {
   'hook-invocation-error-cause': (_scenarioCase) => {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
-        throw new Error('onLog boom');
+        throw RuntimeError.create('onLog boom');
       }
     }
     const logger = ThrowingLogLogger.create({ 'level': LOG_LEVEL.TRACE });
@@ -777,7 +778,7 @@ const runnerMap: ScenarioRunnerMap = {
     const onUnhandledRejection = <TReason>(reason: TReason): void => { rejectionEvents.push(reason); };
     class AsyncOnLogLogger extends Logger {
       protected override onLog(): Promise<void> {
-        return Promise.reject(new Error('async onLog boom'));
+        return Promise.reject(RuntimeError.create('async onLog boom'));
       }
     }
     process.on('unhandledRejection', onUnhandledRejection);

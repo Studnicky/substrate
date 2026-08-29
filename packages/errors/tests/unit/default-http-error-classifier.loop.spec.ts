@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -16,7 +17,7 @@ type ScenarioCase =
     };
 
 function createError(input: Record<string, unknown>): Error {
-  const error = new Error(String(input.message ?? ''));
+  const error = RuntimeError.create(String(input.message ?? ''));
   for (const [key, value] of Object.entries(input)) {
     Reflect.set(error, key, value);
   }

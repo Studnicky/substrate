@@ -1,6 +1,6 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
@@ -117,7 +117,7 @@ export class EventBus<TTopicMap extends object> {
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [config]);
     if (!Predicates.isObjectLike(result) || !EventBusInstance.belongsTo(constructor, result)) {
-      throw new TypeError('EventBus.create() did not construct the requested subclass.');
+      throw RuntimeError.create('EventBus.create() did not construct the requested subclass.');
     }
     return result;
   }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, it } from 'node:test';
@@ -121,7 +122,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
     }
 
     const exhaustiveCheck: never = value;
-    throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
+    throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
   }
 
   if (value === null || typeof value !== 'object') {

@@ -60,8 +60,20 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | [@studnicky/cache](/packages/cache) | LRU cache with optional TTL and capacity bounds |
 | [@studnicky/entity-store](/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
-| [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate/filter helpers |
+| [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate helpers |
+| [@studnicky/drilldown](/packages/drilldown) | Deterministic multi-level grouping, faceting, and sorting over arbitrary record data |
+| [@studnicky/filters](/packages/filters) | Composable declarative filtering primitives |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
+
+## Matching & Routing
+
+| Package | Description |
+|---------|-------------|
+| [@studnicky/matching](/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
+| [@studnicky/matching-filters](/packages/matching-filters) | Optional one-operation filter adapters for deterministic matching scores |
+| [@studnicky/semantic-matching](/packages/semantic-matching) | Provider-neutral contracts for vectorization, vector search, reranking, classification, and bounded adjudication |
+| [@studnicky/topic-router](/packages/topic-router) | Pattern-based multi-subscriber event fan-out |
+| [@studnicky/topic-router-models](/packages/topic-router-models) | Model-evidence mapping contracts for builder-selected topic delivery |
 
 ## I/O & Observability
 
@@ -70,7 +82,7 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | [@studnicky/event-bus](/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
 | [@studnicky/fetch](/packages/fetch) | Professional HTTP client with timeout, override hooks, and configured clients |
 | [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata |
-| [@studnicky/errors](/packages/errors) | Standardized error hierarchy with cause-chain serialization and error codes |
+| [@studnicky/errors](/packages/errors) | Standardized error hierarchy serializing to RFC 9457 Problem Details |
 | [@studnicky/request-executor](/packages/request-executor) | Composes fetch, retry, signal, timing, and context into a one-shot request execution pattern |
 | [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |
 | [@studnicky/sliding-window-limiter](/packages/sliding-window-limiter) | Sliding-window rate limiter — exact timestamp-log or approximate blended-counter algorithm |

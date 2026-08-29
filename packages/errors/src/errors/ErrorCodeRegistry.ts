@@ -6,6 +6,8 @@
  */
 import type { ErrorCodeDescriptorEntity } from '../entities/ErrorCodeDescriptorEntity.js';
 
+import { RuntimeError } from './RuntimeError.js';
+
 // Module-level singleton map.
 const registry = new Map<string, ErrorCodeDescriptorEntity.Type>();
 
@@ -18,7 +20,7 @@ const registry = new Map<string, ErrorCodeDescriptorEntity.Type>();
 export class ErrorCodeRegistry {
   private constructor() {
     // Sealed — all access is via static methods. Not designed for subclassing.
-    throw new Error('ErrorCodeRegistry is not instantiable');
+    throw RuntimeError.create('ErrorCodeRegistry is not instantiable');
   }
 
   /**
@@ -27,7 +29,7 @@ export class ErrorCodeRegistry {
    */
   public static register(descriptor: Readonly<ErrorCodeDescriptorEntity.Type>): void {
     if (registry.has(descriptor.code)) {
-      throw new Error(`Duplicate error code: ${descriptor.code}`);
+      throw RuntimeError.create(`Duplicate error code: ${descriptor.code}`);
     }
     registry.set(descriptor.code, descriptor);
   }

@@ -60,6 +60,7 @@
   },
   "browser": {
     "./dist/NodeFileSystem.js": "./dist/browser/NodeFileSystem.js",
+    "./dist/NodeOwnerLiveness.js": "./dist/browser/NodeOwnerLiveness.js",
     "./dist/NodeOwnerToken.js": "./dist/browser/NodeOwnerToken.js"
   },
   "dependencies": {

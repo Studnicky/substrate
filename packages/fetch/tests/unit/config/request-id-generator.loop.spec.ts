@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -39,21 +40,21 @@ const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
       return () => value.value;
     }
 
-    throw new Error('requestIdGenerator return tag must include a value');
+    throw RuntimeError.create('requestIdGenerator return tag must include a value');
   },
   'function-return-value': (value) => {
     if ('value' in value) {
       return () => value.value;
     }
 
-    throw new Error('requestIdGenerator return tag must include a value');
+    throw RuntimeError.create('requestIdGenerator return tag must include a value');
   },
   'function-throws': (value) => {
     if ('message' in value) {
-      return () => { throw new Error(value.message); };
+      return () => { throw RuntimeError.create(value.message); };
     }
 
-    throw new Error('requestIdGenerator throw tag must include a message');
+    throw RuntimeError.create('requestIdGenerator throw tag must include a message');
   },
   null: () => null,
   undefined: () => undefined

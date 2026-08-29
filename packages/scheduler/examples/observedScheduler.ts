@@ -1,6 +1,6 @@
-/** observedScheduler — override all lifecycle hooks to emit a debug trace. Run: npx tsx examples/observedScheduler.ts */
-
 import { VirtualTimeCounter } from '@studnicky/clock';
+/** observedScheduler — override all lifecycle hooks to emit a debug trace. Run: npx tsx examples/observedScheduler.ts */
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 
 import { VirtualScheduler } from '../src/index.js';
@@ -85,7 +85,7 @@ scheduler.scheduleEvery(150, () => {
 // Schedule a task that throws — exercises onFireError
 scheduler.scheduleAt(200, () => {
   console.log('[task:failing] about to throw');
-  throw new Error('task failure');
+  throw RuntimeError.create('task failure');
 });
 
 // Advance to t=300 — fires the one-shot at 100, the interval at 150, the failing at 200,

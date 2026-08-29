@@ -1,8 +1,8 @@
-import { ObjectGuard } from './ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 
 export class RequireCallSourceValue {
   public static get(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -14,7 +14,7 @@ export class RequireCallSourceValue {
 
     const firstArg: unknown = argumentList.at(0);
 
-    if (!ObjectGuard.isObject(firstArg) || firstArg.type !== 'Literal') {
+    if (!Predicates.isRecord(firstArg) || firstArg.type !== 'Literal') {
       return undefined;
     }
 

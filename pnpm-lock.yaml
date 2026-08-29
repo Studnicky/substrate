@@ -355,6 +355,9 @@ importers:
 
   packages/eslint-config:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -476,6 +479,21 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
+
+  packages/filters:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
@@ -620,6 +638,9 @@ importers:
       '@studnicky/concurrency':
         specifier: workspace:*
         version: link:../concurrency
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/mutex':
         specifier: workspace:*
         version: link:../mutex
@@ -644,6 +665,43 @@ importers:
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+
+  packages/matching:
+    dependencies:
+      '@studnicky/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      double-metaphone:
+        specifier: 2.0.1
+        version: 2.0.1
+      picomatch:
+        specifier: 4.0.5
+        version: 4.0.5
+    devDependencies:
+      '@types/picomatch':
+        specifier: 4.0.3
+        version: 4.0.3
+
+  packages/matching-filters:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/filters':
+        specifier: workspace:*
+        version: link:../filters
+      '@studnicky/matching':
+        specifier: workspace:*
+        version: link:../matching
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/memoize:
     dependencies:
@@ -802,6 +860,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/scheduler':
+        specifier: workspace:*
+        version: link:../scheduler
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -888,6 +949,15 @@ importers:
         specifier: workspace:*
         version: link:../signal
 
+  packages/semantic-matching:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/signal:
     dependencies:
       '@studnicky/errors':
@@ -923,6 +993,9 @@ importers:
 
   packages/system:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
@@ -1006,6 +1079,33 @@ importers:
         specifier: ^3.1.1
         version: 3.1.1
 
+  packages/topic-router:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/matching':
+        specifier: workspace:*
+        version: link:../matching
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+
+  packages/topic-router-models:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/matching':
+        specifier: workspace:*
+        version: link:../matching
+      '@studnicky/topic-router':
+        specifier: workspace:*
+        version: link:../topic-router
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/types:
     dependencies:
       '@types/json-schema':
@@ -1065,6 +1165,9 @@ importers:
       '@studnicky/batch':
         specifier: workspace:*
         version: link:../batch
+      '@studnicky/concurrency':
+        specifier: workspace:*
+        version: link:../concurrency
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
@@ -2209,6 +2312,9 @@ packages:
   '@types/node@26.2.0':
     resolution: {integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==}
 
+  '@types/picomatch@4.0.3':
+    resolution: {integrity: sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ==}
+
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
@@ -2982,6 +3088,10 @@ packages:
 
   dompurify@3.4.14:
     resolution: {integrity: sha512-dVoH9z+MY+C9IilgGCk3YfFqjLi3fChm2OiKJMzh6axrJ5qwxqWaZamgmHrpv22CN/KdbZJuGEGgfQoL00LTdg==}
+
+  double-metaphone@2.0.1:
+    resolution: {integrity: sha512-oHqGfNo2bG/VTZSGFz98TWpyv3WD+d9TDOxwAY8L+zqwm4sGawNvEynegjPU+4HowE4HnIXSYAq0lst2YJgfzA==}
+    hasBin: true
 
   emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -5032,6 +5142,8 @@ snapshots:
     dependencies:
       undici-types: 8.3.0
 
+  '@types/picomatch@4.0.3': {}
+
   '@types/trusted-types@2.0.7':
     optional: true
 
@@ -5883,6 +5995,8 @@ snapshots:
   dompurify@3.4.14:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
+
+  double-metaphone@2.0.1: {}
 
   emoji-regex-xs@1.0.0: {}
 

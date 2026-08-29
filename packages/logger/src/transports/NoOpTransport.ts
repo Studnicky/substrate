@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
@@ -42,7 +43,7 @@ export class NoOpTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
     if (!Predicates.isObjectLike(result) || !NoOpTransportInstance.belongsTo(this, result)) {
-      throw new TypeError('NoOpTransport.create() did not construct the requested subclass.');
+      throw RuntimeError.create('NoOpTransport.create() did not construct the requested subclass.');
     }
     return result;
   }

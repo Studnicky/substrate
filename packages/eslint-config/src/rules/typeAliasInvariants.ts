@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
 import {
   isTypeAliasDeclaration,
   type Node,
@@ -11,7 +12,6 @@ import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES
 } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 /**
@@ -59,7 +59,7 @@ class ReexportedTypeNames {
     const body: readonly unknown[] = Array.isArray(program.body) ? program.body : [];
 
     body.forEach((statement) => {
-      if (!ObjectGuard.isObject(statement)) {
+      if (!Predicates.isRecord(statement)) {
         return;
       }
       if (statement.type !== 'ExportNamedDeclaration') {
@@ -78,14 +78,14 @@ class ReexportedTypeNames {
       for (let specifierIndex = 0; specifierIndex < specifiersLength; specifierIndex += 1) {
         const specifier = specifiers.at(specifierIndex);
 
-        if (!ObjectGuard.isObject(specifier)) {
+        if (!Predicates.isRecord(specifier)) {
           continue;
         }
         if (statement.exportKind === 'type' || specifier.exportKind === 'type') {
-          const localName = ObjectGuard.isObject(specifier.local)
+          const localName = Predicates.isRecord(specifier.local)
             ? AstHelpers.getIdentifierName(specifier.local)
             : undefined;
-          const exportedName = ObjectGuard.isObject(specifier.exported)
+          const exportedName = Predicates.isRecord(specifier.exported)
             ? AstHelpers.getIdentifierName(specifier.exported)
             : undefined;
 
@@ -106,7 +106,7 @@ class MustEndTypeCheck {
   public static run(context: Rule.RuleContext, node: Rule.Node): void {
     const rawNode: unknown = node;
 
-    if (!ObjectGuard.isObject(rawNode) || !ObjectGuard.isObject(rawNode.parent)) {
+    if (!Predicates.isRecord(rawNode) || !Predicates.isRecord(rawNode.parent)) {
       return;
     }
     const name = AstHelpers.getIdentifierName(rawNode.id);
@@ -150,14 +150,14 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
+    if (!Predicates.isRecord(value)) {
       return false;
     }
-    if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
+    if (!Predicates.isRecord(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
       return false;
     }
 
-    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = Predicates.isRecord(value.program) && typeof value.program.getTypeChecker === 'function';
 
     return result;
   }
@@ -235,7 +235,7 @@ class PrimitiveDisplay {
 
 class AliasingAstHelpers {
   public static getTypeArgNames(typeArguments: unknown): readonly string[] | undefined {
-    if (!ObjectGuard.isObject(typeArguments)) {
+    if (!Predicates.isRecord(typeArguments)) {
       return undefined;
     }
     const parameters = typeArguments.params;
@@ -250,7 +250,7 @@ class AliasingAstHelpers {
     for (let i = 0; i < parameterCount; i += 1) {
       const arg: unknown = parameters.at(i);
 
-      if (!ObjectGuard.isObject(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
+      if (!Predicates.isRecord(arg) || AstHelpers.getNodeType(arg) !== 'TSTypeReference') {
         return undefined;
       }
       const typeName = arg.typeName;
@@ -266,7 +266,7 @@ class AliasingAstHelpers {
   }
 
   public static getTypeParamNames(typeParameters: unknown): readonly string[] {
-    if (!ObjectGuard.isObject(typeParameters)) {
+    if (!Predicates.isRecord(typeParameters)) {
       return [];
     }
     const parameters = typeParameters.params;
@@ -280,7 +280,7 @@ class AliasingAstHelpers {
 
     for (let i = 0; i < parameterCount; i += 1) {
       const param: unknown = parameters.at(i);
-      const nameNode = ObjectGuard.isObject(param) ? param.name : undefined;
+      const nameNode = Predicates.isRecord(param) ? param.name : undefined;
       const name = AstHelpers.getIdentifierName(nameNode);
 
       if (name === undefined) {
@@ -295,20 +295,20 @@ class AliasingAstHelpers {
 
 class GenericAliasAnalysis {
   public static hasTypeParameters(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
     let wrapper: Record<string, unknown> | undefined;
 
     if (Array.isArray(node.params)) {
       wrapper = node;
-    } else if (ObjectGuard.isObject(node.typeParameters)) {
+    } else if (Predicates.isRecord(node.typeParameters)) {
       wrapper = node.typeParameters;
-    } else if (ObjectGuard.isObject(node.typeArguments)) {
+    } else if (Predicates.isRecord(node.typeArguments)) {
       wrapper = node.typeArguments;
     }
 
-    if (!ObjectGuard.isObject(wrapper)) {
+    if (!Predicates.isRecord(wrapper)) {
       return false;
     }
     const parameterList = wrapper.params;
@@ -326,7 +326,7 @@ class GenericAliasAnalysis {
     leftNames: readonly string[],
     annotation: unknown
   ): { 'parameters': string; 'rhsName': string; } | undefined {
-    if (!ObjectGuard.isObject(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
+    if (!Predicates.isRecord(annotation) || AstHelpers.getNodeType(annotation) !== 'TSTypeReference') {
       return undefined;
     }
     const rightHandTypeArguments = annotation.typeArguments ?? annotation.typeParameters;
@@ -366,7 +366,7 @@ class AliasingCheck {
   public static checkTypeAlias(context: Rule.RuleContext, node: Rule.Node): boolean {
     const rawNode: unknown = node;
 
-    if (!ObjectGuard.isObject(rawNode)) {
+    if (!Predicates.isRecord(rawNode)) {
       return false;
     }
     const name = AstHelpers.getIdentifierName(rawNode.id);
@@ -420,7 +420,7 @@ class AliasingCheck {
       if (GenericAliasAnalysis.hasTypeParameters(annotation)) {
         return false;
       }
-      const typeName = ObjectGuard.isObject(annotation) ? annotation.typeName : undefined;
+      const typeName = Predicates.isRecord(annotation) ? annotation.typeName : undefined;
       const rhsName = AstHelpers.getIdentifierName(typeName);
 
       if (rhsName === undefined) {
@@ -444,7 +444,7 @@ class AliasingCheck {
   public static checkImportSpecifier(context: Rule.RuleContext, node: Rule.Node): void {
     const rawNode: unknown = node;
 
-    if (!ObjectGuard.isObject(rawNode)) {
+    if (!Predicates.isRecord(rawNode)) {
       return;
     }
     const importedName = AstHelpers.getIdentifierName(rawNode.imported);

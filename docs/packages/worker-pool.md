@@ -78,6 +78,13 @@ import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/inter
 |---|---|---|
 | `WorkerPool` | Creates a bounded Node.js worker-thread pool. | `@studnicky/worker-pool` |
 | `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool` |
+| `WorkerPoolError` | Represents worker-pool configuration and lifecycle failures. | `@studnicky/worker-pool` |
+| `WorkerFactoryInterface` | Defines worker creation, initialization, observation, and termination. | `@studnicky/worker-pool` |
+| `WorkerLeaseInterface` | Defines an active leased worker and caller-owned request transport. | `@studnicky/worker-pool` |
+| `WorkerLeasePool` | Provides reusable, bounded worker leases. | `@studnicky/worker-pool` |
+| `WorkerLeasePoolOptionsInterface` | Defines the factory and lease limit for `WorkerLeasePool`. | `@studnicky/worker-pool` |
+| `WorkerObservationInterface` | Defines liveness observation and observer cleanup. | `@studnicky/worker-pool` |
+| `WorkerTransportInterface` | Defines one caller-owned request/response transport. | `@studnicky/worker-pool` |
 
 ## Scope
 

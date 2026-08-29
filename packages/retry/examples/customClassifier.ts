@@ -3,6 +3,7 @@
 // #region usage
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
+import { BaseError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 
 import type { RetryConfigInterface } from '../src/interfaces/index.js';
@@ -10,13 +11,15 @@ import type { RetryConfigInterface } from '../src/interfaces/index.js';
 import { Retry } from '../src/index.js';
 import { CustomClassifierFixtures } from './fixtures/customClassifierFixtures.js';
 
-class DatabaseError extends Error {
+class DatabaseError extends BaseError {
   constructor(
     message: string,
     readonly isDeadlock: boolean
   ) {
-    super(message);
-    this.name = 'DatabaseError';
+    super({
+      'code': 'retry.database',
+      'message': message
+    });
   }
 }
 

@@ -49,6 +49,8 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | [@studnicky/keyed-work-gate](https://studnicky.github.io/substrate/packages/keyed-work-gate) | Keyed single-flight and serialized work gate composing @studnicky/mutex and @studnicky/concurrency's Coalesce |
 | [@studnicky/logger](https://studnicky.github.io/substrate/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and metadata support for Node.js |
 | [@studnicky/memoize](https://studnicky.github.io/substrate/packages/memoize) | Pure function memoization composing cache and concurrency: LRU+TTL result caching keyed by a caller-supplied key derivation, with in-flight call dedup |
+| [@studnicky/matching](https://studnicky.github.io/substrate/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
+| [@studnicky/matching-filters](https://studnicky.github.io/substrate/packages/matching-filters) | Optional one-operation filter adapters for deterministic matching scores |
 | [@studnicky/mutex](https://studnicky.github.io/substrate/packages/mutex) | Key-based async mutex for preventing race conditions in concurrent operations |
 | [@studnicky/paginator](https://studnicky.github.io/substrate/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
 | [@studnicky/pipeline](https://studnicky.github.io/substrate/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
@@ -64,6 +66,7 @@ A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, sc
 | [@studnicky/system](https://studnicky.github.io/substrate/packages/system) | CPU/GPU/memory/platform detection for worker sizing |
 | [@studnicky/throttle](https://studnicky.github.io/substrate/packages/throttle) | Generic async operation throttle with sliding window concurrency control |
 | [@studnicky/timing](https://studnicky.github.io/substrate/packages/timing) | High-resolution timing tracker for collecting operation metrics |
+| [@studnicky/topic-router](https://studnicky.github.io/substrate/packages/topic-router) | Pattern-based multi-subscriber event fan-out |
 | [@studnicky/types](https://studnicky.github.io/substrate/packages/types) | Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate |
 | [@studnicky/visible-range](https://studnicky.github.io/substrate/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list |
 | [@studnicky/worker-pool](https://studnicky.github.io/substrate/packages/worker-pool) | Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout |

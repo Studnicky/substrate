@@ -6,7 +6,7 @@ import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
 
 import { LruCache } from '@studnicky/cache';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { TokenBucket } from '@studnicky/resilience';
 import { Predicates } from '@studnicky/types';
 
@@ -180,7 +180,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'tokenBucketOptions': undefined
       }]);
       if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
-        throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
+        throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
       }
       return result;
     }
@@ -195,7 +195,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       }
     }]);
     if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
+      throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
     }
     return result;
   }
@@ -313,7 +313,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
   static #createTokenBucket(this: KeyedRateLimiter<TokenBucket>, key: string): TokenBucket {
     const options = this.#tokenBucketOptions;
     if (options === undefined) {
-      throw new TypeError('Default token bucket options are unavailable.');
+      throw RuntimeError.create('Default token bucket options are unavailable.');
     }
     const result = new KeyedRateLimiter.#OwnedTokenBucket(this, key, options);
     return result;

@@ -43,6 +43,17 @@ Patch.create(patch).apply(replayed);
 console.log('replayed matches next?', JSON.stringify(replayed) === JSON.stringify(patchedNext));
 
 // ---------------------------------------------------------------------------
+// Patch.diff — compare independently obtained JSON values directly
+// ---------------------------------------------------------------------------
+
+const diff = Patch.diff(
+  { 'status': 'draft', 'tags': ['alpha'] },
+  { 'status': 'published', 'tags': ['alpha', 'beta'] }
+);
+
+console.log('independent-value diff:', diff.operations);
+
+// ---------------------------------------------------------------------------
 // A no-op recipe returns the same reference as base
 // ---------------------------------------------------------------------------
 
@@ -63,6 +74,10 @@ assert.equal(next.untouched, base.untouched, 'untouched branch shares the same r
 assert.equal(patchedNext.count, 1, 'producePatch applies the recipe');
 assert.equal(patchedNext.status, 'published', 'producePatch applies the recipe');
 assert.deepEqual(replayed, patchedNext, 'replaying the generated patch reproduces next exactly');
+assert.deepEqual(diff.operations, [
+  { 'op': 'replace', 'path': '/status', 'value': 'published' },
+  { 'op': 'replace', 'path': '/tags', 'value': ['alpha', 'beta'] }
+], 'diff produces a patch for independently obtained values');
 
 assert.equal(noopResult, base, 'a no-op recipe returns the same reference as base');
 

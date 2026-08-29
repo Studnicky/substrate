@@ -1,6 +1,6 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
@@ -43,7 +43,7 @@ export class Coalesce<T> {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(result) || !CoalesceInstance.belongsTo(this, result)) {
-      throw new TypeError('Coalesce.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Coalesce.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;

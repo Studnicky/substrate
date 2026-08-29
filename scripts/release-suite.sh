@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 . "$(dirname "$0")/../.githooks/lib/release-gates.sh"
 
@@ -13,7 +13,12 @@ release_suite_changeset_status() {
 release_suite_verify_lockstep() {
   expected_version="$1"
   assert_workspace_lockstep_version "$expected_version"
-  assert_no_pending_changesets
+}
+
+release_suite_verify_release_branch() {
+  expected_version="$1"
+  release_suite_verify_lockstep "$expected_version"
+  assert_changeset_required
 }
 
 release_suite_verify_backmerge() {
@@ -36,6 +41,7 @@ release_suite_publish_gates() {
     return 1
   fi
   release_suite_verify_lockstep "$expected_version"
+  assert_no_pending_changesets
 }
 
 case "${1:-}" in
@@ -44,6 +50,9 @@ case "${1:-}" in
     ;;
   verify-lockstep)
     release_suite_verify_lockstep "${2:?missing version}"
+    ;;
+  verify-release-branch)
+    release_suite_verify_release_branch "${2:?missing version}"
     ;;
   verify-backmerge)
     release_suite_verify_backmerge "${2:?missing version}" "${3:-origin/develop}"

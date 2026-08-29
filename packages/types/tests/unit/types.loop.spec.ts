@@ -68,7 +68,14 @@ const materializeMarkers = {
     return cyclic;
   },
   date: () => new Date(0),
-  error: () => new Error('test error'),
+  error: () => {
+    try {
+      JSON.parse('{');
+    } catch (error) {
+      return error;
+    }
+    return assert.fail('Expected JSON.parse() to throw for invalid JSON.');
+  },
   formData: () => new FormData(),
   function: () => () => {},
   headers: () => new Headers(),
@@ -150,7 +157,7 @@ function getMappedValue<ValueMap extends object>(
   if (hasOwnKey(valueMap, key)) {
     return valueMap[key];
   }
-  throw new Error(`Unknown ${label}: ${String(key)}`);
+  return assert.fail(`Unknown ${label}: ${String(key)}`);
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {

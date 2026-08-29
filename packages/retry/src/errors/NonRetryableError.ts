@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { RetryError } from './RetryError.js';
 
 /**
@@ -11,7 +13,7 @@ export class NonRetryableError extends RetryError {
   /** Returns a detached snapshot of the error rejected by classification. */
   public get originalError(): Error {
     const [originalError] = this.errors;
-    const result = originalError ?? new Error('Unknown non-retryable error');
+    const result = originalError ?? RuntimeError.create('Unknown non-retryable error');
     return result;
   }
 

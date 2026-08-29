@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { RuntimeError } from '@studnicky/errors';
+
 import { Mutex } from '../../../src/mutex/index.js';
 
 import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
@@ -29,7 +31,7 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { numberResult: number; rejectedType: 'TypeError' };
+      expected: { numberResult: number };
       input: ScenarioInputWithMutex & { delayMs: number; key: string; numberResult: number; stringResult: string };
       shape: 'validates-each-caller-result';
       name: string;
@@ -111,14 +113,14 @@ function createScenarioMutex(input: ScenarioInputWithMutex): Mutex<string> {
 
 function requireCallerCount(batch: BatchInput): number {
   if (batch.callerCount === undefined) {
-    throw new Error('Scenario batch.callerCount is required');
+    throw RuntimeError.create('Scenario batch.callerCount is required');
   }
   return batch.callerCount;
 }
 
 function requirePerKeyCount(batch: BatchInput): number {
   if (batch.perKeyCount === undefined) {
-    throw new Error('Scenario batch.perKeyCount is required');
+    throw RuntimeError.create('Scenario batch.perKeyCount is required');
   }
   return batch.perKeyCount;
 }
@@ -132,7 +134,7 @@ function createExclusiveCallBatch<T>(
 
 function requireDefined<T>(value: T | undefined, fieldPath: string): T {
   if (value === undefined) {
-    throw new Error(`Missing mutex coalescing scenario field: ${fieldPath}`);
+    throw RuntimeError.create(`Missing mutex coalescing scenario field: ${fieldPath}`);
   }
   return value;
 }
@@ -161,13 +163,13 @@ const runnerMap: {
     const operation = async (): Promise<string> => {
       callCount++;
       if (callCount === 1) {
-        throw new Error(scenarioCase.input.firstErrorMessage);
+        throw RuntimeError.create(scenarioCase.input.firstErrorMessage);
       }
       return scenarioCase.input.successResult;
     };
     try {
       await mutex.runExclusive(scenarioCase.input.key, operation);
-      throw new Error('Should have thrown');
+      throw RuntimeError.create('Should have thrown');
     } catch {}
     const result = await mutex.runExclusive(scenarioCase.input.key, operation);
     assert.strictEqual(result, scenarioCase.expected.result);
@@ -245,7 +247,7 @@ const runnerMap: {
     const failingOperation = async (): Promise<string> => {
       executionCount++;
       await delay(scenarioCase.input.delayMs);
-      throw new Error(scenarioCase.input.errorMessage);
+      throw RuntimeError.create(scenarioCase.input.errorMessage);
     };
     const results = await Promise.allSettled(createExclusiveCallBatch(
       requireCallerCount(scenarioCase.input.batch),
@@ -255,7 +257,7 @@ const runnerMap: {
     const first = requireDefined(results[0], 'results[0]');
     const second = requireDefined(results[1], 'results[1]');
     const third = requireDefined(results[2], 'results[2]');
-    if (first.status !== 'rejected') { throw new Error('expected results[0] to be rejected'); }
+    if (first.status !== 'rejected') { throw RuntimeError.create('expected results[0] to be rejected'); }
     assert.strictEqual(second.status, 'rejected');
     assert.strictEqual(third.status, 'rejected');
     assert.strictEqual(first.reason.message, scenarioCase.expected.rejectionMessage);
@@ -327,7 +329,12 @@ const runnerMap: {
     }, acceptsNumber);
     const stringResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult, acceptsString);
     assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
-    await assert.rejects(stringResult, <TError>(error: TError) => error instanceof TypeError && error.name === scenarioCase.expected.rejectedType);
+    await assert.rejects(stringResult, (error) => {
+      assert.ok(error instanceof RuntimeError);
+      assert.strictEqual(error.code, 'errors.runtime');
+      assert.strictEqual(error.message, `Mutex result for key ${scenarioCase.input.key} does not satisfy the requested type`);
+      return true;
+    });
   }
 };
 

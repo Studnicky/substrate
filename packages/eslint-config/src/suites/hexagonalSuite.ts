@@ -1,5 +1,6 @@
 import type { Linter } from 'eslint';
 
+import type { ResolutionSiteEntity } from '../rules/arch/ResolutionSiteEntity.js';
 import type { LayerOptionsEntity } from '../rules/layers/LayerOptionsEntity.js';
 
 import { plugin } from '../plugin.js';
@@ -26,8 +27,11 @@ export class HexagonalSuite {
     'knownTypesOutsideAdapters'?: {
       'adapterLayerName'?: string;
     };
+    'noThreadedVocabulary'?: {
+      'resolutionSites'?: readonly ResolutionSiteEntity.Type[];
+    };
   }): Linter.Config {
-    const { adapterOnlyImport, domainPurity, knownTypesOutsideAdapters, ...layerOptions } = options;
+    const { adapterOnlyImport, domainPurity, knownTypesOutsideAdapters, noThreadedVocabulary, ...layerOptions } = options;
 
     return {
       'plugins': { '@studnicky': plugin },
@@ -35,7 +39,13 @@ export class HexagonalSuite {
         '@studnicky/adapter-only-import': ['error', { ...layerOptions, ...adapterOnlyImport }],
         '@studnicky/domain-purity': ['error', { ...layerOptions, ...domainPurity }],
         '@studnicky/known-types-outside-adapters': ['error', { ...layerOptions, ...knownTypesOutsideAdapters }],
-        '@studnicky/layer-import-boundary': ['error', layerOptions]
+        '@studnicky/layer-import-boundary': ['error', layerOptions],
+        // Takes only its own question, not the shared layer axis: which files may resolve a
+        // token is independent of what the project's `layers` list happens to measure.
+        '@studnicky/no-threaded-vocabulary': ['error', {
+          'resolutionSites': noThreadedVocabulary?.resolutionSites ?? [],
+          'sourceRoot': layerOptions.sourceRoot
+        }]
       }
     };
   }

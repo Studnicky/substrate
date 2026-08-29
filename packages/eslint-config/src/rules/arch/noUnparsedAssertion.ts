@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import { ResolvedType } from '../shared/ResolvedType.js';
 import { EntityIntake } from './EntityIntake.js';
 import { ExemptPackage } from './ExemptPackage.js';
@@ -21,14 +22,14 @@ class AssertionShape {
   public static source(node: Rule.Node): Rule.Node | undefined {
     const raw = node as unknown as Record<string, unknown>;
     const expression: unknown = raw.expression;
-    const result = ObjectGuard.isObject(expression) ? expression as unknown as Rule.Node : undefined;
+    const result = Predicates.isRecord(expression) ? expression as unknown as Rule.Node : undefined;
     return result;
   }
 
   public static hasNamedTarget(node: Rule.Node): boolean {
     const raw = node as unknown as Record<string, unknown>;
     const typeAnnotation: unknown = raw.typeAnnotation;
-    const result = ObjectGuard.isObject(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
+    const result = Predicates.isRecord(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
     return result;
   }
 }
@@ -36,7 +37,7 @@ class AssertionShape {
 export const noUnparsedAssertion: Rule.RuleModule = {
   'create': (context) => {
     const rawOptions: unknown = context.options.at(0);
-    const exemptPackages = ObjectGuard.isObject(rawOptions) && Array.isArray(rawOptions.exemptPackages)
+    const exemptPackages = Predicates.isRecord(rawOptions) && Array.isArray(rawOptions.exemptPackages)
       ? rawOptions.exemptPackages.filter((entry): entry is string => {
         const result = typeof entry === 'string';
         return result;

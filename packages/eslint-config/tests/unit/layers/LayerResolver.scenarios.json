@@ -143,8 +143,8 @@
             ]
           },
           "bindings": [
-            { "kind": "module", "pattern": "@domain/", "layer": "domain" },
-            { "kind": "module", "pattern": "@ports/", "layer": "ports" }
+            { "unit": "module", "pattern": "@domain/", "layer": "domain" },
+            { "unit": "module", "pattern": "@ports/", "layer": "ports" }
           ],
           "layers": [
             "domain",
@@ -258,8 +258,8 @@
         "path": "/repo/packages/retry/src/retry/Retry.ts",
         "options": {
           "bindings": [
-            { "kind": "package", "pattern": "errors", "layer": "foundation" },
-            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+            { "unit": "package", "pattern": "errors", "layer": "foundation" },
+            { "unit": "package", "pattern": "retry", "layer": "coordinator" }
           ],
           "layers": ["foundation", "primitive", "capability", "coordinator"],
           "sourceRoot": "packages"
@@ -276,8 +276,8 @@
         "path": "/repo/packages/unmapped-package/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "package", "pattern": "errors", "layer": "foundation" },
-            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+            { "unit": "package", "pattern": "errors", "layer": "foundation" },
+            { "unit": "package", "pattern": "retry", "layer": "coordinator" }
           ],
           "layers": ["foundation", "primitive", "capability", "coordinator"],
           "sourceRoot": "packages"
@@ -294,7 +294,7 @@
         "path": "/repo/packages/retry/src/retry/Retry.ts",
         "options": {
           "bindings": [
-            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+            { "unit": "package", "pattern": "retry", "layer": "coordinator" }
           ],
           "layers": ["foundation", "primitive", "capability"],
           "sourceRoot": "packages"
@@ -311,8 +311,8 @@
         "path": "/repo/packages/vendor-nested/packages/retry/src/retry/Retry.ts",
         "options": {
           "bindings": [
-            { "kind": "package", "pattern": "errors", "layer": "foundation" },
-            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+            { "unit": "package", "pattern": "errors", "layer": "foundation" },
+            { "unit": "package", "pattern": "retry", "layer": "coordinator" }
           ],
           "layers": ["foundation", "primitive", "capability", "coordinator"],
           "sourceRoot": "packages"
@@ -330,8 +330,8 @@
         "importingFile": "/repo/packages/retry/src/retry/Retry.ts",
         "options": {
           "bindings": [
-            { "kind": "module", "pattern": "@studnicky/errors", "layer": "foundation" },
-            { "kind": "package", "pattern": "retry", "layer": "coordinator" }
+            { "unit": "module", "pattern": "@studnicky/errors", "layer": "foundation" },
+            { "unit": "package", "pattern": "retry", "layer": "coordinator" }
           ],
           "layers": ["foundation", "coordinator"],
           "sourceRoot": "packages"
@@ -349,8 +349,8 @@
         "importingFile": "/repo/packages/fetch/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "dependency", "pattern": "undici", "layer": "external" },
-            { "kind": "package", "pattern": "fetch", "layer": "capability" }
+            { "unit": "dependency", "pattern": "undici", "layer": "external" },
+            { "unit": "package", "pattern": "fetch", "layer": "capability" }
           ],
           "layers": ["external", "capability"],
           "sourceRoot": "packages"
@@ -368,8 +368,8 @@
         "importingFile": "/repo/packages/fetch/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "dependency", "pattern": "undici", "layer": "external" },
-            { "kind": "package", "pattern": "fetch", "layer": "capability" }
+            { "unit": "dependency", "pattern": "undici", "layer": "external" },
+            { "unit": "package", "pattern": "fetch", "layer": "capability" }
           ],
           "layers": ["external", "capability"],
           "sourceRoot": "packages"
@@ -387,7 +387,7 @@
         "importingFile": "/repo/packages/file-lock/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "builtin", "layer": "external" }
+            { "unit": "builtin", "layer": "external" }
           ],
           "layers": ["external", "coordinator"],
           "sourceRoot": "packages"
@@ -405,7 +405,7 @@
         "importingFile": "/repo/packages/file-lock/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "builtin", "layer": "external" }
+            { "unit": "builtin", "layer": "external" }
           ],
           "layers": ["external", "coordinator"],
           "sourceRoot": "packages"
@@ -423,7 +423,7 @@
         "importingFile": "/repo/packages/file-lock/src/index.ts",
         "options": {
           "bindings": [
-            { "kind": "builtin", "layer": "external" }
+            { "unit": "builtin", "layer": "external" }
           ],
           "layers": ["external", "coordinator"],
           "sourceRoot": "packages"

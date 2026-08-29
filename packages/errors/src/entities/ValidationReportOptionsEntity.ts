@@ -6,7 +6,7 @@ import type { EntityValidateFunctionInterface } from '../interfaces/EntityValida
 
 import { EntityIntake } from '../validation/EntityIntake.js';
 
-/** Overrides applied when generating an RFC 7807 Problem Details payload. */
+/** Overrides applied when generating an RFC 9457 Problem Details payload. */
 export namespace ValidationReportOptionsEntity {
   export const Schema = {
     '$id': 'https://studnicky.github.io/substrate/schemas/ValidationReportOptions',

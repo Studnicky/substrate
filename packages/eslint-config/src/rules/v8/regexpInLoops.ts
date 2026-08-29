@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { LoopContext } from '../shared/LoopContext.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   FUNCTION_TYPES, LOOP_TYPES, MESSAGE, RULE_NAME
 } from './constants/RegexpInLoopsConstants.js';
@@ -76,7 +77,7 @@ class ExpressionWalk {
    * via `key`, and computed member expressions are walked accordingly).
    */
   public static collectVariableReferences(node: unknown, out: Rule.Node[] = []): Rule.Node[] {
-    if (!ObjectGuard.isObject(node) || typeof node.type !== 'string') {
+    if (!Predicates.isRecord(node) || typeof node.type !== 'string') {
       return out;
     }
 
@@ -122,13 +123,13 @@ class ExpressionWalk {
         continue;
       }
 
-      if (ObjectGuard.isArray(value)) {
+      if (Predicates.isArray(value)) {
         const valueLength = value.length;
 
         for (let itemIndex = 0; itemIndex < valueLength; itemIndex += 1) {
           ExpressionWalk.collectVariableReferences(value.at(itemIndex), out);
         }
-      } else if (ObjectGuard.isObject(value)) {
+      } else if (Predicates.isRecord(value)) {
         ExpressionWalk.collectVariableReferences(value, out);
       }
     }
@@ -171,7 +172,7 @@ class PatternInvariance {
 
         const declarationNode = candidate.defs.at(0)?.node;
 
-        if (!ObjectGuard.isObject(declarationNode)) {
+        if (!Predicates.isRecord(declarationNode)) {
           return false;
         }
 
@@ -201,13 +202,13 @@ class RegExpConstruction {
 
     const raw: unknown = node;
 
-    if (!ObjectGuard.isObject(raw)) {
+    if (!Predicates.isRecord(raw)) {
       return false;
     }
 
     const callee = raw.callee;
 
-    if (!ObjectGuard.isObject(callee)) {
+    if (!Predicates.isRecord(callee)) {
       return false;
     }
 
@@ -225,11 +226,11 @@ class RegExpConstruction {
 
     const raw: unknown = node;
 
-    if (!ObjectGuard.isObject(raw)) {
+    if (!Predicates.isRecord(raw)) {
       return false;
     }
 
-    const result = 'regex' in raw && ObjectGuard.isObject(raw.regex);
+    const result = 'regex' in raw && Predicates.isRecord(raw.regex);
 
     return result;
   }

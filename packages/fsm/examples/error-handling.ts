@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** error-handling — ReducerThrewError wrapping, InterpreterNotStartedError, and InterpreterNotRunningError. Run: npx tsx examples/error-handling.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -27,7 +27,7 @@ class BrokenMachine extends StateMachine<BrokenStateEntity.Type, BrokenEventEnti
   }
 
   reduce(_state: BrokenStateEntity.Type, event: BrokenEventEntity.Type): FsmStepInterface<BrokenStateEntity.Type> {
-    if (event.type === 'boom') { throw new Error('reducer exploded'); }
+    if (event.type === 'boom') { throw RuntimeError.create('reducer exploded'); }
     return { 'effects': [], 'state': _state };
   }
 }

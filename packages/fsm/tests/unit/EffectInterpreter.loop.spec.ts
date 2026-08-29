@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -99,7 +100,7 @@ class RejectingMachine extends StateMachine<DemoState, DemoEvent, DemoEffect> {
   override getInitialState(): DemoState { return { variant: 'idle' }; }
   override reduce(state: DemoState, event: DemoEvent): FsmStepInterface<DemoState, DemoEffect> {
     if (event.type === 'deactivate') {
-      throw new Error('deliberately rejected');
+      throw RuntimeError.create('deliberately rejected');
     }
     if (state.variant === 'idle' && event.type === 'activate') {
       return { state: { variant: 'active' }, effects: [] };
@@ -202,7 +203,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       const sends = caseData.input.events.map((event: DemoEvent) => interp.send(event));
       const overflowingSend = sends[1];
       if (overflowingSend === undefined) {
-        throw new Error('Expected a second queued send');
+        throw RuntimeError.create('Expected a second queued send');
       }
       return captureRejectedError(overflowingSend).then((error) => {
         assert.ok(error instanceof MailboxCapacityExceededError);
@@ -220,7 +221,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       interp.start();
       const [firstEvent, secondEvent] = caseData.input.events;
       if (firstEvent === undefined || secondEvent === undefined) {
-        throw new Error('Expected two queued events');
+        throw RuntimeError.create('Expected two queued events');
       }
       const p1 = interp.send(firstEvent);
       const p2 = interp.send(secondEvent);
@@ -304,7 +305,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
 
       const nestedEvent = caseData.input.event;
       if (nestedEvent.type !== 'activate') {
-        throw new Error('Expected an activate event for snapshot-isolation');
+        throw RuntimeError.create('Expected an activate event for snapshot-isolation');
       }
 
       return interp.send(nestedEvent).then(() => {
@@ -370,7 +371,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
           interp.stop();
           const release = releaseHandler;
           if (release === undefined) {
-            throw new Error('Handler gate was not initialized');
+            throw RuntimeError.create('Handler gate was not initialized');
           }
           release();
           return activatePromise;
@@ -400,7 +401,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       return;
     },
     'stop-hook-throws': (caseData) => {
-      const original = new Error('stop boom');
+      const original = RuntimeError.create('stop boom');
 
       class ThrowingStopInterpreter extends EffectInterpreter<DemoState, DemoEvent, DemoEffect> {
         protected override onStop(): void {
@@ -417,7 +418,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     'throwing-observer-does-not-block-send': (caseData) => {
       const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
       interp.subscribe(() => {
-        throw new Error('observer boom');
+        throw RuntimeError.create('observer boom');
       });
       interp.start();
       return interp.send(caseData.input.event).then(() => {

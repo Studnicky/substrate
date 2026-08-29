@@ -1,0 +1,78 @@
+{
+  "fixtures": {
+    "orders": [
+      { "category": "alpha", "region": "east" },
+      { "category": "alpha", "region": "west" },
+      { "category": "beta", "region": "east" },
+      { "category": "beta", "region": "east" },
+      { "category": "gamma", "region": "west" }
+    ],
+    "empty": []
+  },
+  "configs": {
+    "explicitCategory": {
+      "minimumGroupSize": 0,
+      "rules": {
+        "group": [{
+          "property": "category",
+          "values": [
+            { "match": "alpha", "type": "string" },
+            { "match": "beta", "type": "string" },
+            { "match": "gamma", "type": "string" }
+          ]
+        }]
+      }
+    },
+    "excludeWest": {
+      "minimumGroupSize": 0,
+      "filter": [{ "operator": "exclude", "property": "region", "type": "value", "values": ["west"] }],
+      "rules": {
+        "group": [{
+          "property": "category",
+          "values": [
+            { "match": "alpha", "type": "string" },
+            { "match": "beta", "type": "string" },
+            { "match": "gamma", "type": "string" }
+          ]
+        }]
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "explicit-string-rule",
+      "description": "groups by an explicit string rule, preserving declared value order",
+      "shape": "group",
+      "input": { "fixture": "orders", "config": "explicitCategory" },
+      "expected": { "childCount": 3, "values": ["alpha", "beta", "gamma"], "leafCounts": [2, 2, 1] }
+    },
+    {
+      "name": "top-level-value-filter",
+      "description": "applies top-level value filters before grouping",
+      "shape": "group",
+      "input": { "fixture": "orders", "config": "excludeWest" },
+      "expected": { "childCount": 2, "values": ["alpha", "beta"], "leafCounts": [1, 2] }
+    },
+    {
+      "name": "empty-input",
+      "description": "returns a single leaf node for empty input",
+      "shape": "group-empty",
+      "input": { "fixture": "empty", "config": "explicitCategory" },
+      "expected": { "grouped": null, "ungrouped": [] }
+    },
+    {
+      "name": "deterministic-group",
+      "description": "produces an identical grouped tree across repeated calls",
+      "shape": "deterministic-group",
+      "input": { "fixture": "orders", "config": "explicitCategory" },
+      "expected": { "identical": true }
+    },
+    {
+      "name": "deterministic-analyze",
+      "description": "produces an identical auto-grouped analysis across repeated calls",
+      "shape": "deterministic-analyze",
+      "input": { "fixture": "orders" },
+      "expected": { "identical": true }
+    }
+  ]
+}

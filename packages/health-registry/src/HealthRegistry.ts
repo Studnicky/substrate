@@ -1,7 +1,7 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
 import {
-  type HookInvocationError, HookInvoker
+  type HookInvocationError, HookInvoker, RuntimeError
 } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
@@ -65,10 +65,10 @@ export class HealthRegistry {
     const result: unknown = Reflect.construct(this, []);
 
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
+      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
     }
     if (!HealthRegistry.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('HealthRegistry.create() must construct a HealthRegistry instance');
+      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
     }
 
     return result;

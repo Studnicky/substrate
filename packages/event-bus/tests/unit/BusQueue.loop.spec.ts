@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvoker } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvoker } from '@studnicky/errors';
+
 
 import { BusQueue } from '../../src/BusQueue.js';
 import scenarioGroups from './BusQueue.scenarios.json' with { type: 'json' };
@@ -53,11 +54,11 @@ type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 function itemAt<TValue>(items: TValue, index: number): number {
   if (!Array.isArray(items)) {
-    throw new Error('Scenario items must be an array');
+    throw RuntimeError.create('Scenario items must be an array');
   }
   const value: unknown = items[index];
   if (typeof value !== 'number') {
-    throw new Error(`Missing scenario item at index ${String(index)}`);
+    throw RuntimeError.create(`Missing scenario item at index ${String(index)}`);
   }
   return value;
 }
@@ -116,7 +117,7 @@ const runnerMap: RunnerMap = {
       const received: number[] = [];
       const queue = BusQueue.create<number>({
         'handler': async (item) => {
-          if (item === (input.throwOn as number)) { throw new Error(input.errorMessage as string); }
+          if (item === (input.throwOn as number)) { throw RuntimeError.create(input.errorMessage as string); }
           received.push(item);
         },
         'onError': (err) => { errors.push(err); }
@@ -131,8 +132,8 @@ const runnerMap: RunnerMap = {
       });
     },
     'async-on-error-swallowed': ({ expected, input }) => {
-      const handlerFailure = new Error(input.handlerErrorMessage as string);
-      const onErrorFailure = new Error(input.onErrorMessage as string);
+      const handlerFailure = RuntimeError.create(input.handlerErrorMessage as string);
+      const onErrorFailure = RuntimeError.create(input.onErrorMessage as string);
       const handlerErrors: unknown[] = [];
       const received: number[] = [];
       const unhandledRejections: unknown[] = [];
@@ -197,7 +198,7 @@ const runnerMap: RunnerMap = {
       const controller = new AbortController();
       controller.abort();
       const queue = DropObservedQueue.create<number>({
-        'handler': async (item) => { throw new Error(`unexpected delivery: ${String(item)}`); },
+        'handler': async (item) => { throw RuntimeError.create(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
 
@@ -325,7 +326,7 @@ const runnerMap: RunnerMap = {
       const controller = new AbortController();
       controller.abort();
       const queue = DropObservedQueue.create<number>({
-        'handler': async (item) => { throw new Error(`unexpected delivery: ${String(item)}`); },
+        'handler': async (item) => { throw RuntimeError.create(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
 
@@ -367,7 +368,7 @@ const runnerMap: RunnerMap = {
         protected override onDequeue(_depth: number): void {
           if (this.#thrown) { return; }
           this.#thrown = true;
-          throw new Error(input.errorMessage as string);
+          throw RuntimeError.create(input.errorMessage as string);
         }
       }
       const queue = ThrowingOnDequeueQueue.create<number>({
@@ -391,7 +392,7 @@ const runnerMap: RunnerMap = {
         protected override async onEnqueue(): Promise<void> {
           this.#attempt += 1;
           if (this.#attempt === 1) {
-            throw new Error(input.errorMessage as string);
+            throw RuntimeError.create(input.errorMessage as string);
           }
         }
       }
@@ -406,7 +407,7 @@ const runnerMap: RunnerMap = {
     },
     'admission-hook-on-hook-error': ({ expected, input }) => {
       const seen: Array<{ 'hookName': string; 'cause': unknown }> = [];
-      const failure = new Error(input.errorMessage as string);
+      const failure = RuntimeError.create(input.errorMessage as string);
       class RecordingHookInvoker extends HookInvoker {
         protected override onHookError(hookName: string, cause: Error): void {
           seen.push({ 'hookName': hookName, 'cause': cause });
@@ -436,7 +437,7 @@ const runnerMap: RunnerMap = {
         protected override async onOverflow(): Promise<void> {
           this.#attempt += 1;
           if (this.#attempt === 1) {
-            throw new Error(input.errorMessage as string);
+            throw RuntimeError.create(input.errorMessage as string);
           }
         }
       }
@@ -562,7 +563,7 @@ const runnerMap: RunnerMap = {
         protected override onHandlerError<TError>(err: TError): void { errors.push(err); }
       }
       const queue = ObservedQueue.create<number>({
-        'handler': async () => { throw new Error(input.errorMessage as string); }
+        'handler': async () => { throw RuntimeError.create(input.errorMessage as string); }
       });
       return queue.enqueue(itemAt(input.items, 0))
         .then(() => queue.drain())

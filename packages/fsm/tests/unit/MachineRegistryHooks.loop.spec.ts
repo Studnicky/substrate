@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -202,7 +203,7 @@ const runnerMap: RunnerMap = {
 
       protected override async onRegister(_id: string): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onRegister boom');
+        throw RuntimeError.create('async onRegister boom');
       }
     }
 
@@ -295,7 +296,7 @@ const runnerMap: RunnerMap = {
       }
 
       protected override onRegister(): void {
-        throw new Error('register hook boom');
+        throw RuntimeError.create('register hook boom');
       }
     }
 
@@ -315,7 +316,7 @@ const runnerMap: RunnerMap = {
       }
 
       protected override onResolveMiss(): void {
-        throw new Error('miss hook boom');
+        throw RuntimeError.create('miss hook boom');
       }
     }
 
@@ -333,7 +334,7 @@ const runnerMap: RunnerMap = {
       }
 
       protected override onUnregister(): void {
-        throw new Error('unregister hook boom');
+        throw RuntimeError.create('unregister hook boom');
       }
     }
 

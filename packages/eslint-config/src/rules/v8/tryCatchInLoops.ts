@@ -2,9 +2,10 @@ import type {
   Rule, Scope
 } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { LoopContext } from '../shared/LoopContext.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // MEASURED, Node v24, N = 5,000,000, 3 warm-up calls + median of 7 timed calls
 // (scratchpad bench: identical per-iteration body, one arm wrapping the read in
@@ -64,7 +65,7 @@ class DeclaredFunctionVariable {
   public static resolve(functionNode: Rule.Node, context: Rule.RuleContext): Scope.Variable | undefined {
     if (functionNode.type === 'FunctionDeclaration') {
       const raw = functionNode as unknown as Record<string, unknown>;
-      const id = ObjectGuard.isObject(raw.id) ? raw.id : undefined;
+      const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
       const name = id !== undefined && typeof id.name === 'string' ? id.name : undefined;
 
       if (name === undefined) {
@@ -90,7 +91,7 @@ class DeclaredFunctionVariable {
       }
 
       const raw = parent as unknown as Record<string, unknown>;
-      const id = ObjectGuard.isObject(raw.id) ? raw.id : undefined;
+      const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
 
       if (id?.type !== 'Identifier' || typeof id.name !== 'string') {
         return undefined;
@@ -119,7 +120,7 @@ class CallSiteAnalysis {
     const identifier = reference.identifier as unknown as { readonly 'parent'?: unknown };
     const parent = identifier.parent;
 
-    if (!ObjectGuard.isObject(parent) || parent.type !== 'CallExpression') {
+    if (!Predicates.isRecord(parent) || parent.type !== 'CallExpression') {
       return false;
     }
 

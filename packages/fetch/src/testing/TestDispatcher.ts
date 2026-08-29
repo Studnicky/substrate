@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -8,6 +9,7 @@ import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherSt
 import {
   HTTP_STATUS_NOT_FOUND, HTTP_STATUS_OK
 } from '../constants/index.js';
+import { FetchBaseError } from '../errors/FetchBaseError.js';
 
 class OriginState {
   public 'active' = 0;
@@ -68,12 +70,9 @@ class TestRequest {
   }
 }
 
-class NetworkFailure extends Error {
-  public 'code': string;
-
+class NetworkFailure extends FetchBaseError {
   public constructor(code: string, message: string) {
-    super(message);
-    this.code = code;
+    super({ 'code': code, 'message': message, 'retryable': true });
     this.name = 'Error';
   }
 }
@@ -112,7 +111,7 @@ export class TestDispatcher {
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
     if (!TestDispatcherInstance.belongsTo(this, result)) {
-      throw new TypeError('TestDispatcher.create() did not construct the requested subclass.');
+      throw RuntimeError.create('TestDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;
@@ -222,7 +221,7 @@ export class TestDispatcher {
     }
 
     if (body instanceof Blob) {
-      throw new TypeError('Blob request bodies are not supported in the fetch test dispatcher');
+      throw RuntimeError.create('Blob request bodies are not supported in the fetch test dispatcher');
     }
 
     const result = String(body);

@@ -1,5 +1,3 @@
-import { Predicates } from '@studnicky/types';
-
 /**
  * Base error class for all modules in the monorepo.
  *
@@ -45,10 +43,6 @@ import type {
   ModuleErrorOptionsInterface
 } from '../interfaces/index.js';
 
-import {
-  CAUSE_CHAIN_DEPTH_LIMIT,
-  CAUSE_DEPTH_SENTINEL
-} from '../constants/CauseChainConstants.js';
 import { ErrorDefaults } from '../constants/index.js';
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
 import { BaseError } from './BaseError.js';
@@ -87,7 +81,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       'code': defaults.code,
       'context': options.context,
       'retryable': options.retryable ?? defaults.retryable,
-      'statusCode': options.statusCode ?? defaults.statusCode
+      'status': options.status ?? defaults.status
     };
 
     const result = new ModuleError(message, mergedOptions);
@@ -114,7 +108,6 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
   public override readonly cause: Error | undefined;
 
   /** HTTP status code (for API/HTTP errors). */
-  public readonly statusCode: number | undefined;
 
   /**
    * Protected constructor — use `ModuleError.create()` instead.
@@ -139,11 +132,11 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
       'cause': options.cause,
       'code': options.code,
       'message': message,
-      'retryable': options.retryable ?? false
+      'retryable': options.retryable ?? false,
+      'status': options.status
     });
 
     this.cause = options.cause;
-    this.statusCode = options.statusCode;
     this.#context = options.context === undefined
       ? undefined
       : DefensiveSnapshot.record(options.context);
@@ -160,64 +153,12 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    */
   protected override serializeExtra(): Record<string, unknown> {
     const extra: Record<string, unknown> = {};
+
+    if (this.#context !== undefined) {
+      extra.context = DefensiveSnapshot.record(this.#context);
+    }
+
     return extra;
   }
 
-  /**
-   * Builds the ModuleError-format JSON object for this node at the given
-   * cause-chain depth. Recursion into a `ModuleError` cause is bounded by
-   * `CAUSE_CHAIN_DEPTH_LIMIT` — the same limit and `CAUSE_DEPTH_SENTINEL`
-   * sentinel `BaseError.serializeCause()` uses — so a long wrap chain or a
-   * circular `cause` reference cannot overflow the stack.
-   *
-   * Fire-point: called from `toJSON()` with `depth = 0`, and recursively for
-   * each `ModuleError` cause encountered.
-   */
-  private serializeModuleNode(depth: number): Record<string, unknown> {
-    const json: Record<string, unknown> = {
-      'code': this.code,
-      'message': this.message,
-      'name': this.name,
-      'retryable': this.retryable,
-      'stack': this.stack
-    };
-
-    if (this.statusCode !== undefined) {
-      json.statusCode = this.statusCode;
-    }
-
-    if (this.#context !== undefined) {
-      json.context = DefensiveSnapshot.record(this.#context);
-    }
-
-    const cause = this.cause;
-    if (cause !== undefined) {
-      if (cause instanceof ModuleError) {
-        json.cause = depth >= CAUSE_CHAIN_DEPTH_LIMIT
-          ? CAUSE_DEPTH_SENTINEL
-          : cause.serializeModuleNode(depth + 1);
-      } else if (Predicates.isError(cause)) {
-        json.cause = {
-          'message': cause.message,
-          'name': cause.name,
-          'stack': cause.stack
-        };
-      } else {
-        json.cause = cause;
-      }
-    }
-
-    return json;
-  }
-
-  /**
-   * Serializes this error for structured logging.
-   * Builds the depth-limited ModuleError-format JSON object, then merges
-   * `serializeExtra()` so subclasses can inject additional fields without
-   * rewriting cause-chain logic.
-   */
-  override toJSON(): Record<string, unknown> {
-    const json = this.serializeModuleNode(0);
-    return { ...json, ...this.serializeExtra() };
-  }
 }

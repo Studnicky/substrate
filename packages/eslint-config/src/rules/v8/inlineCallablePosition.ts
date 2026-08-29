@@ -2,8 +2,9 @@ import type {
   Rule, Scope
 } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { LoopContext } from '../shared/LoopContext.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // MEASURED, Node v24: allocating a closure (arrow or function expression) is
 // 2.3x measurably costly WHEN GENUINELY HOT (rebuilt every iteration of a
@@ -50,7 +51,7 @@ class DeclaredFunctionVariable {
   public static resolve(functionNode: Rule.Node, context: Rule.RuleContext): Scope.Variable | undefined {
     if (functionNode.type === 'FunctionDeclaration') {
       const raw = functionNode as unknown as Record<string, unknown>;
-      const id = ObjectGuard.isObject(raw.id) ? raw.id : undefined;
+      const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
       const name = id !== undefined && typeof id.name === 'string' ? id.name : undefined;
 
       if (name === undefined) {
@@ -76,7 +77,7 @@ class DeclaredFunctionVariable {
       }
 
       const raw = parent as unknown as Record<string, unknown>;
-      const id = ObjectGuard.isObject(raw.id) ? raw.id : undefined;
+      const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
 
       if (id?.type !== 'Identifier' || typeof id.name !== 'string') {
         return undefined;
@@ -134,7 +135,7 @@ class DefaultParameterReachability {
       const identifier = reference.identifier as unknown as { readonly 'parent'?: unknown };
       const parent = identifier.parent;
 
-      if (!ObjectGuard.isObject(parent) || parent.type !== 'CallExpression' || parent.callee !== (reference.identifier as unknown)) {
+      if (!Predicates.isRecord(parent) || parent.type !== 'CallExpression' || parent.callee !== (reference.identifier as unknown)) {
         return false;
       }
 

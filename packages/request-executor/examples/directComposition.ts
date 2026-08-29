@@ -1,11 +1,11 @@
+// #region usage
+import { Context } from '@studnicky/context';
 /** directComposition — hand-composes FetchClient, Retry, Signal, and Context directly,
  * without RequestExecutor, to show the same one-shot request execution pattern built from its
  * four primitives by hand, including the lifecycle hook points RequestExecutor brackets the
  * retry loop with. Compare with observedRequestExecutor.ts, which does identical work through
  * the kit. Run: npx tsx examples/directComposition.ts */
-
-// #region usage
-import { Context } from '@studnicky/context';
+import { RuntimeError } from '@studnicky/errors';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
@@ -55,7 +55,7 @@ class Directly {
 
           return attemptResult;
         } catch (cause) {
-          const error = cause instanceof Error ? cause : new Error(String(cause));
+          const error = cause instanceof Error ? cause : RuntimeError.create(String(cause));
           options.onExecuteError?.(error);
           throw cause;
         }
@@ -100,7 +100,7 @@ await new Promise<void>((resolve) => {
 const address = server.address();
 
 if (address === null || typeof address !== 'object') {
-  throw new Error('failed to determine server address');
+  throw RuntimeError.create('failed to determine server address');
 }
 
 // #region usage
@@ -118,7 +118,7 @@ const response = await Directly.execute(
     const result = await client.get('/flaky', { 'signal': abortSignal });
 
     if (!result.ok) {
-      throw new Error(`HTTP ${result.status}`);
+      throw RuntimeError.create(`HTTP ${result.status}`);
     }
 
     return result;

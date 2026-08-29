@@ -1,0 +1,54 @@
+{
+  "fixtures": {
+    "default": [
+      { "color": "red", "size": "S" },
+      { "color": "red", "size": "M" },
+      { "color": "blue", "size": "S" },
+      { "color": "blue", "size": "S" }
+    ]
+  },
+  "cases": [
+    {
+      "name": "sizes-for-red",
+      "description": "facetOptions narrows the sibling dimension to the red selection",
+      "shape": "facet-options",
+      "input": { "fixture": "default", "filter": { "color": ["red"] }, "dimension": "size" },
+      "expected": { "options": ["M", "S"] }
+    },
+    {
+      "name": "sizes-for-blue",
+      "description": "facetOptions narrows the sibling dimension to the blue selection",
+      "shape": "facet-options",
+      "input": { "fixture": "default", "filter": { "color": ["blue"] }, "dimension": "size" },
+      "expected": { "options": ["S"] }
+    },
+    {
+      "name": "all-colors-unfiltered",
+      "description": "facetOptions returns the full universe when no dimension is active",
+      "shape": "facet-options",
+      "input": { "fixture": "default", "filter": {}, "dimension": "color" },
+      "expected": { "options": ["blue", "red"] }
+    },
+    {
+      "name": "apply-every-dimension",
+      "description": "apply filters rows that satisfy every active dimension",
+      "shape": "apply",
+      "input": { "fixture": "default", "filter": { "color": ["blue"], "size": ["S"] } },
+      "expected": { "count": 2, "match": { "color": "blue", "size": "S" } }
+    },
+    {
+      "name": "resolve-auto-narrows",
+      "description": "resolveFilterState auto-narrows an untouched sibling dimension to the intersection",
+      "shape": "resolve-narrows",
+      "input": { "fixture": "default", "proposed": { "color": ["blue"] }, "changed": "color" },
+      "expected": { "dimension": "size", "values": ["S"] }
+    },
+    {
+      "name": "resolve-relaxes-empty",
+      "description": "resolveFilterState relaxes a proposed selection that would otherwise produce zero rows",
+      "shape": "resolve-relaxes",
+      "input": { "fixture": "default", "proposed": { "color": ["blue"], "size": ["M"] }, "changed": "color" },
+      "expected": { "minimumCount": 1, "match": { "color": "blue" } }
+    }
+  ]
+}

@@ -1,8 +1,8 @@
-/** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
-
 // #region usage
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
+/** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
+import { RuntimeError } from '@studnicky/errors';
 import {
   FetchClient,
   type RequestContextInterface,
@@ -59,7 +59,7 @@ class ReportingRequestExecutor extends RequestExecutor {
   protected constructor(deps: RequestExecutorDepsInterface) {
     super(deps);
     if (!(deps.retry instanceof TelemetryRetry)) {
-      throw new TypeError('ReportingRequestExecutor requires TelemetryRetry');
+      throw RuntimeError.create('ReportingRequestExecutor requires TelemetryRetry');
     }
     this.#retry = deps.retry;
   }
@@ -71,7 +71,7 @@ class ReportingRequestExecutor extends RequestExecutor {
     const result = this.create({ 'fetchClient': fetchClient, 'retry': retry });
 
     if (!(result instanceof ReportingRequestExecutor)) {
-      throw new Error('RequestExecutor subclass factory returned the wrong instance type');
+      throw RuntimeError.create('RequestExecutor subclass factory returned the wrong instance type');
     }
 
     return result;
@@ -117,7 +117,7 @@ await new Promise<void>((resolve) => {
 const address = server.address();
 
 if (address === null || typeof address !== 'object') {
-  throw new Error('failed to determine server address');
+  throw RuntimeError.create('failed to determine server address');
 }
 
 // #region usage
@@ -130,7 +130,7 @@ const response = await executor.execute(async (client, signal) => {
   const result = await client.get('/flaky', { 'signal': signal });
 
   if (!result.ok) {
-    throw new Error(`HTTP ${result.status}`);
+    throw RuntimeError.create(`HTTP ${result.status}`);
   }
 
   return result;

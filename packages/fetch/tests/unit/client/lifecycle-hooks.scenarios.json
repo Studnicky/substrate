@@ -135,10 +135,10 @@
     },
     {
       "name": "undici-unknown-error",
-      "description": "Unknown undici error codes fall through to onRequestError",
+      "description": "Unknown runtime error codes fall through to onRequestError",
       "operation": "undici-error-wrap",
       "input": { "method": "GET", "path": "/error-unknown-code" },
-      "expected": { "hookName": "Error" }
+      "expected": { "hookName": "RuntimeError" }
     },
     {
       "name": "request-error-string",

@@ -1,15 +1,23 @@
-/** Iterable collection of validation violations with RFC 7807 reporting. */
+/** Iterable collection of validation violations with RFC 9457 Problem Details reporting. */
 
 import { Predicates } from '@studnicky/types';
 
+import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
-import type { ValidationProblemDetailsEntity } from '../entities/ValidationProblemDetailsEntity.js';
 import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
 import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 
+import {
+  PROBLEM_TITLE_VALIDATION,
+  PROBLEM_TYPE_VALIDATION
+} from '../constants/ProblemConstants.js';
+import { RuntimeError } from './RuntimeError.js';
 import { ValidationError } from './ValidationError.js';
 
-const DEFAULT_PROBLEM_TYPE = 'https://problems.studnicky.dev/validation';
+
+
+/** RFC 9457 3.1.3: the status an origin server would generate for a validation failure. */
+const UNPROCESSABLE_ENTITY_STATUS = 422;
 
 interface ValidationErrorsSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
@@ -40,7 +48,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [items]);
     if (!ValidationErrorsInstance.belongsTo(this, result)) {
-      throw new TypeError('ValidationErrors.create() did not construct the requested subclass.');
+      throw RuntimeError.create('ValidationErrors.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -144,16 +152,22 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     return result;
   }
 
-  /** RFC 7807 Problem Details payload; defaults: type validation URI, title 'Validation failed', status 422. */
-  public report(options?: ValidationReportOptionsEntity.Type): ValidationProblemDetailsEntity.Type {
+  /**
+   * RFC 9457 Problem Details payload for this collection.
+   *
+   * `type` and `title` describe the problem TYPE and are stable; `detail` counts THIS
+   * occurrence's violations, per 3.1.4. The individual violations ride in the `errors`
+   * extension member (3.2) rather than displacing any registered member.
+   */
+  public report(options?: ValidationReportOptionsEntity.Type): ProblemDetailsEntity.Type {
     const count = this.#items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
-    const result: ValidationProblemDetailsEntity.Type = {
+    const result: ProblemDetailsEntity.Type = {
       'detail': detail,
       'errors': [...this.items],
-      'status': options?.status ?? 422,
-      'title': options?.title ?? 'Validation failed',
-      'type': options?.type ?? DEFAULT_PROBLEM_TYPE
+      'status': options?.status ?? UNPROCESSABLE_ENTITY_STATUS,
+      'title': options?.title ?? PROBLEM_TITLE_VALIDATION,
+      'type': options?.type ?? PROBLEM_TYPE_VALIDATION
     };
     return result;
   }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -33,7 +34,7 @@ function resolveBatchMaxConcurrent(input: ScenarioInput): number | undefined {
 function requireBatchMaxConcurrent(input: ScenarioInput): number {
   const maxConcurrent = resolveBatchMaxConcurrent(input);
   if (maxConcurrent === undefined) {
-    throw new Error('Scenario input.batch.maxConcurrent is required');
+    throw RuntimeError.create('Scenario input.batch.maxConcurrent is required');
   }
   return maxConcurrent;
 }
@@ -168,7 +169,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const first = batchTimestamps[0];
     const second = batchTimestamps[1];
     if (first === undefined || second === undefined) {
-      throw new Error('Expected two batch timestamps');
+      throw RuntimeError.create('Expected two batch timestamps');
     }
     assert.ok(second - first >= Number(expected.minGapMs));
   },
@@ -180,7 +181,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const consumeGenerator = async (): Promise<void> => {
       for await (const batch of createScenarioBatch<number>(input).process(items, async (item) => {
         if (item === Number(input.errorItem)) {
-          throw new Error(String(input.errorMessage));
+          throw RuntimeError.create(String(input.errorMessage));
         }
         return item;
       })) {
@@ -205,7 +206,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         processed.push(item);
         await delay(10);
         if (item === Number(input.errorItem)) {
-          throw new Error(String(input.errorMessage));
+          throw RuntimeError.create(String(input.errorMessage));
         }
         return item;
       })) {

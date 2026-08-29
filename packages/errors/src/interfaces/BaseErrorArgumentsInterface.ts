@@ -17,6 +17,8 @@ export interface BaseErrorArgumentsInterface {
   'code': ErrorWithCodeEntity.Type['code'];
   /** Optional correlation ID for distributed tracing. */
   'correlationId'?: string | undefined;
+  /** RFC 9457 `instance`: URI reference identifying this specific occurrence. */
+  'instance'?: string | undefined;
   /** Human-readable description of what went wrong. */
   'message': ErrorDiagnosticEntity.Type['message'];
   /**
@@ -26,4 +28,6 @@ export interface BaseErrorArgumentsInterface {
   'metadata'?: Readonly<Record<string, JSONSchema7Type>>;
   /** Whether this error represents a transient condition that may succeed on retry. */
   'retryable'?: ErrorClassificationEntity.Type['retryable'];
+  /** RFC 9457 `status`: HTTP status code an origin server would generate for this occurrence. */
+  'status'?: number | undefined;
 }

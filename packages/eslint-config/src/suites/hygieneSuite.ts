@@ -17,6 +17,7 @@ export const hygieneSuite: Linter.Config = {
     '@studnicky/hash-private-fields': 'error',
     '@studnicky/inline-trivial-logic': 'error',
     '@studnicky/lexical-this-only': 'error',
+    '@studnicky/no-function-registries': 'error',
     '@studnicky/prefer-collection-types': 'error',
     '@studnicky/require-options-object': 'error',
     '@studnicky/single-export': 'error',

@@ -1,7 +1,7 @@
 /** Options for constructing a `ModuleError`. */
 import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
 import type { ErrorWithCodeEntity } from '../entities/ErrorWithCodeEntity.js';
-import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
+import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 
 export interface ModuleErrorOptionsInterface {
   /** Underlying error that caused this error. */
@@ -17,5 +17,5 @@ export interface ModuleErrorOptionsInterface {
   readonly 'retryable': ErrorClassificationEntity.Type['retryable'] | undefined;
 
   /** HTTP status code associated with the error. */
-  readonly 'statusCode': ErrorWithStatusCodeEntity.Type['statusCode'] | undefined;
+  readonly 'status': ErrorWithStatusEntity.Type['status'] | undefined;
 }

@@ -2,6 +2,7 @@
  * Boundary Kit — composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern
  */
 
+import { RuntimeError } from '@studnicky/errors';
 import { CircuitBreaker } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
 import { Throttle } from '@studnicky/throttle';
@@ -83,10 +84,10 @@ export class BoundaryKit {
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
     }]);
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
+      throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
     if (!BoundaryKit.isConstructed(result, this)) {
-      throw new TypeError('BoundaryKit.create() must construct a BoundaryKit instance');
+      throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
     return result;
   }

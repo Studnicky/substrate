@@ -21,6 +21,18 @@ assert_release_suite_dispatches_shared_gates() {
 
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-lockstep 1.0.0
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" changeset-status origin/develop
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0 2>release-suite-release-branch.out; then
+      fail "release branch changeset" "expected a release branch without a changeset to fail"
+    fi
+    assert_contains "release branch changeset error" "No pending changeset found" "$(cat release-suite-release-branch.out)"
+
+    printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/release.md
+    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" publish-gates 1.0.0 2>release-suite-publish.out; then
+      fail "publish consumed changesets" "expected publishing with a pending changeset to fail"
+    fi
+
+    rm .changeset/release.md
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" publish-gates 1.0.0
   )
   rm -rf "$repo"
@@ -47,10 +59,10 @@ assert_release_suite_backmerge_preserves_base_changesets() {
     printf '%s\n' 'changed' > .changeset/pending.md
     git add .changeset/pending.md
     git commit -q -m "chore: alter pending changeset"
-    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge 1.0.0 origin/develop 2>/tmp/release-suite-backmerge.out; then
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge 1.0.0 origin/develop 2>release-suite-backmerge.out; then
       fail "release backmerge changesets" "expected changed .changeset entries to fail"
     fi
-    assert_contains "release backmerge error" "Release backmerge changes .changeset entries" "$(cat /tmp/release-suite-backmerge.out)"
+    assert_contains "release backmerge error" "Release backmerge changes .changeset entries" "$(cat release-suite-backmerge.out)"
   )
   rm -rf "$repo"
   pass_count=$((pass_count + 1))

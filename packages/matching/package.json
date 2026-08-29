@@ -1,0 +1,80 @@
+{
+  "name": "@studnicky/matching",
+  "version": "11.1.0",
+  "description": "Deterministic matching, scoring, encoding, and candidate-source primitives",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./candidate-sources": {
+      "types": "./dist/candidate-sources/index.d.ts",
+      "import": "./dist/candidate-sources/index.js"
+    },
+    "./encoders": {
+      "types": "./dist/encoders/index.d.ts",
+      "import": "./dist/encoders/index.js"
+    },
+    "./extractors": {
+      "types": "./dist/extractors/index.d.ts",
+      "import": "./dist/extractors/index.js"
+    },
+    "./matchers": {
+      "types": "./dist/matchers/index.d.ts",
+      "import": "./dist/matchers/index.js"
+    },
+    "./normalizers": {
+      "types": "./dist/normalizers/index.d.ts",
+      "import": "./dist/normalizers/index.js"
+    },
+    "./scorers": {
+      "types": "./dist/scorers/index.d.ts",
+      "import": "./dist/scorers/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "type-check": "tsc --noEmit",
+    "test": "node ../../scripts/test-suite.mjs all --package ."
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/matching"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/cache": "workspace:*",
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*",
+    "double-metaphone": "2.0.1",
+    "picomatch": "4.0.5"
+  },
+  "devDependencies": {
+    "@types/picomatch": "4.0.3"
+  }
+}

@@ -37,6 +37,8 @@ Apply RFC-6902 JSON Patch operations by passing one operation or an operation ar
 
 `PatchOperationCoreEntity` is the schema-derived contract for the shared RFC-6902 fields. Its `Schema`, `Type`, and `validate` members define and validate required string `path`, the supported `op` values, and optional string `from`.
 
+`Patch.diff(before, after)` creates a validated RFC-6902 `Patch` between two independently obtained JSON values. It validates both JSON boundaries and uses the same recursive operation emitter as `Draft.producePatch`, without requiring a draft mutation recipe. Read the generated operations through `patch.operations` or apply the patch directly.
+
 `PatchOperationInterface` extends `PatchOperationCoreEntity.Type` with an optional `value: JSONSchema7Type`. `Patch.create` accepts unknown input, rejects fields outside `from`, `op`, `path`, and `value`, and validates the projected core fields through `PatchOperationCoreEntity.validate`. When `value` is present, validation traverses the complete value and rejects nested functions, symbols, bigints, `undefined`, cycles, and other non-JSON values. Variant-specific behavior remains part of patch application rather than the shared core schema.
 
 `JSONSchema7Type` belongs to `json-schema`. Import it directly from `json-schema` when annotating operation values passed to `Patch.create(operations)`; its declarations come from the package's direct `@types/json-schema` dependency. `@studnicky/json` does not export a proxy alias for the dependency-owned type. The patch instance's readonly `operations` property is the public projection of its validated operations and returns deeply isolated values.
@@ -161,7 +163,7 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 |---|---|---|
 | `Clone` | Provides clone functionality. | `@studnicky/json` |
 | `DataType` | Provides data type functionality. | `@studnicky/json` |
-| `Draft` | Provides draft functionality. | `@studnicky/json` |
+| `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json` |
 | `Frozen` | Provides frozen functionality. | `@studnicky/json` |
 | `Hash` | Provides hash functionality. | `@studnicky/json` |
 | `Merge` | Provides merge functionality. | `@studnicky/json` |

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import { describe, it, mock } from 'node:test';
@@ -40,7 +41,7 @@ type SystemScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void
 function numberInput(expected: Record<string, unknown>, key: string): number {
   const value = expected[key];
   if (typeof value !== 'number') {
-    throw new Error(`expected.${key} must be a number`);
+    throw RuntimeError.create(`expected.${key} must be a number`);
   }
   return value;
 }
@@ -48,7 +49,7 @@ function numberInput(expected: Record<string, unknown>, key: string): number {
 function stringInput(expected: Record<string, unknown>, key: string): string {
   const value = expected[key];
   if (typeof value !== 'string') {
-    throw new Error(`expected.${key} must be a string`);
+    throw RuntimeError.create(`expected.${key} must be a string`);
   }
   return value;
 }
@@ -56,7 +57,7 @@ function stringInput(expected: Record<string, unknown>, key: string): string {
 function booleanInput(expected: Record<string, unknown>, key: string): boolean {
   const value = expected[key];
   if (typeof value !== 'boolean') {
-    throw new Error(`expected.${key} must be a boolean`);
+    throw RuntimeError.create(`expected.${key} must be a boolean`);
   }
   return value;
 }
@@ -183,7 +184,7 @@ const scenarioRunners: Record<SystemScenarioShape, SystemScenarioRunner> = {
   'gpu-caches-detection': (scenarioCase) => {
     const { detectedGpu } = scenarioCase.input.system;
     if (detectedGpu === undefined) {
-      throw new Error('gpu-caches-detection requires input.system.detectedGpu');
+      throw RuntimeError.create('gpu-caches-detection requires input.system.detectedGpu');
     }
     const detectGpu = mock.method(
       SystemProvider.prototype,
@@ -194,13 +195,13 @@ const scenarioRunners: Record<SystemScenarioShape, SystemScenarioRunner> = {
     try {
       const first = System.gpu();
       if (first === null) {
-        throw new Error('mocked GPU detection returned null');
+        throw RuntimeError.create('mocked GPU detection returned null');
       }
       Reflect.set(first, 'name', 'tampered');
 
       const second = System.gpu();
       if (second === null) {
-        throw new Error('cached GPU detection returned null');
+        throw RuntimeError.create('cached GPU detection returned null');
       }
       assert.equal(detectGpu.mock.callCount(), numberInput(scenarioCase.expected, 'callCount'));
       const cachedWithoutExposingMutation = detectGpu.mock.callCount() === 1 && second.name === detectedGpu.name;

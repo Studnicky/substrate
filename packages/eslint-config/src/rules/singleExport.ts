@@ -4,6 +4,7 @@ import type {
 } from 'json-schema-to-ts';
 import type * as ts from 'typescript';
 
+import { Predicates } from '@studnicky/types';
 import path from 'node:path';
 import {
   type Program, type Symbol, SymbolFlags
@@ -15,7 +16,6 @@ import {
   SCREAMING_SNAKE_CASE_PATTERN,
   WORD_REGEX
 } from './constants/SingleExportConstants.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 
 // Locale-aware string comparator for display-ordering export names in lint messages.
 // `Intl.Collator.prototype.compare` is a pre-bound native function (per ECMA-402) —
@@ -259,13 +259,13 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
+    if (!Predicates.isRecord(value)) {
       return false;
     }
     if (typeof value.getSymbolAtLocation !== 'function' || typeof value.getTypeAtLocation !== 'function') {
       return false;
     }
-    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = Predicates.isRecord(value.program) && typeof value.program.getTypeChecker === 'function';
 
     return result;
   }
@@ -319,7 +319,7 @@ class ExportClassifier {
     }
     const exportNode: unknown = node;
 
-    if (!ObjectGuard.isObject(exportNode)) {
+    if (!Predicates.isRecord(exportNode)) {
       return ExportShape.Other;
     }
 
@@ -331,11 +331,11 @@ class ExportClassifier {
     // alias or interface declaration is inherently type-only — those own an actual `declaration`
     // and must fall through to the `TSTypeAliasDeclaration`/`TSInterfaceDeclaration` branches
     // below instead of being swallowed into `TypeReexport` here.
-    if (exportNode.exportKind === 'type' && !ObjectGuard.isObject(decl)) {
+    if (exportNode.exportKind === 'type' && !Predicates.isRecord(decl)) {
       return ExportShape.TypeReexport;
     }
 
-    if (!ObjectGuard.isObject(decl)) {
+    if (!Predicates.isRecord(decl)) {
       return ExportShape.Other;
     }
 
@@ -376,7 +376,7 @@ class ExportClassifier {
       for (let index = 0; index < declarationsLength; index += 1) {
         const declarator = declarations.at(index);
 
-        if (!ObjectGuard.isObject(declarator) || !ObjectGuard.isObject(declarator.init)) {
+        if (!Predicates.isRecord(declarator) || !Predicates.isRecord(declarator.init)) {
           continue;
         }
         const initType = declarator.init.type;

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
@@ -287,7 +288,7 @@ function assertScenarioMetadataAcceptsStringFingerprint(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-accepts-string-fingerprint' }> {
   if (scenario.shape !== 'metadata-accepts-string-fingerprint') {
-    throw new Error(`Scenario shape mismatch: expected "metadata-accepts-string-fingerprint", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "metadata-accepts-string-fingerprint", received "${scenario.shape}"`);
   }
 }
 
@@ -295,7 +296,7 @@ function assertScenarioMetadataRejectsInvalidFingerprint(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-rejects-invalid-fingerprint' }> {
   if (scenario.shape !== 'metadata-rejects-invalid-fingerprint') {
-    throw new Error(`Scenario shape mismatch: expected "metadata-rejects-invalid-fingerprint", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "metadata-rejects-invalid-fingerprint", received "${scenario.shape}"`);
   }
 }
 
@@ -303,7 +304,7 @@ function assertScenarioCoalesceSharesOneExecution(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'coalesce-shares-one-execution' }> {
   if (scenario.shape !== 'coalesce-shares-one-execution') {
-    throw new Error(`Scenario shape mismatch: expected "coalesce-shares-one-execution", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "coalesce-shares-one-execution", received "${scenario.shape}"`);
   }
 }
 
@@ -311,7 +312,7 @@ function assertScenarioResultContractOwned(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-owned' }> {
   if (scenario.shape !== 'result-contract-owned') {
-    throw new Error(`Scenario shape mismatch: expected "result-contract-owned", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "result-contract-owned", received "${scenario.shape}"`);
   }
 }
 
@@ -319,7 +320,7 @@ function assertScenarioResultContractRejectsInvalidFactory(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-rejects-invalid-factory' }> {
   if (scenario.shape !== 'result-contract-rejects-invalid-factory') {
-    throw new Error(`Scenario shape mismatch: expected "result-contract-rejects-invalid-factory", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "result-contract-rejects-invalid-factory", received "${scenario.shape}"`);
   }
 }
 
@@ -327,7 +328,7 @@ function assertScenarioConflictSameKeyDifferentPayload(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-same-key-different-payload' }> {
   if (scenario.shape !== 'conflict-same-key-different-payload') {
-    throw new Error(`Scenario shape mismatch: expected "conflict-same-key-different-payload", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "conflict-same-key-different-payload", received "${scenario.shape}"`);
   }
 }
 
@@ -335,7 +336,7 @@ function assertScenarioConflictExposesKey(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-exposes-key' }> {
   if (scenario.shape !== 'conflict-exposes-key') {
-    throw new Error(`Scenario shape mismatch: expected "conflict-exposes-key", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "conflict-exposes-key", received "${scenario.shape}"`);
   }
 }
 
@@ -343,7 +344,7 @@ function assertScenarioReplayAcceptsSyncFactory(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'replay-accepts-sync-factory' }> {
   if (scenario.shape !== 'replay-accepts-sync-factory') {
-    throw new Error(`Scenario shape mismatch: expected "replay-accepts-sync-factory", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-accepts-sync-factory", received "${scenario.shape}"`);
   }
 }
 
@@ -351,7 +352,7 @@ function assertScenarioReplayCachedResult(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'replay-cached-result' }> {
   if (scenario.shape !== 'replay-cached-result') {
-    throw new Error(`Scenario shape mismatch: expected "replay-cached-result", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-cached-result", received "${scenario.shape}"`);
   }
 }
 
@@ -359,7 +360,7 @@ function assertScenarioReplayExpiredEntryReruns(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'replay-expired-entry-reruns' }> {
   if (scenario.shape !== 'replay-expired-entry-reruns') {
-    throw new Error(`Scenario shape mismatch: expected "replay-expired-entry-reruns", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-expired-entry-reruns", received "${scenario.shape}"`);
   }
 }
 
@@ -367,7 +368,7 @@ function assertScenarioHooksExecuteNewKey(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-new-key' }> {
   if (scenario.shape !== 'hooks-execute-new-key') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-execute-new-key", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-execute-new-key", received "${scenario.shape}"`);
   }
 }
 
@@ -375,7 +376,7 @@ function assertScenarioHooksExecuteBeforeFactory(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-before-factory' }> {
   if (scenario.shape !== 'hooks-execute-before-factory') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-execute-before-factory", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-execute-before-factory", received "${scenario.shape}"`);
   }
 }
 
@@ -383,7 +384,7 @@ function assertScenarioHooksReplayMatch(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-replay-match' }> {
   if (scenario.shape !== 'hooks-replay-match') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-replay-match", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-replay-match", received "${scenario.shape}"`);
   }
 }
 
@@ -391,7 +392,7 @@ function assertScenarioHooksConflictBeforeThrow(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-conflict-before-throw' }> {
   if (scenario.shape !== 'hooks-conflict-before-throw') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-conflict-before-throw", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-conflict-before-throw", received "${scenario.shape}"`);
   }
 }
 
@@ -399,7 +400,7 @@ function assertScenarioHooksCoalesceFollower(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-coalesce-follower' }> {
   if (scenario.shape !== 'hooks-coalesce-follower') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-coalesce-follower", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-coalesce-follower", received "${scenario.shape}"`);
   }
 }
 
@@ -407,7 +408,7 @@ function assertScenarioHooksIsolatedInstances(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-isolated-instances' }> {
   if (scenario.shape !== 'hooks-isolated-instances') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-isolated-instances", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-isolated-instances", received "${scenario.shape}"`);
   }
 }
 
@@ -415,7 +416,7 @@ function assertScenarioHooksThrowingReplay(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-replay' }> {
   if (scenario.shape !== 'hooks-throwing-replay') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-replay", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-replay", received "${scenario.shape}"`);
   }
 }
 
@@ -423,7 +424,7 @@ function assertScenarioHooksThrowingConflict(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-conflict' }> {
   if (scenario.shape !== 'hooks-throwing-conflict') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-conflict", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-conflict", received "${scenario.shape}"`);
   }
 }
 
@@ -431,7 +432,7 @@ function assertScenarioHooksThrowingExecute(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-execute' }> {
   if (scenario.shape !== 'hooks-throwing-execute') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-execute", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-execute", received "${scenario.shape}"`);
   }
 }
 
@@ -439,7 +440,7 @@ function assertScenarioHooksSyncReplaySwallowed(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-sync-replay-swallowed' }> {
   if (scenario.shape !== 'hooks-sync-replay-swallowed') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-sync-replay-swallowed", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-sync-replay-swallowed", received "${scenario.shape}"`);
   }
 }
 
@@ -447,7 +448,7 @@ function assertScenarioHooksAsyncReplaySafe(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-replay-safe' }> {
   if (scenario.shape !== 'hooks-async-replay-safe') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-async-replay-safe", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-async-replay-safe", received "${scenario.shape}"`);
   }
 }
 
@@ -455,7 +456,7 @@ function assertScenarioHooksThrowingCoalesce(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-coalesce' }> {
   if (scenario.shape !== 'hooks-throwing-coalesce') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-throwing-coalesce", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-coalesce", received "${scenario.shape}"`);
   }
 }
 
@@ -463,7 +464,7 @@ function assertScenarioHooksAsyncOverridesSafe(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-overrides-safe' }> {
   if (scenario.shape !== 'hooks-async-overrides-safe') {
-    throw new Error(`Scenario shape mismatch: expected "hooks-async-overrides-safe", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-async-overrides-safe", received "${scenario.shape}"`);
   }
 }
 
@@ -471,7 +472,7 @@ function assertScenarioRaceConcurrentDifferentPayload(
   scenario: ScenarioFixture
 ): asserts scenario is Extract<ScenarioCase, { shape: 'race-concurrent-different-payload' }> {
   if (scenario.shape !== 'race-concurrent-different-payload') {
-    throw new Error(`Scenario shape mismatch: expected "race-concurrent-different-payload", received "${scenario.shape}"`);
+    throw RuntimeError.create(`Scenario shape mismatch: expected "race-concurrent-different-payload", received "${scenario.shape}"`);
   }
 }
 
@@ -561,7 +562,7 @@ function createGuard<TResult>(options: GuardOptions): IdempotencyGuard<TResult> 
 function sourceLiteral(value: IdempotencyPayloadEntity.Type): string {
   const literal = JSON.stringify(value);
   if (literal === undefined) {
-    throw new Error('Scenario fixture is not JSON serializable');
+    throw RuntimeError.create('Scenario fixture is not JSON serializable');
   }
   return literal;
 }
@@ -651,7 +652,7 @@ function assertDiagnosticPattern(diagnostic: string, pattern: string): void {
   const predicate = diagnosticPatternPredicates[pattern];
 
   if (predicate === undefined) {
-    throw new Error(`Unsupported diagnostic message pattern scenario: ${pattern}`);
+    throw RuntimeError.create(`Unsupported diagnostic message pattern scenario: ${pattern}`);
   }
 
   assert.equal(predicate(diagnostic), true);
@@ -775,7 +776,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     await runScenarioInput(guard, input, async () => scenario.expected.result);
     try {
       await runConflictingScenarioInput(guard, input, async () => scenario.expected.result);
-      throw new Error('expected IdempotencyConflictError to be thrown');
+      throw RuntimeError.create('expected IdempotencyConflictError to be thrown');
     } catch (error) {
       if (!(error instanceof IdempotencyConflictError)) {
         throw error;
@@ -982,7 +983,7 @@ const scenarioRunners: ScenarioRunnerMap = {
       }
 
       protected override onReplay(): void {
-        throw new Error('onReplay boom');
+        throw RuntimeError.create('onReplay boom');
       }
     }
 
@@ -1001,7 +1002,7 @@ const scenarioRunners: ScenarioRunnerMap = {
       }
 
       protected override onConflict(): void {
-        throw new Error('onConflict boom');
+        throw RuntimeError.create('onConflict boom');
       }
     }
 
@@ -1019,7 +1020,7 @@ const scenarioRunners: ScenarioRunnerMap = {
       }
 
       protected override onExecute(): void {
-        throw new Error('onExecute boom');
+        throw RuntimeError.create('onExecute boom');
       }
     }
 
@@ -1036,7 +1037,7 @@ const scenarioRunners: ScenarioRunnerMap = {
       }
 
       protected override onReplay(): void {
-        throw new Error('onReplay boom (post-HookInvoking-migration)');
+        throw RuntimeError.create('onReplay boom (post-HookInvoking-migration)');
       }
     }
 
@@ -1058,7 +1059,7 @@ const scenarioRunners: ScenarioRunnerMap = {
 
       protected override async onReplay(_key: string): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onReplay boom');
+        throw RuntimeError.create('async onReplay boom');
       }
     }
 
@@ -1095,7 +1096,7 @@ const scenarioRunners: ScenarioRunnerMap = {
       }
 
       protected override onCoalesce(): void {
-        throw new Error('onCoalesce boom');
+        throw RuntimeError.create('onCoalesce boom');
       }
     }
 
@@ -1130,25 +1131,25 @@ const scenarioRunners: ScenarioRunnerMap = {
       protected override async onExecute(): Promise<void> {
         events.push('execute');
         await Promise.resolve();
-        throw new Error('onExecute async boom');
+        throw RuntimeError.create('onExecute async boom');
       }
 
       protected override async onCoalesce(): Promise<void> {
         events.push('coalesce');
         await Promise.resolve();
-        throw new Error('onCoalesce async boom');
+        throw RuntimeError.create('onCoalesce async boom');
       }
 
       protected override async onReplay(): Promise<void> {
         events.push('replay');
         await Promise.resolve();
-        throw new Error('onReplay async boom');
+        throw RuntimeError.create('onReplay async boom');
       }
 
       protected override async onConflict(): Promise<void> {
         events.push('conflict');
         await Promise.resolve();
-        throw new Error('onConflict async boom');
+        throw RuntimeError.create('onConflict async boom');
       }
     }
 
@@ -1245,7 +1246,7 @@ function isScenarioShape(shape: string): shape is ScenarioShape {
 
 async function runScenario(scenario: ScenarioFixture): Promise<void> {
   if (!isScenarioShape(scenario.shape)) {
-    throw new Error(`Unknown scenario shape: ${scenario.shape}`);
+    throw RuntimeError.create(`Unknown scenario shape: ${scenario.shape}`);
   }
   await scenarioRunners[scenario.shape](scenario);
 }

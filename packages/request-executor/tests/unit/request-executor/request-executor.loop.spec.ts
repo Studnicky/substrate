@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
@@ -182,7 +183,7 @@ class TrackingRequestExecutor extends RequestExecutor {
   static track(config: RequestExecutorConfigInterface = {}): TrackingRequestExecutor {
     const result = this.create(config);
     if (!(result instanceof TrackingRequestExecutor)) {
-      throw new TypeError('Expected TrackingRequestExecutor instance');
+      throw RuntimeError.create('Expected TrackingRequestExecutor instance');
     }
     return result;
   }
@@ -206,14 +207,14 @@ class ThrowingErrorHookRequestExecutor extends RequestExecutor {
   static thrown(config: RequestExecutorConfigInterface, hookFailureMessage: string): ThrowingErrorHookRequestExecutor {
     const result = this.create(config);
     if (!(result instanceof ThrowingErrorHookRequestExecutor)) {
-      throw new TypeError('Expected ThrowingErrorHookRequestExecutor instance');
+      throw RuntimeError.create('Expected ThrowingErrorHookRequestExecutor instance');
     }
     result.#hookFailureMessage = hookFailureMessage;
     return result;
   }
 
   protected override onExecuteError(_error: Error): void {
-    throw new Error(this.#hookFailureMessage);
+    throw RuntimeError.create(this.#hookFailureMessage);
   }
 }
 
@@ -272,7 +273,7 @@ function createRetryFromScenario(input: ScenarioRequestExecutorInputInterface): 
 
 function requireContextFromScenario(input: ScenarioRequestExecutorInputInterface): Context {
   if (input.context === undefined) {
-    throw new Error('Scenario input.requestExecutor.context is required');
+    throw RuntimeError.create('Scenario input.requestExecutor.context is required');
   }
   return Context.create(input.context);
 }
@@ -339,7 +340,7 @@ const runnerMap: RunnerMap = {
       sameFetchClientObserved = client === fetchClient;
       attempts += 1;
       if (attempts === 1) {
-        throw new Error(scenarioCase.input.retryFailOnceMessage);
+        throw RuntimeError.create(scenarioCase.input.retryFailOnceMessage);
       }
       return scenarioCase.expected.result;
     });
@@ -378,7 +379,7 @@ const runnerMap: RunnerMap = {
       context.set('requestId', scenarioCase.input.contextValue);
       const requestId = context.get('requestId');
       if (typeof requestId !== 'string') {
-        throw new TypeError('Expected requestId context value to be a string');
+        throw RuntimeError.create('Expected requestId context value to be a string');
       }
       observedRequestId = requestId;
       return client.get('/', { signal });
@@ -405,7 +406,7 @@ const runnerMap: RunnerMap = {
       async (client, signal) => {
         const seed = context.get('seed');
         if (typeof seed !== 'number') {
-          throw new TypeError('Expected seed context value to be a number');
+          throw RuntimeError.create('Expected seed context value to be a number');
         }
         observedSeed = seed;
         return client.get('/', { signal });
@@ -518,7 +519,7 @@ const runnerMap: RunnerMap = {
     const response = await executor.execute(async (client, signal) => {
       const result = await client.get(scenarioCase.input.fetchPath, { signal });
       if (!result.ok) {
-        throw new Error(`HTTP ${result.status}`);
+        throw RuntimeError.create(`HTTP ${result.status}`);
       }
       return result;
     });
@@ -535,7 +536,7 @@ const runnerMap: RunnerMap = {
 
     const error = await captureRejectedError(
       executor.execute(async () => {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       })
     );
     assertErrorMessageIncludes(error, scenarioCase.input.errorMessage);
@@ -553,7 +554,7 @@ const runnerMap: RunnerMap = {
 
     const error = await captureRejectedError(
       executor.execute(async () => {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       })
     );
     // A throwing onExecuteError override must not replace the request failure it
@@ -601,7 +602,7 @@ const runnerMap: RunnerMap = {
     const response = await executor.execute(async (client, signal) => {
       const result = await client.get(scenarioCase.input.fetchPath, { signal });
       if (!result.ok) {
-        throw new Error(`HTTP ${result.status}`);
+        throw RuntimeError.create(`HTTP ${result.status}`);
       }
       return result;
     });

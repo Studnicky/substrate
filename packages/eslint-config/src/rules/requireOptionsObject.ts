@@ -3,8 +3,7 @@ import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
-
-import { ObjectGuard } from './shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 
 namespace RequireOptionsObjectOptionsEntity {
   export const Schema = {
@@ -42,10 +41,10 @@ class ParamInspector {
    */
   private static hasUndefinedUnionAnnotation(param: Record<string, unknown>): boolean {
     const ann = param.typeAnnotation;
-    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
+    if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return false; }
     const typeAnnotation = ann.typeAnnotation;
     if (typeAnnotation.type !== 'TSUnionType' || !Array.isArray(typeAnnotation.types)) { return false; }
-    const result = typeAnnotation.types.some((member) => {const isUndefinedMember = ObjectGuard.isObject(member) && member.type === 'TSUndefinedKeyword';
+    const result = typeAnnotation.types.some((member) => {const isUndefinedMember = Predicates.isRecord(member) && member.type === 'TSUndefinedKeyword';
       return isUndefinedMember;});
     return result;
   }
@@ -58,13 +57,13 @@ class ParamInspector {
    */
   private static tupleOptionalCount(param: Record<string, unknown>): number {
     const ann = param.typeAnnotation;
-    if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return 0; }
+    if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return 0; }
     const typeAnnotation = ann.typeAnnotation;
     if (typeAnnotation.type !== 'TSTupleType' || !Array.isArray(typeAnnotation.elementTypes)) { return 0; }
 
     let count = 0;
     typeAnnotation.elementTypes.forEach((element) => {
-      if (!ObjectGuard.isObject(element)) { return; }
+      if (!Predicates.isRecord(element)) { return; }
       if (element.type === 'TSNamedTupleMember' && element.optional === true) { count += 1; return; }
       if (element.type === 'TSOptionalType') { count += 1; }
     });
@@ -77,7 +76,7 @@ class ParamInspector {
    * one per optional tuple member, since it is not really a single param for this rule's purposes.
    */
   public static optionalCount(param: unknown): number {
-    if (!ObjectGuard.isObject(param)) { return 0; }
+    if (!Predicates.isRecord(param)) { return 0; }
     if (param.type === 'RestElement') { const result = ParamInspector.tupleOptionalCount(param);
       return result; }
     if (param.type === 'ObjectPattern') { return 0; }
@@ -91,19 +90,19 @@ class ParamInspector {
   }
 
   public static isOptionsObject(param: unknown): boolean {
-    if (!ObjectGuard.isObject(param)) { return false; }
+    if (!Predicates.isRecord(param)) { return false; }
     if (param.type === 'AssignmentPattern') {
-      const result = ObjectGuard.isObject(param.left) && param.left.type === 'ObjectPattern';
+      const result = Predicates.isRecord(param.left) && param.left.type === 'ObjectPattern';
       return result;
     }
     if (param.type === 'Identifier') {
       const ann = param.typeAnnotation;
-      if (!ObjectGuard.isObject(ann) || !ObjectGuard.isObject(ann.typeAnnotation)) { return false; }
+      if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return false; }
       const typeAnnotation = ann.typeAnnotation;
       if (typeAnnotation.type !== 'TSTypeLiteral' || !Array.isArray(typeAnnotation.members)) { return false; }
       // An empty `{}` or a pure index-signature literal (`{ [key: string]: unknown }`) carries
       // none of a real options object's type safety — require at least one named member.
-      const result = typeAnnotation.members.some((member) => {const isNamedMember = ObjectGuard.isObject(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
+      const result = typeAnnotation.members.some((member) => {const isNamedMember = Predicates.isRecord(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
         return isNamedMember;});
       return result;
     }
@@ -139,14 +138,14 @@ class ParamInspector {
 class FunctionName {
   public static fromParent(node: Rule.Node): string {
     const parent: unknown = node.parent;
-    if (!ObjectGuard.isObject(parent)) { return '(anonymous)'; }
-    if (parent.type === 'VariableDeclarator' && ObjectGuard.isObject(parent.id) && parent.id.type === 'Identifier') {
+    if (!Predicates.isRecord(parent)) { return '(anonymous)'; }
+    if (parent.type === 'VariableDeclarator' && Predicates.isRecord(parent.id) && parent.id.type === 'Identifier') {
       const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
       return result;
     }
     if (
       (parent.type === 'MethodDefinition' || parent.type === 'Property')
-      && ObjectGuard.isObject(parent.key)
+      && Predicates.isRecord(parent.key)
       && parent.key.type === 'Identifier'
     ) {
       const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
@@ -158,19 +157,19 @@ class FunctionName {
 
 class FunctionNodeProperties {
   public static getIdentifierName(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.id)) { return undefined; }
+    if (!Predicates.isRecord(node) || !Predicates.isRecord(node.id)) { return undefined; }
     if (node.id.type !== 'Identifier' || typeof node.id.name !== 'string') { return undefined; }
     return node.id.name;
   }
 
   public static getMethodName(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.key)) { return undefined; }
+    if (!Predicates.isRecord(node) || !Predicates.isRecord(node.key)) { return undefined; }
     if (node.key.type !== 'Identifier' || typeof node.key.name !== 'string') { return undefined; }
     return node.key.name;
   }
 
   public static getParameters(node: unknown): readonly unknown[] {
-    if (!ObjectGuard.isObject(node) || !Array.isArray(node.params)) { return []; }
+    if (!Predicates.isRecord(node) || !Array.isArray(node.params)) { return []; }
     return node.params;
   }
 }

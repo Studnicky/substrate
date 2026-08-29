@@ -13,7 +13,7 @@
           "name": "ModuleError",
           "code": "INTERNAL_ERROR",
           "retryable": false,
-          "statusCode": 500
+          "status": 500
         }
       }
     },
@@ -32,13 +32,13 @@
           "userId": "123"
         },
         "retryable": true,
-        "statusCode": 503
+        "status": 503
       },
       "expected": {
         "result": {
           "code": "DATABASE_ERROR",
           "retryable": true,
-          "statusCode": 503,
+          "status": 503,
           "context": {
             "operation": "fetch",
             "userId": "123"
@@ -109,7 +109,7 @@
       "expected": {
         "result": {
           "code": "CONNECTION_ERROR",
-          "statusCode": 503,
+          "status": 503,
           "retryable": true
         }
       }
@@ -125,7 +125,7 @@
       "expected": {
         "result": {
           "code": "AUTHENTICATION_ERROR",
-          "statusCode": 401,
+          "status": 401,
           "retryable": false
         }
       }
@@ -141,7 +141,7 @@
       "expected": {
         "result": {
           "code": "NOT_FOUND",
-          "statusCode": 404,
+          "status": 404,
           "retryable": false
         }
       }
@@ -307,7 +307,7 @@
       },
       "expected": {
         "result": {
-          "statusCode": 404
+          "status": 404
         }
       }
     },
@@ -317,11 +317,11 @@
       "shape": "http-allows-status-override",
       "input": {
         "scenario": "INTERNAL",
-        "statusCode": 503
+        "status": 503
       },
       "expected": {
         "result": {
-          "statusCode": 503
+          "status": 503
         }
       }
     },
@@ -602,7 +602,7 @@
             "name",
             "message",
             "code",
-            "statusCode",
+            "status",
             "retryable"
           ]
         }

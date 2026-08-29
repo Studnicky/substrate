@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
 
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ConditionalPropertyAssignmentConstants.js';
@@ -65,7 +66,7 @@ class AstWalker {
   // on (constructor bodies here), so the lack of a fast visitor-keys table
   // is not a performance concern.
   public static forEachDescendant(node: unknown, visit: (descendant: AstNodeInterface) => void): void {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return;
     }
 
@@ -101,7 +102,7 @@ class AstWalker {
   }
 
   private static visitValue(value: unknown, visit: (descendant: AstNodeInterface) => void): void {
-    if (!ObjectGuard.isObject(value) || typeof value.type !== 'string') {
+    if (!Predicates.isRecord(value) || typeof value.type !== 'string') {
       return;
     }
     visit(value);
@@ -114,25 +115,25 @@ class ThisAssignment {
   // computed member writes (`this[key] = ...`) — a dynamic key is
   // `dynamicPropertyAccess`'s concern, not this rule's.
   public static getPropertyName(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node) || node.type !== 'AssignmentExpression') {
+    if (!Predicates.isRecord(node) || node.type !== 'AssignmentExpression') {
       return undefined;
     }
 
     const left = node.left;
 
-    if (!ObjectGuard.isObject(left) || left.type !== 'MemberExpression' || left.computed === true) {
+    if (!Predicates.isRecord(left) || left.type !== 'MemberExpression' || left.computed === true) {
       return undefined;
     }
 
     const objectNode = left.object;
 
-    if (!ObjectGuard.isObject(objectNode) || objectNode.type !== 'ThisExpression') {
+    if (!Predicates.isRecord(objectNode) || objectNode.type !== 'ThisExpression') {
       return undefined;
     }
 
     const propertyNode = left.property;
 
-    if (!ObjectGuard.isObject(propertyNode) || propertyNode.type !== 'Identifier' || typeof propertyNode.name !== 'string') {
+    if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || typeof propertyNode.name !== 'string') {
       return undefined;
     }
 
@@ -194,19 +195,19 @@ class ClassMethodEligibility {
 
     const keyNode = methodDef.key;
 
-    if (!ObjectGuard.isObject(keyNode) || keyNode.type !== 'Identifier' || typeof keyNode.name !== 'string') {
+    if (!Predicates.isRecord(keyNode) || keyNode.type !== 'Identifier' || typeof keyNode.name !== 'string') {
       return false;
     }
     const methodName = keyNode.name;
 
     const classBody = methodDef.parent;
 
-    if (!ObjectGuard.isObject(classBody) || classBody.type !== 'ClassBody' || !Array.isArray(classBody.body)) {
+    if (!Predicates.isRecord(classBody) || classBody.type !== 'ClassBody' || !Array.isArray(classBody.body)) {
       return false;
     }
 
     const constructorDef = (classBody.body as readonly unknown[]).find((member): member is AstNodeInterface => {
-      const result = ObjectGuard.isObject(member) && member.type === 'MethodDefinition' && member.kind === 'constructor';
+      const result = Predicates.isRecord(member) && member.type === 'MethodDefinition' && member.kind === 'constructor';
 
       return result;
     });
@@ -217,7 +218,7 @@ class ClassMethodEligibility {
 
     const constructorFunction = constructorDef.value;
 
-    if (!ObjectGuard.isObject(constructorFunction)) {
+    if (!Predicates.isRecord(constructorFunction)) {
       return false;
     }
 
@@ -235,19 +236,19 @@ class ClassMethodEligibility {
       }
       const callee = descendant.callee;
 
-      if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
         return;
       }
 
       const objectNode = callee.object;
 
-      if (!ObjectGuard.isObject(objectNode) || objectNode.type !== 'ThisExpression') {
+      if (!Predicates.isRecord(objectNode) || objectNode.type !== 'ThisExpression') {
         return;
       }
 
       const propertyNode = callee.property;
 
-      if (ObjectGuard.isObject(propertyNode) && propertyNode.type === 'Identifier' && typeof propertyNode.name === 'string') {
+      if (Predicates.isRecord(propertyNode) && propertyNode.type === 'Identifier' && typeof propertyNode.name === 'string') {
         names.add(propertyNode.name);
       }
     });
@@ -262,13 +263,13 @@ class StatementAssignments {
   // expression statement, a return, a nested if, …) is not a "direct" assignment at this
   // level and is left to whatever listener owns that shape.
   private static collectOne(statement: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
-    if (!ObjectGuard.isObject(statement) || statement.type !== 'ExpressionStatement') {
+    if (!Predicates.isRecord(statement) || statement.type !== 'ExpressionStatement') {
       return [];
     }
 
     const propertyName = ThisAssignment.getPropertyName(statement.expression);
 
-    if (propertyName === undefined || !ObjectGuard.isObject(statement.expression)) {
+    if (propertyName === undefined || !Predicates.isRecord(statement.expression)) {
       return [];
     }
 
@@ -281,7 +282,7 @@ class StatementAssignments {
   // single branch node — a `BlockStatement` (its `.body` is walked one level) or a bare
   // single statement (an `if` without braces, or one `switch`-case statement).
   public static collectBranch(branchNode: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
-    if (!ObjectGuard.isObject(branchNode)) {
+    if (!Predicates.isRecord(branchNode)) {
       return [];
     }
 
@@ -344,7 +345,7 @@ class ObjectExpressionKeys {
   // spread or computed key defeats static analysis, and the caller resolves toward the
   // stricter side (flags) rather than guess.
   public static namesOf(node: unknown): ReadonlySet<string> | undefined {
-    if (!ObjectGuard.isObject(node) || node.type !== 'ObjectExpression' || !Array.isArray(node.properties)) {
+    if (!Predicates.isRecord(node) || node.type !== 'ObjectExpression' || !Array.isArray(node.properties)) {
       return undefined;
     }
 
@@ -355,7 +356,7 @@ class ObjectExpressionKeys {
     for (let index = 0; index < propertiesLength; index += 1) {
       const property = properties.at(index);
 
-      if (!ObjectGuard.isObject(property) || property.type !== 'Property' || property.computed === true) {
+      if (!Predicates.isRecord(property) || property.type !== 'Property' || property.computed === true) {
         return undefined;
       }
 
@@ -367,7 +368,7 @@ class ObjectExpressionKeys {
       // `Identifier`-only check would never resolve real, convention-compliant code and
       // this method would always return `undefined` (i.e. always flag, defeating the
       // same-key exemption below).
-      if (!ObjectGuard.isObject(key)) {
+      if (!Predicates.isRecord(key)) {
         return undefined;
       }
 
@@ -395,7 +396,7 @@ class CaseAssignments {
   // statements within a single switch case's consequent — matches the
   // documented `case X: this.a = 1; break;` shape without a full deep walk.
   public static collect(switchCase: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
-    if (!ObjectGuard.isObject(switchCase) || !Array.isArray(switchCase.consequent)) {
+    if (!Predicates.isRecord(switchCase) || !Array.isArray(switchCase.consequent)) {
       return [];
     }
 
@@ -546,17 +547,17 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
       const callee = node.callee;
 
-      if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression') {
+      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
         return;
       }
 
       const objectNode = callee.object;
       const propertyNode = callee.property;
 
-      if (!ObjectGuard.isObject(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
+      if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
         return;
       }
-      if (!ObjectGuard.isObject(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'assign') {
+      if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'assign') {
         return;
       }
 
@@ -565,10 +566,10 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
         secondArg
       ] = node.arguments;
 
-      if (!ObjectGuard.isObject(firstArg) || firstArg.type !== 'ThisExpression') {
+      if (!Predicates.isRecord(firstArg) || firstArg.type !== 'ThisExpression') {
         return;
       }
-      if (!ObjectGuard.isObject(secondArg) || secondArg.type !== 'ConditionalExpression') {
+      if (!Predicates.isRecord(secondArg) || secondArg.type !== 'ConditionalExpression') {
         return;
       }
 

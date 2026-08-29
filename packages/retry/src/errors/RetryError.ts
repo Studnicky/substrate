@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors';
+import { BaseError, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
@@ -11,7 +11,7 @@ class RetryDiagnosticSnapshot {
     const snapshot = this.object(error, seen);
 
     if (!(snapshot instanceof Error)) {
-      throw new TypeError('Retry diagnostic snapshot must preserve Error values.');
+      throw RuntimeError.create('Retry diagnostic snapshot must preserve Error values.');
     }
 
     return snapshot;
@@ -22,13 +22,13 @@ class RetryDiagnosticSnapshot {
       const result = seen.get(value);
 
       if (result === undefined || !Predicates.isObjectLikeOrFunction(result)) {
-        throw new TypeError('Retry diagnostic snapshot must preserve object values.');
+        throw RuntimeError.create('Retry diagnostic snapshot must preserve object values.');
       }
       return result;
     }
 
     if (value instanceof Error) {
-      const snapshot = new Error(value.message, { 'cause': undefined });
+      const snapshot = RuntimeError.create(value.message, { 'cause': undefined });
 
       seen.set(value, snapshot);
       snapshot.name = value.name;

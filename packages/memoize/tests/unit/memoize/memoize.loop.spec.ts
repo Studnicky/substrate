@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { RuntimeError } from '@studnicky/errors';
+
 import {
   Memoize,
   MemoizeConfigError
@@ -88,34 +90,34 @@ function memoizeOptions<TArgs extends unknown[]>(
 
 function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`${label} must be a string`);
+    throw RuntimeError.create(`${label} must be a string`);
   }
   return value;
 }
 
 function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
-    throw new Error(`${label} must be a number`);
+    throw RuntimeError.create(`${label} must be a number`);
   }
   return value;
 }
 
 function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
-    throw new Error(`${label} must be a string array`);
+    throw RuntimeError.create(`${label} must be a string array`);
   }
   return value;
 }
 
 function readTupleRecord<TValue>(value: TValue, label: string): Record<string, [string, number]> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be a tuple record`);
+    throw RuntimeError.create(`${label} must be a tuple record`);
   }
 
   const result: Record<string, [string, number]> = {};
   for (const [key, tuple] of Object.entries(value)) {
     if (!Array.isArray(tuple) || tuple.length !== 2 || typeof tuple[0] !== 'string' || typeof tuple[1] !== 'number') {
-      throw new Error(`${label}.${key} must be a [string, number] tuple`);
+      throw RuntimeError.create(`${label}.${key} must be a [string, number] tuple`);
     }
     result[key] = [tuple[0], tuple[1]];
   }
@@ -125,7 +127,7 @@ function readTupleRecord<TValue>(value: TValue, label: string): Record<string, [
 function readBatchCallCount(scenarioCase: ScenarioCase): number {
   const value = scenarioCase.input.batch?.callCount;
   if (typeof value !== 'number') {
-    throw new Error(`${scenarioCase.name} must define input.batch.callCount`);
+    throw RuntimeError.create(`${scenarioCase.name} must define input.batch.callCount`);
   }
   return value;
 }
@@ -170,19 +172,19 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       protected override async onMemoCoalesced(): Promise<void> {
         events.push('coalesced');
         await Promise.resolve();
-        throw new Error('onMemoCoalesced async boom');
+        throw RuntimeError.create('onMemoCoalesced async boom');
       }
 
       protected override async onMemoHit(): Promise<void> {
         events.push('hit');
         await Promise.resolve();
-        throw new Error('onMemoHit async boom');
+        throw RuntimeError.create('onMemoHit async boom');
       }
 
       protected override async onMemoMiss(): Promise<void> {
         events.push('miss');
         await Promise.resolve();
-        throw new Error('onMemoMiss async boom');
+        throw RuntimeError.create('onMemoMiss async boom');
       }
     }
 
@@ -278,7 +280,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const [leader, follower] = createSameKeyCalls(memo, key, readBatchCallCount(scenarioCase));
     assert.ok(leader !== undefined);
     assert.ok(follower !== undefined);
-    pendingFailure.reject(new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage')));
+    pendingFailure.reject(RuntimeError.create(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage')));
 
     const leaderError = await leader.catch((error: Error) => error);
     const followerError = await follower.catch((error: Error) => error);
@@ -336,7 +338,12 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         (id: string) => `value:${id}`,
         memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
       );
-    }, TypeError);
+    }, (error) => {
+      assert.ok(error instanceof RuntimeError);
+      assert.strictEqual(error.code, 'errors.runtime');
+      assert.strictEqual(error.message, 'Memoize.create() did not construct the requested subclass.');
+      return true;
+    });
   },
   'different-keys': async (scenarioCase) => {
     let calls = 0;
@@ -378,7 +385,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       async (_key: string) => {
         calls += 1;
         if (calls <= readNumber(scenarioCase.input.failuresBeforeSuccess, 'Scenario input.failuresBeforeSuccess')) {
-          throw new Error(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage'));
+          throw RuntimeError.create(readString(scenarioCase.input.failureMessage, 'Scenario input.failureMessage'));
         }
         return readString(scenarioCase.input.successValue, 'Scenario input.successValue');
       },
@@ -563,7 +570,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     class RejectingCoalescedMemoize extends Memoize<[string], string> {
       protected override async onMemoCoalesced(): Promise<void> {
         await Promise.resolve();
-        throw new Error('onMemoCoalesced async boom');
+        throw RuntimeError.create('onMemoCoalesced async boom');
       }
     }
 
@@ -584,7 +591,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     class RejectingMissMemoize extends Memoize<[string], string> {
       protected override async onMemoMiss(): Promise<void> {
         await Promise.resolve();
-        throw new Error('onMemoMiss async boom');
+        throw RuntimeError.create('onMemoMiss async boom');
       }
     }
 
@@ -614,7 +621,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     class ThrowingCoalescedMemoize extends Memoize<[string], string> {
       protected override onMemoCoalesced(): void {
-        throw new Error('onMemoCoalesced boom');
+        throw RuntimeError.create('onMemoCoalesced boom');
       }
     }
 
@@ -634,7 +641,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'throwing-hit-hook': async (scenarioCase) => {
     class ThrowingHitMemoize extends Memoize<[string], string> {
       protected override onMemoHit(): void {
-        throw new Error('onMemoHit boom');
+        throw RuntimeError.create('onMemoHit boom');
       }
     }
 
@@ -649,7 +656,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'throwing-miss-hook': async (scenarioCase) => {
     class ThrowingMissMemoize extends Memoize<[string], string> {
       protected override onMemoMiss(): void {
-        throw new Error('onMemoMiss boom');
+        throw RuntimeError.create('onMemoMiss boom');
       }
     }
 

@@ -1,8 +1,7 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
 import { type Node, type Program, TypeFlags } from 'typescript';
-
-import { ObjectGuard } from './ObjectGuard.js';
 
 // WHY THE TYPE, AND NOT THE SYNTAX.
 //
@@ -73,15 +72,15 @@ export class ResolvedType {
 
   /** Reports whether the parser exposed a TypeScript program and node map. */
   public static hasTypeInformation(value: unknown): value is TypeScriptServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
+    if (!Predicates.isRecord(value)) {
       return false;
     }
 
     const nodeMap = value.esTreeNodeToTSNodeMap;
     const program = value.program;
-    const result = ObjectGuard.isObject(nodeMap)
+    const result = Predicates.isRecord(nodeMap)
       && typeof nodeMap.get === 'function'
-      && ObjectGuard.isObject(program)
+      && Predicates.isRecord(program)
       && typeof program.getTypeChecker === 'function';
 
     return result;

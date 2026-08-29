@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Batch } from '@studnicky/batch';
 import { ConfigurationError } from '@studnicky/config';
-import { HookInvocationError } from '@studnicky/errors';
+
 import { SchemaIntakeError } from '@studnicky/json';
 
 import { Throttle } from '../../../src/index.js';
@@ -240,7 +241,7 @@ async function assertAdaptiveRuntimeObserved(scenarioCase: ScenarioCase): Promis
 
 async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Promise<void> {
   const observed: Array<{ previousLimit: number; newLimit: number }> = [];
-  const hookError = new Error(scenarioCase.input.hookErrorMessage ?? 'adaptive adjust failed');
+  const hookError = RuntimeError.create(scenarioCase.input.hookErrorMessage ?? 'adaptive adjust failed');
 
   class ObservedAdaptiveThrottle extends VirtualClockThrottle {
     protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {

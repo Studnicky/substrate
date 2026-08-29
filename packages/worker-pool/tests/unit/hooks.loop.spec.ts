@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -140,7 +141,7 @@ const runnerMap: RunnerMap = {
   'throwing-on-message': async (scenarioCase) => {
     class ThrowingMessagePool extends WorkerPool<ItemInterface, string> {
       protected override onMessage(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
     }
 
@@ -159,7 +160,7 @@ const runnerMap: RunnerMap = {
     class AsyncRejectingMessagePool extends WorkerPool<ItemInterface, string> {
       protected override async onMessage(): Promise<void> {
         await Promise.resolve();
-        throw new Error('async onMessage boom');
+        throw RuntimeError.create('async onMessage boom');
       }
     }
 
@@ -180,7 +181,7 @@ const runnerMap: RunnerMap = {
 
   'hook-errors-instance-local': async (scenarioCase) => {
     class FirstThrowingPool extends WorkerPool<ItemInterface, string> {
-      static readonly hookCause = new Error('first pool hook failed');
+      static readonly hookCause = RuntimeError.create('first pool hook failed');
 
       protected override onWorkerCreated(): void {
         throw FirstThrowingPool.hookCause;
@@ -188,7 +189,7 @@ const runnerMap: RunnerMap = {
     }
 
     class SecondThrowingPool extends WorkerPool<ItemInterface, string> {
-      static readonly hookCause = new Error('second pool hook failed');
+      static readonly hookCause = RuntimeError.create('second pool hook failed');
 
       protected override onWorkerCreated(): void {
         throw SecondThrowingPool.hookCause;

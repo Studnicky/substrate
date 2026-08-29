@@ -16,47 +16,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -80,47 +80,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -144,47 +144,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -208,47 +208,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -272,47 +272,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -342,47 +342,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -413,47 +413,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -482,47 +482,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
@@ -551,47 +551,47 @@
           "sourceRoot": "src",
           "bindings": [
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "domain",
               "layer": "domain"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "ports",
               "layer": "ports"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "application",
               "layer": "application"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "adapters",
               "layer": "adapters"
             },
             {
-              "kind": "folder",
+              "unit": "folder",
               "pattern": "infrastructure",
               "layer": "infrastructure"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@adapters/",
               "layer": "adapters"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@application/",
               "layer": "application"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@domain/",
               "layer": "domain"
             },
             {
-              "kind": "module",
+              "unit": "module",
               "pattern": "@ports/",
               "layer": "ports"
             }
