@@ -1,10 +1,8 @@
+import { RuntimeError, HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  HookInvocationError,
-  ReentrantHookInvocationError,
-} from "@studnicky/errors";
+
 
 import { CircularBuffer } from "../../../src/circular-buffer/CircularBuffer.js";
 import type { CircularBufferOptionsEntity } from "../../../src/entities/CircularBufferOptionsEntity.js";
@@ -169,31 +167,31 @@ class FullTraceBuffer<T> extends CircularBuffer<T> {
 
 class ThrowingPushBuffer<T> extends CircularBuffer<T> {
   override onPush(): void {
-    throw new Error("onPush boom");
+    throw RuntimeError.create("onPush boom");
   }
 }
 
 class ThrowingOverflowBuffer<T> extends CircularBuffer<T> {
   override onOverflow(): void {
-    throw new Error("onOverflow boom");
+    throw RuntimeError.create("onOverflow boom");
   }
 }
 
 class ThrowingEvictBuffer<T> extends CircularBuffer<T> {
   override onEvict(): void {
-    throw new Error("onEvict boom");
+    throw RuntimeError.create("onEvict boom");
   }
 }
 
 class ThrowingGrowBuffer<T> extends CircularBuffer<T> {
   override onGrow(): void {
-    throw new Error("onGrow boom");
+    throw RuntimeError.create("onGrow boom");
   }
 }
 
 class ThrowingShiftBuffer<T> extends CircularBuffer<T> {
   override onShift(): void {
-    throw new Error("onShift boom");
+    throw RuntimeError.create("onShift boom");
   }
 }
 
@@ -290,7 +288,7 @@ function shiftMany<T>(buffer: { shift(): T | undefined }, count: number): T[] {
 
 function requireDefined<T>(value: T | undefined, fieldPath: string): T {
   if (value === undefined) {
-    throw new Error(
+    throw RuntimeError.create(
       `Missing circular-buffer subclass scenario field: ${fieldPath}`,
     );
   }
@@ -307,7 +305,7 @@ function requireNumberItems(scenarioCase: ScenarioCase): number[] {
   const numbers: number[] = [];
   for (const item of items) {
     if (typeof item !== "number") {
-      throw new Error(
+      throw RuntimeError.create(
         `Expected numeric push item in scenario: ${scenarioCase.name}`,
       );
     }
@@ -322,7 +320,7 @@ function requireStringItems(scenarioCase: ScenarioCase): string[] {
   const strings: string[] = [];
   for (const item of items) {
     if (typeof item !== "string") {
-      throw new Error(
+      throw RuntimeError.create(
         `Expected string push item in scenario: ${scenarioCase.name}`,
       );
     }
@@ -352,7 +350,7 @@ function assertLastPushThrows<T>(
   values: readonly T[],
 ): void {
   if (values.length === 0) {
-    throw new Error(
+    throw RuntimeError.create(
       "Missing circular-buffer subclass scenario field: input.pushItems",
     );
   }
@@ -377,7 +375,7 @@ function pushStage<T>(
   const endIndex = startIndex + count;
   const stageItems = values.slice(startIndex, endIndex);
   if (stageItems.length !== count) {
-    throw new Error(
+    throw RuntimeError.create(
       "Circular-buffer subclass push stage exceeds input.pushItems",
     );
   }
@@ -703,7 +701,7 @@ async function runAsyncRejectingOnPushGuarded(
 ): Promise<void> {
   const buf = new AsyncRejectingPushBuffer<number>(
     scenarioCase.input.options,
-    new Error("async onPush boom"),
+    RuntimeError.create("async onPush boom"),
   );
   let unhandledRejectionCount = 0;
   const onUnhandledRejection = (): void => {

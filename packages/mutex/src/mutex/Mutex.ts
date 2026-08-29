@@ -28,7 +28,11 @@
  * ```
  */
 
-import { HookInvoker, ReentrantHookInvocationError } from '@studnicky/errors';
+import {
+  HookInvoker,
+  ReentrantHookInvocationError,
+  RuntimeError
+} from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
 import { Predicates } from '@studnicky/types';
 
@@ -296,7 +300,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isObjectLike(result) || !Mutex.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('Mutex.create() must construct a Mutex instance');
+      throw RuntimeError.create('Mutex.create() must construct a Mutex instance');
     }
     return result;
   }
@@ -453,7 +457,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     Reflect.set(lock, Symbol.asyncDispose, asyncDispose);
 
     if (!Mutex.hasAsyncDispose(lock)) {
-      throw new TypeError('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
+      throw RuntimeError.create('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
     }
 
     return lock;
@@ -527,7 +531,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const from = this.#keyStates.get(key) ?? 'unlocked';
 
     if (!this.guardKey(from, to)) {
-      throw new Error(`Illegal state transition: ${from} → ${to} for key ${String(key)}`);
+      throw RuntimeError.create(`Illegal state transition: ${from} → ${to} for key ${String(key)}`);
     }
 
     this.#keyStates.set(key, to);
@@ -619,7 +623,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         if (entry.timeoutId !== undefined) {
           clearTimeout(entry.timeoutId);
         }
-        entry.reject(new Error('Mutex cleared - all pending operations rejected'));
+        entry.reject(RuntimeError.create('Mutex cleared - all pending operations rejected'));
       }
     }
 
@@ -777,7 +781,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
       resolveDeferred(result);
     } catch (error) {
-      rejectDeferred(Predicates.isError(error) ? error : new Error(String(error)));
+      rejectDeferred(Predicates.isError(error) ? error : RuntimeError.create(String(error)));
     } finally {
       this.inFlightOperations.delete(key);
 
@@ -1115,7 +1119,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       : await this.runExclusiveStandard(key, callback);
 
     if (acceptsResult !== undefined && !acceptsResult(result)) {
-      throw new TypeError(`Mutex result for key ${String(key)} does not satisfy the requested type`);
+      throw RuntimeError.create(`Mutex result for key ${String(key)} does not satisfy the requested type`);
     }
 
     return result;

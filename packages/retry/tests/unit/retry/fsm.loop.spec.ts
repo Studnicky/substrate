@@ -1,7 +1,8 @@
+import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
 
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
@@ -84,7 +85,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw new Error('will be aborted'); }),
+      () => retry.execute(async () => { throw RuntimeError.create('will be aborted'); }),
       MaximumRetriesExceededError
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
@@ -96,7 +97,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw new Error('always fails'); }),
+      () => retry.execute(async () => { throw RuntimeError.create('always fails'); }),
       MaximumRetriesExceededError
     );
 
@@ -110,7 +111,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw new Error('elapsed budget'); }),
+      () => retry.execute(async () => { throw RuntimeError.create('elapsed budget'); }),
       MaximumRetriesExceededError
     );
 
@@ -129,7 +130,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'illegal-transition': async (scenarioCase) => {
     const { rejectedTransition: maybeRejectedTransition } = scenarioCase.input;
     if (maybeRejectedTransition === undefined) {
-      throw new Error('Scenario input.rejectedTransition is required');
+      throw RuntimeError.create('Scenario input.rejectedTransition is required');
     }
     const rejectedTransition: NonNullable<typeof maybeRejectedTransition> = maybeRejectedTransition;
 
@@ -162,7 +163,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw new Error('fatal'); }),
+      () => retry.execute(async () => { throw RuntimeError.create('fatal'); }),
       { 'name': String(scenarioCase.expected.errorName) }
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
@@ -179,7 +180,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
       const attemptMap: Record<AttemptOutcome, () => string> = {
         'failure': () => {
-          throw new Error(String(scenarioCase.input.errorMessage));
+          throw RuntimeError.create(String(scenarioCase.input.errorMessage));
         },
         'success': () => String(scenarioCase.input.result)
       };

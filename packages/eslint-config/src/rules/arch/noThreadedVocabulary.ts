@@ -4,23 +4,36 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type * as TypeScript from 'typescript';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
 
-import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
-import { LayerResolver } from '../layers/LayerResolver.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
+import type { LayerBindingEntity } from '../layers/LayerBindingEntity.js';
 
+import { LayerResolver } from '../layers/LayerResolver.js';
+import { ResolutionSiteEntity } from './ResolutionSiteEntity.js';
+
+// The rule asks one binary question of a file: may it resolve a token? That is a property of
+// the file, not a position in some other axis the project already defines. Binding it to a
+// layer NAME out of a shared `layers` list couples this rule to whatever that list happens to
+// encode -- in a project whose bands measure dependency depth, no layer name carries
+// "resolves external input" at all, and there is no string that would make one.
 namespace NoThreadedVocabularyOptionsEntity {
   export const Schema = {
-    ...LayerOptionsEntity.Schema,
+    'additionalProperties': false,
     'properties': {
-      ...LayerOptionsEntity.Schema.properties,
-      'adapterLayerName': {
-        'default': 'adapters',
-        'description': 'Name of the layer permitted to receive a closed-vocabulary token and resolve it into a port implementation. Defaults to "adapters".',
+      'resolutionSites': {
+        'default': [],
+        'description': 'Matchers for the files permitted to receive a closed-vocabulary token and resolve it into an implementation -- the composition roots. Same matcher vocabulary as layer bindings (folder/package/module/dependency/builtin) minus the layer name. Every file not matching one of these is checked. The default, an empty list, exempts nothing.',
+        'items': ResolutionSiteEntity.Schema,
+        'type': 'array'
+      },
+      'sourceRoot': {
+        'description': 'Path segment(s) after which a resolution site\'s candidate segment appears, e.g. "src" or "packages".',
         'type': 'string'
       }
-    }
+    },
+    'required': ['sourceRoot'],
+    'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
@@ -28,6 +41,8 @@ namespace NoThreadedVocabularyOptionsEntity {
   export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
   export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
 }
+
+const RESOLUTION_SITE_LAYER = 'resolutionSite';
 
 interface NodeMapInterface {
   readonly 'get': (node: unknown) => Node | undefined;
@@ -40,11 +55,11 @@ interface ParserServicesInterface {
 
 class ParserServices {
   public static has(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!Predicates.isRecord(value)) { return false; }
 
     const program = value.program;
     const nodeMap = value.esTreeNodeToTSNodeMap;
-    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
+    if (!Predicates.isRecord(program) || !Predicates.isRecord(nodeMap)) { return false; }
 
     const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
     return result;
@@ -55,7 +70,7 @@ class ParserServices {
 class TypeReferenceName {
   public static get(typeNode: Record<string, unknown>): string | undefined {
     const typeName: unknown = typeNode.typeName;
-    if (!ObjectGuard.isObject(typeName)) { return undefined; }
+    if (!Predicates.isRecord(typeName)) { return undefined; }
 
     if (typeName.type === 'Identifier') {
       const name = typeName.name;
@@ -66,7 +81,7 @@ class TypeReferenceName {
     if (typeName.type === 'TSQualifiedName') {
       const left = TypeReferenceName.get({ 'typeName': typeName.left });
       const right: unknown = typeName.right;
-      if (left === undefined || !ObjectGuard.isObject(right)) { return undefined; }
+      if (left === undefined || !Predicates.isRecord(right)) { return undefined; }
 
       const name = right.name;
       const result = typeof name === 'string' ? `${left}.${name}` : undefined;
@@ -133,14 +148,14 @@ class LocalVocabularyIndex {
     aliases: Map<string, unknown>,
     bareCounts: Map<string, number>
   ): void {
-    if (!ObjectGuard.isArray(body)) { return; }
+    if (!Predicates.isArray(body)) { return; }
 
     for (let index = 0; index < body.length; index += 1) {
       const declaration = LocalVocabularyIndex.#unwrapExport(body.at(index));
-      if (!ObjectGuard.isObject(declaration)) { continue; }
+      if (!Predicates.isRecord(declaration)) { continue; }
 
       const identifier: unknown = declaration.id;
-      if (!ObjectGuard.isObject(identifier)) { continue; }
+      if (!Predicates.isRecord(identifier)) { continue; }
 
       // `declare module 'pkg'` augments a third-party surface rather than declaring
       // a frame in this architecture, so its contents are not indexed or reported.
@@ -174,7 +189,7 @@ class LocalVocabularyIndex {
   }
 
   static #unwrapExport(statement: unknown): unknown {
-    if (!ObjectGuard.isObject(statement)) { return statement; }
+    if (!Predicates.isRecord(statement)) { return statement; }
     if (statement.type === 'ExportNamedDeclaration' || statement.type === 'ExportDefaultDeclaration') {
       const inner = LocalVocabularyIndex.#unwrapExport(statement.declaration);
       return inner;
@@ -186,7 +201,7 @@ class LocalVocabularyIndex {
   // `X.Mode`, which resolves to the same bare name, so the namespace body is indexed flat.
   static #moduleBody(declaration: Record<string, unknown>): unknown {
     const body: unknown = declaration.body;
-    if (!ObjectGuard.isObject(body)) { return undefined; }
+    if (!Predicates.isRecord(body)) { return undefined; }
     return body.body;
   }
 }
@@ -194,22 +209,21 @@ class LocalVocabularyIndex {
 /** Reads a TypeScript type and reports whether it is a closed set of literal members. */
 class ClosedVocabularyType {
   public static matches(type: TypeScript.Type): boolean {
-    if (type.isUnion()) {
-      const meaningful = type.types.filter((member) => {
-        const result = !ClosedVocabularyType.#isNullish(member);
-        return result;
-      });
+    if (!type.isUnion()) { return false; }
 
-      if (meaningful.length === 0) { return false; }
-
-      const result = meaningful.every((member) => {
-        const memberResult = ClosedVocabularyType.#isLiteral(member);
-        return memberResult;
-      });
+    const meaningful = type.types.filter((member) => {
+      const result = !ClosedVocabularyType.#isNullish(member);
       return result;
-    }
+    });
 
-    const result = ClosedVocabularyType.#isLiteral(type);
+    // One inhabitant encodes no choice, so nothing decided elsewhere is being carried.
+    // `encoding: 'utf8'` narrows a parameter; it does not select an implementation.
+    if (meaningful.length < 2) { return false; }
+
+    const result = meaningful.every((member) => {
+      const memberResult = ClosedVocabularyType.#isLiteral(member);
+      return memberResult;
+    });
     return result;
   }
 
@@ -245,7 +259,7 @@ class VocabularyAnnotation {
   }
 
   #matches(typeNode: unknown, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
-    if (!ObjectGuard.isObject(typeNode)) { return false; }
+    if (!Predicates.isRecord(typeNode)) { return false; }
     if (this.#matchesSyntactic(typeNode, seen, constraints)) { return true; }
 
     // Anything the syntactic walk could not settle — a cross-file enum, a generic alias
@@ -259,10 +273,8 @@ class VocabularyAnnotation {
     const nodeType = typeNode.type;
 
     if (nodeType === 'TSBooleanKeyword') { return true; }
-    if (nodeType === 'TSLiteralType') {
-      const result = VocabularyAnnotation.#isLiteralValue(typeNode.literal);
-      return result;
-    }
+    // A lone literal type is a narrowing, not a vocabulary: see ClosedVocabularyType.
+    if (nodeType === 'TSLiteralType') { return false; }
     if (nodeType === 'TSUnionType') {
       const result = this.#matchesUnion(typeNode.types, seen, constraints);
       return result;
@@ -289,7 +301,7 @@ class VocabularyAnnotation {
   }
 
   #matchesAny(members: unknown, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
-    if (!ObjectGuard.isArray(members)) { return false; }
+    if (!Predicates.isArray(members)) { return false; }
 
     const result = members.some((member) => {
       const memberResult = this.#matches(member, seen, constraints);
@@ -299,20 +311,26 @@ class VocabularyAnnotation {
   }
 
   #matchesUnion(members: unknown, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
-    if (!ObjectGuard.isArray(members)) { return false; }
+    if (!Predicates.isArray(members)) { return false; }
 
     const meaningful = members.filter((member) => {
       const result = !VocabularyAnnotation.#isNullishAnnotation(member);
       return result;
     });
 
-    if (meaningful.length === 0) { return false; }
+    if (meaningful.length < 2) { return false; }
 
     const result = meaningful.every((member) => {
-      const memberResult = this.#matches(member, seen, constraints);
+      const memberResult = VocabularyAnnotation.#isLiteralValue(VocabularyAnnotation.#literalOf(member))
+        || this.#matches(member, seen, constraints);
       return memberResult;
     });
     return result;
+  }
+
+  static #literalOf(member: unknown): unknown {
+    if (!Predicates.isRecord(member) || member.type !== 'TSLiteralType') { return undefined; }
+    return member.literal;
   }
 
   #matchesReference(typeNode: Record<string, unknown>, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
@@ -350,7 +368,7 @@ class VocabularyAnnotation {
   }
 
   static #isLiteralValue(literal: unknown): boolean {
-    if (!ObjectGuard.isObject(literal)) { return false; }
+    if (!Predicates.isRecord(literal)) { return false; }
 
     // `-1 | 1` parses each member as a UnaryExpression around a numeric literal.
     if (literal.type === 'UnaryExpression') {
@@ -359,7 +377,7 @@ class VocabularyAnnotation {
     }
     if (literal.type === 'TemplateLiteral') {
       const expressions: unknown = literal.expressions;
-      const result = ObjectGuard.isArray(expressions) && expressions.length === 0;
+      const result = Predicates.isArray(expressions) && expressions.length === 0;
       return result;
     }
     if (literal.type !== 'Literal') { return false; }
@@ -371,7 +389,7 @@ class VocabularyAnnotation {
   }
 
   static #isNullishAnnotation(member: unknown): boolean {
-    if (!ObjectGuard.isObject(member)) { return false; }
+    if (!Predicates.isRecord(member)) { return false; }
     const result = member.type === 'TSUndefinedKeyword' || member.type === 'TSNullKeyword';
     return result;
   }
@@ -380,7 +398,7 @@ class VocabularyAnnotation {
 /** Unwraps a parameter node to the binding that carries its type annotation and name. */
 class ParameterBinding {
   public static unwrap(parameter: unknown): Record<string, unknown> | undefined {
-    if (!ObjectGuard.isObject(parameter)) { return undefined; }
+    if (!Predicates.isRecord(parameter)) { return undefined; }
 
     if (parameter.type === 'AssignmentPattern') {
       const result = ParameterBinding.unwrap(parameter.left);
@@ -403,7 +421,7 @@ class ParameterBinding {
     if (typeof name === 'string') { return name; }
 
     const key: unknown = binding.key;
-    if (ObjectGuard.isObject(key)) {
+    if (Predicates.isRecord(key)) {
       if (typeof key.name === 'string') { return key.name; }
       if (typeof key.value === 'string') { return key.value; }
     }
@@ -433,20 +451,20 @@ class TypeParameterConstraints {
   }
 
   static #collect(node: unknown, constraints: Map<string, unknown>): void {
-    if (!ObjectGuard.isObject(node)) { return; }
+    if (!Predicates.isRecord(node)) { return; }
 
     const declaration: unknown = node.typeParameters;
-    if (!ObjectGuard.isObject(declaration)) { return; }
+    if (!Predicates.isRecord(declaration)) { return; }
 
     const parameters: unknown = declaration.params;
-    if (!ObjectGuard.isArray(parameters)) { return; }
+    if (!Predicates.isArray(parameters)) { return; }
 
     for (let index = 0; index < parameters.length; index += 1) {
       const parameter: unknown = parameters.at(index);
-      if (!ObjectGuard.isObject(parameter)) { continue; }
+      if (!Predicates.isRecord(parameter)) { continue; }
 
       const identifier: unknown = parameter.name;
-      if (!ObjectGuard.isObject(identifier) || typeof identifier.name !== 'string') { continue; }
+      if (!Predicates.isRecord(identifier) || typeof identifier.name !== 'string') { continue; }
       if (constraints.has(identifier.name)) { continue; }
 
       constraints.set(identifier.name, parameter.constraint);
@@ -464,10 +482,10 @@ class AmbientAugmentation {
 
     for (let index = 0; index < ancestors.length; index += 1) {
       const ancestor: unknown = ancestors.at(index);
-      if (!ObjectGuard.isObject(ancestor) || ancestor.type !== 'TSModuleDeclaration') { continue; }
+      if (!Predicates.isRecord(ancestor) || ancestor.type !== 'TSModuleDeclaration') { continue; }
 
       const identifier: unknown = ancestor.id;
-      if (ObjectGuard.isObject(identifier) && identifier.type === 'Literal') { return true; }
+      if (Predicates.isRecord(identifier) && identifier.type === 'Literal') { return true; }
     }
 
     return false;
@@ -477,7 +495,7 @@ class AmbientAugmentation {
 class AnnotationTypeNode {
   public static of(binding: Record<string, unknown>): unknown {
     const annotation: unknown = binding.typeAnnotation;
-    if (!ObjectGuard.isObject(annotation)) { return undefined; }
+    if (!Predicates.isRecord(annotation)) { return undefined; }
     if (annotation.type !== 'TSTypeAnnotation') { return annotation; }
     return annotation.typeAnnotation;
   }
@@ -487,7 +505,7 @@ class AnnotationTypeNode {
   public static ofParameter(parameter: unknown, binding: Record<string, unknown>): unknown {
     const inner = AnnotationTypeNode.of(binding);
     if (inner !== undefined) { return inner; }
-    if (!ObjectGuard.isObject(parameter)) { return undefined; }
+    if (!Predicates.isRecord(parameter)) { return undefined; }
 
     const outer = AnnotationTypeNode.of(parameter);
     return outer;
@@ -500,10 +518,22 @@ export const noThreadedVocabulary: Rule.RuleModule = {
     if (rawOptions === undefined) { return {}; }
     const options = NoThreadedVocabularyOptionsEntity.intake(rawOptions);
 
-    const filename = context.physicalFilename;
-    const sourceLayer = LayerResolver.layerForPath(filename, options);
+    // A single synthetic layer turns the shared resolver into the binary predicate this rule
+    // needs, without importing an axis the project defined for something else.
+    const siteBindings: LayerBindingEntity.Type[] = [];
+    for (let siteIndex = 0; siteIndex < options.resolutionSites.length; siteIndex += 1) {
+      const site = options.resolutionSites.at(siteIndex);
+      if (site === undefined) { continue; }
+      siteBindings.push({ ...site, 'layer': RESOLUTION_SITE_LAYER });
+    }
 
-    if (sourceLayer === undefined || sourceLayer === options.adapterLayerName) { return {}; }
+    const isResolutionSite = LayerResolver.layerForPath(context.physicalFilename, {
+      'bindings': siteBindings,
+      'layers': [RESOLUTION_SITE_LAYER],
+      'sourceRoot': options.sourceRoot
+    }) === RESOLUTION_SITE_LAYER;
+
+    if (isResolutionSite) { return {}; }
 
     const servicesUnknown: unknown = context.sourceCode.parserServices;
     const services = ParserServices.has(servicesUnknown) ? servicesUnknown : undefined;
@@ -512,11 +542,7 @@ export const noThreadedVocabulary: Rule.RuleModule = {
 
     const report = (node: Rule.Node, name: string, messageId: string): void => {
       context.report({
-        'data': {
-          'adapterLayer': options.adapterLayerName,
-          'layer': sourceLayer,
-          'name': name
-        },
+        'data': { 'name': name },
         'messageId': messageId,
         'node': node
       });
@@ -524,7 +550,7 @@ export const noThreadedVocabulary: Rule.RuleModule = {
 
     const checkParameters = (node: Rule.Node): void => {
       const parameters: unknown = (node as unknown as Record<string, unknown>).params;
-      if (!ObjectGuard.isArray(parameters)) { return; }
+      if (!Predicates.isArray(parameters)) { return; }
       if (AmbientAugmentation.contains(node, context)) { return; }
 
       for (let parameterIndex = 0; parameterIndex < parameters.length; parameterIndex += 1) {
@@ -581,13 +607,13 @@ export const noThreadedVocabulary: Rule.RuleModule = {
   },
   'meta': {
     'docs': {
-      'description': 'Disallow closed-vocabulary tokens (booleans, enums, literal unions) in parameter, field, and property positions outside the adapters layer. A transport/mode token is resolved once, where it enters the system; carrying it deeper threads a decision that has already been made.',
+      'description': 'Disallow closed-vocabulary tokens (booleans, enums, literal unions) in parameter, field, and property positions outside a declared resolution site. A mode token is resolved once, where it enters the system; carrying it deeper threads a decision that has already been made.',
       'recommended': false
     },
     'messages': {
-      'threadedField': "Field '{{name}}' stores a closed-vocabulary token in layer '{{layer}}'. Storing the token defers a decision that layer '{{adapterLayer}}' already made — hold the selected port instead.",
-      'threadedParameter': "Parameter '{{name}}' carries a closed-vocabulary token into layer '{{layer}}'. Resolve the token in layer '{{adapterLayer}}' and inject the selected port instead of threading it.",
-      'threadedProperty': "Property '{{name}}' carries a closed-vocabulary token through layer '{{layer}}'. Declare the resolved port on the contract instead of the token layer '{{adapterLayer}}' resolves."
+      'threadedField': "Field '{{name}}' stores a closed-vocabulary token outside a resolution site. Storing the token defers a decision already made where it entered — hold the selected implementation instead.",
+      'threadedParameter': "Parameter '{{name}}' carries a closed-vocabulary token outside a resolution site. Resolve the token where it enters the system and inject the selected implementation instead of threading it.",
+      'threadedProperty': "Property '{{name}}' carries a closed-vocabulary token outside a resolution site. Declare the resolved implementation on the contract instead of the token."
     },
     'schema': [NoThreadedVocabularyOptionsEntity.Schema],
     'type': 'problem'

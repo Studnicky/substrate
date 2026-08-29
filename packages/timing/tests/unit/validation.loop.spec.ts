@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -17,7 +18,7 @@ type EntityValidator = (value: unknown) => boolean;
 
 const unknownEntityValidator = (entity: string): EntityValidator => {
   return () => {
-    throw new Error(`Unknown entity: ${entity}`);
+    throw RuntimeError.create(`Unknown entity: ${entity}`);
   };
 };
 

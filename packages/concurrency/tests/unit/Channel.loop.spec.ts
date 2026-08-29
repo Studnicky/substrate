@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { Channel } from '../../src/Channel.js';
 import scenarioGroups from './Channel.scenarios.json' with { type: 'json' };
@@ -218,7 +219,7 @@ const scenarioRunners: RunnerMap = {
       protected override onEnqueue(): void {
         this.#enqueueCount += 1;
         if (this.#enqueueCount === 1) {
-          throw new Error('hook boom');
+          throw RuntimeError.create('hook boom');
         }
       }
     }
@@ -235,7 +236,7 @@ const scenarioRunners: RunnerMap = {
     const { input, expected } = scenarioCase;
     class ThrowingDequeueChannel<T> extends Channel<T> {
       protected override onDequeue(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
     }
     const ch = ThrowingDequeueChannel.create<number>();
@@ -253,7 +254,7 @@ const scenarioRunners: RunnerMap = {
           return;
         }
         await new Promise((resolve) => { setImmediate(resolve); });
-        throw new Error('async hook boom');
+        throw RuntimeError.create('async hook boom');
       }
     }
 

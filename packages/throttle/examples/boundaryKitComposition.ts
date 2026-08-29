@@ -1,9 +1,9 @@
+import { RuntimeError } from '@studnicky/errors';
 /** boundaryKitComposition — hand-composes retry, resilience's CircuitBreaker, and throttle into
  * the Boundary Kit's documentation-only pattern (no `@studnicky/boundary-kit` package exists;
  * this composition order IS the deliverable). Composition order: throttle (bounds concurrency)
  * -> circuitBreaker (fast-fail) -> retry (attempt+backoff) -> fn. Run:
  * npx tsx examples/boundaryKitComposition.ts */
-
 // #region usage
 import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience';
 import { Retry } from '@studnicky/retry';
@@ -31,7 +31,7 @@ class FlakyTask {
     return () => {
       if (remaining > 0) {
         remaining -= 1;
-        throw new Error('transient failure');
+        throw RuntimeError.create('transient failure');
       }
       const result = Promise.resolve('ok');
       return result;
@@ -42,7 +42,7 @@ class FlakyTask {
 class PermanentlyFailingTask {
   static async execute(): Promise<never> {
     await Promise.resolve();
-    throw new Error('permanent failure');
+    throw RuntimeError.create('permanent failure');
   }
 }
 

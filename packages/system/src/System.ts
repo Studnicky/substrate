@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import type { CpuInfoEntity } from './entities/CpuInfoEntity.js';
 import type { GpuCacheComputedNoneStateEntity } from './entities/GpuCacheComputedNoneStateEntity.js';
 import type { GpuCacheComputedValueStateEntity } from './entities/GpuCacheComputedValueStateEntity.js';
@@ -16,7 +18,7 @@ export class System {
     = GPU_CACHE_MACHINE.getInitialState();
 
   private constructor() {
-    throw new Error('System is a static-only class');
+    throw RuntimeError.create('System is a static-only class');
   }
 
   static get cpu(): CpuInfoEntity.Type {

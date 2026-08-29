@@ -9,8 +9,8 @@
     {
       "name": "delivers explicit selections without pattern matching",
       "shape": "selected-publish",
-      "input": { "topic": "other.topic", "id": "semantic", "origin": "consumer" },
-      "expected": { "ids": ["semantic"], "origin": "consumer" }
+      "input": { "topic": "other.topic", "id": "semantic", "origin": "consumer", "metadata": { "source": "discovery" } },
+      "expected": { "ids": ["semantic"], "origin": "consumer", "metadata": { "source": "discovery" } }
     },
     {
       "name": "resolves registered candidates without reapplying patterns",

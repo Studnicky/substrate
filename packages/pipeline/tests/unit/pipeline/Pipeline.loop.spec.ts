@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError, HookTimeoutError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
+
 
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 import scenarioGroups from './Pipeline.scenarios.json' with { type: 'json' };
@@ -231,7 +232,7 @@ const runnerMap: RunnerMap = {
   'throwing-lifecycle-hook-rejects-run': async (scenarioCase) => {
     class ThrowingHookPipeline extends Pipeline<number> {
       protected override onStageStart(): void {
-        throw new Error('onStageStart boom');
+        throw RuntimeError.create('onStageStart boom');
       }
     }
 

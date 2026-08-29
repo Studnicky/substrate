@@ -1,9 +1,11 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { TokenExtractor } from '../extractors/TokenExtractor.js';
 
 export class MinimumHashEncoder {
   static encode(value: string, seed: number, signatureSize: number): readonly number[] {
     if (!Number.isInteger(signatureSize) || signatureSize <= 0) {
-      throw new RangeError('Signature size must be a positive integer.');
+      throw RuntimeError.create('Signature size must be a positive integer.');
     }
     const tokens = TokenExtractor.extract(value);
     const signature = Array.from<number>({ 'length': signatureSize }).fill(Number.MAX_SAFE_INTEGER);

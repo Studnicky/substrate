@@ -1,8 +1,9 @@
+import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ConfigurationError } from '@studnicky/config';
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
 
 import {
   BackoffStrategy,
@@ -110,7 +111,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetrySupportIn
 
     const attemptMap: Record<AttemptOutcome, () => string> = {
       'failure': () => {
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       },
       'success': () => String(input.result)
     };

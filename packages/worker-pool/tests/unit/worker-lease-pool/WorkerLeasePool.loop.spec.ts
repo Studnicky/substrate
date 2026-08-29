@@ -1,7 +1,8 @@
+import { RuntimeError, BaseError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '@studnicky/errors';
+
 import { Predicates } from '@studnicky/types';
 
 import type { WorkerFactoryInterface, WorkerObservationInterface, WorkerTransportInterface } from '../../../src/index.js';
@@ -126,22 +127,22 @@ class DeferredWorkerFixtureTransport implements WorkerTransportInterface<WorkerF
 }
 
 function requireBoolean(value: unknown, name: string): boolean {
-  if (!Predicates.isBoolean(value)) { throw new TypeError(`${name} must be a boolean`); }
+  if (!Predicates.isBoolean(value)) { throw RuntimeError.create(`${name} must be a boolean`); }
   return value;
 }
 
 function requirePositiveInteger(value: unknown, name: string): number {
-  if (!Predicates.isPositiveInteger(value)) { throw new TypeError(`${name} must be a positive integer`); }
+  if (!Predicates.isPositiveInteger(value)) { throw RuntimeError.create(`${name} must be a positive integer`); }
   return value;
 }
 
 function requireRecord(value: unknown, name: string): Record<string, unknown> {
-  if (!Predicates.isObject(value)) { throw new TypeError(`${name} must be an object`); }
+  if (!Predicates.isObject(value)) { throw RuntimeError.create(`${name} must be an object`); }
   return value;
 }
 
 function requireString(value: unknown, name: string): string {
-  if (!Predicates.isString(value)) { throw new TypeError(`${name} must be a string`); }
+  if (!Predicates.isString(value)) { throw RuntimeError.create(`${name} must be a string`); }
   return value;
 }
 
@@ -213,13 +214,13 @@ function parseScenarioCase(value: unknown): ScenarioCase {
       'shape': shape
     };
   }
-  throw new TypeError(`Unknown worker lease scenario shape: ${shape}`);
+  throw RuntimeError.create(`Unknown worker lease scenario shape: ${shape}`);
 }
 
 function parseScenarioCases(value: unknown): readonly ScenarioCase[] {
   const record = requireRecord(value, 'scenario groups');
   const cases = record['cases'];
-  if (!Predicates.isArray(cases)) { throw new TypeError('scenario groups cases must be an array'); }
+  if (!Predicates.isArray(cases)) { throw RuntimeError.create('scenario groups cases must be an array'); }
   const result: ScenarioCase[] = [];
   for (const scenarioCase of cases) { result.push(parseScenarioCase(scenarioCase)); }
   return result;

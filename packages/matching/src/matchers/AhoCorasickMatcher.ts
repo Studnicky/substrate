@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 export class AhoCorasickMatcher {
@@ -12,7 +13,7 @@ export class AhoCorasickMatcher {
 
   find(value: string): readonly string[] {
     if (!Predicates.isString(value)) {
-      throw new TypeError('AhoCorasickMatcher requires a string value.');
+      throw RuntimeError.create('AhoCorasickMatcher requires a string value.');
     }
     const results = new Set<string>();
     let node = this.#root;
@@ -67,7 +68,7 @@ export class AhoCorasickMatcher {
 
   private insert(pattern: string, id: string): void {
     if (!Predicates.isString(pattern) || !Predicates.isString(id)) {
-      throw new TypeError('AhoCorasickMatcher patterns and identifiers must be strings.');
+      throw RuntimeError.create('AhoCorasickMatcher patterns and identifiers must be strings.');
     }
     if (pattern.length === 0) {
       return;

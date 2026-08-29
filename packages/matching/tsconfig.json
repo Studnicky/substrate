@@ -4,5 +4,8 @@
   "compilerOptions": { "rootDir": "./src", "outDir": "./dist" },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../types" }]
+  "references": [
+    { "path": "../errors" },
+    { "path": "../types" }
+  ]
 }

@@ -6,30 +6,13 @@
       "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\n",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -39,30 +22,13 @@
       "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nfunction create(transport: TransportMode): string { switch (transport) { case TransportMode.Mcp: return 'mcp'; default: return 'cli'; } }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -72,30 +38,13 @@
       "code": "interface ReporterInterface { notFound(id: string): void }\nfunction withResolved(id: string, reporter: ReporterInterface): void { reporter.notFound(id); }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -105,30 +54,13 @@
       "code": "function isValid(value: string): boolean { return value.length > 0; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -138,30 +70,13 @@
       "code": "function paginate(offset: number, cursor: string): void { void offset; void cursor; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -171,63 +86,13 @@
       "code": "interface ReporterInterface { notFound(id: string): void }\ninterface ResolveOptionsInterface { readonly reporter: ReporterInterface }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
-        }
-      ]
-    },
-    {
-      "name": "file outside every configured layer",
-      "filename": "/repo/scripts/build.ts",
-      "code": "function withResolved(id: string, isMcp: boolean): void { void id; void isMcp; }",
-      "options": [
-        {
-          "bindings": [
-            {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
-              "pattern": "adapters"
-            }
-          ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -237,30 +102,13 @@
       "code": "const forward = (value) => value;",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -270,30 +118,13 @@
       "code": "interface ReporterInterface { notFound(id: string): void }\nfunction withResolved<T extends ReporterInterface>(port: T): void { void port; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -303,30 +134,13 @@
       "code": "function identity<T>(value: T): T { return value; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -336,30 +150,13 @@
       "code": "function filter(values: string[]): void { void values; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -369,30 +166,13 @@
       "code": "interface ReporterInterface { notFound(id: string): void }\nfunction process(pair: [string, ReporterInterface]): void { void pair; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -402,30 +182,13 @@
       "code": "interface BagInterface { [key: string]: string }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -435,30 +198,13 @@
       "code": "interface ReporterInterface { notFound(id: string): void }\nfunction wire(ports: Map<string, ReporterInterface>): void { void ports; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -468,30 +214,13 @@
       "code": "type EntityId = string & { readonly brand: string };\nfunction load(id: EntityId): void { void id; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -501,30 +230,13 @@
       "code": "enum TransportMode { Cli = 'cli', Mcp = 'mcp' }\nclass Resolver { get transport(): TransportMode { return TransportMode.Cli; } }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -534,30 +246,13 @@
       "code": "namespace Transport { export enum Mode { Cli = 'cli' } }\nnamespace Domain { export interface Mode { readonly read: () => void } }\nfunction use(mode: Domain.Mode): void { void mode; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -567,30 +262,13 @@
       "code": "function compare(this: boolean, value: string): void { void value; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -600,30 +278,13 @@
       "code": "declare module 'external-sdk' { export interface ClientOptionsInterface { enabled: boolean } }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -633,35 +294,90 @@
       "code": "function load(flag: boolean & { readonly brand: string }): void { void flag; }",
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "name": "a single-inhabitant literal parameter narrows, it does not select",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function readFile(path: string, encoding: 'utf8'): void { void path; void encoding; }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "folder",
+              "pattern": "adapters"
+            }
           ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "name": "a single-inhabitant literal property carries no choice",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "interface TimeoutErrorInterface { readonly code: 'UND_ERR_SOCKET' }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "folder",
+              "pattern": "adapters"
+            }
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
+    {
+      "name": "an optional single-inhabitant literal is still one inhabitant",
+      "filename": "/repo/src/domain/EntityResolver.ts",
+      "code": "function evict(reason?: 'capacity'): void { void reason; }",
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "folder",
+              "pattern": "adapters"
+            }
+          ],
+          "sourceRoot": "src"
         }
       ]
     }
   ],
   "invalid": [
+    {
+      "name": "a file matching no resolution site is checked, never silently skipped",
+      "filename": "/repo/scripts/build.ts",
+      "code": "function withResolved(id: string, isMcp: boolean): void { void id; void isMcp; }",
+      "errors": [
+        {
+          "messageId": "threadedParameter",
+          "data": {
+            "name": "isMcp"
+          }
+        }
+      ],
+      "options": [
+        {
+          "resolutionSites": [
+            {
+              "unit": "folder",
+              "pattern": "adapters"
+            }
+          ],
+          "sourceRoot": "src"
+        }
+      ]
+    },
     {
       "name": "boolean flag threaded into the domain",
       "filename": "/repo/src/domain/EntityResolver.ts",
@@ -670,38 +386,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "isMcp",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "isMcp"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -713,38 +410,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "transport",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "transport"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -759,30 +437,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -797,30 +458,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -835,30 +479,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -873,30 +500,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -908,38 +518,19 @@
         {
           "messageId": "threadedField",
           "data": {
-            "name": "transport",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "transport"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -951,38 +542,19 @@
         {
           "messageId": "threadedProperty",
           "data": {
-            "name": "transport",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "transport"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -994,38 +566,19 @@
         {
           "messageId": "threadedProperty",
           "data": {
-            "name": "isMcp",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "isMcp"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1040,30 +593,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1078,30 +614,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1113,38 +632,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "isMcp",
-            "layer": "application",
-            "adapterLayer": "adapters"
+            "name": "isMcp"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1159,30 +659,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1197,30 +680,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1235,30 +701,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1273,30 +722,13 @@
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1308,38 +740,19 @@
         {
           "messageId": "threadedField",
           "data": {
-            "name": "transport",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "transport"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1351,38 +764,19 @@
         {
           "messageId": "threadedField",
           "data": {
-            "name": "transport",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "transport"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1394,38 +788,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "value",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "value"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1437,38 +812,19 @@
         {
           "messageId": "threadedProperty",
           "data": {
-            "name": "index signature",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "index signature"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1480,38 +836,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "flag",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "flag"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1523,38 +860,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "pair",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "pair"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1566,38 +884,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "modes",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "modes"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1609,38 +908,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "flags",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "flags"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1652,38 +932,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "flags",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "flags"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1695,38 +956,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "mode",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "mode"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1738,38 +980,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "isMcp",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "isMcp"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1781,38 +1004,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "isMcp",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "isMcp"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1824,38 +1028,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "direction",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "direction"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1867,38 +1052,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "mode",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "mode"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     },
@@ -1910,38 +1076,19 @@
         {
           "messageId": "threadedParameter",
           "data": {
-            "name": "mode",
-            "layer": "domain",
-            "adapterLayer": "adapters"
+            "name": "mode"
           }
         }
       ],
       "options": [
         {
-          "bindings": [
+          "resolutionSites": [
             {
-              "kind": "folder",
-              "layer": "domain",
-              "pattern": "domain"
-            },
-            {
-              "kind": "folder",
-              "layer": "application",
-              "pattern": "application"
-            },
-            {
-              "kind": "folder",
-              "layer": "adapters",
+              "unit": "folder",
               "pattern": "adapters"
             }
           ],
-          "layers": [
-            "domain",
-            "application",
-            "adapters"
-          ],
-          "sourceRoot": "src",
-          "adapterLayerName": "adapters"
+          "sourceRoot": "src"
         }
       ]
     }

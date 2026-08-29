@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch } from '../../../src/batch/Batch.js';
@@ -97,7 +98,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const rec = createRecordingBatch<number>(input);
     const run = async (): Promise<void> => {
       await collectBatches(rec.process(input.items as number[], async (n) => {
-        if (n === Number(input.errorItem)) { throw new Error(String(input.errorMessage)); }
+        if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.errorMessage)); }
         return n;
       }));
     };
@@ -113,7 +114,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const rec = createRecordingBatch<number>(input);
     const run = async (): Promise<void> => {
       await collectBatches(rec.process(input.items as number[], async (n) => {
-        if (n === Number(input.errorItem)) { throw new Error(String(input.errorMessage)); }
+        if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.errorMessage)); }
         return n;
       }));
     };
@@ -145,7 +146,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
     const batch = new OrderBatch(resolveBatchMaxConcurrent(input));
     const run = async (): Promise<void> => {
-      await collectBatches(batch.process(input.items as number[], async () => { throw new Error(String(input.errorMessage)); }));
+      await collectBatches(batch.process(input.items as number[], async () => { throw RuntimeError.create(String(input.errorMessage)); }));
     };
     await assert.rejects(run, (error: Error) => {
       assertErrorMessageIncludes(error, String(expected.rejectedMessage));
@@ -171,7 +172,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const rec = createRecordingBatch<number>(input);
     const run = async (): Promise<void> => {
       await collectBatches(rec.process(input.items as number[], async (n) => {
-        if (n === Number(input.errorItem)) { throw new Error(String(input.errorMessage)); }
+        if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.errorMessage)); }
         return n;
       }));
     };
@@ -192,7 +193,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-settled-item-success-error': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.processSettled(input.items as number[], async (n) => {
-      if (n === Number(input.errorItem)) { throw new Error(String(input.errorMessage)); }
+      if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.errorMessage)); }
       return n * 10;
     }));
     assert.strictEqual(rec.itemSuccessArgs.length, Number(expected.itemSuccessCount));
@@ -203,7 +204,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-settled-item-settled': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.processSettled(input.items as number[], async (n) => {
-      if (n === Number(input.errorItem)) { throw new Error(String(input.errorMessage)); }
+      if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.errorMessage)); }
       return n;
     }));
     assert.strictEqual(rec.itemSettledArgs.length, Number(expected.itemSettledCount));
@@ -212,7 +213,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'process-settled-batch-complete': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
     await collectBatches(rec.processSettled(input.items as number[], async (n) => {
-      if ((input.errorItems as number[]).includes(n)) { throw new Error(String(input.errorMessage)); }
+      if ((input.errorItems as number[]).includes(n)) { throw RuntimeError.create(String(input.errorMessage)); }
       return n;
     }));
     assert.strictEqual(rec.batchCompleteArgs.length, Number(expected.batchCompleteCount));
@@ -235,7 +236,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
   'process-settled-all-fail': async ({ expected, input }) => {
     const rec = createRecordingBatch<number>(input);
-    await collectBatches(rec.processSettled(input.items as number[], async () => { throw new Error(String(input.errorMessage)); }));
+    await collectBatches(rec.processSettled(input.items as number[], async () => { throw RuntimeError.create(String(input.errorMessage)); }));
     assert.strictEqual(rec.batchCompleteArgs.length, Number(expected.batchCompleteCount));
     assert.deepStrictEqual(rec.batchCompleteArgs[0], expected.stats);
   },
@@ -244,7 +245,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     class ThrowingSuccessBatch extends Batch<number> {
       public constructor(maxConcurrent?: number) { super(maxConcurrent); }
       protected override onItemSuccess(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
       public getRecordedHookErrorCount(): number { return this.hooks.hookErrorCount; }
     }
@@ -259,7 +260,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     class ThrowingCompleteBatch extends Batch<number> {
       public constructor(maxConcurrent?: number) { super(maxConcurrent); }
       protected override onBatchComplete(): void {
-        throw new Error('hook boom');
+        throw RuntimeError.create('hook boom');
       }
       public getRecordedHookErrorCount(): number { return this.hooks.hookErrorCount; }
     }
@@ -277,16 +278,16 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       public get recordedHookErrors(): readonly HookInvocationError[] { return this.hooks.getHookErrors(); }
 
       protected override onItemSuccess(index: number): void {
-        if (index === 0) { throw new Error(`onItemSuccess boom for index ${index}`); }
+        if (index === 0) { throw RuntimeError.create(`onItemSuccess boom for index ${index}`); }
       }
       protected override onItemError(index: number): void {
-        if (index === 1) { throw new Error(`onItemError boom for index ${index}`); }
+        if (index === 1) { throw RuntimeError.create(`onItemError boom for index ${index}`); }
       }
     }
 
     const batch = new FlakyHooksBatch(resolveBatchMaxConcurrent(input));
     return collectBatches(batch.processSettled(input.items as number[], async (n) => {
-      if (n === Number(input.errorItem)) { throw new Error(String(input.operationErrorMessage)); }
+      if (n === Number(input.errorItem)) { throw RuntimeError.create(String(input.operationErrorMessage)); }
       return n;
     })).then((results) => {
       const expectedStatuses = expected.statuses as string[];
@@ -305,7 +306,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
       protected override async onItemSuccess(_index: number, _result: number): Promise<void> {
         await Promise.resolve();
-        throw new Error(String(input.hookErrorMessage));
+        throw RuntimeError.create(String(input.hookErrorMessage));
       }
     }
 
@@ -342,7 +343,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       }
 
       protected override onItemSuccess(_index: number, result: number): void {
-        throw new Error(`hook failure for ${String(result)}`);
+        throw RuntimeError.create(`hook failure for ${String(result)}`);
       }
     }
 

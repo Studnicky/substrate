@@ -5,10 +5,10 @@ import type {
 } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { ParameterNames } from './shared/ParameterNames.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
@@ -204,7 +204,7 @@ class CallbackArgumentGuard {
     let current: Rule.Node = node;
     let walker = current.parent;
 
-    while (walker !== null && ObjectGuard.isObject(walker)
+    while (walker !== null && Predicates.isRecord(walker)
       && (walker.type === 'Property' || walker.type === 'ObjectExpression' || walker.type === 'ArrayExpression')) {
       current = walker;
       walker = current.parent;
@@ -212,7 +212,7 @@ class CallbackArgumentGuard {
 
     const parent = walker;
 
-    if (parent === null || !ObjectGuard.isObject(parent)) {
+    if (parent === null || !Predicates.isRecord(parent)) {
       return false;
     }
     if (parent.type !== 'CallExpression' && parent.type !== 'NewExpression') {
@@ -234,19 +234,19 @@ class CallbackArgumentGuard {
 
 class TypePredicateGuard {
   public static hasTypePredicateReturn(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
     const returnType: unknown = (node as { readonly 'returnType'?: unknown }).returnType;
 
-    if (!ObjectGuard.isObject(returnType)) {
+    if (!Predicates.isRecord(returnType)) {
       return false;
     }
 
     const typeAnnotation: unknown = (returnType as { readonly 'typeAnnotation'?: unknown }).typeAnnotation;
 
-    if (!ObjectGuard.isObject(typeAnnotation)) {
+    if (!Predicates.isRecord(typeAnnotation)) {
       return false;
     }
 
@@ -345,7 +345,7 @@ class TypeContractGuard {
   static #findMethodContainer(node: Rule.Node): Rule.Node | undefined {
     const parent = node.parent;
 
-    if (parent === null || !ObjectGuard.isObject(parent)) {
+    if (parent === null || !Predicates.isRecord(parent)) {
       return undefined;
     }
     if (parent.type !== 'MethodDefinition' && parent.type !== 'PropertyDefinition') {
@@ -360,7 +360,7 @@ class TypeContractGuard {
 
   /** Reads a statically-known member name off a non-computed key; `undefined` otherwise. */
   static #getStaticKeyName(key: unknown): string | undefined {
-    if (!ObjectGuard.isObject(key)) {
+    if (!Predicates.isRecord(key)) {
       return undefined;
     }
     if (key.type === 'Identifier' && typeof key.name === 'string') {
@@ -390,13 +390,13 @@ class TypeContractGuard {
   static #findContainingClass(container: Rule.Node): Rule.Node | undefined {
     const classBody = container.parent;
 
-    if (classBody === null || !ObjectGuard.isObject(classBody)) {
+    if (classBody === null || !Predicates.isRecord(classBody)) {
       return undefined;
     }
 
     const classNode = (classBody as { readonly 'parent'?: unknown }).parent;
 
-    if (!ObjectGuard.isObject(classNode)) {
+    if (!Predicates.isRecord(classNode)) {
       return undefined;
     }
     if (classNode.type !== 'ClassDeclaration' && classNode.type !== 'ClassExpression') {
@@ -411,25 +411,25 @@ class TypeContractGuard {
     const result: Rule.Node[] = [];
     const superClass = (classNode as { readonly 'superClass'?: unknown }).superClass;
 
-    if (ObjectGuard.isObject(superClass)) {
+    if (Predicates.isRecord(superClass)) {
       result.push(superClass as unknown as Rule.Node);
     }
 
     const implementsClauses = (classNode as { readonly 'implements'?: unknown }).implements;
 
-    if (ObjectGuard.isArray(implementsClauses)) {
+    if (Predicates.isArray(implementsClauses)) {
       const clauseCount = implementsClauses.length;
 
       for (let index = 0; index < clauseCount; index += 1) {
         const clause = implementsClauses.at(index);
 
-        if (!ObjectGuard.isObject(clause)) {
+        if (!Predicates.isRecord(clause)) {
           continue;
         }
 
         const expression = clause.expression;
 
-        if (ObjectGuard.isObject(expression)) {
+        if (Predicates.isRecord(expression)) {
           result.push(expression as unknown as Rule.Node);
         }
       }
@@ -548,7 +548,7 @@ class ForwardedReturnReduction {
       return undefined;
     }
 
-    const result = ObjectGuard.isObject(statement) ? statement.argument : undefined;
+    const result = Predicates.isRecord(statement) ? statement.argument : undefined;
 
     return result;
   }

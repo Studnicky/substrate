@@ -1,5 +1,5 @@
 import { ConfigurationError } from '@studnicky/config';
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
@@ -13,7 +13,7 @@ class TimingInstance {
   static construct(constructor: Function, argumentsList: readonly object[]): object {
     const result: unknown = Reflect.construct(constructor, argumentsList);
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('Timing.create() did not construct an object.');
+      throw RuntimeError.create('Timing.create() did not construct an object.');
     }
     return result;
   }
@@ -82,7 +82,7 @@ export class Timing implements TimingInterface {
   ): TInstance {
     const result = TimingInstance.construct(this, [options]);
     if (!TimingInstance.belongsTo<TInstance>(this, result)) {
-      throw new TypeError('Timing.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Timing.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -186,7 +186,7 @@ export class Timing implements TimingInterface {
     const nanosecondsPerUnit = this.#nanosecondsPerUnit.get(unit);
     const precision = this.#precisions.get(unit);
     if (nanosecondsPerUnit === undefined || precision === undefined) {
-      throw new RangeError(`Unsupported time unit: ${unit}`);
+      throw RuntimeError.create(`Unsupported time unit: ${unit}`);
     }
 
     const rawValue = Number(ns) / nanosecondsPerUnit;

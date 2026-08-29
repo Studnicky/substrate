@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 export class LshCandidateIndex {
   readonly #idsByBand = new Map<string, Set<string>>();
   readonly #bandsById = new Map<string, readonly string[]>();
@@ -5,7 +7,7 @@ export class LshCandidateIndex {
 
   constructor(rowsPerBand: number) {
     if (!Number.isInteger(rowsPerBand) || rowsPerBand <= 0) {
-      throw new RangeError('Rows per band must be a positive integer.');
+      throw RuntimeError.create('Rows per band must be a positive integer.');
     }
     this.#rowsPerBand = rowsPerBand;
   }

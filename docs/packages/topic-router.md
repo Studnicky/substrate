@@ -22,6 +22,7 @@ pnpm add @studnicky/topic-router
 | `TopicEnvelopeInterface` | Immutable delivery envelope contract. | `@studnicky/topic-router` |
 | `TopicHandlerInterface` | Contract for a subscription delivery handler. | `@studnicky/topic-router` |
 | `TopicMatcherInterface` | Contract for structural topic-to-pattern matching. | `@studnicky/topic-router` |
+| `TopicPublishOptionsInterface` | Optional metadata attached to every envelope from one publish operation. | `@studnicky/topic-router` |
 | `TopicRegistrationOptionsInterface` | Optional registration identifier and subscription attributes. | `@studnicky/topic-router` |
 | `TopicRouterOptionsInterface` | Router construction options. | `@studnicky/topic-router` |
 | `TopicSelectionInterface` | Selected subscription identifier and evidence contract. | `@studnicky/topic-router` |

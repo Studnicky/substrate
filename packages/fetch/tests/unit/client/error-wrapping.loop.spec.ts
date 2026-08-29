@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -129,7 +130,7 @@ const mappedErrorAssertionMap: MappedErrorAssertionMap = {
 };
 
 async function runMappedErrorScenario(scenarioCase: MappedErrorScenario): Promise<void> {
-  const error = new Error('mapped') as Error & { code?: string };
+  const error = RuntimeError.create('mapped') as Error & { code?: string };
   error.code = scenarioCase.input.errorCode;
   const client = createClient(scenarioCase.input.fetchClient) as never;
   const dispatcher = Reflect.get(client, 'dispatcher') as { checkDispatcherHealth(origin: string): { stats: Record<string, unknown> } };
@@ -154,7 +155,7 @@ const runnerMap: RunnerMap = {
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'handle-no-dispatcher': async (scenarioCase) => {
-    const error = new Error('connect timeout') as Error & { code?: string };
+    const error = RuntimeError.create('connect timeout') as Error & { code?: string };
     error.code = scenarioCase.input.errorCode ?? 'UND_ERR_CONNECT_TIMEOUT';
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, error.code, 'GET', 'request-1', 1);
@@ -166,13 +167,13 @@ const runnerMap: RunnerMap = {
   'wrap-headers-timeout': runMappedErrorScenario,
   'wrap-no-code': async (scenarioCase) => {
     const client = createClient(scenarioCase.input.fetchClient) as never;
-    const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(new Error('no code'), scenarioCase.input.url, 'GET', 'request-1', 1);
+    const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(RuntimeError.create('no code'), scenarioCase.input.url, 'GET', 'request-1', 1);
     assert.equal(wrapped, undefined);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'wrap-socket-error': runMappedErrorScenario,
   'wrap-unknown-code': async (scenarioCase) => {
-    const error = new Error('unknown') as Error & { code?: string };
+    const error = RuntimeError.create('unknown') as Error & { code?: string };
     error.code = scenarioCase.input.errorCode;
     const client = createClient(scenarioCase.input.fetchClient) as never;
     const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);

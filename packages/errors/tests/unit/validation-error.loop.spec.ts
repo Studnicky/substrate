@@ -91,7 +91,7 @@ const runnerMap = {
   'json-serializes': (scenario, err) => {
     const json = err.toJSON() as Record<string, unknown>;
     assert.strictEqual(json.code, scenario.expected.code);
-    assert.strictEqual(typeof json.message, scenario.expected.messageType);
+    assert.strictEqual(typeof json.detail, scenario.expected.messageType);
   },
   'message-with-path': (scenario, err) => {
     for (const fragment of scenario.expected.messageIncludes as string[]) {

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/matching)
 
-`@studnicky/matching` exposes independently composable, model-free primitives. It does not choose candidates, apply a threshold, or deliver an event: a consumer combines the primitive that fits its own selection policy with `@studnicky/topic-router`, `@studnicky/types/filters`, or application code.
+`@studnicky/matching` exposes independently composable, model-free primitives. It does not choose candidates, apply a threshold, or deliver an event: a consumer combines the primitive that fits its own selection policy with `@studnicky/topic-router`, `@studnicky/filters`, or application code.
 
 ## Install
 

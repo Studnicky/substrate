@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { Predicates } from '@studnicky/types';
 import {
   type InterfaceDeclaration,
   isIndexedAccessTypeNode,
@@ -15,7 +16,6 @@ import {
   type TypeNode
 } from 'typescript';
 
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -29,11 +29,11 @@ interface ParserServicesInterface {
 
 class ParserServices {
   public static has(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!Predicates.isRecord(value)) { return false; }
 
     const program = value.program;
     const nodeMap = value.esTreeNodeToTSNodeMap;
-    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
+    if (!Predicates.isRecord(program) || !Predicates.isRecord(nodeMap)) { return false; }
 
     const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
     return result;
@@ -42,7 +42,7 @@ class ParserServices {
 
 class NodeType {
   public static get(rawNode: unknown): string {
-    if (!ObjectGuard.isObject(rawNode)) { return ''; }
+    if (!Predicates.isRecord(rawNode)) { return ''; }
 
     const nodeType = rawNode.type;
     const result = typeof nodeType === 'string' ? nodeType : '';
@@ -52,10 +52,10 @@ class NodeType {
 
 class Member {
   public static getName(member: unknown): string {
-    if (!ObjectGuard.isObject(member)) { return '<unnamed>'; }
+    if (!Predicates.isRecord(member)) { return '<unnamed>'; }
 
     const key = member.key;
-    if (!ObjectGuard.isObject(key)) { return '<unnamed>'; }
+    if (!Predicates.isRecord(key)) { return '<unnamed>'; }
 
     if (key.type === 'Identifier') {
       const name = key.name;
@@ -75,7 +75,7 @@ class Member {
 
 class Parent {
   public static get(rawNode: unknown): unknown {
-    const result = ObjectGuard.isObject(rawNode) ? rawNode.parent : undefined;
+    const result = Predicates.isRecord(rawNode) ? rawNode.parent : undefined;
     return result;
   }
 }
@@ -169,7 +169,7 @@ class AncestorInfo {
     let interfaceNode: unknown = null;
     let owningMember: unknown = null;
 
-    while (ObjectGuard.isObject(current)) {
+    while (Predicates.isRecord(current)) {
       const nodeType = NodeType.get(current);
 
       if (nodeType === 'TSTypeParameter' && current.constraint === child) {
@@ -190,7 +190,7 @@ class AncestorInfo {
       if (nodeType === 'TSInterfaceDeclaration') {
         interfaceNode = current;
         const idNode = current.id;
-        if (ObjectGuard.isObject(idNode)) {
+        if (Predicates.isRecord(idNode)) {
           const name = idNode.name;
           if (typeof name === 'string') { interfaceName = name; }
         }

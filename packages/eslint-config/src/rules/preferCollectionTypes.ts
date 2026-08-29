@@ -3,10 +3,10 @@ import type { Rule, Scope } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 
 namespace PreferCollectionTypesOptionsEntity {
   export const Schema = {
@@ -86,7 +86,7 @@ class NodePropertyAccess {
 
   public static getNode(object: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
     const value: unknown = Reflect.get(object, key);
-    const result = ObjectGuard.isObject(value) ? value : undefined;
+    const result = Predicates.isRecord(value) ? value : undefined;
     return result;
   }
 }
@@ -95,13 +95,13 @@ class MembershipCallDetection {
   // Returns true if node is: SomeExpr.includes(...)
   public static isIncludesCall(node: unknown): boolean {
     if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (!Predicates.isRecord(callee)) { return false; }
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
     const property = callee.property;
-    if (!ObjectGuard.isObject(property)) { return false; }
+    if (!Predicates.isRecord(property)) { return false; }
     const result = NodePropertyAccess.getString(property, 'name') === 'includes';
     return result;
   }
@@ -109,13 +109,13 @@ class MembershipCallDetection {
   // Returns true if node is: SomeExpr.indexOf(...)
   public static isIndexOfCall(node: unknown): boolean {
     if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (!Predicates.isRecord(callee)) { return false; }
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
     const property = callee.property;
-    if (!ObjectGuard.isObject(property)) { return false; }
+    if (!Predicates.isRecord(property)) { return false; }
     const result = NodePropertyAccess.getString(property, 'name') === 'indexOf';
     return result;
   }
@@ -123,12 +123,12 @@ class MembershipCallDetection {
   // Returns true if node is a numeric literal matching `value`, handling negative
   // literals which parse as UnaryExpression{operator:'-', argument: Literal}
   public static isNumericLiteral(node: unknown, value: number): boolean {
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     if (value < 0) {
       if (AstHelpers.getNodeType(node) !== 'UnaryExpression') { return false; }
       if (NodePropertyAccess.getString(node, 'operator') !== '-') { return false; }
       const argument = node.argument;
-      if (!ObjectGuard.isObject(argument)) { return false; }
+      if (!Predicates.isRecord(argument)) { return false; }
       const result = AstHelpers.getNodeType(argument) === 'Literal' && argument.value === Math.abs(value);
       return result;
     }
@@ -139,9 +139,9 @@ class MembershipCallDetection {
   // Returns true if node is: ArrayExpression.includes(...)
   public static isArrayLiteralIncludesCall(node: unknown): boolean {
     if (!MembershipCallDetection.isIncludesCall(node)) { return false; }
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (!Predicates.isRecord(callee)) { return false; }
     const object = callee.object;
     const result = AstHelpers.getNodeType(object) === 'ArrayExpression';
     return result;
@@ -151,9 +151,9 @@ class MembershipCallDetection {
   // (!== -1 / > -1 / < 0)
   public static isArrayLiteralIndexOfMembershipCall(node: unknown): boolean {
     if (!MembershipCallDetection.isIndexOfCall(node)) { return false; }
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (!Predicates.isRecord(callee)) { return false; }
     const object = callee.object;
     if (AstHelpers.getNodeType(object) !== 'ArrayExpression') { return false; }
     const parent = (node as unknown as { readonly 'parent'?: unknown }).parent;
@@ -164,18 +164,18 @@ class MembershipCallDetection {
   // Returns true if node is: Object.fromEntries(...)
   public static isObjectFromEntriesCall(node: unknown): boolean {
     if (AstHelpers.getNodeType(node) !== 'CallExpression') { return false; }
-    if (!ObjectGuard.isObject(node)) { return false; }
+    if (!Predicates.isRecord(node)) { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee)) { return false; }
+    if (!Predicates.isRecord(callee)) { return false; }
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return false; }
 
     const object = callee.object;
-    if (!ObjectGuard.isObject(object) || AstHelpers.getNodeType(object) !== 'Identifier') { return false; }
+    if (!Predicates.isRecord(object) || AstHelpers.getNodeType(object) !== 'Identifier') { return false; }
     if (NodePropertyAccess.getString(object, 'name') !== 'Object') { return false; }
 
     const property = callee.property;
-    if (!ObjectGuard.isObject(property)) { return false; }
+    if (!Predicates.isRecord(property)) { return false; }
     const result = NodePropertyAccess.getString(property, 'name') === 'fromEntries';
     return result;
   }
@@ -189,7 +189,7 @@ class MembershipIndexOfCall {
   // x.indexOf(y) < 0 | x.indexOf(y) >= 0 (negated)
   public static get(node: unknown): unknown {
     if (AstHelpers.getNodeType(node) !== 'BinaryExpression') { return undefined; }
-    if (!ObjectGuard.isObject(node)) { return undefined; }
+    if (!Predicates.isRecord(node)) { return undefined; }
     const operator = NodePropertyAccess.getString(node, 'operator');
     const left = node.left;
     const right = node.right;
@@ -223,12 +223,12 @@ class IterationCallbackTracker {
     if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
 
     const callee = raw.callee;
-    if (!ObjectGuard.isObject(callee)) { return; }
+    if (!Predicates.isRecord(callee)) { return; }
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return; }
 
     const property = callee.property;
-    if (!ObjectGuard.isObject(property)) { return; }
+    if (!Predicates.isRecord(property)) { return; }
     const methodName = NodePropertyAccess.getString(property, 'name');
     if (methodName === undefined || !ITERATION_METHODS.has(methodName)) { return; }
 
@@ -289,11 +289,11 @@ class ScopeReferenceDetection {
   public static isIncludesCalleeReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
-    if (!ObjectGuard.isObject(parent)) { return false; }
+    if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== false) { return false; }
     const prop = parent.property;
-    if (!ObjectGuard.isObject(prop)) { return false; }
+    if (!Predicates.isRecord(prop)) { return false; }
     if (NodePropertyAccess.getString(prop, 'name') !== 'includes') { return false; }
 
     // Identifier must be the object (left side), not an argument
@@ -301,7 +301,7 @@ class ScopeReferenceDetection {
 
     // MemberExpression must be the callee of a CallExpression
     const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-    if (!ObjectGuard.isObject(grandParent)) { return false; }
+    if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
     if (grandParent.callee !== (parent as unknown)) { return false; }
 
@@ -312,17 +312,17 @@ class ScopeReferenceDetection {
   public static isIndexOfCalleeMembershipReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
-    if (!ObjectGuard.isObject(parent)) { return false; }
+    if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== false) { return false; }
     const prop = parent.property;
-    if (!ObjectGuard.isObject(prop)) { return false; }
+    if (!Predicates.isRecord(prop)) { return false; }
     if (NodePropertyAccess.getString(prop, 'name') !== 'indexOf') { return false; }
 
     if (parent.object !== (id as unknown)) { return false; }
 
     const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
-    if (!ObjectGuard.isObject(grandParent)) { return false; }
+    if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
     if (grandParent.callee !== (parent as unknown)) { return false; }
 
@@ -337,7 +337,7 @@ class ScopeReferenceDetection {
   public static isComputedMemberObjectReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
-    if (!ObjectGuard.isObject(parent)) { return false; }
+    if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== true) { return false; }
     const result = parent.object === (id as unknown);

@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { NgramExtractor } from '../extractors/NgramExtractor.js';
 
 export class NgramCandidateIndex {
@@ -7,7 +9,7 @@ export class NgramCandidateIndex {
 
   constructor(size: number) {
     if (!Number.isInteger(size) || size <= 0) {
-      throw new RangeError('N-gram size must be a positive integer.');
+      throw RuntimeError.create('N-gram size must be a positive integer.');
     }
     this.#size = size;
   }

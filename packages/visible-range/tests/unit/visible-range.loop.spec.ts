@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import type { VisibleRangeConfigInterface } from '../../src/interfaces/index.js';
 
@@ -168,7 +169,7 @@ function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): Visibl
 
 function requireEntityInput(scenario: EntityContractScenario): EntityContractInput {
   if (scenario.input === undefined) {
-    throw new Error(`Missing input for visible-range entity scenario: ${scenario.shape}`);
+    throw RuntimeError.create(`Missing input for visible-range entity scenario: ${scenario.shape}`);
   }
   return scenario.input;
 }
@@ -176,7 +177,7 @@ function requireEntityInput(scenario: EntityContractScenario): EntityContractInp
 function requireValidationInput(scenario: EntityContractScenario, key: 'configData' | 'resolvedConfig'): EntityValidationInput {
   const input = requireEntityInput(scenario)[key];
   if (input === undefined) {
-    throw new Error(`Missing ${key} fixture for visible-range entity scenario: ${scenario.shape}`);
+    throw RuntimeError.create(`Missing ${key} fixture for visible-range entity scenario: ${scenario.shape}`);
   }
   return input;
 }
@@ -184,14 +185,14 @@ function requireValidationInput(scenario: EntityContractScenario, key: 'configDa
 function requireVisibleRangeConfig(scenario: EntityContractScenario): SerializableVisibleRangeConfig {
   const config = requireEntityInput(scenario).visibleRange;
   if (config === undefined) {
-    throw new Error(`Missing visible-range config for entity scenario: ${scenario.shape}`);
+    throw RuntimeError.create(`Missing visible-range config for entity scenario: ${scenario.shape}`);
   }
   return config;
 }
 
 function requireNumber(value: number | undefined, label: string): number {
   if (value === undefined) {
-    throw new Error(`Missing ${label}`);
+    throw RuntimeError.create(`Missing ${label}`);
   }
   return value;
 }
@@ -213,14 +214,14 @@ function createConfiguredRange(input: RangeInput, rangeType: typeof VisibleRange
 
 function requireRangeValue(expectation: RangeExpectation | VariableExpectation): VisibleRangeEntity.Type {
   if (!('range' in expectation)) {
-    throw new Error(`Expected range fixture, received ${expectation.shape}`);
+    throw RuntimeError.create(`Expected range fixture, received ${expectation.shape}`);
   }
   return expectation.range;
 }
 
 function requireBoundaryValue(expectation: RangeExpectation, shape: RangeBoundaryExpectation['shape']): number {
   if (expectation.shape !== shape || !('value' in expectation)) {
-    throw new Error(`Expected ${shape} fixture, received ${expectation.shape}`);
+    throw RuntimeError.create(`Expected ${shape} fixture, received ${expectation.shape}`);
   }
   return expectation.value;
 }
@@ -252,7 +253,7 @@ const variableRangeAssertions: Record<VariableExpectation['shape'], (actual: Vis
     assert.deepStrictEqual(actual, requireRangeValue(expectation));
   },
   'unchanged-range': () => {
-    throw new Error('unchanged-range expectations require a before/after comparison');
+    throw RuntimeError.create('unchanged-range expectations require a before/after comparison');
   }
 };
 
@@ -262,10 +263,10 @@ function assertVariableRange(actual: VisibleRangeEntity.Type, expectation: Varia
 
 const unchangedRangeAssertions: Record<VariableExpectation['shape'], (before: VisibleRangeEntity.Type, after: VisibleRangeEntity.Type, expectation: VariableExpectation) => void> = {
   'corrected-range': (_before, _after, expectation) => {
-    throw new Error(`Expected unchanged-range fixture, received ${expectation.shape}`);
+    throw RuntimeError.create(`Expected unchanged-range fixture, received ${expectation.shape}`);
   },
   range: (_before, _after, expectation) => {
-    throw new Error(`Expected unchanged-range fixture, received ${expectation.shape}`);
+    throw RuntimeError.create(`Expected unchanged-range fixture, received ${expectation.shape}`);
   },
   'unchanged-range': (before, after) => {
     assert.deepStrictEqual(after, before);
@@ -338,7 +339,7 @@ function runFixedMode(): void {
 
 const onRangeChangeRunners = {
   'async-rejecting-hook': async (scenario: OnRangeChangeScenario): Promise<void> => {
-    const original = new Error('async onRangeChange boom');
+    const original = RuntimeError.create('async onRangeChange boom');
 
     class AsyncRejectingVisibleRange extends VisibleRange {
       protected override async onRangeChange(): Promise<void> {
@@ -433,7 +434,7 @@ const onRangeChangeRunners = {
   'throwing-hook': (scenario: OnRangeChangeScenario): void => {
     class ThrowingVisibleRange extends VisibleRange {
       protected override onRangeChange(): void {
-        throw new Error('onRangeChange boom');
+        throw RuntimeError.create('onRangeChange boom');
       }
     }
 

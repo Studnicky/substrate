@@ -3,5 +3,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": ".", "noEmit": true },
   "include": ["tests/**/*"],
-  "references": [{ "path": "./tsconfig.json" }]
+  "references": [{ "path": "./tsconfig.json" }, { "path": "../errors" }]
 }

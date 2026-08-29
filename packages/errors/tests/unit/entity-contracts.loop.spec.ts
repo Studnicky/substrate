@@ -17,7 +17,7 @@ import { ErrorClassificationEntity } from '../../src/entities/ErrorClassificatio
 import { ErrorCodeDescriptorEntity } from '../../src/entities/ErrorCodeDescriptorEntity.js';
 import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
 import { ValidationAggregateViewEntity } from '../../src/entities/ValidationAggregateViewEntity.js';
-import { ValidationProblemDetailsEntity } from '../../src/entities/ValidationProblemDetailsEntity.js';
+import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
@@ -85,10 +85,10 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'error-with-status-valid': runErrorWithStatus,
   'error-with-syscall-invalid': runErrorWithSyscall,
   'error-with-syscall-valid': runErrorWithSyscall,
-  'problem-details-invalid': validateValue((value) => ValidationProblemDetailsEntity.validate(value)),
-  'problem-details-invalid-item': validateValue((value) => ValidationProblemDetailsEntity.validate(value)),
-  'problem-details-valid': validateValue((value) => ValidationProblemDetailsEntity.validate(value)),
-  'problem-details-valid-empty-errors': validateValue((value) => ValidationProblemDetailsEntity.validate(value)),
+  'problem-details-invalid': validateValue((value) => ProblemDetailsEntity.validate(value)),
+  'problem-details-invalid-item': validateValue((value) => ProblemDetailsEntity.validate(value)),
+  'problem-details-valid': validateValue((value) => ProblemDetailsEntity.validate(value)),
+  'problem-details-valid-empty-errors': validateValue((value) => ProblemDetailsEntity.validate(value)),
   'report-options-invalid': validateValue((value) => ValidationReportOptionsEntity.validate(value)),
   'report-options-valid': validateValue((value) => ValidationReportOptionsEntity.validate(value)),
   'validation-arguments-invalid-top-level': validateValue((value) => ValidationErrorArgumentsEntity.validate(value)),

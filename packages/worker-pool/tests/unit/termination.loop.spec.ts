@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
@@ -91,14 +92,14 @@ type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
 const runnerMap: RunnerMap = {
   'final-shutdown-rejection': async (scenarioCase) => {
     const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = new Error(scenarioCase.input.terminateFailureMessage);
+    const terminationFailure = RuntimeError.create(scenarioCase.input.terminateFailureMessage);
     const observedErrors: Array<{ error: Error; index: number }> = [];
     let terminateCalls = 0;
 
     class ObservingPool extends WorkerPool<ItemInterface, string> {
       protected override async onWorkerError(error: Error, index: number): Promise<void> {
         observedErrors.push({ error, index });
-        throw new Error('termination observer rejected');
+        throw RuntimeError.create('termination observer rejected');
       }
     }
 
@@ -131,7 +132,7 @@ const runnerMap: RunnerMap = {
 
   'timeout-shutdown-rejection': async (scenarioCase) => {
     const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = new Error(scenarioCase.input.terminateFailureMessage);
+    const terminationFailure = RuntimeError.create(scenarioCase.input.terminateFailureMessage);
     const observedErrors: Array<{ error: Error; index: number }> = [];
     let terminateCalls = 0;
 
@@ -178,7 +179,7 @@ const runnerMap: RunnerMap = {
 
   'error-shutdown-rejection': async (scenarioCase) => {
     const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = new Error(scenarioCase.input.terminateFailureMessage);
+    const terminationFailure = RuntimeError.create(scenarioCase.input.terminateFailureMessage);
     const observedErrors: Array<{ error: Error; index: number }> = [];
     let terminateCalls = 0;
 

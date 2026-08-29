@@ -27,6 +27,7 @@
 
 import type { FsmStepInterface } from '@studnicky/fsm';
 
+import { RuntimeError } from '@studnicky/errors';
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
@@ -111,6 +112,6 @@ export class BusQueueLifecycleMachine extends StateMachine<
         }
         break;
     }
-    throw new Error(`BusQueueLifecycleMachine: unhandled event '${event.type}' in state '${state.variant}'`);
+    throw RuntimeError.create(`BusQueueLifecycleMachine: unhandled event '${event.type}' in state '${state.variant}'`);
   }
 }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -184,7 +185,7 @@ function requireObject<T>(value: T, context: string): JsonObject {
     return result;
   }
 
-  throw new TypeError(`Expected object for ${context}`);
+  throw RuntimeError.create(`Expected object for ${context}`);
 }
 
 function requireArray<T>(value: T, context: string): unknown[] {
@@ -192,7 +193,7 @@ function requireArray<T>(value: T, context: string): unknown[] {
     return value;
   }
 
-  throw new TypeError(`Expected array for ${context}`);
+  throw RuntimeError.create(`Expected array for ${context}`);
 }
 
 function requireString<T>(value: T, context: string): string {
@@ -200,7 +201,7 @@ function requireString<T>(value: T, context: string): string {
     return value;
   }
 
-  throw new TypeError(`Expected string for ${context}`);
+  throw RuntimeError.create(`Expected string for ${context}`);
 }
 
 function requiredValue(record: JsonObject, key: string): unknown {
@@ -208,7 +209,7 @@ function requiredValue(record: JsonObject, key: string): unknown {
     return Reflect.get(record, key);
   }
 
-  throw new TypeError(`Missing scenario value: ${key}`);
+  throw RuntimeError.create(`Missing scenario value: ${key}`);
 }
 
 function assertSchemaIntakeMessage(action: () => void, expectedMessage: string): void {
@@ -230,7 +231,7 @@ void describe('SchemaValidator intake and create', () => {
     const shape = requireString(scenarioCase.shape, 'schema intake scenario shape');
     void it(requireString(scenarioCase.name, 'schema intake scenario name'), () => {
       if (!isScenarioShape(shape)) {
-        throw new Error(`Unhandled schema intake scenario shape: ${shape}`);
+        throw RuntimeError.create(`Unhandled schema intake scenario shape: ${shape}`);
       }
 
       scenarioRunnerMap[shape](scenarioCase);

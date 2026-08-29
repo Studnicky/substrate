@@ -1,7 +1,7 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
@@ -113,7 +113,7 @@ export class BusQueue<T> {
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [options]);
     if (!Predicates.isObjectLike(result) || !BusQueueInstance.belongsTo(constructor, result)) {
-      throw new TypeError('BusQueue.create() did not construct the requested subclass.');
+      throw RuntimeError.create('BusQueue.create() did not construct the requested subclass.');
     }
     return result;
   }

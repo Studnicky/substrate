@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
@@ -24,7 +25,7 @@ export class MinimumHeap {
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
     if (!Predicates.isObjectLike(result) || !MinimumHeapInstance.belongsTo(this, result)) {
-      throw new TypeError('MinimumHeap.create() did not construct the requested subclass.');
+      throw RuntimeError.create('MinimumHeap.create() did not construct the requested subclass.');
     }
     return result;
   }

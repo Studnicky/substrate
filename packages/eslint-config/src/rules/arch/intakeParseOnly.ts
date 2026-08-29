@@ -3,10 +3,10 @@ import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import { ResolvedType } from '../shared/ResolvedType.js';
 import { EntityIntake } from './EntityIntake.js';
 import { ExemptPackage } from './ExemptPackage.js';
@@ -109,17 +109,17 @@ class UntypedParameter {
   }
 
   static #isUntyped(context: Rule.RuleContext, parameter: unknown): boolean {
-    if (!ObjectGuard.isObject(parameter)) {
+    if (!Predicates.isRecord(parameter)) {
       return false;
     }
     const annotation: unknown = parameter.typeAnnotation;
 
-    if (!ObjectGuard.isObject(annotation)) {
+    if (!Predicates.isRecord(annotation)) {
       return false;
     }
     const inner: unknown = annotation.typeAnnotation;
 
-    if (!ObjectGuard.isObject(inner)) {
+    if (!Predicates.isRecord(inner)) {
       return false;
     }
     const result = ResolvedType.isUnparsed(context, inner);

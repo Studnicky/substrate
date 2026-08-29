@@ -1,6 +1,6 @@
 import type ts from 'typescript';
 
-import { ObjectGuard } from './ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 
 // `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configurations and
 // `WeakMap`-shaped under others (e.g. `@typescript-eslint/parser`'s
@@ -18,7 +18,7 @@ interface ParserServicesInterface {
 
 export class AstHelpers {
   public static getNodeType(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) { return undefined; }
+    if (!Predicates.isRecord(node)) { return undefined; }
     const type = node.type;
     const result = typeof type === 'string' ? type : undefined;
     return result;
@@ -26,12 +26,12 @@ export class AstHelpers {
 
   /** Reads an arbitrary named property off an AST node, returning `undefined` for a non-object. */
   public static getNodeProperty(node: unknown, property: string): unknown {
-    const result = ObjectGuard.isObject(node) ? Reflect.get(node, property) : undefined;
+    const result = Predicates.isRecord(node) ? Reflect.get(node, property) : undefined;
     return result;
   }
 
   public static getIdentifierName(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) { return undefined; }
+    if (!Predicates.isRecord(node)) { return undefined; }
     const name = node.name;
     const result = typeof name === 'string' ? name : undefined;
     return result;
@@ -43,7 +43,7 @@ export class AstHelpers {
    * already been set by ESLint's own traversal never sends this walk back up the tree.
    */
   public static forEachDescendant(node: unknown, visit: (descendant: Record<string, unknown>) => void): void {
-    if (!ObjectGuard.isObject(node)) { return; }
+    if (!Predicates.isRecord(node)) { return; }
 
     const keys = Object.keys(node);
     const keyCount = keys.length;
@@ -57,14 +57,14 @@ export class AstHelpers {
   }
 
   static #visitValue(value: unknown, visit: (descendant: Record<string, unknown>) => void): void {
-    if (ObjectGuard.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
         AstHelpers.#visitValue(value[index], visit);
       }
       return;
     }
-    if (!ObjectGuard.isObject(value) || typeof value.type !== 'string') {
+    if (!Predicates.isRecord(value) || typeof value.type !== 'string') {
       return;
     }
 
@@ -73,10 +73,10 @@ export class AstHelpers {
   }
 
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
-    if (!ObjectGuard.isObject(value)) { return false; }
-    if (!('program' in value) || !ObjectGuard.isObject(value.program)) { return false; }
+    if (!Predicates.isRecord(value)) { return false; }
+    if (!('program' in value) || !Predicates.isRecord(value.program)) { return false; }
     if (typeof value.program.getTypeChecker !== 'function') { return false; }
-    if (!('esTreeNodeToTSNodeMap' in value) || !ObjectGuard.isObject(value.esTreeNodeToTSNodeMap)) { return false; }
+    if (!('esTreeNodeToTSNodeMap' in value) || !Predicates.isRecord(value.esTreeNodeToTSNodeMap)) { return false; }
 
     const result = typeof value.esTreeNodeToTSNodeMap.get === 'function';
     return result;

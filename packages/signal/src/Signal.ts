@@ -1,6 +1,5 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
-
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import { SignalError } from './errors/SignalError.js';
@@ -9,7 +8,7 @@ class SignalInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('Signal.create() did not construct an object.');
+      throw RuntimeError.create('Signal.create() did not construct an object.');
     }
     return result;
   }
@@ -34,7 +33,7 @@ export class Signal {
   static create<TInstance extends Signal = Signal>(this: Function & { readonly 'prototype': TInstance; }): TInstance {
     const result = SignalInstance.construct(this);
     if (!SignalInstance.belongsTo<TInstance>(this, result)) {
-      throw new TypeError('Signal.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Signal.create() did not construct the requested subclass.');
     }
     return result;
   }

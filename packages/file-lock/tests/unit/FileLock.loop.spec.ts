@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -69,7 +70,7 @@ class FaultyFileSystem implements FileSystemInterface {
   readdirSync(): string[] { return []; }
   readFileSync(): string { return ''; }
   renameSync(): void {
-    const error = new Error(this.config.message) as NodeJS.ErrnoException;
+    const error = RuntimeError.create(this.config.message) as NodeJS.ErrnoException;
     error.code = this.config.code;
     throw error;
   }
@@ -294,7 +295,7 @@ const runnerMap: ScenarioRunnerMap = {
     const hookErrorMessage = scenarioCase.input.hookErrorMessage as string;
     class ThrowingAcquireHookLock extends FileLock {
       protected override onAcquire(): void {
-        throw new Error(hookErrorMessage);
+        throw RuntimeError.create(hookErrorMessage);
       }
     }
     const lock = await ThrowingAcquireHookLock.create({ path });
@@ -307,7 +308,7 @@ const runnerMap: ScenarioRunnerMap = {
     writeFileSync(path, scenarioCase.input.content as string);
     const hookCauseMessage = scenarioCase.expected.hookCauseMessage as string;
     class AsyncRejectingAcquireLock extends FileLock {
-      static readonly hookCause = new Error(hookCauseMessage, { cause: { details: { attempt: 1 } } });
+      static readonly hookCause = RuntimeError.create(hookCauseMessage, { cause: { details: { attempt: 1 } } });
       protected override onAcquire(): Promise<void> {
         return Promise.reject(AsyncRejectingAcquireLock.hookCause);
       }
@@ -344,7 +345,7 @@ const runnerMap: ScenarioRunnerMap = {
     writeFileSync(secondPath, (scenarioCase.input.second as Record<string, unknown>).content as string);
     class IsolatedFailureLock extends FileLock {
       protected override onAcquire(path: string): void {
-        throw new Error(`hook failure for ${path}`);
+        throw RuntimeError.create(`hook failure for ${path}`);
       }
     }
     const first = await IsolatedFailureLock.create({ path: firstPath });

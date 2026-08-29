@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedPipeline — trace every hook in a multi-stage pipeline. Run: npx tsx examples/observedPipeline.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -80,7 +80,7 @@ console.log(`result: step=${successResult.step} value=${successResult.value}`);
 
 const failPipeline = new TracingPipeline<StepContextTypeEntity.Type>([
   (context) => { return { 'step': context.step + 1, 'value': `${context.value}->alpha` }; },
-  (_context) => { throw new Error('stage 1 fails'); }
+  (_context) => { throw RuntimeError.create('stage 1 fails'); }
 ]);
 
 console.log('\n--- failing path ---');

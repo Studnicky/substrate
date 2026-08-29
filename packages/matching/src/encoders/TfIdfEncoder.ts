@@ -1,9 +1,11 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { TokenExtractor } from '../extractors/TokenExtractor.js';
 
 export class TfIdfEncoder {
   static encode(value: string, documentFrequency: ReadonlyMap<string, number>, documentCount: number): ReadonlyMap<string, number> {
     if (!Number.isInteger(documentCount) || documentCount <= 0) {
-      throw new RangeError('Document count must be a positive integer.');
+      throw RuntimeError.create('Document count must be a positive integer.');
     }
     const tokens = TokenExtractor.extract(value);
     const counts = new Map<string, number>();

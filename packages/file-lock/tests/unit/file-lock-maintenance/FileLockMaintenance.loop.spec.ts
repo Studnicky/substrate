@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -36,28 +37,28 @@ let testDirectory = '';
 
 function requireBoolean(value: unknown, name: string): boolean {
   if (!Predicates.isBoolean(value)) {
-    throw new TypeError(`${name} must be a boolean`);
+    throw RuntimeError.create(`${name} must be a boolean`);
   }
   return value;
 }
 
 function requireRecord(value: unknown, name: string): Record<string, unknown> {
   if (!Predicates.isObject(value)) {
-    throw new TypeError(`${name} must be an object`);
+    throw RuntimeError.create(`${name} must be an object`);
   }
   return value;
 }
 
 function requireString(value: unknown, name: string): string {
   if (!Predicates.isString(value)) {
-    throw new TypeError(`${name} must be a string`);
+    throw RuntimeError.create(`${name} must be a string`);
   }
   return value;
 }
 
 function requireStringArray(value: unknown, name: string): readonly string[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError(`${name} must be an array`);
+    throw RuntimeError.create(`${name} must be an array`);
   }
   const result: string[] = [];
   for (const item of value) {
@@ -114,14 +115,14 @@ function parseScenarioCase(value: unknown): ScenarioCase {
     };
   }
 
-  throw new TypeError(`Unknown file lock maintenance scenario shape: ${shape}`);
+  throw RuntimeError.create(`Unknown file lock maintenance scenario shape: ${shape}`);
 }
 
 function parseScenarioCases(value: unknown): readonly ScenarioCase[] {
   const record = requireRecord(value, 'scenario groups');
   const cases = record['cases'];
   if (!Predicates.isArray(cases)) {
-    throw new TypeError('scenario groups cases must be an array');
+    throw RuntimeError.create('scenario groups cases must be an array');
   }
   const result: ScenarioCase[] = [];
   for (const scenarioCase of cases) {

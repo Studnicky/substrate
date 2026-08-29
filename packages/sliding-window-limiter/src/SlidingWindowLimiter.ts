@@ -26,8 +26,7 @@
  * `tokens` value is accepted but ignored: every `consume()` call, regardless
  * of what is passed, is treated as exactly one admitted request.
  */
-
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { RaceTimeout, Signal } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
@@ -83,7 +82,7 @@ export class SlidingWindowLimiter {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(result) || !SlidingWindowLimiter.isConstructed(result, this)) {
-      throw new TypeError('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
+      throw RuntimeError.create('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
     }
     return result;
   }

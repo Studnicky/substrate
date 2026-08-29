@@ -1,4 +1,4 @@
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 
@@ -64,7 +64,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   ): EntityStore<TEntity, TId> {
     const result = new this(options);
     if (!EntityStore.hasConstructedInstance(result, this)) {
-      throw new TypeError('EntityStore.create() must construct an EntityStore instance');
+      throw RuntimeError.create('EntityStore.create() must construct an EntityStore instance');
     }
     return result;
   }

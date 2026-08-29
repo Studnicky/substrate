@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { DeclareThenReturnShape } from '../shared/DeclareThenReturnShape.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import { InlineCallablePosition } from './inlineCallablePosition.js';
 
 // PROVEN (`npx eslint` probe against this repo's own `eslint.config.mjs:145`,
@@ -56,7 +57,7 @@ class ArrowBodyStatementCount {
   public static of(body: Record<string, unknown>): number {
     const statements = body.body;
 
-    if (!ObjectGuard.isArray(statements)) {
+    if (!Predicates.isArray(statements)) {
       return 0;
     }
 
@@ -79,7 +80,7 @@ export const inlineArrowFunctions: Rule.RuleModule = {
       const rawNode = node as unknown as Record<string, unknown>;
       const body: unknown = rawNode.body;
 
-      if (!ObjectGuard.isObject(body) || body.type !== 'BlockStatement') {
+      if (!Predicates.isRecord(body) || body.type !== 'BlockStatement') {
         return;
       }
 

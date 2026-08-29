@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -38,7 +39,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     await assert.rejects(
       () => retry.execute(async () => {
         attempts += 1;
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       }),
       MaximumRetriesExceededError
     );
@@ -58,7 +59,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       () => retry.execute(async () => {
         attempts += 1;
         await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       }),
       MaximumRetriesExceededError
     );
@@ -82,7 +83,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       () => retry.execute(async () => {
         attempts += 1;
         await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       }),
       MaximumRetriesExceededError
     );

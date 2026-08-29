@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -30,11 +31,11 @@ function runCase(scenarioCase: ScenarioCase): void {
     'execFileSync': (command: string): Buffer => {
       const outcome = scenarioCase.input.commands?.[command];
       if (outcome === undefined) {
-        throw new Error(`unexpected command: ${command}`);
+        throw RuntimeError.create(`unexpected command: ${command}`);
       }
 
       if (typeof outcome.error === 'string') {
-        throw new Error(outcome.error);
+        throw RuntimeError.create(outcome.error);
       }
 
       return Buffer.from(outcome.output ?? '');

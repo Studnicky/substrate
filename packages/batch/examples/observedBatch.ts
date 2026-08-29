@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedBatch — trace batch progress by subclassing Batch and overriding lifecycle hooks. Run: npx tsx examples/observedBatch.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -55,7 +55,7 @@ class ObservedBatch extends Batch<string> {
 
   static processTask(task: typeof ObservedBatchFixture.Tasks[number]): Promise<string> {
     if (task.id === 3) {
-      const result = Promise.reject(new Error(`task ${task.id} (${task.label}) failed`));
+      const result = Promise.reject(RuntimeError.create(`task ${task.id} (${task.label}) failed`));
       return result;
     }
     const result = Promise.resolve(`processed-${task.label}`);

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
@@ -54,7 +55,7 @@ export class MemoryTransport implements TransportInterface {
     const result: unknown = Reflect.construct(this, [options]);
 
     if (!Predicates.isObjectLike(result) || !MemoryTransportInstance.belongsTo(this, result)) {
-      throw new TypeError('MemoryTransport.create() did not construct the requested subclass.');
+      throw RuntimeError.create('MemoryTransport.create() did not construct the requested subclass.');
     }
 
     return result;

@@ -1,6 +1,6 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
@@ -188,7 +188,7 @@ export class FileLock {
           // Rename failed. ENOENT means another holder already renamed `path` away
           // (expected contention for this lock's race); any other code (or no code
           // at all) is a genuine filesystem failure that must fail fast.
-          const actualError = Predicates.isError(error) ? error : new Error(String(error));
+          const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
           if (!(actualError instanceof FileLockContentionError)) {
             this.hooks.invoke('onError', () => {
               const errorResult = this.onError(path, actualError);

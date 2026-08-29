@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -72,12 +73,14 @@ async function runScenario(scenarioCase: ScenarioCase): Promise<void> {
     }
     case 'selected-publish': {
       const router = TopicRouter.create<null>({ 'matcher': { 'matches': (): boolean => { return false; } } });
+      let metadata: unknown;
       let origin = '';
-      router.register('unmatched', (envelope): void => { origin = envelope.selection.origin; }, { 'id': requireString(requireValue(input, 'id')) });
+      router.register('unmatched', (envelope): void => { metadata = envelope.metadata; origin = envelope.selection.origin; }, { 'id': requireString(requireValue(input, 'id')) });
       assert.deepEqual(
-        await router.publishSelected(requireString(requireValue(input, 'topic')), null, [{ 'id': requireString(requireValue(input, 'id')), 'origin': requireString(requireValue(input, 'origin')) }]),
+        await router.publishSelected(requireString(requireValue(input, 'topic')), null, [{ 'id': requireString(requireValue(input, 'id')), 'origin': requireString(requireValue(input, 'origin')) }], { 'metadata': requireValue(input, 'metadata') }),
         requireStringArray(requireValue(expected, 'ids')),
       );
+      assert.deepEqual(metadata, requireValue(expected, 'metadata'));
       assert.equal(origin, requireString(requireValue(expected, 'origin')));
       return;
     }
@@ -132,26 +135,26 @@ async function runScenario(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 function assertNever(value: never): never {
-  throw new Error(`Unsupported scenario shape: ${value}`);
+  throw RuntimeError.create(`Unsupported scenario shape: ${value}`);
 }
 
 function requireBoolean(value: unknown): boolean {
   if (Predicates.isBoolean(value)) {
     return value;
   }
-  throw new TypeError('Expected a boolean scenario value.');
+  throw RuntimeError.create('Expected a boolean scenario value.');
 }
 
 function requireRecord(value: unknown, context = 'scenario value'): Record<string, unknown> {
   if (Predicates.isRecord(value)) {
     return value;
   }
-  throw new TypeError(`Expected ${context} to be a record.`);
+  throw RuntimeError.create(`Expected ${context} to be a record.`);
 }
 
 function requireShape(value: unknown): ScenarioShape {
   if (!Predicates.isString(value)) {
-    throw new TypeError('Expected scenario shape to be a string.');
+    throw RuntimeError.create('Expected scenario shape to be a string.');
   }
 
   switch (value) {
@@ -163,7 +166,7 @@ function requireShape(value: unknown): ScenarioShape {
     case 'tree-candidate-source':
       return value;
     default:
-      throw new TypeError(`Unsupported scenario shape: ${value}`);
+      throw RuntimeError.create(`Unsupported scenario shape: ${value}`);
   }
 }
 
@@ -171,12 +174,12 @@ function requireString(value: unknown, context = 'scenario value'): string {
   if (Predicates.isString(value)) {
     return value;
   }
-  throw new TypeError(`Expected ${context} to be a string.`);
+  throw RuntimeError.create(`Expected ${context} to be a string.`);
 }
 
 function requireStringArray(value: unknown): string[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError('Expected a string-array scenario value.');
+    throw RuntimeError.create('Expected a string-array scenario value.');
   }
 
   const result: string[] = [];
@@ -190,5 +193,5 @@ function requireValue(record: Record<string, unknown>, key: string): unknown {
   if (Object.hasOwn(record, key)) {
     return record[key];
   }
-  throw new TypeError(`Expected scenario value ${key}.`);
+  throw RuntimeError.create(`Expected scenario value ${key}.`);
 }

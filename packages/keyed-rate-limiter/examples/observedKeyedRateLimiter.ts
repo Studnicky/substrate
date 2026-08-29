@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedKeyedRateLimiter — override onKeyCreated/onKeyEvicted/onLimitExceeded/onTokenAcquired to collect telemetry. Run: npx tsx examples/observedKeyedRateLimiter.ts */
-
 // #region usage
 import { TokenBucketExhaustedError } from '@studnicky/resilience';
 import assert from 'node:assert/strict';
@@ -67,7 +67,7 @@ class FixedAllowance implements RateLimiterStrategyInterface {
   #remaining: number;
   constructor(allowance: number) { this.#remaining = allowance; }
   consume(tokens = 1): void {
-    if (this.#remaining < tokens) { throw new Error('exhausted'); }
+    if (this.#remaining < tokens) { throw RuntimeError.create('exhausted'); }
     this.#remaining -= tokens;
   }
   waitForToken(options?: { 'signal'?: AbortSignal; 'tokens'?: number }): Promise<void> {

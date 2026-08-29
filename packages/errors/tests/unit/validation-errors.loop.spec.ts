@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -99,12 +100,12 @@ function materialize(value: ScenarioValue): ScenarioValue | undefined {
 
 function toViolations(input: ScenarioValue | undefined): ValidationViolationEntity.Type[] {
   if (!Array.isArray(input)) {
-    throw new TypeError('test fixture must contain a validation-violation array');
+    throw RuntimeError.create('test fixture must contain a validation-violation array');
   }
 
   return input.map((entry) => {
     if (entry === null || Array.isArray(entry) || typeof entry !== 'object') {
-      throw new TypeError('test fixture validation violation must be an object');
+      throw RuntimeError.create('test fixture validation violation must be an object');
     }
     return ValidationViolationEntity.create({
       'keyword': String(entry.keyword),
@@ -198,6 +199,8 @@ const runnerMap: RunnerMap = {
     expectViolations(errs.items, scenarioCase.expected.items ?? []);
 
     const report = errs.report();
+    // Every Problem Details member is optional per RFC 9457 3.1, so the extension is narrowed.
+    assert.ok(report.errors !== undefined);
     if (report.errors[0] !== undefined) {
       report.errors[0].message = 'mutated report';
     }

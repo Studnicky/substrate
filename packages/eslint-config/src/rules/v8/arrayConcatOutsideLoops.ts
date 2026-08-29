@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { LoopContext } from '../shared/LoopContext.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   CONCAT_METHODS, CONCAT_OWNERS, MESSAGE, RULE_NAME
 } from './constants/ArrayConcatOutsideLoopsConstants.js';
@@ -76,7 +77,7 @@ class HelperReachability {
 
       // A reference that is not a callee means the helper is passed around as a
       // value; where it ultimately runs is unprovable, so report nothing.
-      if (parent === null || !ObjectGuard.isObject(parent)) {
+      if (parent === null || !Predicates.isRecord(parent)) {
         return false;
       }
       if (parent.type !== 'CallExpression' || parent.callee !== identifier) {
@@ -107,7 +108,7 @@ class HelperReachability {
   static #bindingOwner(functionNode: Rule.Node): Rule.Node {
     const parent = functionNode.parent;
 
-    if (parent !== null && ObjectGuard.isObject(parent) && parent.type === 'VariableDeclarator' && parent.init === functionNode) {
+    if (parent !== null && Predicates.isRecord(parent) && parent.type === 'VariableDeclarator' && parent.init === functionNode) {
       return parent;
     }
 

@@ -23,6 +23,9 @@
       "path": "../json"
     },
     {
+      "path": "../scheduler"
+    },
+    {
       "path": "../signal"
     },
     {

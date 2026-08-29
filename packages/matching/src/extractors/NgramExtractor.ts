@@ -1,9 +1,11 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { StringNormalizer } from '../normalizers/StringNormalizer.js';
 
 export class NgramExtractor {
   static extract(value: string, size: number): readonly string[] {
     if (!Number.isInteger(size) || size <= 0) {
-      throw new RangeError('N-gram size must be a positive integer.');
+      throw RuntimeError.create('N-gram size must be a positive integer.');
     }
     const normalized = StringNormalizer.normalize(value);
     const characters = Array.from(normalized);

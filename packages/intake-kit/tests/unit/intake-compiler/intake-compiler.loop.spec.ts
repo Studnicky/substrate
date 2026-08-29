@@ -8,20 +8,9 @@ interface WidgetEntityInterface {
   readonly 'name': string;
 }
 
-class WidgetTestError extends Error {
-  public readonly entityName: string;
-  public readonly reason: string;
-
-  public constructor(entityName: string, reason: string) {
-    super(`${entityName}: ${reason}`);
-    this.entityName = entityName;
-    this.reason = reason;
-  }
-}
-
 const CONFIG: IntakeCompiler.BoundaryConfigInterface = {
   'clone': (value) => structuredClone(value),
-  'onInvalidCandidate': (entityName, reason) => { throw new WidgetTestError(entityName, reason); }
+  'onInvalidCandidate': (entityName, reason) => { throw { 'message': `${entityName}: ${reason}` }; }
 };
 
 const parser: IntakeCompiler.ParserInterface<WidgetEntityInterface> = (candidate) => {

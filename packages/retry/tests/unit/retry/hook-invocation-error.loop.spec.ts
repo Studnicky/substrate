@@ -1,10 +1,11 @@
+import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './hook-invocation-error.scenarios.json' with { type: 'json' };
 
@@ -34,7 +35,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
         _from: RetryCallStateEntity.Type
       ): Promise<void> {
         await Promise.resolve();
-        throw new Error(String(input.message));
+        throw RuntimeError.create(String(input.message));
       }
     }
 
@@ -60,7 +61,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       }
 
       protected override enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {
-        throw new Error(String(input.message));
+        throw RuntimeError.create(String(input.message));
       }
     }
 
@@ -72,7 +73,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const { expected, input } = scenario;
     const invoker = new HookInvoker();
     try {
-      await invoker.invoke(String(input.hookName), () => { throw new Error(String(input.message)); });
+      await invoker.invoke(String(input.hookName), () => { throw RuntimeError.create(String(input.message)); });
       assert.fail('HookInvoker.invoke must reject when its hook throws.');
     } catch (error) {
       assert.ok(error instanceof HookInvocationError);

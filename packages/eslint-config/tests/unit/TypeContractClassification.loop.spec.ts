@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
@@ -76,7 +77,7 @@ function createFixture(sources: ReadonlyMap<string, string>) {
 function sourceFile(program: ReturnType<typeof createFixture>, filename = 'root.ts'): SourceFile {
   const source = program.getSourceFile(resolve(virtualRoot, filename));
   if (source === undefined) {
-    throw new Error(`Missing fixture source: ${filename}`);
+    throw RuntimeError.create(`Missing fixture source: ${filename}`);
   }
   return source;
 }
@@ -86,7 +87,7 @@ function alias(program: ReturnType<typeof createFixture>, name: string, filename
     return isTypeAliasDeclaration(statement) && statement.name.text === name;
   });
   if (declaration === undefined || !isTypeAliasDeclaration(declaration)) {
-    throw new Error(`Missing type alias: ${name}`);
+    throw RuntimeError.create(`Missing type alias: ${name}`);
   }
   return declaration;
 }
@@ -104,13 +105,13 @@ function namespaceAlias(
   );
   const namespaceBody = namespaceDeclaration?.body;
   if (namespaceBody === undefined || !isModuleBlock(namespaceBody)) {
-    throw new Error(`Missing namespace body: ${namespaceName}`);
+    throw RuntimeError.create(`Missing namespace body: ${namespaceName}`);
   }
   const declaration = namespaceBody.statements.find((statement) => {
     return isTypeAliasDeclaration(statement) && statement.name.text === aliasName;
   });
   if (declaration === undefined || !isTypeAliasDeclaration(declaration)) {
-    throw new Error(`Missing namespace type alias: ${namespaceName}.${aliasName}`);
+    throw RuntimeError.create(`Missing namespace type alias: ${namespaceName}.${aliasName}`);
   }
   return declaration;
 }
@@ -120,7 +121,7 @@ function interfaceDeclaration(program: ReturnType<typeof createFixture>, name: s
     return isInterfaceDeclaration(statement) && statement.name.text === name;
   });
   if (declaration === undefined || !isInterfaceDeclaration(declaration)) {
-    throw new Error(`Missing interface: ${name}`);
+    throw RuntimeError.create(`Missing interface: ${name}`);
   }
   return declaration;
 }

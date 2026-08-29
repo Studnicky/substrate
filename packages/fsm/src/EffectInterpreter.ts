@@ -1,6 +1,7 @@
 import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
+import { RuntimeError } from '@studnicky/errors';
 import { Clone } from '@studnicky/json';
 import { Predicates } from '@studnicky/types';
 
@@ -262,7 +263,7 @@ export class EffectInterpreter<
       this.hooks.invoke('onEffectSuccess', () => { const result = this.onEffectSuccess(effect);
         return result; });
     } catch (errorValue: unknown) {
-      const error = Predicates.isError(errorValue) ? errorValue : new Error(String(errorValue));
+      const error = Predicates.isError(errorValue) ? errorValue : RuntimeError.create(String(errorValue));
       this.hooks.invoke('onEffectError', () => { const result = this.onEffectError(effect, error);
         return result; });
       throw error;

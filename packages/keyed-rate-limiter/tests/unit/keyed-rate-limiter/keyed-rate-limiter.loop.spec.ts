@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -62,7 +63,7 @@ class FakeFixedAllowance implements FakeStrategyShape {
 
   consume(tokens = 1): void {
     if (this.#remaining < tokens) {
-      throw new Error('fake allowance exhausted');
+      throw RuntimeError.create('fake allowance exhausted');
     }
     this.#remaining -= tokens;
   }
@@ -79,7 +80,7 @@ class FakeFixedAllowance implements FakeStrategyShape {
 
 function keyedRateLimiterInput(input: ScenarioInput): Record<string, unknown> {
   if (input.keyedRateLimiter === undefined) {
-    throw new Error('Scenario input must provide keyedRateLimiter');
+    throw RuntimeError.create('Scenario input must provide keyedRateLimiter');
   }
 
   return input.keyedRateLimiter;
@@ -87,7 +88,7 @@ function keyedRateLimiterInput(input: ScenarioInput): Record<string, unknown> {
 
 function registryInput(input: ScenarioInput): Record<string, unknown> {
   if (input.registry === undefined) {
-    throw new Error('Scenario input must provide registry');
+    throw RuntimeError.create('Scenario input must provide registry');
   }
 
   return input.registry;
@@ -95,7 +96,7 @@ function registryInput(input: ScenarioInput): Record<string, unknown> {
 
 function rateLimitRequestInput(input: ScenarioInput): Record<string, unknown> {
   if (input.rateLimitRequest === undefined) {
-    throw new Error('Scenario input must provide rateLimitRequest');
+    throw RuntimeError.create('Scenario input must provide rateLimitRequest');
   }
 
   return input.rateLimitRequest;
@@ -250,7 +251,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const controller = new AbortController();
       const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-d');
-      setImmediate(() => { controller.abort(new Error('cancelled')); });
+      setImmediate(() => { controller.abort(RuntimeError.create('cancelled')); });
       await assert.rejects(() => limiter.waitForToken('user-d', { signal: controller.signal }));
       return;
     },
@@ -298,7 +299,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
         protected override onKeyEvicted(key: string): void {
           this.evicted.push(key);
-          throw new Error('onKeyEvicted boom');
+          throw RuntimeError.create('onKeyEvicted boom');
         }
       }
 
@@ -331,7 +332,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   const runner = runnerMap[shape];
   if (runner === undefined) {
-    throw new Error(`No runner registered for shape: ${shape}`);
+    throw RuntimeError.create(`No runner registered for shape: ${shape}`);
   }
   await runner();
 }

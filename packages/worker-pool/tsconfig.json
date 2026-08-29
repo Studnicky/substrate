@@ -20,6 +20,9 @@
       "path": "../concurrency"
     },
     {
+      "path": "../errors"
+    },
+    {
       "path": "../fsm"
     },
     {

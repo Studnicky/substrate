@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { RuntimeError } from '@studnicky/errors';
+
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { configInternal, Mutex } from '../../../src/mutex/index.js';
@@ -121,7 +123,7 @@ function mutexConfig(scenarioCase: ScenarioCase): Partial<MutexConfigEntity.Type
 function readBatchCount(input: MutexScenarioInput, field: NumericBatchField): number {
   const value = input.batch?.[field];
   if (typeof value !== 'number') {
-    throw new Error(`Scenario input.batch.${field} must be a number`);
+    throw RuntimeError.create(`Scenario input.batch.${field} must be a number`);
   }
   return value;
 }
@@ -129,42 +131,42 @@ function readBatchCount(input: MutexScenarioInput, field: NumericBatchField): nu
 function readQueuedPerKey(input: MutexScenarioInput): Record<string, number> {
   const value = input.batch?.queuedPerKey;
   if (value === undefined) {
-    throw new Error('Scenario input.batch.queuedPerKey is required');
+    throw RuntimeError.create('Scenario input.batch.queuedPerKey is required');
   }
   return value;
 }
 
 function readNumber<TValue>(value: TValue, label: string): number {
   if (typeof value !== 'number') {
-    throw new Error(`${label} must be a number`);
+    throw RuntimeError.create(`${label} must be a number`);
   }
   return value;
 }
 
 function readString<TValue>(value: TValue, label: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`${label} must be a string`);
+    throw RuntimeError.create(`${label} must be a string`);
   }
   return value;
 }
 
 function readBoolean<TValue>(value: TValue, label: string): boolean {
   if (typeof value !== 'boolean') {
-    throw new Error(`${label} must be a boolean`);
+    throw RuntimeError.create(`${label} must be a boolean`);
   }
   return value;
 }
 
 function readStringArray<TValue>(value: TValue, label: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
-    throw new Error(`${label} must be a string array`);
+    throw RuntimeError.create(`${label} must be a string array`);
   }
   return value;
 }
 
 function readNumberArray<TValue>(value: TValue, label: string): number[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'number')) {
-    throw new Error(`${label} must be a number array`);
+    throw RuntimeError.create(`${label} must be a number array`);
   }
   return value;
 }
@@ -184,7 +186,7 @@ function readStringKeys(input: MutexScenarioInput): string[] {
 function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
   const item = items[index];
   if (item === undefined) {
-    throw new Error(`${label} is missing item ${index}`);
+    throw RuntimeError.create(`${label} is missing item ${index}`);
   }
   return item;
 }
@@ -655,7 +657,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const errorMessage = readString(scenarioCase.input.errorMessage, 'Scenario input.errorMessage');
     const mutex = Mutex.create();
     await assert.rejects(
-      () => mutex.runExclusive(key, async () => { throw new Error(errorMessage); }),
+      () => mutex.runExclusive(key, async () => { throw RuntimeError.create(errorMessage); }),
       { message: errorMessage }
     );
     await delay(10);
@@ -801,7 +803,12 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const mutex = Mutex.create();
     await assert.rejects(
       () => mutex.runExclusive(key, () => 'value', (result): result is number => typeof result === 'number'),
-      TypeError
+      (error) => {
+        assert.ok(error instanceof RuntimeError);
+        assert.strictEqual(error.code, 'errors.runtime');
+        assert.strictEqual(error.message, `Mutex result for key ${key} does not satisfy the requested type`);
+        return true;
+      }
     );
     assert.ok(!mutex.isLocked(key));
   }

@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
 import {
   IndexKind,
   type Type,
@@ -8,7 +9,6 @@ import {
 } from 'typescript';
 
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // THE HAZARD IS MEASURED, NOT ASSUMED — AND IT IS REAL FOR BOTH SHAPES BELOW.
 //
@@ -81,29 +81,29 @@ import { ObjectGuard } from '../shared/ObjectGuard.js';
 class DeletionTarget {
   /** The object being deleted FROM — `obj` in `delete obj.x` / `delete obj?.x`. */
   public static fromDeleteMemberExpression(node: Rule.Node): Rule.Node | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
     const argument = node.argument;
 
-    if (!ObjectGuard.isObject(argument)) {
+    if (!Predicates.isRecord(argument)) {
       return undefined;
     }
 
     if (argument.type === 'MemberExpression') {
-      const result = ObjectGuard.isObject(argument.object) ? argument.object as unknown as Rule.Node : undefined;
+      const result = Predicates.isRecord(argument.object) ? argument.object as unknown as Rule.Node : undefined;
 
       return result;
     }
     if (argument.type === 'ChainExpression') {
       const expression = argument.expression;
 
-      if (!ObjectGuard.isObject(expression) || expression.type !== 'MemberExpression') {
+      if (!Predicates.isRecord(expression) || expression.type !== 'MemberExpression') {
         return undefined;
       }
 
-      const result = ObjectGuard.isObject(expression.object) ? expression.object as unknown as Rule.Node : undefined;
+      const result = Predicates.isRecord(expression.object) ? expression.object as unknown as Rule.Node : undefined;
 
       return result;
     }
@@ -113,18 +113,18 @@ class DeletionTarget {
 
   /** The object being deleted FROM — `obj` in `Reflect.deleteProperty(obj, 'x')`. */
   public static fromReflectDeletePropertyCall(node: Rule.Node): Rule.Node | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
     const argumentList = node.arguments;
 
-    if (!ObjectGuard.isArray(argumentList)) {
+    if (!Predicates.isArray(argumentList)) {
       return undefined;
     }
 
     const target = argumentList.at(0);
-    const result = ObjectGuard.isObject(target) ? target as unknown as Rule.Node : undefined;
+    const result = Predicates.isRecord(target) ? target as unknown as Rule.Node : undefined;
 
     return result;
   }

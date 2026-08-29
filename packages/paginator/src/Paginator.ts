@@ -1,5 +1,5 @@
 import {
-  HookInvocationError, HookInvoker
+  HookInvocationError, HookInvoker, RuntimeError
 } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
@@ -175,12 +175,12 @@ export class Paginator<TPage, TCursor> {
     TInstance extends Paginator<TPage, TCursor> = Paginator<TPage, TCursor>
   >(this: PaginatorConstructorInterface<TInstance>): TInstance {
     if (!Paginator.isConstructor(this)) {
-      throw new TypeError('Paginator.create() requires a constructor');
+      throw RuntimeError.create('Paginator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
 
     if (!Predicates.isObjectLike(result) || !Paginator.isConstructed<TPage, TCursor, TInstance>(result, this)) {
-      throw new TypeError('Paginator.create() must construct a Paginator instance');
+      throw RuntimeError.create('Paginator.create() must construct a Paginator instance');
     }
 
     return result;

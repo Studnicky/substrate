@@ -1,6 +1,6 @@
 import { CircularBuffer } from '@studnicky/circular-buffer';
 import { ConfigurationError } from '@studnicky/config';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
 import { SampleBuffer } from '@studnicky/sample-buffer';
 import { Predicates } from '@studnicky/types';
@@ -146,27 +146,27 @@ export class Throttle implements ThrottleInterface {
     LifecycleEffectHandlerInterface
   >([
     ['FireOnAdaptiveAdjust', (effect) => {
-      if (effect.variant !== 'FireOnAdaptiveAdjust') { throw new TypeError(`Expected FireOnAdaptiveAdjust effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnAdaptiveAdjust') { throw RuntimeError.create(`Expected FireOnAdaptiveAdjust effect, received ${effect.variant}`); }
       this.hooks.invoke('onAdaptiveAdjust', () => { const result = this.onAdaptiveAdjust(effect.previousLimit, effect.newLimit); return result; });
     }],
     ['FireOnContended', (effect) => {
-      if (effect.variant !== 'FireOnContended') { throw new TypeError(`Expected FireOnContended effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnContended') { throw RuntimeError.create(`Expected FireOnContended effect, received ${effect.variant}`); }
       this.hooks.invoke('onContended', () => { const result = this.onContended(effect.activeCount, effect.queuedCount); return result; });
     }],
     ['FireOnDrainComplete', (effect) => {
-      if (effect.variant !== 'FireOnDrainComplete') { throw new TypeError(`Expected FireOnDrainComplete effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnDrainComplete') { throw RuntimeError.create(`Expected FireOnDrainComplete effect, received ${effect.variant}`); }
       this.hooks.invoke('onDrainComplete', () => { const result = this.onDrainComplete(effect.totalExecuted); return result; });
     }],
     ['FireOnReject', (effect) => {
-      if (effect.variant !== 'FireOnReject') { throw new TypeError(`Expected FireOnReject effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnReject') { throw RuntimeError.create(`Expected FireOnReject effect, received ${effect.variant}`); }
       this.hooks.invoke('onReject', () => { const result = this.onReject(effect.reason); return result; });
     }],
     ['FireOnRelease', (effect) => {
-      if (effect.variant !== 'FireOnRelease') { throw new TypeError(`Expected FireOnRelease effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnRelease') { throw RuntimeError.create(`Expected FireOnRelease effect, received ${effect.variant}`); }
       this.hooks.invoke('onRelease', () => { const result = this.onRelease(effect.activeCount, effect.totalExecuted); return result; });
     }],
     ['FireOnWindowSlide', (effect) => {
-      if (effect.variant !== 'FireOnWindowSlide') { throw new TypeError(`Expected FireOnWindowSlide effect, received ${effect.variant}`); }
+      if (effect.variant !== 'FireOnWindowSlide') { throw RuntimeError.create(`Expected FireOnWindowSlide effect, received ${effect.variant}`); }
       this.hooks.invoke('onWindowSlide', () => { const result = this.onWindowSlide(effect.activeCount, effect.queuedCount); return result; });
     }]
   ]);
@@ -192,7 +192,7 @@ export class Throttle implements ThrottleInterface {
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
     if (!Predicates.isObjectLike(result) || !ThrottleInstance.belongsTo(resolveSubclassConstructor(), result)) {
-      throw new TypeError('Throttle.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Throttle.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -271,7 +271,7 @@ export class Throttle implements ThrottleInterface {
     const from = this.#state;
 
     if (!this.guard(from, to)) {
-      throw new Error(`Illegal state transition: ${from} → ${to}`);
+      throw RuntimeError.create(`Illegal state transition: ${from} → ${to}`);
     }
 
     this.#state = to;
@@ -341,7 +341,7 @@ export class Throttle implements ThrottleInterface {
     const effect = this.stepLifecycle(event);
     const handler = this.lifecycleEffectHandlers.get(effect.variant);
     if (handler === undefined) {
-      throw new TypeError(`fireLifecycleEffect received an async-only effect: ${effect.variant}`);
+      throw RuntimeError.create(`fireLifecycleEffect received an async-only effect: ${effect.variant}`);
     }
     handler(effect);
   }
@@ -390,7 +390,7 @@ export class Throttle implements ThrottleInterface {
         });
         return;
       default:
-        throw new TypeError(`fireLifecycleEffectAsync received a sync-only effect: ${effect.variant}`);
+        throw RuntimeError.create(`fireLifecycleEffectAsync received a sync-only effect: ${effect.variant}`);
     }
   }
 
@@ -424,7 +424,7 @@ export class Throttle implements ThrottleInterface {
     const [effect] = step.effects;
 
     if (effect === undefined) {
-      throw new TypeError(`OperationLifecycleMachine produced no effect for event: ${event.type}`);
+      throw RuntimeError.create(`OperationLifecycleMachine produced no effect for event: ${event.type}`);
     }
 
     const result = effect;
@@ -706,10 +706,10 @@ export class Throttle implements ThrottleInterface {
           // rejects execute() instead of becoming an unhandled rejection.
           callback().then(
             (successResult) => { this.handleOperationSuccess(operation, successResult, operationStartTime, resolveExecute); },
-            (error) => { this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute); }
+            (error) => { this.handleOperationError(operation, Predicates.isError(error) ? error : RuntimeError.create(String(error)), rejectExecute); }
           ).catch(rejectExecute);
         } catch (error) {
-          this.handleOperationError(operation, Predicates.isError(error) ? error : new Error(String(error)), rejectExecute);
+          this.handleOperationError(operation, Predicates.isError(error) ? error : RuntimeError.create(String(error)), rejectExecute);
         }
       })
         .catch(rejectExecute);
@@ -800,7 +800,7 @@ export class Throttle implements ThrottleInterface {
     operation.completed = true;
     this.activeOperations.delete(operation);
 
-    const normalizedError = Predicates.isError(error) ? error : new Error(String(error));
+    const normalizedError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
 
     try {
       this.fireLifecycleEffect({ 'reason': normalizedError, 'type': 'OperationRejected' });

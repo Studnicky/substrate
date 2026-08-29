@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -106,7 +107,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
         return Number.NaN;
       }
       const exhaustiveCheck: never = value;
-      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
+      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};
@@ -126,7 +127,7 @@ function createManagedDispatcher(config: Record<string, RuntimeValue>): {
   const clientConfig = ClientConfigDataEntity.intake({ 'dispatcher': materializeRuntimeValue(config) });
   const dispatcherConfig = clientConfig.dispatcher;
   if (dispatcherConfig === undefined) {
-    throw new Error('dispatcher config must be present');
+    throw RuntimeError.create('dispatcher config must be present');
   }
   const agent = DispatcherAgent.create(dispatcherConfig);
   return {
@@ -151,7 +152,7 @@ function getDispatcherConfig(scenarioCase: ScenarioCase): Record<string, Runtime
 function getDestroyOptions(scenarioCase: ScenarioCase): { timeout: number } {
   const timeout = scenarioCase.input.destroy?.timeout;
   if (typeof timeout !== 'number') {
-    throw new Error(`Missing dispatcher destroy timeout for ${scenarioCase.name}`);
+    throw RuntimeError.create(`Missing dispatcher destroy timeout for ${scenarioCase.name}`);
   }
   return { timeout };
 }
@@ -159,7 +160,7 @@ function getDestroyOptions(scenarioCase: ScenarioCase): { timeout: number } {
 function requireBatchInput(scenarioCase: ScenarioCase): BatchInputInterface {
   const batch = scenarioCase.input.batch;
   if (batch === undefined) {
-    throw new Error(`Missing batch input for ${scenarioCase.name}`);
+    throw RuntimeError.create(`Missing batch input for ${scenarioCase.name}`);
   }
   return batch;
 }
@@ -171,7 +172,7 @@ function createBatchRequests<TResult>(batch: BatchInputInterface, requestFactory
 function requireExpected(scenarioCase: ScenarioCase): Record<string, RuntimeValue> {
   const { expected } = scenarioCase;
   if (expected === undefined) {
-    throw new Error(`Missing expected for ${scenarioCase.name}`);
+    throw RuntimeError.create(`Missing expected for ${scenarioCase.name}`);
   }
   return expected;
 }
@@ -179,7 +180,7 @@ function requireExpected(scenarioCase: ScenarioCase): Record<string, RuntimeValu
 function requireExpectedString(scenarioCase: ScenarioCase, key: string): string {
   const value = requireExpected(scenarioCase)[key];
   if (typeof value !== 'string') {
-    throw new Error(`${scenarioCase.name} must define expected.${key} as a string`);
+    throw RuntimeError.create(`${scenarioCase.name} must define expected.${key} as a string`);
   }
   return value;
 }
@@ -187,7 +188,7 @@ function requireExpectedString(scenarioCase: ScenarioCase, key: string): string 
 function requireExpectedBoolean(scenarioCase: ScenarioCase, key: string): boolean {
   const value = requireExpected(scenarioCase)[key];
   if (typeof value !== 'boolean') {
-    throw new Error(`${scenarioCase.name} must define expected.${key} as a boolean`);
+    throw RuntimeError.create(`${scenarioCase.name} must define expected.${key} as a boolean`);
   }
   return value;
 }
@@ -195,7 +196,7 @@ function requireExpectedBoolean(scenarioCase: ScenarioCase, key: string): boolea
 function requireExpectedArray(scenarioCase: ScenarioCase, key: string): RuntimeValue[] {
   const value = requireExpected(scenarioCase)[key];
   if (!Array.isArray(value)) {
-    throw new Error(`${scenarioCase.name} must define expected.${key} as an array`);
+    throw RuntimeError.create(`${scenarioCase.name} must define expected.${key} as an array`);
   }
   return value;
 }

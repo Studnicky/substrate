@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -60,47 +61,47 @@ function runScenario(scenarioCase: ScenarioCase): void {
 }
 
 function assertNever(value: never): never {
-  throw new Error(`Unsupported scenario shape: ${value}`);
+  throw RuntimeError.create(`Unsupported scenario shape: ${value}`);
 }
 
 function requireBoolean(value: unknown): boolean {
   if (Predicates.isBoolean(value)) {
     return value;
   }
-  throw new TypeError('Expected a boolean scenario value.');
+  throw RuntimeError.create('Expected a boolean scenario value.');
 }
 
 function requireNumber(value: unknown): number {
   if (Predicates.isFiniteNumber(value)) {
     return value;
   }
-  throw new TypeError('Expected a finite-number scenario value.');
+  throw RuntimeError.create('Expected a finite-number scenario value.');
 }
 
 function requireRecord(value: unknown, context = 'scenario value'): Record<string, unknown> {
   if (Predicates.isRecord(value)) {
     return value;
   }
-  throw new TypeError(`Expected ${context} to be a record.`);
+  throw RuntimeError.create(`Expected ${context} to be a record.`);
 }
 
 function requireShape(value: unknown): ScenarioShape {
   if (value === 'malformed-inputs' || value === 'valid-adapters') {
     return value;
   }
-  throw new TypeError('Unsupported scenario shape.');
+  throw RuntimeError.create('Unsupported scenario shape.');
 }
 
 function requireString(value: unknown, context = 'scenario value'): string {
   if (Predicates.isString(value)) {
     return value;
   }
-  throw new TypeError(`Expected ${context} to be a string.`);
+  throw RuntimeError.create(`Expected ${context} to be a string.`);
 }
 
 function requireStringArray(value: unknown): string[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError('Expected a string-array scenario value.');
+    throw RuntimeError.create('Expected a string-array scenario value.');
   }
 
   const result: string[] = [];
@@ -114,5 +115,5 @@ function requireValue(record: Record<string, unknown>, key: string): unknown {
   if (Object.hasOwn(record, key)) {
     return record[key];
   }
-  throw new TypeError(`Expected scenario value ${key}.`);
+  throw RuntimeError.create(`Expected scenario value ${key}.`);
 }

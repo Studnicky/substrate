@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** basicRetry — flaky operation that fails twice then succeeds. Run: npx tsx examples/basicRetry.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -26,7 +26,7 @@ const retry = Retry.create({ 'maximumRetries': 3 });
 const result = await retry.execute(() => {
   const attempt = counter.increment();
   if (attempt <= BasicRetryFixtures.failCount) {
-    throw new Error(`Transient failure on attempt ${attempt}`);
+    throw RuntimeError.create(`Transient failure on attempt ${attempt}`);
   }
   const attemptResult = Promise.resolve(`success on attempt ${attempt}`);
   return attemptResult;

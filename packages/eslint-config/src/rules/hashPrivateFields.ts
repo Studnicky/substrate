@@ -1,13 +1,13 @@
 import type { Rule } from 'eslint';
 
-import { ObjectGuard } from './shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 
 class UnderscoreName {
   public static get(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) { return undefined; }
+    if (!Predicates.isRecord(node)) { return undefined; }
 
     const key: unknown = Reflect.get(node, 'key');
-    if (!ObjectGuard.isObject(key)) { return undefined; }
+    if (!Predicates.isRecord(key)) { return undefined; }
     const keyType = Reflect.get(key, 'type');
     const computed = Reflect.get(node, 'computed') === true;
 
@@ -46,11 +46,11 @@ class ClassMemberCheck {
   }
 
   public static unwrapParameterIdentifier(parameter: unknown): Record<string, unknown> | undefined {
-    if (!ObjectGuard.isObject(parameter)) { return undefined; }
+    if (!Predicates.isRecord(parameter)) { return undefined; }
     if (Reflect.get(parameter, 'type') !== 'AssignmentPattern') { return parameter; }
 
     const left: unknown = Reflect.get(parameter, 'left');
-    const result = ObjectGuard.isObject(left) ? left : undefined;
+    const result = Predicates.isRecord(left) ? left : undefined;
     return result;
   }
 
@@ -60,7 +60,7 @@ class ClassMemberCheck {
   }
 
   public static onParameterProperty(context: Rule.RuleContext, node: unknown): void {
-    if (!ObjectGuard.isObject(node)) { return; }
+    if (!Predicates.isRecord(node)) { return; }
     if (!ClassMemberCheck.isDeclaredField(node)) { return; }
 
     const identifier = ClassMemberCheck.unwrapParameterIdentifier(Reflect.get(node, 'parameter'));

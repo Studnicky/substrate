@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 /**
  * Node HTTP transport selection.
  */
@@ -24,7 +25,7 @@ export class FetchTransport {
       if (response instanceof Response) {
         return response;
       }
-      throw new TypeError('fetch test dispatcher must return a Response');
+      throw RuntimeError.create('fetch test dispatcher must return a Response');
     }
 
     if (init.dispatcher === undefined) {

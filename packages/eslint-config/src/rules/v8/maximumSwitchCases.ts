@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 
-import { ObjectGuard } from '../shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
+
 import {
   BLOCK_TYPES, MAXIMUM_INT_SWITCH_CASES, MAXIMUM_STRING_SWITCH_CASES, MAXIMUM_SWITCH_CASES_DEFAULT
 } from './constants/MaximumSwitchCasesConstants.js';
@@ -39,7 +40,7 @@ class DiscriminantKind {
     for (let index = 0; index < casesLength; index += 1) {
       const c = cases.at(index);
 
-      if (!ObjectGuard.isObject(c)) {
+      if (!Predicates.isRecord(c)) {
         continue;
       }
       const test = c.test;
@@ -47,7 +48,7 @@ class DiscriminantKind {
       if (test === null || test === undefined) {
         continue;
       }
-      if (!ObjectGuard.isObject(test) || test.type !== 'Literal') {
+      if (!Predicates.isRecord(test) || test.type !== 'Literal') {
         return 'other';
       }
       literalValues.push(test.value);
@@ -107,7 +108,7 @@ class SwitchGroup {
  */
 class DiscriminantKey {
   public static compute(node: unknown): string | null {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return null;
     }
 
@@ -130,7 +131,7 @@ class DiscriminantKey {
 
       const property = node.property;
 
-      if (!ObjectGuard.isObject(property)) {
+      if (!Predicates.isRecord(property)) {
         return null;
       }
 
@@ -192,7 +193,7 @@ export const maximumSwitchCases: Rule.RuleModule = {
       }
 
       const nonDefaultCount = cases.filter((c: unknown) => {
-        const result = ObjectGuard.isObject(c) && c.test !== null;
+        const result = Predicates.isRecord(c) && c.test !== null;
 
         return result;
       }).length;

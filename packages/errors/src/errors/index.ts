@@ -12,5 +12,6 @@ export { HookInvoker } from './HookInvoker.js';
 export { HookTimeoutError } from './HookTimeoutError.js';
 export { ModuleError } from './ModuleError.js';
 export { ReentrantHookInvocationError } from './ReentrantHookInvocationError.js';
+export { RuntimeError } from './RuntimeError.js';
 export { ValidationError } from './ValidationError.js';
 export { ValidationErrors } from './ValidationErrors.js';

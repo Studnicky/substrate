@@ -1,11 +1,10 @@
 /** Bounded work dispatch composing concurrency's Semaphore, event-bus's EventBus, and scheduler. */
 
-import type { HookInvocationError } from '@studnicky/errors';
 import type { SchedulerProviderInterface } from '@studnicky/scheduler';
 import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
 
 import { Semaphore } from '@studnicky/concurrency';
-import { HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
 import { Predicates } from '@studnicky/types';
@@ -85,7 +84,7 @@ export class BoundedDispatcher<
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
     }]);
     if (!Predicates.isObjectLike(result) || !BoundedDispatcher.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
+      throw RuntimeError.create('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;
   }

@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { INTAKE_MEMBER } from '../constants/IntakeParseOnlyConstants.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // PRIVATE HELPERS SHARE THE BOUNDARY. `FooEntity.intake` that outgrows a single function body
 // commonly gets a private helper extracted — a `#normalize` method, a `private static` method, or
@@ -43,7 +44,7 @@ export class EntityIntake {
     const raw = node as unknown as Record<string, unknown>;
     const id: unknown = raw.id;
 
-    if (ObjectGuard.isObject(id) && id.name === INTAKE_MEMBER) {
+    if (Predicates.isRecord(id) && id.name === INTAKE_MEMBER) {
       return true;
     }
 
@@ -58,7 +59,7 @@ export class EntityIntake {
     if (parent?.type === 'MethodDefinition' || parent?.type === 'PropertyDefinition') {
       const memberRaw = parent as unknown as Record<string, unknown>;
       const key: unknown = memberRaw.key;
-      const named = ObjectGuard.isObject(key) && key.name === INTAKE_MEMBER;
+      const named = Predicates.isRecord(key) && key.name === INTAKE_MEMBER;
 
       return named;
     }
@@ -69,7 +70,7 @@ export class EntityIntake {
 
     const parentRaw = parent as unknown as Record<string, unknown>;
     const declaredId: unknown = parentRaw.id;
-    const result = ObjectGuard.isObject(declaredId) && declaredId.name === INTAKE_MEMBER;
+    const result = Predicates.isRecord(declaredId) && declaredId.name === INTAKE_MEMBER;
     return result;
   }
 
@@ -102,7 +103,7 @@ export class EntityIntake {
     const raw = memberDefinition as unknown as Record<string, unknown>;
     const key: unknown = raw.key;
 
-    if (ObjectGuard.isObject(key) && key.type === 'PrivateIdentifier') {
+    if (Predicates.isRecord(key) && key.type === 'PrivateIdentifier') {
       return true;
     }
 
@@ -145,7 +146,7 @@ export class EntityIntake {
       if (raw.type === 'TSModuleDeclaration') {
         const id: unknown = raw.id;
 
-        if (ObjectGuard.isObject(id) && typeof id.name === 'string' && id.name.endsWith('Entity')) {
+        if (Predicates.isRecord(id) && typeof id.name === 'string' && id.name.endsWith('Entity')) {
           return true;
         }
       }

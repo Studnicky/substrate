@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -208,7 +209,7 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
     await history.send({ details: scenarioCase.input.eventDetails, type: 'toggle' });
     const snapshot = history.history()[0];
     if (snapshot === undefined) {
-      throw new Error('Expected a history snapshot');
+      throw RuntimeError.create('Expected a history snapshot');
     }
     snapshot.from.details.value = scenarioCase.input.replacementValues.from;
     snapshot.to.details.value = scenarioCase.input.replacementValues.to;

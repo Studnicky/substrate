@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -36,12 +37,12 @@ class SingleEntryVectorIndex implements VectorIndexInterface {
 }
 
 function requireRecord(value: unknown, name: string): Record<string, unknown> {
-  if (!Predicates.isObject(value)) { throw new TypeError(`${name} must be an object`); }
+  if (!Predicates.isObject(value)) { throw RuntimeError.create(`${name} must be an object`); }
   return value;
 }
 
 function requireString(value: unknown, name: string): string {
-  if (!Predicates.isString(value)) { throw new TypeError(`${name} must be a string`); }
+  if (!Predicates.isString(value)) { throw RuntimeError.create(`${name} must be a string`); }
   return value;
 }
 
@@ -50,7 +51,7 @@ function parseScenarioCase(value: unknown): ScenarioCase {
   const expected = requireRecord(record['expected'], 'scenario expected');
   const input = requireRecord(record['input'], 'scenario input');
   const shape = requireString(record['shape'], 'scenario shape');
-  if (shape !== 'vector-search') { throw new TypeError(`Unknown semantic matching scenario shape: ${shape}`); }
+  if (shape !== 'vector-search') { throw RuntimeError.create(`Unknown semantic matching scenario shape: ${shape}`); }
   return {
     'expected': { 'modelIdentity': requireString(expected['modelIdentity'], 'scenario expected modelIdentity'), 'resultId': requireString(expected['resultId'], 'scenario expected resultId') },
     'input': { 'content': requireString(input['content'], 'scenario input content'), 'id': requireString(input['id'], 'scenario input id'), 'namespace': requireString(input['namespace'], 'scenario input namespace') },
@@ -62,7 +63,7 @@ function parseScenarioCase(value: unknown): ScenarioCase {
 function parseScenarioCases(value: unknown): readonly ScenarioCase[] {
   const record = requireRecord(value, 'scenario groups');
   const cases = record['cases'];
-  if (!Predicates.isArray(cases)) { throw new TypeError('scenario groups cases must be an array'); }
+  if (!Predicates.isArray(cases)) { throw RuntimeError.create('scenario groups cases must be an array'); }
   const result: ScenarioCase[] = [];
   for (const scenarioCase of cases) { result.push(parseScenarioCase(scenarioCase)); }
   return result;

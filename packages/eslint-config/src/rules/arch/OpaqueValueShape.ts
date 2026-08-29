@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { REFLECT_KEYED_METHODS } from '../constants/OpaqueValueShapeConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // AN UNTOUCHED SHAPE ISN'T A TRUST DECISION.
 //
@@ -124,7 +125,7 @@ export class OpaqueValueShape {
   /** Same configured-property allowance as member access, applied to a literal `in` check's key. */
   static #isConfiguredStructuralInCheck(node: Record<string, unknown>, structuralProperties: ReadonlySet<string>): boolean {
     const key = node.left;
-    const propertyName = ObjectGuard.isObject(key) ? key.value : undefined;
+    const propertyName = Predicates.isRecord(key) ? key.value : undefined;
     const result = typeof propertyName === 'string' && structuralProperties.has(propertyName);
     return result;
   }
@@ -132,14 +133,14 @@ export class OpaqueValueShape {
   static #isLiteralReflectAccess(node: Record<string, unknown>, parameterName: string): boolean {
     if (node.type !== 'CallExpression') { return false; }
     const callee = node.callee;
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression') { return false; }
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') { return false; }
 
     const isReflectMethod = AstHelpers.getIdentifierName(callee.object) === 'Reflect'
       && REFLECT_KEYED_METHODS.has(AstHelpers.getIdentifierName(callee.property) ?? '');
     if (!isReflectMethod) { return false; }
 
     const argumentList: unknown = node.arguments;
-    if (!ObjectGuard.isArray(argumentList) || argumentList.length < 2) { return false; }
+    if (!Predicates.isArray(argumentList) || argumentList.length < 2) { return false; }
     if (!OpaqueValueShape.#referencesParameter(argumentList[0], parameterName)) { return false; }
 
     const result = OpaqueValueShape.#isLiteral(argumentList[1]);
@@ -159,7 +160,7 @@ export class OpaqueValueShape {
     if (node.type !== 'TSAsExpression' && node.type !== 'TSTypeAssertion') { return false; }
 
     const typeAnnotation = node.typeAnnotation;
-    const hasNamedTarget = ObjectGuard.isObject(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
+    const hasNamedTarget = Predicates.isRecord(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
     if (!hasNamedTarget) { return false; }
 
     const result = OpaqueValueShape.#referencesParameter(node.expression, parameterName);

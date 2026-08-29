@@ -1,5 +1,6 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { FileRenameLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
@@ -37,7 +38,7 @@ export class FileRenameLock {
       this.#fileSystem.renameSync(this.#path, this.#lockPath);
       this.#held = true;
     } catch (error) {
-      const actualError = Predicates.isError(error) ? error : new Error(String(error));
+      const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
       if (FileRenameLock.isContentionError(actualError)) {
         throw new FileLockContentionError(this.#path, actualError);
       }

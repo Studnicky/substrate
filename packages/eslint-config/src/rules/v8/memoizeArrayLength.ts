@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   COMPARISON_OPERATORS, FUNCTION_TYPES, LOOP_TYPES, MESSAGE, RULE_NAME
 } from './constants/MemoizeArrayLengthConstants.js';
@@ -39,13 +40,13 @@ import {
 class LengthAstHelpers {
   /** `arr.length` or `arr["length"]` — both equivalent re-reads of the array's length. */
   public static isLengthAccess(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'MemberExpression') {
+    if (!Predicates.isRecord(node) || node.type !== 'MemberExpression') {
       return false;
     }
 
     const property = node.property;
 
-    if (!ObjectGuard.isObject(property)) {
+    if (!Predicates.isRecord(property)) {
       return false;
     }
 
@@ -61,7 +62,7 @@ class LengthAstHelpers {
   }
 
   public static isIdentifier(node: unknown): boolean {
-    const result = ObjectGuard.isObject(node) && node.type === 'Identifier';
+    const result = Predicates.isRecord(node) && node.type === 'Identifier';
 
     return result;
   }
@@ -94,7 +95,7 @@ class LoopTestClassifier {
    * header for why that check was removed rather than merely left unused.
    */
   public static classify(test: unknown): { 'names': string[] } | null {
-    if (!ObjectGuard.isObject(test) || test.type !== 'BinaryExpression') {
+    if (!Predicates.isRecord(test) || test.type !== 'BinaryExpression') {
       return null;
     }
 

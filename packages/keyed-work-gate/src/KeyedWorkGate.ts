@@ -1,9 +1,9 @@
+import { Coalesce } from '@studnicky/concurrency';
 /**
  * Keyed single-flight and serialized work gate composing `@studnicky/mutex` and
  * `@studnicky/concurrency`'s `Coalesce`.
  */
-
-import { Coalesce } from '@studnicky/concurrency';
+import { RuntimeError } from '@studnicky/errors';
 import { Mutex } from '@studnicky/mutex';
 import { Predicates } from '@studnicky/types';
 
@@ -75,10 +75,10 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
       'mutex': KeyedWorkGate.#resolveMutex<K>(config.mutex)
     }]);
     if (!Predicates.isObjectLike(result)) {
-      throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
+      throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
+      throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     return result;
   }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -6,6 +7,11 @@ import type { JSONSchema7Type } from 'json-schema';
 import { Predicates } from '@studnicky/types';
 
 import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
+import {
+  PROBLEM_TYPE_BASE,
+  PROBLEM_TYPE_THROWN_STRING
+} from '../../src/constants/ProblemConstants.js';
+import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import scenarioGroups from './base-error.scenarios.json' with { type: 'json' };
 
@@ -67,7 +73,7 @@ type ScenarioCase = {
   description: string;
   expected: Record<string, unknown>;
   input: ScenarioInput;
-  shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-null' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-serialized-error' | 'to-user-message-default' | 'to-user-message-custom';
+  shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-absent' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-problem-details' | 'to-user-message-default' | 'to-user-message-custom';
   name: string;
 };
 
@@ -75,11 +81,11 @@ type ScenarioRunner = (scenario: ScenarioCase, error: TestError) => void;
 
 const causeFactoryMap = {
   'base-error': (cause: CauseDescriptor) => new TestError(cause.message),
-  'native-error': (cause: CauseDescriptor) => new Error(cause.message)
+  'native-error': (cause: CauseDescriptor) => RuntimeError.create(cause.message)
 } satisfies Record<CauseDescriptor['shape'], (cause: CauseDescriptor) => unknown>;
 
 const toMessageInputMap = {
-  'native-error': (input: ToMessageInput) => new Error(String(input.message)),
+  'native-error': (input: ToMessageInput) => RuntimeError.create(String(input.message)),
   'primitive': (input: ToMessageInput) => input.value
 } satisfies Record<ToMessageInput['shape'], (input: ToMessageInput) => unknown>;
 
@@ -171,19 +177,19 @@ const runnerMap = {
     assert.ok(observed <= after + (scenario.expected.timestampWithinMs as number));
   },
   'find-cause-of-type-hit': (scenario) => {
-    class InnerError extends Error {}
+    class InnerError extends TestError {}
     const nested = new TestError('top', { cause: new InnerError(String(scenario.expected.causeMessage)) });
     const cause = BaseError.findCauseOfType(nested, InnerError);
     assert.ok(cause instanceof InnerError);
     assert.strictEqual(cause.message, scenario.expected.causeMessage);
   },
   'find-cause-of-type-miss': (_scenario, error) => {
-    class MissingError extends Error {}
+    class MissingError extends TestError {}
     const cause = BaseError.findCauseOfType(error, MissingError);
     assert.strictEqual(cause, undefined);
   },
   'find-cause-of-type-primitive': () => {
-    class MissingError extends Error {}
+    class MissingError extends TestError {}
     const primitiveError = createError({ 'message': 'top', 'cause': 'primitive cause' });
     const cause = BaseError.findCauseOfType(primitiveError, MissingError);
     assert.strictEqual(cause, undefined);
@@ -196,16 +202,16 @@ const runnerMap = {
     assert.strictEqual(BaseError.hasCauseOfType(error, Error), scenario.expected.value);
   },
   'has-cause-of-type-miss': (scenario, error) => {
-    class MissingError extends Error {}
+    class MissingError extends TestError {}
     assert.strictEqual(BaseError.hasCauseOfType(error, MissingError), scenario.expected.value);
   },
   'json-code-message': (scenario, error) => {
     const json = error.toJSON();
     assert.strictEqual(json.code, scenario.expected.code);
-    assert.strictEqual(json.message, scenario.expected.message);
+    assert.strictEqual(json.detail, scenario.expected.message);
   },
-  'json-correlation-null': (_scenario, error) => {
-    assert.strictEqual(error.toJSON().correlationId, null);
+  'json-correlation-absent': (_scenario, error) => {
+    assert.ok(!('correlationId' in error.toJSON()));
   },
   'json-correlation-value': (scenario, error) => {
     assert.strictEqual(error.toJSON().correlationId, scenario.expected.correlationId);
@@ -215,35 +221,28 @@ const runnerMap = {
     for (let index = 1; index <= (scenario.input.depth ?? 0); index += 1) {
       current = new TestError(`depth-${index}`, { cause: current });
     }
-    let node: unknown = current.toJSON();
-    let found = false;
-    while (node !== null && node !== undefined) {
-      if (!Predicates.isObject(node)) {
-        break;
-      }
-      if (typeof node.cause === 'string' && node.cause === CAUSE_DEPTH_SENTINEL) {
-        found = true;
-        break;
-      }
-      node = node.cause;
-    }
+    const causes = current.toJSON().causes ?? [];
+    const found = causes.some((node) => {
+      const result = node.detail === CAUSE_DEPTH_SENTINEL;
+      return result;
+    });
     assert.strictEqual(found, scenario.expected.hasDepthSentinel);
   },
   'json-native-error-cause': (scenario, error) => {
-    const cause = error.toJSON().cause as Record<string, unknown>;
-    assert.strictEqual(cause.code, 'native.error');
-    assert.strictEqual(cause.message, (scenario.expected.cause as { message: string }).message);
+    const cause = (error.toJSON().causes ?? [])[0];
+    assert.strictEqual(cause?.code, 'errors.runtime');
+    assert.strictEqual(cause?.detail, (scenario.expected.cause as { message: string }).message);
   },
   'json-primitive-cause': (scenario, error) => {
-    const cause = error.toJSON().cause as Record<string, unknown>;
-    assert.strictEqual(cause.code, 'native.primitive');
-    assert.strictEqual(cause.message, (scenario.expected.cause as { message: string }).message);
+    const cause = (error.toJSON().causes ?? [])[0];
+    assert.strictEqual(cause?.type, PROBLEM_TYPE_THROWN_STRING);
+    assert.strictEqual(cause?.detail, (scenario.expected.cause as { message: string }).message);
   },
   'json-recursive-cause': (_scenario, error) => {
-    const cause = error.toJSON().cause as Record<string, unknown>;
-    assert.strictEqual(cause.code, 'test.generic');
-    assert.strictEqual(cause.message, 'root');
-    assert.strictEqual(cause.cause, null);
+    const causes = error.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.code, 'test.generic');
+    assert.strictEqual(causes[0]?.detail, 'root');
+    assert.strictEqual(causes.length, 1);
   },
   'json-required-fields': (scenario, error) => {
     const json = error.toJSON();
@@ -254,9 +253,9 @@ const runnerMap = {
   'json-roundtrip': (scenario, error) => {
     const roundtrip: unknown = JSON.parse(JSON.stringify(error.toJSON()));
     assert.ok(Predicates.isObject(roundtrip));
-    const roundtripObject = roundtrip as Record<string, unknown>;
-    assert.strictEqual(roundtripObject.message, scenario.expected.message);
-    assert.strictEqual(roundtripObject.correlationId, scenario.expected.correlationId);
+    assert.ok(ProblemDetailsEntity.validate(roundtrip));
+    assert.strictEqual(roundtrip.detail, scenario.expected.message);
+    assert.strictEqual(roundtrip.correlationId, scenario.expected.correlationId ?? undefined);
   },
   'to-message-native-error': (scenario) => {
     assert.strictEqual(BaseError.toMessage(createToMessageInput(scenario.input.toMessage)), scenario.expected.message);
@@ -264,11 +263,13 @@ const runnerMap = {
   'to-message-primitive': (scenario) => {
     assert.strictEqual(BaseError.toMessage(createToMessageInput(scenario.input.toMessage)), scenario.expected.message);
   },
-  'to-serialized-error': (scenario, error) => {
-    const serialized = error.toSerializedError();
-    assert.strictEqual(serialized.code, scenario.expected.code);
-    assert.strictEqual(serialized.message, scenario.expected.message);
-    assert.strictEqual(serialized.correlationId, scenario.expected.correlationId);
+  'to-problem-details': (scenario, error) => {
+    const problem = error.toJSON();
+    assert.strictEqual(problem.code, scenario.expected.code);
+    assert.strictEqual(problem.detail, scenario.expected.message);
+    assert.strictEqual(problem.correlationId, scenario.expected.correlationId ?? undefined);
+    assert.strictEqual(problem.type, `${PROBLEM_TYPE_BASE}${scenario.expected.code as string}`);
+    assert.strictEqual(problem.title, error.name);
   },
   'to-user-message-custom': (scenario) => {
     assert.strictEqual(new CustomMessageError(scenario.input.message).toUserMessage(), scenario.expected.message);

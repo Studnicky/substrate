@@ -37,7 +37,7 @@ router.register('api.**', async (envelope) => {
 await router.publish('api.v1.users', 'created');
 ```
 
-Use `publishSelected(topic, payload, selections)` when a builder has already selected stable subscription IDs through a filter, scorer, search index, or application policy. The router invokes those IDs without matching their patterns again.
+Use `publishSelected(topic, payload, selections, { metadata })` when a builder has already selected stable subscription IDs through a filter, scorer, search index, or application policy. The router invokes those IDs without matching their patterns again.
 
 Subclass `TopicRouter` to override `onMatch`, `onNoMatch`, `onPoolExhausted`, or `onSelection` for metrics and tracing. Hook failures are isolated from delivery.
 

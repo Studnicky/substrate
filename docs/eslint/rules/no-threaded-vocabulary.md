@@ -71,23 +71,19 @@ function withResolved(id: string, reporter: ResultReporterInterface): void {}
 
 ## Options
 
-Extends the shared layer options (`layers`, `bindings`, `sourceRoot`) with:
+The rule asks one binary question of a file — may it resolve a token? — so it takes only what answers that. It does not consume the shared layer axis, and it enforces independently of the other architecture rules.
 
-- `adapterLayerName` (default `"adapters"`) — the layer permitted to receive a token and resolve it into a port.
+- `sourceRoot` (required) — path segment(s) after which a resolution site's candidate segment appears, e.g. `"src"` or `"packages"`.
+- `resolutionSites` (default `[]`) — matchers for the files permitted to receive a token and resolve it into an implementation. Same matcher vocabulary as layer bindings — `unit` is one of `folder`, `package`, `module`, `dependency`, `builtin` — minus the layer name.
 
-Files that resolve to no configured layer are skipped.
+```js
+{ sourceRoot: 'src', resolutionSites: [{ unit: 'folder', pattern: 'adapters' }] }
+{ sourceRoot: 'packages', resolutionSites: [{ unit: 'package', pattern: 'boundary-kit' }] }
+```
 
-## Checked positions
+Binding the exemption to a layer *name* out of a project's `layers` list would couple this rule to whatever that list encodes. A project whose bands measure dependency depth has no layer name meaning "resolves external input", and no string would make one. A resolution site is a property of a file, declared directly.
 
-Parameters (including defaults, rest elements, and TS parameter properties), class fields (including `abstract` and `accessor`), interface and type-literal property signatures, and index signatures. A token laundered through a container — `TransportMode[]`, `readonly boolean[]`, a tuple member — or through a generic constraint (`<T extends boolean>`) resolves to the same verdict.
-
-Not checked: return types, local variables, and an explicit `this` parameter. A returned boolean was computed by the callee, so its decision was made locally; a token a frame can return is one it already holds, which the field check covers. Contents of a `declare module 'pkg'` augmentation are skipped — that block describes a third-party surface, not a frame in this architecture.
-
-## Resolution
-
-Without type information the rule resolves `boolean`, literal types, literal unions, and enums or aliases declared in the same file (namespace members are indexed by qualified name, so `Domain.Mode` never resolves to an unrelated `Transport.Mode`).
-
-With `parserServices` available, every annotation the syntactic walk cannot settle is put to the type checker: cross-file enums, generic alias instantiations, `keyof`, indexed access, `typeof` queries, and `import('...')` types. Typed linting is therefore the supported configuration — the syntactic path is a degraded fallback, not the intended mode.
+Every file not matching a resolution site is checked, including files outside `sourceRoot`. There is no silent skip: an unconfigured path is enforced, not exempted.
 
 ## Limitations
 

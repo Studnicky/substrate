@@ -7,11 +7,11 @@ import type {
 } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
 import { ImportSourceValue } from '../shared/importSourceValue.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 namespace DomainPurityOptionsEntity {
   export const Schema = {
@@ -53,7 +53,7 @@ class CalleeDottedName {
    * with a string literal property (`Date["now"]`) at any depth of the chain.
    */
   public static resolveMemberChain(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -76,7 +76,7 @@ class CalleeDottedName {
       if (objectName === undefined) {
         return undefined;
       }
-      if (!ObjectGuard.isObject(property)) {
+      if (!Predicates.isRecord(property)) {
         return undefined;
       }
 
@@ -125,17 +125,17 @@ class CalleeDottedName {
 
     const declarator: unknown = def.node;
 
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return undefined;
     }
 
     const id: unknown = declarator.id;
     const init: unknown = declarator.init;
 
-    if (!ObjectGuard.isObject(id) || id.type !== 'ObjectPattern') {
+    if (!Predicates.isRecord(id) || id.type !== 'ObjectPattern') {
       return undefined;
     }
-    if (!ObjectGuard.isObject(init) || init.type !== 'Identifier') {
+    if (!Predicates.isRecord(init) || init.type !== 'Identifier') {
       return undefined;
     }
 
@@ -156,14 +156,14 @@ class CalleeDottedName {
     for (let index = 0; index < propertiesLength; index += 1) {
       const property: unknown = properties.at(index);
 
-      if (!ObjectGuard.isObject(property) || property.type !== 'Property') {
+      if (!Predicates.isRecord(property) || property.type !== 'Property') {
         continue;
       }
 
       const key: unknown = property.key;
       const value: unknown = property.value;
 
-      if (!ObjectGuard.isObject(key) || !ObjectGuard.isObject(value)) {
+      if (!Predicates.isRecord(key) || !Predicates.isRecord(value)) {
         continue;
       }
       if (key.type !== 'Identifier' || value.type !== 'Identifier') {
@@ -204,7 +204,7 @@ class CalleeDottedName {
   }
 
   public static get(node: unknown, context: Rule.RuleContext): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -215,7 +215,7 @@ class CalleeDottedName {
       return resolved;
     }
 
-    if (ObjectGuard.isObject(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
+    if (Predicates.isRecord(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
       const scope = context.sourceCode.getScope(callee as unknown as Rule.Node);
       const destructured = CalleeDottedName.resolveDestructuredAlias(callee.name, scope);
 

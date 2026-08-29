@@ -266,7 +266,13 @@ void describe('Batch continuous operations', () => {
           }, scenarioCase.input.rejectionDeadlineMs);
           try {
             await Promise.race([
-              assert.rejects(process, new BatchError(scenarioCase.expected.rejectedMessage)),
+              assert.rejects(process, (error) => {
+                assert.ok(error instanceof BatchError);
+                assert.strictEqual(error.code, 'batch.invalidConfig');
+                assert.strictEqual(error.message, scenarioCase.expected.rejectedMessage);
+                assert.strictEqual(error.retryable, false);
+                return true;
+              }),
               deadline.promise
             ]);
           } finally {

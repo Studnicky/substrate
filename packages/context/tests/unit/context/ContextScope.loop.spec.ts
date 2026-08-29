@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -68,7 +69,7 @@ function isRecord<TValue>(value: TValue): value is TValue & Record<string, unkno
 
 function requireRecord<TValue>(value: TValue, label: string): Record<string, unknown> {
   if (!isRecord(value)) {
-    throw new TypeError(`${label} must be an object`);
+    throw RuntimeError.create(`${label} must be an object`);
   }
 
   return value;
@@ -78,7 +79,7 @@ function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {
-    throw new TypeError('input.context.name must be a string');
+    throw RuntimeError.create('input.context.name must be a string');
   }
 
   return { name };
@@ -100,7 +101,7 @@ function scopeInitial(scenarioCase: ScenarioCase): Record<string, unknown> | und
 function scopeString(scenarioCase: ScenarioCase, key: string): string {
   const value = scopeInput(scenarioCase)[key];
   if (typeof value !== 'string') {
-    throw new TypeError(`input.scope.${key} must be a string`);
+    throw RuntimeError.create(`input.scope.${key} must be a string`);
   }
 
   return value;
@@ -109,7 +110,7 @@ function scopeString(scenarioCase: ScenarioCase, key: string): string {
 function scopeNumber(scenarioCase: ScenarioCase, key: string): number {
   const value = scopeInput(scenarioCase)[key];
   if (typeof value !== 'number') {
-    throw new TypeError(`input.scope.${key} must be a number`);
+    throw RuntimeError.create(`input.scope.${key} must be a number`);
   }
 
   return value;
@@ -118,7 +119,7 @@ function scopeNumber(scenarioCase: ScenarioCase, key: string): number {
 function scopeBoolean(scenarioCase: ScenarioCase, key: string): boolean {
   const value = scopeInput(scenarioCase)[key];
   if (typeof value !== 'boolean') {
-    throw new TypeError(`input.scope.${key} must be a boolean`);
+    throw RuntimeError.create(`input.scope.${key} must be a boolean`);
   }
 
   return value;
@@ -127,7 +128,7 @@ function scopeBoolean(scenarioCase: ScenarioCase, key: string): boolean {
 function scopeInitialArray(scenarioCase: ScenarioCase): Record<string, unknown>[] {
   const value = scopeInput(scenarioCase).initial;
   if (!Array.isArray(value)) {
-    throw new TypeError('input.scope.initial must be an array');
+    throw RuntimeError.create('input.scope.initial must be an array');
   }
 
   return value.map((entry, index) => requireRecord(entry, `input.scope.initial[${index}]`));
@@ -136,13 +137,13 @@ function scopeInitialArray(scenarioCase: ScenarioCase): Record<string, unknown>[
 function scopeNumberArray(scenarioCase: ScenarioCase, key: string): number[] {
   const value = scopeInput(scenarioCase)[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`input.scope.${key} must be an array`);
+    throw RuntimeError.create(`input.scope.${key} must be an array`);
   }
 
   const numbers: number[] = [];
   for (const item of value) {
     if (typeof item !== 'number') {
-      throw new TypeError(`input.scope.${key} must contain only numbers`);
+      throw RuntimeError.create(`input.scope.${key} must contain only numbers`);
     }
     numbers.push(item);
   }
@@ -153,13 +154,13 @@ function scopeNumberArray(scenarioCase: ScenarioCase, key: string): number[] {
 function expectedStringArray(scenarioCase: ScenarioCase, key: string): string[] {
   const value = scenarioCase.expected[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`expected.${key} must be an array`);
+    throw RuntimeError.create(`expected.${key} must be an array`);
   }
 
   const strings: string[] = [];
   for (const item of value) {
     if (typeof item !== 'string') {
-      throw new TypeError(`expected.${key} must contain only strings`);
+      throw RuntimeError.create(`expected.${key} must contain only strings`);
     }
     strings.push(item);
   }
@@ -182,15 +183,15 @@ function isFunctionFixtureName(value: string): value is FunctionFixtureName {
 function scopeFunctionFixture(scenarioCase: ScenarioCase, key: string): FunctionFixture {
   const initial = scopeInitial(scenarioCase);
   if (initial === undefined) {
-    throw new TypeError('input.scope.initial must be an object');
+    throw RuntimeError.create('input.scope.initial must be an object');
   }
   const value = initial[key];
   if (typeof value !== 'string') {
-    throw new TypeError(`input.scope.initial.${key} must be a string`);
+    throw RuntimeError.create(`input.scope.initial.${key} must be a string`);
   }
 
   if (!isFunctionFixtureName(value)) {
-    throw new TypeError(`input.scope.initial.${key} must reference a known function fixture`);
+    throw RuntimeError.create(`input.scope.initial.${key} must reference a known function fixture`);
   }
 
   return functionFixtureMap[value];
@@ -210,7 +211,7 @@ const runnerMap = {
     const scope = context.initialize(scopeInitial(scenarioCase));
     const executionInput = scopeInput(scenarioCase).executions;
     if (!Array.isArray(executionInput)) {
-      throw new TypeError('input.scope.executions must be an array');
+      throw RuntimeError.create('input.scope.executions must be an array');
     }
     const executions: unknown[] = [];
     for (const execution of executionInput) {
@@ -451,7 +452,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const initial = scopeInitial(scenarioCase);
     if (initial === undefined) {
-      throw new TypeError('input.scope.initial must be an object');
+      throw RuntimeError.create('input.scope.initial must be an object');
     }
     const obj = { ...requireRecord(initial.obj, 'input.scope.initial.obj') };
     const scope = context.initialize({ obj });
@@ -490,7 +491,7 @@ const runnerMap = {
     const scope = context.initialize(scopeInitial(scenarioCase));
     const message = scopeString(scenarioCase, 'message');
     assert.strictEqual(message, scenarioCase.expected.message);
-    assert.throws(() => scope.execute(() => { throw new Error(message); }), { message });
+    assert.throws(() => scope.execute(() => { throw RuntimeError.create(message); }), { message });
     return;
   },
 
@@ -501,9 +502,9 @@ const runnerMap = {
     assert.strictEqual(message, scenarioCase.expected.message);
     return scope.execute(async () => {
       await setTimeout(5);
-      throw new Error(message);
+      throw RuntimeError.create(message);
     }).then(() => {
-      throw new Error('Should have thrown');
+      throw RuntimeError.create('Should have thrown');
     }, (error: Error) => {
       assert.ok(error instanceof Error);
       assert.strictEqual(error.message, message);
@@ -516,7 +517,7 @@ const runnerMap = {
     try {
       scope.execute(() => {
         context.set('beforeError', true);
-        throw new Error('oops');
+        throw RuntimeError.create('oops');
       });
     } catch {
       // ignore
@@ -533,7 +534,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
     try {
-      scope.execute(() => { throw new Error('error'); });
+      scope.execute(() => { throw RuntimeError.create('error'); });
     } catch {
       // ignore
     }
@@ -599,7 +600,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const initial = scopeInitial(scenarioCase);
     if (initial === undefined) {
-      throw new TypeError('input.scope.initial must be an object');
+      throw RuntimeError.create('input.scope.initial must be an object');
     }
     const complex = requireRecord(initial.complex, 'input.scope.initial.complex');
     const scope = context.initialize(initial);
@@ -618,7 +619,7 @@ const runnerMap = {
     scope.execute(() => {
       const retrieved = context.get('fn');
       if (typeof retrieved !== 'function') {
-        throw new TypeError('Expected callable context value');
+        throw RuntimeError.create('Expected callable context value');
       }
       assert.strictEqual(Reflect.apply(retrieved, undefined, [5]), scenarioCase.expected.result);
     });
@@ -694,7 +695,7 @@ const runnerMap = {
       const operations = expectedResults.map((result, index) => {
         const delay = delays[index];
         if (delay === undefined) {
-          throw new TypeError('input.scope.delays must match expected.results length');
+          throw RuntimeError.create('input.scope.delays must match expected.results length');
         }
 
         return setTimeout(delay).then(() => result);
@@ -717,7 +718,7 @@ function isScenarioShape(shape: string): shape is ScenarioShape {
 function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   const { shape } = scenarioCase;
   if (!isScenarioShape(shape)) {
-    throw new TypeError(`Unsupported scenario shape: ${shape}`);
+    throw RuntimeError.create(`Unsupported scenario shape: ${shape}`);
   }
 
   return runnerMap[shape](scenarioCase);

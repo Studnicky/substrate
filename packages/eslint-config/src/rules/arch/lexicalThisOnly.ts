@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 // WHAT THIS RULE ENFORCES, AND WHY IT IS AN ARCHITECTURE RULE RATHER THAN A STYLE ONE.
 //
@@ -106,7 +107,7 @@ class ThisContext {
       }
 
       if (nodeType === 'MethodDefinition' || nodeType === 'PropertyDefinition') {
-        const result = ObjectGuard.isObject(current) && current.static === true;
+        const result = Predicates.isRecord(current) && current.static === true;
 
         return result;
       }
@@ -127,7 +128,7 @@ class EnclosingClass {
       const nodeType = AstHelpers.getNodeType(current);
 
       if (nodeType === 'ClassDeclaration' || nodeType === 'ClassExpression') {
-        const result = ObjectGuard.isObject(current) ? AstHelpers.getIdentifierName(current.id) : undefined;
+        const result = Predicates.isRecord(current) ? AstHelpers.getIdentifierName(current.id) : undefined;
 
         return result;
       }
@@ -146,7 +147,7 @@ class PermittedUse {
       return false;
     }
 
-    const result = ObjectGuard.isObject(parent) && parent.object === node;
+    const result = Predicates.isRecord(parent) && parent.object === node;
 
     return result;
   }
@@ -157,7 +158,7 @@ class PermittedUse {
       return false;
     }
 
-    const result = ObjectGuard.isObject(parent) && parent.argument === node;
+    const result = Predicates.isRecord(parent) && parent.argument === node;
 
     return result;
   }
@@ -179,7 +180,7 @@ class PermittedUse {
     if (nodeType !== 'CallExpression' && nodeType !== 'NewExpression') {
       return false;
     }
-    if (!ObjectGuard.isObject(parent)) {
+    if (!Predicates.isRecord(parent)) {
       return false;
     }
     if (!ThisContext.isStatic(node)) {
@@ -204,7 +205,7 @@ class PermittedUse {
     if (AstHelpers.getNodeType(parent) !== 'NewExpression') {
       return false;
     }
-    if (!ObjectGuard.isObject(parent)) {
+    if (!Predicates.isRecord(parent)) {
       return false;
     }
 
@@ -216,7 +217,7 @@ class PermittedUse {
 
     const callee = parent.callee;
 
-    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
+    if (!Predicates.isRecord(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
       return false;
     }
 

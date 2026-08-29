@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 export class CuckooCandidateFilter {
   readonly #buckets: (string | undefined)[][];
   readonly #bucketSize: number;
@@ -7,10 +9,10 @@ export class CuckooCandidateFilter {
     const bucketSize = options.bucketSize ?? 4;
     const relocationLimit = options.relocationLimit ?? 500;
     if (!Number.isInteger(bucketCount) || bucketCount <= 0) {
-      throw new RangeError('Bucket count must be a positive integer.');
+      throw RuntimeError.create('Bucket count must be a positive integer.');
     }
     if (!Number.isInteger(bucketSize) || bucketSize <= 0) {
-      throw new RangeError('Bucket size must be a positive integer.');
+      throw RuntimeError.create('Bucket size must be a positive integer.');
     }
     const buckets = Array.from<(string | undefined)[]>({ 'length': bucketCount });
     for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {

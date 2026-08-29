@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import {
@@ -158,12 +159,12 @@ function createVirtualTimeCounter(input: DelayInputInterface): VirtualTimeCounte
 
 function createReason(input: DelayInputInterface): Error {
   assert.ok(input.reasonMessage !== undefined);
-  return new Error(input.reasonMessage);
+  return RuntimeError.create(input.reasonMessage);
 }
 
 function createSchedulerError(input: DelayInputInterface): Error {
   assert.ok(input.schedulerErrorMessage !== undefined);
-  return new Error(input.schedulerErrorMessage);
+  return RuntimeError.create(input.schedulerErrorMessage);
 }
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;

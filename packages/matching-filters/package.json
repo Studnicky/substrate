@@ -14,5 +14,5 @@
   "repository": { "type": "git", "url": "git+https://github.com/Studnicky/substrate.git", "directory": "packages/matching-filters" },
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
   "engines": { "node": ">=24.0.0" },
-  "dependencies": { "@studnicky/matching": "workspace:*", "@studnicky/types": "workspace:*" }
+  "dependencies": { "@studnicky/errors": "workspace:*", "@studnicky/filters": "workspace:*", "@studnicky/matching": "workspace:*", "@studnicky/types": "workspace:*" }
 }

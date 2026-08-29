@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
@@ -60,7 +61,7 @@ export class FunctionTransport implements TransportInterface {
     ]);
 
     if (!Predicates.isObjectLike(result) || !FunctionTransportInstance.belongsTo(this, result)) {
-      throw new TypeError('FunctionTransport.create() did not construct the requested subclass.');
+      throw RuntimeError.create('FunctionTransport.create() did not construct the requested subclass.');
     }
 
     return result;

@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 import { Throttle } from '../../../src/throttle/index.js';
 import scenarioGroups from './execute-sync-throw.scenarios.json' with { type: 'json' };
 
@@ -17,7 +18,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
     const throwingFn = (): Promise<never> => {
-      throw new Error(String(input.errorMessage));
+      throw RuntimeError.create(String(input.errorMessage));
     };
 
     for (let i = 0; i < input.throttle.concurrencyLimit; i += 1) {
@@ -37,7 +38,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   },
   'sync-throw-reject-hook': async (scenarioCase) => {
     const { input } = scenarioCase;
-    const original = new Error(String(input.errorMessage));
+    const original = RuntimeError.create(String(input.errorMessage));
 
     class RejectHookThrottle extends Throttle {
       protected override onReject(): void {
@@ -47,7 +48,7 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
 
     const throttle = RejectHookThrottle.create(input.throttle);
     const throwingFn = (): Promise<never> => {
-      throw new Error(String(input.failureMessage));
+      throw RuntimeError.create(String(input.failureMessage));
     };
 
     await assert.rejects(throttle.execute(throwingFn), (error) => {

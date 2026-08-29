@@ -80,7 +80,7 @@
     { "name": "aggregate-empty", "description": "returns empty arrays for empty collection", "shape": "aggregate-empty", "input": { "shape": "empty-array" }, "expected": { "aggregate": { "count": 0, "keywords": [], "paths": [] } } },
     {
       "name": "report-default",
-      "description": "returns RFC 7807 shape with defaults",
+      "description": "returns RFC 9457 shape with defaults",
       "shape": "report-default",
       "input": [{ "keyword": "required", "message": "required", "path": "/x" }],
       "expected": {

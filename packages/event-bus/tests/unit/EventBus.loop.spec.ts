@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvoker } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvoker } from '@studnicky/errors';
+
 
 import { EventBus } from '../../src/EventBus.js';
 import scenarioGroups from './EventBus.scenarios.json' with { type: 'json' };
@@ -116,8 +117,8 @@ class RecordingHookInvoker extends HookInvoker {
 }
 
 class RejectingLifecycleBus extends EventBus<HookTopics> {
-  readonly subscribeFailure = new Error('subscribe hook rejected');
-  readonly unsubscribeFailure = new Error('unsubscribe hook rejected');
+  readonly subscribeFailure = RuntimeError.create('subscribe hook rejected');
+  readonly unsubscribeFailure = RuntimeError.create('unsubscribe hook rejected');
   readonly recordingHooks = new RecordingHookInvoker();
   protected override readonly hooks = this.recordingHooks;
 
@@ -131,9 +132,9 @@ class RejectingLifecycleBus extends EventBus<HookTopics> {
 }
 
 class RejectingQueueHooksBus extends EventBus<HookTopics> {
-  readonly enqueueFailure = new Error('enqueue hook rejected');
-  readonly dequeueFailure = new Error('dequeue hook rejected');
-  readonly deliverFailure = new Error('deliver hook rejected');
+  readonly enqueueFailure = RuntimeError.create('enqueue hook rejected');
+  readonly dequeueFailure = RuntimeError.create('dequeue hook rejected');
+  readonly deliverFailure = RuntimeError.create('deliver hook rejected');
   readonly recordingHooks = new RecordingHookInvoker();
   protected override readonly hooks = this.recordingHooks;
 
@@ -561,7 +562,7 @@ const runnerMap: RunnerMap = {
     const input = scenarioCase.input as { errorMessage: string; payloadId: string; topic: 'order:created' };
     const expected = scenarioCase.expected as { handlerErrors: number; message: string; topic: 'order:created' };
     const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => { throw new Error(input.errorMessage); });
+    bus.subscribe(input.topic, async () => { throw RuntimeError.create(input.errorMessage); });
 
     return bus.publish(input.topic, { 'id': input.payloadId })
       .then(() => bus.drain())
@@ -807,7 +808,7 @@ const runnerMap: RunnerMap = {
 
     class ThrowingPublishBus extends EventBus<TestTopics> {
       protected override onPublish(): void {
-        throw new Error(input.errorMessage);
+        throw RuntimeError.create(input.errorMessage);
       }
     }
 
@@ -852,7 +853,7 @@ const runnerMap: RunnerMap = {
 
     class ThrowingDeliverBus extends EventBus<TestTopics> {
       protected override onDeliver(): void {
-        throw new Error(input.errorMessage);
+        throw RuntimeError.create(input.errorMessage);
       }
     }
 

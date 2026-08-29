@@ -74,76 +74,76 @@ export const ErrorDefaults = {
   'AUTHENTICATION': {
     'code': ErrorCode.AUTHENTICATION_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.UNAUTHORIZED
+    'status': HttpStatus.UNAUTHORIZED
   },
 
   /** Authorization errors - client lacks permissions */
   'AUTHORIZATION': {
     'code': ErrorCode.AUTHORIZATION_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.FORBIDDEN
+    'status': HttpStatus.FORBIDDEN
   },
 
   /** Configuration errors - invalid or missing config */
   'CONFIGURATION': {
     'code': ErrorCode.CONFIGURATION_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.INTERNAL_SERVER_ERROR
+    'status': HttpStatus.INTERNAL_SERVER_ERROR
   },
 
   /** Connection errors - transient network failures */
   'CONNECTION': {
     'code': ErrorCode.CONNECTION_ERROR,
     'retryable': true,
-    'statusCode': HttpStatus.SERVICE_UNAVAILABLE
+    'status': HttpStatus.SERVICE_UNAVAILABLE
   },
 
   /** Database errors - query/transaction failures */
   'DATABASE': {
     'code': ErrorCode.DATABASE_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.INTERNAL_SERVER_ERROR
+    'status': HttpStatus.INTERNAL_SERVER_ERROR
   },
 
   /** External service errors - third-party API failures */
   'EXTERNAL_SERVICE': {
     'code': ErrorCode.EXTERNAL_SERVICE_ERROR,
     'retryable': true,
-    'statusCode': HttpStatus.BAD_GATEWAY
+    'status': HttpStatus.BAD_GATEWAY
   },
 
   /** Internal errors - unexpected failures */
   'INTERNAL': {
     'code': ErrorCode.INTERNAL_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.INTERNAL_SERVER_ERROR
+    'status': HttpStatus.INTERNAL_SERVER_ERROR
   },
 
   /** Not found errors - resource does not exist */
   'NOT_FOUND': {
     'code': ErrorCode.NOT_FOUND,
     'retryable': false,
-    'statusCode': HttpStatus.NOT_FOUND
+    'status': HttpStatus.NOT_FOUND
   },
 
   /** Rate limit errors - too many requests */
   'RATE_LIMIT': {
     'code': ErrorCode.RATE_LIMIT_ERROR,
     'retryable': true,
-    'statusCode': HttpStatus.TOO_MANY_REQUESTS
+    'status': HttpStatus.TOO_MANY_REQUESTS
   },
 
   /** Timeout errors - operation exceeded time limit */
   'TIMEOUT': {
     'code': ErrorCode.TIMEOUT_ERROR,
     'retryable': true,
-    'statusCode': HttpStatus.GATEWAY_TIMEOUT
+    'status': HttpStatus.GATEWAY_TIMEOUT
   },
 
   /** Validation errors - invalid input */
   'VALIDATION': {
     'code': ErrorCode.VALIDATION_ERROR,
     'retryable': false,
-    'statusCode': HttpStatus.BAD_REQUEST
+    'status': HttpStatus.BAD_REQUEST
   }
 } as const;

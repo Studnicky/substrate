@@ -1,3 +1,4 @@
+import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors';
 /**
  * Unit tests for `VirtualScheduler`.
  * Requires `@studnicky/clock` — `VirtualTimeCounter` and `VirtualClockProvider`.
@@ -6,7 +7,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
@@ -14,7 +15,7 @@ import scenarioGroups from './VirtualScheduler.scenarios.json' with { type: 'jso
 
 function requiredAuditNumber(value: number | undefined): number {
   if (value === undefined) {
-    throw new Error('Expected a numeric audit field');
+    throw RuntimeError.create('Expected a numeric audit field');
   }
   return value;
 }
@@ -95,7 +96,7 @@ function createScheduler(startMs: number): VirtualScheduler {
 function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
-    throw new Error(`Expected numeric field '${key}'`);
+    throw RuntimeError.create(`Expected numeric field '${key}'`);
   }
   return value;
 }
@@ -438,7 +439,7 @@ const scenarioRunners = {
     const runUntilSched = VirtualScheduler.create({ counter: runUntilCounter });
     runUntilSched.scheduleAt(unhappyInput.runUntilRejectAtMs, async () => {
       await Promise.resolve();
-      throw new Error('runUntil-reject');
+      throw RuntimeError.create('runUntil-reject');
     });
     runUntilSched.advance(unhappyInput.runUntilAdvanceMs);
     await Promise.resolve();
@@ -448,7 +449,7 @@ const scenarioRunners = {
     const runAllSched = VirtualScheduler.create({ counter: runAllCounter });
     runAllSched.scheduleAt(unhappyInput.runAllRejectAtMs, async () => {
       await Promise.resolve();
-      throw new Error('runAll-reject');
+      throw RuntimeError.create('runAll-reject');
     });
     runAllSched.runAll();
     await Promise.resolve();
@@ -483,7 +484,7 @@ const scenarioRunners = {
       }
     }
 
-    const runUntilSyncError = new Error('runUntil sync fire failure');
+    const runUntilSyncError = RuntimeError.create('runUntil sync fire failure');
     const runUntilSyncCounter = createCounter(fireErrorInput.counterStartMs);
     const runUntilSync = new ErrorHookScheduler(runUntilSyncCounter);
     runUntilSync.scheduleEvery(fireErrorInput.intervalMs, () => {
@@ -495,7 +496,7 @@ const scenarioRunners = {
     assert.deepStrictEqual(runUntilSync.errors, [runUntilSyncError]);
     assert.strictEqual(runUntilSync.fireCount, fireErrorExpected.firedAfterIntervalFailure);
 
-    const runUntilAsyncError = new Error('runUntil async fire failure');
+    const runUntilAsyncError = RuntimeError.create('runUntil async fire failure');
     const runUntilAsync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
     runUntilAsync.scheduleAt(fireErrorInput.atMs, () => Promise.reject(runUntilAsyncError));
     runUntilAsync.runUntil(fireErrorInput.atMs);
@@ -503,7 +504,7 @@ const scenarioRunners = {
     await Promise.resolve();
     assert.deepStrictEqual(runUntilAsync.errors, [runUntilAsyncError]);
 
-    const runAllSyncError = new Error('runAll sync fire failure');
+    const runAllSyncError = RuntimeError.create('runAll sync fire failure');
     const runAllSync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
     runAllSync.scheduleAt(fireErrorInput.atMs, () => {
       throw runAllSyncError;
@@ -511,7 +512,7 @@ const scenarioRunners = {
     runAllSync.runAll();
     assert.deepStrictEqual(runAllSync.errors, [runAllSyncError]);
 
-    const runAllAsyncError = new Error('runAll async fire failure');
+    const runAllAsyncError = RuntimeError.create('runAll async fire failure');
     const runAllAsync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
     runAllAsync.scheduleAt(fireErrorInput.atMs, () => Promise.reject(runAllAsyncError));
     runAllAsync.runAll();
@@ -720,7 +721,7 @@ const scenarioRunners = {
     }
     const errorCounter = createCounter(subclassInput.counterStartMs);
     const errorSched = new ErrorHookScheduler(errorCounter);
-    const thrownError = new Error('task boom');
+    const thrownError = RuntimeError.create('task boom');
     errorSched.scheduleAt(subclassInput.fireErrorAtMs, () => { throw thrownError; });
     errorSched.runAll();
     assert.strictEqual(errorSched.fireErrorIds.length, subclassExpected.fireErrorCount);
@@ -728,7 +729,7 @@ const scenarioRunners = {
 
     const advanceErrorCounter = createCounter(subclassInput.counterStartMs);
     const advanceErrorSched = new ErrorHookScheduler(advanceErrorCounter);
-    advanceErrorSched.scheduleAt(subclassInput.fireErrorAtMs, () => { throw new Error('sync throw'); });
+    advanceErrorSched.scheduleAt(subclassInput.fireErrorAtMs, () => { throw RuntimeError.create('sync throw'); });
     advanceErrorSched.advance(subclassInput.advanceMs);
     assert.strictEqual(advanceErrorSched.fireErrorIds.length, subclassExpected.fireErrorCount);
 
@@ -744,7 +745,7 @@ const scenarioRunners = {
     }
     const asyncCounter = createCounter(subclassInput.counterStartMs);
     const asyncSched = new AsyncErrorHookScheduler(asyncCounter);
-    asyncSched.scheduleAt(subclassInput.fireRejectAtMs, async () => { throw new Error('async reject'); });
+    asyncSched.scheduleAt(subclassInput.fireRejectAtMs, async () => { throw RuntimeError.create('async reject'); });
     asyncSched.runAll();
     await Promise.resolve();
     await Promise.resolve();
@@ -807,7 +808,7 @@ const scenarioRunners = {
       }
 
       protected override onSchedule(): void {
-        throw new Error('onSchedule boom');
+        throw RuntimeError.create('onSchedule boom');
       }
     }
     const throwingScheduleCounter = createCounter(subclassInput.counterStartMs);
@@ -820,7 +821,7 @@ const scenarioRunners = {
       }
 
       protected override onFire(): void {
-        throw new Error('onFire boom');
+        throw RuntimeError.create('onFire boom');
       }
     }
     const throwingFireCounter = createCounter(subclassInput.counterStartMs);
@@ -846,7 +847,7 @@ const scenarioRunners = {
       }
 
       protected override onFire(): void {
-        throw new Error('onFire boom');
+        throw RuntimeError.create('onFire boom');
       }
     }
     const observedCounter = createCounter(subclassInput.counterStartMs);
@@ -864,7 +865,7 @@ const scenarioRunners = {
       }
 
       protected override onReschedule(): void {
-        throw new Error('onReschedule boom');
+        throw RuntimeError.create('onReschedule boom');
       }
     }
     const throwingRescheduleCounter = createCounter(subclassInput.counterStartMs);
@@ -885,12 +886,12 @@ const scenarioRunners = {
 
       protected override onFireError(): void {
         this.fireErrorCount++;
-        throw new Error('onFireError boom');
+        throw RuntimeError.create('onFireError boom');
       }
     }
     const throwingFireErrorCounter = createCounter(subclassInput.counterStartMs);
     const throwingFireError = new ThrowingFireErrorScheduler(throwingFireErrorCounter);
-    throwingFireError.scheduleAt(subclassInput.fireErrorAtMs, () => { throw new Error('task boom'); });
+    throwingFireError.scheduleAt(subclassInput.fireErrorAtMs, () => { throw RuntimeError.create('task boom'); });
     throwingFireError.runAll();
     assert.strictEqual(throwingFireError.fireErrorCount, subclassExpected.throwingFireErrorCount);
 
@@ -902,7 +903,7 @@ const scenarioRunners = {
         recordedCauses.push(cause);
       }
     }
-    const rejectionError = new Error('async onFire rejection');
+    const rejectionError = RuntimeError.create('async onFire rejection');
     class AsyncRejectingFireScheduler extends VirtualScheduler {
       protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
 

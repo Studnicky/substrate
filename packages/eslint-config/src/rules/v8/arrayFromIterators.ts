@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, PUSH_METHODS, PUSH_OWNERS, RULE_NAME
 } from './constants/ArrayFromIteratorsConstants.js';
@@ -42,7 +43,7 @@ import {
 class ForOfBinding {
   /** The loop's own binding name — `for (const x of ...)` or `for (x of ...)`. */
   public static nameOf(left: unknown): string | undefined {
-    if (!ObjectGuard.isObject(left)) {
+    if (!Predicates.isRecord(left)) {
       return undefined;
     }
 
@@ -55,17 +56,17 @@ class ForOfBinding {
     if (left.type === 'VariableDeclaration') {
       const declarations = left.declarations;
 
-      if (!ObjectGuard.isArray(declarations) || declarations.length !== 1) {
+      if (!Predicates.isArray(declarations) || declarations.length !== 1) {
         return undefined;
       }
       const [declarator] = declarations;
 
-      if (!ObjectGuard.isObject(declarator)) {
+      if (!Predicates.isRecord(declarator)) {
         return undefined;
       }
       const id = declarator.id;
 
-      if (!ObjectGuard.isObject(id) || id.type !== 'Identifier') {
+      if (!Predicates.isRecord(id) || id.type !== 'Identifier') {
         return undefined;
       }
 
@@ -81,7 +82,7 @@ class ForOfBinding {
 class SoleBodyPushCall {
   /** The single `acc.push(x)` CallExpression when `body` reduces to exactly that statement — a bare `ExpressionStatement`, or a `BlockStatement` with exactly one statement. Any other body shape (multiple statements, a condition, a second push) is not the pure drain pattern this rule targets. */
   public static find(body: unknown): unknown {
-    if (!ObjectGuard.isObject(body)) {
+    if (!Predicates.isRecord(body)) {
       return undefined;
     }
 
@@ -90,18 +91,18 @@ class SoleBodyPushCall {
     if (body.type === 'BlockStatement') {
       const statements = body.body;
 
-      if (!ObjectGuard.isArray(statements) || statements.length !== 1) {
+      if (!Predicates.isArray(statements) || statements.length !== 1) {
         return undefined;
       }
       [statement] = statements;
     }
 
-    if (!ObjectGuard.isObject(statement) || statement.type !== 'ExpressionStatement') {
+    if (!Predicates.isRecord(statement) || statement.type !== 'ExpressionStatement') {
       return undefined;
     }
     const { expression } = statement;
 
-    if (!ObjectGuard.isObject(expression) || expression.type !== 'CallExpression') {
+    if (!Predicates.isRecord(expression) || expression.type !== 'CallExpression') {
       return undefined;
     }
 
@@ -118,13 +119,13 @@ class AccumulatorBinding {
    */
   public static isFreshEmptyArrayDeclaredBefore(forOfNode: Rule.Node, name: string): boolean {
     // Cast through `unknown` before the generic AST walk: `forOfNode.parent`'s declared
-    // type (`Rule.Node`) intersects with `ObjectGuard.isObject`'s `Record<string,
+    // type (`Rule.Node`) intersects with `Predicates.isRecord`'s `Record<string,
     // unknown>` predicate rather than being erased by it, so `.body` would otherwise
     // keep its original `Statement[]` element type and reject a bare `Rule.Node` search
     // target below. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
     const block = forOfNode.parent as unknown;
 
-    if (!ObjectGuard.isObject(block)) {
+    if (!Predicates.isRecord(block)) {
       return false;
     }
     if (block.type !== 'BlockStatement' && block.type !== 'Program') {
@@ -133,7 +134,7 @@ class AccumulatorBinding {
 
     const body = block.body;
 
-    if (!ObjectGuard.isArray(body)) {
+    if (!Predicates.isArray(body)) {
       return false;
     }
     const index = body.indexOf(forOfNode);
@@ -144,34 +145,34 @@ class AccumulatorBinding {
 
     const previous = body.at(index - 1);
 
-    if (!ObjectGuard.isObject(previous) || previous.type !== 'VariableDeclaration') {
+    if (!Predicates.isRecord(previous) || previous.type !== 'VariableDeclaration') {
       return false;
     }
     const declarations = previous.declarations;
 
-    if (!ObjectGuard.isArray(declarations) || declarations.length !== 1) {
+    if (!Predicates.isArray(declarations) || declarations.length !== 1) {
       return false;
     }
 
     const [declarator] = declarations;
 
-    if (!ObjectGuard.isObject(declarator)) {
+    if (!Predicates.isRecord(declarator)) {
       return false;
     }
     const id = declarator.id;
 
-    if (!ObjectGuard.isObject(id) || id.type !== 'Identifier' || id.name !== name) {
+    if (!Predicates.isRecord(id) || id.type !== 'Identifier' || id.name !== name) {
       return false;
     }
 
     const init = declarator.init;
 
-    if (!ObjectGuard.isObject(init) || init.type !== 'ArrayExpression') {
+    if (!Predicates.isRecord(init) || init.type !== 'ArrayExpression') {
       return false;
     }
     const elements = init.elements;
 
-    const result = ObjectGuard.isArray(elements) && elements.length === 0;
+    const result = Predicates.isArray(elements) && elements.length === 0;
 
     return result;
   }
@@ -229,16 +230,16 @@ export const arrayFromIterators: Rule.RuleModule = {
       }
       const [pushedValue] = pushArgumentList;
 
-      if (!ObjectGuard.isObject(pushedValue) || pushedValue.type !== 'Identifier' || pushedValue.name !== bindingName) {
+      if (!Predicates.isRecord(pushedValue) || pushedValue.type !== 'Identifier' || pushedValue.name !== bindingName) {
         return;
       }
 
-      if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression') {
+      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
         return;
       }
       const accumulator = callee.object;
 
-      if (!ObjectGuard.isObject(accumulator) || accumulator.type !== 'Identifier' || typeof accumulator.name !== 'string') {
+      if (!Predicates.isRecord(accumulator) || accumulator.type !== 'Identifier' || typeof accumulator.name !== 'string') {
         return;
       }
 

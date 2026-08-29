@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** dead-letter-queue — enqueue failed items; drain via async generator; close to end iteration. Run: npx tsx examples/dead-letter-queue.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -15,7 +15,7 @@ await (async function runDeadLetterQueueExample(): Promise<void> {
   const deadLetterQueue = DeadLetterQueue.create<string>({ 'capacity': 5 });
 
   deadLetterQueue.enqueue('job-1', 'timeout');
-  deadLetterQueue.enqueue('job-2', 'network error', new Error('ECONNREFUSED'));
+  deadLetterQueue.enqueue('job-2', 'network error', RuntimeError.create('ECONNREFUSED'));
   console.log('Queue size after 2 enqueues:', deadLetterQueue.size);
 
   // Close before draining so the generator terminates instead of waiting.

@@ -34,13 +34,13 @@ const malformedOptionCases: readonly RuleOptionCase[] = [
   { 'malformedOptions': { 'adapterOnlyImports': [1] }, 'rule': adapterOnlyImport, 'ruleName': 'adapter-only-import' },
   { 'malformedOptions': { 'domainLayerName': 1 }, 'rule': domainPurity, 'ruleName': 'domain-purity' },
   { 'malformedOptions': { 'adapterLayerName': 1 }, 'rule': knownTypesOutsideAdapters, 'ruleName': 'known-types-outside-adapters' },
-  { 'malformedOptions': { 'adapterLayerName': 1 }, 'rule': noThreadedVocabulary, 'ruleName': 'no-threaded-vocabulary' }
+  { 'malformedOptions': { 'resolutionSites': [1], 'sourceRoot': 'src' }, 'rule': noThreadedVocabulary, 'ruleName': 'no-threaded-vocabulary' }
 ];
 
 const layerOptions: Record<string, unknown> = {
   'bindings': [
-    { 'kind': 'folder', 'layer': 'domain', 'pattern': 'domain' },
-    { 'kind': 'folder', 'layer': 'adapters', 'pattern': 'adapters' }
+    { 'unit': 'folder', 'layer': 'domain', 'pattern': 'domain' },
+    { 'unit': 'folder', 'layer': 'adapters', 'pattern': 'adapters' }
   ],
   'layers': ['domain', 'adapters'],
   'sourceRoot': 'src'

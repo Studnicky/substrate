@@ -14,7 +14,7 @@ void describe('Predicate composition', () => {
     const candidate: unknown = { 'threshold': 0.8, 'value': 'audit' };
     assert.equal(TextThresholdPredicate(candidate), true);
     if (!TextThresholdPredicate(candidate)) {
-      throw new TypeError('Expected candidate to match');
+      assert.fail('Expected candidate to match');
     }
     assert.equal(candidate.value, 'audit');
     assert.equal(candidate.threshold, 0.8);

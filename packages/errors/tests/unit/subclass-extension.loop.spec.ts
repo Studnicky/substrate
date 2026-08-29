@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -51,7 +52,7 @@ class NetworkModuleError extends ModuleError {
       code: defaults.code,
       context: options?.context,
       retryable: options?.retryable ?? defaults.retryable,
-      statusCode: options?.statusCode ?? defaults.statusCode
+      status: options?.status ?? defaults.status
     };
     return new NetworkModuleError(message, mergedOptions);
   }
@@ -83,7 +84,7 @@ const runnerMap: RunnerMap = {
     const expected = scenarioCase.expected as { code: string };
     const json = AuditError.of(input).toJSON() as Record<string, unknown>;
     assert.strictEqual(json.code, expected.code);
-    assert.ok(typeof json.message === 'string');
+    assert.ok(typeof json.detail === 'string');
     assert.ok(typeof json.timestamp === 'number');
   },
 
@@ -121,7 +122,7 @@ const runnerMap: RunnerMap = {
   'network-cause-chain': (scenarioCase) => {
     const input = scenarioCase.input as { causeMessage: string; message: string };
     const expected = scenarioCase.expected as { chainLength: number };
-    const root = new Error(input.causeMessage);
+    const root = RuntimeError.create(input.causeMessage);
     const err = NetworkModuleError.create(input.message, { cause: root });
     const chain = BaseError.getCauseChain(err);
     assert.strictEqual(chain.length, expected.chainLength);
@@ -132,21 +133,20 @@ const runnerMap: RunnerMap = {
   'network-find-cause': (scenarioCase) => {
     const input = scenarioCase.input as { causeMessage: string; message: string };
     const expected = scenarioCase.expected as { found: boolean; name: string };
-    const root = new TypeError(input.causeMessage);
+    const root = RuntimeError.create(input.causeMessage);
     const err = NetworkModuleError.create(input.message, { cause: root });
-    const found = BaseError.findCauseOfType(err, TypeError);
-    assert.strictEqual(found instanceof TypeError, expected.found);
+    const found = BaseError.findCauseOfType(err, RuntimeError);
+    assert.strictEqual(found instanceof RuntimeError, expected.found);
     assert.strictEqual(found?.name, expected.name);
     assert.strictEqual(found, root);
   },
 
   'network-has-cause': (scenarioCase) => {
     const input = scenarioCase.input as { causeMessage: string; message: string };
-    const expected = scenarioCase.expected as { rangeError: boolean; typeError: boolean };
-    const root = new RangeError(input.causeMessage);
+    const expected = scenarioCase.expected as { runtimeError: boolean };
+    const root = RuntimeError.create(input.causeMessage);
     const err = NetworkModuleError.create(input.message, { cause: root });
-    assert.strictEqual(BaseError.hasCauseOfType(err, RangeError), expected.rangeError);
-    assert.strictEqual(BaseError.hasCauseOfType(err, TypeError), expected.typeError);
+    assert.strictEqual(BaseError.hasCauseOfType(err, RuntimeError), expected.runtimeError);
   },
 
   'network-instanceof': (scenarioCase) => {
@@ -170,14 +170,15 @@ const runnerMap: RunnerMap = {
     const input = scenarioCase.input as { message: string };
     const expected = scenarioCase.expected as { name: string };
     const json = NetworkModuleError.create(input.message).toJSON() as Record<string, unknown>;
-    assert.strictEqual(json.name, expected.name);
+    // RFC 9457 3.1.2: the class name is the problem type's title.
+    assert.strictEqual(json.title, expected.name);
   },
 
   'network-json-status-code': (scenarioCase) => {
     const input = scenarioCase.input as { message: string };
-    const expected = scenarioCase.expected as { statusCode: number };
+    const expected = scenarioCase.expected as { status: number };
     const json = NetworkModuleError.create(input.message).toJSON() as Record<string, unknown>;
-    assert.strictEqual(json.statusCode, expected.statusCode);
+    assert.strictEqual(json.status, expected.status);
   },
 
   'network-name': (scenarioCase) => {

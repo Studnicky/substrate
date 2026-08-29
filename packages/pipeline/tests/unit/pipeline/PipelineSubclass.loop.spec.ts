@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import type { PipelineFunctionInterface } from '../../../src/interfaces/PipelineFunctionInterface.js';
 import type { PipelineOptionsEntity } from '../../../src/entities/PipelineOptionsEntity.js';
@@ -66,28 +67,28 @@ type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
 const stageBuilderMap: Record<StageSpec['shape'], StageBuilder> = {
   add: (spec) => {
     if (!('value' in spec)) {
-      throw new Error('Add stage spec requires a value');
+      throw RuntimeError.create('Add stage spec requires a value');
     }
     return (ctx: number) => ctx + spec.value;
   },
   identity: () => (ctx: number) => ctx,
   mul: (spec) => {
     if (!('value' in spec)) {
-      throw new Error('Mul stage spec requires a value');
+      throw RuntimeError.create('Mul stage spec requires a value');
     }
     return (ctx: number) => ctx * spec.value;
   },
   sub: (spec) => {
     if (!('value' in spec)) {
-      throw new Error('Sub stage spec requires a value');
+      throw RuntimeError.create('Sub stage spec requires a value');
     }
     return (ctx: number) => ctx - spec.value;
   },
   throw: (spec) => {
     if (!('message' in spec)) {
-      throw new Error('Throw stage spec requires a message');
+      throw RuntimeError.create('Throw stage spec requires a message');
     }
-    return () => { throw new Error(spec.message); };
+    return () => { throw RuntimeError.create(spec.message); };
   }
 };
 
@@ -188,7 +189,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = scenarioCase.input as { ctx: string; stages: StageSpec[] };
       const expected = scenarioCase.expected as { traceLength: number };
       const stages: Array<(ctx: string) => string> = input.stages.map((spec) => {
-        throw new Error(`no-hooks-no-stages scenario must have zero stages, got: ${spec.shape}`);
+        throw RuntimeError.create(`no-hooks-no-stages scenario must have zero stages, got: ${spec.shape}`);
       });
       const pipeline = new TracingPipeline<string>(stages);
       await pipeline.run(input.ctx);
@@ -405,7 +406,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected as { errorName: string };
       class ThrowingStartPipeline extends Pipeline<number> {
         protected override onStageStart(): void {
-          throw new Error('onStageStart boom');
+          throw RuntimeError.create('onStageStart boom');
         }
       }
       const pipeline = ThrowingStartPipeline.create(buildStages(input.stages));
@@ -417,7 +418,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected as { errorName: string };
       class ThrowingSuccessPipeline extends Pipeline<number> {
         protected override onStageSuccess(): void {
-          throw new Error('onStageSuccess boom');
+          throw RuntimeError.create('onStageSuccess boom');
         }
       }
       const pipeline = ThrowingSuccessPipeline.create(buildStages(input.stages));
@@ -429,7 +430,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected as { errorName: string };
       class ThrowingStageErrorPipeline extends Pipeline<number> {
         protected override onStageError(): void {
-          throw new Error('onStageError boom');
+          throw RuntimeError.create('onStageError boom');
         }
       }
       const pipeline = ThrowingStageErrorPipeline.create(buildStages(input.stages));
@@ -441,7 +442,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected as { errorName: string };
       class ThrowingRunErrorPipeline extends Pipeline<number> {
         protected override onRunError(): void {
-          throw new Error('onRunError boom');
+          throw RuntimeError.create('onRunError boom');
         }
       }
       const pipeline = ThrowingRunErrorPipeline.create(buildStages(input.stages));
@@ -451,7 +452,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'before-stage-throw-does-not-trigger-run-error': async (scenarioCase) => {
       const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
       const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
-      const rawError = new Error(expected.rawMessage);
+      const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingBeforeStagePipeline extends ObservingPipeline<number> {
         protected override beforeStage(): number {
           throw rawError;
@@ -471,7 +472,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'after-stage-throw-does-not-trigger-run-error': async (scenarioCase) => {
       const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
       const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
-      const rawError = new Error(expected.rawMessage);
+      const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingAfterStagePipeline extends ObservingPipeline<number> {
         protected override afterStage(): number {
           throw rawError;
@@ -491,7 +492,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'on-run-start-throw-does-not-trigger-run-error': async (scenarioCase) => {
       const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
       const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
-      const rawError = new Error(expected.rawMessage);
+      const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingRunStartPipeline extends ObservingPipeline<number> {
         protected override onRunStart(): number {
           throw rawError;
@@ -511,7 +512,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'on-run-complete-throw-does-not-trigger-run-error': async (scenarioCase) => {
       const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
       const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
-      const rawError = new Error(expected.rawMessage);
+      const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingRunCompletePipeline extends ObservingPipeline<number> {
         protected override onRunComplete(): number {
           throw rawError;

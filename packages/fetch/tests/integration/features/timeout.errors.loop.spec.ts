@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -99,7 +100,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
         return Number.NaN;
       }
       const exhaustiveCheck: never = value;
-      throw new Error(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
+      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
     }
 
     const materialized: Record<string, unknown> = {};

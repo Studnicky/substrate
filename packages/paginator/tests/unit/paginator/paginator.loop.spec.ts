@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import type {
   PaginatorExhaustedCursorEntity,
@@ -134,7 +135,7 @@ class ThrowingOnEnterPaginator extends Paginator<string, number> {
     | PaginatorHasMoreStateInterface<string, number>
     | PaginatorExhaustedStateInterface<string>
   ): void {
-    throw new Error('onEnterState boom');
+    throw RuntimeError.create('onEnterState boom');
   }
 }
 
@@ -148,20 +149,20 @@ class AsyncOverridePaginator extends Paginator<string, number> {
     | PaginatorExhaustedStateInterface<string>,
     _event: PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<string, number>
   ): Promise<void> {
-    throw new Error('onTransition async boom');
+    throw RuntimeError.create('onTransition async boom');
   }
 }
 
 class AsyncOwnedPaginator extends Paginator<string, number> {
   readonly failureDetails = { 'labels': ['initial'] };
-  failure = new Error('unconfigured transition failure');
+  failure = RuntimeError.create('unconfigured transition failure');
   readonly transitions: string[] = [];
   private name = 'unconfigured';
   private rejectNextTransition = false;
 
   configure(name: string, rejectNextTransition: boolean): void {
     this.name = name;
-    this.failure = new Error(`${name} transition boom`, { 'cause': this.failureDetails });
+    this.failure = RuntimeError.create(`${name} transition boom`, { 'cause': this.failureDetails });
     this.rejectNextTransition = rejectNextTransition;
   }
 
@@ -265,7 +266,7 @@ function arrayField(input: Record<string, unknown>, key: string): unknown[] {
 function stringField(input: Record<string, unknown>, key: string): string {
   const value = input[key];
   if (typeof value !== 'string') {
-    throw new Error(`Expected string field ${key}`);
+    throw RuntimeError.create(`Expected string field ${key}`);
   }
   return value;
 }
@@ -273,7 +274,7 @@ function stringField(input: Record<string, unknown>, key: string): string {
 function numberField(input: Record<string, unknown>, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
-    throw new Error(`Expected number field ${key}`);
+    throw RuntimeError.create(`Expected number field ${key}`);
   }
   return value;
 }
@@ -287,7 +288,7 @@ function falseField(input: Record<string, unknown>, key: string): false {
 function itemAt<T>(values: readonly T[], index: number): T {
   const value = values[index];
   if (value === undefined) {
-    throw new Error(`Expected item at index ${String(index)}`);
+    throw RuntimeError.create(`Expected item at index ${String(index)}`);
   }
   return value;
 }
@@ -587,27 +588,27 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       assert.equal(firstDiagnostics.length, 1);
       const firstCause = firstDiagnostics[0]?.cause;
       if (!(firstCause instanceof Error)) {
-        throw new Error('Expected retained diagnostic cause');
+        throw RuntimeError.create('Expected retained diagnostic cause');
       }
       assert.equal(firstCause.message, recordField(expected, 'firstDiagnostics').causeMessage);
       const firstDetails = firstCause.cause;
       if (firstDetails === null || typeof firstDetails !== 'object') {
-        throw new Error('Expected retained diagnostic details');
+        throw RuntimeError.create('Expected retained diagnostic details');
       }
       const firstLabels: unknown = Reflect.get(firstDetails, 'labels');
       assert.deepEqual(firstLabels, recordField(expected, 'firstDiagnostics').labels);
       if (!Array.isArray(firstLabels)) {
-        throw new Error('Expected retained diagnostic labels');
+        throw RuntimeError.create('Expected retained diagnostic labels');
       }
       firstLabels.push('returned mutation');
 
       const secondCause = failing.diagnostics()[0]?.cause;
       if (!(secondCause instanceof Error)) {
-        throw new Error('Expected second diagnostic cause');
+        throw RuntimeError.create('Expected second diagnostic cause');
       }
       const secondDetails = secondCause.cause;
       if (secondDetails === null || typeof secondDetails !== 'object') {
-        throw new Error('Expected second diagnostic details');
+        throw RuntimeError.create('Expected second diagnostic details');
       }
       assert.deepEqual(Reflect.get(secondDetails, 'labels'), recordField(expected, 'firstDiagnostics').labels);
 

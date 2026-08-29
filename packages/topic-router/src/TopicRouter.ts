@@ -1,9 +1,10 @@
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { TopicCandidateSourceInterface } from './interfaces/TopicCandidateSourceInterface.js';
 import type { TopicEnvelopeInterface } from './interfaces/TopicEnvelopeInterface.js';
 import type { TopicMatcherInterface } from './interfaces/TopicMatcherInterface.js';
+import type { TopicPublishOptionsInterface } from './interfaces/TopicPublishOptionsInterface.js';
 import type { TopicRegistrationOptionsInterface } from './interfaces/TopicRegistrationOptionsInterface.js';
 import type { TopicRouterOptionsInterface } from './interfaces/TopicRouterOptionsInterface.js';
 import type { TopicSelectionInterface } from './interfaces/TopicSelectionInterface.js';
@@ -26,7 +27,7 @@ export class TopicRouter<TPayload> {
 
   protected constructor(options: TopicRouterOptionsInterface) {
     if (options.matcher === undefined && options.candidateSource === undefined) {
-      throw new TypeError('TopicRouter requires a matcher or candidate source.');
+      throw RuntimeError.create('TopicRouter requires a matcher or candidate source.');
     }
     this.#candidateSource = options.candidateSource;
     this.#matcher = options.matcher;
@@ -60,14 +61,14 @@ export class TopicRouter<TPayload> {
     return result;
   }
 
-  async publish(topic: string, payload: TPayload, metadata: unknown = undefined): Promise<readonly string[]> {
+  async publish(topic: string, payload: TPayload, options: TopicPublishOptionsInterface = {}): Promise<readonly string[]> {
     const ids = this.match(topic);
     const selections = ids.map((id): TopicSelectionInterface => { return { 'id': id, 'origin': 'matcher' }; });
-    const result = await this.publishSelected(topic, payload, selections, metadata);
+    const result = await this.publishSelected(topic, payload, selections, options);
     return result;
   }
 
-  async publishSelected(topic: string, payload: TPayload, selections: readonly TopicSelectionInterface[], metadata: unknown = undefined): Promise<readonly string[]> {
+  async publishSelected(topic: string, payload: TPayload, selections: readonly TopicSelectionInterface[], options: TopicPublishOptionsInterface = {}): Promise<readonly string[]> {
     TopicRouter.assertTopic(topic);
     const delivered: string[] = [];
     const visited = new Set<string>();
@@ -87,7 +88,7 @@ export class TopicRouter<TPayload> {
       }
       await this.hooks.invokeAsync('onSelection', () => { const result = this.onSelection(topic, selection); return result; });
       const envelope: TopicEnvelopeInterface<TPayload> = Object.freeze({
-        'metadata': metadata,
+        'metadata': options.metadata,
         'payload': payload,
         'selection': Object.freeze({ 'origin': selection.origin, 'scores': Object.freeze({ ...selection.scores }) }),
         'subscription': Object.freeze({ 'attributes': subscription.attributes, 'id': subscription.id, 'pattern': subscription.pattern }),
@@ -102,12 +103,12 @@ export class TopicRouter<TPayload> {
   register(pattern: string, handler: TopicSubscriptionInterface<TPayload>['handler'], options: TopicRegistrationOptionsInterface = {}): string {
     TopicRouter.assertTopic(pattern);
     if (!Predicates.isFunction(handler)) {
-      throw new TypeError('Subscription handler must be a function.');
+      throw RuntimeError.create('Subscription handler must be a function.');
     }
     const id = options.id ?? globalThis.crypto.randomUUID();
     TopicRouter.assertTopic(id);
     if (this.#subscriptions.has(id)) {
-      throw new Error(`Subscription already exists: ${id}`);
+      throw RuntimeError.create(`Subscription already exists: ${id}`);
     }
     const subscription = Object.freeze({ 'attributes': options.attributes, 'handler': handler, 'id': id, 'pattern': pattern });
     this.#subscriptions.set(id, subscription);
@@ -138,20 +139,20 @@ export class TopicRouter<TPayload> {
       return;
     }
     if (!Predicates.isRecord(selection.scores)) {
-      throw new TypeError('Selection scores must be a record.');
+      throw RuntimeError.create('Selection scores must be a record.');
     }
     const scores = Object.values(selection.scores);
     for (let index = 0; index < scores.length; index += 1) {
       const score = scores[index];
       if (!Predicates.isFiniteNumber(score)) {
-        throw new TypeError('Selection scores must be finite numbers.');
+        throw RuntimeError.create('Selection scores must be finite numbers.');
       }
     }
   }
 
   private static assertTopic(value: string): void {
     if (!Predicates.isString(value) || value.length === 0) {
-      throw new TypeError('Topic values must be non-empty strings.');
+      throw RuntimeError.create('Topic values must be non-empty strings.');
     }
   }
 }

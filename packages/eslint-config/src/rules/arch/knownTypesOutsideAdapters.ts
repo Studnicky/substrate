@@ -3,11 +3,11 @@ import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 import { isTypeReferenceNode, type Node, type Program, TypeFlags } from 'typescript';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 
 namespace KnownTypesOutsideAdaptersOptionsEntity {
   export const Schema = {
@@ -39,11 +39,11 @@ interface ParserServicesInterface {
 
 class ParserServices {
   public static has(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
+    if (!Predicates.isRecord(value)) { return false; }
 
     const program = value.program;
     const nodeMap = value.esTreeNodeToTSNodeMap;
-    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) { return false; }
+    if (!Predicates.isRecord(program) || !Predicates.isRecord(nodeMap)) { return false; }
 
     const result = typeof program.getTypeChecker === 'function' && typeof nodeMap.get === 'function';
     return result;

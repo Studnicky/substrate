@@ -34,5 +34,5 @@
   "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
   "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
   "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
-  "dependencies": { "@studnicky/types": "workspace:*" }
+  "dependencies": { "@studnicky/errors": "workspace:*", "@studnicky/types": "workspace:*" }
 }

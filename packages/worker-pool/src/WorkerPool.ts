@@ -1,7 +1,6 @@
-/** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
-
 import { Batch } from '@studnicky/batch';
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+/** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { MachineTerminatedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
 import { System } from '@studnicky/system';
@@ -191,7 +190,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   protected readonly hooks: HookInvoker;
 
   private static errorWithReason(message: string, reason: Error): Error {
-    const result = reason === undefined ? new Error(message) : new Error(message, { 'cause': reason });
+    const result = reason === undefined ? RuntimeError.create(message) : RuntimeError.create(message, { 'cause': reason });
     return result;
   }
 
@@ -255,7 +254,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     const reportOperationFailure = (cause: Error, index: number): void => {
       const error = Predicates.isError(cause)
         ? cause
-        : new Error('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
+        : RuntimeError.create('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
       reportWorkerError(error, index);
     };
 
@@ -316,7 +315,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       } catch (cause) {
         const error = Predicates.isError(cause)
           ? cause
-          : new Error('WorkerPool: task timeout signal composition failed', { 'cause': cause });
+          : RuntimeError.create('WorkerPool: task timeout signal composition failed', { 'cause': cause });
         entry.reject(error);
         await freeWorker(worker);
         return;
@@ -356,7 +355,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         worker.terminate().catch((cause: Error) => {
           const terminationError = Predicates.isError(cause)
             ? cause
-            : new Error('WorkerPool: worker termination failed', { 'cause': cause });
+            : RuntimeError.create('WorkerPool: worker termination failed', { 'cause': cause });
           reportWorkerError(terminationError, taskContext.index);
         });
       };
@@ -417,7 +416,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
 
     const handleErrorEnvelope = async (worker: Worker, message: string): Promise<void> => {
       const settled = settleTask(worker, (context) => {
-        const error = new Error(message);
+        const error = RuntimeError.create(message);
         reportWorkerError(error, context.index);
         context.reject(error);
       });
@@ -479,7 +478,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         worker.terminate().catch((cause: Error) => {
           const terminationError = Predicates.isError(cause)
             ? cause
-            : new Error('WorkerPool: worker termination failed', { 'cause': cause });
+            : RuntimeError.create('WorkerPool: worker termination failed', { 'cause': cause });
           reportWorkerError(terminationError, workerIndex2);
         });
       });
@@ -533,7 +532,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
           return;
         }
 
-        context.reject(new Error(`WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`));
+        context.reject(RuntimeError.create(`WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`));
 
         if (!shuttingDown) {
           const replacement = createWorker(context.index);
@@ -605,7 +604,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         const terminationCause: unknown = outcome.reason;
         const terminationError = Predicates.isError(terminationCause)
           ? terminationCause
-          : new Error('WorkerPool: worker termination failed', { 'cause': terminationCause });
+          : RuntimeError.create('WorkerPool: worker termination failed', { 'cause': terminationCause });
         const [, workerIndex] = workerEntry;
         reportWorkerError(terminationError, workerIndex);
       });

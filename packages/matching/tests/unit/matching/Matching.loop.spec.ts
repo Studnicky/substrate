@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -48,42 +49,42 @@ type ScenarioCase = (typeof scenarioGroups.cases)[number];
 
 function requireRecord(value: unknown, context: string): JsonRecord {
   if (!Predicates.isRecord(value)) {
-    throw new TypeError(`Expected record for ${context}`);
+    throw RuntimeError.create(`Expected record for ${context}`);
   }
   return value;
 }
 
 function requireValue(record: JsonRecord, key: string): unknown {
   if (!Object.hasOwn(record, key)) {
-    throw new TypeError(`Missing ${key}`);
+    throw RuntimeError.create(`Missing ${key}`);
   }
   return Reflect.get(record, key);
 }
 
 function requireString(value: unknown, context: string): string {
   if (!Predicates.isString(value)) {
-    throw new TypeError(`Expected string for ${context}`);
+    throw RuntimeError.create(`Expected string for ${context}`);
   }
   return value;
 }
 
 function requireNumber(value: unknown, context: string): number {
   if (!Predicates.isFiniteNumber(value)) {
-    throw new TypeError(`Expected finite number for ${context}`);
+    throw RuntimeError.create(`Expected finite number for ${context}`);
   }
   return value;
 }
 
 function requireBoolean(value: unknown, context: string): boolean {
   if (!Predicates.isBoolean(value)) {
-    throw new TypeError(`Expected boolean for ${context}`);
+    throw RuntimeError.create(`Expected boolean for ${context}`);
   }
   return value;
 }
 
 function requireStringArray(value: unknown, context: string): readonly string[] {
   if (!Predicates.isArray(value)) {
-    throw new TypeError(`Expected string array for ${context}`);
+    throw RuntimeError.create(`Expected string array for ${context}`);
   }
   const strings: string[] = [];
   for (const item of value) {
@@ -99,7 +100,7 @@ function requireShape(value: unknown): ScenarioShape {
   if (value === 'radix-candidates') return value;
   if (value === 'structural-matching') return value;
   if (value === 'tree-candidates') return value;
-  throw new TypeError(`Unknown matching scenario shape: ${String(value)}`);
+  throw RuntimeError.create(`Unknown matching scenario shape: ${String(value)}`);
 }
 
 function runCase(scenarioCase: ScenarioCase): void {

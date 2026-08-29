@@ -1,4 +1,4 @@
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
@@ -76,7 +76,7 @@ export class Logger implements LoggerInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(result) || !LoggerInstance.belongsTo(this, result)) {
-      throw new TypeError('Logger.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Logger.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -231,7 +231,7 @@ export class Logger implements LoggerInterface {
       this.#transportErrorHooks.invoke(
         'onTransportError',
         () => {
-          const transportError = Predicates.isError(error) ? error : new Error(String(error));
+          const transportError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
           const result = this.onTransportError(transport, record, transportError);
           return result;
         }

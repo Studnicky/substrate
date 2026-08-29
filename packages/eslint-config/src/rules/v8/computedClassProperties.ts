@@ -1,10 +1,11 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
 import {
   FUNCTION_TYPES, LOOP_TYPES
 } from '../shared/constants/LoopContextConstants.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ComputedClassPropertiesConstants.js';
@@ -76,7 +77,7 @@ import {
 class KeyClassification {
   /** A well-known symbol computed key (`[Symbol.iterator]`, `[Symbol.asyncIterator]`, …) — a compile-time constant with no non-computed spelling. */
   public static isWellKnownSymbol(keyNode: unknown): boolean {
-    if (!ObjectGuard.isObject(keyNode) || keyNode.type !== 'MemberExpression') {
+    if (!Predicates.isRecord(keyNode) || keyNode.type !== 'MemberExpression') {
       return false;
     }
 

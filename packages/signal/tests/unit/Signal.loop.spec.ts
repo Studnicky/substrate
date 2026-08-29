@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { HookInvocationError, HookInvoker } from '@studnicky/errors';
+
 
 import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { Signal, SignalError } from '../../src/index.js';
@@ -291,7 +292,7 @@ const runnerMap: RunnerMap = {
   },
 
   'throwing-on-compose-surfaces': async (scenarioCase) => {
-    const originalError = new Error(scenarioCase.input.message);
+    const originalError = RuntimeError.create(scenarioCase.input.message);
 
     class ThrowingSignal extends Signal {
       static build(): ThrowingSignal {
@@ -316,7 +317,7 @@ const runnerMap: RunnerMap = {
   },
 
   'async-on-compose-rejection-surfaces': async (scenarioCase) => {
-    const originalError = new Error(scenarioCase.input.message);
+    const originalError = RuntimeError.create(scenarioCase.input.message);
 
     class AsyncThrowingSignal extends Signal {
       protected override async onCompose(): Promise<void> {
@@ -348,7 +349,7 @@ const runnerMap: RunnerMap = {
       }
 
       protected override onCompose(): void {
-        throw new Error(scenarioCase.input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
 
@@ -380,7 +381,7 @@ const runnerMap: RunnerMap = {
   },
 
   'signal-error-construction': async (scenarioCase) => {
-    const error = new SignalError(scenarioCase.input.message, new Error('cause'));
+    const error = new SignalError(scenarioCase.input.message, RuntimeError.create('cause'));
     assert.equal(error.code, scenarioCase.expected.code);
   }
 };

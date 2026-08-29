@@ -3,5 +3,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "./src", "outDir": "./dist" },
   "include": ["src/**/*"],
-  "references": [{ "path": "../matching" }, { "path": "../types" }]
+  "references": [{ "path": "../filters" }, { "path": "../matching" }, { "path": "../types" }]
 }

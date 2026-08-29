@@ -16,17 +16,17 @@
     },
     {
       "name": "delay-rejects-already-aborted",
-      "description": "Delay rejects with AbortError when the signal is already aborted",
+      "description": "Delay rejects with ThrottleAbortedError when the signal is already aborted",
       "shape": "delay-rejects-already-aborted",
       "input": { "timeoutMs": 50 },
-      "expected": { "abortErrorName": "AbortError" }
+      "expected": { "errorCode": "throttle.aborted", "errorMessage": "The operation was aborted", "timeoutMs": 50 }
     },
     {
       "name": "delay-rejects-before-timeout",
-      "description": "Delay rejects with AbortError when the signal aborts before the timeout",
+      "description": "Delay rejects with ThrottleAbortedError when the signal aborts before the timeout",
       "shape": "delay-rejects-before-timeout",
       "input": { "timeoutMs": 50 },
-      "expected": { "abortErrorName": "AbortError" }
+      "expected": { "errorCode": "throttle.aborted", "errorMessage": "The operation was aborted", "timeoutMs": 50 }
     },
     {
       "name": "delay-removes-abort-listener",

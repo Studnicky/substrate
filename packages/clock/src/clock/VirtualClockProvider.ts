@@ -5,7 +5,7 @@
  * @module
  */
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
@@ -39,7 +39,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [counter]);
     if (!Predicates.isObjectLike(result) || !VirtualClockProviderInstance.belongsTo(this, result)) {
-      throw new TypeError('VirtualClockProvider.create() did not construct the requested subclass.');
+      throw RuntimeError.create('VirtualClockProvider.create() did not construct the requested subclass.');
     }
     return result;
   }

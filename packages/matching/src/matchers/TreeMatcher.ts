@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import { SegmentTree } from './SegmentTree.js';
@@ -31,7 +32,7 @@ export class TreeMatcher {
 
   private static assertInput(value: string, label: string): void {
     if (!Predicates.isString(value) || value.length === 0) {
-      throw new TypeError(`TreeMatcher ${label} must be a non-empty string.`);
+      throw RuntimeError.create(`TreeMatcher ${label} must be a non-empty string.`);
     }
   }
 

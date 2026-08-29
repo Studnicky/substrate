@@ -1,16 +1,16 @@
 import type { Rule } from 'eslint';
 import type { Declaration } from 'typescript';
 
+import { Predicates } from '@studnicky/types';
 import {
   getCombinedModifierFlags, isFunctionLike, isSourceFile, ModifierFlags
 } from 'typescript';
 
 import { AstHelpers } from './astHelpers.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 class NodeExpressionAccess {
   public static getExpression(node: unknown): unknown {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -20,7 +20,7 @@ class NodeExpressionAccess {
 
 class ThisAccess {
   public static isRooted(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
     const t = AstHelpers.getNodeType(node);
@@ -38,7 +38,7 @@ class ThisAccess {
   }
 
   public static isMemberExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
     if (node.type !== 'MemberExpression') {
@@ -54,7 +54,7 @@ class ThisAccess {
 class ArgumentInspection {
   /** True when any argument of a call expression reads `this` or a private (`#`) field. */
   public static referencesInstanceState(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -76,7 +76,7 @@ class ArgumentInspection {
   }
 
   static #readsInstanceState(node: unknown, depth: number): boolean {
-    if (depth > 6 || !ObjectGuard.isObject(node)) {
+    if (depth > 6 || !Predicates.isRecord(node)) {
       return false;
     }
 
@@ -156,7 +156,7 @@ class InaccessibleReceiverGuard {
 
     const callee = call.callee;
 
-    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
+    if (!Predicates.isRecord(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
       return false;
     }
 
@@ -181,7 +181,7 @@ class InaccessibleReceiverGuard {
    * neither `this` itself nor a member-access chain rooted at `this`.
    */
   static #accessibilityTarget(callee: unknown): unknown {
-    if (!ObjectGuard.isObject(callee)) {
+    if (!Predicates.isRecord(callee)) {
       return undefined;
     }
 
@@ -198,7 +198,7 @@ class InaccessibleReceiverGuard {
   }
 
   static #isPrivateIdentifierAccess(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -244,7 +244,7 @@ class InaccessibleReceiverGuard {
   }
 
   static #unwrapToCallExpression(node: unknown): { readonly 'callee': unknown } | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
@@ -308,19 +308,19 @@ class ReceiverBindingAdapterGuard {
    * and `<receiver>`'s declaration is locally scoped. See the module comment above.
    */
   public static isReceiverBindingAdapter(node: unknown, context: Rule.RuleContext): boolean {
-    if (!ObjectGuard.isObject(node) || AstHelpers.getNodeType(node) !== 'CallExpression') {
+    if (!Predicates.isRecord(node) || AstHelpers.getNodeType(node) !== 'CallExpression') {
       return false;
     }
 
     const callee = node.callee;
 
-    if (!ObjectGuard.isObject(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
+    if (!Predicates.isRecord(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
       return false;
     }
 
     const receiver = callee.object;
 
-    if (!ObjectGuard.isObject(receiver) || AstHelpers.getNodeType(receiver) !== 'Identifier') {
+    if (!Predicates.isRecord(receiver) || AstHelpers.getNodeType(receiver) !== 'Identifier') {
       return false;
     }
 
@@ -402,7 +402,7 @@ class ReceiverBindingAdapterGuard {
 // function is doing WORK — combining, capping, deriving — and must not be reported.
 class CallArgumentForwarding {
   public static isPureForward(node: unknown, parameterNames: ReadonlySet<string>): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -424,7 +424,7 @@ class CallArgumentForwarding {
   }
 
   static #isForwardedArgument(node: unknown, parameterNames: ReadonlySet<string>): boolean {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return false;
     }
 
@@ -589,7 +589,7 @@ export class TrivialExpression {
     // against the same triviality rules.
     if (type === 'SequenceExpression') {
       const rawNode: unknown = node;
-      const expressions: unknown = ObjectGuard.isObject(rawNode) ? rawNode.expressions : undefined;
+      const expressions: unknown = Predicates.isRecord(rawNode) ? rawNode.expressions : undefined;
 
       if (!Array.isArray(expressions) || expressions.length === 0) {
         return false;

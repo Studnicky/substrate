@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 export class RadixMatcher {
@@ -46,7 +47,7 @@ export class RadixMatcher {
     RadixMatcher.assertInput(delimiter, 'delimiter');
     const suffix = `${delimiter}*`;
     if (!pattern.endsWith(suffix)) {
-      throw new TypeError('RadixMatcher patterns must end with a single-segment wildcard.');
+      throw RuntimeError.create('RadixMatcher patterns must end with a single-segment wildcard.');
     }
     const prefix = pattern.slice(0, -1);
     this.unregister(id);
@@ -76,7 +77,7 @@ export class RadixMatcher {
 
   private static assertInput(value: string, label: string): void {
     if (!Predicates.isString(value) || value.length === 0) {
-      throw new TypeError(`RadixMatcher ${label} must be a non-empty string.`);
+      throw RuntimeError.create(`RadixMatcher ${label} must be a non-empty string.`);
     }
   }
 }

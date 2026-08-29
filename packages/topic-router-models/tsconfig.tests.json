@@ -4,5 +4,5 @@
   "compilerOptions": { "rootDir": ".", "noEmit": true },
   "include": ["tests/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "./tsconfig.json" }, { "path": "../matching" }, { "path": "../topic-router" }, { "path": "../types" }]
+  "references": [{ "path": "./tsconfig.json" }, { "path": "../errors" }, { "path": "../matching" }, { "path": "../topic-router" }, { "path": "../types" }]
 }

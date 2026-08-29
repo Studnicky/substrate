@@ -324,7 +324,7 @@
     },
     {
       "name": "problem-details-valid",
-      "description": "accepts RFC 7807 validation problem details",
+      "description": "accepts RFC 9457 problem details",
       "shape": "problem-details-valid",
       "input": {
         "value": {
@@ -375,9 +375,9 @@
       "expected": { "valid": false }
     },
     {
-      "name": "problem-details-invalid-missing-detail",
-      "description": "rejects problem details without a detail string",
-      "shape": "problem-details-invalid",
+      "name": "problem-details-valid-missing-detail",
+      "description": "accepts problem details without a detail member -- RFC 9457 3.1 makes every member optional",
+      "shape": "problem-details-valid",
       "input": {
         "value": {
           "errors": [{ "keyword": "required", "message": "required", "path": "/name" }],
@@ -386,12 +386,12 @@
           "type": "https://problems.studnicky.dev/validation"
         }
       },
-      "expected": { "valid": false }
+      "expected": { "valid": true }
     },
     {
-      "name": "problem-details-invalid-missing-title",
-      "description": "rejects problem details without a title string",
-      "shape": "problem-details-invalid",
+      "name": "problem-details-valid-missing-title",
+      "description": "accepts problem details without a title member -- RFC 9457 3.1 makes every member optional",
+      "shape": "problem-details-valid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -400,12 +400,12 @@
           "type": "https://problems.studnicky.dev/validation"
         }
       },
-      "expected": { "valid": false }
+      "expected": { "valid": true }
     },
     {
-      "name": "problem-details-invalid-missing-type",
-      "description": "rejects problem details without a type string",
-      "shape": "problem-details-invalid",
+      "name": "problem-details-valid-missing-type",
+      "description": "accepts problem details without a type member -- an absent type means 'about:blank' per RFC 9457 4.2.1",
+      "shape": "problem-details-valid",
       "input": {
         "value": {
           "detail": "1 validation error",
@@ -414,7 +414,7 @@
           "title": "Validation failed"
         }
       },
-      "expected": { "valid": false }
+      "expected": { "valid": true }
     },
     {
       "name": "problem-details-invalid-errors-not-array",

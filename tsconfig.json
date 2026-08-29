@@ -226,6 +226,12 @@
       "path": "packages/types/tsconfig.tests.json"
     },
     {
+      "path": "packages/filters"
+    },
+    {
+      "path": "packages/filters/tsconfig.tests.json"
+    },
+    {
       "path": "packages/matching"
     },
     {

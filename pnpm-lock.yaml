@@ -355,6 +355,9 @@ importers:
 
   packages/eslint-config:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -476,6 +479,21 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
+
+  packages/filters:
+    dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      '@types/json-schema':
+        specifier: ^7.0.15
+        version: 7.0.15
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
@@ -620,6 +638,9 @@ importers:
       '@studnicky/concurrency':
         specifier: workspace:*
         version: link:../concurrency
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/mutex':
         specifier: workspace:*
         version: link:../mutex
@@ -650,6 +671,9 @@ importers:
       '@studnicky/cache':
         specifier: workspace:*
         version: link:../cache
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -666,6 +690,12 @@ importers:
 
   packages/matching-filters:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/filters':
+        specifier: workspace:*
+        version: link:../filters
       '@studnicky/matching':
         specifier: workspace:*
         version: link:../matching
@@ -830,6 +860,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/scheduler':
+        specifier: workspace:*
+        version: link:../scheduler
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -918,6 +951,9 @@ importers:
 
   packages/semantic-matching:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -957,6 +993,9 @@ importers:
 
   packages/system:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
@@ -1054,6 +1093,9 @@ importers:
 
   packages/topic-router-models:
     dependencies:
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@studnicky/matching':
         specifier: workspace:*
         version: link:../matching

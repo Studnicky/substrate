@@ -1,5 +1,6 @@
 /** RFC-6902 JSON Patch operations for arbitrary object targets. */
 
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN, SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
@@ -29,7 +30,7 @@ export class Patch {
     const argumentsList = operations === undefined ? [] : [operations];
     const result: unknown = Reflect.construct(this, argumentsList);
     if (!Predicates.isObjectLike(result) || !PatchInstance.belongsTo(this, result)) {
-      throw new TypeError('Patch.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Patch.create() did not construct the requested subclass.');
     }
     return result;
   }

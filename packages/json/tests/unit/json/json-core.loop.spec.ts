@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -495,7 +496,7 @@ function requireScenarioShape(shape: string): ScenarioShape {
     return shape;
   }
 
-  throw new Error(`Unhandled json core scenario shape: ${shape}`);
+  throw RuntimeError.create(`Unhandled json core scenario shape: ${shape}`);
 }
 
 function readJson(scenarioCase: ScenarioCase): JsonObject {
@@ -511,7 +512,7 @@ function requireJsonObject<T>(value: T, context: string): JsonObject {
     return value;
   }
 
-  throw new TypeError(`Expected object for ${context}`);
+  throw RuntimeError.create(`Expected object for ${context}`);
 }
 
 function cloneJsonObject<T>(value: T, context: string): JsonObject {
@@ -523,7 +524,7 @@ function requireArray<T>(value: T, context: string): unknown[] {
     return value;
   }
 
-  throw new TypeError(`Expected array for ${context}`);
+  throw RuntimeError.create(`Expected array for ${context}`);
 }
 
 function requireString<T>(value: T, context: string): string {
@@ -531,7 +532,7 @@ function requireString<T>(value: T, context: string): string {
     return value;
   }
 
-  throw new TypeError(`Expected string for ${context}`);
+  throw RuntimeError.create(`Expected string for ${context}`);
 }
 
 function requiredValue(record: JsonObject, key: string): unknown {
@@ -539,7 +540,7 @@ function requiredValue(record: JsonObject, key: string): unknown {
     return Reflect.get(record, key);
   }
 
-  throw new TypeError(`Missing scenario value: ${key}`);
+  throw RuntimeError.create(`Missing scenario value: ${key}`);
 }
 
 function requireMap<T>(value: T, context: string): Map<unknown, unknown> {
@@ -547,7 +548,7 @@ function requireMap<T>(value: T, context: string): Map<unknown, unknown> {
     return value;
   }
 
-  throw new TypeError(`Expected Map for ${context}`);
+  throw RuntimeError.create(`Expected Map for ${context}`);
 }
 
 function requireSet<T>(value: T, context: string): Set<unknown> {
@@ -555,7 +556,7 @@ function requireSet<T>(value: T, context: string): Set<unknown> {
     return value;
   }
 
-  throw new TypeError(`Expected Set for ${context}`);
+  throw RuntimeError.create(`Expected Set for ${context}`);
 }
 
 function requireDate<T>(value: T, context: string): Date {
@@ -563,7 +564,7 @@ function requireDate<T>(value: T, context: string): Date {
     return value;
   }
 
-  throw new TypeError(`Expected Date for ${context}`);
+  throw RuntimeError.create(`Expected Date for ${context}`);
 }
 
 function toMapEntry(pair: unknown[]): [unknown, unknown] {
@@ -607,7 +608,7 @@ function materializeRuntimeValue(shape: string): unknown {
     return runtimeValueByShape[shape]();
   }
 
-  throw new TypeError(`Unknown runtime value shape: ${shape}`);
+  throw RuntimeError.create(`Unknown runtime value shape: ${shape}`);
 }
 
 
@@ -631,7 +632,7 @@ void describe('Clone.deep runtime containers', () => {
     const clonedSettings = cloned.get('settings');
 
     if (originalSettings === undefined || clonedSettings === undefined) {
-      throw new Error('Expected Map settings value');
+      throw RuntimeError.create('Expected Map settings value');
     }
 
     assert.notStrictEqual(cloned, original);
@@ -649,7 +650,7 @@ void describe('Clone.deep runtime containers', () => {
     const clonedMember = cloned.values().next().value;
 
     if (clonedMember === undefined) {
-      throw new Error('Expected cloned Set member');
+      throw RuntimeError.create('Expected cloned Set member');
     }
 
     assert.notStrictEqual(cloned, original);
@@ -683,14 +684,14 @@ void describe('Clone.deep runtime containers', () => {
     const originalItem = original.root.items[0];
     const clonedItem = cloned.root.items[0];
     if (originalItem === undefined || clonedItem === undefined) {
-      throw new Error('Expected nested clone items');
+      throw RuntimeError.create('Expected nested clone items');
     }
     const originalAppointment = originalItem.calendar.get('next');
     const clonedAppointment = clonedItem.calendar.get('next');
     const clonedMember = clonedItem.members.values().next().value;
 
     if (originalAppointment === undefined || clonedAppointment === undefined || clonedMember === undefined) {
-      throw new Error('Expected nested clone values');
+      throw RuntimeError.create('Expected nested clone values');
     }
 
     assert.notStrictEqual(cloned, original);

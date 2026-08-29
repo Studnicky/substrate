@@ -9,9 +9,9 @@ import type {
 import type * as ts from 'typescript';
 
 import { SchemaValidator } from '@studnicky/json';
+import { Predicates } from '@studnicky/types';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { ParameterNames } from './shared/ParameterNames.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
@@ -52,13 +52,13 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
+    if (!Predicates.isRecord(value)) {
       return false;
     }
     if (typeof value.getSymbolAtLocation !== 'function' || typeof value.getTypeAtLocation !== 'function') {
       return false;
     }
-    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = Predicates.isRecord(value.program) && typeof value.program.getTypeChecker === 'function';
 
     return result;
   }
@@ -83,7 +83,7 @@ class AstHelpers {
    * extra layer deeper. Recurses through arbitrarily nested namespaces and export wrappers.
    */
   public static isModuleScopeContainer(container: unknown): boolean {
-    if (!ObjectGuard.isObject(container)) {
+    if (!Predicates.isRecord(container)) {
       return false;
     }
     if (container.type === 'Program') {
@@ -99,7 +99,7 @@ class AstHelpers {
     if (container.type === 'TSModuleBlock') {
       const moduleDeclaration = (container as { readonly 'parent'?: unknown }).parent;
 
-      if (!ObjectGuard.isObject(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
+      if (!Predicates.isRecord(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
         return false;
       }
       const result = AstHelpers.isModuleScopeContainer((moduleDeclaration as { readonly 'parent'?: unknown }).parent);
@@ -111,7 +111,7 @@ class AstHelpers {
   }
 
   public static isFunctionInit(init: unknown): boolean {
-    if (!ObjectGuard.isObject(init)) {
+    if (!Predicates.isRecord(init)) {
       return false;
     }
     const t = init.type;
@@ -126,19 +126,19 @@ class AstHelpers {
    * and spreads are skipped — there is no static name to report against.
    */
   public static objectExpressionFunctionProperties(objectExpression: unknown): readonly { readonly 'name': string; readonly 'node': unknown }[] {
-    if (!ObjectGuard.isObject(objectExpression) || objectExpression.type !== 'ObjectExpression') {
+    if (!Predicates.isRecord(objectExpression) || objectExpression.type !== 'ObjectExpression') {
       return [];
     }
     const properties = objectExpression.properties;
 
-    if (!Array.isArray(properties)) {
+    if (!Predicates.isArray(properties)) {
       return [];
     }
 
     const result: { 'name': string; 'node': unknown }[] = [];
 
     properties.forEach((property) => {
-      if (!ObjectGuard.isObject(property) || property.type !== 'Property') {
+      if (!Predicates.isRecord(property) || property.type !== 'Property') {
         return;
       }
       if (property.computed === true) {
@@ -146,7 +146,7 @@ class AstHelpers {
       }
       const key = property.key;
 
-      if (!ObjectGuard.isObject(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
+      if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
         return;
       }
       if (!AstHelpers.isFunctionInit(property.value)) {
@@ -170,11 +170,11 @@ class AstHelpers {
     id: unknown,
     init: unknown
   ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
-    if (!ObjectGuard.isObject(id)) {
+    if (!Predicates.isRecord(id)) {
       return [];
     }
 
-    if (id.type === 'ObjectPattern' && ObjectGuard.isObject(init) && init.type === 'ObjectExpression') {
+    if (id.type === 'ObjectPattern' && Predicates.isRecord(init) && init.type === 'ObjectExpression') {
       const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
       const sourceEntriesByName = new Map(sourceEntries.map((entry) => {
         return [
@@ -182,11 +182,11 @@ class AstHelpers {
           entry.node
         ];
       }));
-      const patternProperties = Array.isArray(id.properties) ? id.properties : [];
+      const patternProperties = Predicates.isArray(id.properties) ? id.properties : [];
       const result: { 'name': string; 'node': unknown }[] = [];
 
       patternProperties.forEach((patternProperty) => {
-        if (!ObjectGuard.isObject(patternProperty) || patternProperty.type !== 'Property') {
+        if (!Predicates.isRecord(patternProperty) || patternProperty.type !== 'Property') {
           return;
         }
         if (patternProperty.computed === true) {
@@ -195,10 +195,10 @@ class AstHelpers {
         const key = patternProperty.key;
         const value = patternProperty.value;
 
-        if (!ObjectGuard.isObject(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
+        if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
           return;
         }
-        if (!ObjectGuard.isObject(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
+        if (!Predicates.isRecord(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
           return;
         }
         const sourceNode = sourceEntriesByName.get(key.name);
@@ -213,13 +213,13 @@ class AstHelpers {
       return result;
     }
 
-    if (id.type === 'ArrayPattern' && ObjectGuard.isObject(init) && init.type === 'ArrayExpression') {
-      const patternElements = Array.isArray(id.elements) ? id.elements : [];
-      const initElements = Array.isArray(init.elements) ? init.elements : [];
+    if (id.type === 'ArrayPattern' && Predicates.isRecord(init) && init.type === 'ArrayExpression') {
+      const patternElements = Predicates.isArray(id.elements) ? id.elements : [];
+      const initElements = Predicates.isArray(init.elements) ? init.elements : [];
       const result: { 'name': string; 'node': unknown }[] = [];
 
       patternElements.forEach((patternElement, index) => {
-        if (!ObjectGuard.isObject(patternElement) || patternElement.type !== 'Identifier') {
+        if (!Predicates.isRecord(patternElement) || patternElement.type !== 'Identifier') {
           return;
         }
         if (typeof patternElement.name !== 'string') {
@@ -263,7 +263,7 @@ class AstHelpers {
     }
     const [statement] = body;
 
-    if (!ObjectGuard.isObject(statement)) {
+    if (!Predicates.isRecord(statement)) {
       return false;
     }
     const statementType = statement.type;
@@ -278,7 +278,7 @@ class AstHelpers {
   }
 
   public static isStructurallyExempt(node: unknown, context: Rule.RuleContext): boolean {
-    if (!ObjectGuard.isObject(node) || !ObjectGuard.isObject(node.body)) {
+    if (!Predicates.isRecord(node) || !Predicates.isRecord(node.body)) {
       return false;
     }
     const { body } = node;

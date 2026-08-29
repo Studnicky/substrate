@@ -1,13 +1,15 @@
+import { RuntimeError } from '@studnicky/errors';
+
 export class BloomCandidateFilter {
   readonly #bits: Uint8Array;
   readonly #hashCount: number;
 
   constructor(bitCount: number, hashCount: number) {
     if (!Number.isInteger(bitCount) || bitCount <= 0) {
-      throw new RangeError('Bit count must be a positive integer.');
+      throw RuntimeError.create('Bit count must be a positive integer.');
     }
     if (!Number.isInteger(hashCount) || hashCount <= 0) {
-      throw new RangeError('Hash count must be a positive integer.');
+      throw RuntimeError.create('Hash count must be a positive integer.');
     }
     this.#bits = new Uint8Array(Math.ceil(bitCount / 8));
     this.#hashCount = hashCount;

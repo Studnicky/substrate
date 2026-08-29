@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
+
 import { LAST_ARRAY_INDEX } from '../constants/index.js';
 import { RetryError } from './RetryError.js';
 
@@ -25,7 +27,7 @@ export class MaximumRetriesExceededError extends RetryError {
     attempts: number,
     errors: readonly Error[]
   ) {
-    const cause = errors.at(LAST_ARRAY_INDEX) ?? new Error('Unknown error');
+    const cause = errors.at(LAST_ARRAY_INDEX) ?? RuntimeError.create('Unknown error');
 
     super(message, attempts, { 'cause': cause, 'code': 'retry.maxRetriesExceeded', 'errors': errors });
     this.maximumRetries = maximumRetries;

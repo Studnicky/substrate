@@ -1,4 +1,5 @@
 import { LruCache } from '@studnicky/cache';
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 import picomatch from 'picomatch';
 
@@ -7,7 +8,7 @@ export class GlobMatcher {
 
   static matches(pattern: string, value: string): boolean {
     if (!Predicates.isString(pattern) || !Predicates.isString(value)) {
-      throw new TypeError('GlobMatcher requires string pattern and value inputs.');
+      throw RuntimeError.create('GlobMatcher requires string pattern and value inputs.');
     }
     if (pattern === value) {
       return true;
