@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   check:
-    name: Validate Git flow
+    name: Validate branch name
     runs-on: ubuntu-latest
     permissions:
       contents: read

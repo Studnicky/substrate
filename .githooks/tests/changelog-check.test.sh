@@ -9,6 +9,7 @@ WORKFLOW="$(cd "$PWD/../.." && pwd)/.github/workflows/changelog-check.yml"
 workflow=$(cat "$WORKFLOW")
 
 assert_contains "PR checks use the protected workflow event" "pull_request_target:" "$workflow"
+assert_contains "PR checks publish the protected changeset status" "name: Changeset required" "$workflow"
 assert_contains "PR checks use the pinned checkout action" "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" "$workflow"
 assert_contains "PR checks verify the trusted base revision" "name: Verify trusted base revision" "$workflow"
 assert_contains "PR checks receive the server base commit" "BASE_SHA: \${{ github.event.pull_request.base.sha }}" "$workflow"
