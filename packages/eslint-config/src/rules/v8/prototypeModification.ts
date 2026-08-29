@@ -1,9 +1,10 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { LoopContext } from '../shared/LoopContext.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, OBJECT_PROTOTYPE_API_METHODS, OBJECT_PROTOTYPE_API_OWNERS, REFLECT_CALLEE_NAMES, RULE_NAME
 } from './constants/PrototypeModificationConstants.js';
@@ -69,7 +70,7 @@ import {
 
 class NodeAccess {
   public static asObject(value: unknown): Record<string, unknown> | undefined {
-    const result = ObjectGuard.isObject(value) ? value : undefined;
+    const result = Predicates.isRecord(value) ? value : undefined;
 
     return result;
   }

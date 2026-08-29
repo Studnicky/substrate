@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { Agent } from 'undici';
 
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -9,7 +10,7 @@ import { TestDispatcher } from '../testing/TestDispatcher.js';
 /** Creates configured undici Agents for owners that retain and manage them. */
 export class DispatcherAgent {
   private constructor() {
-    throw new TypeError('DispatcherAgent is a static factory');
+    throw RuntimeError.create('DispatcherAgent is a static factory');
   }
 
   static create(config: DispatcherConfigEntity.Type): Agent | TestDispatcher {

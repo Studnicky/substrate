@@ -1,10 +1,11 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import {
   BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, EXTERNAL_VOCABULARY_KEYS, IDENTIFIER_NAME_PATTERN
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
-import { ObjectGuard } from './shared/ObjectGuard.js';
 
 // Manual scan instead of a single backtracking regex: the equivalent
 // `/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g` is polynomial-time on an
@@ -157,7 +158,7 @@ class KeyName {
     if (identifierName !== undefined) {
       return identifierName;
     }
-    if (!ObjectGuard.isObject(node) || node.type !== 'Literal') {
+    if (!Predicates.isRecord(node) || node.type !== 'Literal') {
       return undefined;
     }
 
@@ -211,7 +212,7 @@ class DescriptiveIdentifiers {
     function onIdentifier(node: Rule.Node): void {
       const parent: unknown = AstHelpers.getNodeProperty(node, 'parent');
 
-      if (!ObjectGuard.isObject(parent)) {
+      if (!Predicates.isRecord(parent)) {
         return;
       }
       const parentType: unknown = parent.type;

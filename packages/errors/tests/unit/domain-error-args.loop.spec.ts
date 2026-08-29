@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -57,7 +58,7 @@ type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
 function buildStubFileLockOptions(error: StubFileLockErrorInputInterface): DomainErrorOptionsInterface<StubFileLockFieldsInterface> {
   return {
-    cause: error.options.causeMessage === undefined ? undefined : new Error(error.options.causeMessage),
+    cause: error.options.causeMessage === undefined ? undefined : RuntimeError.create(error.options.causeMessage),
     code: error.options.code,
     correlationId: error.options.correlationId,
     message: (fields) => error.options.message ?? buildStubFileLockMessage(error.options.messageTemplate, fields),

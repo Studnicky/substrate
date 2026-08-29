@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/DefinePropertyConstants.js';
@@ -117,7 +118,7 @@ class PropertyKeyName {
   // own convention requires). Returns undefined for anything else (e.g. a truly dynamic
   // key), which correctly falls through to "not matched".
   public static resolve(propertyNode: unknown, computed: boolean): string | undefined {
-    if (!ObjectGuard.isObject(propertyNode)) {
+    if (!Predicates.isRecord(propertyNode)) {
       return undefined;
     }
 
@@ -148,13 +149,13 @@ class AliasRegistry {
   public readonly destructuredMethodNames = new Map<string, string>();
 
   public observeDeclarator(node: unknown): void {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return;
     }
     const id = node.id;
     const init = node.init;
 
-    if (!ObjectGuard.isObject(id) || !ObjectGuard.isObject(init)) {
+    if (!Predicates.isRecord(id) || !Predicates.isRecord(init)) {
       return;
     }
     if (init.type !== 'Identifier' || typeof init.name !== 'string') {
@@ -179,7 +180,7 @@ class AliasRegistry {
       for (let index = 0; index < propertiesLength; index += 1) {
         const property = properties.at(index);
 
-        if (!ObjectGuard.isObject(property) || property.type !== 'Property') {
+        if (!Predicates.isRecord(property) || property.type !== 'Property') {
           continue;
         }
         const keyName = PropertyKeyName.resolve(property.key, property.computed === true);
@@ -190,7 +191,7 @@ class AliasRegistry {
 
         const valueNode = property.value;
 
-        if (ObjectGuard.isObject(valueNode) && valueNode.type === 'Identifier' && typeof valueNode.name === 'string') {
+        if (Predicates.isRecord(valueNode) && valueNode.type === 'Identifier' && typeof valueNode.name === 'string') {
           this.destructuredMethodNames.set(valueNode.name, keyName);
         }
       }
@@ -201,7 +202,7 @@ class AliasRegistry {
 class PropertyIdentity {
   /** `this` or a simple identifier's name — the only receivers this rule can prove are the same object across two statements without alias analysis. */
   public static targetOf(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
     if (node.type === 'ThisExpression') {
@@ -216,7 +217,7 @@ class PropertyIdentity {
 
   /** The static property-name key of a non-computed or literal-computed member access. */
   public static keyOfMember(member: unknown): string | undefined {
-    if (!ObjectGuard.isObject(member)) {
+    if (!Predicates.isRecord(member)) {
       return undefined;
     }
 
@@ -227,7 +228,7 @@ class PropertyIdentity {
 
   /** The static string value of a `Literal` node — used for a `key` argument. */
   public static literalStringOf(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node) || node.type !== 'Literal' || typeof node.value !== 'string') {
+    if (!Predicates.isRecord(node) || node.type !== 'Literal' || typeof node.value !== 'string') {
       return undefined;
     }
 
@@ -238,18 +239,18 @@ class PropertyIdentity {
 class DescriptorClassification {
   /** True when a descriptor object literal declares `get` or `set` — the accessor form measured to diverge instance maps (see module comment). */
   public static isAccessorDescriptor(descriptorNode: unknown): boolean {
-    if (!ObjectGuard.isObject(descriptorNode) || descriptorNode.type !== 'ObjectExpression') {
+    if (!Predicates.isRecord(descriptorNode) || descriptorNode.type !== 'ObjectExpression') {
       return false;
     }
 
     const properties = descriptorNode.properties;
 
-    if (!ObjectGuard.isArray(properties)) {
+    if (!Predicates.isArray(properties)) {
       return false;
     }
 
     const result = properties.some((prop) => {
-      if (!ObjectGuard.isObject(prop) || prop.type !== 'Property') {
+      if (!Predicates.isRecord(prop) || prop.type !== 'Property') {
         return false;
       }
 
@@ -389,13 +390,13 @@ export const defineProperty: Rule.RuleModule = {
         descriptorsMapArg
       ] = node.arguments;
 
-      if (!ObjectGuard.isObject(descriptorsMapArg) || descriptorsMapArg.type !== 'ObjectExpression') {
+      if (!Predicates.isRecord(descriptorsMapArg) || descriptorsMapArg.type !== 'ObjectExpression') {
         return;
       }
 
       const properties = descriptorsMapArg.properties;
 
-      if (!ObjectGuard.isArray(properties)) {
+      if (!Predicates.isArray(properties)) {
         return;
       }
 
@@ -405,7 +406,7 @@ export const defineProperty: Rule.RuleModule = {
       for (let index = 0; index < propertiesLength; index += 1) {
         const prop = properties.at(index);
 
-        if (!ObjectGuard.isObject(prop) || prop.type !== 'Property') {
+        if (!Predicates.isRecord(prop) || prop.type !== 'Property') {
           continue;
         }
         const key = PropertyKeyName.resolve(prop.key, prop.computed === true);
@@ -442,7 +443,7 @@ export const defineProperty: Rule.RuleModule = {
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
       const callee = node.callee as unknown;
 
-      if (!ObjectGuard.isObject(callee)) {
+      if (!Predicates.isRecord(callee)) {
         return;
       }
 
@@ -463,7 +464,7 @@ export const defineProperty: Rule.RuleModule = {
 
       const objectNode = callee.object;
 
-      if (!ObjectGuard.isObject(objectNode) || objectNode.type !== 'Identifier' || typeof objectNode.name !== 'string') {
+      if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || typeof objectNode.name !== 'string') {
         return;
       }
 

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -31,7 +32,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
 
     const attemptMap: Record<AttemptOutcome, () => string> = {
       'failure': () => {
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       },
       'success': () => String(input.result)
     };
@@ -52,7 +53,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       }
 
       protected override enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {
-        throw new Error(String(input.message));
+        throw RuntimeError.create(String(input.message));
       }
     }
 
@@ -142,7 +143,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const startedAt = Date.now();
     await assert.rejects(
-      () => retry.execute(async () => { throw new Error(String(input.errorMessage)); }),
+      () => retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }),
       { 'name': String(expected.errorShape) }
     );
     const elapsedMs = Date.now() - startedAt;

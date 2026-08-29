@@ -7,19 +7,26 @@ import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFu
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
+import {
+  PROBLEM_TITLE_THROWN_NULLISH,
+  PROBLEM_TYPE_THROWN_NULLISH
+} from '../constants/ProblemConstants.js';
+import { ThrownValueProjection } from '../validation/thrownValueProjection.js';
 import { CauseNodeEntity } from './CauseNodeEntity.js';
 
-const KIND_SET: ReadonlySet<string> = new Set(CauseNodeEntity.KIND_VALUES);
-
 /**
- * Total, never-throwing fallback projection of an arbitrary caught/thrown value.
+ * Total, never-throwing projection of an arbitrary caught value into RFC 9457 members.
  *
  * A caught value can be anything: an `Error`, a subclass, an `AggregateError`, a
- * `DOMException`, a string, `null`, an engine-thrown object from `JSON.parse` or
- * `fetch`. The other error entities in this package describe a closed set of
- * known shapes; this one describes the open set reality actually produces, and
- * it must never itself throw — a value that cannot be classified precisely is
- * still classified as `'object'`/`'primitive'`/`'nullish'` rather than rejected.
+ * `DOMException`, a string, `null`, an engine-thrown object from `JSON.parse` or `fetch`.
+ * This entity describes the open set reality actually produces, and it must never itself
+ * throw — a value that cannot be classified precisely still resolves to a problem type
+ * rather than being rejected.
+ *
+ * The projection is structurally a Problem Details object, but its three core members are
+ * REQUIRED here rather than optional: this side always produces them, and requiring them is
+ * what lets callers read `.detail` as a `string` instead of narrowing at every use. The
+ * problem type URI carries the classification, so there is no separate discriminant member.
  */
 export namespace ThrownValueEntity {
   export const Schema = {
@@ -33,25 +40,33 @@ export namespace ThrownValueEntity {
         'maxItems': CAUSE_CHAIN_DEPTH_LIMIT,
         'type': 'array'
       },
-      'kind': { 'enum': CauseNodeEntity.KIND_VALUES, 'type': 'string' },
-      'message': { 'type': 'string' },
-      'name': { 'type': 'string' },
-      'stack': { 'type': 'string' }
+      'detail': {
+        'description': "Human-readable explanation specific to this occurrence — the caught value's message.",
+        'type': 'string'
+      },
+      'name': {
+        'description': "Constructor name of the caught value, when it had one (e.g. 'TypeError').",
+        'type': 'string'
+      },
+      'stack': {
+        'description': 'Stack trace of the head node. Cause nodes carry none.',
+        'type': 'string'
+      },
+      'title': {
+        'description': 'Stable human-readable name of the problem type.',
+        'type': 'string'
+      },
+      'type': {
+        'description': 'URI reference identifying the problem type. The discriminant.',
+        'type': 'string'
+      }
     },
-    'required': ['kind', 'message'],
+    'required': ['detail', 'title', 'type'],
     'title': 'ThrownValue',
     'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
-
-  /** Shape produced while walking the chain, before `stack` is stripped for non-head nodes. */
-  interface ClassifiedNodeInterface {
-    readonly 'kind': Type['kind'];
-    readonly 'message': string;
-    readonly 'name'?: string;
-    readonly 'stack'?: string;
-  }
 
   /**
    * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
@@ -60,73 +75,22 @@ export namespace ThrownValueEntity {
    */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
-    if (!Predicates.isString(candidate.kind) || !KIND_SET.has(candidate.kind)) { return false; }
-    if (!Predicates.isString(candidate.message)) { return false; }
+    if (!Predicates.isString(candidate.type)) { return false; }
+    if (!Predicates.isString(candidate.title)) { return false; }
+    if (!Predicates.isString(candidate.detail)) { return false; }
     if (candidate.name !== undefined && !Predicates.isString(candidate.name)) { return false; }
     if (candidate.stack !== undefined && !Predicates.isString(candidate.stack)) { return false; }
     if (candidate.causes === undefined) { return true; }
     if (!Predicates.isArray(candidate.causes)) { return false; }
+
     const result = candidate.causes.every((item) => {
-      if (!Predicates.isObject(item)) { return false; }
-      if (!Predicates.isString(item.kind) || !KIND_SET.has(item.kind)) { return false; }
-      if (!Predicates.isString(item.message)) { return false; }
-      const nameValid = item.name === undefined || Predicates.isString(item.name);
-      return nameValid;
+      const itemResult = CauseNodeEntity.validate(item);
+
+      return itemResult;
     });
+
     return result;
   };
-
-  /**
-   * Classifies an already-narrowed value into a chain node. Every method here takes a
-   * concrete, non-`unknown` parameter — the narrowing itself happens inline in `intake`,
-   * the one place permitted to inspect an `unknown` value.
-   */
-  class Classifier {
-    public static ofNullish(): ClassifiedNodeInterface {
-      return { 'kind': 'nullish', 'message': '' };
-    }
-
-    public static ofString(value: string): ClassifiedNodeInterface {
-      return { 'kind': 'string', 'message': value };
-    }
-
-    public static ofError(error: Error): ClassifiedNodeInterface {
-      const node: ClassifiedNodeInterface = { 'kind': 'error', 'message': error.message, 'name': error.name };
-      const result = Predicates.isString(error.stack) ? { ...node, 'stack': error.stack } : node;
-      return result;
-    }
-
-    public static ofAggregate(error: AggregateError): ClassifiedNodeInterface {
-      const asError = Classifier.ofError(error);
-      const result: ClassifiedNodeInterface = { ...asError, 'kind': 'aggregate' };
-      return result;
-    }
-
-    /** Reads `message`/`name` defensively — a thrown object may carry a throwing getter for either. */
-    public static ofObject(value: object): ClassifiedNodeInterface {
-      let message = '';
-      try {
-        const candidate: unknown = Reflect.get(value, 'message');
-        if (Predicates.isString(candidate)) { message = candidate; }
-      } catch {
-        message = '';
-      }
-      let name: string | undefined;
-      try {
-        const candidate: unknown = Reflect.get(value, 'name');
-        if (Predicates.isString(candidate)) { name = candidate; }
-      } catch {
-        name = undefined;
-      }
-      const result: ClassifiedNodeInterface = name === undefined ? { 'kind': 'object', 'message': message } : { 'kind': 'object', 'message': message, 'name': name };
-      return result;
-    }
-
-    /** `String()` never throws for these types, unlike template-literal coercion. */
-    public static ofPrimitive(value: bigint | boolean | number | symbol): ClassifiedNodeInterface {
-      return { 'kind': 'primitive', 'message': String(value) };
-    }
-  }
 
   class Boundary {
     /**
@@ -135,62 +99,25 @@ export namespace ThrownValueEntity {
      * hops, tracking visited objects in a `WeakSet` so a cyclic `cause` chain terminates
      * immediately rather than looping until the depth limit.
      */
+    /** Delegates to the leaf projection; see `validation/thrownValueProjection.ts`. */
     public static intake(input: unknown): Type {
-      const nodes: ClassifiedNodeInterface[] = [];
-      const visited = new WeakSet<object>();
-      let current: unknown = input;
-      let hopCount = 0;
+      const projected = ThrownValueProjection.project(input);
+      const causes = projected.causes ?? [];
+      let result: Type = { 'detail': projected.detail, 'title': projected.title, 'type': projected.type };
 
-      while (hopCount < CAUSE_CHAIN_DEPTH_LIMIT) {
-        if (current === null || current === undefined) {
-          nodes.push(Classifier.ofNullish());
-          break;
-        }
-        if (current instanceof AggregateError) {
-          nodes.push(Classifier.ofAggregate(current));
-        } else if (Predicates.isError(current)) {
-          nodes.push(Classifier.ofError(current));
-        } else if (Predicates.isString(current)) {
-          nodes.push(Classifier.ofString(current));
-        } else if (typeof current === 'object' || typeof current === 'function') {
-          nodes.push(Classifier.ofObject(current));
-        } else {
-          nodes.push(Classifier.ofPrimitive(current as bigint | boolean | number | symbol));
-        }
+      if (projected.name !== undefined) { result = { ...result, 'name': projected.name }; }
+      if (projected.stack !== undefined) { result = { ...result, 'stack': projected.stack }; }
+      if (causes.length > 0) { result = { ...result, 'causes': [...causes] }; }
 
-        if (!Predicates.isError(current)) { break; }
-        if (visited.has(current)) { break; }
-        visited.add(current);
-
-        const nextCause: unknown = current.cause;
-        if (nextCause === undefined || nextCause === null) { break; }
-        if (typeof nextCause === 'object' && visited.has(nextCause)) { break; }
-
-        current = nextCause;
-        hopCount += 1;
-      }
-
-      const head = nodes[0] ?? Classifier.ofNullish();
-      const causes: CauseNodeEntity.Type[] = nodes.slice(1).map((node) => {
-        const result: CauseNodeEntity.Type = node.name === undefined
-          ? { 'kind': node.kind, 'message': node.message }
-          : { 'kind': node.kind, 'message': node.message, 'name': node.name };
-        return result;
-      });
-
-      const base: Type = head.name === undefined
-        ? { 'kind': head.kind, 'message': head.message }
-        : { 'kind': head.kind, 'message': head.message, 'name': head.name };
-      const withStack: Type = head.stack === undefined ? base : { ...base, 'stack': head.stack };
-      const result: Type = causes.length === 0 ? withStack : { ...withStack, 'causes': causes };
       return result;
     }
 
     /** Locally-produced data: defaults merged, no coercion or transforms. */
     public static create(partial: Partial<Type> = {}): Type {
-      const kind = partial.kind ?? 'nullish';
-      const message = partial.message ?? '';
-      let result: Type = { 'kind': kind, 'message': message };
+      const type = partial.type ?? PROBLEM_TYPE_THROWN_NULLISH;
+      const title = partial.title ?? PROBLEM_TITLE_THROWN_NULLISH;
+      const detail = partial.detail ?? '';
+      let result: Type = { 'detail': detail, 'title': title, 'type': type };
       if (partial.name !== undefined) { result = { ...result, 'name': partial.name }; }
       if (partial.stack !== undefined) { result = { ...result, 'stack': partial.stack }; }
       if (partial.causes !== undefined) { result = { ...result, 'causes': partial.causes }; }

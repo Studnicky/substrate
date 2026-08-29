@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import {
   describe,
@@ -38,7 +39,7 @@ class RecordingInvoker extends HookInvoker {
 }
 
 class AsyncRejectingOnHookErrorInvoker extends HookInvoker {
-  readonly terminalCause = new Error('onHookError itself failed');
+  readonly terminalCause = RuntimeError.create('onHookError itself failed');
 
   protected override async onHookError(_hookName: string, _cause: Error): Promise<void> {
     await Promise.resolve();
@@ -60,7 +61,7 @@ class LoopingOnHookErrorInvoker extends HookInvoker {
   protected override async onHookError(_hookName: string, _cause: Error): Promise<void> {
     callCount += 1;
     await Promise.resolve();
-    throw new Error('onHookError rejects every time');
+    throw RuntimeError.create('onHookError rejects every time');
   }
 }
 
@@ -144,7 +145,7 @@ function materializeInput(value: ScenarioValue): ScenarioValue {
 function createDiagnosticsError(message: string): Error {
   const details: { labels: string[]; self?: unknown } = { labels: ['initial'] };
   details.self = details;
-  const error = new Error(message, { cause: details });
+  const error = RuntimeError.create(message, { cause: details });
   Reflect.set(error, 'details', details);
   return error;
 }
@@ -338,7 +339,7 @@ const runnerMap = {
     const invoker = new SwallowingInvoker();
     const originalDetails: { labels: string[]; self?: unknown } = { labels: ['initial'] };
     originalDetails.self = originalDetails;
-    const original = new Error(String(input.message), { cause: originalDetails });
+    const original = RuntimeError.create(String(input.message), { cause: originalDetails });
     Reflect.set(original, 'details', originalDetails);
 
     invoker.invoke(String(input.hookName), () => {
@@ -354,7 +355,7 @@ const runnerMap = {
   },
   'invoke-async-reject': (scenario, expected, input) => {
     const invoker = new RecordingInvoker();
-    const original = new Error(String(input.message));
+    const original = RuntimeError.create(String(input.message));
     return captureUnhandledRejections(scenario.name, async () => {
       const completion: void = invoker.invoke(String(input.hookName), async () => {
         throw original;
@@ -389,7 +390,7 @@ const runnerMap = {
     return captureUnhandledRejections(scenario.name, async () => {
       const completion: void = invoker.invoke(String(input.hookName), async () => {
         await Promise.resolve();
-        throw new Error(String(input.message));
+        throw RuntimeError.create(String(input.message));
       });
       assert.strictEqual(completion, materializeInput(expected.completion));
       await flushTurn();
@@ -401,7 +402,7 @@ const runnerMap = {
   'invoke-swallow-sync': (_scenario, expected, input) => {
     const invoker = new SwallowingInvoker();
     const completion = invoker.invoke(String(input.hookName), () => {
-      throw new Error(String(input.message));
+      throw RuntimeError.create(String(input.message));
     });
     assert.strictEqual(completion, materializeInput(expected.completion));
   },
@@ -417,7 +418,7 @@ const runnerMap = {
   },
   'invoke-sync-throw': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
-    const original = new Error(String(input.message));
+    const original = RuntimeError.create(String(input.message));
     assert.throws(() => {
       invoker.invoke(String(input.hookName), () => {
         throw original;
@@ -434,7 +435,7 @@ const runnerMap = {
     const invoker = new RecordingInvoker();
     return captureUnhandledRejections(scenario.name, async () => {
       const completion = invoker.invoke(String(input.hookName), async () => {
-        throw new Error(String(input.message));
+        throw RuntimeError.create(String(input.message));
       });
       assert.strictEqual(completion, undefined);
       await flushTurn();
@@ -460,7 +461,7 @@ const runnerMap = {
   },
   'invokeasync-async-throw': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
-    const original = new Error(String(input.message));
+    const original = RuntimeError.create(String(input.message));
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), async () => { throw original; }),
       (err) => {
@@ -505,7 +506,7 @@ const runnerMap = {
   },
   'invokeasync-sync-throw': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
-    const original = new Error(String(input.message));
+    const original = RuntimeError.create(String(input.message));
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), () => { throw original; }),
       (err) => {
@@ -553,7 +554,7 @@ const runnerMap = {
     const invoker = new AsyncRejectingOnHookErrorInvoker();
     return captureUnhandledRejections(scenario.name, async () => {
       const completion: void = invoker.invoke(String(input.hookName), () => {
-        throw new Error(String(input.causeMessage));
+        throw RuntimeError.create(String(input.causeMessage));
       });
       assert.strictEqual(completion, undefined);
       await flushTurn();
@@ -566,7 +567,7 @@ const runnerMap = {
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), async () => {
         await Promise.resolve();
-        throw new Error(String(input.causeMessage));
+        throw RuntimeError.create(String(input.causeMessage));
       }),
       (error) => {
         assert.ok(error instanceof Error);
@@ -579,7 +580,7 @@ const runnerMap = {
     callCount = 0;
     const invoker = new LoopingOnHookErrorInvoker();
     const completion: void = invoker.invoke(String(input.hookName), () => {
-      throw new Error(String(input.causeMessage));
+      throw RuntimeError.create(String(input.causeMessage));
     });
     assert.strictEqual(completion, undefined);
     return flushTurn().then(() => {
@@ -590,14 +591,14 @@ const runnerMap = {
   'onhookerror-sync-throw': (_scenario, expected, input) => {
     class ThrowingOnHookErrorInvoker extends HookInvoker {
       protected override onHookError(hookName: string, cause: Error): void {
-        throw new Error(`custom failure for ${hookName}: ${String(cause)}`);
+        throw RuntimeError.create(`custom failure for ${hookName}: ${String(cause)}`);
       }
     }
 
     const invoker = new ThrowingOnHookErrorInvoker();
     assert.throws(() => {
       invoker.invoke(String(input.hookName), () => {
-        throw new Error(String(input.causeMessage));
+        throw RuntimeError.create(String(input.causeMessage));
       });
     }, (err) => {
       assert.ok(err instanceof Error);

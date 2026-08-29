@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ComputedObjectPropertiesConstants.js';
@@ -58,7 +59,7 @@ import {
 class KeyClassification {
   /** A well-known symbol computed key (`[Symbol.iterator]`, `[Symbol.asyncIterator]`, …) — a compile-time constant with no non-computed spelling. See module comment for the measured-but-exempt trade-off. */
   public static isWellKnownSymbol(keyNode: unknown): boolean {
-    if (!ObjectGuard.isObject(keyNode) || keyNode.type !== 'MemberExpression') {
+    if (!Predicates.isRecord(keyNode) || keyNode.type !== 'MemberExpression') {
       return false;
     }
 
@@ -73,17 +74,17 @@ class FromEntriesCallShape {
     const raw = node as unknown as { readonly 'callee': unknown };
     const callee = raw.callee;
 
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
       return false;
     }
 
     const objectNode = callee.object;
     const propertyNode = callee.property;
 
-    if (!ObjectGuard.isObject(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
+    if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
       return false;
     }
-    if (!ObjectGuard.isObject(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'fromEntries') {
+    if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'fromEntries') {
       return false;
     }
 

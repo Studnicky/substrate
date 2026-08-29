@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from './astHelpers.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 // WHY CALL IDENTITY IS RESOLVED, NEVER MATCHED BY NAME.
 //
@@ -60,13 +61,13 @@ import { ObjectGuard } from './ObjectGuard.js';
 class DeclarationNames {
   /** Reads a TypeScript node's `.name` as source text, when it has one. */
   public static of(node: unknown): string | undefined {
-    if (!ObjectGuard.isObject(node)) {
+    if (!Predicates.isRecord(node)) {
       return undefined;
     }
 
     const name = node.name;
 
-    if (!ObjectGuard.isObject(name) || typeof name.getText !== 'function') {
+    if (!Predicates.isRecord(name) || typeof name.getText !== 'function') {
       return undefined;
     }
 

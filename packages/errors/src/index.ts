@@ -35,6 +35,7 @@ export {
   HookTimeoutError,
   ModuleError,
   ReentrantHookInvocationError,
+  RuntimeError,
   ValidationError,
   ValidationErrors
 } from './errors/index.js';

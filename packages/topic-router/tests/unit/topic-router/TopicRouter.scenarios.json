@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "name": "delivers each matching subscription once",
+      "shape": "matched-publish",
+      "input": { "topic": "api.v1.users" },
+      "expected": { "ids": ["audit", "users"], "delivered": ["audit", "users"] }
+    },
+    {
+      "name": "delivers explicit selections without pattern matching",
+      "shape": "selected-publish",
+      "input": { "topic": "other.topic", "id": "semantic", "origin": "consumer", "metadata": { "source": "discovery" } },
+      "expected": { "ids": ["semantic"], "origin": "consumer", "metadata": { "source": "discovery" } }
+    },
+    {
+      "name": "resolves registered candidates without reapplying patterns",
+      "shape": "candidate-source",
+      "input": { "topic": "unrelated.topic", "payload": "delivered" },
+      "expected": { "ids": ["indexed"], "delivered": ["delivered"] }
+    },
+    {
+      "name": "composes a shared matching tree as the candidate source",
+      "shape": "tree-candidate-source",
+      "input": { "pattern": "api.**", "topic": "api.v1.users", "payload": "payload" },
+      "expected": { "ids": ["audit"], "delivered": ["audit"] }
+    },
+    {
+      "name": "creates a stable identifier when registration does not provide one",
+      "shape": "generated-identifier",
+      "input": { "pattern": "audit.event" },
+      "expected": { "hasIdentifier": true, "unregistered": true }
+    },
+    {
+      "name": "provides protected observer hooks without routing-policy coupling",
+      "shape": "observer-hooks",
+      "input": { "matchingTopic": "match.topic", "unmatchedTopic": "unmatched.topic", "id": "selected" },
+      "expected": {
+        "ids": ["selected"],
+        "matchLog": ["match.topic:selected"],
+        "noMatchLog": ["unmatched.topic"],
+        "poolExhaustedLog": ["unmatched.topic"]
+      }
+    }
+  ]
+}

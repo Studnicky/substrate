@@ -1,28 +1,29 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import { MESSAGE, RULE_NAME } from './constants/EvalFunctionConstants.js';
 
 class EvalAstHelpers {
   /** `eval` (direct identifier reference to the global). */
   public static isEvalIdentifier(node: unknown): boolean {
-    const result = ObjectGuard.isObject(node) && node.type === 'Identifier' && node.name === 'eval';
+    const result = Predicates.isRecord(node) && node.type === 'Identifier' && node.name === 'eval';
     return result;
   }
 
   /** `globalThis["eval"]`, `window.eval`, `globalThis.eval` — member access resolving to the global `eval`. */
   public static isEvalMemberExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'MemberExpression') { return false; }
+    if (!Predicates.isRecord(node) || node.type !== 'MemberExpression') { return false; }
 
     const object = node.object;
-    if (!ObjectGuard.isObject(object) || object.type !== 'Identifier') { return false; }
+    if (!Predicates.isRecord(object) || object.type !== 'Identifier') { return false; }
 
     const objectName = object.name;
     if (objectName !== 'globalThis' && objectName !== 'window' && objectName !== 'self') { return false; }
 
     const property = node.property;
-    if (!ObjectGuard.isObject(property)) { return false; }
+    if (!Predicates.isRecord(property)) { return false; }
 
     if (node.computed === true) {
       const result = property.type === 'Literal' && property.value === 'eval';
@@ -35,7 +36,7 @@ class EvalAstHelpers {
 
   /** `(0, eval)` — a SequenceExpression whose final expression resolves to `eval`, the classic indirect-eval idiom. */
   public static isEvalSequenceExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'SequenceExpression') { return false; }
+    if (!Predicates.isRecord(node) || node.type !== 'SequenceExpression') { return false; }
 
     const expressions = node.expressions;
     if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
@@ -53,7 +54,7 @@ class EvalAstHelpers {
   }
 
   public static isNewFunctionExpression(node: unknown): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'NewExpression') { return false; }
+    if (!Predicates.isRecord(node) || node.type !== 'NewExpression') { return false; }
     const result = AstHelpers.getIdentifierName(node.callee) === 'Function';
     return result;
   }
@@ -75,7 +76,7 @@ export const evalFunction: Rule.RuleModule = {
       const id = rawNode.id;
       const init = rawNode.init;
 
-      if (!ObjectGuard.isObject(id) || id.type !== 'Identifier') { return; }
+      if (!Predicates.isRecord(id) || id.type !== 'Identifier') { return; }
       if (!EvalAstHelpers.isEvalReference(init)) { return; }
 
       const name = AstHelpers.getIdentifierName(id);

@@ -52,7 +52,7 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    * @example
    * ```typescript
    * const classifier = DefaultHttpErrorClassifier.create();
-   * const result = classifier.classify(new Error('503 Service Unavailable'), 0);
+   * const result = classifier.classify(RuntimeError.create('503 Service Unavailable'), 0);
    * // result.retryable === true
    * // result.reason === 'Gateway error (503)'
    * ```

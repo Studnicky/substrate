@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "name": "acquires and restores a file in one atomic-rename lifecycle",
+      "shape": "acquire-release",
+      "input": { "path": "resource.json", "content": "content" },
+      "expected": { "existsWhileHeld": false, "existsAfterRelease": true }
+    },
+    {
+      "name": "reports contention without entering a retry loop",
+      "shape": "contention",
+      "input": { "path": "contended.json", "content": "content" },
+      "expected": {}
+    }
+  ]
+}

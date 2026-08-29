@@ -1,6 +1,5 @@
 /** observedLogger — subclass hook overrides that emit console.log trace lines for every logger lifecycle stage. Run: npx tsx examples/observedLogger.ts */
-
-import { EventRecorder } from '@studnicky/errors';
+import { EventRecorder, RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -67,7 +66,7 @@ class ObservedLogger extends Logger {
 // ---------------------------------------------------------------------------
 
 const throwingTransport = FunctionTransport.create(() => {
-  throw new Error('transport failure');
+  throw RuntimeError.create('transport failure');
 });
 
 const logger = new ObservedLogger({

@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
+import { Predicates } from '@studnicky/types';
+
 import { AstHelpers } from '../shared/astHelpers.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   INDEXED_COLLECTION_NAMES, MESSAGE, RULE_NAME
 } from './constants/DynamicPropertyAccessConstants.js';
@@ -103,7 +104,7 @@ class KeyClassification {
       return true;
     }
 
-    if (nodeType !== 'MemberExpression' || !ObjectGuard.isObject(property)) {
+    if (nodeType !== 'MemberExpression' || !Predicates.isRecord(property)) {
       return false;
     }
 
@@ -235,7 +236,7 @@ class PropertyOperation {
 export const dynamicPropertyAccess: Rule.RuleModule = {
   'create': (context) => {
     const onMemberExpression = (node: Rule.Node): void => {
-      if (!ObjectGuard.isObject(node)) {
+      if (!Predicates.isRecord(node)) {
         return;
       }
       if (node.computed !== true) {

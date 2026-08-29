@@ -1,6 +1,6 @@
 import type { ErrorDefaults } from '../constants/index.js';
 import type { ErrorClassificationEntity } from '../entities/ErrorClassificationEntity.js';
-import type { ErrorWithStatusCodeEntity } from '../entities/ErrorWithStatusCodeEntity.js';
+import type { ErrorWithStatusEntity } from '../entities/ErrorWithStatusEntity.js';
 
 /** Options for creating a `ModuleError` with scenario defaults. */
 export interface ModuleErrorCreateOptionsInterface {
@@ -17,5 +17,5 @@ export interface ModuleErrorCreateOptionsInterface {
   readonly 'scenario': keyof typeof ErrorDefaults;
 
   /** Overrides the scenario's HTTP status code. */
-  readonly 'statusCode'?: ErrorWithStatusCodeEntity.Type['statusCode'];
+  readonly 'status'?: ErrorWithStatusEntity.Type['status'];
 }

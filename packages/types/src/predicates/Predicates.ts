@@ -768,7 +768,7 @@ export class Predicates {
   }
 
   /** Checks whether a value is a finite number (not `Infinity`, `-Infinity`, or `NaN`). */
-  public static isFiniteNumber(value: unknown): boolean {
+  public static isFiniteNumber<T>(value: T): value is number & T {
     const result = typeof value === 'number' && Number.isFinite(value);
     return result;
   }

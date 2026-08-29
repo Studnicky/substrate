@@ -1,3 +1,4 @@
+import { BaseError, RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -35,7 +36,7 @@ function createErrorClassifier(retryable: boolean): () => ErrorClassificationEnt
 type ScenarioCase = (typeof scenarioGroups.cases)[number];
 
 const succeed = async (): Promise<string> => 'ok';
-const fail = async (): Promise<never> => { throw new Error('failure'); };
+const fail = async (): Promise<never> => { throw RuntimeError.create('failure'); };
 
 class ObservedBreaker extends CircuitBreaker {
   readonly events: string[] = [];
@@ -49,8 +50,24 @@ class ObservedBreaker extends CircuitBreaker {
   protected override onReject(): void { this.events.push('reject'); }
 }
 
-class TransientError extends Error {}
-class RealError extends Error {}
+class TransientError extends BaseError {
+  public constructor(message: string) {
+    super({
+      'code': 'resilience.transient',
+      'message': message,
+      'retryable': true
+    });
+  }
+}
+
+class RealError extends BaseError {
+  public constructor(message: string) {
+    super({
+      'code': 'resilience.real',
+      'message': message
+    });
+  }
+}
 
 type AnyErrorConstructor = new (...args: never[]) => Error;
 
@@ -65,7 +82,7 @@ function isResilienceErrorTypeName(value: string): value is keyof typeof resilie
 
 function resilienceErrorTypeInput(value: string): (typeof resilienceErrorTypes)[keyof typeof resilienceErrorTypes] {
   if (!isResilienceErrorTypeName(value)) {
-    throw new TypeError(`Unknown resilience error type name: ${value}`);
+    throw RuntimeError.create(`Unknown resilience error type name: ${value}`);
   }
   return resilienceErrorTypes[value];
 }
@@ -77,15 +94,15 @@ class ClassifyingBreaker extends CircuitBreaker {
 }
 
 class ThrowingSuccessBreaker extends CircuitBreaker {
-  protected override onSuccess(): void { throw new Error('onSuccess boom'); }
+  protected override onSuccess(): void { throw RuntimeError.create('onSuccess boom'); }
 }
 
 class ThrowingRejectBreaker extends CircuitBreaker {
-  protected override onReject(): void { throw new Error('onReject boom'); }
+  protected override onReject(): void { throw RuntimeError.create('onReject boom'); }
 }
 
 class ThrowingTripBreaker extends CircuitBreaker {
-  protected override onTrip(): void { throw new Error('onTrip boom'); }
+  protected override onTrip(): void { throw RuntimeError.create('onTrip boom'); }
 }
 
 class AsyncRejectingSuccessBreaker extends CircuitBreaker {
@@ -104,17 +121,17 @@ class ObservedBucket extends TokenBucket {
 }
 
 class ThrowingAcquiredBucket extends TokenBucket {
-  protected override onTokenAcquired(): void { throw new Error('onTokenAcquired boom'); }
+  protected override onTokenAcquired(): void { throw RuntimeError.create('onTokenAcquired boom'); }
   get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
 class ThrowingDepletedBucket extends TokenBucket {
-  protected override onTokenDepleted(): void { throw new Error('onTokenDepleted boom'); }
+  protected override onTokenDepleted(): void { throw RuntimeError.create('onTokenDepleted boom'); }
   get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
 class ThrowingRefillBucket extends TokenBucket {
-  protected override onRefill(): void { throw new Error('onRefill boom'); }
+  protected override onRefill(): void { throw RuntimeError.create('onRefill boom'); }
   get hookErrorCount(): number { return this.hooks.hookErrorCount; }
 }
 
@@ -135,11 +152,11 @@ class ObservedDlq<T> extends DeadLetterQueue<T> {
   protected override onAbort(): void { this.events.push({ 'type': 'abort' }); }
 }
 
-class ThrowingEnqueueDlq<T> extends DeadLetterQueue<T> { protected override onEnqueue(): void { throw new Error('onEnqueue boom'); } }
-class ThrowingDequeueDlq<T> extends DeadLetterQueue<T> { protected override onDequeue(): void { throw new Error('onDequeue boom'); } }
-class ThrowingOverflowDlq<T> extends DeadLetterQueue<T> { protected override onOverflow(): void { throw new Error('onOverflow boom'); } }
-class ThrowingCloseDlq<T> extends DeadLetterQueue<T> { protected override onClose(): void { throw new Error('onClose boom'); } }
-class ThrowingAbortDlq<T> extends DeadLetterQueue<T> { protected override onAbort(): void { throw new Error('onAbort boom'); } }
+class ThrowingEnqueueDlq<T> extends DeadLetterQueue<T> { protected override onEnqueue(): void { throw RuntimeError.create('onEnqueue boom'); } }
+class ThrowingDequeueDlq<T> extends DeadLetterQueue<T> { protected override onDequeue(): void { throw RuntimeError.create('onDequeue boom'); } }
+class ThrowingOverflowDlq<T> extends DeadLetterQueue<T> { protected override onOverflow(): void { throw RuntimeError.create('onOverflow boom'); } }
+class ThrowingCloseDlq<T> extends DeadLetterQueue<T> { protected override onClose(): void { throw RuntimeError.create('onClose boom'); } }
+class ThrowingAbortDlq<T> extends DeadLetterQueue<T> { protected override onAbort(): void { throw RuntimeError.create('onAbort boom'); } }
 
 class AsyncRejectingEnqueueDlq<T> extends DeadLetterQueue<T> {
   readonly #cause: Error;
@@ -164,17 +181,17 @@ class ObservedRetryGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
 
 class ThrowingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingYieldGenerator<T> { return new ThrowingYieldGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
-  protected override onYield(): void { throw new Error('onYield boom'); }
+  protected override onYield(): void { throw RuntimeError.create('onYield boom'); }
 }
 
 class ThrowingWaitGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingWaitGenerator<T> { return new ThrowingWaitGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
-  protected override onWait(): void { throw new Error('onWait boom'); }
+  protected override onWait(): void { throw RuntimeError.create('onWait boom'); }
 }
 
 class ThrowingDoneGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
   static build<T>(dlq: DeadLetterQueue<T>, intervalMs: number): ThrowingDoneGenerator<T> { return new ThrowingDoneGenerator<T>({ 'deadLetterQueue': dlq, 'intervalMs': intervalMs }); }
-  protected override onDone(): void { throw new Error('onDone boom'); }
+  protected override onDone(): void { throw RuntimeError.create('onDone boom'); }
 }
 
 class AsyncRejectingYieldGenerator<T> extends DeadLetterQueueRetryGenerator<T> {
@@ -201,7 +218,7 @@ type ScenarioInput = Record<string, unknown>;
 function numberInput(input: ScenarioInput, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
-    throw new TypeError(`Expected numeric resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected numeric resilience scenario input: ${key}`);
   }
   return value;
 }
@@ -212,7 +229,7 @@ function optionalNumberInput(input: ScenarioInput, key: string): number | undefi
     return undefined;
   }
   if (typeof value !== 'number') {
-    throw new TypeError(`Expected numeric resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected numeric resilience scenario input: ${key}`);
   }
   return value;
 }
@@ -220,7 +237,7 @@ function optionalNumberInput(input: ScenarioInput, key: string): number | undefi
 function stringInput(input: ScenarioInput, key: string): string {
   const value = input[key];
   if (typeof value !== 'string') {
-    throw new TypeError(`Expected string resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected string resilience scenario input: ${key}`);
   }
   return value;
 }
@@ -228,7 +245,7 @@ function stringInput(input: ScenarioInput, key: string): string {
 function booleanInput(input: ScenarioInput, key: string): boolean {
   const value = input[key];
   if (typeof value !== 'boolean') {
-    throw new TypeError(`Expected boolean resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected boolean resilience scenario input: ${key}`);
   }
   return value;
 }
@@ -236,12 +253,12 @@ function booleanInput(input: ScenarioInput, key: string): boolean {
 function stringArrayInput(input: ScenarioInput, key: string): string[] {
   const value = input[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`Expected string array resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected string array resilience scenario input: ${key}`);
   }
   const values: string[] = [];
   for (const item of value) {
     if (typeof item !== 'string') {
-      throw new TypeError(`Expected string array resilience scenario input: ${key}`);
+      throw RuntimeError.create(`Expected string array resilience scenario input: ${key}`);
     }
     values.push(item);
   }
@@ -251,12 +268,12 @@ function stringArrayInput(input: ScenarioInput, key: string): string[] {
 function numberArrayInput(input: ScenarioInput, key: string): number[] {
   const value = input[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`Expected numeric array resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected numeric array resilience scenario input: ${key}`);
   }
   const values: number[] = [];
   for (const item of value) {
     if (typeof item !== 'number') {
-      throw new TypeError(`Expected numeric array resilience scenario input: ${key}`);
+      throw RuntimeError.create(`Expected numeric array resilience scenario input: ${key}`);
     }
     values.push(item);
   }
@@ -266,7 +283,7 @@ function numberArrayInput(input: ScenarioInput, key: string): number[] {
 function stringArrayItem(values: readonly string[], key: string, index: number): string {
   const value = values[index];
   if (value === undefined) {
-    throw new TypeError(`Expected string array item for resilience scenario input: ${key}[${index}]`);
+    throw RuntimeError.create(`Expected string array item for resilience scenario input: ${key}[${index}]`);
   }
   return value;
 }
@@ -274,7 +291,7 @@ function stringArrayItem(values: readonly string[], key: string, index: number):
 function recordInput(input: ScenarioInput, key: string): ScenarioInput {
   const value = input[key];
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new TypeError(`Expected object resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected object resilience scenario input: ${key}`);
   }
   const record: ScenarioInput = {};
   Object.assign(record, value);
@@ -284,12 +301,12 @@ function recordInput(input: ScenarioInput, key: string): ScenarioInput {
 function recordArrayInput(input: ScenarioInput, key: string): ScenarioInput[] {
   const value = input[key];
   if (!Array.isArray(value)) {
-    throw new TypeError(`Expected object array resilience scenario input: ${key}`);
+    throw RuntimeError.create(`Expected object array resilience scenario input: ${key}`);
   }
   const records: ScenarioInput[] = [];
   for (const item of value) {
     if (typeof item !== 'object' || item === null || Array.isArray(item)) {
-      throw new TypeError(`Expected object array resilience scenario input: ${key}`);
+      throw RuntimeError.create(`Expected object array resilience scenario input: ${key}`);
     }
     const record: ScenarioInput = {};
     Object.assign(record, item);
@@ -358,7 +375,7 @@ function isDlqEnqueueErrorScenario(value: string): value is DlqEnqueueErrorScena
 
 function dlqEnqueueErrorScenarioInput(value: string): DlqEnqueueErrorScenario {
   if (!isDlqEnqueueErrorScenario(value)) {
-    throw new TypeError(`Unknown DLQ enqueue-error scenario: ${value}`);
+    throw RuntimeError.create(`Unknown DLQ enqueue-error scenario: ${value}`);
   }
   return value;
 }
@@ -375,7 +392,7 @@ function isDlqErrorTypeName(value: string): value is keyof typeof dlqErrorTypes 
 
 function dlqErrorTypeInput(value: string): (typeof dlqErrorTypes)[keyof typeof dlqErrorTypes] {
   if (!isDlqErrorTypeName(value)) {
-    throw new TypeError(`Unknown DLQ error type name: ${value}`);
+    throw RuntimeError.create(`Unknown DLQ error type name: ${value}`);
   }
   return dlqErrorTypes[value];
 }
@@ -397,7 +414,7 @@ function isCircuitBreakerAction(value: string): value is CircuitBreakerAction {
 
 function circuitBreakerActionInput(value: string): CircuitBreakerAction {
   if (!isCircuitBreakerAction(value)) {
-    throw new TypeError(`Unknown CircuitBreaker scenario action: ${value}`);
+    throw RuntimeError.create(`Unknown CircuitBreaker scenario action: ${value}`);
   }
   return value;
 }
@@ -513,7 +530,7 @@ const scenarioHandlers = {
     const sequence = stringArrayInput(input, 'sequence');
     const finalAction = sequence[sequence.length - 1];
     if (finalAction === undefined) {
-      throw new TypeError('Expected non-empty CircuitBreaker scenario action sequence');
+      throw RuntimeError.create('Expected non-empty CircuitBreaker scenario action sequence');
     }
     for (const action of sequence.slice(0, -1)) {
       await circuitBreakerActions[circuitBreakerActionInput(action)](cb);
@@ -743,8 +760,8 @@ const scenarioHandlers = {
     const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const firstCause = new Error(stringInput(input, 'first'));
-      const secondCause = new Error(stringInput(input, 'second'));
+      const firstCause = RuntimeError.create(stringInput(input, 'first'));
+      const secondCause = RuntimeError.create(stringInput(input, 'second'));
       const first = new AsyncRejectingSuccessBreaker(circuitBreakerOptions(input), firstCause);
       const second = new AsyncRejectingSuccessBreaker(circuitBreakerOptions(input), secondCause);
       const results = await Promise.all([first.execute(succeed), second.execute(succeed)]);
@@ -906,7 +923,7 @@ const scenarioHandlers = {
     const controller = new AbortController();
     const bucket = TokenBucket.create(tokenBucketOptions(input));
     bucket.consume();
-    setImmediate(() => { controller.abort(new Error('cancelled')); });
+    setImmediate(() => { controller.abort(RuntimeError.create('cancelled')); });
     await assert.rejects(() => bucket.waitForToken({ 'tokens': numberInput(input, 'tokens'), 'signal': controller.signal }));
   },
   'tb-wait-too-many': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -940,7 +957,7 @@ const scenarioHandlers = {
   'tb-observed-acquired': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const [event] = recordArrayInput(scenarioCase.expected, 'events');
     if (event === undefined) {
-      throw new TypeError('Expected token bucket acquired event fixture');
+      throw RuntimeError.create('Expected token bucket acquired event fixture');
     }
     const bucket = new ObservedBucket(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }));
     bucket.consume(numberInput(input, 'consume'));
@@ -1007,8 +1024,8 @@ const scenarioHandlers = {
     const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const firstCause = new Error(stringInput(input, 'first'));
-      const secondCause = new Error(stringInput(input, 'second'));
+      const firstCause = RuntimeError.create(stringInput(input, 'first'));
+      const secondCause = RuntimeError.create(stringInput(input, 'second'));
       const first = new AsyncRejectingAcquiredBucket(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }), firstCause);
       const second = new AsyncRejectingAcquiredBucket(tokenBucketOptions(input, { clock: () => numberInput(input, 'clock') }), secondCause);
       first.consume();
@@ -1041,7 +1058,7 @@ const scenarioHandlers = {
     assert.equal(dlq.size, numberInput(expected, 'size'));
     const clock = (): number => numberInput(input, 'withClockMs');
     const dlq2 = DeadLetterQueue.create<string>({ clock });
-    const err = new Error(stringInput(input, 'secondErrorMessage'));
+    const err = RuntimeError.create(stringInput(input, 'secondErrorMessage'));
     dlq2.enqueue(stringInput(input, 'secondItem'), stringInput(input, 'secondReason'), err);
     assert.equal(dlq2.size, numberInput(expected, 'sizeWithError'));
   },
@@ -1129,7 +1146,7 @@ const scenarioHandlers = {
     const expected: ScenarioInput = scenarioCase.expected;
     const clock = (): number => numberInput(input, 'clockMs');
     const dlq = DeadLetterQueue.create<string>({ clock });
-    const err = new Error(stringInput(input, 'errorMessage'));
+    const err = RuntimeError.create(stringInput(input, 'errorMessage'));
     dlq.enqueue(stringInput(input, 'item'), stringInput(input, 'reason'), err);
     dlq.close();
     const gen = dlq.drain();
@@ -1187,7 +1204,7 @@ const scenarioHandlers = {
   'dlq-observed-enqueue': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const [event] = recordArrayInput(scenarioCase.expected, 'events');
     if (event === undefined) {
-      throw new TypeError('Expected DLQ enqueue event fixture');
+      throw RuntimeError.create('Expected DLQ enqueue event fixture');
     }
     const dlq = new ObservedDlq<string>();
     dlq.enqueue(stringInput(input, 'item'), stringInput(input, 'reason'));
@@ -1228,7 +1245,7 @@ const scenarioHandlers = {
     const expected: ScenarioInput = scenarioCase.expected;
     const [item] = stringArrayInput(input, 'items');
     if (item === undefined) {
-      throw new TypeError('Expected DLQ hook item fixture');
+      throw RuntimeError.create('Expected DLQ hook item fixture');
     }
     const reason = stringInput(input, 'reason');
     const enqueueDlq = ThrowingEnqueueDlq.create<string>();
@@ -1261,8 +1278,8 @@ const scenarioHandlers = {
     const onUnhandledRejection = (): void => { rejectionEvents.push(undefined); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const firstCause = new Error(stringInput(input, 'first'));
-      const secondCause = new Error(stringInput(input, 'second'));
+      const firstCause = RuntimeError.create(stringInput(input, 'first'));
+      const secondCause = RuntimeError.create(stringInput(input, 'second'));
       const first = new AsyncRejectingEnqueueDlq<string>(firstCause);
       const second = new AsyncRejectingEnqueueDlq<string>(secondCause);
       first.enqueue('first', 'reason');
@@ -1352,8 +1369,8 @@ const scenarioHandlers = {
       const secondQueue = DeadLetterQueue.create<string>();
       secondQueue.enqueue(stringArrayItem(yielded, 'yielded', 1), 'reason');
       secondQueue.close();
-      const firstCause = new Error(stringInput(input, 'first'));
-      const secondCause = new Error(stringInput(input, 'second'));
+      const firstCause = RuntimeError.create(stringInput(input, 'first'));
+      const secondCause = RuntimeError.create(stringInput(input, 'second'));
       const intervalMs = numberInput(input, 'intervalMs');
       const first = new AsyncRejectingYieldGenerator(firstQueue, intervalMs, firstCause);
       const second = new AsyncRejectingYieldGenerator(secondQueue, intervalMs, secondCause);
@@ -1392,7 +1409,7 @@ function isScenarioShape(shape: string): shape is ScenarioShape {
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   const { shape } = scenarioCase;
   if (!isScenarioShape(shape)) {
-    throw new Error(`Unhandled resilience scenario shape: ${shape}`);
+    throw RuntimeError.create(`Unhandled resilience scenario shape: ${shape}`);
   }
   await scenarioHandlers[shape](scenarioCase, scenarioCase.input.resilience);
 }

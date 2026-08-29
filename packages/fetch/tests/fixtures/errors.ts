@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 /**
  * Reusable error and dispatcher statistics fixtures for tests
  */
@@ -58,7 +59,7 @@ export const mockSocketExhaustionError = {
 } as const;
 
 export const mockNetworkError = {
-  cause: new Error('ENOTFOUND'),
+  cause: RuntimeError.create('ENOTFOUND'),
   message: 'Network error for https://invalid-domain.com',
   url: 'https://invalid-domain.com'
 } as const;

@@ -35,7 +35,7 @@
       }
     },
     {
-      "description": "toJSON includes code and message",
+      "description": "toJSON includes code and detail",
       "shape": "json",
       "message": "bad value",
       "outcome": {

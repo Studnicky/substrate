@@ -1,3 +1,4 @@
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
 /** processKitComposition — directly composes fsm's StateMachine + EffectInterpreter,
  * scheduler's VirtualScheduler, and signal's Signal into a reducer-with-effects process.
  * The `requestAck` effect uses the handler's same-cycle `dispatch` capability, while the
@@ -5,9 +6,8 @@
  * drain cycle ends. Virtual time keeps scheduling deterministic, and Signal supplies the
  * cancellation boundary. Run: npx tsx examples/processKitComposition.ts */
 
-import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
-
 import { VirtualTimeCounter } from '@studnicky/clock';
+import { RuntimeError } from '@studnicky/errors';
 // #region usage
 import { EffectInterpreter, MachineTerminatedError, StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
@@ -94,7 +94,7 @@ class Job {
     const waitForScheduledDispatch = (): Promise<void> => {
       const scheduledDispatch = scheduledDispatchReference.current;
       if (scheduledDispatch === undefined) {
-        throw new Error('Scheduled dispatch has not started');
+        throw RuntimeError.create('Scheduled dispatch has not started');
       }
       return scheduledDispatch;
     };

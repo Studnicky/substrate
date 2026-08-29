@@ -60,6 +60,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/scheduler": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",

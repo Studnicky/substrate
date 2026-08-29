@@ -80,77 +80,77 @@
       "description": "AUTHENTICATION has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "AUTHENTICATION" },
-      "expected": { "code": "AUTHENTICATION_ERROR", "retryable": false, "statusCode": 401 }
+      "expected": { "code": "AUTHENTICATION_ERROR", "retryable": false, "status": 401 }
     },
     {
       "name": "defaults-authorization",
       "description": "AUTHORIZATION has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "AUTHORIZATION" },
-      "expected": { "code": "AUTHORIZATION_ERROR", "retryable": false, "statusCode": 403 }
+      "expected": { "code": "AUTHORIZATION_ERROR", "retryable": false, "status": 403 }
     },
     {
       "name": "defaults-connection",
       "description": "CONNECTION has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "CONNECTION" },
-      "expected": { "code": "CONNECTION_ERROR", "retryable": true, "statusCode": 503 }
+      "expected": { "code": "CONNECTION_ERROR", "retryable": true, "status": 503 }
     },
     {
       "name": "defaults-database",
       "description": "DATABASE has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "DATABASE" },
-      "expected": { "code": "DATABASE_ERROR", "retryable": false, "statusCode": 500 }
+      "expected": { "code": "DATABASE_ERROR", "retryable": false, "status": 500 }
     },
     {
       "name": "defaults-not-found",
       "description": "NOT_FOUND has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "NOT_FOUND" },
-      "expected": { "code": "NOT_FOUND", "retryable": false, "statusCode": 404 }
+      "expected": { "code": "NOT_FOUND", "retryable": false, "status": 404 }
     },
     {
       "name": "defaults-timeout",
       "description": "TIMEOUT has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "TIMEOUT" },
-      "expected": { "code": "TIMEOUT_ERROR", "retryable": true, "statusCode": 504 }
+      "expected": { "code": "TIMEOUT_ERROR", "retryable": true, "status": 504 }
     },
     {
       "name": "defaults-validation",
       "description": "VALIDATION has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "VALIDATION" },
-      "expected": { "code": "VALIDATION_ERROR", "retryable": false, "statusCode": 400 }
+      "expected": { "code": "VALIDATION_ERROR", "retryable": false, "status": 400 }
     },
     {
       "name": "defaults-rate-limit",
       "description": "RATE_LIMIT has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "RATE_LIMIT" },
-      "expected": { "code": "RATE_LIMIT_ERROR", "retryable": true, "statusCode": 429 }
+      "expected": { "code": "RATE_LIMIT_ERROR", "retryable": true, "status": 429 }
     },
     {
       "name": "defaults-external-service",
       "description": "EXTERNAL_SERVICE has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "EXTERNAL_SERVICE" },
-      "expected": { "code": "EXTERNAL_SERVICE_ERROR", "retryable": true, "statusCode": 502 }
+      "expected": { "code": "EXTERNAL_SERVICE_ERROR", "retryable": true, "status": 502 }
     },
     {
       "name": "defaults-configuration",
       "description": "CONFIGURATION has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "CONFIGURATION" },
-      "expected": { "code": "CONFIGURATION_ERROR", "retryable": false, "statusCode": 500 }
+      "expected": { "code": "CONFIGURATION_ERROR", "retryable": false, "status": 500 }
     },
     {
       "name": "defaults-internal",
       "description": "INTERNAL has correct defaults",
       "shape": "defaults",
       "input": { "scenario": "INTERNAL" },
-      "expected": { "code": "INTERNAL_ERROR", "retryable": false, "statusCode": 500 }
+      "expected": { "code": "INTERNAL_ERROR", "retryable": false, "status": 500 }
     },
     {
       "name": "module-error-authentication",
@@ -166,7 +166,7 @@
         "code": "AUTHENTICATION_ERROR",
         "context": { "userId": "123" },
         "retryable": false,
-        "statusCode": 401
+        "status": 401
       }
     },
     {
@@ -236,15 +236,15 @@
     },
     {
       "name": "integration-status-code-override",
-      "description": "ModuleError.create allows overriding statusCode",
+      "description": "ModuleError.create allows overriding status",
       "shape": "integration-status-code-override",
       "input": {
         "error": {
           "message": "Database locked",
-          "options": { "scenario": "DATABASE", "statusCode": 409 }
+          "options": { "scenario": "DATABASE", "status": 409 }
         }
       },
-      "expected": { "code": "DATABASE_ERROR", "statusCode": 409 }
+      "expected": { "code": "DATABASE_ERROR", "status": 409 }
     }
   ]
 }

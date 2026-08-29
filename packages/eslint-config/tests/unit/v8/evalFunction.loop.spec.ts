@@ -5,11 +5,11 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { evalFunction } from '../../../src/rules/v8/evalFunction.js';
-import { ObjectGuard } from '../../../src/rules/shared/ObjectGuard.js';
+import { Predicates } from '@studnicky/types';
 import scenarioGroups from './evalFunction.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {
-  if (!ObjectGuard.isObject(report)) { return '<no-messageId>'; }
+  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
   const { messageId } = report;
   return typeof messageId === 'string' ? messageId : '<no-messageId>';
 }

@@ -1,0 +1,1 @@
+{"cases":[{"name":"composes a vectorizer and vector index without provider-specific state","shape":"vector-search","input":{"content":"audit log","id":"audit","namespace":"topics"},"expected":{"modelIdentity":"test-vectorizer","resultId":"audit"}}]}

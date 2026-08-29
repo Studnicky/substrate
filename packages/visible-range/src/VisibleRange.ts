@@ -5,8 +5,7 @@
  * measurement and feeds the results in via `setScrollOffset()` /
  * `setViewportSize()`.
  */
-
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
@@ -64,7 +63,7 @@ export class VisibleRange {
     const resolved = VisibleRange.#resolve(config);
     const result: unknown = Reflect.construct(this, [resolved]);
     if (!Predicates.isObjectLike(result) || !VisibleRange.isConstructed<TInstance>(result, this)) {
-      throw new TypeError('VisibleRange.create() must construct a VisibleRange instance');
+      throw RuntimeError.create('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;
   }

@@ -1,10 +1,11 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
 import { ConfigurationError } from '@studnicky/config';
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { DEFAULT_MAXIMUM_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';
 import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEntity.js';
@@ -153,7 +154,7 @@ function recordTimingEvents(timer: Timing, fixtures: TimingEventFixture[]): void
 function createTimingEventFromName(eventName: string): TimingEventDataEntity.Type {
   const separator = eventName.indexOf('.');
   if (separator < 1 || separator === eventName.length - 1) {
-    throw new Error(`Invalid timing event fixture: ${eventName}`);
+    throw RuntimeError.create(`Invalid timing event fixture: ${eventName}`);
   }
   return TimingEvent.create({
     'component': eventName.slice(0, separator),
@@ -213,7 +214,7 @@ const runnerMap: RunnerMap = {
   'constructor-wraps-error': (scenarioCase) => {
     class ThrowingHrtimeTiming extends Timing {
       protected override readHrtime(): bigint {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
 
@@ -393,7 +394,7 @@ const runnerMap: RunnerMap = {
   'throwing-onInitialize': (scenarioCase) => {
     class ThrowingInitializeTiming extends Timing {
       protected override onInitialize(): void {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     assert.throws(() => {
@@ -405,7 +406,7 @@ const runnerMap: RunnerMap = {
   'throwing-onClear': (scenarioCase) => {
     class ThrowingClearTiming extends Timing {
       protected override onClear(): void {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     const timer = ThrowingClearTiming.create();
@@ -420,7 +421,7 @@ const runnerMap: RunnerMap = {
     const input = scenarioCase.input;
     class ThrowingEvictTiming extends Timing {
       protected override onEvict(): void {
-        throw new Error(input.errorMessage);
+        throw RuntimeError.create(input.errorMessage);
       }
     }
     const timer = ThrowingEvictTiming.create(input.timing);
@@ -433,7 +434,7 @@ const runnerMap: RunnerMap = {
   'throwing-onEvent': (scenarioCase) => {
     class ThrowingEventTiming extends Timing {
       protected override onEvent(): void {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     const timer = ThrowingEventTiming.create();
@@ -446,7 +447,7 @@ const runnerMap: RunnerMap = {
   'throwing-onGetEvents': (scenarioCase) => {
     class ThrowingGetEventsTiming extends Timing {
       protected override onGetEvents(): void {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     const timer = ThrowingGetEventsTiming.create();
@@ -459,7 +460,7 @@ const runnerMap: RunnerMap = {
   'hook-error-instance': (scenarioCase) => {
     class ThrowingEventTiming extends Timing {
       protected override onEvent(): void {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     const timer = ThrowingEventTiming.create();
@@ -478,7 +479,7 @@ const runnerMap: RunnerMap = {
     class AsyncRejectingEventTiming extends Timing {
       protected override async onEvent(): Promise<void> {
         await Promise.resolve();
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
     }
     const timer = AsyncRejectingEventTiming.create();

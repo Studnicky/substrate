@@ -1,8 +1,8 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedBoundedDispatcher — direct composition of BoundedDispatcher over a bounded
  * Semaphore, an EventBus tuned with a highWaterMark, and a RealTimeScheduler, with
  * dispatch observation through the composed bus. Run:
  * npx tsx examples/observedBoundedDispatcher.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -49,7 +49,7 @@ class ObservedBoundedDispatcherExample {
     // --- Scenario B: one failing dispatch is tracked distinctly from the successful ones,
     // via the 'dispatch' subscription. ---
 
-    await dispatcher.dispatch(() => { throw new Error('boom'); }).catch(() => { /* expected */ });
+    await dispatcher.dispatch(() => { throw RuntimeError.create('boom'); }).catch(() => { /* expected */ });
     await dispatcher.getBus().drain();
 
     console.log('Report:', report);

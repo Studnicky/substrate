@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** settled-processing — processSettled with partial-failure: one of four items rejects, others fulfill. Run: npx tsx examples/settled-processing.ts */
-
 import assert from 'node:assert/strict';
 
 import type { ItemEntity } from './entities/ItemEntity.js';
@@ -18,7 +18,7 @@ class Result {
 
   static process(item: ItemEntity.Type): Promise<Result> {
     if (item.shouldFail) {
-      const result = Promise.reject(new Error(`Item ${item.id} failed`));
+      const result = Promise.reject(RuntimeError.create(`Item ${item.id} failed`));
       return result;
     }
     const result = Promise.resolve(new Result(item.id, `processed-${item.id}`));
@@ -38,7 +38,7 @@ class SettledProcessingExample {
         if (result.status === 'fulfilled') {
           console.log('  fulfilled:', result.value);
         } else {
-          const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+          const error = result.reason instanceof Error ? result.reason : RuntimeError.create(String(result.reason));
           const message = error.message;
           console.log('  rejected:', message);
         }

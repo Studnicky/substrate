@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Delay } from '../../../src/throttle/Delay.js';
+import { ThrottleAbortedError } from '../../../src/errors/ThrottleAbortedError.js';
 import scenarioGroups from './delay.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
@@ -21,14 +22,14 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { abortErrorName: 'AbortError' };
+      expected: { errorCode: 'throttle.aborted'; errorMessage: string; timeoutMs: number };
       input: { timeoutMs: number };
       shape: 'delay-rejects-already-aborted';
       name: string;
     }
   | {
       description: string;
-      expected: { abortErrorName: 'AbortError' };
+      expected: { errorCode: 'throttle.aborted'; errorMessage: string; timeoutMs: number };
       input: { timeoutMs: number };
       shape: 'delay-rejects-before-timeout';
       name: string;
@@ -44,13 +45,21 @@ type ScenarioCase =
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
 type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
 
+function isThrottleAbort(error: unknown, expected: { errorCode: string; errorMessage: string; timeoutMs: number }): boolean {
+  assert.ok(error instanceof ThrottleAbortedError);
+  assert.strictEqual(error.code, expected.errorCode);
+  assert.strictEqual(error.message, expected.errorMessage);
+  assert.strictEqual(error.timeoutMs, expected.timeoutMs);
+  return true;
+}
+
 const runnerMap: RunnerMap = {
     'delay-rejects-already-aborted': async (scenarioCase) => {
       const controller = new AbortController();
       controller.abort();
       await assert.rejects(
         Delay.for(scenarioCase.input.timeoutMs, controller.signal),
-        (error) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
+        (error) => isThrottleAbort(error, scenarioCase.expected)
       );
     },
     'delay-rejects-before-timeout': async (scenarioCase) => {
@@ -59,7 +68,7 @@ const runnerMap: RunnerMap = {
       controller.abort();
       await assert.rejects(
         promise,
-        (error) => error instanceof DOMException && error.name === scenarioCase.expected.abortErrorName
+        (error) => isThrottleAbort(error, scenarioCase.expected)
       );
     },
     'delay-removes-abort-listener': async (scenarioCase) => {

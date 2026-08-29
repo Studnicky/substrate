@@ -3,10 +3,11 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
+import { Predicates } from '@studnicky/types';
+
 import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
 
 import { CallIdentity } from '../shared/CallIdentity.js';
-import { ObjectGuard } from '../shared/ObjectGuard.js';
 import {
   ITERATION_METHOD_NAMES, ITERATION_OWNERS, MESSAGE, RULE_NAME
 } from './constants/ChainedArrayIterationConstants.js';
@@ -50,7 +51,7 @@ import {
 
 class IterationCall {
   public static matches(node: unknown, context: Rule.RuleContext): boolean {
-    if (!ObjectGuard.isObject(node) || node.type !== 'CallExpression') {
+    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
       return false;
     }
 
@@ -64,20 +65,20 @@ class IterationCall {
   public static hasEarlierIterationCallInChain(node: AstNodeInterface, context: Rule.RuleContext): boolean {
     const callee = node.callee;
 
-    if (!ObjectGuard.isObject(callee) || callee.type !== 'MemberExpression') {
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
       return false;
     }
 
     let current: unknown = callee.object;
 
-    while (ObjectGuard.isObject(current) && current.type === 'CallExpression') {
+    while (Predicates.isRecord(current) && current.type === 'CallExpression') {
       if (IterationCall.matches(current, context)) {
         return true;
       }
 
       const innerCallee = current.callee;
 
-      if (!ObjectGuard.isObject(innerCallee) || innerCallee.type !== 'MemberExpression') {
+      if (!Predicates.isRecord(innerCallee) || innerCallee.type !== 'MemberExpression') {
         break;
       }
       current = innerCallee.object;
@@ -143,7 +144,7 @@ export const chainedArrayIteration: Rule.RuleModule = {
     const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
       const declarationNode = node.parent as unknown as AstNodeInterface;
 
-      if (!ObjectGuard.isObject(declarationNode) || declarationNode.type !== 'VariableDeclaration' || declarationNode.kind !== 'const') {
+      if (!Predicates.isRecord(declarationNode) || declarationNode.type !== 'VariableDeclaration' || declarationNode.kind !== 'const') {
         return;
       }
       if (node.id.type !== 'Identifier') {

@@ -6,9 +6,9 @@ import type {
 
 import { SchemaValidator } from '@studnicky/json';
 
-// ONE RULE, FIVE KINDS, ONE ORDERED LIST.
+// ONE RULE, FIVE UNITS, ONE ORDERED LIST.
 //
-// A layer is resolvable from any of four kinds of unit, not just a directory under
+// A layer is resolvable from any of five units, not just a directory under
 // `sourceRoot` (the hexagonal `src/domain`, `src/adapters` layout this resolver originally
 // assumed). `bindings` (see `LayerOptionsEntity`) is the single ordered list every one of
 // them is expressed through — evaluated in ARRAY ORDER, first match wins. A config author
@@ -17,7 +17,7 @@ import { SchemaValidator } from '@studnicky/json';
 // have to learn.
 //
 // 'folder' and 'package' both match a PATH SEGMENT — the segment immediately after
-// `sourceRoot` — by exact equality against `pattern`. They are kept as two distinct `kind`
+// `sourceRoot` — by exact equality against `pattern`. They are kept as two distinct `unit`
 // values, even though today's matcher treats them identically, because they answer different
 // questions for a config author: 'folder' says "this directory under `sourceRoot` IS the
 // layer" (`src/domain/` -> `domain`), 'package' says "this workspace package's directory IS
@@ -52,7 +52,7 @@ import { SchemaValidator } from '@studnicky/json';
 // `node:module`'s own `isBuiltin` — not a hand-maintained list of module names, and not a
 // `node:` prefix check alone (`isBuiltin('fs')` and `isBuiltin('node:fs')` both resolve to
 // `true`, so the bare and prefixed spellings need no separate binding). `pattern` plays no
-// role for this kind: there is nothing to bind a builtin group MORE narrowly than "is this
+// role for this unit: there is nothing to bind a builtin group MORE narrowly than "is this
 // specifier a Node builtin", and a config wanting one specific builtin bound to a different
 // layer than the rest already has that expressed as a 'dependency' binding with `pattern:
 // 'node:fs'` evaluated ahead of the group binding in the list — the ordered-list precedence
@@ -61,7 +61,15 @@ export namespace LayerBindingEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'kind': {
+      'layer': {
+        'description': 'The layer name this binding resolves a match to. Must be one of the configured `layers` — a binding naming an unconfigured layer never matches, the same as a typo.',
+        'type': 'string'
+      },
+      'pattern': {
+        'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
+        'type': 'string'
+      },
+      'unit': {
         'description': "'folder': pattern matches a path segment after sourceRoot exactly. 'package': pattern matches a workspace package's directory segment exactly. 'module': pattern is a prefix matched against an internal import specifier. 'dependency': pattern is a prefix matched against an external import specifier. 'builtin': matches every Node builtin module as one group; pattern is unused.",
         'enum': [
           'folder',
@@ -71,18 +79,10 @@ export namespace LayerBindingEntity {
           'builtin'
         ],
         'type': 'string'
-      },
-      'layer': {
-        'description': 'The layer name this binding resolves a match to. Must be one of the configured `layers` — a binding naming an unconfigured layer never matches, the same as a typo.',
-        'type': 'string'
-      },
-      'pattern': {
-        'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for kind 'builtin'.",
-        'type': 'string'
       }
     },
     'required': [
-      'kind',
+      'unit',
       'layer'
     ],
     'type': 'object'

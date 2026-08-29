@@ -47,12 +47,12 @@ class PathSegments {
 // `forSegment` considers only `'folder'`/`'package'` bindings (a path resolution question);
 // `forSpecifier` considers only `'module'`/`'dependency'`/`'builtin'` bindings (an import
 // resolution question). Each walks `bindings` in ARRAY ORDER and returns the first entry whose
-// kind applies and whose pattern matches — the config author's own declared order IS the
+// unit applies and whose pattern matches — the config author's own declared order IS the
 // precedence, not an implicit "most specific wins" this resolver would otherwise have to
 // define. A binding whose `layer` is not in the configured `layers` set never matches, the
 // same as any other typo — see `LayerBindingEntity`'s own module comment for why 'folder' and
 // 'package' (both exact path-segment equality) and 'module' and 'dependency' (both specifier-
-// prefix matching) share their matching mechanics while staying distinct `kind` values.
+// prefix matching) share their matching mechanics while staying distinct `unit` values.
 class BindingResolution {
   public static forSegment(
     candidate: string | undefined,
@@ -71,7 +71,7 @@ class BindingResolution {
       if (binding === undefined) {
         continue;
       }
-      if (binding.kind !== 'folder' && binding.kind !== 'package') {
+      if (binding.unit !== 'folder' && binding.unit !== 'package') {
         continue;
       }
       if (binding.pattern !== candidate) {
@@ -104,7 +104,7 @@ class BindingResolution {
         continue;
       }
 
-      if (binding.kind === 'builtin') {
+      if (binding.unit === 'builtin') {
         if (isBuiltin(specifier)) {
           return binding.layer;
         }
@@ -112,7 +112,7 @@ class BindingResolution {
         continue;
       }
 
-      if (binding.kind !== 'module' && binding.kind !== 'dependency') {
+      if (binding.unit !== 'module' && binding.unit !== 'dependency') {
         continue;
       }
       if (binding.pattern === undefined || !specifier.startsWith(binding.pattern)) {

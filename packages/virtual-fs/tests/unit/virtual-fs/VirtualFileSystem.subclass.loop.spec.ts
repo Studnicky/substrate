@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { HookInvocationError } from "@studnicky/errors";
+
 
 import { VirtualFileSystem } from "../../../src/virtual-fs/VirtualFileSystem.js";
 import scenarioGroups from "./VirtualFileSystem.subclass.scenarios.json" with { type: "json" };
@@ -238,7 +239,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class AsyncRejectingCreateFs extends VirtualFileSystem {
       override onCreate(_path: string): Promise<void> {
-        return Promise.reject(new Error("async onCreate boom"));
+        return Promise.reject(RuntimeError.create("async onCreate boom"));
       }
     }
 
@@ -281,7 +282,7 @@ const scenarioHandlers: ScenarioHandlers = {
   },
   "hook-cause-chains": (scenarioCase) => {
     const { expected, input } = scenarioCase;
-    const original = new Error("original boom");
+    const original = RuntimeError.create("original boom");
     class ThrowingCreateFs extends VirtualFileSystem {
       override onCreate(): void {
         throw original;
@@ -376,7 +377,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class ThrowingCreateFs extends VirtualFileSystem {
       override onCreate(): void {
-        throw new Error("onCreate boom");
+        throw RuntimeError.create("onCreate boom");
       }
     }
 
@@ -401,7 +402,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class ThrowingDeleteFs extends VirtualFileSystem {
       override onDelete(): void {
-        throw new Error("onDelete boom");
+        throw RuntimeError.create("onDelete boom");
       }
     }
 
@@ -424,7 +425,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class ThrowingReadFs extends VirtualFileSystem {
       override onRead(): void {
-        throw new Error("onRead boom");
+        throw RuntimeError.create("onRead boom");
       }
     }
 
@@ -446,7 +447,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class ThrowingRenameFs extends VirtualFileSystem {
       override onRename(): void {
-        throw new Error("onRename boom");
+        throw RuntimeError.create("onRename boom");
       }
     }
 
@@ -470,7 +471,7 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     class ThrowingWriteFs extends VirtualFileSystem {
       override onWrite(): void {
-        throw new Error("onWrite boom");
+        throw RuntimeError.create("onWrite boom");
       }
     }
 

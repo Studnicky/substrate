@@ -3,20 +3,13 @@
 import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
 
-import { SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
-import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { DataType } from './DataType.js';
+import { Patch } from './Patch.js';
 
 export class Draft {
   /** Return whether a value should be wrapped in a nested draft proxy. */
   protected static isDraftable<T>(value: T): value is object & T {
     const result = Array.isArray(value) || DataType.isPlainObject(value);
-    return result;
-  }
-
-  /** Return a canonical JSON value or reject a non-JSON patch operand. */
-  protected static requireJsonValue(value: unknown): JsonValueEntity.Type {
-    const result = JsonValueEntity.intake(value);
     return result;
   }
 
@@ -135,56 +128,6 @@ export class Draft {
     return result;
   }
 
-  /** Diff two values, emitting JSON Patch operations for JSON-compatible changes. */
-  protected static diffValues(base: unknown, next: unknown, path: string, operations: PatchOperationEntity.Type[]): void {
-    if (Object.is(base, next)) {return;}
-    if (Array.isArray(base) && Array.isArray(next)) {
-      this.diffArray(base, next, path, operations);
-      return;
-    }
-    if (DataType.isPlainObject(base) && DataType.isPlainObject(next)) {
-      this.diffObject(base, next, path, operations);
-      return;
-    }
-    operations.push({ 'op': 'replace', 'path': path, 'value': this.requireJsonValue(next) });
-  }
-
-  /** Diff arrays index-wise, or replace an array whose length changes. */
-  protected static diffArray(base: unknown[], next: unknown[], path: string, operations: PatchOperationEntity.Type[]): void {
-    if (base.length !== next.length) {
-      operations.push({ 'op': 'replace', 'path': path, 'value': this.requireJsonValue(next) });
-      return;
-    }
-    for (let index = 0; index < base.length; index += 1) {this.diffValues(base[index], next[index], `${path}/${index}`, operations);}
-  }
-
-  /** Diff plain objects key-by-key. */
-  protected static diffObject(base: object, next: object, path: string, operations: PatchOperationEntity.Type[]): void {
-    const baseKeys = Object.keys(base);
-    const baseKeyLength = baseKeys.length;
-    for (let index = 0; index < baseKeyLength; index += 1) {
-      const key = baseKeys[index];
-      if (key === undefined) {
-        continue;
-      }
-      if (!(key in next)) {operations.push({ 'op': 'remove', 'path': `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}` });}
-    }
-    const nextKeys = Object.keys(next);
-    const nextKeyLength = nextKeys.length;
-    for (let index = 0; index < nextKeyLength; index += 1) {
-      const key = nextKeys[index];
-      if (key === undefined) {
-        continue;
-      }
-      const childPath = `${path}/${key.replace(TILDE_PATTERN, '~0').replace(SLASH_PATTERN, '~1')}`;
-      if (!(key in base)) {
-        operations.push({ 'op': 'add', 'path': childPath, 'value': this.requireJsonValue(Reflect.get(next, key)) });
-      } else {
-        this.diffValues(Reflect.get(base, key), Reflect.get(next, key), childPath, operations);
-      }
-    }
-  }
-
   /** Mutate a draft proxy and return a structurally shared result. */
   public static produce<T>(base: T, recipe: (draft: T) => void): T {
     if (!this.isDraftable(base)) {return base;}
@@ -200,11 +143,8 @@ export class Draft {
 
   /** Produce the next value and the JSON Patch which recreates it. */
   public static producePatch<T>(base: T, recipe: (draft: T) => void): { 'next': T; 'patch': PatchOperationEntity.Type[] } {
-    this.requireJsonValue(base);
     const next = this.produce(base, recipe);
-    this.requireJsonValue(next);
-    const patch: PatchOperationEntity.Type[] = [];
-    this.diffValues(base, next, '', patch);
+    const patch = [...Patch.diff(base, next).operations];
     return { 'next': next, 'patch': patch };
   }
 }

@@ -4,6 +4,7 @@
  */
 
 
+import { RuntimeError } from '@studnicky/errors';
 import { Agent } from 'undici';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -83,7 +84,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   ): TInstance {
     const result = Reflect.construct(this, [agent]) as object;
     if (!UndiciDispatcherInstance.belongsTo(this, result)) {
-      throw new TypeError('UndiciDispatcher.create() did not construct the requested subclass.');
+      throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;

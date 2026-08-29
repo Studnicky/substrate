@@ -9,6 +9,7 @@ import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.j
 import { HookInvocationError } from './HookInvocationError.js';
 import { HookTimeoutError } from './HookTimeoutError.js';
 import { ReentrantHookInvocationError } from './ReentrantHookInvocationError.js';
+import { RuntimeError } from './RuntimeError.js';
 import { ValidationError } from './ValidationError.js';
 
 /** Builds detached diagnostic graphs while preserving canonical hook-error classes. */
@@ -33,7 +34,7 @@ namespace HookDiagnosticSnapshotEntity {
         } else if (value instanceof ReentrantHookInvocationError) {
           snapshot = new ReentrantHookInvocationError(value.hookName);
         } else {
-          snapshot = new Error(value.message, { 'cause': undefined });
+          snapshot = RuntimeError.create(value.message);
         }
         seen.set(value, snapshot);
         const keys = Reflect.ownKeys(value);
@@ -217,7 +218,7 @@ export class HookInvoker {
       }
       const snapshot = HookDiagnosticSnapshotEntity.intake(error, new WeakMap());
       if (!(snapshot instanceof HookInvocationError)) {
-        throw new TypeError('Hook diagnostic projection must preserve HookInvocationError');
+        throw RuntimeError.create('Hook diagnostic projection must preserve HookInvocationError');
       }
       result.push(snapshot);
     }
@@ -299,7 +300,7 @@ export class HookInvoker {
       new WeakMap()
     );
     if (!(diagnostic instanceof HookInvocationError)) {
-      throw new TypeError('Hook diagnostic storage must preserve HookInvocationError');
+      throw RuntimeError.create('Hook diagnostic storage must preserve HookInvocationError');
     }
     this.#hookErrors.push(diagnostic);
 

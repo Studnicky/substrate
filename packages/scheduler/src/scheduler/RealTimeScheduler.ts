@@ -1,3 +1,4 @@
+import type { HookInvoker } from '@studnicky/errors';
 /**
  * `SchedulerProvider` backed by `setTimeout` / `setInterval`.
  * Each scheduled task returns a `ScheduledTask` whose `cancel()` clears the timer.
@@ -6,8 +7,7 @@
  * @module
  */
 
-import type { HookInvoker } from '@studnicky/errors';
-
+import { RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
@@ -68,7 +68,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
     if (!Predicates.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
-      throw new TypeError('RealTimeScheduler.create() did not construct the requested subclass.');
+      throw RuntimeError.create('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -239,7 +239,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
         try {
           result = fire();
         } catch (error) {
-          const taskError = Predicates.isError(error) ? error : new Error(String(error));
+          const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
           this.hooks.invoke('onFireError', () => {
             const fireErrorResult = this.onFireError(id, taskError);
             return fireErrorResult;
@@ -249,7 +249,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
         if (result instanceof Promise) {
           result.catch((error: unknown) => {
-            const taskError = Predicates.isError(error) ? error : new Error(String(error));
+            const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
             this.hooks.invoke('onFireError', () => {
               const fireErrorResult = this.onFireError(id, taskError);
               return fireErrorResult;
@@ -309,7 +309,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
       try {
         result = fire();
       } catch (error) {
-        const taskError = Predicates.isError(error) ? error : new Error(String(error));
+        const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
         this.hooks.invoke('onFireError', () => {
           const fireErrorResult = this.onFireError(id, taskError);
           return fireErrorResult;
@@ -319,7 +319,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
 
       if (result instanceof Promise) {
         result.catch((error: unknown) => {
-          const taskError = Predicates.isError(error) ? error : new Error(String(error));
+          const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
           this.hooks.invoke('onFireError', () => {
             const fireErrorResult = this.onFireError(id, taskError);
             return fireErrorResult;

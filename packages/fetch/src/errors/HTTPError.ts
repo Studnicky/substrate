@@ -38,11 +38,6 @@ export class HTTPError extends FetchBaseError {
   readonly response: Response;
 
   /**
-   * HTTP status code (e.g., 404, 500)
-   */
-  readonly status: number;
-
-  /**
    * HTTP status text (e.g., "Not Found", "Internal Server Error")
    */
   readonly statusText: string;
@@ -55,11 +50,12 @@ export class HTTPError extends FetchBaseError {
   constructor(url: string, response: Response) {
     super({
       'code': 'fetch.httpError',
+      'instance': url,
       'message': `HTTP ${response.status} ${response.statusText}: ${url}`,
-      'retryable': response.status >= 500
+      'retryable': response.status >= 500,
+      'status': response.status
     });
     this.url = url;
-    this.status = response.status;
     this.statusText = response.statusText;
     this.response = response;
   }

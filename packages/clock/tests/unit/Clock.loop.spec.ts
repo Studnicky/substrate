@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it, mock
 } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { Clock } from '../../src/clock/Clock.js';
 import { RealTimeClockProvider } from '../../src/clock/RealTimeClockProvider.js';
@@ -324,7 +325,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     return;
   },
   'clock-error-with-cause': (_scenarioCase) => {
-    const cause = new Error('boom');
+    const cause = RuntimeError.create('boom');
     const error = new ClockError('clock failed', cause);
     assert.strictEqual(error.message, 'clock failed');
     assert.strictEqual(error.cause, cause);
@@ -547,7 +548,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     class AsyncRejectingNowClock extends Clock {
       protected override async onNow(_timestamp: number): Promise<void> {
         await Promise.resolve();
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
 
@@ -732,7 +733,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingRealNowProvider extends RealTimeClockProvider {
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
-      protected override onNow(): void { throw new Error('provider onNow boom'); }
+      protected override onNow(): void { throw RuntimeError.create('provider onNow boom'); }
     }
 
     const realTimeMock = mockRealTime(input.rawMs);
@@ -759,7 +760,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
-      protected override onHrtime(): void { throw new Error('provider onHrtime boom'); }
+      protected override onHrtime(): void { throw RuntimeError.create('provider onHrtime boom'); }
     }
 
     const realTimeMock = mockRealTime(input.rawMs);
@@ -784,7 +785,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingVirtualNowProvider extends VirtualClockProvider {
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
-      protected override onNow(): void { throw new Error('virtual provider onNow boom'); }
+      protected override onNow(): void { throw RuntimeError.create('virtual provider onNow boom'); }
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -805,7 +806,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingVirtualHrtimeProvider extends VirtualClockProvider {
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
-      protected override onHrtime(): void { throw new Error('virtual provider onHrtime boom'); }
+      protected override onHrtime(): void { throw RuntimeError.create('virtual provider onHrtime boom'); }
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -935,7 +936,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingNowClock extends Clock {
       public constructor(provider: ClockProviderInterface) { super(provider); }
-      protected override onNow(): void { throw new Error('onNow boom'); }
+      protected override onNow(): void { throw RuntimeError.create('onNow boom'); }
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -954,7 +955,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingHrtimeClock extends Clock {
       public constructor(provider: ClockProviderInterface) { super(provider); }
-      protected override onHrtime(): void { throw new Error('onHrtime boom'); }
+      protected override onHrtime(): void { throw RuntimeError.create('onHrtime boom'); }
     }
 
     const counter = createVirtualTimeCounter(input.counterOptions);
@@ -973,7 +974,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingAdvanceCounter extends VirtualTimeCounter {
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
-      protected override onAdvance(): void { throw new Error('onAdvance boom'); }
+      protected override onAdvance(): void { throw RuntimeError.create('onAdvance boom'); }
     }
 
     const counter = new ThrowingAdvanceCounter(materializeVirtualTimeCounterOptions(input.counterOptions));
@@ -991,7 +992,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     };
     class ThrowingNowMsCounter extends VirtualTimeCounter {
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
-      protected override onNowMs(): void { throw new Error('onNowMs boom'); }
+      protected override onNowMs(): void { throw RuntimeError.create('onNowMs boom'); }
     }
 
     const counter = new ThrowingNowMsCounter(materializeVirtualTimeCounterOptions(input.counterOptions));

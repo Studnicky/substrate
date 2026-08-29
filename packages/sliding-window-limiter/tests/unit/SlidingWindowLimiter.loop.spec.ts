@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 
 import { SlidingWindowLimiterConfigError } from '../../src/errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from '../../src/SlidingWindowExhaustedError.js';
@@ -72,13 +73,13 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
-          throw new Error('async onAllow boom');
+          throw RuntimeError.create('async onAllow boom');
         }
       }
 
       const limiter = AsyncRejectingAllowLimiter.create(resolveLimiterConfig(input));
       const rejectionEvents: Error[] = [];
-      const onUnhandledRejection = (): void => { rejectionEvents.push(new Error('unexpected unhandled rejection')); };
+      const onUnhandledRejection = (): void => { rejectionEvents.push(RuntimeError.create('unexpected unhandled rejection')); };
       process.on('unhandledRejection', onUnhandledRejection);
 
       return (async () => {
@@ -102,15 +103,15 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
-          throw new Error('async onAllow boom');
+          throw RuntimeError.create('async onAllow boom');
         }
         protected override async onReject(): Promise<void> {
           await Promise.resolve();
-          throw new Error('async onReject boom');
+          throw RuntimeError.create('async onReject boom');
         }
         protected override async onWindowRoll(): Promise<void> {
           await Promise.resolve();
-          throw new Error('async onWindowRoll boom');
+          throw RuntimeError.create('async onWindowRoll boom');
         }
       }
 
@@ -118,7 +119,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const clock = (): number => time;
       const limiter = AsyncRejectingNotificationLimiter.create(resolveLimiterConfig(input, clock));
       const rejectionEvents: Error[] = [];
-      const onUnhandledRejection = (): void => { rejectionEvents.push(new Error('unexpected unhandled rejection')); };
+      const onUnhandledRejection = (): void => { rejectionEvents.push(RuntimeError.create('unexpected unhandled rejection')); };
       process.on('unhandledRejection', onUnhandledRejection);
 
       return (async () => {
@@ -184,7 +185,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = slidingWindowLimiterInput(scenarioCase.input);
       const expected = scenarioCase.expected as { firstCount: number; secondCount: number; snapshotLength: number };
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
-        readonly failure = new Error('onAllow boom', { 'cause': { 'windows': [1] } });
+        readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override onAllow(): void { throw this.failure; }
@@ -213,7 +214,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = slidingWindowLimiterInput(scenarioCase.input);
       const expected = scenarioCase.expected as { firstCount: number; secondCount: number; snapshotLength: number };
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
-        readonly failure = new Error('onAllow boom', { 'cause': { 'windows': [1] } });
+        readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override onAllow(): void { throw this.failure; }
@@ -348,7 +349,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       limiter.consume();
       const controller = new AbortController();
       setImmediate(() => {
-        controller.abort(new Error(input.abortMessage));
+        controller.abort(RuntimeError.create(input.abortMessage));
       });
       await assert.rejects(() => limiter.waitForToken({ signal: controller.signal }), { 'message': input.abortMessage });
       assert.strictEqual(expected.rejectionMessage, input.abortMessage);

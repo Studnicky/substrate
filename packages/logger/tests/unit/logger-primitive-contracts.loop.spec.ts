@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -469,8 +470,8 @@ const runnerMap: RunnerMap = {
     );
   },
   'log-fault-from-error-fields': (scenarioCase) => {
-    const sourceError = new Error(scenarioCase.input.error.message, {
-      'cause': new Error(scenarioCase.input.error.cause)
+    const sourceError = RuntimeError.create(scenarioCase.input.error.message, {
+      'cause': RuntimeError.create(scenarioCase.input.error.cause)
     });
     sourceError.name = scenarioCase.input.error.name;
     const sourceCause = sourceError.cause;
@@ -542,7 +543,7 @@ const runnerMap: RunnerMap = {
     }), scenarioCase.expected.symbolObject);
   },
   'error-constructors': (scenarioCase) => {
-    const cause = new Error('root cause');
+    const cause = RuntimeError.create('root cause');
     const constructed = [
       new LoggerError('base logger failure', cause),
       new CircularReferenceError('circular metadata', cause),

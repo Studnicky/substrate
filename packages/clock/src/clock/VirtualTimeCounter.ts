@@ -6,7 +6,7 @@
  * @module
  */
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
@@ -35,7 +35,7 @@ export class VirtualTimeCounter {
     const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
     if (!Predicates.isObjectLike(result) || !VirtualTimeCounterInstance.belongsTo(this, result)) {
-      throw new TypeError('VirtualTimeCounter.create() did not construct the requested subclass.');
+      throw RuntimeError.create('VirtualTimeCounter.create() did not construct the requested subclass.');
     }
     return result;
   }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -75,7 +76,7 @@ function createDispatcher(config: MaterializedRuntimeValue): UndiciDispatcher {
   const clientConfig = ClientConfigDataEntity.intake({ 'dispatcher': config });
   const dispatcher = clientConfig.dispatcher;
   if (dispatcher === undefined) {
-    throw new Error('dispatcher config must be present');
+    throw RuntimeError.create('dispatcher config must be present');
   }
   const agent = DispatcherAgent.create(dispatcher);
   return UndiciDispatcher.create(agent);

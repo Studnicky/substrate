@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { Predicates } from '@studnicky/types';
 import {
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
@@ -12,7 +13,6 @@ import {
   type Program
 } from 'typescript';
 
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface ParserServicesInterface {
@@ -26,11 +26,11 @@ interface SourceCodeServicesAccessorInterface {
 
 class ParserServicesGuard {
   public static hasTypeInformation(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) { return false; }
-    if (!ObjectGuard.isObject(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
+    if (!Predicates.isRecord(value)) { return false; }
+    if (!Predicates.isRecord(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
       return false;
     }
-    const result = ObjectGuard.isObject(value.program) && typeof value.program.getTypeChecker === 'function';
+    const result = Predicates.isRecord(value.program) && typeof value.program.getTypeChecker === 'function';
     return result;
   }
 }

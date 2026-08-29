@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 import { Semaphore } from '../../src/Semaphore.js';
 import scenarioGroups from './Semaphore.scenarios.json' with { type: 'json' };
 
@@ -78,7 +79,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     class AsyncRejectingAcquireSemaphore extends Semaphore {
       protected override async onAcquire(): Promise<void> {
         await new Promise((resolve) => { setImmediate(resolve); });
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
     let rejectionCount = 0;
@@ -106,7 +107,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         if (this.#acquireCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw new Error(input.firstMessage);
+        throw RuntimeError.create(input.firstMessage);
       }
     }
     const sem = new RejectFirstAcquireSemaphore();
@@ -134,7 +135,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         if (this.#waitCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
     const sem = new RejectFirstWaitSemaphore();
@@ -168,7 +169,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         if (this.#contendedCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
     const sem = new RejectFirstContendedSemaphore();
@@ -316,7 +317,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const expected = scenarioCase.expected as { availableAfter: number; hookName: string };
     class ThrowingAcquireSemaphore extends Semaphore {
       protected override onAcquire(): void {
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
     const sem = ThrowingAcquireSemaphore.create(semaphoreOptions(input));
@@ -328,7 +329,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const expected = scenarioCase.expected as { availableAfter: number; hookName: string };
     class ThrowingContendedSemaphore extends Semaphore {
       protected override onContended(): void {
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
     }
     const sem = ThrowingContendedSemaphore.create(semaphoreOptions(input));
@@ -358,7 +359,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const expected = scenarioCase.expected as { availableAfter: number };
     const sem = Semaphore.create(semaphoreOptions(input));
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => sem.withPermit(async () => { throw new Error(input.message); }), new RegExp(input.message));
+    await assert.rejects(() => sem.withPermit(async () => { throw RuntimeError.create(input.message); }), new RegExp(input.message));
     assert.equal(sem.available, expected.availableAfter);
   }
 };

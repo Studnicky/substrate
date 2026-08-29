@@ -1,7 +1,7 @@
 /** Counting permit gate. acquire() returns a release function. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
@@ -43,7 +43,7 @@ export class Semaphore {
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
     if (!Predicates.isObjectLike(result) || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
-      throw new TypeError('Semaphore.create() did not construct the requested subclass.');
+      throw RuntimeError.create('Semaphore.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;

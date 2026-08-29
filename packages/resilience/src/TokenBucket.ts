@@ -1,6 +1,5 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
-
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { RaceTimeout } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
@@ -47,7 +46,7 @@ export class TokenBucket {
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
     if (!Predicates.isObjectLike(result) || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
-      throw new TypeError('TokenBucket.create() did not construct the requested subclass.');
+      throw RuntimeError.create('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;
   }

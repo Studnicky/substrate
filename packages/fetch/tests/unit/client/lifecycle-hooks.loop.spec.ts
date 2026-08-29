@@ -1,9 +1,10 @@
+import { RuntimeError, HookInvocationError, HookTimeoutError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   afterEach, beforeEach, describe, it
 } from 'node:test';
 
-import { HookInvocationError, HookTimeoutError } from '@studnicky/errors';
+
 
 import {
   FetchClient,
@@ -204,31 +205,31 @@ async function fakeFetch(input: Request | URL | string, init?: RequestInit): Pro
   }
 
   if (parsedUrl.pathname === '/error-connect') {
-    const error = new Error('connect timeout') as Error & { code?: string };
+    const error = RuntimeError.create('connect timeout') as Error & { code?: string };
     error.code = 'UND_ERR_CONNECT_TIMEOUT';
     throw error;
   }
 
   if (parsedUrl.pathname === '/error-body-timeout') {
-    const error = new Error('body timeout') as Error & { code?: string };
+    const error = RuntimeError.create('body timeout') as Error & { code?: string };
     error.code = 'UND_ERR_BODY_TIMEOUT';
     throw error;
   }
 
   if (parsedUrl.pathname === '/error-headers-timeout') {
-    const error = new Error('headers timeout') as Error & { code?: string };
+    const error = RuntimeError.create('headers timeout') as Error & { code?: string };
     error.code = 'UND_ERR_HEADERS_TIMEOUT';
     throw error;
   }
 
   if (parsedUrl.pathname === '/error-socket-timeout') {
-    const error = new Error('socket error') as Error & { code?: string };
+    const error = RuntimeError.create('socket error') as Error & { code?: string };
     error.code = 'UND_ERR_SOCKET';
     throw error;
   }
 
   if (parsedUrl.pathname === '/error-unknown-code') {
-    const error = new Error('unknown error') as Error & { code?: string };
+    const error = RuntimeError.create('unknown error') as Error & { code?: string };
     error.code = 'UND_ERR_SOMETHING_ELSE';
     throw error;
   }
@@ -417,7 +418,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-start': async (caseData) => {
       class ThrowingStartClient extends FetchClient {
         protected override onRequestStart(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 
@@ -440,7 +441,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-error': async (caseData) => {
       class ThrowingRequestErrorClient extends FetchClient {
         protected override onRequestError(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 
@@ -465,7 +466,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-error-string': async (caseData) => {
       class ThrowingRequestErrorStringClient extends FetchClient {
         protected override onRequestError(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 
@@ -487,7 +488,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-response-success': async (caseData) => {
       class ThrowingSuccessClient extends FetchClient {
         protected override onResponseSuccess(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 
@@ -543,7 +544,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         globalThis.fetch = async (): Promise<Response> => {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         };
 
         await assert.rejects(
@@ -617,7 +618,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-timeout': async (caseData) => {
       class ThrowingTimeoutClient extends FetchClient {
         protected override onTimeout(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 
@@ -642,7 +643,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-dispatcher-destroy': async (caseData) => {
       class ThrowingDestroyClient extends FetchClient {
         protected override onDispatcherDestroy(): void {
-          throw new Error(caseData.input.message);
+          throw RuntimeError.create(caseData.input.message);
         }
       }
 

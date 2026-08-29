@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** circuit-breaker — three-state lifecycle: closed → open → halfOpen → closed. Run: npx tsx examples/circuit-breaker.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -25,7 +25,7 @@ console.log('State after success:', breaker.state);
 
 // --- Trip the breaker: 3 consecutive failures ---
 class Fail {
-  static boom(): Promise<never> { throw new Error('boom'); }
+  static boom(): Promise<never> { throw RuntimeError.create('boom'); }
 }
 for (let i = 0; i < 3; i++) {
   await breaker.execute(Fail.boom).catch(() => { /* expected */ });

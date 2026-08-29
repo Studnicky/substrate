@@ -103,6 +103,13 @@ const { next: n2, patch } = Draft.producePatch({ count: 0 }, (draft) => {
 // patch === [{ op: 'replace', path: '/count', value: 1 }]
 Patch.create(patch).apply({ count: 0 }); // === n2
 
+// Build a Patch between independently obtained JSON values.
+Patch.diff(
+  { status: 'draft' },
+  { status: 'published' }
+).operations;
+// [{ op: 'replace', path: '/status', value: 'published' }]
+
 // A no-op recipe returns base itself (reference identity):
 Draft.produce(base, () => {}) === base; // true
 ```

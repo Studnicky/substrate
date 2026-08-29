@@ -9,24 +9,27 @@
  *   4. `timestamp`
  *   5. `correlationId`
  *   6. `retryable`
+ *   7. `status`
+ *   8. `instance`
  *
  * (`message` and `cause` are written by the `Error` super-constructor.)
  *
  * @module
  */
-import type {
-  JSONSchema7Object, JSONSchema7Type
-} from 'json-schema';
+import type { JSONSchema7Type } from 'json-schema';
 
 import { JsonValue, Predicates } from '@studnicky/types';
 
+import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
+import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
 
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,
   CAUSE_DEPTH_SENTINEL
 } from '../constants/CauseChainConstants.js';
-import { ThrownValueEntity } from '../entities/ThrownValueEntity.js';
+import { PROBLEM_TYPE_BASE } from '../constants/ProblemConstants.js';
+import { ThrownValueProjection } from '../validation/thrownValueProjection.js';
 
 /**
  * Abstract base class for all errors in the system.
@@ -38,10 +41,14 @@ export abstract class BaseError extends Error {
   public readonly code: string;
   /** Optional correlation ID for distributed tracing. */
   public readonly correlationId: string | undefined;
+  /** RFC 9457 `instance`: URI reference identifying this specific occurrence. */
+  public readonly instance: string | undefined;
   /** Structured metadata dictionary attached to this error instance. */
   public readonly metadata: Readonly<Record<string, JSONSchema7Type>> | undefined;
   /** Whether this error represents a transient condition that may succeed on retry. */
   public readonly retryable: boolean;
+  /** RFC 9457 `status`: HTTP status code an origin server would generate for this occurrence. */
+  public readonly status: number | undefined;
   /** Unix millisecond timestamp at time of construction. */
   public readonly timestamp: number;
 
@@ -82,6 +89,8 @@ export abstract class BaseError extends Error {
     this.timestamp = Date.now();
     this.correlationId = argumentList.correlationId;
     this.retryable = argumentList.retryable ?? false;
+    this.status = argumentList.status;
+    this.instance = argumentList.instance;
   }
 
   /**
@@ -162,9 +171,9 @@ export abstract class BaseError extends Error {
    * Used to safely interpolate caught `unknown` errors into messages.
    */
   public static toMessage(error: unknown): string {
-    const projection = ThrownValueEntity.intake(error);
+    const projection = ThrownValueProjection.project(error);
 
-    return projection.message;
+    return projection.detail;
   }
 
 
@@ -195,42 +204,58 @@ export abstract class BaseError extends Error {
   }
 
   /**
-   * Serializes this error (and its cause chain) to a plain JSON-compatible object.
-   * Circular cause chains are truncated at `CAUSE_CHAIN_DEPTH_LIMIT`.
-   * Every field is always present; absent optional fields use `null`.
-   *
-   * Returns `Record<string, unknown>` so subclasses may override with richer
-   * serialization while still satisfying the base contract.
+   * Problem type URI identifying what KIND of failure this is — RFC 9457's discriminant.
+   * Defaults to the workspace problem namespace joined with the registered code, so
+   * `errors.validationFailed` becomes `https://problems.studnicky.dev/errors.validationFailed`.
+   * Override to point at published documentation for a specific problem type.
    */
-  public toJSON(): Record<string, unknown> {
-    const base = this.toSerializedError();
-    const extra = this.serializeExtra();
+  protected problemType(): string {
+    const result = `${PROBLEM_TYPE_BASE}${this.code}`;
 
-    return {
-      ...base, ...extra
-    };
+    return result;
   }
 
   /**
-   * Serializes this error to the canonical recursive JSON object type.
-   * Equivalent to `toJSON()` with the precise return type.
+   * Serializes this error and its cause chain as an RFC 9457 Problem Details object.
+   * This is the one serialized form; `JSON.stringify` reaches it through the same method.
+   *
+   * Member mapping, and why each lands where it does:
+   * - `type`    — {@link problemType}. The discriminant; stable per problem type.
+   * - `title`   — the class name. §3.1.2 requires a title that does NOT vary per occurrence.
+   * - `detail`  — `message`. §3.1.4 is explicit that detail IS occurrence-specific.
+   * - `status`  — only when the error carries one; §3.1 leaves every member optional.
+   * - `instance`— only when the error carries one.
+   *
+   * Everything else is an extension member (§3.2): `code`, `correlationId`, `timestamp`,
+   * `retryable`, `context`, `stack`, and the flattened `causes` chain. Absent values are
+   * omitted rather than emitted as `null`, so a consumer testing member presence is right.
    */
-  public toSerializedError(): JSONSchema7Object {
-    const causeRaw = this.cause;
-    let causeValue: JSONSchema7Type = null;
-
-    if (!Predicates.isNullish(causeRaw)) {
-      causeValue = CauseSerializationEntity.intake(causeRaw, 1);
-    }
-
-    const result: JSONSchema7Object = {
-      'cause': causeValue,
+  public toJSON(): ProblemDetailsEntity.Type {
+    const problem: Record<string, unknown> = {
       'code': this.code,
-      'context': this.metadata === undefined ? null : { ...this.metadata },
-      'correlationId': this.correlationId ?? null,
-      'message': this.message,
-      'timestamp': this.timestamp
+      'detail': this.message,
+      'retryable': this.retryable,
+      'timestamp': this.timestamp,
+      'title': this.name,
+      'type': this.problemType()
     };
+
+    if (this.status !== undefined) { problem.status = this.status; }
+    if (this.instance !== undefined) { problem.instance = this.instance; }
+    if (this.correlationId !== undefined) { problem.correlationId = this.correlationId; }
+    if (this.metadata !== undefined) { problem.context = { ...this.metadata }; }
+    if (Predicates.isString(this.stack)) { problem.stack = this.stack; }
+
+    const causes = CauseChain.from(this.cause);
+    if (causes.length > 0) { problem.causes = causes; }
+
+    // Subclass extras are spread FIRST so a registered member can never be silently
+    // clobbered by an ad-hoc bag: a subclass changes `status` through the constructor and
+    // `type` through problemType(), both of which are contracts. serializeExtra() omits
+    // absent members itself, the same way this method does.
+    const extras = this.serializeExtra();
+
+    const result = { ...extras, ...problem } as ProblemDetailsEntity.Type;
 
     return result;
   }
@@ -247,61 +272,70 @@ export abstract class BaseError extends Error {
 }
 
 /**
- * Serializes a single cause node at the given depth. A `BaseError` cause carries its own
- * `code`/`metadata`/`correlationId`/`timestamp` and is serialized directly from those fields.
- * Anything else — a plain `Error`, an `AggregateError`, or an arbitrary thrown primitive/object
- * — is an open-set shape, so it is parsed through {@link ThrownValueEntity} rather than hand-rolled
- * `instanceof` branching.
+ * Flattens a cause chain into RFC 9457 `causes` extension members, nearest first.
+ *
+ * A `BaseError` cause carries its own code/context/correlationId/timestamp, so it projects
+ * directly. The first non-`BaseError` cause hands the remainder of the chain to
+ * {@link ThrownValueEntity}, which already walks arbitrary thrown values cycle-safely — past
+ * that point the two walks would be identical, so there is only one.
  */
-namespace CauseSerializationEntity {
-  class Intake {
-    static intake(error: unknown, depth: number): JSONSchema7Object {
-      if (error instanceof BaseError) {
-        const causeRaw = error.cause;
-        let causeValue: JSONSchema7Type = null;
+class CauseChain {
+  public static from(cause: unknown): CauseNodeEntity.Type[] {
+    const nodes: CauseNodeEntity.Type[] = [];
+    const visited = new WeakSet<object>();
+    let current: unknown = cause;
 
-        if (!Predicates.isNullish(causeRaw)) {
-          if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
-            causeValue = CAUSE_DEPTH_SENTINEL;
-          } else {
-            causeValue = Intake.intake(causeRaw, depth + 1);
-          }
-        }
+    while (nodes.length < CAUSE_CHAIN_DEPTH_LIMIT) {
+      if (Predicates.isNullish(current)) { return nodes; }
 
-        return {
-          'cause': causeValue,
-          'code': error.code,
-          'context': error.metadata === undefined ? null : { ...error.metadata },
-          'correlationId': error.correlationId ?? null,
-          'message': error.message,
-          'timestamp': error.timestamp
-        };
+      if (!(current instanceof BaseError)) {
+        CauseChain.#appendThrownValue(nodes, current);
+
+        return nodes;
       }
+      if (visited.has(current)) { return nodes; }
+      visited.add(current);
 
-      const projection = ThrownValueEntity.intake(error);
-      const causeRaw = Predicates.isError(error) ? error.cause : undefined;
-      let causeValue: JSONSchema7Type = null;
-
-      if (!Predicates.isNullish(causeRaw)) {
-        if (depth >= CAUSE_CHAIN_DEPTH_LIMIT) {
-          causeValue = CAUSE_DEPTH_SENTINEL;
-        } else {
-          causeValue = Intake.intake(causeRaw, depth + 1);
-        }
-      }
-
-      const code = projection.kind === 'error' || projection.kind === 'aggregate' ? 'native.error' : 'native.primitive';
-
-      return {
-        'cause': causeValue,
-        'code': code,
-        'context': null,
-        'correlationId': null,
-        'message': projection.message,
-        'timestamp': 0
-      };
+      nodes.push(CauseChain.#fromBaseError(current));
+      current = current.cause;
     }
+
+    if (!Predicates.isNullish(current)) {
+      nodes.push({ 'detail': CAUSE_DEPTH_SENTINEL, 'title': CAUSE_DEPTH_SENTINEL, 'type': `${PROBLEM_TYPE_BASE}cause-chain-truncated` });
+    }
+
+    return nodes;
   }
 
-  export const intake = Intake.intake;
+  static #fromBaseError(error: BaseError): CauseNodeEntity.Type {
+    let node: CauseNodeEntity.Type = {
+      'code': error.code,
+      'detail': error.message,
+      'name': error.name,
+      'timestamp': error.timestamp,
+      'title': error.name,
+      'type': `${PROBLEM_TYPE_BASE}${error.code}`
+    };
+
+    if (error.correlationId !== undefined) { node = { ...node, 'correlationId': error.correlationId }; }
+    if (error.metadata !== undefined) { node = { ...node, 'context': { ...error.metadata } }; }
+
+    return node;
+  }
+
+  static #appendThrownValue(nodes: CauseNodeEntity.Type[], value: unknown): void {
+    const projection = ThrownValueProjection.project(value);
+    const head: CauseNodeEntity.Type = projection.name === undefined
+      ? { 'detail': projection.detail, 'title': projection.title, 'type': projection.type }
+      : { 'detail': projection.detail, 'name': projection.name, 'title': projection.title, 'type': projection.type };
+
+    nodes.push(head);
+
+    const remainder = projection.causes ?? [];
+    for (let index = 0; index < remainder.length && nodes.length < CAUSE_CHAIN_DEPTH_LIMIT; index += 1) {
+      const node = remainder[index];
+      if (node === undefined) { continue; }
+      nodes.push(node);
+    }
+  }
 }

@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 import { Coalesce } from '../../src/Coalesce.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 import scenarioGroups from './Coalesce.scenarios.json' with { type: 'json' };
@@ -94,7 +95,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
+    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(RuntimeError.create(input.message))), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -103,7 +104,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     const coalesce = Coalesce.create<string>();
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => coalesce.run(input.key, () => { throw new Error(input.message); }), new RegExp(input.message));
+    await assert.rejects(() => coalesce.run(input.key, () => { throw RuntimeError.create(input.message); }), new RegExp(input.message));
     assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
   },
 
@@ -124,7 +125,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     class RejectingJoinCoalesce<T> extends Coalesce<T> {
       readonly settledEvents: boolean[] = [];
       protected override onCoalesceJoin(): void {
-        throw new Error(input.message);
+        throw RuntimeError.create(input.message);
       }
       protected override onCoalesceSettled(_key: string, success: boolean): void {
         this.settledEvents.push(success);
@@ -190,7 +191,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const expected = scenarioCase.expected as { success: boolean };
     const c = ObservedCoalesce.create();
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => c.run(input.key, () => Promise.reject(new Error(input.message))), new RegExp(input.message));
+    await assert.rejects(() => c.run(input.key, () => Promise.reject(RuntimeError.create(input.message))), new RegExp(input.message));
     assert.equal(c.settledEvents.length, 1);
     assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
   },
@@ -243,7 +244,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     class RejectingTimeoutCoalesce<T> extends Coalesce<T> {
       protected override async onTimeout(): Promise<void> {
         await new Promise((resolve) => { setImmediate(resolve); });
-        throw new Error('timeout hook boom');
+        throw RuntimeError.create('timeout hook boom');
       }
     }
     let rejectionCount = 0;
@@ -282,7 +283,7 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const joiner = c.run(input.key, factory);
     assert.equal(c.isInflight(input.key), true);
     assert.equal(calls, 0);
-    startGate.reject(new Error(input.message));
+    startGate.reject(RuntimeError.create(input.message));
     await Promise.all([assert.rejects(leader, HookInvocationError), assert.rejects(joiner, HookInvocationError)]);
     assert.equal(calls, 0);
     assert.equal(c.isInflight(input.key), expected.inflightAfter);
@@ -294,14 +295,14 @@ const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase
     const expected = scenarioCase.expected as { inflightAfter: boolean };
     class ThrowingSettledCoalesce<T> extends Coalesce<T> {
       protected override onCoalesceSettled(): void {
-        throw new Error(input.settledMessage);
+        throw RuntimeError.create(input.settledMessage);
       }
     }
     const resolved = ThrowingSettledCoalesce.create<string>();
     await assert.rejects(() => resolved.run(input.firstKey, async () => 'value'), HookInvocationError);
     assert.equal(resolved.isInflight(input.firstKey), expected.inflightAfter);
     const rejected = ThrowingSettledCoalesce.create<string>();
-    await assert.rejects(() => rejected.run(input.secondKey, async () => { throw new Error(input.factoryMessage); }), HookInvocationError);
+    await assert.rejects(() => rejected.run(input.secondKey, async () => { throw RuntimeError.create(input.factoryMessage); }), HookInvocationError);
     assert.equal(rejected.isInflight(input.secondKey), expected.inflightAfter);
   }
 };

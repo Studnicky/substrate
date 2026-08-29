@@ -2,6 +2,7 @@
 
 import { HookInvoker } from '@studnicky/errors';
 import { SchemaValidator } from '@studnicky/json';
+import { Delay } from '@studnicky/scheduler';
 
 import type { DeadLetterQueue } from './DeadLetterQueue.js';
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
@@ -48,7 +49,7 @@ export class DeadLetterQueueRetryGenerator<T> {
       this.#invokeOnYield(entry);
       yield entry;
       this.#invokeOnWait();
-      await this.#waitInterval();
+      await Delay.sleep(this.#intervalMs);
     }
     this.#invokeOnDone();
   }
@@ -74,13 +75,6 @@ export class DeadLetterQueueRetryGenerator<T> {
     this.hooks.invoke('onDone', () => {
       const result = this.onDone();
       return result;
-    });
-  }
-
-  /** Extracted so the delay's executor isn't rebuilt inline on every `generate()` iteration. */
-  #waitInterval(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      setTimeout(resolve, this.#intervalMs);
     });
   }
 

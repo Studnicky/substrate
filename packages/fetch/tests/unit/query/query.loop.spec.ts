@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -91,7 +92,7 @@ function materializeValue(value: RuntimeValue): unknown {
 
 function requireString(value: string | undefined, label: string): string {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
 
   return value;
@@ -99,7 +100,7 @@ function requireString(value: string | undefined, label: string): string {
 
 function requireParams(value: { [key: string]: RuntimeValue } | undefined): { [key: string]: RuntimeValue } {
   if (value === undefined) {
-    throw new Error('params are required');
+    throw RuntimeError.create('params are required');
   }
 
   return value;

@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { HookInvocationError } from "@studnicky/errors";
+
 
 import { SampleBuffer } from "../../../src/sample-buffer/SampleBuffer.js";
 import scenarioGroups from "./SampleBufferSubclass.scenarios.json" with { type: "json" };
@@ -99,32 +100,32 @@ class ComputeAudit extends SampleBuffer {
 
 class ThrowingPushBuffer extends SampleBuffer {
   override onPush(): void {
-    throw new Error("onPush boom");
+    throw RuntimeError.create("onPush boom");
   }
 }
 class ThrowingOverflowBuffer extends SampleBuffer {
   override onOverflow(): void {
-    throw new Error("onOverflow boom");
+    throw RuntimeError.create("onOverflow boom");
   }
 }
 class ThrowingEvictBuffer extends SampleBuffer {
   override onEvict(): void {
-    throw new Error("onEvict boom");
+    throw RuntimeError.create("onEvict boom");
   }
 }
 class ThrowingClearBuffer extends SampleBuffer {
   override onClear(): void {
-    throw new Error("onClear boom");
+    throw RuntimeError.create("onClear boom");
   }
 }
 class ThrowingPercentileBuffer extends SampleBuffer {
   override onPercentile(): void {
-    throw new Error("onPercentile boom");
+    throw RuntimeError.create("onPercentile boom");
   }
 }
 class ThrowingComputeBuffer extends SampleBuffer {
   override onComputeStart(): void {
-    throw new Error("onComputeStart boom");
+    throw RuntimeError.create("onComputeStart boom");
   }
 }
 
@@ -697,7 +698,7 @@ const runnerMap: RunnerMap = {
     class AsyncRejectingPushBuffer extends SampleBuffer {
       override async onPush(_value: number, _evicted: boolean): Promise<void> {
         await Promise.resolve();
-        throw new Error("async onPush failure");
+        throw RuntimeError.create("async onPush failure");
       }
     }
 
@@ -753,7 +754,7 @@ const runnerMap: RunnerMap = {
         _result: number,
       ): Promise<void> {
         await Promise.resolve();
-        throw new Error("async onPercentile failure");
+        throw RuntimeError.create("async onPercentile failure");
       }
     }
 

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -148,7 +149,7 @@ const runnerMap: RunnerMap = {
       class AsyncRejectingAggregateRegistry extends HealthRegistry {
         protected override async onAggregate(): Promise<void> {
           await Promise.resolve();
-          throw new Error('async aggregate boom');
+          throw RuntimeError.create('async aggregate boom');
         }
       }
 
@@ -173,7 +174,7 @@ const runnerMap: RunnerMap = {
       }
     },
     'deeply-detached-hook-errors': async (scenarioCase) => {
-      const cause = new Error(scenarioCase.input.causeMessage, { cause: { checks: scenarioCase.input.nestedChecks } });
+      const cause = RuntimeError.create(scenarioCase.input.causeMessage, { cause: { checks: scenarioCase.input.nestedChecks } });
 
       class ThrowingRegistrationRegistry extends HealthRegistry {
         protected override onCheckRegistered(): void {
@@ -202,9 +203,9 @@ const runnerMap: RunnerMap = {
     },
     'hook-errors-owned-by-instance': async (scenarioCase) => {
       class ThrowingRegistrationRegistry extends HealthRegistry {
-        #cause = new Error('unconfigured hook failure');
+        #cause = RuntimeError.create('unconfigured hook failure');
 
-        failWith(cause: Error): void {
+        failWith(cause: RuntimeError): void {
           this.#cause = cause;
         }
 
@@ -213,8 +214,8 @@ const runnerMap: RunnerMap = {
         }
       }
 
-      const firstCause = new Error(scenarioCase.input.firstCause);
-      const secondCause = new Error(scenarioCase.input.secondCause);
+      const firstCause = RuntimeError.create(scenarioCase.input.firstCause);
+      const secondCause = RuntimeError.create(scenarioCase.input.secondCause);
       const first = ThrowingRegistrationRegistry.create();
       const second = ThrowingRegistrationRegistry.create();
       first.failWith(firstCause);
@@ -289,7 +290,7 @@ const runnerMap: RunnerMap = {
     'rejecting-check-result': async (scenarioCase) => {
       const registry = ObservedRegistry.create();
       registry.register(scenarioCase.input.name, async () => {
-        throw new Error(scenarioCase.input.errorMessage);
+        throw RuntimeError.create(scenarioCase.input.errorMessage);
       });
       await registry.evaluate();
       assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
@@ -298,7 +299,7 @@ const runnerMap: RunnerMap = {
     'throwing-on-aggregate': async (scenarioCase) => {
       class ThrowingAggregateRegistry extends HealthRegistry {
         protected override onAggregate(): void {
-          throw new Error('hook boom');
+          throw RuntimeError.create('hook boom');
         }
       }
 
@@ -312,7 +313,7 @@ const runnerMap: RunnerMap = {
     'throwing-on-check-result': async (scenarioCase) => {
       class ThrowingResultRegistry extends HealthRegistry {
         protected override onCheckResult(): void {
-          throw new Error('hook boom');
+          throw RuntimeError.create('hook boom');
         }
       }
 

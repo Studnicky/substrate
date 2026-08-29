@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 /** boundedDispatcherComposition — hand-composes concurrency's Semaphore, event-bus's EventBus,
  * and scheduler's RealTimeScheduler into the Coordination Kit's documentation-only
  * BoundedDispatcher recipe (no `@studnicky/bounded-dispatcher` package exists; this
@@ -8,7 +9,6 @@
  * forwarding `highWaterMark` into its per-subscriber queues — so that gate is now open and
  * this composition no longer has to work around an untunable bus. Run:
  * npx tsx examples/boundedDispatcherComposition.ts */
-
 // #region usage
 import { EventBus } from '@studnicky/event-bus';
 import { RealTimeScheduler } from '@studnicky/scheduler';
@@ -103,7 +103,7 @@ class BoundedDispatcherScenarios {
     bus.subscribe('dispatch.failed', (payload) => { failedEvents.push(payload.key); });
 
     await Dispatcher.dispatch('ok-task', async () => { await Promise.resolve(); return 'fine'; });
-    await Dispatcher.dispatch('bad-task', () => { throw new Error('boom'); }).catch(() => { /* expected */ });
+    await Dispatcher.dispatch('bad-task', () => { throw RuntimeError.create('boom'); }).catch(() => { /* expected */ });
     await bus.drain();
 
     console.log('Lifecycle events — started:', startedEvents, 'completed:', completedEvents, 'failed:', failedEvents);

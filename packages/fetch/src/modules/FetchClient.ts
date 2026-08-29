@@ -4,7 +4,7 @@
 
 import type { Agent } from 'undici';
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Clone, SchemaIntakeError } from '@studnicky/json';
 import { Predicates } from '@studnicky/types';
 
@@ -81,7 +81,7 @@ class FetchClientInstance {
  *   }
  *
  *   protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
- *     if (!context.response.ok) throw new Error(`Request failed: ${context.response.status}`);
+ *     if (!context.response.ok) throw RuntimeError.create(`Request failed: ${context.response.status}`);
  *     return context;
  *   }
  * }
@@ -100,7 +100,7 @@ export class FetchClient implements FetchClientInterface {
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
     if (!FetchClientInstance.belongsTo(this, result)) {
-      throw new TypeError('FetchClient.create() did not construct the requested subclass.');
+      throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -330,7 +330,7 @@ export class FetchClient implements FetchClientInterface {
           : new AbortError(requestContext.url, error.message);
       }
 
-      const hookError = Predicates.isError(requestError) ? requestError : new Error(String(requestError));
+      const hookError = Predicates.isError(requestError) ? requestError : RuntimeError.create(String(requestError));
 
       if (requestError instanceof TimeoutError) {
         await this.hooks.invokeAsync('onTimeout', () => {
@@ -466,7 +466,7 @@ export class FetchClient implements FetchClientInterface {
 
     await this.hooks.invokeAsync('onRequestError', () => {
       const result = this.onRequestError(
-        new Error(`Connection pool exhaustion: ${errorCode}`),
+        RuntimeError.create(`Connection pool exhaustion: ${errorCode}`),
         method,
         requestId,
         url,
@@ -534,7 +534,7 @@ export class FetchClient implements FetchClientInterface {
    * @example
    * ```typescript
    * protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
-   *   if (!context.response.ok) throw new Error(`HTTP ${context.response.status}`);
+   *   if (!context.response.ok) throw RuntimeError.create(`HTTP ${context.response.status}`);
    *   return context;
    * }
    * ```

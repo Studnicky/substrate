@@ -1,5 +1,6 @@
 import type { FsmStepInterface } from '@studnicky/fsm';
 
+import { RuntimeError } from '@studnicky/errors';
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
 
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
@@ -59,7 +60,7 @@ export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
         });
     }
 
-    throw new Error(`Unhandled paginator state variant: ${JSON.stringify(state)}`);
+    throw RuntimeError.create(`Unhandled paginator state variant: ${JSON.stringify(state)}`);
   }
 
   private receivePage(

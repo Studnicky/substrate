@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -394,7 +395,7 @@ const runnerMap = {
       typeof keyB !== "object" ||
       keyB === null
     ) {
-      throw new Error(
+      throw RuntimeError.create(
         `Object keys are required for scenario ${scenarioCase.name}`,
       );
     }
@@ -623,7 +624,7 @@ const runnerMap = {
     const cache = createCache<string, number>(scenarioCase);
     const { sizes } = scenarioCase.expected;
     if (sizes === undefined) {
-      throw new Error(
+      throw RuntimeError.create(
         `Expected sizes are required for scenario ${scenarioCase.name}`,
       );
     }
@@ -634,7 +635,7 @@ const runnerMap = {
       secondSize === undefined ||
       afterDeleteSize === undefined
     ) {
-      throw new Error(
+      throw RuntimeError.create(
         `Invalid sizes number array for scenario ${scenarioCase.name}`,
       );
     }
@@ -686,7 +687,7 @@ const runnerMap = {
       }
 
       protected override onExpire(): void {
-        throw new Error(input.throwMessage);
+        throw RuntimeError.create(input.throwMessage);
       }
     }
 
@@ -728,7 +729,7 @@ const runnerMap = {
 
       protected override onHit(): void {
         this.hitCount += 1;
-        throw new Error(input.throwMessage);
+        throw RuntimeError.create(input.throwMessage);
       }
     }
 
@@ -756,7 +757,7 @@ const runnerMap = {
       }
 
       protected override onUpdate(): void {
-        throw new Error(input.throwMessage);
+        throw RuntimeError.create(input.throwMessage);
       }
     }
 

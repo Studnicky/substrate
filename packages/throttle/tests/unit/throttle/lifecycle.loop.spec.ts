@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError } from '@studnicky/errors';
+
 import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/errors/index.js';
 import { Throttle } from '../../../src/throttle/index.js';
 
@@ -82,7 +83,7 @@ type BlockedPairInput = {
 };
 
 function throwActiveNotStarted(): never {
-  throw new Error('active operation was not started');
+  throw RuntimeError.create('active operation was not started');
 }
 
 async function settleLoop(ms: number): Promise<void> {
@@ -127,7 +128,7 @@ function assertHookInvocation(error: HookInvocationError, expected: ScenarioCase
 
 function requireAbortResult(value: ExpectedAbortResult | undefined, label: string): ExpectedAbortResult {
   if (value === undefined) {
-    throw new Error(`Missing expected ${label}`);
+    throw RuntimeError.create(`Missing expected ${label}`);
   }
   return value;
 }
@@ -146,35 +147,35 @@ function assertAbortResult(actual: AbortResult, expected: ExpectedAbortResult): 
 
 function requireBoolean(value: boolean | undefined, label: string): boolean {
   if (value === undefined) {
-    throw new Error(`Missing expected ${label}`);
+    throw RuntimeError.create(`Missing expected ${label}`);
   }
   return value;
 }
 
 function requireNumber(value: number | undefined, label: string): number {
   if (value === undefined) {
-    throw new Error(`Missing expected ${label}`);
+    throw RuntimeError.create(`Missing expected ${label}`);
   }
   return value;
 }
 
 function requireNumberInput(value: number | string | undefined, label: string): number {
   if (typeof value !== 'number') {
-    throw new Error(`Missing numeric input ${label}`);
+    throw RuntimeError.create(`Missing numeric input ${label}`);
   }
   return value;
 }
 
 function requireString(value: string | undefined, label: string): string {
   if (value === undefined) {
-    throw new Error(`Missing expected ${label}`);
+    throw RuntimeError.create(`Missing expected ${label}`);
   }
   return value;
 }
 
 function requireStringInput(value: number | string | undefined, label: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`Missing string input ${label}`);
+    throw RuntimeError.create(`Missing string input ${label}`);
   }
   return value;
 }
@@ -253,7 +254,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'abort-start-hook-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingThrottle extends TrackingThrottle {
       protected override onAbortStart(): void {
@@ -339,7 +340,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-acquire-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingAcquireThrottle extends TrackingThrottle {
       protected override onAcquire(): void {
@@ -358,7 +359,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-release-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingReleaseThrottle extends TrackingThrottle {
       protected override onRelease(): void {
@@ -376,7 +377,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-contended-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingContendedThrottle extends TrackingThrottle {
       protected override onContended(): void {
@@ -404,7 +405,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-acquire-wait-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingAcquireWaitThrottle extends TrackingThrottle {
       protected override onAcquireWait(): void {
@@ -433,7 +434,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-reject-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingRejectThrottle extends TrackingThrottle {
       protected override onReject(): void {
@@ -443,7 +444,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     const throttle = ThrowingRejectThrottle.create(scenarioCase.input.throttle);
     await assert.rejects(throttle.execute(async () => {
-      throw new Error(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
+      throw RuntimeError.create(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
     }), (error) => {
       return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
     });
@@ -523,7 +524,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'on-window-slide-throws': async (scenarioCase) => {
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingWindowSlideThrottle extends TrackingThrottle {
       protected override onWindowSlide(): void {
@@ -640,7 +641,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     const throttle = CountingThrottle.create(scenarioCase.input.throttle);
     await assert.rejects(throttle.execute(async () => {
-      throw new Error(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
+      throw RuntimeError.create(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
     }));
 
     assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
@@ -648,7 +649,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
   'on-release-fires-exactly-once-on-acquire-rollback': async (scenarioCase) => {
     const releaseCounts: number[] = [];
-    const original = new Error(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class CountingRollbackThrottle extends TrackingThrottle {
       protected override onAcquire(): void {

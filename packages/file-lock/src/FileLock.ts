@@ -1,6 +1,6 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
@@ -8,8 +8,11 @@ import type { FileLockStateInterface } from './FileLockStateInterface.js';
 import type { FileLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
 
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
+import { FileLockConfigError } from './errors/FileLockConfigError.js';
+import { FileLockContentionError } from './errors/FileLockContentionError.js';
 import { FileLockMachine } from './FileLockMachine.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
+import { FileRenameLock } from './FileRenameLock.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
@@ -18,6 +21,7 @@ interface FileLockInternalOptionsInterface {
   readonly 'fs': FileSystemInterface;
   readonly 'lockPath': FileLockPathStateEntity.Type['lockPath'];
   readonly 'originalPath': FileLockPathStateEntity.Type['originalPath'];
+  readonly 'renameLock': FileRenameLock;
 }
 
 interface FileLockSubclassInterface<TInstance> extends Function {
@@ -63,8 +67,7 @@ class FileLockInstance {
  *
  * The bare class performs NO observability of its own — it exposes protected
  * lifecycle hooks (`onAcquireStart`, `onAcquireWait`, `onContended`,
- * `onAcquire`, `onRelease`, `onStaleDetected`, `onStaleBreak`, `onTimeout`,
- * `onError`) that a consumer overrides to add logging/timing/metrics. Hook
+ * `onAcquire`, `onRelease`, `onTimeout`, `onError`) that a consumer overrides to add logging/timing/metrics. Hook
  * overrides must not throw or block.
  *
  * @example Subclass with logging
@@ -98,6 +101,7 @@ export class FileLock {
     const fs: FileSystemInterface = options.fileSystem ?? new NodeFileSystem();
     const ownerToken: OwnerTokenInterface = options.ownerToken ?? new NodeOwnerToken();
     const lockPath = `${path}.lock.${ownerToken.get()}`;
+    const renameLock = FileRenameLock.create({ 'fileSystem': fs, 'ownerToken': ownerToken, 'path': path });
 
     const resolveSubclassConstructor = (): FileLockSubclassInterface<TInstance> => {
       return this;
@@ -105,10 +109,10 @@ export class FileLock {
 
     // Construct instance first so protected hooks can fire during acquisition.
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
-      { 'fs': fs, 'lockPath': lockPath, 'originalPath': path }
+      { 'fs': fs, 'lockPath': lockPath, 'originalPath': path, 'renameLock': renameLock }
     ]);
     if (!Predicates.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
-      throw new TypeError('FileLock.create() did not construct the requested subclass.');
+      throw new FileLockConfigError('FileLock.create() did not construct the requested subclass.');
     }
 
     const dispose = (): void => {
@@ -118,10 +122,10 @@ export class FileLock {
     Reflect.set(constructed, Symbol.dispose, dispose);
 
     if (!FileLockInstance.hasDispose(constructed)) {
-      throw new TypeError('FileLock.create() failed to attach Symbol.dispose');
+      throw new FileLockConfigError('FileLock.create() failed to attach Symbol.dispose');
     }
 
-    await constructed.#acquire(path, lockPath, pollMs, timeoutMs);
+    await constructed.#acquire(path, pollMs, timeoutMs);
     return constructed;
   }
 
@@ -130,6 +134,7 @@ export class FileLock {
   readonly #fs: FileSystemInterface;
   readonly #lockPath: string;
   readonly #originalPath: string;
+  readonly #renameLock: FileRenameLock;
   #state: FileLockStateInterface;
 
   protected readonly hooks: HookInvoker;
@@ -138,6 +143,7 @@ export class FileLock {
     this.#fs = options.fs;
     this.#originalPath = options.originalPath;
     this.#lockPath = options.lockPath;
+    this.#renameLock = options.renameLock;
     this.#state = FileLock.#machine.getInitialState();
     this.hooks = new FileLock.#OwnedHookInvoker();
   }
@@ -147,7 +153,7 @@ export class FileLock {
   // Runs on the constructed instance so all hooks fire as `this`.
   // ---------------------------------------------------------------------------
 
-  async #acquire(path: string, lockPath: string, pollMs: number, timeoutMs: number): Promise<void> {
+  async #acquire(path: string, pollMs: number, timeoutMs: number): Promise<void> {
     const deadline = Date.now() + timeoutMs;
     let attempt = 0;
 
@@ -171,7 +177,7 @@ export class FileLock {
     const result = await new Promise<void>((resolve, reject) => {
       const poll = (): void => {
         try {
-          this.#fs.renameSync(path, lockPath);
+          this.#renameLock.acquire();
           this.#state = FileLock.#machine.transition(this.#state, { 'type': 'acquired' }).state;
           this.hooks.invoke('onAcquire', () => {
             const acquireResult = this.onAcquire(path);
@@ -182,8 +188,8 @@ export class FileLock {
           // Rename failed. ENOENT means another holder already renamed `path` away
           // (expected contention for this lock's race); any other code (or no code
           // at all) is a genuine filesystem failure that must fail fast.
-          const actualError = Predicates.isError(error) ? error : new Error(String(error));
-          if (!FileLock.#isContentionError(actualError)) {
+          const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
+          if (!(actualError instanceof FileLockContentionError)) {
             this.hooks.invoke('onError', () => {
               const errorResult = this.onError(path, actualError);
               return errorResult;
@@ -216,19 +222,6 @@ export class FileLock {
       };
       poll();
     });
-    return result;
-  }
-
-  /**
-   * True when `error` represents ENOENT — the source path is gone because
-   * another holder already renamed it to its own lock path. Checks the real
-   * `NodeJS.ErrnoException.code` (native `fs`) and falls back to the
-   * conventional `ENOENT: ...` message prefix (fakes that model an errno in
-   * text, e.g. `@studnicky/virtual-fs`, without a matching `.code`).
-   */
-  static #isContentionError(error: Error): boolean {
-    if ('code' in error && error.code === 'ENOENT') { return true; }
-    const result = error.message.startsWith('ENOENT');
     return result;
   }
 
@@ -266,7 +259,7 @@ export class FileLock {
   release(): void {
     if (this.#state.variant !== 'held') { return; }
     this.#state = FileLock.#machine.transition(this.#state, { 'type': 'released' }).state;
-    this.#fs.renameSync(this.#lockPath, this.#originalPath);
+    this.#renameLock.release();
     this.hooks.invoke('onRelease', () => {
       const result = this.onRelease(this.#originalPath);
       return result;
@@ -312,21 +305,6 @@ export class FileLock {
 
   /** Fires after the file is renamed back to the original path on release. */
   protected onRelease(_path: string): void {}
-
-  /**
-   * Fires when a stale lock file is detected (e.g. from a dead PID).
-   * Not triggered automatically by the base class because stale detection
-   * requires caller-supplied heuristics. Override together with `onStaleBreak`
-   * in a subclass that adds stale-lock recovery logic.
-   */
-  protected onStaleDetected(_path: string): void {}
-
-  /**
-   * Fires after a stale lock file has been broken (removed / renamed away).
-   * Not triggered by the base class; intended for subclasses that implement
-   * stale-lock recovery on top of the base acquisition loop.
-   */
-  protected onStaleBreak(_path: string): void {}
 
   /** Fires when the deadline elapses and acquisition is abandoned. */
   protected onTimeout(_path: string): void {}

@@ -1,5 +1,5 @@
+import { RuntimeError } from '@studnicky/errors';
 /** observedMemoize — override onMemoHit/onMemoMiss/onMemoCoalesced to collect telemetry. Run: npx tsx examples/observedMemoize.ts */
-
 import assert from 'node:assert/strict';
 
 // #region usage
@@ -10,7 +10,7 @@ class TelemetryMemoize extends Memoize<[string], { 'chargeId': string }> {
 
   private static chargeIdKeyDeriver(id: string): string {
     if (id.length === 0 || id.trim().length === 0) {
-      throw new Error('Charge ID cannot be empty');
+      throw RuntimeError.create('Charge ID cannot be empty');
     }
     return `charge:${id}`;
   }

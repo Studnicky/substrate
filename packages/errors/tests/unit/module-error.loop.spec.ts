@@ -1,3 +1,9 @@
+import {
+  PROBLEM_TYPE_BASE,
+  PROBLEM_TYPE_THROWN_PRIMITIVE,
+  PROBLEM_TYPE_THROWN_STRING
+} from '../../src/constants/ProblemConstants.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -18,7 +24,7 @@ type ScenarioCase =
   | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code'; name: string }
   | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario'; name: string }
   | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options'; name: string }
-  | { description: string; expected: { result: { code: string; retryable: boolean; statusCode: number } }; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND'; shape: 'scenario-defaults'; name: string }
+  | { description: string; expected: { result: { code: string; retryable: boolean; status: number } }; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND'; shape: 'scenario-defaults'; name: string }
   | { description: string; shape: 'scenario-retryable-overrides'; name: string }
   | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; shape: 'context-stores-arbitrary-data'; name: string }
   | { description: string; shape: 'context-handles-undefined'; name: string }
@@ -72,10 +78,13 @@ type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
 
-class TestError extends Error {
+class TestError extends BaseError {
   constructor(message: string) {
-    super(message);
-    this.name = 'TestError';
+    super({
+      'code': 'test.error',
+      'message': message,
+      'retryable': false
+    });
   }
 }
 
@@ -90,7 +99,7 @@ class NetworkError extends ModuleError {
       code: defaults.code,
       context: options?.context,
       retryable: options?.retryable ?? defaults.retryable,
-      statusCode: options?.statusCode ?? defaults.statusCode
+      status: options?.status ?? defaults.status
     };
 
     return new NetworkError(message, mergedOptions);
@@ -111,7 +120,7 @@ class MinimalOptionsError extends ModuleError {
       code,
       context: undefined,
       retryable: undefined,
-      statusCode: undefined
+      status: undefined
     });
   }
 
@@ -129,24 +138,24 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(error.message, 'Test error');
     assert.strictEqual(error.code, 'INTERNAL_ERROR');
     assert.strictEqual(error.retryable, false);
-    assert.strictEqual(error.statusCode, 500);
+    assert.strictEqual(error.status, 500);
     assert.strictEqual(error.context, undefined);
   },
 
   'factory-merge-user-options': () => {
-    const cause = new Error('Root cause');
+    const cause = RuntimeError.create('Root cause');
     const context = { operation: 'fetch', userId: '123' };
     const error = ModuleError.create('Test error', {
       cause,
       context,
       retryable: true,
       scenario: 'DATABASE',
-      statusCode: 503
+      status: 503
     });
     assert.strictEqual(error.code, 'DATABASE_ERROR');
     assert.strictEqual(error.cause, cause);
     assert.deepStrictEqual(error.context, context);
-    assert.strictEqual(error.statusCode, 503);
+    assert.strictEqual(error.status, 503);
     assert.strictEqual(error.retryable, true);
   },
 
@@ -166,7 +175,7 @@ const runnerMap: RunnerMap = {
           'code': '',
           'context': undefined,
           'retryable': false,
-          'statusCode': undefined
+          'status': undefined
         });
       }
     }
@@ -191,7 +200,7 @@ const runnerMap: RunnerMap = {
     const error = MinimalOptionsError.build(scenarioCase.input.message, scenarioCase.input.code);
     assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
     assert.strictEqual(error.context, undefined);
-    assert.strictEqual(error.statusCode, undefined);
+    assert.strictEqual(error.status, undefined);
   },
 
   'scenario-defaults': (scenarioCase) => {
@@ -202,7 +211,7 @@ const runnerMap: RunnerMap = {
         : 'Not found';
     const error = ModuleError.create(message, { scenario: scenarioCase.scenario });
     assert.strictEqual(error.code, scenarioCase.expected.result.code);
-    assert.strictEqual(error.statusCode, scenarioCase.expected.result.statusCode);
+    assert.strictEqual(error.status, scenarioCase.expected.result.status);
     assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
   },
 
@@ -271,12 +280,12 @@ const runnerMap: RunnerMap = {
 
   'http-uses-scenario-code': () => {
     const error = ModuleError.create('Not found', { scenario: 'NOT_FOUND' });
-    assert.strictEqual(error.statusCode, 404);
+    assert.strictEqual(error.status, 404);
   },
 
   'http-allows-status-override': () => {
-    const error = ModuleError.create('Test', { scenario: 'INTERNAL', statusCode: 503 });
-    assert.strictEqual(error.statusCode, 503);
+    const error = ModuleError.create('Test', { scenario: 'INTERNAL', status: 503 });
+    assert.strictEqual(error.status, 503);
   },
 
   'retryable-transient': () => {
@@ -290,13 +299,13 @@ const runnerMap: RunnerMap = {
   },
 
   'cause-stores-single': () => {
-    const cause = new Error('Root cause');
+    const cause = RuntimeError.create('Root cause');
     const error = ModuleError.create('Wrapper', { cause, scenario: 'INTERNAL' });
     assert.strictEqual(error.cause, cause);
   },
 
   'cause-builds-chain': () => {
-    const root = new Error('Root cause');
+    const root = RuntimeError.create('Root cause');
     const middle = ModuleError.create('Middle error', { cause: root, scenario: 'INTERNAL' });
     const top = ModuleError.create('Top error', { cause: middle, scenario: 'INTERNAL' });
     assert.strictEqual(top.cause, middle);
@@ -316,7 +325,7 @@ const runnerMap: RunnerMap = {
   },
 
   'chain-nested': () => {
-    const root = new Error('Root');
+    const root = RuntimeError.create('Root');
     const middle = ModuleError.create('Middle', { cause: root, scenario: 'INTERNAL' });
     const top = ModuleError.create('Top', { cause: middle, scenario: 'INTERNAL' });
     const chain = BaseError.getCauseChain(top);
@@ -327,7 +336,7 @@ const runnerMap: RunnerMap = {
   },
 
   'chain-deep': () => {
-    let current: Error = new Error('Root');
+    let current: Error = RuntimeError.create('Root');
     for (let index = 0; index < 9; index += 1) {
       current = ModuleError.create(`Level ${index}`, { cause: current, scenario: 'INTERNAL' });
     }
@@ -355,7 +364,7 @@ const runnerMap: RunnerMap = {
   },
 
   'find-cause-missing': () => {
-    const root = new Error('Root');
+    const root = RuntimeError.create('Root');
     const top = ModuleError.create('Top', { cause: root, scenario: 'INTERNAL' });
     const found = BaseError.findCauseOfType(top, TestError);
     assert.strictEqual(found, undefined);
@@ -372,7 +381,7 @@ const runnerMap: RunnerMap = {
   },
 
   'find-cause-subclass': () => {
-    const root = new Error('Root');
+    const root = RuntimeError.create('Root');
     const network = NetworkError.create('Network failed', { cause: root });
     const top = ModuleError.create('Top', { cause: network, scenario: 'INTERNAL' });
     const found = BaseError.getCauseChain(top).find((error) => { return error instanceof NetworkError; });
@@ -395,7 +404,7 @@ const runnerMap: RunnerMap = {
   },
 
   'has-cause-false': () => {
-    const root = new Error('Root');
+    const root = RuntimeError.create('Root');
     const top = ModuleError.create('Top', { cause: root, scenario: 'INTERNAL' });
     assert.strictEqual(BaseError.hasCauseOfType(top, TestError), false);
   },
@@ -423,11 +432,12 @@ const runnerMap: RunnerMap = {
   'json-basic': () => {
     const error = ModuleError.create('Test error', { scenario: 'INTERNAL' });
     const json = error.toJSON();
-    assert.strictEqual(json.name, 'ModuleError');
-    assert.strictEqual(json.message, 'Test error');
+    assert.strictEqual(json.title, 'ModuleError');
+    assert.strictEqual(json.detail, 'Test error');
     assert.strictEqual(json.code, 'INTERNAL_ERROR');
+    assert.strictEqual(json.type, `${PROBLEM_TYPE_BASE}INTERNAL_ERROR`);
     assert.strictEqual(json.retryable, false);
-    assert.strictEqual(json.statusCode, 500);
+    assert.strictEqual(json.status, 500);
     assert.ok(typeof json.stack === 'string');
   },
 
@@ -436,7 +446,7 @@ const runnerMap: RunnerMap = {
     const error = ModuleError.create('Test', { context, scenario: 'INTERNAL' });
     const json = error.toJSON();
     assert.deepStrictEqual(json.context, context);
-    assert.strictEqual(json.statusCode, 500);
+    assert.strictEqual(json.status, 500);
     assert.strictEqual(json.retryable, false);
   },
 
@@ -447,49 +457,46 @@ const runnerMap: RunnerMap = {
   },
 
   'json-native-cause': () => {
-    const cause = new Error('Root cause');
+    const cause = RuntimeError.create('Root cause');
     const error = ModuleError.create('Test', { cause, scenario: 'INTERNAL' });
-    const json = error.toJSON();
-    assert.ok(json.cause !== undefined);
-    assert.strictEqual((json.cause as { message: string }).message, 'Root cause');
-    assert.strictEqual((json.cause as { name: string }).name, 'Error');
-    assert.ok(typeof (json.cause as { stack: string }).stack === 'string');
+    const causes = error.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.detail, 'Root cause');
+    assert.strictEqual(causes[0]?.name, 'RuntimeError');
+    // A cause node is a summary: only the head carries a stack.
+    assert.strictEqual('stack' in (causes[0] ?? {}), false);
   },
 
   'json-native-primitive-cause': () => {
     const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 42, scenario: 'INTERNAL' }]);
-    const json = error.toJSON();
-    assert.strictEqual(json.cause, 42);
+    const causes = error.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_PRIMITIVE);
+    assert.strictEqual(causes[0]?.detail, '42');
   },
 
   'json-primitive-cause': () => {
     const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 'primitive cause', scenario: 'INTERNAL' }]);
-    const json = error.toJSON();
-    assert.strictEqual(json.cause, 'primitive cause');
+    const causes = error.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_STRING);
+    assert.strictEqual(causes[0]?.detail, 'primitive cause');
   },
 
   'json-module-cause': () => {
     const root = ModuleError.create('Root', { scenario: 'DATABASE' });
     const top = ModuleError.create('Top', { cause: root, scenario: 'INTERNAL' });
-    const json = top.toJSON();
-    assert.ok(json.cause !== undefined);
-    const causeJson = json.cause as Record<string, unknown>;
-    assert.strictEqual(causeJson.message, 'Root');
-    assert.strictEqual(causeJson.code, 'DATABASE_ERROR');
-    assert.strictEqual(causeJson.statusCode, 500);
+    const causes = top.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.detail, 'Root');
+    assert.strictEqual(causes[0]?.code, 'DATABASE_ERROR');
+    assert.strictEqual(causes[0]?.type, `${PROBLEM_TYPE_BASE}DATABASE_ERROR`);
   },
 
   'json-deep-chain': () => {
-    const root = new Error('Root');
+    const root = RuntimeError.create('Root');
     const middle = ModuleError.create('Middle', { cause: root, scenario: 'INTERNAL' });
     const top = ModuleError.create('Top', { cause: middle, scenario: 'INTERNAL' });
-    const json = top.toJSON();
-    assert.ok(json.cause !== undefined);
-    const middleJson = json.cause as Record<string, unknown>;
-    assert.strictEqual(middleJson.code, 'INTERNAL_ERROR');
-    assert.ok(middleJson.cause !== undefined);
-    const rootJson = middleJson.cause as Record<string, unknown>;
-    assert.strictEqual(rootJson.message, 'Root');
+    // The chain is flattened, nearest first, rather than nested.
+    const causes = top.toJSON().causes ?? [];
+    assert.strictEqual(causes[0]?.code, 'INTERNAL_ERROR');
+    assert.strictEqual(causes[1]?.detail, 'Root');
   },
 
   'json-depth-sentinel': () => {
@@ -497,17 +504,12 @@ const runnerMap: RunnerMap = {
     for (let index = 1; index <= CAUSE_CHAIN_DEPTH_LIMIT + 1; index += 1) {
       current = ModuleError.create(`depth-${index}`, { cause: current, scenario: 'INTERNAL' });
     }
-    const json = current.toJSON();
-    let node: unknown = json;
-    let found = false;
-    while (node !== null && node !== undefined) {
-      const rec = node as { cause: unknown };
-      if (typeof rec.cause === 'string' && rec.cause === CAUSE_DEPTH_SENTINEL) {
-        found = true;
-        break;
-      }
-      node = rec.cause;
-    }
+    const causes = current.toJSON().causes ?? [];
+    const found = causes.some((node) => {
+      const result = node.detail === CAUSE_DEPTH_SENTINEL;
+
+      return result;
+    });
     assert.ok(found);
   },
 
@@ -520,7 +522,7 @@ const runnerMap: RunnerMap = {
     assert.ok(jsonString.length > 0);
     const parsed = JSON.parse(jsonString) as Record<string, unknown>;
     assert.strictEqual(parsed.code, 'INTERNAL_ERROR');
-    assert.strictEqual(parsed.statusCode, 500);
+    assert.strictEqual(parsed.status, 500);
   },
 
   'subclass-custom': () => {
@@ -530,7 +532,7 @@ const runnerMap: RunnerMap = {
     assert.ok(error instanceof NetworkError);
     assert.strictEqual(error.name, 'NetworkError');
     assert.strictEqual(error.code, 'CONNECTION_ERROR');
-    assert.strictEqual(error.statusCode, 503);
+    assert.strictEqual(error.status, 503);
     assert.strictEqual(error.retryable, true);
   },
 
@@ -543,7 +545,8 @@ const runnerMap: RunnerMap = {
   'subclass-serialization-name': () => {
     const error = NetworkError.create('Test');
     const json = error.toJSON();
-    assert.strictEqual(json.name, 'NetworkError');
+    // RFC 9457 3.1.2: title names the problem TYPE, so a subclass names itself.
+    assert.strictEqual(json.title, 'NetworkError');
     assert.strictEqual(json.code, 'CONNECTION_ERROR');
   },
 

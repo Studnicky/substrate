@@ -3,7 +3,8 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import { ConfigurationError } from '@studnicky/config';
 import {
   DefaultHttpErrorClassifier,
-  HookInvoker
+  HookInvoker,
+  RuntimeError
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
 import { SchemaIntakeError } from '@studnicky/json';
@@ -111,7 +112,7 @@ export class Retry implements RetryInterface {
       const from = this.#state;
 
       if (!this.#owner.guardCall(from, to)) {
-        throw new Error(`Illegal state transition: ${from} → ${to}`);
+        throw RuntimeError.create(`Illegal state transition: ${from} → ${to}`);
       }
 
       this.#state = to;
@@ -142,7 +143,7 @@ export class Retry implements RetryInterface {
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isObjectLike(constructed) || !Retry.isConstructed(constructed, this)) {
-      throw new TypeError('Retry.create() must construct a Retry instance');
+      throw RuntimeError.create('Retry.create() must construct a Retry instance');
     }
     const result = constructed;
     return result;
@@ -317,7 +318,7 @@ export class Retry implements RetryInterface {
       const result: { 'result': T; 'success': true } = { 'result': await callback(), 'success': true };
       return result;
     } catch (error) {
-      const caughtError = Predicates.isError(error) ? error : new Error(String(error));
+      const caughtError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
       const result: { 'error': Error; 'success': false } = { 'error': caughtError, 'success': false };
       return result;
     }

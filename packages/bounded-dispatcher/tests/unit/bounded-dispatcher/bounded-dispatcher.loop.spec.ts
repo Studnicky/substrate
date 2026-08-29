@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -119,14 +120,14 @@ type SchedulerMaterializer = (descriptor: DispatcherSchedulerDescriptor) => Mate
 
 function requireBusOptionsDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { shape: 'options' }> {
   if (descriptor.shape !== 'options') {
-    throw new Error(`Expected options bus descriptor, received ${descriptor.shape}`);
+    throw RuntimeError.create(`Expected options bus descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
 
 function requireRejectingBusDescriptor(descriptor: DispatcherBusDescriptor): Extract<DispatcherBusDescriptor, { shape: 'rejecting' }> {
   if (descriptor.shape !== 'rejecting') {
-    throw new Error(`Expected rejecting bus descriptor, received ${descriptor.shape}`);
+    throw RuntimeError.create(`Expected rejecting bus descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
@@ -135,7 +136,7 @@ function requireVirtualSchedulerDescriptor(
   descriptor: DispatcherSchedulerDescriptor
 ): Extract<DispatcherSchedulerDescriptor, { shape: 'virtual' }> {
   if (descriptor.shape !== 'virtual') {
-    throw new Error(`Expected virtual scheduler descriptor, received ${descriptor.shape}`);
+    throw RuntimeError.create(`Expected virtual scheduler descriptor, received ${descriptor.shape}`);
   }
   return descriptor;
 }
@@ -160,7 +161,7 @@ function materializeRejectingBus(
 ): BoundedDispatcherConfigInterface['bus'] | undefined {
   const rejectingDescriptor = requireRejectingBusDescriptor(descriptor);
   if (cause === undefined) {
-    throw new Error('Rejecting bus descriptor requires a publication cause');
+    throw RuntimeError.create('Rejecting bus descriptor requires a publication cause');
   }
   return new RejectingEventBus(rejectingDescriptor.failureOrdinal, cause);
 }
@@ -221,7 +222,7 @@ function createVirtualDispatcher(config: DispatcherScenarioConfig): {
 } {
   const materialized = materializeDispatcher(config);
   if (materialized.scheduler === undefined) {
-    throw new Error('Virtual scheduler descriptor is required');
+    throw RuntimeError.create('Virtual scheduler descriptor is required');
   }
   return {
     'dispatcher': materialized.dispatcher,
@@ -255,14 +256,14 @@ function dispatchErrorMessage(payload: BoundedDispatcherTopicMapInterface['dispa
 
 function requireBatch(input: ScenarioCase['input']): BatchInput {
   if (input.batch === undefined) {
-    throw new Error('Scenario batch input is required');
+    throw RuntimeError.create('Scenario batch input is required');
   }
   return input.batch;
 }
 
 function createTaskBatch(batch: BatchInput, task: () => Promise<void>): Promise<void>[] {
   if (batch.taskCount === undefined) {
-    throw new Error('Scenario batch.taskCount is required');
+    throw RuntimeError.create('Scenario batch.taskCount is required');
   }
   return Array.from({ length: batch.taskCount }, () => task());
 }
@@ -284,7 +285,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   'dispatch-error': async ({ expected, input }) => {
     const dispatcher = createDispatcher(input.dispatcher);
     const received: BoundedDispatcherTopicMapInterface['dispatch'][] = [];
-    const boom = new Error(String(input.errorMessage));
+    const boom = RuntimeError.create(String(input.errorMessage));
 
     dispatcher.getBus().subscribe('dispatch', (payload) => { received.push(payload); });
 
@@ -374,7 +375,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'reject-start-publication': async ({ expected, input }) => {
-    const publicationCause = new Error(String(input.publicationCauseMessage));
+    const publicationCause = RuntimeError.create(String(input.publicationCauseMessage));
     const dispatcher = createRejectingDispatcher(input.dispatcher, publicationCause);
     const result = await dispatcher.dispatch(() => String(input.result));
     await flushMicrotasks();
@@ -384,7 +385,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'reject-success-publication': async ({ expected, input }) => {
-    const publicationCause = new Error(String(input.publicationCauseMessage));
+    const publicationCause = RuntimeError.create(String(input.publicationCauseMessage));
     const dispatcher = createRejectingDispatcher(input.dispatcher, publicationCause);
     const result = await dispatcher.dispatch(async () => String(input.result));
     await flushMicrotasks();
@@ -394,9 +395,9 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
   },
 
   'reject-error-publication': async ({ expected, input }) => {
-    const publicationCause = new Error(String(input.publicationCauseMessage));
+    const publicationCause = RuntimeError.create(String(input.publicationCauseMessage));
     const dispatcher = createRejectingDispatcher(input.dispatcher, publicationCause);
-    const workError = new Error(String(input.workErrorMessage));
+    const workError = RuntimeError.create(String(input.workErrorMessage));
     await assert.rejects(
       dispatcher.dispatch(async () => { throw workError; }),
       workError
@@ -418,27 +419,27 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     assert.equal(first.length, Number(expected.hookErrorCount));
     const firstError = first[0];
     if (firstError === undefined) {
-      throw new Error('Expected a hook failure snapshot');
+      throw RuntimeError.create('Expected a hook failure snapshot');
     }
     firstError.message = 'mutated snapshot';
     const firstCause = firstError.cause;
     if (typeof firstCause !== 'object' || firstCause === null) {
-      throw new Error('Expected an object cause snapshot');
+      throw RuntimeError.create('Expected an object cause snapshot');
     }
     const firstDetails = Reflect.get(firstCause, 'details');
     if (typeof firstDetails !== 'object' || firstDetails === null) {
-      throw new Error('Expected nested cause details');
+      throw RuntimeError.create('Expected nested cause details');
     }
     assert.equal(Reflect.get(firstDetails, 'value'), Number(expected.snapshotValue));
     Reflect.set(firstDetails, 'value', 99);
 
     const secondError = dispatcher.getHookErrors()[0];
     if (secondError === undefined) {
-      throw new Error('Expected the retained hook failure');
+      throw RuntimeError.create('Expected the retained hook failure');
     }
     const secondCause = secondError.cause;
     if (typeof secondCause !== 'object' || secondCause === null) {
-      throw new Error('Expected a second object cause snapshot');
+      throw RuntimeError.create('Expected a second object cause snapshot');
     }
     const secondDetails = Reflect.get(secondCause, 'details');
 

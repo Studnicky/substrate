@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
@@ -63,7 +64,7 @@ function clientConfig(scenarioCase: ScenarioCase): Parameters<typeof FetchClient
 function headerInput(scenarioCase: ScenarioCase): string {
   const { header } = scenarioCase.expected;
   if (header === undefined) {
-    throw new Error(`${scenarioCase.name} must define expected.header`);
+    throw RuntimeError.create(`${scenarioCase.name} must define expected.header`);
   }
   return header;
 }
@@ -162,7 +163,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     class StrictClient extends FetchClient {
       protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
         if (!context.response.ok) {
-          throw new Error(`HTTP error: ${context.response.status}`);
+          throw RuntimeError.create(`HTTP error: ${context.response.status}`);
         }
         return context;
       }

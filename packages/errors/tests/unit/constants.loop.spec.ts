@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -18,7 +19,7 @@ type ModuleErrorScenarioCase<S extends ModuleErrorScenarioShape> = {
     context?: Record<string, unknown>;
     causeMessage?: string;
     retryable?: boolean;
-    statusCode?: number;
+    status?: number;
   };
   input: {
     error: {
@@ -28,7 +29,7 @@ type ModuleErrorScenarioCase<S extends ModuleErrorScenarioShape> = {
         context?: Record<string, unknown>;
         retryable?: boolean;
         scenario: keyof typeof ErrorDefaults;
-        statusCode?: number;
+        status?: number;
       };
     };
   };
@@ -45,7 +46,7 @@ type ScenarioCase =
       expected: {
         code: keyof typeof ErrorCode;
         retryable: boolean;
-        statusCode: number;
+        status: number;
       };
       input: { scenario: keyof typeof ErrorDefaults };
       shape: 'defaults';
@@ -68,14 +69,14 @@ function createScenarioModuleError(scenarioCase: Extract<ScenarioCase, { shape: 
   const { causeMessage, message, options } = scenarioCase.input.error;
   return ModuleError.create(message, {
     ...options,
-    ...(causeMessage === undefined ? {} : { cause: new Error(causeMessage) })
+    ...(causeMessage === undefined ? {} : { cause: RuntimeError.create(causeMessage) })
   });
 }
 
 const runModuleErrorAuthentication: ScenarioRunner<'module-error-authentication'> = (scenarioCase) => {
   const error = createScenarioModuleError(scenarioCase);
   assert.strictEqual(error.code, scenarioCase.expected.code);
-  assert.strictEqual(error.statusCode, scenarioCase.expected.statusCode);
+  assert.strictEqual(error.status, scenarioCase.expected.status);
   assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
   assert.deepStrictEqual(error.context, scenarioCase.expected.context);
 };
@@ -107,7 +108,7 @@ const runIntegrationRetryableOverride: ScenarioRunner<'integration-retryable-ove
 
 const runIntegrationStatusCodeOverride: ScenarioRunner<'integration-status-code-override'> = (scenarioCase) => {
   const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.statusCode, scenarioCase.expected.statusCode);
+  assert.strictEqual(error.status, scenarioCase.expected.status);
   assert.strictEqual(error.code, scenarioCase.expected.code);
 };
 

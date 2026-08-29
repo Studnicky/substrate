@@ -1,9 +1,9 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
-
-import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { HookInvoker } from '@studnicky/errors';
+import {
+  type ErrorClassifierFunctionInterface, type ErrorClassifierInterface, HookInvoker, RuntimeError
+} from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
@@ -79,7 +79,7 @@ export class CircuitBreaker {
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
     if (!Predicates.isObjectLike(result) || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
-      throw new TypeError('CircuitBreaker.create() did not construct the requested subclass.');
+      throw RuntimeError.create('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -118,7 +118,7 @@ export class CircuitBreaker {
       }
       return result;
     } catch (caughtError) {
-      const error = Predicates.isError(caughtError) ? caughtError : new Error(String(caughtError));
+      const error = Predicates.isError(caughtError) ? caughtError : RuntimeError.create(String(caughtError));
       const classification = this.#classifyError(error, this.#classifierAttemptCount);
       if (!classification.retryable) {
         if (!wasHalfOpen) {
@@ -273,7 +273,7 @@ export class CircuitBreaker {
     ]);
     const handler = handlers.get(effect.variant);
     if (handler === undefined) {
-      throw new TypeError(`No handler for effect '${effect.variant}'`);
+      throw RuntimeError.create(`No handler for effect '${effect.variant}'`);
     }
     handler();
   }

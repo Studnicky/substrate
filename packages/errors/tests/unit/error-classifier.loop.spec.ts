@@ -1,3 +1,4 @@
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -10,7 +11,7 @@ class TestClassifier extends ErrorClassifier {
   }
 
   public classify(): never {
-    throw new Error('not used');
+    throw RuntimeError.create('not used');
   }
 
   public messageContainsPublic(error: Error, ...patterns: string[]): boolean {
@@ -55,7 +56,7 @@ type RunnerMap = {
 };
 
 const runMessageContains = (scenario: MessageScenarioCase, classifier: TestClassifier): void => {
-  assert.strictEqual(classifier.messageContainsPublic(new Error(scenario.input.message), ...(scenario.input.patterns ?? [])), scenario.expected.value);
+  assert.strictEqual(classifier.messageContainsPublic(RuntimeError.create(scenario.input.message), ...(scenario.input.patterns ?? [])), scenario.expected.value);
 };
 
 const runnerMap: RunnerMap = {

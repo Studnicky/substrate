@@ -1,7 +1,8 @@
+import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+
 
 import {
   MaximumRetriesExceededError,
@@ -51,7 +52,7 @@ async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioI
 
     const attemptMap: Record<AttemptOutcome, () => string> = {
       'failure': () => {
-        throw new Error(String(input.errorMessage));
+        throw RuntimeError.create(String(input.errorMessage));
       },
       'success': () => String(input.recovered)
     };
@@ -78,7 +79,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'derived-errors-expose-detached-diagnostics': (scenario) => {
     const { expected, input } = scenario;
-    const source = new Error(String(input.sourceMessage));
+    const source = RuntimeError.create(String(input.sourceMessage));
     const exhausted = new MaximumRetriesExceededError(String(input.exhaustedMessage), Number(input.attemptNumber), Number(input.retries), [source]);
     const nonRetryable = new NonRetryableError(String(input.rejectedMessage), source, String(input.fatalReason), Number(input.attemptNumber));
 
@@ -125,7 +126,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       }
     }
 
-    const error = new EmptyErrorsNonRetryableError(String(input.failedMessage), new Error(String(input.sourceMessage)), String(input.fatalReason), Number(input.attemptNumber));
+    const error = new EmptyErrorsNonRetryableError(String(input.failedMessage), RuntimeError.create(String(input.sourceMessage)), String(input.fatalReason), Number(input.attemptNumber));
     assert.equal(error.originalError.message, String(input.fallbackMessage));
   },
   'retry-error-empty': (scenario) => {
@@ -137,7 +138,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'retry-error-preserves-error-name': (scenario) => {
     const { expected, input } = scenario;
-    const source = new Error(String(input.sourceMessage));
+    const source = RuntimeError.create(String(input.sourceMessage));
     source.name = String(input.errorName);
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': source });
@@ -149,7 +150,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'retry-error-preserves-history-error-name': (scenario) => {
     const { expected, input } = scenario;
-    const source = new Error(String(input.sourceMessage));
+    const source = RuntimeError.create(String(input.sourceMessage));
     source.name = String(input.errorName);
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'errors': [source] });
@@ -162,7 +163,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'retry-error-projections-are-detached': (scenario) => {
     const { expected, input } = scenario;
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), {
-      cause: new Error(String(input.outerMessage), { cause: new Error(String(input.innerMessage)) })
+      cause: RuntimeError.create(String(input.outerMessage), { cause: RuntimeError.create(String(input.innerMessage)) })
     });
     const [projectedError] = retryError.errors;
     const projectedCause = retryError.cause;
@@ -173,7 +174,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     projectedError.message = String(input.mutatedHistoryMessage);
     projectedCause.message = String(input.mutatedCauseMessage);
     Reflect.set(projectedError.cause, 'message', String(input.mutatedInnerMessage));
-    assert.equal(Reflect.set(retryError.errors, 1, new Error(String(input.appendedMessage))), false);
+    assert.equal(Reflect.set(retryError.errors, 1, RuntimeError.create(String(input.appendedMessage))), false);
 
     const [nextError] = retryError.errors;
     assert.ok(nextError instanceof Error);
@@ -209,7 +210,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const prototype = new FallbackPrototype(String(input.tag));
 
-    const error = new Error(String(input.failedMessage), { cause: undefined });
+    const error = RuntimeError.create(String(input.failedMessage), { cause: undefined });
     Reflect.set(error, 'prototypeData', prototype);
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: error });
@@ -224,7 +225,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'retry-error-snapshot-cycles': (scenario) => {
     const { expected, input } = scenario;
     const detail = { message: String(input.detailMessage) };
-    const cause = new Error(String(input.failedMessage), { cause: undefined });
+    const cause = RuntimeError.create(String(input.failedMessage), { cause: undefined });
     Reflect.set(detail, 'self', detail);
     Reflect.set(cause, 'detail', detail);
 
@@ -241,12 +242,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'retry-error-snapshots': (scenario) => {
     const { expected, input } = scenario;
     const details = { attempt: Number(input.attempt) };
-    const inner = Object.assign(new Error(String(input.innerMessage)), { details });
-    const outer = new Error(String(input.outerMessage), { cause: inner });
+    const inner = Object.assign(RuntimeError.create(String(input.innerMessage)), { details });
+    const outer = RuntimeError.create(String(input.outerMessage), { cause: inner });
     const inputErrors = [outer];
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: outer, errors: inputErrors });
 
-    inputErrors.push(new Error(String(input.laterMessage)));
+    inputErrors.push(RuntimeError.create(String(input.laterMessage)));
     outer.message = String(input.mutatedOuterMessage);
     inner.message = String(input.mutatedInnerMessage);
     details.attempt = Number(input.mutatedAttempt);

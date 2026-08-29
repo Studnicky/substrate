@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   beforeEach, describe, it
@@ -244,7 +245,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throwing-on-default': () => {
     class ThrowingDefaultEvaluator extends FlagEvaluator {
       protected override onDefault(): void {
-        throw new Error('onDefault boom');
+        throw RuntimeError.create('onDefault boom');
       }
     }
 
@@ -258,7 +259,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throwing-on-rule-mismatch': () => {
     class ThrowingMismatchEvaluator extends FlagEvaluator {
       protected override onRuleMismatch(): void {
-        throw new Error('onRuleMismatch boom');
+        throw RuntimeError.create('onRuleMismatch boom');
       }
     }
 
@@ -273,7 +274,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throwing-on-evaluate': () => {
     class ThrowingEvaluateEvaluator extends FlagEvaluator {
       protected override onEvaluate(): void {
-        throw new Error('onEvaluate boom');
+        throw RuntimeError.create('onEvaluate boom');
       }
     }
 
@@ -288,7 +289,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'async-on-evaluate-safe': () => {
     class AsyncRejectingEvaluateEvaluator extends FlagEvaluator {
       protected override onEvaluate(): Promise<void> {
-        return Promise.reject(new Error('onEvaluate async boom'));
+        return Promise.reject(RuntimeError.create('onEvaluate async boom'));
       }
     }
 
@@ -328,7 +329,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   const runner = runnerMap[shape];
   if (runner === undefined) {
-    throw new Error(`No runner registered for shape: ${shape}`);
+    throw RuntimeError.create(`No runner registered for shape: ${shape}`);
   }
   await runner();
 }

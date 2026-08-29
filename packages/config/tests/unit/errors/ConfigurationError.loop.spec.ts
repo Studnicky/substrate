@@ -1,7 +1,8 @@
+import { RuntimeError, BaseError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '@studnicky/errors';
+
 
 import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
 
@@ -66,14 +67,14 @@ const constructionAssertions: Record<ConstructionOutcome, (err: ConfigurationErr
 
 function expectedString(value: string | undefined, label: string): string {
   if (value === undefined) {
-    throw new Error(`${label} is required`);
+    throw RuntimeError.create(`${label} is required`);
   }
   return value;
 }
 
 const directAssertions: Record<DirectShape, (scenario: DirectScenario) => void> = {
   'cause': (scenario): void => {
-    const cause = new Error(expectedString(scenario.causeMessage, 'causeMessage'));
+    const cause = RuntimeError.create(expectedString(scenario.causeMessage, 'causeMessage'));
     const err = ConfigurationError.create(scenario.message, cause);
 
     assert.strictEqual(err.message, scenario.message);
@@ -86,7 +87,8 @@ const directAssertions: Record<DirectShape, (scenario: DirectScenario) => void> 
     const json = err.toJSON();
 
     assert.strictEqual(json['code'], expectedString(scenario.outcome.code, 'outcome.code'));
-    assert.strictEqual(json['message'], expectedString(scenario.outcome.message, 'outcome.message'));
+    // RFC 9457 3.1.4: the occurrence-specific message is `detail`.
+    assert.strictEqual(json['detail'], expectedString(scenario.outcome.message, 'outcome.message'));
   },
   'message': (scenario): void => {
     const err = ConfigurationError.create(scenario.message);

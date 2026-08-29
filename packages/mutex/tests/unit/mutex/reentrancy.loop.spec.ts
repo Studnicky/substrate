@@ -1,7 +1,8 @@
+import { RuntimeError, HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors';
+
 
 import { Mutex } from '../../../src/mutex/index.js';
 import scenarioGroups from './reentrancy.scenarios.json' with { type: 'json' };
@@ -35,7 +36,7 @@ type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape
 function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
   const item = items[index];
   if (item === undefined) {
-    throw new Error(`${label} is missing item ${index}`);
+    throw RuntimeError.create(`${label} is missing item ${index}`);
   }
   return item;
 }

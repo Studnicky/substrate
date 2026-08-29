@@ -1,10 +1,11 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
+
 import { CallIdentity } from './CallIdentity.js';
 import {
   FUNCTION_TYPES, ITERATION_METHODS, ITERATION_OWNERS, LOOP_TYPES
 } from './constants/LoopContextConstants.js';
-import { ObjectGuard } from './ObjectGuard.js';
 
 // WHY "INSIDE A LOOP" IS A RESOLVED QUESTION, NOT A SYNTACTIC ONE.
 //
@@ -43,7 +44,7 @@ class IterationCallback {
   public static isPerElement(functionNode: Rule.Node, context: Rule.RuleContext): boolean {
     const parent = functionNode.parent;
 
-    if (parent === null || !ObjectGuard.isObject(parent)) {
+    if (parent === null || !Predicates.isRecord(parent)) {
       return false;
     }
     if (parent.type !== 'CallExpression') {

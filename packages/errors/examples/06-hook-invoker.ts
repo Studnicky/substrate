@@ -1,7 +1,7 @@
+import assert from 'node:assert/strict';
 /** 06-hook-invoker — HookInvoker with record-and-continue error handling. Run: npx tsx packages/errors/examples/06-hook-invoker.ts */
 
-import assert from 'node:assert/strict';
-
+import { RuntimeError } from '../src/errors/RuntimeError.js';
 // #region usage
 import { type HookInvocationError, HookInvoker } from '../src/index.js';
 
@@ -19,7 +19,7 @@ class ObservedCounter {
   getHookErrors(): readonly HookInvocationError[] {
     const diagnostics = this.#hooks.getHookErrors();
     if (diagnostics.length !== this.#hooks.hookErrorCount) {
-      throw new Error('Hook diagnostic projection count mismatch');
+      throw RuntimeError.create('Hook diagnostic projection count mismatch');
     }
     return diagnostics;
   }
@@ -46,7 +46,7 @@ class ObservedCounter {
 class ThrowingObservedCounter extends ObservedCounter {
   protected override onIncrement(next: number): void {
     if (next === 2) {
-      throw new Error(`refusing to observe value ${String(next)}`);
+      throw RuntimeError.create(`refusing to observe value ${String(next)}`);
     }
   }
 }

@@ -1,0 +1,38 @@
+{
+  "runs": [
+    {
+      "name": "function registry detection",
+      "ruleName": "no-function-registries",
+      "valid": [
+        {
+          "code": "const operation = { execute: (value: string): string => value };",
+          "name": "single function property"
+        },
+        {
+          "code": "const data = { left: 1, right: 2 };",
+          "name": "data object"
+        }
+      ],
+      "invalid": [
+        {
+          "code": "const operators = { equals: (value: string): boolean => value === 'x', contains: (value: string): boolean => value.includes('x') };",
+          "errors": [
+            {
+              "messageId": "functionRegistry"
+            }
+          ],
+          "name": "multiple arrow functions"
+        },
+        {
+          "code": "const handlers = { first() { return 1; }, second() { return 2; } };",
+          "errors": [
+            {
+              "messageId": "functionRegistry"
+            }
+          ],
+          "name": "multiple method shorthands"
+        }
+      ]
+    }
+  ]
+}

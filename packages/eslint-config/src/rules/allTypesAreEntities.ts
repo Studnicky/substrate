@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { Predicates } from '@studnicky/types';
 import {
   getCombinedModifierFlags,
   isIdentifier,
@@ -17,7 +18,6 @@ import {
   type TypeAliasDeclaration
 } from 'typescript';
 
-import { ObjectGuard } from './shared/ObjectGuard.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -31,14 +31,14 @@ interface ParserServicesInterface {
 
 class ParserServices {
   static has(value: unknown): value is ParserServicesInterface {
-    if (!ObjectGuard.isObject(value)) {
+    if (!Predicates.isRecord(value)) {
       return false;
     }
 
     const program = value.program;
     const nodeMap = value.esTreeNodeToTSNodeMap;
 
-    if (!ObjectGuard.isObject(program) || !ObjectGuard.isObject(nodeMap)) {
+    if (!Predicates.isRecord(program) || !Predicates.isRecord(nodeMap)) {
       return false;
     }
 

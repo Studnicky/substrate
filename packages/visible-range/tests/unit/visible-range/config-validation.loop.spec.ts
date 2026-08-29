@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -43,7 +44,7 @@ function buildConfig(config: SerializableVisibleRangeConfig): VisibleRangeConfig
 }
 
 function runErrorArgsCase(): void {
-  const cause = new Error('cause');
+  const cause = RuntimeError.create('cause');
   const error = new VisibleRangeError('manual visible-range error', {
     'cause': cause,
     'correlationId': 'corr-123',

@@ -1,12 +1,10 @@
+import type { Context } from '@studnicky/context';
+
 /**
  * One-shot request execution pattern composing fetch, retry, signal, and context, with
  * lifecycle hooks bracketing the retry loop for observability.
  */
-
-import type { Context } from '@studnicky/context';
-import type { HookInvocationError } from '@studnicky/errors';
-
-import { HookInvoker } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
@@ -154,7 +152,7 @@ export class RequestExecutor {
 
         return result;
       } catch (cause) {
-        const error = Predicates.isError(cause) ? cause : new Error(String(cause));
+        const error = Predicates.isError(cause) ? cause : RuntimeError.create(String(cause));
         this.hooks.invoke('onExecuteError', () => {
           const hookResult = this.onExecuteError(error);
           return hookResult;

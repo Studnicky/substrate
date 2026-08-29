@@ -1,6 +1,7 @@
 import type { VirtualTimeCounter } from '@studnicky/clock';
 import type { HookInvoker } from '@studnicky/errors';
 
+import { RuntimeError } from '@studnicky/errors';
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -83,7 +84,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options.counter]);
     if (!Predicates.isObjectLike(result) || !VirtualSchedulerInstance.belongsTo(this, result)) {
-      throw new TypeError('VirtualScheduler.create() did not construct the requested subclass.');
+      throw RuntimeError.create('VirtualScheduler.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -141,7 +142,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     try {
       fireResult = task.fire();
     } catch (error) {
-      const taskError = error instanceof Error ? error : new Error(String(error));
+      const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
       this.hooks.invoke('onFireError', () => {
         const result = this.onFireError(task.id, taskError);
         return result;
@@ -151,7 +152,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
 
     if (fireResult instanceof Promise) {
       fireResult.catch((error) => {
-        const taskError = error instanceof Error ? error : new Error(String(error));
+        const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
         this.hooks.invoke('onFireError', () => {
           const result = this.onFireError(task.id, taskError);
           return result;

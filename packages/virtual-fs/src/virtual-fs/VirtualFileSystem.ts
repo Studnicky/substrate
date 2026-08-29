@@ -1,6 +1,6 @@
 import type { ClockProviderInterface } from '@studnicky/clock';
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
@@ -63,12 +63,12 @@ export class VirtualFileSystem implements FileSystemInterface {
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options ?? {}]);
     if (!Predicates.isObjectLike(constructed)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );
     }
     if (!VirtualFileSystem.isConstructed(constructed, this)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );
     }

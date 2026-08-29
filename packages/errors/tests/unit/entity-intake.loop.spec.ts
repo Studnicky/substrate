@@ -3,6 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
+import { CauseNodeEntity } from '../../src/entities/CauseNodeEntity.js';
 import { ErrorClassificationEntity } from '../../src/entities/ErrorClassificationEntity.js';
 import { ErrorCodeDescriptorEntity } from '../../src/entities/ErrorCodeDescriptorEntity.js';
 import { ErrorDiagnosticEntity } from '../../src/entities/ErrorDiagnosticEntity.js';
@@ -18,10 +19,14 @@ import { ErrorWithSyscallEntity } from '../../src/entities/ErrorWithSyscallEntit
 import { HookInvokerOptionsEntity } from '../../src/entities/HookInvokerOptionsEntity.js';
 import { ValidationAggregateViewEntity } from '../../src/entities/ValidationAggregateViewEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
-import { ValidationProblemDetailsEntity } from '../../src/entities/ValidationProblemDetailsEntity.js';
+import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
 import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
 import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
+import {
+  PROBLEM_TITLE_ERROR, PROBLEM_TYPE_ERROR
+} from '../../src/constants/ProblemConstants.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 
 void describe('errors entity intake boundaries', () => {
@@ -57,8 +62,24 @@ void describe('errors entity intake boundaries', () => {
     assert.throws(() => ErrorWithStatusEntity.create({ 'status': Number.NaN }), ValidationError);
   });
 
+  void it('rejects an invalid cause node with RuntimeError', () => {
+    assert.throws(
+      () => CauseNodeEntity.intake({ 'detail': 'failure', 'title': 'Error' }),
+      (error) => {
+        assert.ok(error instanceof RuntimeError);
+        assert.strictEqual(error.code, 'errors.runtime');
+        return true;
+      }
+    );
+  });
+
   void it('provides intake and create for every object entity', () => {
     const contracts: readonly (() => void)[] = [
+      () => {
+        const value: CauseNodeEntity.Type = { 'detail': 'failure', 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR };
+        assert.deepEqual(CauseNodeEntity.intake(value), value);
+        assert.deepEqual(CauseNodeEntity.create(value), value);
+      },
       () => {
         assert.deepEqual(ErrorClassificationEntity.intake({ 'retryable': true }), { 'retryable': true });
         assert.deepEqual(ErrorClassificationEntity.create({ 'retryable': true }), { 'retryable': true });
@@ -135,8 +156,8 @@ void describe('errors entity intake boundaries', () => {
       },
       () => {
         const value = { 'detail': 'invalid', 'errors': [{ 'keyword': 'type', 'message': 'wrong type', 'path': '/field' }], 'status': 422, 'title': 'Invalid', 'type': 'https://example.test/problem' };
-        assert.deepEqual(ValidationProblemDetailsEntity.intake(value), value);
-        assert.deepEqual(ValidationProblemDetailsEntity.create(value), value);
+        assert.deepEqual(ProblemDetailsEntity.intake(value), value);
+        assert.deepEqual(ProblemDetailsEntity.create(value), value);
       },
       () => {
         const value = { 'status': 422, 'title': 'Invalid', 'type': 'https://example.test/problem' };

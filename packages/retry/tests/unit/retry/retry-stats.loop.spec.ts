@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -40,7 +41,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
     const { expected, input } = scenarioCase;
     const retry = createScenarioRetry(input);
 
-    await assert.rejects(retry.execute(async () => { throw new Error(String(input.errorMessage)); }));
+    await assert.rejects(retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }));
     const stats = retry.getStats();
     assert.strictEqual(stats.failedRequests, Number(expected.failedRequests));
     assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
@@ -107,7 +108,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 
     await assert.rejects(retry.execute(async () => {
       attempts += 1;
-      throw new Error(String(input.errorMessage));
+      throw RuntimeError.create(String(input.errorMessage));
     }));
     const stats = retry.getStats();
     assert.strictEqual(stats.totalRetries, Number(expected.totalRetries));

@@ -1,4 +1,4 @@
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
@@ -84,12 +84,12 @@ export class LruCache<K, V> {
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(constructed)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'LruCache.create() must construct a LruCache instance'
       );
     }
     if (!LruCache.isConstructed<TInstance>(constructed, this)) {
-      throw new TypeError(
+      throw RuntimeError.create(
         'LruCache.create() must construct a LruCache instance'
       );
     }

@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -132,7 +133,7 @@ const runnerMap: RunnerMap = {
   },
 
   'signal-already-aborted': async (scenarioCase) => {
-    const abortReason = new Error('signal-already-aborted: composed signal reason');
+    const abortReason = RuntimeError.create('signal-already-aborted: composed signal reason');
 
     class AbortedSignal extends Signal {
       public constructor() {
@@ -226,7 +227,7 @@ const runnerMap: RunnerMap = {
       }
 
       protected override async onCompose(): Promise<void> {
-        throw new Error('signal compose failed');
+        throw RuntimeError.create('signal compose failed');
       }
     }
 

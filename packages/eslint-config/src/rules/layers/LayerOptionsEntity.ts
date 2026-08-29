@@ -23,7 +23,7 @@ export namespace LayerOptionsEntity {
         'type': 'object'
       },
       'bindings': {
-        'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose kind applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.',
+        'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose unit applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.',
         'items': LayerBindingEntity.Schema,
         'type': 'array'
       },
