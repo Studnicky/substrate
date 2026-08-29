@@ -30,19 +30,28 @@ if [ -f .changeset/invalid.md ]; then
 fi
 '
   PATH="$repo/bin:$PATH"
-  if assert_changeset_required 2>/dev/null; then
+  git add -A
+  git commit -q -m "chore: base release state"
+  git update-ref refs/remotes/origin/main HEAD
+  if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected missing changeset to fail"
   fi
   mkdir -p .changeset
   : > .changeset/empty.md
-  if assert_changeset_required 2>/dev/null; then
+  git add .changeset/empty.md
+  git commit -q -m "chore: empty changeset"
+  if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected empty changeset to fail"
   fi
   printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/a.md
-  assert_changeset_required
+  git add .changeset/a.md
+  git commit -q -m "chore: add changeset"
+  assert_changeset_required origin/main
   assert_eq "changeset status base" "changeset status --since=origin/main" "$(cat .pnpm-command)"
   printf '%s\n' 'invalid' > .changeset/invalid.md
-  if assert_changeset_required 2>/dev/null; then
+  git add .changeset/invalid.md
+  git commit -q -m "chore: invalid changeset"
+  if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected invalid changeset to fail"
   fi
   rm .changeset/invalid.md

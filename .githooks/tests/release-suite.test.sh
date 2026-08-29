@@ -18,21 +18,27 @@ assert_release_suite_dispatches_shared_gates() {
     printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
     printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
     stub_cmd "$repo" pnpm 'printf "%s\n" "$*"'
+    git add -A
+    git commit -q -m "chore: base release state"
+    git update-ref refs/remotes/origin/main HEAD
 
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-lockstep 1.0.0
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" changeset-status origin/develop
-    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0 2>release-suite-release-branch.out; then
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0 origin/main 2>release-suite-release-branch.out; then
       fail "release branch changeset" "expected a release branch without a changeset to fail"
     fi
-    assert_contains "release branch changeset error" "No pending changeset found" "$(cat release-suite-release-branch.out)"
+    assert_contains "release branch changeset error" "must add a non-empty changeset" "$(cat release-suite-release-branch.out)"
 
     printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/release.md
-    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0
+    git add .changeset/release.md
+    git commit -q -m "chore: release changeset"
+    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-release-branch 1.0.0 origin/main
     if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" publish-gates 1.0.0 2>release-suite-publish.out; then
       fail "publish consumed changesets" "expected publishing with a pending changeset to fail"
     fi
 
-    rm .changeset/release.md
+    git rm -q .changeset/release.md
+    git commit -q -m "chore: consume changeset"
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" publish-gates 1.0.0
   )
   rm -rf "$repo"
