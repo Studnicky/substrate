@@ -111,8 +111,46 @@ pending_changeset_count() {
 }
 
 assert_pending_changesets_are_valid() {
-  local base_ref="$1"
-  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
+  local base_ref="$1" head_ref="${2:-}" head_sha checked_out_sha worktree validation_status
+
+  if [ -z "$head_ref" ]; then
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
+    return
+  fi
+
+  if ! head_sha=$(git rev-parse --verify "${head_ref}^{commit}"); then
+    echo "::error::Cannot resolve changeset validation ref ${head_ref}." >&2
+    return 1
+  fi
+
+  checked_out_sha=$(git rev-parse --verify HEAD)
+  if [ "$head_sha" = "$checked_out_sha" ]; then
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
+    return
+  fi
+
+  worktree=$(mktemp -d "${TMPDIR:-/tmp}/substrate-release-gates.XXXXXX")
+  if ! git worktree add --quiet --detach "$worktree" "$head_sha"; then
+    rmdir "$worktree" 2>/dev/null || true
+    echo "::error::Cannot create an isolated worktree for changeset validation." >&2
+    return 1
+  fi
+
+  if (
+    cd "$worktree"
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since="$base_ref"
+  ); then
+    validation_status=0
+  else
+    validation_status=1
+  fi
+
+  if ! git worktree remove "$worktree"; then
+    echo "::error::Cannot remove the isolated changeset validation worktree." >&2
+    return 1
+  fi
+
+  return "$validation_status"
 }
 
 assert_workspace_lockstep_version() {
@@ -165,7 +203,7 @@ assert_changeset_required() {
     return 1
   fi
 
-  if ! assert_pending_changesets_are_valid "$base_ref"; then
+  if ! assert_pending_changesets_are_valid "$base_ref" "$head_ref"; then
     echo "ERROR: Pending changeset input is invalid." >&2
     return 1
   fi

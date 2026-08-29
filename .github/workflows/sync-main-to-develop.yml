@@ -3,6 +3,9 @@ name: Sync main to develop
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ develop ]
+    types: [ closed ]
   workflow_dispatch:
 
 concurrency:
@@ -10,7 +13,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify-merged-backmerge:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged && github.event.pull_request.base.ref == 'develop' && github.event.pull_request.head.ref == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Verify the merged back-merge result
+        shell: bash
+        env:
+          MAIN_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGED_DEVELOP_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin main develop
+          if ! git merge-base --is-ancestor "$MERGED_DEVELOP_SHA" origin/develop; then
+            echo "::error::The pull request merge result is not retained in develop."
+            exit 1
+          fi
+          bash scripts/release-suite.sh verify-backmerge-result "$MAIN_SHA" "$MERGED_DEVELOP_SHA"
+
   sync:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read

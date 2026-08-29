@@ -7,6 +7,8 @@ source "_helpers.sh"
 # shellcheck source=../lib/release-gates.sh
 source "../lib/release-gates.sh"
 
+REPO_ROOT="$(cd "$PWD/../.." && pwd)"
+
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
@@ -94,6 +96,36 @@ fi
   if assert_no_pending_changesets 2>/dev/null; then
     fail "release gates" "expected pending changesets to fail"
   fi
+)
+rm -rf "$repo"
+pass_count=$((pass_count + 1))
+
+repo=$(make_repo)
+(
+  cd "$repo" || exit 1
+  mkdir -p .changeset packages/example
+  cp "$REPO_ROOT/.changeset/config.json" .changeset/config.json
+  ln -s "$REPO_ROOT/node_modules" node_modules
+  printf '%s\n' '{"name":"fixture","version":"1.0.0","scripts":{"changeset":"changeset"}}' > package.json
+  printf '%s\n' 'packages:' '  - "packages/*"' > pnpm-workspace.yaml
+  printf '%s\n' '{"name":"@fixture/example","version":"1.0.0"}' > packages/example/package.json
+  git add -A
+  git commit -q -m "chore: base changeset fixture"
+  git update-ref refs/remotes/origin/develop HEAD
+
+  git switch -q -c feature/invalid-changeset
+  printf '%s\n' '---' '"@fixture/missing": patch' '---' '' 'References a package that does not exist.' > .changeset/invalid.md
+  git add .changeset/invalid.md
+  git commit -q -m "chore: add invalid changeset"
+  candidate_ref=$(git rev-parse HEAD)
+
+  git switch -q develop
+  if assert_changeset_required origin/develop "$candidate_ref" >changeset-validation.out 2>&1; then
+    fail "release gates validate supplied ref" "expected semantic validation of the non-checked-out ref to fail"
+  fi
+
+  assert_contains "release gates validate supplied ref" "Pending changeset input is invalid." "$(cat changeset-validation.out)"
+  assert_eq "release gates remove validation worktree" "1" "$(git worktree list | wc -l | tr -d ' ')"
 )
 rm -rf "$repo"
 pass_count=$((pass_count + 1))

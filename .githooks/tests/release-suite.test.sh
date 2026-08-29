@@ -6,6 +6,21 @@ cd "$(dirname "$0")" || exit 1
 source "_helpers.sh"
 
 RELEASE_SUITE="$(cd "$PWD/../.." && pwd)/scripts/release-suite.sh"
+SYNC_WORKFLOW="$(cd "$PWD/../.." && pwd)/.github/workflows/sync-main-to-develop.yml"
+
+assert_sync_workflow_verifies_the_merged_result() {
+  local workflow
+
+  workflow=$(cat "$SYNC_WORKFLOW")
+  assert_contains "sync workflow observes closed pull requests" $'pull_request:\n    branches: [ develop ]\n    types: [ closed ]' "$workflow"
+  assert_contains "sync workflow filters canonical backmerges" "github.event.pull_request.head.ref == 'main'" "$workflow"
+  assert_contains "sync workflow checks the merged commit" 'ref: ${{ github.event.pull_request.merge_commit_sha }}' "$workflow"
+  assert_contains "sync workflow passes the source revision" 'MAIN_SHA: ${{ github.event.pull_request.head.sha }}' "$workflow"
+  assert_contains "sync workflow passes the merged revision" 'MERGED_DEVELOP_SHA: ${{ github.event.pull_request.merge_commit_sha }}' "$workflow"
+  assert_contains "sync workflow retains the merged revision" 'git merge-base --is-ancestor "$MERGED_DEVELOP_SHA" origin/develop' "$workflow"
+  assert_contains "sync workflow verifies ancestry on the merged result" 'verify-backmerge-result "$MAIN_SHA" "$MERGED_DEVELOP_SHA"' "$workflow"
+  pass_count=$((pass_count + 1))
+}
 
 assert_release_suite_routes_git_flow() {
   local repo
@@ -107,6 +122,43 @@ assert_release_suite_routes_canonical_backmerge() {
   pass_count=$((pass_count + 1))
 }
 
+assert_release_suite_rejects_non_ancestral_backmerge_result() {
+  local repo main_sha squashed_develop_sha
+
+  repo=$(make_repo)
+  (
+    cd "$repo" || exit 1
+    printf '%s\n' '{"name":"repo","version":"1.0.0"}' > package.json
+    mkdir -p packages/a
+    printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
+    git add -A
+    git commit -q -m "chore: base development state"
+
+    git switch -q -c main
+    printf '%s\n' release > release.txt
+    git add release.txt
+    git commit -q -m "chore: release state"
+    main_sha=$(git rev-parse HEAD)
+
+    git switch -q develop
+    git merge -q --squash main
+    git commit -q -m "chore: squash main into develop"
+    squashed_develop_sha=$(git rev-parse HEAD)
+
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge-result "$main_sha" "$squashed_develop_sha" 2>release-suite-squashed-result.out; then
+      fail "squashed backmerge result" "expected a non-ancestral merged result to fail"
+    fi
+    assert_contains "squashed backmerge result error" "must retain ${main_sha} as an ancestor" "$(cat release-suite-squashed-result.out)"
+
+    git merge -q --no-ff main -m "chore: merge main into develop"
+    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge-result "$main_sha" HEAD
+  )
+  rm -rf "$repo"
+  pass_count=$((pass_count + 1))
+}
+
+assert_sync_workflow_verifies_the_merged_result
 assert_release_suite_routes_git_flow
 assert_release_suite_routes_canonical_backmerge
+assert_release_suite_rejects_non_ancestral_backmerge_result
 test_main

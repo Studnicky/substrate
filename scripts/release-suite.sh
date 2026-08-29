@@ -19,16 +19,26 @@ release_suite_verify_backmerge() {
   local expected_version="$1" base_ref="$2" head_ref="$3"
 
   assert_workspace_lockstep_version "$expected_version" "$head_ref"
-  if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
-    echo "::error::The canonical main-to-develop backmerge requires origin/main." >&2
-    return 1
-  fi
   if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
     echo "::error::The canonical main-to-develop backmerge requires ${base_ref}." >&2
     return 1
   fi
-  if ! git merge-base --is-ancestor origin/main "$head_ref"; then
-    echo "::error::The canonical main-to-develop backmerge must descend from origin/main." >&2
+  release_suite_verify_backmerge_result origin/main "$head_ref"
+}
+
+release_suite_verify_backmerge_result() {
+  local main_ref="$1" merged_develop_ref="$2"
+
+  if ! git rev-parse --verify "$main_ref" >/dev/null 2>&1; then
+    echo "::error::The canonical main-to-develop backmerge requires ${main_ref}." >&2
+    return 1
+  fi
+  if ! git rev-parse --verify "$merged_develop_ref" >/dev/null 2>&1; then
+    echo "::error::The canonical main-to-develop backmerge requires ${merged_develop_ref}." >&2
+    return 1
+  fi
+  if ! git merge-base --is-ancestor "$main_ref" "$merged_develop_ref"; then
+    echo "::error::The canonical main-to-develop backmerge result must retain ${main_ref} as an ancestor of ${merged_develop_ref}." >&2
     return 1
   fi
 }
@@ -92,6 +102,9 @@ case "${1:-}" in
     ;;
   verify-backmerge)
     release_suite_verify_backmerge "${2:?missing version}" "${3:?missing base ref}" "${4:?missing head ref}"
+    ;;
+  verify-backmerge-result)
+    release_suite_verify_backmerge_result "${2:?missing main ref}" "${3:?missing merged develop ref}"
     ;;
   publish-gates)
     release_suite_publish_gates "${2:?missing version}" "${3:-}"
