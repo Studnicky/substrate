@@ -5,19 +5,31 @@ on:
     types: [ opened, synchronize, reopened ]
 
 concurrency:
-  group: branch-name-${{ github.ref }}
+  group: branch-name-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   check:
-    name: Validate branch name
+    name: Validate Git flow
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Run branch check
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/pnpm-node-setup
+      - name: Validate the branch route and release state
+        shell: bash
         env:
-          BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: bash scripts/policy-suite.sh branch "$BRANCH"
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          bash scripts/policy-suite.sh branch "$HEAD_REF"
+          git fetch origin "$BASE_REF"
+          git update-ref refs/substrate/pull-request-head "$HEAD_SHA"
+          bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"

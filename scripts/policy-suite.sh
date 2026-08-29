@@ -17,9 +17,14 @@ run_pr_title_check() {
 }
 
 run_changeset_required_check() {
-  local base_ref="$1"
+  local base_ref="$1" head_ref="${2:-HEAD}"
   . .githooks/lib/release-gates.sh
-  assert_changeset_required "$base_ref"
+  assert_changeset_required "$base_ref" "$head_ref"
+}
+
+run_release_flow_check() {
+  local base_ref="$1" stored_head_ref="$2" source_branch="$3"
+  bash scripts/release-suite.sh verify-flow "$base_ref" "$stored_head_ref" "$source_branch"
 }
 
 run_sync_ancestry_check() {
@@ -44,7 +49,10 @@ case "${1:-}" in
     run_pr_title_check "${2:?missing base ref}" "${3:?missing head ref}" "${4:?missing title}"
     ;;
   changeset-required)
-    run_changeset_required_check "${2:?missing base ref}"
+    run_changeset_required_check "${2:?missing base ref}" "${3:-HEAD}"
+    ;;
+  release-flow)
+    run_release_flow_check "${2:?missing base ref}" "${3:?missing stored head ref}" "${4:?missing source branch}"
     ;;
   sync-ancestry)
     run_sync_ancestry_check "${2:-origin/main}" "${3:-origin/develop}"

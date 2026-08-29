@@ -52,4 +52,25 @@ pass_count=$((pass_count + 1))
 )
 pass_count=$((pass_count + 1))
 
+repo=$(make_repo)
+(
+  cd "$repo" || exit 1
+  mkdir -p scripts
+  cat > scripts/release-suite.sh <<'SUITE'
+#!/bin/sh
+printf '%s\n' "$*"
+SUITE
+  chmod +x scripts/release-suite.sh
+
+  out=$(bash "$POLICY_RUNNER" release-flow origin/main refs/substrate/pull-request-head release/v1.0.0)
+  assert_contains "release flow runner" "verify-flow origin/main refs/substrate/pull-request-head release/v1.0.0" "$out"
+
+  if missing_source_output=$(bash "$POLICY_RUNNER" release-flow origin/main refs/substrate/pull-request-head 2>&1); then
+    fail "release flow runner" "expected a missing source branch to fail"
+  fi
+  assert_contains "release flow runner requires source branch" "missing source branch" "$missing_source_output"
+)
+rm -rf "$repo"
+pass_count=$((pass_count + 1))
+
 test_main

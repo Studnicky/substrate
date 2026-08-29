@@ -14,7 +14,7 @@ EOF
 pass_count=$((pass_count + 2))
 
 assert_leaked_main_commits_detected() {
-  local repo out
+  local repo
 
   repo=$(mktemp -d)
   (

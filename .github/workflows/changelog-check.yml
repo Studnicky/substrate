@@ -7,10 +7,11 @@ on:
 
 jobs:
   check:
-    name: Changeset required
+    name: Validate pull request lifecycle
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -18,20 +19,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/pnpm-node-setup
 
-      - name: Verify a changeset was added
-        if: ${{ !startsWith(github.head_ref, 'release/prepare-') }}
+      - name: Validate branch route and release state
         shell: bash
         env:
           BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          bash scripts/policy-suite.sh branch "$HEAD_REF"
           git fetch origin "$BASE_REF"
-          bash scripts/policy-suite.sh changeset-required "origin/$BASE_REF"
-
-      - name: Verify prepared release assets
-        if: ${{ startsWith(github.head_ref, 'release/prepare-') }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(node -p "require('./package.json').version")
-          bash scripts/release-suite.sh publish-gates "$version"
+          git update-ref refs/substrate/pull-request-head "$HEAD_SHA"
+          bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"

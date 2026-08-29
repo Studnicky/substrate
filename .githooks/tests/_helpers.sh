@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 pass_count=0
 
@@ -50,4 +50,29 @@ stub_cmd() {
 $body
 EOF
   chmod +x "$repo/bin/$cmd"
+}
+
+setup_pre_push_fixture() {
+  local repo="$1" repo_root="$2"
+  mkdir -p "$repo/.githooks" "$repo/scripts" "$repo/packages/example"
+  cp -R "$repo_root/.githooks/lib" "$repo/.githooks/lib"
+  cp "$repo_root/.githooks/pre-push" "$repo/.githooks/pre-push"
+  chmod +x "$repo/.githooks/pre-push"
+}
+
+stub_pre_push_hook_suite() {
+  local repo="$1" failure_mode="${2:-none}"
+  cat > "$repo/scripts/hook-suite.sh" <<'HOOK'
+#!/bin/sh
+printf '%s\n' "$*" >> hook-suite.calls
+if [ -f .hook-suite-fail-generated-artifacts ] && [ "$1" = generated-artifacts ]; then
+  exit 1
+fi
+exit 0
+HOOK
+  chmod +x "$repo/scripts/hook-suite.sh"
+
+  if [ "$failure_mode" = "generated-artifacts" ]; then
+    : > "$repo/.hook-suite-fail-generated-artifacts"
+  fi
 }

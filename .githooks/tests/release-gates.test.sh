@@ -13,9 +13,45 @@ repo=$(make_repo)
   mkdir -p packages/a packages/b .changeset
   printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
   printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
+  git add -A
+  git commit -q -m "chore: committed release state"
+  release_ref=$(git rev-parse HEAD)
 
   assert_workspace_lockstep_version "1.0.0"
+  assert_workspace_lockstep_version "1.0.0" "$release_ref"
   assert_no_pending_changesets
+
+  printf '%s\n' '{"name":"a","version":"2.0.0"}' > packages/a/package.json
+  if assert_workspace_lockstep_version "1.0.0" 2>/dev/null; then
+    fail "release gates" "expected worktree version drift to fail"
+  fi
+  assert_workspace_lockstep_version "1.0.0" "$release_ref"
+
+  printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/a.md
+  if assert_no_pending_changesets 2>/dev/null; then
+    fail "release gates" "expected worktree changeset to fail"
+  fi
+  assert_no_pending_changesets "$release_ref"
+)
+rm -rf "$repo"
+pass_count=$((pass_count + 6))
+
+repo=$(make_repo)
+(
+  cd "$repo" || exit 1
+  mkdir -p packages/a packages/b
+  printf '%s\n' '{invalid json' > packages/a/package.json
+  printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
+  if manifest_error=$(assert_workspace_lockstep_version "1.0.0" 2>&1); then
+    fail "release gates" "expected malformed workspace manifest to fail"
+  fi
+  assert_contains "invalid workspace manifest diagnostic" "::error::packages/a/package.json contains invalid JSON:" "$manifest_error"
+
+  printf '%s\n' '{"name":"a","version":1}' > packages/a/package.json
+  if property_error=$(assert_workspace_lockstep_version "1.0.0" 2>&1); then
+    fail "release gates" "expected invalid workspace manifest property to fail"
+  fi
+  assert_contains "invalid workspace manifest property diagnostic" "::error::packages/a/package.json property \"version\" must be a non-empty string." "$property_error"
 )
 rm -rf "$repo"
 pass_count=$((pass_count + 2))

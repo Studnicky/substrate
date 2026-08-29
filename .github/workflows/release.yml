@@ -3,102 +3,148 @@ name: Release
 on:
   workflow_run:
     workflows: [ ci ]
-    branches: [ main ]
+    branches: [ main, develop ]
     types: [ completed ]
-  workflow_dispatch:
 
 concurrency:
-  group: release-main
+  group: release-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      release_needed: ${{ steps.detect.outputs.release_needed }}
-      release_ready: ${{ steps.detect.outputs.release_ready }}
+      action: ${{ steps.detect.outputs.action }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_branch }}
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install: false
       - id: detect
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
-          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          TRUSTED_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          TRUSTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
 
-          release_needed=false
-          release_ready=false
-          triggered_by_main_ci=false
+          action=none
+          if [ "$WORKFLOW_RUN_CONCLUSION" != "success" ] || [ "$WORKFLOW_RUN_EVENT" != "push" ]; then
+            echo "action=$action" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-          if [ "$EVENT_NAME" = "workflow_run" ]; then
-            if [ "$WORKFLOW_RUN_CONCLUSION" != "success" ] ||
-               [ "$WORKFLOW_RUN_EVENT" != "push" ] ||
-               [ "$WORKFLOW_RUN_HEAD_BRANCH" != "main" ]; then
-              echo "release_needed=$release_needed" >> "$GITHUB_OUTPUT"
-              echo "release_ready=$release_ready" >> "$GITHUB_OUTPUT"
+          case "$TRUSTED_BRANCH" in
+            develop|main) ;;
+            *)
+              echo "action=$action" >> "$GITHUB_OUTPUT"
               exit 0
-            fi
-            triggered_by_main_ci=true
-          elif [ "$REF_NAME" != "main" ]; then
-            echo "::error::Manual release preparation runs on main."
+              ;;
+          esac
+
+          actual_sha=$(git rev-parse HEAD)
+          if [ "$actual_sha" != "$TRUSTED_SHA" ]; then
+            echo "::error::${TRUSTED_BRANCH} advanced after the completed CI run; wait for CI on the current branch tip."
             exit 1
           fi
 
-          if [ -d .changeset ] && find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
-            release_needed=true
-          elif [ "$triggered_by_main_ci" = "true" ]; then
-            version=$(node -p "require('./package.json').version")
-
-            if ! git rev-parse --verify --quiet "refs/tags/v${version}^{commit}" >/dev/null; then
-              parent_count=$(git rev-list --parents -n 1 HEAD | awk '{ print NF - 1 }')
-              if [ "$parent_count" -ne 2 ]; then
-                echo "::error::An untagged release version on main must arrive through a merge commit."
+          git fetch origin main --tags
+          case "$TRUSTED_BRANCH" in
+            develop)
+              if ! git merge-base --is-ancestor origin/main HEAD; then
+                echo "::error::develop must contain the current main history before release preparation."
                 exit 1
               fi
-              bash scripts/release-suite.sh publish-gates "$version"
-              release_ready=true
-            elif ! git merge-base --is-ancestor "v${version}^{commit}" HEAD; then
-              echo "::error::v${version} exists but is not an ancestor of main. Release tags are immutable; prepare a new version instead."
-              exit 1
-            fi
-          fi
 
-          echo "release_needed=$release_needed" >> "$GITHUB_OUTPUT"
-          echo "release_ready=$release_ready" >> "$GITHUB_OUTPUT"
+              open_release_count=$(gh pr list \
+                --repo "$GITHUB_REPOSITORY" \
+                --base main \
+                --state open \
+                --json headRefName \
+                --jq '[.[] | select(.headRefName | startswith("release/"))] | length')
+              if [ "$open_release_count" -gt 0 ]; then
+                echo "action=$action" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+
+              if find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
+                action=prepare
+              fi
+              ;;
+            main)
+              version=$(node -p "require('./package.json').version")
+              tag="v${version}"
+              if git rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null; then
+                tag_target=$(git rev-parse "refs/tags/${tag}^{commit}")
+                if ! git merge-base --is-ancestor "$tag_target" "$actual_sha"; then
+                  echo "::error::${tag} already exists outside the current main history. Release tags are immutable."
+                  exit 1
+                fi
+              else
+                action=tag
+              fi
+              ;;
+          esac
+
+          echo "action=$action" >> "$GITHUB_OUTPUT"
 
   validate:
     needs: [ plan ]
-    if: needs.plan.outputs.release_needed == 'true'
+    if: needs.plan.outputs.action == 'prepare'
     uses: ./.github/workflows/node-suite.yml
     with:
       preset: release-validate
 
   prepare:
     needs: [ plan, validate ]
-    if: needs.plan.outputs.release_needed == 'true'
+    if: needs.plan.outputs.action == 'prepare'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: write
       pull-requests: write
     steps:
+      - name: Require the release automation token
+        shell: bash
+        env:
+          RELEASE_TOKEN: ${{ secrets.PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::PAT is required to create a release pull request that triggers required CI."
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          ref: develop
+          token: ${{ secrets.PAT }}
       - uses: ./.github/actions/pnpm-node-setup
+      - name: Verify the trusted develop revision
+        shell: bash
+        env:
+          TRUSTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$(git rev-parse HEAD)" != "$TRUSTED_SHA" ]; then
+            echo "::error::develop advanced after the completed CI run; wait for CI on the current branch tip."
+            exit 1
+          fi
+          git fetch origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo "::error::develop must contain the current main history before release preparation."
+            exit 1
+          fi
       - name: Install raster tooling
         run: |
           sudo apt-get update
@@ -158,12 +204,11 @@ jobs:
           set -euo pipefail
           git add -A
           if git diff --cached --quiet; then
-            echo "::error::Release stamping did not change any tracked files."
+            echo "::error::Release preparation did not change any tracked files."
             exit 1
           fi
           version=$(node -p "require('./package.json').version")
-          source_sha=$(git rev-parse --short=12 HEAD)
-          release_branch="release/prepare-${source_sha}"
+          release_branch="release/v${version}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: release v${version}"
@@ -175,11 +220,15 @@ jobs:
           RELEASE_BRANCH: ${{ steps.commit.outputs.branch }}
         run: |
           set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$RELEASE_BRANCH" >/dev/null; then
+            echo "::error::${RELEASE_BRANCH} already exists. Release branches are immutable after preparation."
+            exit 1
+          fi
           git push origin "HEAD:refs/heads/${RELEASE_BRANCH}"
       - name: Open the release pull request
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT }}
           RELEASE_BRANCH: ${{ steps.commit.outputs.branch }}
           VERSION: ${{ steps.commit.outputs.version }}
         run: |
@@ -192,37 +241,71 @@ jobs:
               --base main \
               --head "$RELEASE_BRANCH" \
               --title "release: v${VERSION}" \
-              --body "Contains the versioned release assets for v${VERSION}. Merge with a merge commit after required checks pass. The release workflow tags the merge commit and publishes GitHub Packages after main CI succeeds."
+              --body "Contains the versioned release assets for v${VERSION}. Merge with a merge commit after required checks pass. Main CI tags that merge commit and publishes GitHub Packages."
           fi
 
   tag:
     needs: [ plan ]
-    if: needs.plan.outputs.release_ready == 'true'
+    if: needs.plan.outputs.action == 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       actions: write
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install: false
       - name: Verify the merged release
         shell: bash
         env:
-          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TRUSTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
+
           actual_sha=$(git rev-parse HEAD)
-          if [ "$actual_sha" != "$EXPECTED_SHA" ]; then
+          if [ "$actual_sha" != "$TRUSTED_SHA" ]; then
             echo "::error::main advanced after the completed CI run; wait for CI on the current main commit."
             exit 1
           fi
+
+          parent_count=$(git rev-list --parents -n 1 "$actual_sha" | awk '{ print NF - 1 }')
+          if [ "$parent_count" -ne 2 ]; then
+            echo "::error::A release must be merged into main with a merge commit."
+            exit 1
+          fi
+
+          release_pr=$(gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/commits/${actual_sha}/pulls" \
+            | jq -r --arg sha "$actual_sha" '
+              [ .[]
+                | select(.merged_at != null)
+                | select(.base.ref == "main")
+                | select(.head.ref | test("^(release/|hotfix/)"))
+                | select(.merge_commit_sha == $sha)
+              ]
+              | if length == 1 then .[0] | [.number, .head.sha] | @tsv else empty end
+            ')
+
+          if [ -z "$release_pr" ]; then
+            echo "::error::main must be the merge commit of one main-targeting release/* or hotfix/* pull request."
+            exit 1
+          fi
+
+          IFS=$'\t' read -r pr_number pr_head_sha <<< "$release_pr"
+          if [ "$(git rev-parse "${actual_sha}^2")" != "$pr_head_sha" ]; then
+            echo "::error::Pull request #${pr_number} does not terminate at the merged source revision."
+            exit 1
+          fi
+
           version=$(node -p "require('./package.json').version")
           bash scripts/release-suite.sh publish-gates "$version"
           if git rev-parse --verify --quiet "refs/tags/v${version}^{commit}" >/dev/null; then
@@ -231,22 +314,20 @@ jobs:
           fi
       - name: Tag the merged release
         shell: bash
+        env:
+          TRUSTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${version}" -m "Release v${version}"
-          git push origin "v${version}"
-      - name: Dispatch the GitHub Packages workflow when using GITHUB_TOKEN
+          git tag -a "v${version}" "$TRUSTED_SHA" -m "Release v${version}"
+          git push origin "refs/tags/v${version}"
+      - name: Dispatch the GitHub Packages workflow
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HAS_PAT: ${{ secrets.PAT != '' }}
         run: |
           set -euo pipefail
-          if [ "$HAS_PAT" = "true" ]; then
-            exit 0
-          fi
           version=$(node -p "require('./package.json').version")
-          gh workflow run publish.yml --ref "v${version}"
+          gh workflow run publish.yml --repo "$GITHUB_REPOSITORY" --ref "v${version}"

@@ -51,16 +51,16 @@ assert_hook_suite_dispatches_shared_presets() {
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" semgrep HEAD~1..HEAD)
     assert_contains "hook semgrep suite" "scripts/security-suite.sh semgrep-range HEAD~1..HEAD" "$out"
 
-    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "hook release gates" "scripts/release-suite.sh changeset-status origin/develop" "$out"
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop refs/heads/feature/hook-suite feature/hook-suite)
+    assert_contains "hook delivery gates" "scripts/release-suite.sh verify-flow origin/develop refs/heads/feature/hook-suite feature/hook-suite" "$out"
 
     git switch -q -c release/v1.0.0
-    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "release branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/main refs/heads/release/v1.0.0 release/v1.0.0)
+    assert_contains "release branch gates" "scripts/release-suite.sh verify-flow origin/main refs/heads/release/v1.0.0 release/v1.0.0" "$out"
 
     git switch -q -c hotfix/fix-publish
-    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/main refs/heads/hotfix/fix-publish hotfix/fix-publish)
+    assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-flow origin/main refs/heads/hotfix/fix-publish hotfix/fix-publish" "$out"
   )
   rm -rf "$repo"
   pass_count=$((pass_count + 1))
@@ -86,12 +86,10 @@ assert_hook_suite_backmerge_verifies_lockstep() {
     main_sha=$(git rev-parse HEAD)
     git update-ref refs/remotes/origin/main "$main_sha"
 
-    git switch -q -c chore/v1.0.0-backmerge "$base_sha"
-    git merge -q --no-ff "$main_sha" -m "chore: sync main to develop"
+    git switch -q main
 
-    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-backmerge 1.0.0 origin/develop" "$out"
-    assert_not_contains "hook backmerge skips changeset status" "changeset-status" "$out"
+    out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop refs/heads/main main)
+    assert_contains "hook backmerge release gates" "scripts/release-suite.sh verify-flow origin/develop refs/heads/main main" "$out"
   )
   rm -rf "$repo"
   pass_count=$((pass_count + 1))

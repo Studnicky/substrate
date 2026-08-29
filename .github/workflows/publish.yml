@@ -1,21 +1,15 @@
 name: Publish Packages
 
-# Publishes all 27 @studnicky/* workspace packages to GitHub Packages when a
-# semver tag (v*) is pushed. Nothing publishes on merge to main — tags are the
-# only trigger. workflow_dispatch allows a manual dry-run against the tag-less
-# path (validate + publish guard via NPM_PUBLISH_ENABLED).
-
 on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  # ─── validate ────────────────────────────────────────────────────────────────
   gates:
     name: Release gates
     runs-on: ubuntu-latest
@@ -24,18 +18,54 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
       - uses: ./.github/actions/pnpm-node-setup
 
+      - name: Verify the immutable release tag
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          case "$REF_TYPE:$TAG" in
+            tag:v*) ;;
+            *)
+              echo "::error::Publishing requires an immutable v* tag reference."
+              exit 1
+              ;;
+          esac
+
+          if [ "$(git cat-file -t "refs/tags/${TAG}")" != "tag" ]; then
+            echo "::error::${TAG} must be an annotated release tag."
+            exit 1
+          fi
+
+          remote_tag=$(git ls-remote --tags origin "refs/tags/${TAG}" | awk '{ print $1 }')
+          local_tag=$(git rev-parse "refs/tags/${TAG}")
+          if [ "$remote_tag" != "$local_tag" ]; then
+            echo "::error::${TAG} does not match the immutable remote tag object."
+            exit 1
+          fi
+
+          tag_target=$(git rev-parse "refs/tags/${TAG}^{commit}")
+          if [ "$(git rev-parse HEAD)" != "$tag_target" ]; then
+            echo "::error::Checkout does not resolve to ${TAG}'s commit."
+            exit 1
+          fi
+
       - name: Release gates
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           expected_version=$(node -p "require('./package.json').version")
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            tag_version="${GITHUB_REF_NAME#v}"
-            if [[ "$tag_version" != "$expected_version" ]]; then
-              echo "::error::Tag version (${tag_version}) does not match root package.json version (${expected_version})"
-              exit 1
-            fi
+          if [ "$TAG" != "v${expected_version}" ]; then
+            echo "::error::Tag version (${TAG#v}) does not match root package.json version (${expected_version})."
+            exit 1
           fi
           bash scripts/release-suite.sh publish-gates "$expected_version"
 
@@ -45,31 +75,29 @@ jobs:
     with:
       preset: publish-validate
 
-  # ─── publish ─────────────────────────────────────────────────────────────────
   publish:
     name: Publish to GitHub Packages
     needs: [ gates, validate ]
-    # Defense-in-depth: a tag push still no-ops until the repo variable is set true.
-    if: ${{ vars.NPM_PUBLISH_ENABLED == 'true' }}
+    if: ${{ vars.SUBSTRATE_GITHUB_PACKAGES_PUBLISH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
       published: ${{ steps.publish-packages.outputs.published }}
-      version: ${{ steps.capture-version.outputs.version }}
     permissions:
       contents: read
       packages: write
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref }}
       - uses: ./.github/actions/pnpm-node-setup
       - name: Install raster tooling
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin
 
-      - name: Capture version
-        id: capture-version
+      - name: Build publish artifacts
         shell: bash
         run: |
           set -euo pipefail
@@ -79,17 +107,11 @@ jobs:
           STAMP_VERSION_REQUIRE_RASTER=true bash scripts/ci-suite.sh build predocs-build generated-artifacts >"$tmpdir/build.log" 2>&1 &
           build_pid=$!
 
-          node -p "require('./package.json').version" >"$tmpdir/version.txt"
-
           if ! wait "$build_pid"; then
             cat "$tmpdir/build.log" >&2
             exit 1
           fi
 
-          echo "version=$(cat "$tmpdir/version.txt")" >> "$GITHUB_OUTPUT"
-
-      # pnpm -r publish is idempotent: it skips packages whose current version is
-      # already on the registry, so no manual npm-view loop is required here.
       - name: Publish all packages
         id: publish-packages
         run: |
@@ -98,7 +120,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─── release ─────────────────────────────────────────────────────────────────
   release:
     name: Create GitHub Release
     needs: publish
@@ -109,6 +130,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref }}
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install: false
@@ -119,9 +142,8 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.publish.outputs.version }}
+          TAG: ${{ github.ref_name }}
         run: |
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            --notes-file release_notes.md \
-            --verify-tag=false
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file release_notes.md
