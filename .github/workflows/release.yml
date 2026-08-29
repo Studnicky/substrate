@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: main
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install: false
@@ -52,11 +52,14 @@ jobs:
               ;;
           esac
 
-          actual_sha=$(git rev-parse HEAD)
+          git fetch --no-tags origin "$TRUSTED_BRANCH"
+          actual_sha=$(git rev-parse "origin/$TRUSTED_BRANCH")
           if [ "$actual_sha" != "$TRUSTED_SHA" ]; then
             echo "::error::${TRUSTED_BRANCH} advanced after the completed CI run; wait for CI on the current branch tip."
             exit 1
           fi
+
+          git checkout --detach "$actual_sha"
 
           git fetch origin main --tags
           case "$TRUSTED_BRANCH" in

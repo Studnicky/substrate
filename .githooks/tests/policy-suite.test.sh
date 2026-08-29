@@ -69,5 +69,3 @@ SUITE
   assert_contains "release flow runner requires source branch" "missing source branch" "$missing_source_output"
 )
 rm -rf "$repo"
-
-test_main

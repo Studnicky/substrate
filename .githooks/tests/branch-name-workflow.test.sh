@@ -9,15 +9,13 @@ WORKFLOW="$(cd "$PWD/../.." && pwd)/.github/workflows/branch-name.yml"
 workflow=$(cat "$WORKFLOW")
 
 assert_contains "branch workflow uses the protected workflow event" "pull_request_target:" "$workflow"
-assert_contains "branch workflow runs the protected base revision" "ref: \${{ github.event.pull_request.base.sha }}" "$workflow"
-assert_contains "branch workflow uses the trusted submitted-head action" "uses: ./.github/actions/resolve-pull-request-head" "$workflow"
-assert_contains "branch workflow passes the target branch to the submitted-head action" "base-ref: \${{ github.base_ref }}" "$workflow"
-assert_contains "branch workflow passes the pull request number to the submitted-head action" "pull-request-number: \${{ github.event.pull_request.number }}" "$workflow"
-assert_contains "branch workflow passes the immutable commit to the submitted-head action" "expected-head-sha: \${{ github.event.pull_request.head.sha }}" "$workflow"
+assert_contains "branch workflow uses the pinned checkout action" "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" "$workflow"
+assert_contains "branch workflow verifies the trusted base revision" "name: Verify trusted base revision" "$workflow"
+assert_contains "branch workflow receives the server base commit" "BASE_SHA: \${{ github.event.pull_request.base.sha }}" "$workflow"
+assert_contains "branch workflow resolves the server base commit into a fixed ref" 'git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"' "$workflow"
+assert_contains "branch workflow verifies its checkout against the fixed base ref" 'git rev-parse --verify refs/substrate/pull-request-base' "$workflow"
+assert_contains "branch workflow rejects a mismatched base checkout" "Checked-out base revision does not match the event base SHA" "$workflow"
+assert_resolve_pull_request_head_action "branch workflow" "$workflow"
 assert_contains "branch workflow executes shared policy with the fixed ref" 'bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"' "$workflow"
 assert_not_contains "branch workflow does not construct a source ref" 'refs/heads/$HEAD_REF' "$workflow"
-assert_not_contains "branch workflow does not duplicate submitted-head fetching" "git fetch" "$workflow"
-assert_not_contains "branch workflow does not duplicate submitted-head verification" "git rev-parse" "$workflow"
-assert_not_contains "branch workflow does not check out submitted workflow code" "ref: \${{ github.event.pull_request.head.sha }}" "$workflow"
-
-test_main
+assert_not_contains "branch workflow does not use a dynamic checkout ref" "ref: \${{ github.event.pull_request.base.sha }}" "$workflow"

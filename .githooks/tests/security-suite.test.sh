@@ -100,4 +100,3 @@ fi
 
 assert_security_suite_calls_shared_commands
 assert_audit_check_baseline_diff
-test_main

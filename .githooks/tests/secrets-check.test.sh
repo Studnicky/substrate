@@ -17,4 +17,3 @@ repo=$(make_repo)
   check_staged_secrets
 )
 rm -rf "$repo"
-test_main

@@ -7,6 +7,8 @@ source "_helpers.sh"
 # shellcheck source=../lib/release-gates.sh
 source "../lib/release-gates.sh"
 
+REPO_ROOT="$(cd "$PWD/../.." && pwd)"
+
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
@@ -57,15 +59,29 @@ rm -rf "$repo"
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
+  stub_cmd "$repo" node 'exit 0'
+  PATH="$repo/bin:$PATH"
   mkdir -p packages/a
   printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
   git add -A
   git commit -q -m "chore: base release state"
   git update-ref refs/remotes/origin/main HEAD
+  if assert_pending_changesets_are_valid origin/main >missing-head-argument.out 2>&1; then
+    fail "release gates" "expected omitted changeset validation head ref to fail"
+  fi
+  assert_eq "omitted changeset validation head ref diagnostic" "::error::changeset validation requires explicit base and head refs." "$(cat missing-head-argument.out)"
+  if assert_pending_changesets_are_valid origin/main "" >empty-head-ref.out 2>&1; then
+    fail "release gates" "expected empty changeset validation head ref to fail"
+  fi
+  assert_eq "empty changeset validation head ref diagnostic" "::error::changeset validation requires a non-empty head ref." "$(cat empty-head-ref.out)"
+  if assert_pending_changesets_are_valid refs/heads/missing HEAD >missing-base-ref.out 2>&1; then
+    fail "release gates" "expected missing changeset validation base ref to fail"
+  fi
+  assert_eq "missing changeset validation base ref diagnostic" "::error::cannot resolve changeset validation base ref refs/heads/missing." "$(cat missing-base-ref.out)"
   if assert_pending_changesets_are_valid origin/main refs/heads/missing >missing-ref.out 2>&1; then
     fail "release gates" "expected missing changeset validation ref to fail"
   fi
-  assert_eq "missing changeset validation ref diagnostic" "ERROR: Cannot resolve Changeset validation head ref refs/heads/missing." "$(cat missing-ref.out)"
+  assert_eq "missing changeset validation ref diagnostic" "::error::cannot resolve changeset validation head ref refs/heads/missing." "$(cat missing-ref.out)"
   if assert_changeset_required origin/main 2>/dev/null; then
     fail "release gates" "expected missing changeset to fail"
   fi
@@ -83,16 +99,23 @@ repo=$(make_repo)
   git add .changeset/a.md
   git commit -q -m "chore: add changeset"
   assert_changeset_required origin/main
-  printf '%s\n' 'invalid' > .changeset/invalid.md
-  git add .changeset/invalid.md
-  git commit -q -m "chore: invalid changeset"
-  if assert_changeset_required origin/main 2>/dev/null; then
-    fail "release gates" "expected invalid changeset to fail"
-  fi
-  rm .changeset/invalid.md
   if assert_no_pending_changesets 2>/dev/null; then
     fail "release gates" "expected pending changesets to fail"
   fi
+)
+rm -rf "$repo"
+
+repo=$(make_repo)
+(
+  cd "$repo" || exit 1
+  mkdir -p bin
+  stub_cmd "$repo" node 'shift; printf "%s\\n" "$*" > .node-command'
+  git update-ref refs/remotes/origin/main HEAD
+  PATH="$repo/bin:$PATH"
+  assert_pending_changesets_are_valid origin/main HEAD
+  base_commit=$(git rev-parse origin/main)
+  head_commit=$(git rev-parse HEAD)
+  assert_eq "changeset validator commit order" "$base_commit $head_commit" "$(cat .node-command)"
 )
 rm -rf "$repo"
 
@@ -120,7 +143,8 @@ repo=$(make_repo)
   valid_ref=$(git rev-parse HEAD)
 
   git switch -q develop
-  assert_changeset_required origin/develop "$valid_ref"
+  base_commit=$(git rev-parse origin/develop)
+  node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$valid_ref"
   [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
 
   git switch -q -c feature/invalid-changeset
@@ -131,7 +155,7 @@ repo=$(make_repo)
   invalid_ref=$(git rev-parse HEAD)
 
   git switch -q develop
-  if assert_changeset_required origin/develop "$invalid_ref" >changeset-validation.out 2>&1; then
+  if node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$invalid_ref" >changeset-validation.out 2>&1; then
     fail "release gates validate supplied ref" "expected semantic validation of the non-checked-out ref to fail"
   fi
 
@@ -139,5 +163,3 @@ repo=$(make_repo)
   [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
 )
 rm -rf "$repo"
-
-test_main

@@ -60,4 +60,3 @@ assert_leaked_main_commits_detected() {
 }
 
 assert_leaked_main_commits_detected
-test_main

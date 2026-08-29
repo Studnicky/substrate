@@ -19,7 +19,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Verify trusted base revision
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"
+          if [ "$(git rev-parse --verify HEAD)" != "$(git rev-parse --verify refs/substrate/pull-request-base)" ]; then
+            echo "::error::Checked-out base revision does not match the event base SHA." >&2
+            exit 1
+          fi
       - uses: ./.github/actions/pnpm-node-setup
       - uses: ./.github/actions/resolve-pull-request-head
         with:

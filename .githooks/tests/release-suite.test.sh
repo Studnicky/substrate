@@ -8,9 +8,10 @@ source "_helpers.sh"
 RELEASE_SUITE="$(cd "$PWD/../.." && pwd)/scripts/release-suite.sh"
 
 assert_release_suite_routes_git_flow() {
-  local repo
+  local repo node_binary
 
   repo=$(make_repo)
+  node_binary=$(command -v node)
   (
     cd "$repo" || exit 1
     printf '%s\n' '{"name":"repo","version":"1.0.0"}' > package.json
@@ -18,6 +19,8 @@ assert_release_suite_routes_git_flow() {
     printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
     printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
     stub_cmd "$repo" pnpm 'printf "%s\n" "$*"'
+    stub_cmd "$repo" node "case \"\$1\" in */scripts/validate-changeset-ref.mjs) exit 0 ;; esac
+exec \"$node_binary\" \"\$@\""
     git add -A
     git commit -q -m "chore: base release state"
     git update-ref refs/remotes/origin/main HEAD
@@ -143,4 +146,3 @@ assert_release_suite_rejects_non_ancestral_backmerge_result() {
 assert_release_suite_routes_git_flow
 assert_release_suite_routes_canonical_backmerge
 assert_release_suite_rejects_non_ancestral_backmerge_result
-test_main

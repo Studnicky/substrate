@@ -149,5 +149,3 @@ repo=$(make_repo main)
   assert_eq "the empty changeset rides along" "" "$(sed -n '1,2p' .changeset/sync-main-to-develop.md | tr -d '\n-')"
 )
 rm -rf "$repo"
-
-test_main

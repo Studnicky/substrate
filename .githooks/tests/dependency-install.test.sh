@@ -60,4 +60,3 @@ assert_dependency_install_returns_success_after_successful_install() {
 assert_seeds_env_files
 assert_pnpm_install_gates_on_manifest_changes
 assert_dependency_install_returns_success_after_successful_install
-test_main

@@ -23,5 +23,3 @@ assert_contains "submitted-head action resolves the fixed inspection ref" 'git r
 assert_contains "submitted-head action rejects an unexpected commit" '[ "$(git rev-parse --verify refs/substrate/pull-request-head)" != "$EXPECTED_HEAD_SHA" ]' "$action"
 assert_not_contains "submitted-head action does not use contributor branch refs" 'refs/heads/$' "$action"
 assert_not_contains "submitted-head action does not check out submitted files" "actions/checkout" "$action"
-
-test_main

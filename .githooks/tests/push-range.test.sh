@@ -9,4 +9,3 @@ source "../lib/push-range.sh"
 
 repo=$(make_repo)
 (cd "$repo" && git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/develop 2>/dev/null || true)
-test_main

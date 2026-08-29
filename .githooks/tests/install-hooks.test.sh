@@ -93,4 +93,3 @@ assert_install
 assert_local_hooks_path_is_cleared
 assert_missing_post_checkout_is_tolerated
 assert_missing_pre_push_fails
-test_main

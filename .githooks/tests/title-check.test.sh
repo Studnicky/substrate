@@ -28,4 +28,3 @@ assert_pr_title() {
 
 assert_commit_subject
 assert_pr_title
-test_main

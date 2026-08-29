@@ -20,8 +20,16 @@ assert_not_contains() {
   fi
 }
 
-test_main() {
-  printf 'PASS\n'
+assert_resolve_pull_request_head_action() {
+  local label="$1" workflow="$2"
+
+  assert_contains "$label uses the trusted submitted-head action" "uses: ./.github/actions/resolve-pull-request-head" "$workflow"
+  assert_contains "$label passes the target branch to the submitted-head action" "base-ref: \${{ github.base_ref }}" "$workflow"
+  assert_contains "$label passes the pull request number to the submitted-head action" "pull-request-number: \${{ github.event.pull_request.number }}" "$workflow"
+  assert_contains "$label passes the immutable commit to the submitted-head action" "expected-head-sha: \${{ github.event.pull_request.head.sha }}" "$workflow"
+  assert_not_contains "$label does not fetch submitted code by raw SHA" 'git fetch --no-tags origin "$HEAD_SHA"' "$workflow"
+  assert_not_contains "$label does not fetch the pull request head directly" 'git fetch --no-tags origin "pull/$PR_NUMBER/head' "$workflow"
+  assert_not_contains "$label does not check out submitted workflow code" "ref: \${{ github.event.pull_request.head.sha }}" "$workflow"
 }
 
 make_repo() {

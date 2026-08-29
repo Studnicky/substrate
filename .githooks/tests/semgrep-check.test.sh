@@ -19,4 +19,3 @@ repo=$(make_repo)
   PATH="$repo/bin:$PATH" check_semgrep_findings "HEAD~1..HEAD"
 )
 rm -rf "$repo"
-test_main

@@ -80,5 +80,3 @@ workspace=$(make_workspace 3.0.0 100 2)
   assert_eq "empty release names the version" "Release v3.0.0" "$out"
 )
 rm -rf "$workspace"
-
-test_main

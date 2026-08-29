@@ -26,5 +26,3 @@ assert_contains "sync workflow scopes the synchronizer to main pushes" "github.r
 assert_contains "sync workflow waits for post-merge validation" 'needs: [ verify-merged-backmerge ]' "$workflow"
 assert_contains "sync workflow recovers a failed merged backmerge" "github.event.action == 'closed' && needs.verify-merged-backmerge.result == 'failure'" "$workflow"
 assert_contains "sync workflow runs after a failed dependency" 'if: always() &&' "$workflow"
-
-test_main

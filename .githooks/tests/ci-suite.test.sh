@@ -32,4 +32,3 @@ repo=$(make_repo)
   assert_contains "ci test all" "run test:all" "$out"
 )
 rm -rf "$repo"
-test_main

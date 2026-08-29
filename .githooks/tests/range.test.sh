@@ -15,4 +15,3 @@ repo=$(make_repo)
   assert_eq "root range" "${root}..HEAD" "$out"
 )
 rm -rf "$repo"
-test_main

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=runtime.sh
+source "$(dirname "${BASH_SOURCE[0]}")/runtime.sh"
+
 RELEASE_GATES_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 
 release_root_version() {
@@ -113,24 +116,41 @@ pending_changeset_count() {
 }
 
 assert_pending_changesets_are_valid() {
-  local base_ref="$1" head_ref="${2:-}" head_commit base_commit
+  local base_ref head_ref head_commit base_commit repository_root validator_path
+
+  if [ "$#" -ne 2 ]; then
+    echo "::error::changeset validation requires explicit base and head refs." >&2
+    return 1
+  fi
+
+  base_ref="$1"
+  head_ref="$2"
+  if [ -z "$base_ref" ]; then
+    echo "::error::changeset validation requires a non-empty base ref." >&2
+    return 1
+  fi
 
   if [ -z "$head_ref" ]; then
-    echo "ERROR: Changeset validation requires an explicit head ref." >&2
+    echo "::error::changeset validation requires a non-empty head ref." >&2
     return 1
   fi
 
   if ! base_commit=$(git rev-parse --verify --quiet "${base_ref}^{commit}" 2>/dev/null); then
-    echo "ERROR: Cannot resolve Changeset validation base ref ${base_ref}." >&2
+    echo "::error::cannot resolve changeset validation base ref ${base_ref}." >&2
     return 1
   fi
 
   if ! head_commit=$(git rev-parse --verify --quiet "${head_ref}^{commit}" 2>/dev/null); then
-    echo "ERROR: Cannot resolve Changeset validation head ref ${head_ref}." >&2
+    echo "::error::cannot resolve changeset validation head ref ${head_ref}." >&2
     return 1
   fi
 
-  node "$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$head_commit"
+  repository_root=$(hook_repo_root)
+  validator_path="$repository_root/scripts/validate-changeset-ref.mjs"
+  if [ ! -f "$validator_path" ]; then
+    validator_path="$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.mjs"
+  fi
+  node "$validator_path" "$base_commit" "$head_commit"
 }
 
 assert_workspace_lockstep_version() {

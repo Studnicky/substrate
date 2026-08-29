@@ -18,4 +18,3 @@ assert_dependency_audit_calls_pnpm() {
 }
 
 assert_dependency_audit_calls_pnpm
-test_main

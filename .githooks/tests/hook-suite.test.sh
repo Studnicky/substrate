@@ -95,4 +95,3 @@ assert_hook_suite_backmerge_verifies_lockstep() {
 
 assert_hook_suite_dispatches_shared_presets
 assert_hook_suite_backmerge_verifies_lockstep
-test_main

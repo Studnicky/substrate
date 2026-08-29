@@ -64,5 +64,3 @@ repo=$(make_repo)
   assert_eq "audit" "true" "$CHANGED_AUDIT"
 )
 rm -rf "$repo"
-
-test_main

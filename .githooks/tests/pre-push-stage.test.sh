@@ -201,5 +201,3 @@ repo=$(make_repo feature/holding)
   assert_contains "main ref push names the protected branch" "protected branch 'main'" "$(cat /tmp/pre-push-main-ref.out)"
 )
 rm -rf "$repo"
-
-test_main
