@@ -24,6 +24,7 @@ repo=$(make_repo)
 (
   cd "$repo" || exit 1
   stub_cmd "$repo" pnpm '
+printf "%s\\n" "$*" > .pnpm-command
 if [ -f .changeset/invalid.md ]; then
   exit 1
 fi
@@ -39,6 +40,7 @@ fi
   fi
   printf '%s\n' '---' '"a": patch' '---' '' 'Releases package a.' > .changeset/a.md
   assert_changeset_required
+  assert_eq "changeset status base" "changeset status --since=origin/main" "$(cat .pnpm-command)"
   printf '%s\n' 'invalid' > .changeset/invalid.md
   if assert_changeset_required 2>/dev/null; then
     fail "release gates" "expected invalid changeset to fail"

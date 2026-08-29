@@ -10,7 +10,7 @@ pending_changeset_count() {
 }
 
 assert_pending_changesets_are_valid() {
-  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status
+  env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_PREFIX pnpm changeset status --since=origin/main
 }
 
 assert_workspace_lockstep_version() {
