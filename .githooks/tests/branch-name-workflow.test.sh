@@ -14,6 +14,7 @@ assert_contains "branch workflow uses the pinned checkout action" "uses: actions
 assert_contains "branch workflow verifies the trusted base revision" "name: Verify trusted base revision" "$workflow"
 assert_contains "branch workflow receives the server base commit" "BASE_SHA: \${{ github.event.pull_request.base.sha }}" "$workflow"
 assert_contains "branch workflow resolves the server base commit into a fixed ref" 'git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"' "$workflow"
+assert_contains "branch workflow checks out the trusted base revision" "git checkout --detach refs/substrate/pull-request-base" "$workflow"
 assert_contains "branch workflow verifies its checkout against the fixed base ref" 'git rev-parse --verify refs/substrate/pull-request-base' "$workflow"
 assert_contains "branch workflow rejects a mismatched base checkout" "Checked-out base revision does not match the event base SHA" "$workflow"
 assert_resolve_pull_request_head_action "branch workflow" "$workflow"

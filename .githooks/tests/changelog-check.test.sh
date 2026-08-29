@@ -14,6 +14,7 @@ assert_contains "PR checks use the pinned checkout action" "uses: actions/checko
 assert_contains "PR checks verify the trusted base revision" "name: Verify trusted base revision" "$workflow"
 assert_contains "PR checks receive the server base commit" "BASE_SHA: \${{ github.event.pull_request.base.sha }}" "$workflow"
 assert_contains "PR checks resolve the server base commit into a fixed ref" 'git fetch --no-tags origin "$BASE_SHA:refs/substrate/pull-request-base"' "$workflow"
+assert_contains "PR checks detach to the fixed base ref" "git checkout --detach refs/substrate/pull-request-base" "$workflow"
 assert_contains "PR checks verify their checkout against the fixed base ref" 'git rev-parse --verify refs/substrate/pull-request-base' "$workflow"
 assert_contains "PR checks reject a mismatched base checkout" "Checked-out base revision does not match the event base SHA" "$workflow"
 assert_contains "PR checks target protected branches" "branches: [ main, develop ]" "$workflow"
