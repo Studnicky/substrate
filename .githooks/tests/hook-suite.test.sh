@@ -56,11 +56,11 @@ assert_hook_suite_dispatches_shared_presets() {
 
     git switch -q -c release/v1.0.0
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "release branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0" "$out"
+    assert_contains "release branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
 
     git switch -q -c hotfix/fix-publish
     out=$(PATH="$repo/bin:$PATH" /bin/bash "$HOOK_SUITE" release-gates origin/develop)
-    assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0" "$out"
+    assert_contains "hotfix branch gates" "scripts/release-suite.sh verify-release-branch 1.0.0 origin/main" "$out"
   )
   rm -rf "$repo"
   pass_count=$((pass_count + 1))

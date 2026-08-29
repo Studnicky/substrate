@@ -17,8 +17,9 @@ release_suite_verify_lockstep() {
 
 release_suite_verify_release_branch() {
   expected_version="$1"
+  base_ref="$2"
   release_suite_verify_lockstep "$expected_version"
-  assert_changeset_required
+  assert_changeset_required "$base_ref"
 }
 
 release_suite_verify_backmerge() {
@@ -52,7 +53,7 @@ case "${1:-}" in
     release_suite_verify_lockstep "${2:?missing version}"
     ;;
   verify-release-branch)
-    release_suite_verify_release_branch "${2:?missing version}"
+    release_suite_verify_release_branch "${2:?missing version}" "${3:?missing base ref}"
     ;;
   verify-backmerge)
     release_suite_verify_backmerge "${2:?missing version}" "${3:-origin/develop}"
