@@ -8,6 +8,7 @@ source "_helpers.sh"
 WORKFLOW="$(cd "$PWD/../.." && pwd)/.github/workflows/changelog-check.yml"
 workflow=$(cat "$WORKFLOW")
 
+assert_contains "PR checks use the contributor head" "ref: \${{ github.event.pull_request.head.sha }}" "$workflow"
 assert_contains "ordinary PRs require changesets" "name: Verify a changeset was added" "$workflow"
 assert_contains "ordinary PRs exclude prepared releases" "!startsWith(github.head_ref, 'release/prepare-')" "$workflow"
 assert_contains "ordinary PRs target protected branches" "branches: [ main, develop ]" "$workflow"
