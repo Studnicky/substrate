@@ -4,10 +4,10 @@
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": "./src"
   },
   "exclude": ["dist", "node_modules"],
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*"],
   "references": [
     { "path": "../json" },
     { "path": "../mutex" }
