@@ -1,8 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.tests.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "."
+    "rootDir": ".",
+    "noEmit": true
   },
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "./tsconfig.json" },
+    { "path": "../json" },
+    { "path": "../mutex" }
+  ]
 }

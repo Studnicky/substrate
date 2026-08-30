@@ -76,6 +76,18 @@
       "path": "packages/signal/tsconfig.tests.json"
     },
     {
+      "path": "packages/store"
+    },
+    {
+      "path": "packages/store/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/strata-store-kit"
+    },
+    {
+      "path": "packages/strata-store-kit/tsconfig.tests.json"
+    },
+    {
       "path": "packages/batch"
     },
     {
