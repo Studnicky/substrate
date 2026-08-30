@@ -4,6 +4,7 @@ export type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface
 export type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
 export type { FsmStepInterface } from './interfaces/FsmStepInterface.js';
 export type { FsmTransitionInterface } from './interfaces/FsmTransitionInterface.js';
+export type { InterpreterHistoryCreateOptionsInterface } from './interfaces/InterpreterHistoryCreateOptionsInterface.js';
 export type { InterpreterHistoryRecordInterface } from './interfaces/InterpreterHistoryRecordInterface.js';
 export type { RegisteredInterpreterInterface } from './interfaces/RegisteredInterpreterInterface.js';
 export { InterpreterHistory } from './InterpreterHistory.js';

@@ -14,6 +14,9 @@
   ],
   "references": [
     {
+      "path": "../clock"
+    },
+    {
       "path": "../concurrency"
     },
     {
@@ -27,6 +30,9 @@
     },
     {
       "path": "../json"
+    },
+    {
+      "path": "../signal"
     },
     {
       "path": "../types"

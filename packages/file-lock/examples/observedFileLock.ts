@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { FileLock, FileLockTimeoutError } from '../src/index.js';
+import { FileLock, FileLockTimeoutError } from '../src/node/index.js';
 
 class TracedFileLock extends FileLock {
   readonly #recorder = new EventRecorder<{ 'extra'?: string; 'hook': string; 'path': string }>();

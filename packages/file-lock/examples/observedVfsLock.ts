@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import type { LockEventEntity } from './entities/LockEventEntity.js';
 
-import { FileLock } from '../src/index.js';
+import { FileLock } from '../src/node/index.js';
 import { VfsLockFixtures } from './fixtures/VfsLockFixtures.js';
 
 class TracedFileLock extends FileLock {

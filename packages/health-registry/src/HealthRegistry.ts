@@ -3,6 +3,7 @@
 import {
   type HookInvocationError, HookInvoker, RuntimeError
 } from '@studnicky/errors';
+import { Signal } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
@@ -75,9 +76,11 @@ export class HealthRegistry {
   }
 
   readonly #registry = new Map<string, HealthCheckEntryInterface>();
+  readonly #signal: Signal;
   protected readonly hooks: HookInvoker;
 
   protected constructor() {
+    this.#signal = Signal.create();
     this.hooks = new HealthRegistry.#OwnedHookInvoker();
   }
 
@@ -227,10 +230,14 @@ export class HealthRegistry {
 
   async #runWithTimeout(name: string, check: HealthCheckInterface, timeoutMs: number): Promise<HealthCheckResultInterface> {
     const checkPromise = check();
+    const completionController = new AbortController();
+    const timeoutSignal = await this.#signal.compose({ 'deadlineMs': timeoutMs, 'signal': completionController.signal });
 
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<HealthCheckResultInterface>((resolve) => {
-      timer = setTimeout(() => {
+      const onAbort = (): void => {
+        if (completionController.signal.aborted) {
+          return;
+        }
         this.hooks.invoke('onCheckTimeout', () => {
           const result = this.onCheckTimeout(name, timeoutMs);
 
@@ -241,7 +248,12 @@ export class HealthRegistry {
             'reason': 'timeout', 'timeoutMs': timeoutMs
           }, 'status': 'unhealthy'
         });
-      }, timeoutMs);
+      };
+
+      timeoutSignal.addEventListener('abort', onAbort, { 'once': true });
+      if (timeoutSignal.aborted) {
+        onAbort();
+      }
     });
 
     try {
@@ -252,7 +264,7 @@ export class HealthRegistry {
 
       return result;
     } finally {
-      clearTimeout(timer);
+      completionController.abort();
     }
   }
 

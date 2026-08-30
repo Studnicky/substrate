@@ -1,29 +1,28 @@
-import type { Context } from '@studnicky/context';
-import type { ClientConfigInterface, FetchClient } from '@studnicky/fetch';
+import type { FetchClientInterface } from '@studnicky/fetch';
 import type { Retry } from '@studnicky/retry';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 import type { Signal } from '@studnicky/signal';
 
 import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';
+import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterface.js';
 
 /**
  * Configuration accepted by `RequestExecutor.create()`.
  */
 export interface RequestExecutorConfigInterface {
-  /**
-   * A pre-built `Context` instance. Request execution only runs inside a
-   * scope when supplied because `Context.create()` requires a caller-owned name.
-   */
-  readonly 'context'?: Context;
-
   /** Default deadline in milliseconds for calls without a per-call deadline. */
   readonly 'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];
 
-  /** A pre-built client or configuration passed to `FetchClient.create()`. */
-  readonly 'fetchClient'?: ClientConfigInterface | FetchClient;
+  /** HTTP client implementation for this runtime. */
+  readonly 'fetchClient': FetchClientInterface;
 
   /** A pre-built retry primitive or configuration passed to `Retry.create()`. */
   readonly 'retry'?: RetryConfigInterface | Retry;
+
+  /**
+   * A scope factory. Request execution only creates a scope when supplied.
+   */
+  readonly 'scope'?: RequestScopeFactoryInterface;
 
   /** A pre-built signal primitive. Defaults to `Signal.create()`. */
   readonly 'signal'?: Signal;

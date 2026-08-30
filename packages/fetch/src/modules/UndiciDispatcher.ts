@@ -5,6 +5,7 @@
 
 
 import { RuntimeError } from '@studnicky/errors';
+import { RaceTimeout } from '@studnicky/signal';
 import { Agent } from 'undici';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -20,7 +21,6 @@ import {
 import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 import { ConfigurationError } from '../errors/index.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
-import { Delay } from './Delay.js';
 
 interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
@@ -245,7 +245,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     const timeout = options?.timeout;
 
     if (timeout !== undefined && timeout > 0) {
-      await Delay.for(timeout);
+      await RaceTimeout.wait(timeout, undefined);
     }
 
     await this.agent.destroy();

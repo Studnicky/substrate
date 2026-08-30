@@ -4,11 +4,11 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { ExampleSources } from '../utils/ExampleSources';
 
-// A genuinely runnable code example. The CodeMirror editor is prefilled with
-// the verbatim source of a real .ts example (resolved from its repo path).
-// Pressing Execute transpiles the edited TypeScript in the browser, resolves
-// its imports against the real library packages, runs it, and fills the output
-// panel with captured console output.
+// A runnable code example. The CodeMirror editor is prefilled with the
+// verbatim source of a real .ts example (resolved from its repo path). Pressing
+// Execute transpiles the edited TypeScript in the browser, resolves its imports
+// against the real library packages, runs it, and fills the output panel with
+// captured console output.
 
 const props = defineProps<{ src: string; title?: string }>();
 
@@ -17,13 +17,14 @@ interface OutputLineInterface {
   readonly text: string;
 }
 
-const original = await ExampleSources.get(props.src) ?? '';
-const code = ref(original);
+const original = ref('');
+const code = ref('');
 const output = ref<OutputLineInterface[]>([]);
 const errorText = ref<string | null>(null);
 const running = ref(false);
 const hasRun = ref(false);
 const edited = ref(false);
+const sourceLoaded = ref(false);
 const editorHost = ref<HTMLElement | null>(null);
 const root = ref<HTMLElement | null>(null);
 const cmReady = ref(false);
@@ -108,7 +109,7 @@ async function mountEditor(): Promise<void> {
     view = new viewModule.EditorView({
       parent: editorHost.value,
       state: state.EditorState.create({
-        doc: original,
+        doc: original.value,
         extensions: [
           viewModule.lineNumbers(),
           commands.history(),
@@ -121,7 +122,7 @@ async function mountEditor(): Promise<void> {
           viewModule.EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               code.value = update.state.doc.toString();
-              edited.value = code.value !== original;
+              edited.value = code.value !== original.value;
             }
           })
         ]
@@ -137,12 +138,19 @@ function reportEditorError(caught: unknown): void {
   errorText.value = format(caught);
 }
 
-// Lazy-mount: only instantiate CodeMirror once the example scrolls near the
-// viewport, so a page with many examples does not build all editors up front.
-// Until then the source renders as a static <pre> (also SSR-visible).
-onMounted(() => {
+async function loadSource(): Promise<void> {
+  const source = await ExampleSources.get(props.src) ?? '';
+
+  original.value = source;
+  code.value = source;
+  sourceLoaded.value = true;
+}
+
+async function initialize(): Promise<void> {
+  await loadSource();
+
   if (!root.value || typeof IntersectionObserver === 'undefined') {
-    mountEditor().catch(reportEditorError);
+    await mountEditor();
     return;
   }
 
@@ -154,6 +162,14 @@ onMounted(() => {
   }, { rootMargin: '300px' });
 
   observer.observe(root.value);
+}
+
+// Lazy-mount: only instantiate CodeMirror once the example scrolls near the
+// viewport, so a page with many examples does not build all editors up front.
+// The ordinary source block above every playground remains available to the
+// static documentation build.
+onMounted(() => {
+  initialize().catch(reportEditorError);
 });
 
 onBeforeUnmount(() => {
@@ -182,7 +198,7 @@ async function run(): Promise<void> {
 }
 
 function reset(): void {
-  view?.dispatch({ changes: { from: 0, insert: original, to: view.state.doc.length } });
+  view?.dispatch({ changes: { from: 0, insert: original.value, to: view.state.doc.length } });
   output.value = [];
   errorText.value = null;
   hasRun.value = false;
@@ -191,7 +207,10 @@ function reset(): void {
 </script>
 
 <template>
-  <div v-if="!original" class="runnable runnable--error">
+  <div v-if="!sourceLoaded" class="runnable">
+    <span class="runnable__placeholder">Loading example…</span>
+  </div>
+  <div v-else-if="!original" class="runnable runnable--error">
     <strong>Unknown example:</strong> {{ src }}
   </div>
   <div v-else ref="root" class="runnable">

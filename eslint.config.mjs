@@ -171,6 +171,7 @@ export default [
   ...tseslint.config(
     {
       'ignores': [
+        'docs/.vitepress/cache/**',
         '**/dist/**',
         '**/node_modules/**',
         '**/*.d.ts'

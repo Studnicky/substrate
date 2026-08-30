@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { BaseError } from '@studnicky/errors';
 import { Signal } from '@studnicky/signal';
 
-import { WorkerPool, WorkerPoolError } from '../../src/index.js';
+import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 import scenarioGroups from './creation.scenarios.json' with { type: 'json' };
 
@@ -141,6 +141,7 @@ const runnerMap: RunnerMap = {
       constructor() {
         super({
           ...resolveRequiredPoolConfig(scenarioCase.input.workerPool),
+          'abortSignal': undefined,
           'signal': Signal.create(),
         });
         return Object.create(null);
@@ -167,4 +168,11 @@ void describe('WorkerPool.create', () => {
       await runCase(scenario);
     });
   }
+
+  void it('rejects invalid runtime concurrency before dispatch', () => {
+    assert.throws(() => WorkerPool.create<ItemInterface, string>({
+      'concurrency': 0,
+      'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
+    }), /WorkerPool configuration is invalid/u);
+  });
 });

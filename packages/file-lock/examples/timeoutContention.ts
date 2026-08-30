@@ -10,7 +10,7 @@ const filePath = path.join(dir, 'lock.txt');
 writeFileSync(filePath, 'contention test', 'utf8');
 
 // #region usage
-import { FileLock, FileLockTimeoutError } from '../src/index.js';
+import { FileLock, FileLockTimeoutError } from '../src/node/index.js';
 
 // Hold the first lock
 const firstLock = await FileLock.create({ 'path': filePath });

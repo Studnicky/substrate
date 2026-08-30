@@ -12,6 +12,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
     "./entities": {
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
@@ -20,11 +28,6 @@
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
     }
-  },
-  "browser": {
-    "./dist/config/DispatcherAgent.js": "./dist/config/browser/DispatcherAgent.js",
-    "./dist/modules/FetchTransport.js": "./dist/modules/browser/FetchTransport.js",
-    "./dist/modules/UndiciDispatcher.js": "./dist/modules/browser/UndiciDispatcher.js"
   },
   "files": [
     "dist",
@@ -71,8 +74,10 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1",

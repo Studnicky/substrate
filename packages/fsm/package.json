@@ -59,6 +59,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/clock": "workspace:*",
     "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",

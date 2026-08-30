@@ -17,6 +17,10 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 `@studnicky/virtual-fs` declares a root usage API and explicit public subpaths.
 
+The root `VirtualFileSystem` remains the synchronous in-memory primitive. For durable async
+files, `@studnicky/virtual-fs/node` exposes Node promise-based files and
+`@studnicky/virtual-fs/browser` exposes native Origin Private File System storage.
+
 ## Usage
 
 Create an instance with `VirtualFileSystem.create(options?)`, seed files, then call the familiar synchronous methods:
@@ -36,6 +40,12 @@ The factory seeds `/data/hello.txt`, writes a second file, renames it, reads the
 `TracingVfs` subclasses `VirtualFileSystem` and overrides all five hooks: `onCreate`, `onWrite`, `onRead`, `onRename`, and `onDelete`. The demo exercises every path — seeding (triggers `onCreate`), overwriting (triggers `onWrite`), reading, renaming, and unlinking — printing a full hook trace.
 
 <RunnableExample src="packages/virtual-fs/examples/observedVirtualFs" title="Observed VirtualFileSystem — lifecycle hook trace" />
+
+### Origin Private File System
+
+`OpfsFileSystem` implements the asynchronous durable-file contract through the browser Origin Private File System API.
+
+<RunnableExample src="packages/virtual-fs/examples/browserOpfs" title="OpfsFileSystem — browser-native durable files" />
 
 ## Observability hooks
 
@@ -84,6 +94,12 @@ function processFiles(fs: FileSystemInterface): void {
 }
 ```
 
+## Async files
+
+`AsyncFileSystemInterface` is the shared contract for durable asynchronous files. It supports
+existence checks, directory creation and listing, file reads and writes, and recursive removal.
+Use `NodeFileSystem` on the server or `OpfsFileSystem` in browsers that provide OPFS.
+
 ## Public API
 
 The root exports `VirtualFileSystem`, `VirtualFileSystemError`, and `FileSystemInterface`. Filesystem entities use `@studnicky/virtual-fs/entities`; option and stat contracts use `@studnicky/virtual-fs/interfaces`.
@@ -112,6 +128,11 @@ import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `FileSystemInterface` | Defines the file system contract. | `@studnicky/virtual-fs` |
+| `FileSystemInterface` | Defines the synchronous in-memory file system contract. | `@studnicky/virtual-fs` |
+| `AsyncFileSystemInterface` | Defines durable asynchronous file operations. | `@studnicky/virtual-fs` |
+| `NodeFileSystem` | Provides Node promise-based filesystem operations. | `@studnicky/virtual-fs/node` |
+| `OpfsFileSystem` | Provides native browser Origin Private File System operations. | `@studnicky/virtual-fs/browser` |
+| `OpfsFileSystemOptionsInterface` | Defines OPFS construction options. | `@studnicky/virtual-fs/browser` |
+| `OpfsStorageInterface` | Defines the injected OPFS storage boundary. | `@studnicky/virtual-fs/browser` |
 | `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs` |
 | `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs` |

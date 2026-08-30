@@ -12,7 +12,7 @@ export namespace PlatformInfoEntity {
       'nodeVersion': { 'type': 'string' },
       'os': { 'type': 'string' }
     },
-    'required': ['isAppleSilicon', 'nodeVersion', 'os'],
+    'required': ['isAppleSilicon', 'os'],
     'title': 'PlatformInfoType',
     'type': 'object'
   } as const satisfies JSONSchema;

@@ -157,6 +157,7 @@ import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities'
 | `FsmStepInterface` | Defines a state-machine transition result. | `@studnicky/fsm` |
 | `FsmTransitionInterface` | Defines a state-machine transition. | `@studnicky/fsm` |
 | `InterpreterHistory` | Retains state-machine transition history. | `@studnicky/fsm` |
+| `InterpreterHistoryCreateOptionsInterface` | Defines bounded transition-history construction options. | `@studnicky/fsm` |
 | `InterpreterHistoryRecordInterface` | Defines a recorded transition. | `@studnicky/fsm` |
 | `InterpreterNotRunningError` | Signals work submitted to a stopped interpreter. | `@studnicky/fsm` |
 | `InterpreterNotStartedError` | Signals work submitted before an interpreter starts. | `@studnicky/fsm` |

@@ -1,5 +1,6 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
+import { Clock, RealTimeClockProvider } from '@studnicky/clock';
 import { ConfigurationError } from '@studnicky/config';
 import {
   DefaultHttpErrorClassifier,
@@ -8,6 +9,7 @@ import {
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
 import { SchemaIntakeError } from '@studnicky/json';
+import { RaceTimeout } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
@@ -25,7 +27,6 @@ import {
   MaximumRetriesExceededError,
   NonRetryableError
 } from '../errors/index.js';
-import { Delay } from './Delay.js';
 import { RetryCallMachine } from './RetryCallMachine.js';
 
 interface RetryCallFsmInterface {
@@ -149,6 +150,7 @@ export class Retry implements RetryInterface {
     return result;
   }
   private readonly classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
+  private readonly clock: Clock;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
   private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
 
@@ -173,6 +175,7 @@ export class Retry implements RetryInterface {
     );
     this.maximumRetries = validated.maximumRetries ?? DEFAULT_MAXIMUM_RETRIES;
     this.maximumElapsedMs = validated.maximumElapsedMs;
+    this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
     this.backoffStrategy = validated.backoffStrategy;
 
@@ -193,10 +196,16 @@ export class Retry implements RetryInterface {
   /** Converts entity intake failures into Retry's established public config error. */
   private static validateConfig(config: RetryConfigInterface): RetryConfigInterface {
     try {
-      const parsed = RetryConfigEntity.intake(config);
+      const { 'clock': clockProvider, ...configData } = config;
+      if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+        throw ConfigurationError.create('clock must implement ClockProviderInterface');
+      }
+
+      const parsed = RetryConfigEntity.intake(configData);
       const result: RetryConfigInterface = {
         ...parsed,
         ...(config.backoffStrategy === undefined ? {} : { 'backoffStrategy': config.backoffStrategy }),
+        ...(clockProvider === undefined ? {} : { 'clock': clockProvider }),
         ...(config.errorClassifier === undefined ? {} : { 'errorClassifier': config.errorClassifier })
       };
       return result;
@@ -332,7 +341,7 @@ export class Retry implements RetryInterface {
     };
 
     const callFsm = new Retry.#OwnedCallFsm(resolveOwner());
-    const startTime = Date.now();
+    const startTime = this.clock.now();
     const errors: Error[] = [];
     const state: Record<string, unknown> = {};
 
@@ -476,7 +485,7 @@ export class Retry implements RetryInterface {
 
     callFsm.transition('succeeded');
     await this.hooks.invokeAsync('onSuccess', () => {
-      const result = this.onSuccess(attempt, Date.now() - startTime);
+      const result = this.onSuccess(attempt, this.clock.now() - startTime);
       return result;
     });
   }
@@ -507,7 +516,7 @@ export class Retry implements RetryInterface {
 
     // Time ceiling: same exhaustion path as attempt-count exhaustion — whichever
     // budget (attempts or elapsed time) is hit first wins.
-    if (this.maximumElapsedMs !== undefined && Date.now() - startTime >= this.maximumElapsedMs) {
+    if (this.maximumElapsedMs !== undefined && this.clock.now() - startTime >= this.maximumElapsedMs) {
       await this.handleMaximumRetriesExceeded(callFsm, attempt, error, errors);
     }
 
@@ -519,7 +528,7 @@ export class Retry implements RetryInterface {
       'attemptNumber': attempt,
       'classification': classification,
       'delayMs': NO_DELAY_MS,
-      'elapsedMs': Date.now() - startTime,
+      'elapsedMs': this.clock.now() - startTime,
       'error': error,
       'maximumRetries': this.maximumRetries,
       'state': state,
@@ -535,7 +544,7 @@ export class Retry implements RetryInterface {
       await this.handleAbort(callFsm, attempt, error);
     }
 
-    await Delay.for(context.delayMs);
+    await RaceTimeout.wait(context.delayMs, undefined);
 
     callFsm.transition('attempting');
   }

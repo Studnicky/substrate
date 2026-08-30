@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "tsc -b",
+    "check:browser-entrypoints": "node scripts/check-browser-entrypoints.mjs",
     "changeset": "changeset",
     "changeset:status": "changeset status",
     "changeset:version": "changeset version",

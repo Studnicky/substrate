@@ -95,7 +95,7 @@ const STATEFUL = [
   'entity-store', 'event-bus', 'file-lock', 'flag-evaluator', 'fsm', 'health-registry', 'idempotency-guard',
   'keyed-rate-limiter', 'keyed-work-gate', 'logger', 'memoize', 'mutex', 'paginator', 'pipeline', 'process-kit',
   'request-executor', 'resilience', 'retry', 'sample-buffer', 'scheduler',
-  'sliding-window-limiter', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
+  'sliding-window-limiter', 'store', 'strata-store-kit', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
 ] as const;
 
 const STATELESS = [
@@ -229,7 +229,9 @@ export default withMermaid(defineConfig({
           items: [
             { text: 'Overview', link: '/' },
             { text: 'Getting Started', link: '/getting-started' },
-            { text: 'Architecture', link: '/architecture' }
+            { text: 'Architecture', link: '/architecture' },
+            { text: 'Composition Contract', link: '/concepts/composition-contract' },
+            { text: 'Package Registry', link: '/concepts/package-registry' }
           ]
         },
         {

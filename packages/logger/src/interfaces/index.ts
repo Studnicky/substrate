@@ -2,6 +2,7 @@
  * \@studnicky/logger
  */
 
+export type { TransportInterface } from '../transports/TransportInterface.js';
 export type { CorrelationMetadataInterface } from './CorrelationMetadataInterface.js';
 export type { ErrorMetadataInterface } from './ErrorMetadataInterface.js';
 export type { LoggerInterface } from './LoggerInterface.js';

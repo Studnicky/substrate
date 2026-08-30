@@ -7,7 +7,7 @@ import {
 import {
   FetchClient,
   TimeoutError
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';

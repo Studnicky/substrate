@@ -1,3 +1,4 @@
+import type { ClockProviderInterface } from '@studnicky/clock';
 import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
 
 import type { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
@@ -20,5 +21,7 @@ interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
  */
 export interface RetryConfigInterface extends RetryConfigEntity.Type {
   readonly 'backoffStrategy'?: RetryBackoffConfigInterface;
+  /** Clock used to measure the retry elapsed-time budget. Default: `RealTimeClockProvider`. */
+  readonly 'clock'?: ClockProviderInterface;
   readonly 'errorClassifier'?: ErrorClassifierFunctionInterface | ErrorClassifierInterface;
 }

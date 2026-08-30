@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
-import { FetchClient, TimeoutError } from '../../../src/index.js';
+import { FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
 import scenarioGroups from './timeout.scenarios.json' with { type: 'json' };
 

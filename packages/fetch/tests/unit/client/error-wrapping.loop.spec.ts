@@ -9,7 +9,7 @@ import {
   HeadersTimeoutError,
   SocketError,
   SocketExhaustionError
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 
 import scenarioGroups from './error-wrapping.scenarios.json' with { type: 'json' };
 

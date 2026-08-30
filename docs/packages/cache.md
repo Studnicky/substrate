@@ -35,6 +35,23 @@ Pass `ttlMs` to expire entries automatically. Eviction is lazy: entries are remo
 
 <<< ../../packages/cache/examples/ttlExpiry.ts#usage
 
+### Deterministic cache time
+
+`LruCache.create` accepts a `ClockProviderInterface` through `clock`. The provider measures both TTL expiry and the soft `staleMs` threshold, so virtual time tests do not wait for wall time.
+
+<!-- inline-ts-ok: focused dependency-injection illustration; the runnable cache examples cover observable behavior. -->
+```typescript
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { LruCache } from '@studnicky/cache';
+
+const counter = VirtualTimeCounter.create({ startMs: 0 });
+const cache = LruCache.create<string, string>({
+  capacity: 10,
+  clock: VirtualClockProvider.create(counter),
+  ttlMs: 1_000
+});
+```
+
 ## Try it
 
 ### Lifecycle hooks
@@ -72,6 +89,7 @@ no-ops by default.
 | Export | Type | Description |
 |--------|------|-------------|
 | `LruCache<K, V>` | class | LRU + TTL cache; generic key and value types |
+| `LruCacheCreateOptionsInterface` | interface | Schema settings plus an optional clock provider |
 | `CacheError` | class | Base package error |
 | `CacheConfigError` | class | Invalid cache configuration |
 
@@ -79,7 +97,7 @@ no-ops by default.
 
 | Member | Signature | Description |
 |--------|-----------|-------------|
-| `create` | `static create<K, V>(options: LruCacheOptionsEntity.Type): LruCache<K, V>` | Constructs a cache from validated options; import the schema namespace from `@studnicky/cache/entities` |
+| `create` | `static create<K, V>(options: LruCacheCreateOptionsInterface): LruCache<K, V>` | Constructs a cache from validated settings and an optional clock provider |
 | `size` | `get size(): number` | Current entry count |
 | `get` | `(key: K) => V \| undefined` | Returns value; promotes to MRU; evicts expired |
 | `tryGet` | `(key: K) => { found: boolean; value: V \| undefined }` | Distinguishes a miss from a stored `undefined` value in one traversal |
@@ -105,5 +123,6 @@ import { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 | `LruCache` | Stores bounded least-recently-used values with optional expiry. | `@studnicky/cache` |
 | `CacheConfigError` | Represents invalid cache configuration. | `@studnicky/cache` |
 | `CacheError` | Base error for cache failures. | `@studnicky/cache` |
+| `LruCacheCreateOptionsInterface` | Defines cache settings and the clock collaborator. | `@studnicky/cache` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/cache)

@@ -2,15 +2,17 @@ import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import { Context } from '@studnicky/context';
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
-import { AbortError, FetchClient, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
+import { AbortError, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
+import { FetchClient } from '@studnicky/fetch/node';
 import { Retry } from '@studnicky/retry';
 import type { RetryContextInterface, RetryConfigInterface } from '@studnicky/retry/interfaces';
 
 import { RequestExecutor } from '../../../src/index.js';
 import { RequestDeadlineEntity } from '../../../src/entities/index.js';
 import type { RequestExecutorConfigInterface } from '../../../src/interfaces/RequestExecutorConfigInterface.js';
+import type { RequestScopeFactoryInterface } from '../../../src/interfaces/RequestScopeFactoryInterface.js';
+import type { RequestScopeInterface } from '../../../src/interfaces/RequestScopeInterface.js';
 import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
 
 interface ScenarioRequestExecutorInputInterface {
@@ -180,7 +182,7 @@ interface HookCallInterface {
 class TrackingRequestExecutor extends RequestExecutor {
   readonly hookCalls: HookCallInterface[] = [];
 
-  static track(config: RequestExecutorConfigInterface = {}): TrackingRequestExecutor {
+  static track(config: RequestExecutorConfigInterface): TrackingRequestExecutor {
     const result = this.create(config);
     if (!(result instanceof TrackingRequestExecutor)) {
       throw RuntimeError.create('Expected TrackingRequestExecutor instance');
@@ -215,6 +217,63 @@ class ThrowingErrorHookRequestExecutor extends RequestExecutor {
 
   protected override onExecuteError(_error: Error): void {
     throw RuntimeError.create(this.#hookFailureMessage);
+  }
+}
+
+class TestRequestScope implements RequestScopeInterface {
+  readonly #factory: TestRequestScopeFactory;
+  readonly #values: Map<string, unknown>;
+
+  public constructor(factory: TestRequestScopeFactory, values: Map<string, unknown>) {
+    this.#factory = factory;
+    this.#values = values;
+  }
+
+  public execute<TResult>(callback: () => TResult): TResult {
+    this.#factory.activate(this.#values);
+    const result = callback();
+
+    return result;
+  }
+
+  public terminate(): void {
+    this.#factory.deactivate(this.#values);
+  }
+}
+
+class TestRequestScopeFactory implements RequestScopeFactoryInterface {
+  readonly #defaults: Readonly<Record<string, unknown>>;
+  #active: Map<string, unknown> | undefined;
+
+  public constructor(defaults: Record<string, unknown>) {
+    this.#defaults = defaults;
+  }
+
+  public activate(values: Map<string, unknown>): void {
+    this.#active = values;
+  }
+
+  public deactivate(values: Map<string, unknown>): void {
+    if (this.#active === values) {
+      this.#active = undefined;
+    }
+  }
+
+  public get(key: string): unknown {
+    const result = this.#active?.get(key);
+
+    return result;
+  }
+
+  public initialize(initial?: Record<string, unknown>): RequestScopeInterface {
+    const values = new Map(Object.entries({ ...this.#defaults, ...initial }));
+    const result = new TestRequestScope(this, values);
+
+    return result;
+  }
+
+  public set(key: string, value: unknown): void {
+    this.#active?.set(key, value);
   }
 }
 
@@ -256,9 +315,9 @@ class TrackingRetry extends Retry {
 
 function resolvePlainExecutorConfig(input?: ScenarioRequestExecutorInputInterface): RequestExecutorConfigInterface {
   return {
-    ...(input?.context !== undefined ? { context: Context.create(input.context) } : {}),
+    'fetchClient': createFetchClientFromScenario(input ?? {}),
+    ...(input?.context !== undefined ? { scope: new TestRequestScopeFactory(input.context) } : {}),
     ...(input?.deadlineMs !== undefined ? { deadlineMs: input.deadlineMs } : {}),
-    ...(input?.fetchClient !== undefined ? { fetchClient: input.fetchClient } : {}),
     ...(input?.retry !== undefined ? { retry: input.retry } : {})
   };
 }
@@ -271,11 +330,11 @@ function createRetryFromScenario(input: ScenarioRequestExecutorInputInterface): 
   return Retry.create(input.retry);
 }
 
-function requireContextFromScenario(input: ScenarioRequestExecutorInputInterface): Context {
+function requireContextFromScenario(input: ScenarioRequestExecutorInputInterface): TestRequestScopeFactory {
   if (input.context === undefined) {
     throw RuntimeError.create('Scenario input.requestExecutor.context is required');
   }
-  return Context.create(input.context);
+  return new TestRequestScopeFactory(input.context);
 }
 
 type ScenarioRunner<K extends ScenarioCase['shape']> =
@@ -355,7 +414,7 @@ const runnerMap: RunnerMap = {
       return new Response(scenarioCase.input.fetchResponseText);
     });
 
-    const executor = RequestExecutor.create();
+    const executor = RequestExecutor.create({ 'fetchClient': FetchClient.create() });
     const response = await executor.execute((client, signal) => client.get(scenarioCase.input.fetchUrl, { signal }));
     assert.equal(response.status, scenarioCase.expected.responseStatus);
     assert.equal(await response.text(), scenarioCase.expected.responseText);
@@ -369,7 +428,7 @@ const runnerMap: RunnerMap = {
     const context = requireContextFromScenario(scenarioCase.input.requestExecutor);
     const executor = RequestExecutor.create({
       ...resolvePlainExecutorConfig(scenarioCase.input.requestExecutor),
-      context,
+      'scope': context,
       fetchClient: createFetchClientFromScenario(scenarioCase.input.requestExecutor),
       retry: createRetryFromScenario(scenarioCase.input.requestExecutor)
     });
@@ -396,7 +455,7 @@ const runnerMap: RunnerMap = {
     const context = requireContextFromScenario(scenarioCase.input.requestExecutor);
     const executor = RequestExecutor.create({
       ...resolvePlainExecutorConfig(scenarioCase.input.requestExecutor),
-      context,
+      'scope': context,
       fetchClient: createFetchClientFromScenario(scenarioCase.input.requestExecutor),
       retry: createRetryFromScenario(scenarioCase.input.requestExecutor)
     });
@@ -411,7 +470,7 @@ const runnerMap: RunnerMap = {
         observedSeed = seed;
         return client.get('/', { signal });
       },
-      { contextInitial: { seed: scenarioCase.input.contextSeed } }
+      { scopeInitial: { seed: scenarioCase.input.contextSeed } }
     );
 
     assert.equal(observedSeed, scenarioCase.expected.observedSeed);
@@ -570,7 +629,7 @@ const runnerMap: RunnerMap = {
       return new Response(scenarioCase.input.fetchResponseText);
     });
 
-    const executor = RequestExecutor.create();
+    const executor = RequestExecutor.create({ 'fetchClient': FetchClient.create() });
     const response = await executor.execute((client, signal) => client.get(scenarioCase.input.fetchUrl, { signal }));
 
     assert.equal(response.status, scenarioCase.expected.responseStatus);

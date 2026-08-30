@@ -5,9 +5,7 @@
 import { Predicates } from '@studnicky/types';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
-import type {
-  FilterConditionInterface, OperatorFunctionInterface
-} from '../interfaces.js';
+import type { FilterConditionInterface } from '../interfaces.js';
 
 import { DateParser } from '../converters/DateParser.js';
 import { FilterOperatorError } from '../errors/FilterOperatorError.js';
@@ -20,26 +18,26 @@ import { WHITESPACE_PATTERN } from './constants/WhitespacePattern.js';
  * Shared deep-equality comparison used by IDENTICAL-style operators
  */
 class ComparisonOperators {
-  static deepEqual<T>(a: T, b: T, options?: { 'visited'?: WeakSet<object> }): boolean {
-    if (a === b) {
+  static deepEqual<T>(leftValue: T, rightValue: T, options?: { 'visited'?: WeakSet<object> }): boolean {
+    if (leftValue === rightValue) {
       return true;
     }
 
     // Handle null/undefined
-    if (a === null || a === undefined || b === null || b === undefined) {
-      const result = a === b;
+    if (leftValue === null || leftValue === undefined || rightValue === null || rightValue === undefined) {
+      const result = leftValue === rightValue;
 
       return result;
     }
 
     // Handle different types
-    if (typeof a !== typeof b) {
+    if (typeof leftValue !== typeof rightValue) {
       return false;
     }
 
     // Handle primitives
-    if (typeof a !== 'object' || typeof b !== 'object') {
-      const result = a === b;
+    if (typeof leftValue !== 'object' || typeof rightValue !== 'object') {
+      const result = leftValue === rightValue;
 
       return result;
     }
@@ -48,39 +46,40 @@ class ComparisonOperators {
     const visitedSet = options?.visited ?? new WeakSet();
 
     // Check for circular references
-    if (visitedSet.has(a) || visitedSet.has(b)) {
+    if (visitedSet.has(leftValue) || visitedSet.has(rightValue)) {
       // For circular references, consider them equal if they're the same reference
-      const result = a === b;
+      const result = leftValue === rightValue;
 
       return result;
     }
 
     // Add objects to visited set
-    visitedSet.add(a);
-    visitedSet.add(b);
+    visitedSet.add(leftValue);
+    visitedSet.add(rightValue);
 
     try {
       // Handle Dates
-      if (a instanceof Date && b instanceof Date) {
-        const result = a.getTime() === b.getTime();
+      if (leftValue instanceof Date && rightValue instanceof Date) {
+        const result = leftValue.getTime() === rightValue.getTime();
 
         return result;
       }
 
       // Handle RegExp
-      if (a instanceof RegExp && b instanceof RegExp) {
-        const result = a.source === b.source && a.flags === b.flags;
+      if (leftValue instanceof RegExp && rightValue instanceof RegExp) {
+        const result = leftValue.source === rightValue.source && leftValue.flags === rightValue.flags;
 
         return result;
       }
 
       // Handle Arrays
-      if (Array.isArray(a) && Array.isArray(b)) {
-        if (a.length !== b.length) {
+      if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+        if (leftValue.length !== rightValue.length) {
           return false;
         }
-        for (let i = 0; i < a.length; i++) {
-          if (!ComparisonOperators.deepEqual(a[i], b[i], { 'visited': visitedSet })) {
+        const length = leftValue.length;
+        for (let index = 0; index < length; index += 1) {
+          if (!ComparisonOperators.deepEqual(leftValue[index], rightValue[index], { 'visited': visitedSet })) {
             return false;
           }
         }
@@ -89,12 +88,12 @@ class ComparisonOperators {
       }
 
       // Handle Sets
-      if (a instanceof Set && b instanceof Set) {
-        if (a.size !== b.size) {
+      if (leftValue instanceof Set && rightValue instanceof Set) {
+        if (leftValue.size !== rightValue.size) {
           return false;
         }
-        for (const item of a) {
-          if (!b.has(item)) {
+        for (const item of leftValue) {
+          if (!rightValue.has(item)) {
             return false;
           }
         }
@@ -103,15 +102,15 @@ class ComparisonOperators {
       }
 
       // Handle Maps
-      if (a instanceof Map && b instanceof Map) {
-        if (a.size !== b.size) {
+      if (leftValue instanceof Map && rightValue instanceof Map) {
+        if (leftValue.size !== rightValue.size) {
           return false;
         }
         for (const [
           key,
           value
-        ] of a) {
-          if (!b.has(key) || !ComparisonOperators.deepEqual(value, b.get(key), { 'visited': visitedSet })) {
+        ] of leftValue) {
+          if (!rightValue.has(key) || !ComparisonOperators.deepEqual(value, rightValue.get(key), { 'visited': visitedSet })) {
             return false;
           }
         }
@@ -120,11 +119,11 @@ class ComparisonOperators {
       }
 
       // Handle plain objects
-      if (!Predicates.isRecord(a) || !Predicates.isRecord(b)) {
+      if (!Predicates.isRecord(leftValue) || !Predicates.isRecord(rightValue)) {
         return false;
       }
-      const keysA = Object.keys(a);
-      const keysB = Object.keys(b);
+      const keysA = Object.keys(leftValue);
+      const keysB = Object.keys(rightValue);
 
       if (keysA.length !== keysB.length) {
         return false;
@@ -132,13 +131,16 @@ class ComparisonOperators {
 
       const keysBSet = new Set(keysB);
 
-      for (let index = 0; index < keysA.length; index++) {
-        const key = keysA[index]!;
-
+      const keysALength = keysA.length;
+      for (let index = 0; index < keysALength; index += 1) {
+        const key = keysA[index];
+        if (key === undefined) {
+          continue;
+        }
         if (!keysBSet.has(key)) {
           return false;
         }
-        if (!ComparisonOperators.deepEqual(a[key], b[key], { 'visited': visitedSet })) {
+        if (!ComparisonOperators.deepEqual(leftValue[key], rightValue[key], { 'visited': visitedSet })) {
           return false;
         }
       }
@@ -146,8 +148,8 @@ class ComparisonOperators {
       return true;
     } finally {
       // Clean up visited set (objects will be automatically removed when out of scope)
-      visitedSet.delete(a);
-      visitedSet.delete(b);
+      visitedSet.delete(leftValue);
+      visitedSet.delete(rightValue);
     }
   }
 }
@@ -291,7 +293,8 @@ class ArrayOperators {
       ...setB
     ]);
 
-    const similarity = intersection.size / union.size; // Jaccard similarity
+    // Jaccard similarity
+    const similarity = intersection.size / union.size;
 
     return similarity;
   }
@@ -502,34 +505,45 @@ class StringOperators {
 
   // Levenshtein distance calculation for string similarity
   static calculateStringSimilarity(string1: string, string2: string): number {
-    const matrix: number[][] = Array<number[]>(string2.length + 1).fill([])
-      .map(() => {
-        const row = Array<number>(string1.length + 1).fill(0);
+    const sourceLength = string1.length;
+    const initialRow: number[] = [];
 
-        return row;
-      });
-
-    for (let i = 0; i <= string1.length; i += 1) {
-      matrix[0]![i] = i;
+    for (let columnIndex = 0; columnIndex <= sourceLength; columnIndex += 1) {
+      initialRow.push(columnIndex);
     }
 
-    for (let j = 0; j <= string2.length; j += 1) {
-      matrix[j]![0] = j;
-    }
+    let previousRow = initialRow;
+    let targetIndex = 0;
 
-    for (let j = 1; j <= string2.length; j += 1) {
-      for (let i = 1; i <= string1.length; i += 1) {
-        const indicator = string1[i - 1] === string2[j - 1] ? 0 : 1;
+    for (const targetCharacter of string2) {
+      targetIndex += 1;
+      const currentRow = [targetIndex];
+      let sourceIndex = 0;
 
-        matrix[j]![i] = Math.min(
-          matrix[j]![i - 1]! + 1,
-          matrix[j - 1]![i]! + 1,
-          matrix[j - 1]![i - 1]! + indicator
-        );
+      for (const sourceCharacter of string1) {
+        const deletionCost = previousRow[sourceIndex + 1];
+        const diagonalCost = previousRow[sourceIndex];
+        const insertionCost = currentRow[sourceIndex];
+
+        if (deletionCost === undefined || diagonalCost === undefined || insertionCost === undefined) {
+          throw new FilterOperatorError('Unable to calculate string similarity', {});
+        }
+
+        const substitutionCost = diagonalCost + (sourceCharacter === targetCharacter ? 0 : 1);
+        const nextCost = Math.min(deletionCost + 1, insertionCost + 1, substitutionCost);
+
+        currentRow.push(nextCost);
+        sourceIndex += 1;
       }
+
+      previousRow = currentRow;
     }
 
-    const distance = matrix[string2.length]![string1.length]!;
+    const distance = previousRow.at(-1);
+
+    if (distance === undefined) {
+      throw new FilterOperatorError('Unable to calculate string similarity', {});
+    }
 
     return distance;
   }
@@ -547,7 +561,7 @@ class StringOperators {
     }
 
     const threshold = options.condition.threshold;
-    const caseSensitive = options?.condition?.caseSensitive ?? true;
+    const caseSensitive = options.condition.caseSensitive ?? true;
 
     const targetValue = caseSensitive ? value : value.toLowerCase();
     const compareValue = caseSensitive ? filterValue : filterValue.toLowerCase();
@@ -790,7 +804,7 @@ class NumberOperators {
 
     if (maximum === 0) {
       return 1;
-    } // Both are zero
+    }
 
     const diff = Math.abs(value1 - value2);
     const similarity = Math.max(0, 1 - (diff / maximum));
@@ -953,22 +967,22 @@ class BooleanOperators {
     return result;
   }
 
-  static isFalsyValue(value: FilterValueEntity.Type): boolean {
+  static isFalsyValue(value: unknown): boolean {
     const result = value === null || value === undefined || value === false
-      || value === 0 || value === '' || (typeof value === 'number' && Number.isNaN(value));
+      || value === 0 || value === '' || Number.isNaN(value);
 
     return result;
   }
 
-  static booleanTruthy(value: FilterValueEntity.Type): boolean {
+  static booleanTruthy(value: unknown): boolean {
     const result = !BooleanOperators.isFalsyValue(value);
 
     return result;
   }
 
-  static booleanFalsy(value: FilterValueEntity.Type): boolean {
+  static booleanFalsy(value: unknown): boolean {
     const result = value === null || value === undefined || value === false
-      || value === 0 || value === '' || (typeof value === 'number' && Number.isNaN(value));
+      || value === 0 || value === '' || Number.isNaN(value);
 
     return result;
   }
@@ -1275,49 +1289,41 @@ class MapOperators {
 class CrossOperators {
   static valueExists(value: FilterValueEntity.Type): boolean {
     const result = value !== null && value !== undefined;
-
     return result;
   }
 
   static valueAbsent(value: FilterValueEntity.Type): boolean {
     const result = value === null || value === undefined;
-
     return result;
   }
 
   static valueDefined(value: FilterValueEntity.Type): boolean {
     const result = value !== undefined;
-
     return result;
   }
 
   static valueUndefined(value: FilterValueEntity.Type): boolean {
     const result = value === undefined;
-
     return result;
   }
 
   static valueNull(value: FilterValueEntity.Type): boolean {
     const result = value === null;
-
     return result;
   }
 
   static valueNotNull(value: FilterValueEntity.Type): boolean {
     const result = value !== null;
-
     return result;
   }
 
   static crossEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
     const result = value === filterValue;
-
     return result;
   }
 
   static crossNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
     const result = value !== filterValue;
-
     return result;
   }
 
@@ -1332,10 +1338,8 @@ class CrossOperators {
     }
     if (value === undefined) {
       const result = filterValue === 'undefined';
-
       return result;
     }
-
     // Handle primitive types (string, number, boolean, bigint, symbol)
     const primitiveType = typeof value;
 
@@ -1346,56 +1350,55 @@ class CrossOperators {
     }
 
     // For objects, check both primitive type ('object') and constructor name
-    if (value !== null) {
-      // Check for common type aliases (lowercase)
-      if (filterValue === 'array' && Array.isArray(value)) {
-        return true;
-      }
-
-      // Check if they want the primitive type 'object' but exclude arrays
-      if (filterValue === 'object') {
-        const result = !Array.isArray(value);
-
-        return result;
-      }
-
-      // Then check constructor name (Object, Array, Date, etc.)
-      const result = value.constructor?.name === filterValue;
-
+    // Check for common type aliases (lowercase)
+    if (filterValue === 'array' && Array.isArray(value)) {
+      const result = true;
       return result;
     }
 
-    return false;
+    // Check if they want the primitive type 'object' but exclude arrays
+    if (filterValue === 'object') {
+      const result = !Array.isArray(value);
+      return result;
+    }
+
+    const result = value.constructor.name === filterValue;
+    return result;
   }
 
   // Get normalized type names for cross-type comparisons
   static getValueType(value: FilterValueEntity.Type): string {
     if (value === null) {
-      return 'null';
+      const result = 'null';
+      return result;
     }
     if (value === undefined) {
-      return 'undefined';
+      const result = 'undefined';
+      return result;
     }
     if (Array.isArray(value)) {
-      return 'array';
+      const result = 'array';
+      return result;
     }
     if (value instanceof Date) {
-      return 'date';
+      const result = 'date';
+      return result;
     }
     if (value instanceof RegExp) {
-      return 'regexp';
-    }
-    if (Buffer.isBuffer(value)) {
-      return 'buffer';
+      const result = 'regexp';
+      return result;
     }
     if (value instanceof ArrayBuffer) {
-      return 'arraybuffer';
+      const result = 'arraybuffer';
+      return result;
     }
     if (value instanceof Uint8Array) {
-      return 'uint8array';
+      const result = 'uint8array';
+      return result;
     }
     if (value instanceof DataView) {
-      return 'dataview';
+      const result = 'dataview';
+      return result;
     }
 
     const result = typeof value;
@@ -1404,36 +1407,35 @@ class CrossOperators {
   }
 
   // Object similarity based on key-value pairs
-  static keysMatch(a: Record<string, unknown>, b: Record<string, unknown>, key: string): boolean {
+  static keysMatch(left: Record<string, unknown>, right: Record<string, unknown>, key: string): boolean {
     try {
-      const result = JSON.stringify(a[key]) === JSON.stringify(b[key]);
+      const result = JSON.stringify(left[key]) === JSON.stringify(right[key]);
 
       return result;
     } catch {
-      // Handle circular references - consider non-matching if can't stringify
       return false;
     }
   }
 
-  static calculateObjectSimilarity(a: Record<string, unknown>, b: Record<string, unknown>): number {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
+  static calculateObjectSimilarity(left: Record<string, unknown>, right: Record<string, unknown>): number {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
 
-    if (keysA.length === 0 && keysB.length === 0) {
+    if (leftKeys.length === 0 && rightKeys.length === 0) {
       return 1;
     }
-    if (keysA.length === 0 || keysB.length === 0) {
+    if (leftKeys.length === 0 || rightKeys.length === 0) {
       return 0;
     }
 
     const allKeys = new Set([
-      ...keysA,
-      ...keysB
+      ...leftKeys,
+      ...rightKeys
     ]);
     let matches = 0;
 
     for (const key of allKeys) {
-      if (key in a && key in b && CrossOperators.keysMatch(a, b, key)) {
+      if (key in left && key in right && CrossOperators.keysMatch(left, right, key)) {
         matches++;
       }
     }
@@ -1443,10 +1445,9 @@ class CrossOperators {
     return similarity;
   }
 
-  // String x String same-type comparison honoring caseSensitive
-  static compareSameTypeStrings(value1: string, value2: string, caseSensitive: boolean): number {
-    const targetValue = caseSensitive ? value1 : value1.toLowerCase();
-    const compareValue = caseSensitive ? value2 : value2.toLowerCase();
+  static calculateStringSimilarityScore(left: string, right: string, caseSensitive: boolean): number {
+    const targetValue = caseSensitive ? left : left.toLowerCase();
+    const compareValue = caseSensitive ? right : right.toLowerCase();
     const distance = StringOperators.calculateStringSimilarity(targetValue, compareValue);
     const maximumLength = Math.max(targetValue.length, compareValue.length);
 
@@ -1459,178 +1460,136 @@ class CrossOperators {
     return similarity;
   }
 
-  static compareSameTypeDefault(value1: unknown, value2: unknown): number {
+  static serializeComparableValue(value: FilterValueEntity.Type | undefined): string {
+    if (typeof value !== 'object' || value === null) {
+      const result = String(value);
+
+      return result;
+    }
+
     try {
-      const result = (JSON.stringify(value1) === JSON.stringify(value2)) ? 1 : 0;
+      const result = JSON.stringify(value);
 
       return result;
     } catch {
-      const result = (value1 === value2) ? 1 : 0;
+      const result = '[Circular]';
 
       return result;
     }
   }
 
-  // Same-type dispatch for calculateCrossTypeSimilarity, keyed by normalized type name
-  static compareSameType(type: string, value1: FilterValueEntity.Type, value2: FilterValueEntity.Type, caseSensitive: boolean): number {
-    const handlers: Record<string, () => number> = {
-      'array': () => {
-        const result = ArrayOperators.calculateArraySimilarity(value1 as unknown[], value2 as unknown[]);
+  static compareSameType(leftValue: FilterValueEntity.Type, rightValue: FilterValueEntity.Type, caseSensitive: boolean): number {
+    if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+      const result = ArrayOperators.calculateArraySimilarity(leftValue, rightValue);
 
-        return result;
-      },
-      'boolean': () => {
-        const result = (value1 === value2) ? 1 : 0;
+      return result;
+    }
+    if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+      const result = NumberOperators.calculateNumericSimilarity(leftValue, rightValue);
 
-        return result;
-      },
-      'null': () => {return 1;},
-      'number': () => {
-        const result = NumberOperators.calculateNumericSimilarity(value1 as number, value2 as number);
+      return result;
+    }
+    if (typeof leftValue === 'string' && typeof rightValue === 'string') {
+      const result = CrossOperators.calculateStringSimilarityScore(leftValue, rightValue, caseSensitive);
 
-        return result;
-      },
-      'object': () => {
-        const result = CrossOperators.calculateObjectSimilarity(value1 as Record<string, unknown>, value2 as Record<string, unknown>);
-
-        return result;
-      },
-      'string': () => {
-        const result = CrossOperators.compareSameTypeStrings(value1 as string, value2 as string, caseSensitive);
-
-        return result;
-      },
-      'undefined': () => {return 1;}
-    };
-
-    const handler = handlers[type];
-
-    if (handler !== undefined) {
-      const result = handler();
+      return result;
+    }
+    if (Predicates.isRecord(leftValue) && Predicates.isRecord(rightValue)) {
+      const result = CrossOperators.calculateObjectSimilarity(leftValue, rightValue);
 
       return result;
     }
 
-    // For other types (date, regexp, etc), use JSON comparison
-    const result = CrossOperators.compareSameTypeDefault(value1, value2);
+    const result = leftValue === rightValue ? 1 : 0;
 
     return result;
   }
 
   // Cross-type similarity calculations (values of different types)
-  static calculateCrossTypeSimilarityMixed(value1: FilterValueEntity.Type, value2: FilterValueEntity.Type, type1: string, type2: string, caseSensitive: boolean): number {
-    // String to Number: compare string representation with number
-    if ((type1 === 'string' && type2 === 'number') || (type1 === 'number' && type2 === 'string')) {
-      const targetString = type1 === 'string' ? value1 as string : value2 as string;
-      const targetNumber = type1 === 'number' ? value1 as number : value2 as number;
-      const numberString = String(targetNumber);
+  static calculateCrossTypeSimilarityMixed(left: FilterValueEntity.Type, right: FilterValueEntity.Type, caseSensitive: boolean): number {
+    if (typeof left === 'string' && typeof right === 'number') {
+      const result = CrossOperators.calculateStringSimilarityScore(left, String(right), caseSensitive);
 
-      const processedString = caseSensitive ? targetString : targetString.toLowerCase();
-      const processedNumberString = caseSensitive ? numberString : numberString.toLowerCase();
+      return result;
+    }
+    if (typeof left === 'number' && typeof right === 'string') {
+      const result = CrossOperators.calculateStringSimilarityScore(right, String(left), caseSensitive);
 
-      const distance = StringOperators.calculateStringSimilarity(processedString, processedNumberString);
-      const maximumLength = Math.max(processedString.length, processedNumberString.length);
+      return result;
+    }
+    if (typeof left === 'string' && Array.isArray(right)) {
+      let bestSimilarity = 0;
+      const rightLength = right.length;
 
-      if (maximumLength === 0) {
-        return 1;
+      for (let index = 0; index < rightLength; index += 1) {
+        const item = right[index];
+        const similarity = CrossOperators.calculateStringSimilarityScore(left, CrossOperators.serializeComparableValue(item), caseSensitive);
+
+        bestSimilarity = Math.max(bestSimilarity, similarity);
       }
 
-      const result = Math.max(0, 1 - (distance / maximumLength));
+      return bestSimilarity;
+    }
+    if (Array.isArray(left) && typeof right === 'string') {
+      let bestSimilarity = 0;
+      const leftLength = left.length;
+
+      for (let index = 0; index < leftLength; index += 1) {
+        const item = left[index];
+        const similarity = CrossOperators.calculateStringSimilarityScore(right, CrossOperators.serializeComparableValue(item), caseSensitive);
+
+        bestSimilarity = Math.max(bestSimilarity, similarity);
+      }
+
+      return bestSimilarity;
+    }
+    if (Array.isArray(left) && typeof right === 'number') {
+      let bestSimilarity = 0;
+      const leftLength = left.length;
+
+      for (let index = 0; index < leftLength; index += 1) {
+        const item = left[index];
+        const itemNumber = typeof item === 'number' ? item : Number(item);
+
+        if (!Number.isNaN(itemNumber)) {
+          bestSimilarity = Math.max(
+            bestSimilarity,
+            NumberOperators.calculateNumericSimilarity(itemNumber, right)
+          );
+        }
+      }
+
+      return bestSimilarity;
+    }
+    if (typeof left === 'number' && Array.isArray(right)) {
+      const result = CrossOperators.calculateCrossTypeSimilarityMixed(right, left, caseSensitive);
 
       return result;
     }
 
-    // String to Array: compare string with array elements as strings
-    if ((type1 === 'string' && type2 === 'array') || (type1 === 'array' && type2 === 'string')) {
-      const targetString = type1 === 'string' ? value1 as string : value2 as string;
-      const targetArray = type1 === 'array' ? value1 as unknown[] : value2 as unknown[];
-
-      const arrayStrings = targetArray.map((item) => {
-        const itemString = String(item);
-
-        return itemString;
-      });
-      const processedString = caseSensitive ? targetString : targetString.toLowerCase();
-
-      let bestSimilarity = 0;
-
-      for (let index = 0; index < arrayStrings.length; index++) {
-        const arrayItemString = arrayStrings[index]!;
-        const processedArrayItemString = caseSensitive ? arrayItemString : arrayItemString.toLowerCase();
-        const distance = StringOperators.calculateStringSimilarity(processedString, processedArrayItemString);
-        const maximumLength = Math.max(processedString.length, processedArrayItemString.length);
-
-        if (maximumLength > 0) {
-          const similarity = Math.max(0, 1 - (distance / maximumLength));
-
-          bestSimilarity = Math.max(bestSimilarity, similarity);
-        }
-      }
-
-      return bestSimilarity;
-    }
-
-    // Array to Number: compare array elements with number
-    if ((type1 === 'array' && type2 === 'number') || (type1 === 'number' && type2 === 'array')) {
-      const targetArray = type1 === 'array' ? value1 as unknown[] : value2 as unknown[];
-      const targetNumber = type1 === 'number' ? value1 as number : value2 as number;
-
-      let bestSimilarity = 0;
-
-      for (let index = 0; index < targetArray.length; index++) {
-        const item = targetArray[index];
-
-        if (typeof item === 'number') {
-          const similarity = NumberOperators.calculateNumericSimilarity(item, targetNumber);
-
-          bestSimilarity = Math.max(bestSimilarity, similarity);
-        } else {
-          // Try to convert to number
-          const itemNumber = Number(item);
-
-          if (!Number.isNaN(itemNumber)) {
-            const similarity = NumberOperators.calculateNumericSimilarity(itemNumber, targetNumber);
-
-            bestSimilarity = Math.max(bestSimilarity, similarity);
-          }
-        }
-      }
-
-      return bestSimilarity;
-    }
-
-    // Default cross-type: convert both to strings and compare
-    const string1 = String(value1);
-    const string2 = String(value2);
-    const processedString1 = caseSensitive ? string1 : string1.toLowerCase();
-    const processedString2 = caseSensitive ? string2 : string2.toLowerCase();
-
-    const distance = StringOperators.calculateStringSimilarity(processedString1, processedString2);
-    const maximumLength = Math.max(processedString1.length, processedString2.length);
-
-    if (maximumLength === 0) {
-      return 1;
-    }
-
-    const result = Math.max(0, 1 - (distance / maximumLength));
+    const result = CrossOperators.calculateStringSimilarityScore(
+      CrossOperators.serializeComparableValue(left),
+      CrossOperators.serializeComparableValue(right),
+      caseSensitive
+    );
 
     return result;
   }
 
   // Main cross-type similarity calculation
-  static calculateCrossTypeSimilarity(value1: FilterValueEntity.Type, value2: FilterValueEntity.Type, caseSensitive: boolean): number {
-    const type1 = CrossOperators.getValueType(value1);
-    const type2 = CrossOperators.getValueType(value2);
+  static calculateCrossTypeSimilarity(left: FilterValueEntity.Type, right: FilterValueEntity.Type, caseSensitive: boolean): number {
+    const leftType = CrossOperators.getValueType(left);
+    const rightType = CrossOperators.getValueType(right);
 
     // Same types - use type-specific calculations
-    if (type1 === type2) {
-      const result = CrossOperators.compareSameType(type1, value1, value2, caseSensitive);
+    if (leftType === rightType) {
+      const result = CrossOperators.compareSameType(left, right, caseSensitive);
 
       return result;
     }
 
     // Different types - cross-type similarity
-    const result = CrossOperators.calculateCrossTypeSimilarityMixed(value1, value2, type1, type2, caseSensitive);
+    const result = CrossOperators.calculateCrossTypeSimilarityMixed(left, right, caseSensitive);
 
     return result;
   }
@@ -1689,129 +1648,7 @@ class CrossOperators {
   }
 }
 
-// Operator enum with proper types
-interface OperatorEnumInterface {
-  readonly 'ARRAY': {
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'EXCLUDES': OperatorFunctionInterface;
-    readonly 'IDENTICAL': OperatorFunctionInterface;
-    readonly 'INCLUDES': OperatorFunctionInterface;
-    readonly 'LENGTH': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly 'NOT_IDENTICAL': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-  };
-  readonly 'BINARY': {
-    readonly 'CONTAINS': OperatorFunctionInterface;
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'ENDS_WITH': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'LENGTH': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'STARTS_WITH': OperatorFunctionInterface;
-  };
-  readonly 'BOOLEAN': {
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'FALSE': OperatorFunctionInterface;
-    readonly 'FALSY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-    readonly 'TRUE': OperatorFunctionInterface;
-    readonly 'TRUTHY': OperatorFunctionInterface;
-  };
-  readonly 'CROSS': {
-    readonly 'ABSENT': OperatorFunctionInterface;
-    readonly 'DEFINED': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'EXISTS': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly 'NOT_NULL': OperatorFunctionInterface;
-    readonly 'NULL': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-    readonly 'TYPE': OperatorFunctionInterface;
-    readonly 'UNDEFINED': OperatorFunctionInterface;
-  };
-  readonly 'DATE': {
-    readonly 'BETWEEN': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'IDENTICAL'?: OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly 'NOT_IDENTICAL'?: OperatorFunctionInterface;
-    readonly 'OUTSIDE': OperatorFunctionInterface;
-  };
-  readonly 'MAP': {
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'HAS': OperatorFunctionInterface;
-    readonly 'MISSING': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIZE': OperatorFunctionInterface;
-  };
-  readonly 'NUMBER': {
-    readonly 'BETWEEN': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'GREATER': OperatorFunctionInterface;
-    readonly 'GREATER_EQUAL': OperatorFunctionInterface;
-    readonly 'LESS': OperatorFunctionInterface;
-    readonly 'LESS_EQUAL': OperatorFunctionInterface;
-    readonly 'MODULO': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly 'OUTSIDE': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-  };
-  readonly 'OBJECT': {
-    readonly 'DEEP_INCLUDES': OperatorFunctionInterface;
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'HAS_PROPERTY': OperatorFunctionInterface;
-    readonly 'IDENTICAL': OperatorFunctionInterface;
-    readonly 'MISSING_PROPERTY': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly 'NOT_IDENTICAL': OperatorFunctionInterface;
-    readonly 'PROPERTY_COUNT': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-  };
-  readonly [key: string]: Record<string, OperatorFunctionInterface>;
-  readonly 'SET': {
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'HAS': OperatorFunctionInterface;
-    readonly 'MISSING': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'SIZE': OperatorFunctionInterface;
-  };
-  readonly 'STRING': {
-    readonly 'CONTAINS': OperatorFunctionInterface;
-    readonly 'EMPTY': OperatorFunctionInterface;
-    readonly 'ENDS_WITH': OperatorFunctionInterface;
-    readonly 'EQUALS': OperatorFunctionInterface;
-    readonly 'EXCLUDES': OperatorFunctionInterface;
-    readonly 'LENGTH': OperatorFunctionInterface;
-    readonly 'NOT_EMPTY': OperatorFunctionInterface;
-    readonly 'NOT_EQUALS': OperatorFunctionInterface;
-    readonly [key: string]: OperatorFunctionInterface;
-    readonly 'REGEX': OperatorFunctionInterface;
-    readonly 'SIMILARITY': OperatorFunctionInterface;
-    readonly 'STARTS_WITH': OperatorFunctionInterface;
-    readonly 'WORD_COUNT': OperatorFunctionInterface;
-  };
-}
-
-export const Operator: OperatorEnumInterface = DeepFreeze.deepFreeze({
+export const Operator = DeepFreeze.deepFreeze({
   'ARRAY': {
     'EMPTY': ArrayOperators.arrayEmpty,
     'EQUALS': ArrayOperators.arrayEquals,
@@ -1889,7 +1726,7 @@ export const Operator: OperatorEnumInterface = DeepFreeze.deepFreeze({
     'EMPTY': ObjectOperators.handleEmpty,
     'EQUALS': ObjectOperators.handleEquals,
     'HAS_PROPERTY': ObjectOperators.handleHasProperty,
-    'IDENTICAL': ObjectOperators.handleIdentical,
+    'IDENTICAL': ObjectOperators.handleEquals,
     'MISSING_PROPERTY': ObjectOperators.handleMissingProperty,
     'NOT_EMPTY': ObjectOperators.handleNotEmpty,
     'NOT_EQUALS': ObjectOperators.handleNotEquals,

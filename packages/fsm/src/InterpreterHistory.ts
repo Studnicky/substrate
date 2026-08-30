@@ -1,25 +1,16 @@
 import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
 import { CircularBuffer } from '@studnicky/circular-buffer';
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 import { Clone } from '@studnicky/json';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
+import type { InterpreterHistoryCreateOptionsInterface } from './interfaces/InterpreterHistoryCreateOptionsInterface.js';
 import type { InterpreterHistoryRecordInterface } from './interfaces/InterpreterHistoryRecordInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { EffectInterpreter } from './EffectInterpreter.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
-
-interface InterpreterHistoryCreateOptionsInterface<
-  TState extends { readonly 'variant': string },
-  TEvent extends { readonly 'type': string },
-  TEffect extends { readonly 'variant': string } = never
-> {
-  readonly 'capacity': NonNullable<CircularBufferOptionsEntity.Type['capacity']>;
-  readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
-  readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
-  readonly 'machineId'?: string | undefined;
-}
 
 interface InterpreterHistoryConstructorOptionsInterface<
   TState extends { readonly 'variant': string },
@@ -27,6 +18,7 @@ interface InterpreterHistoryConstructorOptionsInterface<
   TEffect extends { readonly 'variant': string } = never
 > {
   readonly 'capacity': NonNullable<CircularBufferOptionsEntity.Type['capacity']>;
+  readonly 'clock': ClockProviderInterface;
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect>;
   readonly 'machineId'?: string | undefined;
@@ -61,6 +53,7 @@ export class InterpreterHistory<
     }
     return new InterpreterHistory<S, E, Ef>({
       'capacity': options.capacity,
+      'clock': options.clock ?? RealTimeClockProvider.create(),
       'handler': options.handler,
       'machine': options.machine,
       'machineId': options.machineId
@@ -68,9 +61,11 @@ export class InterpreterHistory<
   }
 
   readonly #records: CircularBuffer<InterpreterHistoryRecordInterface<TState, TEvent>>;
+  readonly #clock: Clock;
 
   protected constructor(options: InterpreterHistoryConstructorOptionsInterface<TState, TEvent, TEffect>) {
     super(options);
+    this.#clock = Clock.create(options.clock);
     this.#records = CircularBuffer.create<InterpreterHistoryRecordInterface<TState, TEvent>>({ 'capacity': options.capacity });
   }
 
@@ -94,6 +89,6 @@ export class InterpreterHistory<
 
   protected override onTransition(from: TState, to: TState, event: TEvent): void {
     super.onTransition(from, to, event);
-    this.#records.push(Clone.deep({ 'event': event, 'from': from, 'timestamp': Date.now(), 'to': to }));
+    this.#records.push(Clone.deep({ 'event': event, 'from': from, 'timestamp': this.#clock.now(), 'to': to }));
   }
 }

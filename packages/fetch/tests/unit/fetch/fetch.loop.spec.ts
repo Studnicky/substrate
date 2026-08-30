@@ -6,7 +6,7 @@ import {
 
 import {
   AbortError, ConnectTimeoutError, FetchClient, TimeoutError
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 
 type RuntimeTag =
   | { shape: 'infinity' }

@@ -68,7 +68,7 @@ class CustomBackoffRetry extends Retry {
 
 ### Time ceiling
 
-`maximumElapsedMs` bounds total wall-clock time across all attempts, independent of `maximumRetries`. Whichever ceiling is hit first — attempt count or elapsed time — ends the retry loop, mirroring Python `tenacity`'s `stop_after_attempt(N) | stop_after_delay(T)` combined policy. Time-ceiling exhaustion is treated identically to attempt-count exhaustion: `onGiveUp` fires with `reason: 'exhausted'` and a `MaximumRetriesExceededError` is thrown.
+`maximumElapsedMs` bounds total elapsed time across all attempts, independent of `maximumRetries`. Whichever ceiling is hit first — attempt count or elapsed time — ends the retry loop, mirroring Python `tenacity`'s `stop_after_attempt(N) | stop_after_delay(T)` combined policy. Time-ceiling exhaustion is treated identically to attempt-count exhaustion: `onGiveUp` fires with `reason: 'exhausted'` and a `MaximumRetriesExceededError` is thrown. Supply a `ClockProviderInterface` through `clock` to make this budget deterministic under virtual time.
 
 ```typescript
 const retry = Retry.create({

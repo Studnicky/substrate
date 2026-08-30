@@ -1,5 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock';
-
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
@@ -17,13 +16,7 @@ interface VirtualFileSystemConstructorInterface<
   readonly 'prototype': TInstance;
 }
 
-const DEFAULT_CLOCK: ClockProviderInterface = {
-  'hrtime': () => {
-    const result = BigInt(Date.now()) * 1_000_000n;
-    return result;
-  },
-  'now': Date.now
-};
+const DEFAULT_CLOCK: ClockProviderInterface = RealTimeClockProvider.create();
 
 class StatResult implements StatResultInterface {
   readonly mtimeMs: EntryEntity.Type['mtimeMs'];

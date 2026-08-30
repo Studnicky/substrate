@@ -43,7 +43,10 @@ Create a `Timing` instance with `Timing.create()` or a trusted `TimingOptionsEnt
 
 ## Public API
 
-The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`. Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses `@studnicky/timing/interfaces`.
+The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`.
+`@studnicky/timing/browser` exports `BrowserTiming`, which uses the native Performance API.
+Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses
+`@studnicky/timing/interfaces`.
 
 ## Extending
 
@@ -94,3 +97,4 @@ import type { TimingInterface } from '@studnicky/timing/interfaces';
 | `Timing` | Provides timing functionality. | `@studnicky/timing` |
 | `TimingBuildError` | Represents timing build failures. | `@studnicky/timing` |
 | `TimingEvent` | Provides timing event functionality. | `@studnicky/timing` |
+| `BrowserTiming` | Provides timing through the browser Performance API. | `@studnicky/timing/browser` |

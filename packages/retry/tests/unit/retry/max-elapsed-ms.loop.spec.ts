@@ -1,3 +1,4 @@
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
 import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -104,4 +105,24 @@ void describe('Retry maximumElapsedMs', () => {
       await runCase(scenario);
     });
   }
+
+  void it('measures the elapsed-time budget with an injected clock', async () => {
+    const counter = VirtualTimeCounter.create({ startMs: 0 });
+    const clock = VirtualClockProvider.create(counter);
+    const retry = Retry.create({
+      clock,
+      errorClassifier: () => ({ retryable: true }),
+      maximumElapsedMs: 5,
+      maximumRetries: 3
+    });
+
+    await assert.rejects(
+      () => retry.execute(async () => {
+        counter.advance(6);
+        throw RuntimeError.create('transient failure');
+      }),
+      MaximumRetriesExceededError
+    );
+    assert.equal(retry.getStats().totalRetries, 0);
+  });
 });

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { FetchClient } from '../src/index.js';
+import { FetchClient } from '../src/node/index.js';
 
 const api = FetchClient.create({
   'autoGenerateRequestId': true,

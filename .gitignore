@@ -15,3 +15,4 @@ npm-audit-report.json
 plans/
 .orchestration/
 .codebase-memory/
+.enginseer/

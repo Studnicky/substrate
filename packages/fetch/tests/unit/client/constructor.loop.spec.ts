@@ -8,7 +8,7 @@ import {
   FetchClient,
   type FetchOptionsInterface,
   type RequestContextInterface
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 
 import scenarioGroups from './constructor.scenarios.json' with { type: 'json' };
 

@@ -33,7 +33,9 @@ The hooks demo subclasses `Mutex` and overrides eight protected lifecycle method
 
 ## Public API
 
-Import `Mutex`, its schema-backed entities, package errors, `MutexInterface`, and `MutexLockInterface` from `@studnicky/mutex`. Create instances directly with `Mutex.create(config?)`; implementation constants remain internal.
+Import `Mutex`, `MutexCreateOptionsInterface`, its schema-backed entities, package errors, `MutexInterface`, and `MutexLockInterface` from `@studnicky/mutex`. Create instances directly with `Mutex.create(config?)`; implementation constants remain internal.
+
+Pass a `ClockProviderInterface` through `clock` when application timing needs to be deterministic. Mutex uses that provider for acquisition waits and lock-hold measurements; the default is `RealTimeClockProvider`.
 
 ## Observability hooks
 
@@ -81,6 +83,7 @@ import type { MutexInterface } from '@studnicky/mutex/interfaces';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Mutex` | Provides mutex functionality. | `@studnicky/mutex` |
+| `MutexCreateOptionsInterface` | Accepts mutex settings and the optional Clock provider. | `@studnicky/mutex` |
 | `LockTimeoutError` | Represents lock timeout failures. | `@studnicky/mutex` |
 | `MutexError` | Represents mutex failures. | `@studnicky/mutex` |
 | `QueueSizeExceededError` | Represents queue size exceeded failures. | `@studnicky/mutex` |

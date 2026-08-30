@@ -1,12 +1,11 @@
 // #region usage
-import { Context } from '@studnicky/context';
-/** directComposition — hand-composes FetchClient, Retry, Signal, and Context directly,
+/** directComposition — hand-composes FetchClient, Retry, and Signal directly,
  * without RequestExecutor, to show the same one-shot request execution pattern built from its
  * four primitives by hand, including the lifecycle hook points RequestExecutor brackets the
  * retry loop with. Compare with observedRequestExecutor.ts, which does identical work through
  * the kit. Run: npx tsx examples/directComposition.ts */
 import { RuntimeError } from '@studnicky/errors';
-import { FetchClient } from '@studnicky/fetch';
+import { FetchClient } from '@studnicky/fetch/node';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
 import assert from 'node:assert/strict';
@@ -22,8 +21,8 @@ interface ExecuteOptionsInterface<T> {
 }
 
 /**
- * The same composition order RequestExecutor#execute() uses internally: a context scope
- * wraps the whole call, `onExecuteStart`/`onExecuteComplete`/`onExecuteError` bracket the
+ * The same composition order RequestExecutor#execute() uses internally: `onExecuteStart`/
+ * `onExecuteComplete`/`onExecuteError` bracket the
  * retry loop, the retry loop wraps the caller's callback, and the composed cancellation signal
  * threads through into whatever call callback makes. Nothing here is hidden inside a facade class —
  * every primitive is a plain local variable the caller owns, and the lifecycle hooks are plain
@@ -34,7 +33,6 @@ class Directly {
     fetchClient: FetchClient,
     retry: Retry,
     signal: Signal,
-    context: Context,
     callback: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
     options: ExecuteOptionsInterface<T> = {}
   ): Promise<T> {
@@ -42,28 +40,18 @@ class Directly {
       options.deadlineMs !== undefined ? { 'deadlineMs': options.deadlineMs } : {}
     );
 
-    const scope = context.initialize();
+    options.onExecuteStart?.();
 
     try {
-      const result = await scope.execute(async () => {
-        options.onExecuteStart?.();
+      const attemptResult = await retry.execute(() => { const callbackResult = callback(fetchClient, composedSignal); return callbackResult; });
 
-        try {
-          const attemptResult = await retry.execute(() => { const callbackResult = callback(fetchClient, composedSignal); return callbackResult; });
+      options.onExecuteComplete?.(attemptResult);
 
-          options.onExecuteComplete?.(attemptResult);
-
-          return attemptResult;
-        } catch (cause) {
-          const error = cause instanceof Error ? cause : RuntimeError.create(String(cause));
-          options.onExecuteError?.(error);
-          throw cause;
-        }
-      });
-
-      return result;
-    } finally {
-      scope.terminate();
+      return attemptResult;
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : RuntimeError.create(String(cause));
+      options.onExecuteError?.(error);
+      throw cause;
     }
   }
 }
@@ -107,13 +95,11 @@ if (address === null || typeof address !== 'object') {
 const fetchClient = FetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
 const retry = Retry.create({ 'maximumRetries': 3 });
 const signal = Signal.create();
-const context = Context.create({ 'name': 'directComposition' });
 
 const response = await Directly.execute(
   fetchClient,
   retry,
   signal,
-  context,
   async (client, abortSignal) => {
     const result = await client.get('/flaky', { 'signal': abortSignal });
 

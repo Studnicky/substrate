@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
-import { FetchClient, UndiciDispatcher } from '../../../src/index.js';
+import { FetchClient, UndiciDispatcher } from '../../../src/node/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
 import scenarioGroups from './dispatcher-routing.scenarios.json' with { type: 'json' };

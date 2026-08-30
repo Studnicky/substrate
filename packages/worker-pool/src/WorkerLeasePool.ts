@@ -41,6 +41,13 @@ class WorkerLeaseCoordinator<TWorker> {
       record = this.#available.pop();
     }
     const acquired = record ?? await this.#createRecord();
+    if (this.#closed) {
+      await WorkerLeaseCoordinator.#evict(acquired, this.#available, this.#factory, this.#lifecycleMachine, this.#records);
+      throw new WorkerPoolError({
+        'code': 'workerLeasePool.closed',
+        'message': 'WorkerLeasePool is closed'
+      });
+    }
     acquired.lifecycleState = this.#lifecycleMachine.transition(acquired.lifecycleState, { 'type': 'assign' }).state;
     return acquired;
   }
@@ -82,6 +89,10 @@ class WorkerLeaseCoordinator<TWorker> {
     }
     record.lifecycleState = this.#lifecycleMachine.transition(record.lifecycleState, { 'type': 'free' }).state;
     this.#available.push(record);
+  }
+
+  public async terminate(record: WorkerRecordInterface<TWorker>): Promise<void> {
+    await WorkerLeaseCoordinator.#evict(record, this.#available, this.#factory, this.#lifecycleMachine, this.#records);
   }
 
   static async #evictRecords<TWorker>(
@@ -253,9 +264,22 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
       await this.#releasePermit();
     }
   }
+
+  public async terminate(): Promise<void> {
+    if (this.#released) {
+      return;
+    }
+    this.#released = true;
+    try {
+      await this.#coordinator.terminate(this.#record);
+    } finally {
+      await this.#releasePermit();
+    }
+  }
 }
 
 export class WorkerLeasePool<TWorker> {
+  readonly #closeController = new AbortController();
   readonly #coordinator: WorkerLeaseCoordinator<TWorker>;
   readonly #semaphore: Semaphore;
   #closed = false;
@@ -294,7 +318,19 @@ export class WorkerLeasePool<TWorker> {
         'message': 'WorkerLeasePool is closed'
       });
     }
-    const releasePermit = await this.#semaphore.acquire();
+    let releasePermit: () => Promise<void>;
+    try {
+      releasePermit = await this.#semaphore.acquire({ 'signal': this.#closeController.signal });
+    } catch (cause) {
+      if (this.#closed) {
+        throw new WorkerPoolError({
+          'cause': cause,
+          'code': 'workerLeasePool.closed',
+          'message': 'WorkerLeasePool is closed'
+        });
+      }
+      throw cause;
+    }
     try {
       if (this.#closed) {
         throw new WorkerPoolError({
@@ -312,6 +348,10 @@ export class WorkerLeasePool<TWorker> {
 
   public async close(): Promise<void> {
     this.#closed = true;
+    this.#closeController.abort(new WorkerPoolError({
+      'code': 'workerLeasePool.closed',
+      'message': 'WorkerLeasePool is closed'
+    }));
     await this.#coordinator.close();
   }
 }

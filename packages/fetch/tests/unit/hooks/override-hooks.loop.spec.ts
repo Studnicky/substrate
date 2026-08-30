@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
-import { FetchClient } from '../../../src/index.js';
+import { FetchClient } from '../../../src/node/index.js';
 import scenarioGroups from './override-hooks.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =

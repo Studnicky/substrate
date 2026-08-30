@@ -4,7 +4,7 @@
  * this fixture keeps listening via `parentPort.on` so the same worker thread can service
  * many tasks in a row across a single `run()` call.
  *
- * Receives one message per task: `{ value, ms? }`.
+ * Receives one message per task: `{ value, ms?, error? }`.
  *   - Waits `ms` (default 0) before responding, to make reuse timing-agnostic.
  *   - Posts a 'result' envelope with `value` unchanged.
  */
@@ -13,10 +13,15 @@ import { parentPort } from 'node:worker_threads';
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 parentPort.on('message', async (message) => {
-  const { value, ms } = message;
+  const { error, value, ms } = message;
 
   if (typeof ms === 'number' && ms > 0) {
     await delay(ms);
+  }
+
+  if (typeof error === 'string') {
+    parentPort.postMessage({ 'type': 'error', 'error': error });
+    return;
   }
 
   parentPort.postMessage({ 'type': 'result', 'value': value });

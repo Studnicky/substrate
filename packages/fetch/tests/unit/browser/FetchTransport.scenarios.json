@@ -1,24 +1,6 @@
 {
   "cases": [
     {
-      "name": "browser-dispatcher-create-rejects",
-      "description": "Browser dispatcher construction stays behind create()",
-      "operation": "browser-dispatcher-create",
-      "input": { "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch" },
-      "expected": {
-        "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch"
-      }
-    },
-    {
-      "name": "browser-agent-create-rejects",
-      "description": "Browser dispatcher agent construction stays behind create()",
-      "operation": "browser-agent-create",
-      "input": { "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch" },
-      "expected": {
-        "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch"
-      }
-    },
-    {
       "name": "uses-native-fetch",
       "description": "FetchTransport uses native fetch when no dispatcher is supplied",
       "operation": "uses-native-fetch",
@@ -37,37 +19,6 @@
       "input": { "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch" },
       "expected": {
         "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch"
-      }
-    },
-    {
-      "name": "browser-dispatcher-methods",
-      "description": "Browser UndiciDispatcher instance methods continue to reject",
-      "operation": "browser-dispatcher-methods",
-      "input": { "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch" },
-      "expected": {
-        "message": "undici connection pooling requires a Node.js runtime; the browser uses native fetch"
-      }
-    },
-    {
-      "name": "package-browser-map",
-      "description": "package.json's browser field routes undici-backed modules to their browser (native fetch) counterparts",
-      "operation": "package-browser-map",
-      "input": {},
-      "expected": {
-        "mappings": [
-          {
-            "from": "packages/fetch/src/config/DispatcherAgent",
-            "to": "packages/fetch/src/config/browser/DispatcherAgent"
-          },
-          {
-            "from": "packages/fetch/src/modules/FetchTransport",
-            "to": "packages/fetch/src/modules/browser/FetchTransport"
-          },
-          {
-            "from": "packages/fetch/src/modules/UndiciDispatcher",
-            "to": "packages/fetch/src/modules/browser/UndiciDispatcher"
-          }
-        ]
       }
     }
   ]

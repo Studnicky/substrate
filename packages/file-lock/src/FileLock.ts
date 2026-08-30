@@ -1,11 +1,13 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
+import { Delay, RealTimeScheduler, type SchedulerProviderInterface } from '@studnicky/scheduler';
 import { Predicates } from '@studnicky/types';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockStateInterface } from './FileLockStateInterface.js';
-import type { FileLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
+import type { FileLockCreateOptionsInterface, LockInterface, OwnerTokenInterface } from './interfaces/index.js';
 
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
@@ -18,10 +20,12 @@ import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
 interface FileLockInternalOptionsInterface {
+  readonly 'clock': ClockProviderInterface;
   readonly 'fs': FileSystemInterface;
   readonly 'lockPath': FileLockPathStateEntity.Type['lockPath'];
   readonly 'originalPath': FileLockPathStateEntity.Type['originalPath'];
   readonly 'renameLock': FileRenameLock;
+  readonly 'scheduler': SchedulerProviderInterface;
 }
 
 interface FileLockSubclassInterface<TInstance> extends Function {
@@ -80,7 +84,7 @@ class FileLockInstance {
  * const lock = await LoggedLock.create({ path: '/tmp/queue.json' });
  * ```
  */
-export class FileLock {
+export class FileLock implements LockInterface {
   /** Swallows hook failures after the composed invoker records them. */
   static readonly #OwnedHookInvoker = class FileLockHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -99,7 +103,9 @@ export class FileLock {
     const { path, pollMs, timeoutMs } = schemaOptions;
 
     const fs: FileSystemInterface = options.fileSystem ?? new NodeFileSystem();
+    const clock: ClockProviderInterface = options.clock ?? RealTimeClockProvider.create();
     const ownerToken: OwnerTokenInterface = options.ownerToken ?? new NodeOwnerToken();
+    const scheduler: SchedulerProviderInterface = options.scheduler ?? RealTimeScheduler.create();
     const lockPath = `${path}.lock.${ownerToken.get()}`;
     const renameLock = FileRenameLock.create({ 'fileSystem': fs, 'ownerToken': ownerToken, 'path': path });
 
@@ -109,7 +115,7 @@ export class FileLock {
 
     // Construct instance first so protected hooks can fire during acquisition.
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
-      { 'fs': fs, 'lockPath': lockPath, 'originalPath': path, 'renameLock': renameLock }
+      { 'clock': clock, 'fs': fs, 'lockPath': lockPath, 'originalPath': path, 'renameLock': renameLock, 'scheduler': scheduler }
     ]);
     if (!Predicates.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
       throw new FileLockConfigError('FileLock.create() did not construct the requested subclass.');
@@ -132,18 +138,22 @@ export class FileLock {
   static readonly #machine = new FileLockMachine();
 
   readonly #fs: FileSystemInterface;
+  readonly #clock: ClockProviderInterface;
   readonly #lockPath: string;
   readonly #originalPath: string;
   readonly #renameLock: FileRenameLock;
+  readonly #scheduler: SchedulerProviderInterface;
   #state: FileLockStateInterface;
 
   protected readonly hooks: HookInvoker;
 
   protected constructor(options: FileLockInternalOptionsInterface) {
+    this.#clock = options.clock;
     this.#fs = options.fs;
     this.#originalPath = options.originalPath;
     this.#lockPath = options.lockPath;
     this.#renameLock = options.renameLock;
+    this.#scheduler = options.scheduler;
     this.#state = FileLock.#machine.getInitialState();
     this.hooks = new FileLock.#OwnedHookInvoker();
   }
@@ -154,7 +164,7 @@ export class FileLock {
   // ---------------------------------------------------------------------------
 
   async #acquire(path: string, pollMs: number, timeoutMs: number): Promise<void> {
-    const deadline = Date.now() + timeoutMs;
+    const deadline = this.#clock.now() + timeoutMs;
     let attempt = 0;
 
     this.hooks.invoke('onAcquireStart', () => {
@@ -171,58 +181,60 @@ export class FileLock {
         const result = this.onTimeout(path);
         return result;
       });
-      return await Promise.reject(new FileLockTimeoutError(path, timeoutMs));
+      throw new FileLockTimeoutError(path, timeoutMs);
     }
 
-    const result = await new Promise<void>((resolve, reject) => {
-      const poll = (): void => {
-        try {
-          this.#renameLock.acquire();
-          this.#state = FileLock.#machine.transition(this.#state, { 'type': 'acquired' }).state;
-          this.hooks.invoke('onAcquire', () => {
-            const acquireResult = this.onAcquire(path);
-            return acquireResult;
-          });
-          resolve();
-        } catch (error) {
-          // Rename failed. ENOENT means another holder already renamed `path` away
-          // (expected contention for this lock's race); any other code (or no code
-          // at all) is a genuine filesystem failure that must fail fast.
-          const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
-          if (!(actualError instanceof FileLockContentionError)) {
-            this.hooks.invoke('onError', () => {
-              const errorResult = this.onError(path, actualError);
-              return errorResult;
-            });
-            reject(actualError);
-            return;
-          }
+    let acquired = false;
+    while (!acquired) {
+      acquired = this.#attemptAcquire(path, deadline, timeoutMs);
+      if (acquired) {
+        continue;
+      }
 
-          if (Date.now() >= deadline) {
-            this.hooks.invoke('onTimeout', () => {
-              const timeoutResult = this.onTimeout(path);
-              return timeoutResult;
-            });
-            reject(new FileLockTimeoutError(path, timeoutMs));
-            return;
-          }
+      attempt += 1;
+      this.hooks.invoke('onAcquireWait', () => {
+        const acquireWaitResult = this.onAcquireWait(path, attempt);
+        return acquireWaitResult;
+      });
+      await Delay.sleep(pollMs, { 'clock': this.#clock, 'scheduler': this.#scheduler });
+    }
 
-          this.hooks.invoke('onContended', () => {
-            const contendedResult = this.onContended(path);
-            return contendedResult;
-          });
+    return;
+  }
 
-          attempt += 1;
-          this.hooks.invoke('onAcquireWait', () => {
-            const acquireWaitResult = this.onAcquireWait(path, attempt);
-            return acquireWaitResult;
-          });
-          setTimeout(poll, pollMs);
-        }
-      };
-      poll();
-    });
-    return result;
+  #attemptAcquire(path: string, deadline: number, timeoutMs: number): boolean {
+    try {
+      this.#renameLock.acquire();
+      this.#state = FileLock.#machine.transition(this.#state, { 'type': 'acquired' }).state;
+      this.hooks.invoke('onAcquire', () => {
+        const acquireResult = this.onAcquire(path);
+        return acquireResult;
+      });
+      return true;
+    } catch (error) {
+      const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
+      if (!(actualError instanceof FileLockContentionError)) {
+        this.hooks.invoke('onError', () => {
+          const errorResult = this.onError(path, actualError);
+          return errorResult;
+        });
+        throw actualError;
+      }
+
+      if (this.#clock.now() >= deadline) {
+        this.hooks.invoke('onTimeout', () => {
+          const timeoutResult = this.onTimeout(path);
+          return timeoutResult;
+        });
+        throw new FileLockTimeoutError(path, timeoutMs);
+      }
+
+      this.hooks.invoke('onContended', () => {
+        const contendedResult = this.onContended(path);
+        return contendedResult;
+      });
+      return false;
+    }
   }
 
   /**

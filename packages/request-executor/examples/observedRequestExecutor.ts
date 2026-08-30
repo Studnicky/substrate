@@ -4,10 +4,10 @@ import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/ret
 
 import { RuntimeError } from '@studnicky/errors';
 import {
-  FetchClient,
   type RequestContextInterface,
   type ResponseContextInterface
 } from '@studnicky/fetch';
+import { FetchClient } from '@studnicky/fetch/node';
 import { Retry } from '@studnicky/retry';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';

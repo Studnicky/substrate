@@ -1,6 +1,6 @@
 /**
- * @studnicky/system — Hardware and platform information for runtime decisions.
+ * @studnicky/system — portable runtime-facts contract.
  *
  * @module
  */
-export { System } from './System.js';
+export type { SystemInterface } from './interfaces/index.js';

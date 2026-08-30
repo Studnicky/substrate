@@ -2,7 +2,7 @@ import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { type QueryParametersInterface, UrlQueryString } from '../../../src/index.js';
+import { type QueryParametersInterface, UrlQueryString } from '../../../src/node/index.js';
 import scenarioGroups from './query.scenarios.json' with { type: 'json' };
 
 type RuntimeTag = { shape: 'undefined' };

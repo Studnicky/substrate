@@ -17,10 +17,8 @@ import type { SemaphoreWaiterTransitionEventInterface } from './interfaces/Semap
  * - `queued -> cancelled` (one of those hooks rejected; the acquisition is
  *   abandoned)
  *
- * `ready` and `cancelled` are terminal — a waiter object is discarded after
- * `Semaphore` observes either outcome, so no further transition is ever
- * requested for the same waiter, matching the original code's write-once
- * boolean fields.
+ * `ready -> cancelled` allows a caller to withdraw while waiting for a
+ * permit. `cancelled` is terminal; granted waiters leave the queue.
  *
  * Stateless and shared: `Semaphore` keeps the actual per-waiter state on the
  * waiter object itself and calls `transition()` once per change, mirroring
@@ -45,6 +43,9 @@ export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateInt
     if (state.variant === 'queued' && event.type === 'markCancelled') {
       return { 'effects': [], 'state': { 'variant': 'cancelled' } };
     }
+    if (state.variant === 'ready' && event.type === 'markCancelled') {
+      return { 'effects': [], 'state': { 'variant': 'cancelled' } };
+    }
 
     throw new TransitionRejectedError({
       'eventType': event.type,
@@ -54,7 +55,7 @@ export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateInt
   }
 
   protected override isTerminated(state: SemaphoreWaiterStateInterface): boolean {
-    const result = state.variant === 'ready' || state.variant === 'cancelled';
+    const result = state.variant === 'cancelled';
     return result;
   }
 }

@@ -8,7 +8,7 @@ import {
 
 import {
   FetchClient,
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 import scenarioGroups from './lifecycle-hooks.scenarios.json' with { type: 'json' };
 
 type HookEvent = { 'hook': string; 'args': unknown[] };

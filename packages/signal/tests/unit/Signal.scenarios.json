@@ -43,6 +43,13 @@
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
+      "name": "compose accepts a fractional deadline",
+      "description": "compose accepts a fractional deadline",
+      "shape": "compose-deadline-fires",
+      "input": { "composeOptions": { "deadlineMs": 0.5 }, "waitMs": 20 },
+      "expected": { "initialAborted": false, "abortedAfterWait": true }
+    },
+    {
       "name": "compose rejects invalid deadline",
       "description": "compose rejects invalid deadline",
       "shape": "compose-invalid-deadline",

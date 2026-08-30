@@ -8,7 +8,7 @@
 
 The file must exist at the given path before calling `create`. If the file is absent or already locked by another process, `create` throws `FileLockTimeoutError` after the configured timeout. The `FileLock` instance exposes `read` and `write` for operating on the locked file, and `release` (or `Symbol.dispose`) to return it to its original path.
 
-Serializable configuration and retained path state are canonicalized by `FileLockOptionsEntity` and `FileLockPathStateEntity`, both exported from the package root with runtime validators. `FileLockCreateOptionsInterface` adds only the live filesystem and owner-token contracts while indexing its data fields from `FileLockOptionsEntity.Type`.
+Serializable configuration and retained path state are canonicalized by `FileLockOptionsEntity` and `FileLockPathStateEntity`, both exported from the package root with runtime validators. `FileLockCreateOptionsInterface` adds live filesystem, owner-token, clock, and scheduler collaborators while indexing its data fields from `FileLockOptionsEntity.Type`.
 
 ## Install
 
@@ -69,6 +69,10 @@ try {
   lock.release();
 }
 ```
+
+### Deterministic timing
+
+`FileLock` composes an injected `ClockProviderInterface` and `SchedulerProviderInterface` through `@studnicky/scheduler`'s `Delay`. Use a virtual pair that shares one `VirtualTimeCounter` to control contention retries and acquisition deadlines without waiting on real time.
 
 ### Handling lock contention
 

@@ -44,6 +44,8 @@ await Promise.all([
 
 `runExclusive()` returns `unknown` unless the caller supplies a runtime type predicate. This keeps coalescing sound when concurrent same-key callers provide callbacks with different result types: every caller validates the one shared result before receiving a narrowed value.
 
+Pass the shared `ClockProviderInterface` with `clock` when acquisition and hold measurements must follow an application-provided time source. The default uses `RealTimeClockProvider`.
+
 ```typescript
 const acceptsUser = (value: unknown): value is User => value instanceof User;
 const user = await mutex.runExclusive(
