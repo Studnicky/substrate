@@ -16,6 +16,7 @@ import type {
 import {
   WebWorkerFactory,
   WebWorkerPool,
+  WorkerPoolError,
   WorkerLeasePool
 } from '../../../src/browser/index.js';
 import { registerWorkerPoolContract } from '../../helpers/registerWorkerPoolContract.js';
@@ -241,6 +242,7 @@ void describe('WebWorkerPool', () => {
     const factory = WebWorkerFactory.create({ 'script': 'worker.js' });
 
     await assert.rejects(factory.create(), (error: unknown): boolean => {
+      assert.equal(error instanceof WorkerPoolError, true);
       assert.equal(error instanceof Error && error.message, 'Web Workers are unavailable in this browser context');
       return true;
     });

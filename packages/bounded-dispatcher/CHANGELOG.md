@@ -1,5 +1,16 @@
 # Changelog
 
+## 12.1.1
+
+### Patch Changes
+
+- @studnicky/concurrency@12.1.1
+  - @studnicky/errors@12.1.1
+  - @studnicky/event-bus@12.1.1
+  - @studnicky/json@12.1.1
+  - @studnicky/scheduler@12.1.1
+  - @studnicky/types@12.1.1
+
 ## 12.1.0
 
 ### Patch Changes

@@ -139,6 +139,10 @@ void describe('Store', () => {
         resolve();
       }, { 'once': true });
     });
+
+    await persistence.save('upgrade-check', 2);
+
+    assert.equal(await persistence.load('upgrade-check'), 2);
   });
 
   const scenariosCount = BROWSER_PERSISTENCE_SCENARIOS.length;
