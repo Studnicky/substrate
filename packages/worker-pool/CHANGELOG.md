@@ -1,5 +1,24 @@
 # Changelog
 
+## 12.1.0
+
+### Minor Changes
+
+- 70a4971: Provides browser-safe platform adapters, lease-based browser worker pooling, browser-backed stores, and composable strata persistence.
+
+### Patch Changes
+
+- f03c2e6: Ensures shared CI cache persistence completes during the worker-pool release pipeline.
+- Updated dependencies [aa12145]
+  - @studnicky/types@12.1.0
+  - @studnicky/batch@12.1.0
+  - @studnicky/concurrency@12.1.0
+  - @studnicky/errors@12.1.0
+  - @studnicky/fsm@12.1.0
+  - @studnicky/json@12.1.0
+  - @studnicky/signal@12.1.0
+  - @studnicky/system@12.1.0
+
 ## 12.0.1
 
 ### Patch Changes
