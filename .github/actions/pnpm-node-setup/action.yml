@@ -51,6 +51,10 @@ runs:
           node_modules
           packages/*/node_modules
         key: ${{ runner.os }}-node-modules-${{ inputs.install-args }}-${{ hashFiles('pnpm-lock.yaml') }}
+    - shell: bash
+      run: |
+        store_path="$(pnpm store path)"
+        mkdir -p "$store_path"
     - if: inputs.install == 'true' && steps.node-modules-cache.outputs.cache-hit
         != 'true'
       shell: bash
