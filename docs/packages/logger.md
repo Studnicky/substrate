@@ -5,7 +5,7 @@ description: Pluggable logging with transport architecture, child loggers, and i
 
 # @studnicky/logger
 
-> Pluggable logging interface with transport architecture, child loggers, and metadata support for Node.js.
+> Pluggable logging interface with portable transport architecture, child loggers, and metadata support.
 
 ## Install
 
@@ -20,6 +20,12 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 Create a `Logger` with one configuration object, attach transports, then pass structured `LogBody` or `LogFault` entries to the log methods:
 
 <<< ../../packages/logger/examples/01-memory-transport.ts#usage
+
+## Browser console transport
+
+`Logger` and `ConsoleTransport` use the portable root entrypoint because their public behavior is
+the same in browser and server environments. The console transport dispatches records to the
+native browser console without importing a server runtime.
 
 ## Immutable LogBody and LogFault configuration
 
@@ -100,6 +106,7 @@ Entity source files import `JSONSchema` and `FromSchema` directly from `json-sch
 | `FileDestinationError` | Represents file transport destination failures. | `@studnicky/logger` |
 | `InvalidLogLevelError` | Represents invalid log-level configuration. | `@studnicky/logger` |
 | `LogBuildError` | Represents invalid log-entry construction. | `@studnicky/logger` |
+| `LogStatusEntity` | Provides the schema and type for structured log statuses. | `@studnicky/logger` |
 | `LoggerError` | Base error for logger failures. | `@studnicky/logger` |
 
 ## Try it

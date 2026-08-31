@@ -14,45 +14,52 @@ import { FilterOperatorError } from '../errors/FilterOperatorError.js';
  * Object operation implementations
  */
 export class ObjectOperators {
+  static readonly DEFAULT_SIMILARITY_THRESHOLD = 0.8;
+
   /**
    * Helper method for deep equality comparison
    * @private
    */
-  static deepEqual<Value>(a: Value, b: Value) {
-    if (a === b) {
+  static deepEqual<Value>(leftValue: Value, rightValue: Value): boolean {
+    if (leftValue === rightValue) {
       return true;
     }
 
-    if (a === null || a === undefined || b === null || b === undefined) {
-      const result = a === b;
+    if (leftValue === null || leftValue === undefined || rightValue === null || rightValue === undefined) {
+      const result = leftValue === rightValue;
+
       return result;
     }
 
-    if (typeof a !== typeof b) {
+    if (typeof leftValue !== typeof rightValue) {
       return false;
     }
 
-    if (typeof a !== 'object') {
-      const result = a === b;
+    if (typeof leftValue !== 'object') {
+      const result = leftValue === rightValue;
+
       return result;
     }
 
-    if (a instanceof Date && b instanceof Date) {
-      const result = a.getTime() === b.getTime();
+    if (leftValue instanceof Date && rightValue instanceof Date) {
+      const result = leftValue.getTime() === rightValue.getTime();
+
       return result;
     }
 
-    if (a instanceof RegExp && b instanceof RegExp) {
-      const result = a.source === b.source && a.flags === b.flags;
+    if (leftValue instanceof RegExp && rightValue instanceof RegExp) {
+      const result = leftValue.source === rightValue.source && leftValue.flags === rightValue.flags;
+
       return result;
     }
 
-    if (Array.isArray(a) && Array.isArray(b)) {
-      if (a.length !== b.length) {
+    if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+      if (leftValue.length !== rightValue.length) {
         return false;
       }
-      for (let i = 0; i < a.length; i++) {
-        if (!this.deepEqual(a[i], b[i])) {
+      const leftLength = leftValue.length;
+      for (let index = 0; index < leftLength; index += 1) {
+        if (!ObjectOperators.deepEqual(leftValue[index], rightValue[index])) {
           return false;
         }
       }
@@ -60,19 +67,19 @@ export class ObjectOperators {
       return true;
     }
 
-    if (Array.isArray(a) || Array.isArray(b)) {
+    if (Array.isArray(leftValue) || Array.isArray(rightValue)) {
       return false;
     }
 
-    if (a instanceof Map && b instanceof Map) {
-      if (a.size !== b.size) {
+    if (leftValue instanceof Map && rightValue instanceof Map) {
+      if (leftValue.size !== rightValue.size) {
         return false;
       }
       for (const [
         key,
         mapEntryValue
-      ] of a) {
-        if (!b.has(key) || !this.deepEqual(mapEntryValue, b.get(key))) {
+      ] of leftValue) {
+        if (!rightValue.has(key) || !ObjectOperators.deepEqual(mapEntryValue, rightValue.get(key))) {
           return false;
         }
       }
@@ -80,12 +87,12 @@ export class ObjectOperators {
       return true;
     }
 
-    if (a instanceof Set && b instanceof Set) {
-      if (a.size !== b.size) {
+    if (leftValue instanceof Set && rightValue instanceof Set) {
+      if (leftValue.size !== rightValue.size) {
         return false;
       }
-      for (const item of a) {
-        if (!b.has(item)) {
+      for (const item of leftValue) {
+        if (!rightValue.has(item)) {
           return false;
         }
       }
@@ -94,12 +101,12 @@ export class ObjectOperators {
     }
 
     // Handle plain objects
-    if (!Predicates.isRecord(a) || !Predicates.isRecord(b)) {
+    if (!Predicates.isRecord(leftValue) || !Predicates.isRecord(rightValue)) {
       return false;
     }
 
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
+    const keysA = Object.keys(leftValue);
+    const keysB = Object.keys(rightValue);
 
     if (keysA.length !== keysB.length) {
       return false;
@@ -107,15 +114,17 @@ export class ObjectOperators {
 
     const keysBSet = new Set(keysB);
 
-    for (let index = 0; index < keysA.length; index += 1) {
+    const keysALength = keysA.length;
+    for (let index = 0; index < keysALength; index += 1) {
       const key = keysA[index];
+
       if (key === undefined) {
-        continue;
+        return false;
       }
       if (!keysBSet.has(key)) {
         return false;
       }
-      if (!this.deepEqual(a[key], b[key])) {
+      if (!ObjectOperators.deepEqual(leftValue[key], rightValue[key])) {
         return false;
       }
     }
@@ -129,6 +138,7 @@ export class ObjectOperators {
    */
   static isPlainObjectValue(value: unknown): value is Record<string, FilterValueEntity.Type> {
     const result = Predicates.isRecord(value) && !(value instanceof RegExp);
+
     return result;
   }
 
@@ -139,25 +149,27 @@ export class ObjectOperators {
    * @returns {boolean} True if object includes all specified key-value pairs
    * @throws {Error} If value or filterValue is not a plain object
    */
-  static handleDeepIncludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    if (!this.isPlainObjectValue(value)) {
+  static handleDeepIncludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.DEEP_INCLUDES requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.DEEP_INCLUDES' });
     }
-    if (!this.isPlainObjectValue(filterValue)) {
+    if (!ObjectOperators.isPlainObjectValue(filterValue)) {
       throw new FilterOperatorError(`OBJECT.DEEP_INCLUDES requires filter value to be a plain object, got ${typeof filterValue}`, { 'operator': 'OBJECT.DEEP_INCLUDES' });
     }
 
     const filterKeys = Object.keys(filterValue);
 
-    for (let index = 0; index < filterKeys.length; index += 1) {
+    const filterKeysLength = filterKeys.length;
+    for (let index = 0; index < filterKeysLength; index += 1) {
       const key = filterKeys[index];
+
       if (key === undefined) {
-        continue;
+        return false;
       }
       if (!Object.hasOwn(value, key)) {
         return false;
       }
-      if (!this.deepEqual(value[key], filterValue[key])) {
+      if (!ObjectOperators.deepEqual(value[key], filterValue[key])) {
         return false;
       }
     }
@@ -171,12 +183,13 @@ export class ObjectOperators {
    * @returns {boolean} True if object is empty
    * @throws {Error} If value is not a plain object
    */
-  static handleEmpty(value: FilterValueEntity.Type) {
-    if (!this.isPlainObjectValue(value)) {
+  static handleEmpty(value: FilterValueEntity.Type): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.EMPTY requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.EMPTY' });
     }
 
     const result = Object.keys(value).length === 0;
+
     return result;
   }
 
@@ -187,15 +200,16 @@ export class ObjectOperators {
    * @returns {boolean} True if objects are deeply equal
    * @throws {Error} If either value is not a plain object
    */
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    if (!this.isPlainObjectValue(value)) {
+  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.EQUALS requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.EQUALS' });
     }
-    if (!this.isPlainObjectValue(filterValue)) {
+    if (!ObjectOperators.isPlainObjectValue(filterValue)) {
       throw new FilterOperatorError(`OBJECT.EQUALS requires filter value to be a plain object, got ${typeof filterValue}`, { 'operator': 'OBJECT.EQUALS' });
     }
 
-    const result = this.deepEqual(value, filterValue);
+    const result = ObjectOperators.deepEqual(value, filterValue);
+
     return result;
   }
 
@@ -206,8 +220,8 @@ export class ObjectOperators {
    * @returns {boolean} True if object has the property
    * @throws {Error} If value is not a plain object or filterValue is not a string
    */
-  static handleHasProperty(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    if (!this.isPlainObjectValue(value)) {
+  static handleHasProperty(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.HAS_PROPERTY requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.HAS_PROPERTY' });
     }
     if (typeof filterValue !== 'string') {
@@ -215,6 +229,7 @@ export class ObjectOperators {
     }
 
     const result = Object.hasOwn(value, filterValue);
+
     return result;
   }
 
@@ -225,11 +240,6 @@ export class ObjectOperators {
    * @returns {boolean} True if objects are identical
    * @throws {Error} If either value is not a plain object
    */
-  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    const result = this.handleEquals(value, filterValue);
-    return result;
-  }
-
   /**
    * Checks if object does not have a specific property
    * @param {*} value - Object to check
@@ -237,8 +247,9 @@ export class ObjectOperators {
    * @returns {boolean} True if object does not have the property
    * @throws {Error} If value is not a plain object or filterValue is not a string
    */
-  static handleMissingProperty(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    const result = !this.handleHasProperty(value, filterValue);
+  static handleMissingProperty(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    const result = !ObjectOperators.handleHasProperty(value, filterValue);
+
     return result;
   }
 
@@ -248,8 +259,9 @@ export class ObjectOperators {
    * @returns {boolean} True if object is not empty
    * @throws {Error} If value is not a plain object
    */
-  static handleNotEmpty(value: FilterValueEntity.Type) {
-    const result = !this.handleEmpty(value);
+  static handleNotEmpty(value: FilterValueEntity.Type): boolean {
+    const result = !ObjectOperators.handleEmpty(value);
+
     return result;
   }
 
@@ -260,8 +272,9 @@ export class ObjectOperators {
    * @returns {boolean} True if objects are not equal
    * @throws {Error} If either value is not a plain object
    */
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    const result = !this.handleEquals(value, filterValue);
+  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    const result = !ObjectOperators.handleEquals(value, filterValue);
+
     return result;
   }
 
@@ -272,8 +285,9 @@ export class ObjectOperators {
    * @returns {boolean} True if objects are not identical
    * @throws {Error} If either value is not a plain object
    */
-  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    const result = !this.handleEquals(value, filterValue);
+  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    const result = !ObjectOperators.handleEquals(value, filterValue);
+
     return result;
   }
 
@@ -284,8 +298,8 @@ export class ObjectOperators {
    * @returns {boolean} True if object has the specified number of properties
    * @throws {Error} If value is not a plain object or filterValue is not a number
    */
-  static handlePropertyCount(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
-    if (!this.isPlainObjectValue(value)) {
+  static handlePropertyCount(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.PROPERTY_COUNT requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.PROPERTY_COUNT' });
     }
     if (typeof filterValue !== 'number') {
@@ -293,6 +307,7 @@ export class ObjectOperators {
     }
 
     const result = Object.keys(value).length === filterValue;
+
     return result;
   }
 
@@ -304,15 +319,15 @@ export class ObjectOperators {
    * @returns {boolean} True if objects meet similarity threshold
    * @throws {Error} If values are not plain objects
    */
-  static handleSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
-    if (!this.isPlainObjectValue(value)) {
+  static handleSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+    if (!ObjectOperators.isPlainObjectValue(value)) {
       throw new FilterOperatorError(`OBJECT.SIMILARITY requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.SIMILARITY' });
     }
-    if (!this.isPlainObjectValue(filterValue)) {
+    if (!ObjectOperators.isPlainObjectValue(filterValue)) {
       throw new FilterOperatorError(`OBJECT.SIMILARITY requires filter value to be a plain object, got ${typeof filterValue}`, { 'operator': 'OBJECT.SIMILARITY' });
     }
 
-    const threshold = options?.condition?.threshold ?? 0.8;
+    const threshold = options?.condition?.threshold ?? ObjectOperators.DEFAULT_SIMILARITY_THRESHOLD;
 
     if (typeof threshold !== 'number' || threshold < 0 || threshold > 1) {
       throw new FilterOperatorError('OBJECT.SIMILARITY threshold must be a number between 0 and 1', { 'operator': 'OBJECT.SIMILARITY' });
@@ -326,7 +341,8 @@ export class ObjectOperators {
     ]);
 
     if (allKeys.size === 0) {
-      return true; // Both empty objects are 100% similar
+      // Both empty objects are 100% similar
+      return true;
     }
 
     let matches = 0;
@@ -334,7 +350,7 @@ export class ObjectOperators {
     for (const key of allKeys) {
       if (Object.hasOwn(value, key)
           && Object.hasOwn(filterValue, key)
-          && this.deepEqual(value[key], filterValue[key])) {
+          && ObjectOperators.deepEqual(value[key], filterValue[key])) {
         matches++;
       }
     }

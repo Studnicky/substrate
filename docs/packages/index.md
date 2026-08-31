@@ -13,7 +13,16 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 
 ## Public path contract
 
-Each package root is its only public code entrypoint. Import package-owned behavior, errors, entities, and interfaces from `@studnicky/<package>`, construct stateful primitives through `Class.create(config)`, and invoke the primitive's direct operation methods. Composition packages do not proxy-export dependency functionality; import dependency-owned contracts from the dependency root.
+Each package root exports its portable API. A package publishes `./interfaces` for public
+substitution contracts, `./entities` for canonical structured data, and platform entrypoints such
+as `./browser` only when the runtime implementation differs. Construct stateful primitives through
+`Class.create(config)` and invoke their direct operation methods. Composition packages do not
+proxy dependency functionality; import dependency-owned contracts from that dependency's public
+entrypoint.
+
+See the [Composition Contract](/concepts/composition-contract) and
+[Package Registry](/concepts/package-registry) for the workspace-wide rules and current
+platform-parity status.
 
 ## Concurrency
 
@@ -50,6 +59,8 @@ Each package root is its only public code entrypoint. Import package-owned behav
 | [@studnicky/pipeline](/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
 | [@studnicky/paginator](/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
 | [@studnicky/process-kit](/packages/process-kit) | Reducer-with-effects process pattern composing fsm and scheduler |
+| [@studnicky/store](/packages/store) | Observable state container with interchangeable in-memory and browser-native persistence |
+| [@studnicky/strata-store-kit](/packages/strata-store-kit) | Ordered store composition that keeps cache and durable browser state synchronized |
 | [@studnicky/visible-range](/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list |
 | [@studnicky/flag-evaluator](/packages/flag-evaluator) | Local deterministic feature-flag evaluation with percentage rollout and observability hooks |
 

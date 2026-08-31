@@ -4,7 +4,7 @@
 import { VirtualFileSystem } from '@studnicky/virtual-fs';
 import assert from 'node:assert/strict';
 
-import { FileLock } from '../src/index.js';
+import { FileLock } from '../src/node/index.js';
 
 const vfs = VirtualFileSystem.create({
   'seed': new Map([['/queue/jobs.json', '{"jobs":[]}']])

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { FetchClient } from '../../../src/index.js';
+import { FetchClient } from '../../../src/node/index.js';
 import scenarioGroups from './config.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =

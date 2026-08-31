@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/request-executor",
-  "version": "12.0.0",
-  "description": "One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, and /context",
+  "version": "12.0.1",
+  "description": "One-shot request execution pattern composing fetch, retry, signal, and an optional scope port",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -56,14 +56,13 @@
     "cancellation",
     "pattern",
     "typescript",
-    "nodejs"
+    "browser"
   ],
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/context": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fetch": "workspace:*",
     "@studnicky/json": "workspace:*",

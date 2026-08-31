@@ -2,7 +2,7 @@ import { RuntimeError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
-import { FetchClient } from '../../../src/index.js';
+import { FetchClient } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
 import scenarioGroups from './client.scenarios.json' with { type: 'json' };
 

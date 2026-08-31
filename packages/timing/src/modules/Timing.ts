@@ -28,7 +28,7 @@ class TimingInstance {
 
 /**
  * High-resolution timing tracker for collecting operation metrics.
- * Uses process.hrtime.bigint() for nanosecond precision.
+ * Uses the host high-resolution timer for nanosecond precision.
  * Events are stored with component.operation[.status] format for CloudWatch filtering.
  *
  * Use Timing.create() to instantiate.
@@ -345,7 +345,25 @@ export class Timing implements TimingInterface {
    * @returns Current time in nanoseconds
    */
   protected readHrtime(): bigint {
-    const result = process.hrtime.bigint();
+    const runtimeProcess: unknown = Reflect.get(globalThis, 'process');
+    if (typeof runtimeProcess === 'object' && runtimeProcess !== null) {
+      const hrtime: unknown = Reflect.get(runtimeProcess, 'hrtime');
+      if (typeof hrtime === 'object' && hrtime !== null) {
+        const bigint: unknown = Reflect.get(hrtime, 'bigint');
+        if (typeof bigint === 'function') {
+          const result: unknown = Reflect.apply(bigint, hrtime, []);
+          if (typeof result === 'bigint') {
+            return result;
+          }
+        }
+      }
+    }
+
+    const milliseconds = globalThis.performance.now();
+    const wholeMilliseconds = Math.trunc(milliseconds);
+    const fractionalNanoseconds = Math.round((milliseconds - wholeMilliseconds) * NS_PER_UNIT.ms);
+    const result = (BigInt(wholeMilliseconds) * BigInt(NS_PER_UNIT.ms)) + BigInt(fractionalNanoseconds);
+
     return result;
   }
 

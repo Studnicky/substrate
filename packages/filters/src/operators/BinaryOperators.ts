@@ -1,5 +1,5 @@
 /**
- * Binary data operators for Buffer, Uint8Array, ArrayBuffer, DataView comparison
+ * Binary data operators for Uint8Array, ArrayBuffer, and DataView comparison
  */
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
@@ -7,10 +7,7 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
 import { FilterOperatorError } from '../errors/FilterOperatorError.js';
 
 export class BinaryOperators {
-  private static toBinary(value: FilterValueEntity.Type): Uint8Array | null {
-    if (value instanceof Buffer) {
-      return new Uint8Array(value);
-    }
+  static toBinary(value: FilterValueEntity.Type): Uint8Array | null {
     if (value instanceof Uint8Array) {
       return value;
     }
@@ -24,12 +21,15 @@ export class BinaryOperators {
     return null;
   }
 
-  private static binaryEquals(a: Uint8Array, b: Uint8Array): boolean {
-    if (a.length !== b.length) {
+  static binaryEquals(first: Uint8Array, second: Uint8Array): boolean {
+    const firstLength = first.length;
+
+    if (firstLength !== second.length) {
       return false;
     }
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
+
+    for (let index = 0; index < firstLength; index += 1) {
+      if (first[index] !== second[index]) {
         return false;
       }
     }
@@ -104,18 +104,22 @@ export class BinaryOperators {
     }
 
     if (binaryFilterValue.length === 0) {
-      return true; // Empty sequence is contained in any data
+      // Empty sequence is contained in any data.
+      return true;
     }
     if (binaryFilterValue.length > binaryValue.length) {
-      return false; // Longer sequence cannot be contained in shorter data
+      // Longer sequences cannot be contained in shorter data.
+      return false;
     }
 
-    // Search for the sequence
-    for (let i = 0; i <= binaryValue.length - binaryFilterValue.length; i++) {
+    const binaryFilterValueLength = binaryFilterValue.length;
+    const lastStartIndex = binaryValue.length - binaryFilterValueLength;
+
+    for (let startIndex = 0; startIndex <= lastStartIndex; startIndex += 1) {
       let found = true;
 
-      for (let j = 0; j < binaryFilterValue.length; j++) {
-        if (binaryValue[i + j] !== binaryFilterValue[j]) {
+      for (let filterIndex = 0; filterIndex < binaryFilterValueLength; filterIndex += 1) {
+        if (binaryValue[startIndex + filterIndex] !== binaryFilterValue[filterIndex]) {
           found = false;
           break;
         }
@@ -143,8 +147,10 @@ export class BinaryOperators {
       return false;
     }
 
-    for (let i = 0; i < binaryFilterValue.length; i++) {
-      if (binaryValue[i] !== binaryFilterValue[i]) {
+    const binaryFilterValueLength = binaryFilterValue.length;
+
+    for (let index = 0; index < binaryFilterValueLength; index += 1) {
+      if (binaryValue[index] !== binaryFilterValue[index]) {
         return false;
       }
     }
@@ -169,8 +175,10 @@ export class BinaryOperators {
 
     const offset = binaryValue.length - binaryFilterValue.length;
 
-    for (let i = 0; i < binaryFilterValue.length; i++) {
-      if (binaryValue[offset + i] !== binaryFilterValue[i]) {
+    const binaryFilterValueLength = binaryFilterValue.length;
+
+    for (let index = 0; index < binaryFilterValueLength; index += 1) {
+      if (binaryValue[offset + index] !== binaryFilterValue[index]) {
         return false;
       }
     }

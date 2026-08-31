@@ -1,3 +1,4 @@
+import { Clock, RealTimeClockProvider } from '@studnicky/clock';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
@@ -81,6 +82,7 @@ export class Logger implements LoggerInterface {
     return result;
   }
 
+  readonly #clock: Clock;
   readonly #level: LogLevelEntity.Type;
   readonly #metadata: LogMetadataInterface;
   readonly #transports: readonly TransportInterface[];
@@ -88,6 +90,9 @@ export class Logger implements LoggerInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: LoggerOptionsInterface = {}) {
+    if (options.clock !== undefined && (!Predicates.isFunction(options.clock.hrtime) || !Predicates.isFunction(options.clock.now))) {
+      throw new ConfigurationError('clock must implement ClockProviderInterface');
+    }
     if (options.metadata !== undefined && !Predicates.isObject(options.metadata)) {
       throw new ConfigurationError('metadata must be a plain object');
     }
@@ -100,6 +105,7 @@ export class Logger implements LoggerInterface {
     this.#level = options.level !== undefined
       ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.INFO;
+    this.#clock = Clock.create(options.clock ?? RealTimeClockProvider.create());
     this.#metadata = ImmutableSnapshot.from(options.metadata ?? {});
     const transports: TransportInterface[] = [];
     const transportCount = transportInputs.length;
@@ -122,6 +128,7 @@ export class Logger implements LoggerInterface {
    */
   child(metadata: LogMetadataInterface): Logger {
     const result = Logger.create({
+      'clock': this.#clock,
       'level': this.#level,
       'metadata': { ...this.#metadata, ...metadata },
       'transports': this.#transports
@@ -203,7 +210,7 @@ export class Logger implements LoggerInterface {
       'data': data,
       'level': level,
       'metadata': this.#metadata,
-      'time': Date.now()
+      'time': this.#clock.now()
     };
 
     this.hooks.invoke('onLog', () => {

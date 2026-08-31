@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/fetch'
-description: HTTP client with timeout, override hooks, and configured clients.
+description: Portable fetch contracts with Node Undici and browser-native adapters.
 ---
 
 # @studnicky/fetch
 
-> HTTP client with timeout, override hooks, and configured clients for Node.js.
+> Portable HTTP client contracts with Node Undici and browser-native adapters.
 
 ## Install
 
@@ -13,7 +13,9 @@ description: HTTP client with timeout, override hooks, and configured clients.
 pnpm add @studnicky/fetch
 ```
 
-`@studnicky/fetch` exposes runtime APIs at its package root. It runs in browsers and Node: every request goes through the runtime's native `fetch`, and direct HTTP verb methods, override hooks, timeout handling, and URL utilities work in both. The undici connection-pool dispatcher is a Node-only enhancement enabled with `dispatcher: { enabled: true }`.
+`@studnicky/fetch` exports portable contracts, errors, and URL utilities. The Node client and
+Undici connection pooling are available from `@studnicky/fetch/node`. Browser applications use
+`@studnicky/fetch/browser`, whose `BrowserFetchClient` delegates directly to native `fetch`.
 
 `FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
 
@@ -21,7 +23,7 @@ pnpm add @studnicky/fetch
 
 A real `GET` over native `fetch`, with override hooks and a timeout — press Run to watch it fetch live:
 
-<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native fetch with override hooks" />
+<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native browser fetch" />
 
 ## Usage
 
@@ -29,7 +31,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 ### Request methods
 
-`FetchClient.create(config?)` accepts shared `baseURL`, headers, query parameters, timeout, metadata, request-ID, fetch-option, hook-timeout, and dispatcher settings. Requests execute through the canonical verb methods:
+`FetchClient.create(config?)` accepts shared `baseURL`, headers, query parameters, timeout, metadata, request-ID, fetch-option, hook-timeout, dispatcher settings, an optional `Signal` composer, and an optional clock provider for Node request durations. Requests execute through the canonical verb methods:
 
 | Methods | Options |
 |---------|---------|
@@ -59,7 +61,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 `ClientConfigDataEntity.intake` is the configuration data boundary. It accepts the JSON-shaped configuration fields (`autoGenerateRequestId`, `baseURL`, pool `dispatcher` settings, headers, hook timeout, metadata, default options, parameters, and timeout), clones and normalizes them, and rejects invalid data. `FetchClient` translates a failed intake to `ConfigurationError`.
 
-`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
+`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. `signal` accepts an injected `@studnicky/signal` `Signal` composer, which combines each request timeout and caller `AbortSignal` identically in Node and browser clients. `clock` accepts a `ClockProviderInterface` and measures Node request lifecycle durations. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
 
 `@studnicky/fetch/entities` exports every schema namespace in `src/entities`, including client and dispatcher configuration, request and response metadata, events, and dispatcher health data.
 
@@ -81,10 +83,10 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `FetchClient` | Creates configured HTTP clients. | `@studnicky/fetch` |
-| `UndiciDispatcher` | Manages a caller-owned undici connection pool. | `@studnicky/fetch` |
+| `FetchClient` | Creates configured Node HTTP clients. | `@studnicky/fetch/node` |
+| `UndiciDispatcher` | Manages a caller-owned undici connection pool. | `@studnicky/fetch/node` |
 | `UrlQueryString` | Builds and parses URL query strings. | `@studnicky/fetch` |
-| `DEFAULT_DISPATCHER_CONFIG` | Provides default connection-pool settings. | `@studnicky/fetch` |
+| `DEFAULT_DISPATCHER_CONFIG` | Provides default connection-pool settings. | `@studnicky/fetch/node` |
 | `AbortError` | Represents caller-aborted requests. | `@studnicky/fetch` |
 | `BodyTimeoutError` | Represents response-body timeout failures. | `@studnicky/fetch` |
 | `ConfigurationError` | Represents invalid fetch configuration. | `@studnicky/fetch` |
@@ -104,6 +106,8 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 | `RequestIdGeneratorInterface` | Defines the request-ID collaborator contract. | `@studnicky/fetch` |
 | `ResponseContextInterface` | Defines the response lifecycle context. | `@studnicky/fetch` |
 | `UndiciDispatcherInterface` | Defines the dispatcher lifecycle contract. | `@studnicky/fetch` |
+| `BrowserFetchClient` | Provides native browser fetch through the shared client contract. | `@studnicky/fetch/browser` |
+| `FetchTransport` | Routes browser requests to native fetch. | `@studnicky/fetch/browser` |
 
 ## Observability hooks
 

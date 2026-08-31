@@ -3,9 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestContextInterface, ResponseContextInterface } from '../src/index.js';
+import type { RequestContextInterface, ResponseContextInterface } from '../src/node/index.js';
 
-import { FetchClient } from '../src/index.js';
+import { FetchClient } from '../src/node/index.js';
 
 /**
  * AuthClient — stamps every outgoing request with an Authorization header.

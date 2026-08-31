@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types';
 
-import { FileLockInspection, FileLockRecovery, FileLockRecoveryConflictError, NodeOwnerLiveness } from '../../../src/index.js';
+import { FileLockInspection, FileLockRecovery, FileLockRecoveryConflictError, NodeOwnerLiveness } from '../../../src/node/index.js';
 import scenarioGroups from './FileLockMaintenance.scenarios.json' with { type: 'json' };
 
 type ConflictAndLivenessScenarioCase = {

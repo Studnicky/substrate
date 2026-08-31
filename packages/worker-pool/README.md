@@ -1,6 +1,6 @@
 # @studnicky/worker-pool
 
-> Bounded `node:worker_threads` pool that fans work items across workers with a typed message envelope and per-task timeout
+> Portable worker leases with Node worker-thread and Web Worker pool adapters
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/worker-pool)
 
@@ -21,7 +21,7 @@ pnpm add @studnicky/worker-pool
 ## Usage
 
 ```typescript
-import { WorkerPool } from '@studnicky/worker-pool';
+import { WorkerPool } from '@studnicky/worker-pool/node';
 
 const pool = WorkerPool.create({
   workerPath: fileURLToPath(new URL('./worker.mjs', import.meta.url)),
@@ -34,7 +34,7 @@ const results = await pool.run([1, 2, 3, 4, 5]);
 
 `concurrency` defaults to `System.optimalWorkerCount` (logical CPU count minus one) when omitted. `batchConcurrency` defaults to `concurrency`; set it higher only when callers intentionally want a wider admission window than the worker count. `timeoutMs` is optional — omit it for no per-task timeout.
 
-For each dispatched task with a timeout, the pool awaits `signal.compose({ deadlineMs: timeoutMs })` before posting the item to its worker. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
+For each dispatched task, the pool awaits `signal.compose({ deadlineMs: timeoutMs, signal: abortSignal })` before posting the item to its worker. `signal` is the portable `Signal` primitive; `abortSignal` is an optional caller cancellation source. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
 
 The worker entry script receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
@@ -82,7 +82,7 @@ import type {
   WorkerResultEnvelopeInterface
 } from '@studnicky/worker-pool/interfaces';
 
-import { WorkerPool } from '@studnicky/worker-pool';
+import { WorkerPool } from '@studnicky/worker-pool/node';
 
 class TelemetryWorkerPool extends WorkerPool<{ n: number }, number> {
   protected override onMessage(
@@ -117,9 +117,12 @@ See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWo
 
 `WorkerPool` is the generic worker-thread fan-out/collect kernel underneath two independently hand-rolled implementations found elsewhere in the wider project family — it owns only worker lifecycle, typed dispatch, bounded concurrency, and per-task timeout. It has no DAG/RPC request-routing semantics, no persistence, and no workflow-DSL; a consumer building a request/response protocol on top of the envelope contract (routing, correlation IDs, retries per message type) layers that on top of `WorkerPool`, not inside it.
 
-## Node-only
+## Runtime entrypoints
 
-`WorkerPool` depends on `node:worker_threads` and is Node-specific, following the same precedent already set by `@studnicky/file-lock` — not every substrate package is framework/runtime-agnostic, and this one intentionally is not.
+`WorkerPool` is available from `@studnicky/worker-pool/node` and uses `node:worker_threads`.
+`WebWorkerPool` is available from `@studnicky/worker-pool/browser` and uses native Web Workers.
+Both implement `WorkerPoolInterface` and use the same `Signal`, `abortSignal`, `timeoutMs`, `run()`,
+and `close()` semantics.
 
 ## Documentation
 

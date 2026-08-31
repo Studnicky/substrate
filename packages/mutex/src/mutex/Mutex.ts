@@ -28,12 +28,14 @@
  * ```
  */
 
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 import {
   HookInvoker,
   ReentrantHookInvocationError,
   RuntimeError
 } from '@studnicky/errors';
 import { TransitionRejectedError } from '@studnicky/fsm';
+import { Signal } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
@@ -42,6 +44,7 @@ import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
 import type { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
 import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import type {
+  MutexCreateOptionsInterface,
   MutexInterface,
   MutexLockInterface
 } from '../interfaces/index.js';
@@ -61,10 +64,10 @@ import { configInternal } from './configInternal.js';
 import { MutexKeyMachine } from './MutexKeyMachine.js';
 
 interface QueueEntryInterface {
+  'cancellationController': AbortController | undefined;
   'queuedAt': MutexQueueEntryEntity.Type['queuedAt'];
   'reject': (error: Error) => void;
   'resolve': (release: () => void) => void;
-  'timeoutId': ReturnType<typeof setTimeout> | undefined;
 }
 
 interface InFlightOperationInterface {
@@ -86,7 +89,7 @@ interface QueueNodeInterface extends QueueEntryInterface {
  * A plain array requires an O(n) `findIndex` plus an O(n) `splice` shift to
  * remove an arbitrary entry (the timeout path), which turns a burst of `n`
  * timeouts firing on the same key into O(n²) work. This structure keeps a
- * private `Map` from `timeoutId` to node so `removeByTimeoutId` unlinks
+ * private `Map` from each deadline controller to node so `removeByController` unlinks
  * directly in O(1), alongside O(1) `enqueue` (append at tail) and O(1)
  * `dequeueHead` (used by `processNextInQueue`, mirroring the previous
  * `Array#shift`).
@@ -95,13 +98,13 @@ class LinkedAcquisitionQueue {
   #head: QueueNodeInterface | undefined;
   #tail: QueueNodeInterface | undefined;
   #size: number;
-  readonly #nodesByTimeoutId: Map<ReturnType<typeof setTimeout>, QueueNodeInterface>;
+  readonly #nodesByController: Map<AbortController, QueueNodeInterface>;
 
   constructor() {
     this.#head = undefined;
     this.#tail = undefined;
     this.#size = INITIAL_COUNTER;
-    this.#nodesByTimeoutId = new Map();
+    this.#nodesByController = new Map();
   }
 
   get size(): number {
@@ -110,12 +113,12 @@ class LinkedAcquisitionQueue {
 
   enqueue(entry: QueueEntryInterface): void {
     const node: QueueNodeInterface = {
+      'cancellationController': entry.cancellationController,
       'next': undefined,
       'previous': this.#tail,
       'queuedAt': entry.queuedAt,
       'reject': entry.reject,
-      'resolve': entry.resolve,
-      'timeoutId': entry.timeoutId
+      'resolve': entry.resolve
     };
 
     if (this.#tail !== undefined) {
@@ -127,8 +130,8 @@ class LinkedAcquisitionQueue {
     this.#tail = node;
     this.#size += INCREMENT_BY_ONE;
 
-    if (node.timeoutId !== undefined) {
-      this.#nodesByTimeoutId.set(node.timeoutId, node);
+    if (node.cancellationController !== undefined) {
+      this.#nodesByController.set(node.cancellationController, node);
     }
   }
 
@@ -144,8 +147,8 @@ class LinkedAcquisitionQueue {
     return node;
   }
 
-  removeByTimeoutId(timeoutId: ReturnType<typeof setTimeout>): QueueNodeInterface | undefined {
-    const node = this.#nodesByTimeoutId.get(timeoutId);
+  removeByController(cancellationController: AbortController): QueueNodeInterface | undefined {
+    const node = this.#nodesByController.get(cancellationController);
 
     if (node === undefined) {
       return undefined;
@@ -187,8 +190,8 @@ class LinkedAcquisitionQueue {
     node.previous = undefined;
     this.#size -= INCREMENT_BY_ONE;
 
-    if (node.timeoutId !== undefined) {
-      this.#nodesByTimeoutId.delete(node.timeoutId);
+    if (node.cancellationController !== undefined) {
+      this.#nodesByController.delete(node.cancellationController);
     }
   }
 }
@@ -296,7 +299,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     TInstance extends Mutex<K> = Mutex<K>
   >(
     this: MutexConstructorInterface<TInstance>,
-    config?: Partial<MutexConfigEntity.Type>
+    config?: MutexCreateOptionsInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isObjectLike(result) || !Mutex.isConstructed<TInstance>(result, this)) {
@@ -315,6 +318,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * composed the FSM package.
    */
   readonly #machine: MutexKeyMachine;
+  readonly #clock: Clock;
+  readonly #signal: Signal;
 
   private coalescedCount = INITIAL_COUNTER;
   private readonly config: MutexConfigEntity.Type;
@@ -337,7 +342,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param config - Partial configuration object (validated internally, defaults applied)
    */
-  protected constructor(config?: Partial<MutexConfigEntity.Type>) {
+  protected constructor(options: MutexCreateOptionsInterface = {}) {
     this.#keyStates = new Map();
     this.#activeKeys = new Set();
     this.#machine = new MutexKeyMachine();
@@ -345,7 +350,14 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.queues = new Map();
     this.lockMetrics = new Map();
     this.inFlightOperations = new Map();
+    const { 'clock': clockProvider, ...config } = options;
+    if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+      throw RuntimeError.create('clock must implement ClockProviderInterface');
+    }
     this.config = configInternal.validateConfig(config);
+    const provider: ClockProviderInterface = clockProvider ?? RealTimeClockProvider.create();
+    this.#clock = Clock.create(provider);
+    this.#signal = Signal.create();
     this.hooks = new Mutex.#OwnedHookInvoker();
   }
 
@@ -372,7 +384,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   async acquire(key: K): Promise<() => void> {
-    const requestedAt = Date.now();
+    const requestedAt = this.#clock.now();
 
     this.hooks.invoke('beforeAcquire', () => {
       if (this.#activeKeys.has(key)) {
@@ -580,7 +592,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private acquireImmediate(key: K, requestedAt: number): () => void {
     this.locks.add(key);
     this.transitionKey(key, 'locked');
-    const acquiredAt = Date.now();
+    const acquiredAt = this.#clock.now();
 
     this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
     this.totalExecuted++;
@@ -620,8 +632,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
           continue;
         }
 
-        if (entry.timeoutId !== undefined) {
-          clearTimeout(entry.timeoutId);
+        if (entry.cancellationController !== undefined) {
+          entry.cancellationController.abort();
         }
         entry.reject(RuntimeError.create('Mutex cleared - all pending operations rejected'));
       }
@@ -697,7 +709,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     requestedAt: number,
     resolve: (value: () => void) => void
   ): void {
-    const acquiredAt = Date.now();
+    const acquiredAt = this.#clock.now();
 
     this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
     this.totalExecuted++;
@@ -726,16 +738,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     requestedAt: number
   ): Promise<() => void> {
     const result = new Promise<() => void>((resolve, reject) => {
-      const timeoutId = this.setupAcquisitionTimeout(key, reject);
+      const cancellationController = this.setupAcquisitionTimeout(key, reject);
 
       const handleResolve = (releaseFunction: () => void): void => {
         this.handleQueuedResolution(releaseFunction, key, requestedAt, resolve);
       };
       const entry: QueueEntryInterface = {
+        'cancellationController': cancellationController,
         'queuedAt': requestedAt,
         'reject': reject,
-        'resolve': handleResolve,
-        'timeoutId': timeoutId
+        'resolve': handleResolve
       };
 
       queue.enqueue(entry);
@@ -857,13 +869,13 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private handleAcquisitionTimeout(
     key: K,
-    timeoutId: ReturnType<typeof setTimeout>,
+    cancellationController: AbortController,
     reject: (error: Error) => void
   ): void {
     const timeoutQueue = this.queues.get(key);
 
     if (timeoutQueue !== undefined) {
-      const removed = timeoutQueue.removeByTimeoutId(timeoutId);
+      const removed = timeoutQueue.removeByController(cancellationController);
 
       if (removed !== undefined) {
         if (timeoutQueue.size === EMPTY_LENGTH) {
@@ -955,8 +967,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     const next = queue.dequeueHead();
 
     if (next !== undefined) {
-      if (next.timeoutId !== undefined) {
-        clearTimeout(next.timeoutId);
+      if (next.cancellationController !== undefined) {
+        next.cancellationController.abort();
       }
 
       // FSM: queued → locked (next waiter takes the lock)
@@ -1004,7 +1016,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private recordLockReleaseMetrics(key: K): void {
     const metrics = this.lockMetrics.get(key);
-    const releasedAt = Date.now();
+    const releasedAt = this.#clock.now();
 
     if (metrics !== undefined) {
       const holdTimeMs = releasedAt - metrics.acquiredAt;
@@ -1173,15 +1185,37 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private setupAcquisitionTimeout(
     key: K,
     reject: (error: Error) => void
-  ): ReturnType<typeof setTimeout> | undefined {
+  ): AbortController | undefined {
     if (this.config.timeout <= INITIAL_COUNTER) {
       return undefined;
     }
 
-    const onTimeout = (): void => { this.handleAcquisitionTimeout(key, timeoutHandle, reject); };
-    const timeoutHandle = setTimeout(onTimeout, this.config.timeout);
+    const cancellationController = new AbortController();
+    void this.watchAcquisitionTimeout(key, reject, cancellationController);
+    return cancellationController;
+  }
 
-    return timeoutHandle;
+  private async watchAcquisitionTimeout(
+    key: K,
+    reject: (error: Error) => void,
+    cancellationController: AbortController
+  ): Promise<void> {
+    const deadlineSignal = await this.#signal.compose({
+      'deadlineMs': this.config.timeout,
+      'signal': cancellationController.signal
+    });
+    const onAbort = (): void => {
+      if (!cancellationController.signal.aborted) {
+        this.handleAcquisitionTimeout(key, cancellationController, reject);
+      }
+    };
+
+    if (deadlineSignal.aborted) {
+      onAbort();
+      return;
+    }
+
+    deadlineSignal.addEventListener('abort', onAbort, { 'once': true });
   }
 
   /**

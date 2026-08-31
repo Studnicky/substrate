@@ -126,6 +126,26 @@ class DeferredWorkerFixtureTransport implements WorkerTransportInterface<WorkerF
   }
 }
 
+class DeferredInitializationWorkerFactory extends CountingWorkerFactory {
+  readonly #initializationStarted = Promise.withResolvers<void>();
+  readonly #releaseInitialization = Promise.withResolvers<void>();
+
+  public override async initialize(worker: WorkerFixtureInterface): Promise<void> {
+    this.#initializationStarted.resolve();
+    await this.#releaseInitialization.promise;
+    await super.initialize(worker);
+  }
+
+  public async releaseInitialization(): Promise<void> {
+    this.#releaseInitialization.resolve();
+    await Promise.resolve();
+  }
+
+  public async waitForInitialization(): Promise<void> {
+    await this.#initializationStarted.promise;
+  }
+}
+
 function requireBoolean(value: unknown, name: string): boolean {
   if (!Predicates.isBoolean(value)) { throw RuntimeError.create(`${name} must be a boolean`); }
   return value;
@@ -300,4 +320,29 @@ void describe('WorkerLeasePool', () => {
       }
     });
   }
+
+  void it('rejects a queued acquisition when the pool closes', async () => {
+    const factory = new CountingWorkerFactory('worker-a');
+    const pool = WorkerLeasePool.create({ 'factory': factory, 'maximumLeases': 1 });
+    const active = await pool.acquire();
+    const queued = pool.acquire();
+
+    await pool.close();
+
+    await assert.rejects(queued, /WorkerLeasePool is closed/u);
+    await active.release();
+  });
+
+  void it('rejects a lease whose initialization completes after close', async () => {
+    const factory = new DeferredInitializationWorkerFactory('worker-a');
+    const pool = WorkerLeasePool.create({ 'factory': factory, 'maximumLeases': 1 });
+    const acquisition = pool.acquire();
+
+    await factory.waitForInitialization();
+    await pool.close();
+    await factory.releaseInitialization();
+
+    await assert.rejects(acquisition, /WorkerLeasePool is closed/u);
+    assert.equal(factory.terminatedWorkers, 1);
+  });
 });

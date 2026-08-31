@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../json" },
+    { "path": "../mutex" }
+  ]
+}

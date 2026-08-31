@@ -51,6 +51,10 @@ Subclass `Retry` and override `classifyError` to control which errors are retrya
 
 The base class never calls any logger or metrics library. Observer hooks are no-ops by default and stay observational; by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
 
+### Deterministic elapsed-time budget
+
+`Retry.create` accepts an optional `clock` provider. It measures `maximumElapsedMs`, hook success durations, and retry-context elapsed time, so a virtual provider makes elapsed-budget behavior deterministic.
+
 The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `hookTimeoutMs` to `Retry.create({ hookTimeoutMs })` to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)
@@ -83,3 +87,4 @@ import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 | `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry` |
 | `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry` |
 | `RetryError` | Represents retry failures. | `@studnicky/retry` |
+| `RetryConfigInterface` | Defines retry settings and the optional clock collaborator. | `@studnicky/retry/interfaces` |

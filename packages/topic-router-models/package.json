@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/topic-router-models",
-  "version": "12.0.0",
+  "version": "12.0.1",
   "description": "Composable model inference and evidence-mapping contracts for topic routing",
   "type": "module",
   "sideEffects": false,

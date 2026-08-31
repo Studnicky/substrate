@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/cache",
-  "version": "12.0.0",
+  "version": "12.0.1",
   "description": "In-process LRU + TTL cache with O(1) promotion",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     },
     "./entities": {
       "types": "./dist/entities/index.d.ts",
@@ -53,6 +57,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",

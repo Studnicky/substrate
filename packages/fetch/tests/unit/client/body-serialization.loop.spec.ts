@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, it } from 'node:test';
 
-import { FetchClient } from '../../../src/index.js';
+import { FetchClient } from '../../../src/node/index.js';
 
 import scenarioGroups from './body-serialization.scenarios.json' with { type: 'json' };
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 12.0.1
+
+### Patch Changes
+
+- @studnicky/fsm@12.0.1
+  - @studnicky/json@12.0.1
+  - @studnicky/scheduler@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

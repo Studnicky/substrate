@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors';
+import { RaceTimeout } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -121,30 +122,12 @@ export class TestDispatcher {
     return new DOMException('The operation was aborted.', 'AbortError');
   }
 
-  static #delay(ms: number, signal: AbortSignal | undefined): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (signal?.aborted === true) {
-        reject(TestDispatcher.#abortError());
-        return;
-      }
+  static async #delay(ms: number, signal: AbortSignal | undefined): Promise<void> {
+    const outcome = await RaceTimeout.wait(ms, signal);
 
-      const timeout = setTimeout(() => {
-        cleanup();
-        resolve();
-      }, ms);
-
-      function cleanup(): void {
-        clearTimeout(timeout);
-        signal?.removeEventListener('abort', onAbort);
-      }
-
-      function onAbort(): void {
-        cleanup();
-        reject(TestDispatcher.#abortError());
-      }
-
-      signal?.addEventListener('abort', onAbort, { 'once': true });
-    });
+    if (outcome === 'aborted') {
+      throw TestDispatcher.#abortError();
+    }
   }
 
   static #parseJsonBody(body: string): Record<string, unknown> {

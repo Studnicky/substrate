@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/fetch)
 
-`@studnicky/fetch` wraps the native `fetch` API with a configured client and direct HTTP verb methods. Timeout, abort, body serialization, and dispatcher behavior all use the same request path. Observable behavior such as telemetry, logging, and tracing is added through lifecycle hooks.
+`@studnicky/fetch` wraps the native `fetch` API with a configured client and direct HTTP verb methods. Timeout, abort, body serialization, and dispatcher behavior all use the same request path. Timeout and caller cancellation compose through an optional injected `@studnicky/signal` `Signal` in both Node and browser clients. Node request durations compose through an optional `@studnicky/clock` provider. Observable behavior such as telemetry, logging, and tracing is added through lifecycle hooks.
 
 `@studnicky/fetch` exposes runtime APIs at its package root, schema entities from
 `@studnicky/fetch/entities`, and TypeScript contracts from `@studnicky/fetch/interfaces`.

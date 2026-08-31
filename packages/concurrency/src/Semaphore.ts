@@ -4,6 +4,7 @@ import { CircularBuffer } from '@studnicky/circular-buffer';
 import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
+import type { SemaphoreAcquireOptionsInterface } from './interfaces/SemaphoreAcquireOptionsInterface.js';
 import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
 import type { SemaphoreWaiterStateInterface } from './interfaces/SemaphoreWaiterStateInterface.js';
 
@@ -16,6 +17,7 @@ interface SemaphoreWaiterInterface {
   readonly 'reject': (reason?: unknown) => void;
   readonly 'resolve': (release: () => Promise<void>) => void;
   'state': SemaphoreWaiterStateInterface;
+  readonly 'unregisterAbort': () => void;
 }
 
 interface SemaphoreSubclassInterface<TInstance> extends Function {
@@ -78,7 +80,11 @@ export class Semaphore {
   get permits(): number { const result = this.#permits;
     return result; }
 
-  async acquire(): Promise<() => Promise<void>> {
+  async acquire(options: SemaphoreAcquireOptionsInterface = {}): Promise<() => Promise<void>> {
+    const signal = options.signal;
+    if (Semaphore.#isAborted(signal)) {
+      throw RuntimeError.create('Semaphore acquisition was aborted');
+    }
     if (this.#available > 0 && this.#headWaiter === undefined && this.#queue.length === 0) {
       const permitsBefore = this.#available;
       this.#available -= 1;
@@ -93,20 +99,43 @@ export class Semaphore {
       return release;
     }
     const waiterResult = Promise.withResolvers<() => Promise<void>>();
+    let pendingWaiter: SemaphoreWaiterInterface | undefined = undefined;
+    const onAbort = (): void => {
+      const waiter = pendingWaiter;
+      if (waiter === undefined || waiter.state.variant === 'cancelled') {
+        return;
+      }
+      waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markCancelled' }).state;
+      waiter.unregisterAbort();
+      waiter.reject(RuntimeError.create('Semaphore acquisition was aborted'));
+    };
+    const unregisterAbort = (): void => {
+      signal?.removeEventListener('abort', onAbort);
+    };
     const waiter: SemaphoreWaiterInterface = {
       'reject': waiterResult.reject,
       'resolve': waiterResult.resolve,
-      'state': this.#waiterMachine.getInitialState()
+      'state': this.#waiterMachine.getInitialState(),
+      'unregisterAbort': unregisterAbort
     };
+    pendingWaiter = waiter;
     this.#queue.push(waiter);
     const queueLength = this.#queue.length + (this.#headWaiter === undefined ? 0 : 1);
 
     try {
       await this.hooks.invokeAsync('onAcquireWait', () => { const result = this.onAcquireWait(); return result; });
       await this.hooks.invokeAsync('onContended', () => { const result = this.onContended(queueLength); return result; });
+      if (Semaphore.#isAborted(signal)) {
+        onAbort();
+        return await waiterResult.promise;
+      }
+      signal?.addEventListener('abort', onAbort, { 'once': true });
       waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markReady' }).state;
     } catch (error) {
-      waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markCancelled' }).state;
+      if (waiter.state.variant !== 'cancelled') {
+        waiter.state = this.#waiterMachine.transition(waiter.state, { 'type': 'markCancelled' }).state;
+      }
+      waiter.unregisterAbort();
       await this.#grantReadyWaiters();
       throw error;
     }
@@ -155,6 +184,7 @@ export class Semaphore {
           break;
         }
         if (next.state.variant === 'cancelled') {
+          next.unregisterAbort();
           this.#headWaiter = undefined;
           continue;
         }
@@ -186,8 +216,18 @@ export class Semaphore {
       waiter.reject(error);
       return false;
     }
+    if (waiter.state.variant === 'cancelled') {
+      this.#available += 1;
+      return false;
+    }
+    waiter.unregisterAbort();
     waiter.resolve(this.#buildRelease());
     return true;
+  }
+
+  static #isAborted(signal: AbortSignal | undefined): boolean {
+    const result = signal?.aborted === true;
+    return result;
   }
 
   /**

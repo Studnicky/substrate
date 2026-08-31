@@ -2,6 +2,9 @@
  * FetchClient configuration types
  */
 
+import type { ClockProviderInterface } from '@studnicky/clock';
+import type { Signal } from '@studnicky/signal';
+
 import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { FetchOptionsInterface } from './FetchOptionsInterface.js';
@@ -25,6 +28,9 @@ export interface ClientConfigInterface {
    * Base URL prepended to all requests
    */
   'baseURL'?: ClientConfigDataEntity.Type['baseURL'];
+
+  /** Clock used to measure Node client request durations. Default: `RealTimeClockProvider`. */
+  'clock'?: ClockProviderInterface;
 
   /**
    * HTTP connection pooling configuration
@@ -109,6 +115,12 @@ export interface ClientConfigInterface {
    * ```
    */
   'requestIdGenerator'?: RequestIdGeneratorInterface;
+
+  /**
+   * Signal composition primitive shared by request deadlines and caller cancellation.
+   * Defaults to `Signal.create()`.
+   */
+  'signal'?: Signal;
 
   /**
    * Default timeout in milliseconds

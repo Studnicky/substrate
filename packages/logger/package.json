@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/logger",
-  "version": "12.0.0",
-  "description": "Pluggable logging interface with transport architecture for Node.js",
+  "version": "12.0.1",
+  "description": "Pluggable logging interface with portable transport architecture",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -61,6 +61,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",

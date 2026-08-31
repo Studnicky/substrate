@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/concurrency",
-  "version": "12.0.0",
+  "version": "12.0.1",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
   "type": "module",
   "sideEffects": false,
@@ -63,6 +63,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
     "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"

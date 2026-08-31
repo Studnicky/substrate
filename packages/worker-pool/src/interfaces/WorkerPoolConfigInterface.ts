@@ -4,6 +4,8 @@ import type { WorkerPoolConfigEntity } from '../entities/WorkerPoolConfigEntity.
 
 /** Config accepted by `WorkerPool.create()`. `workerPath` is required; every other field defaults. */
 export interface WorkerPoolConfigInterface extends WorkerPoolConfigEntity.Type {
-  /** Composed `Signal` instance used to derive the per-task timeout `AbortSignal`. Defaults to a fresh `Signal.create()`. */
+  /** Optional caller cancellation source composed with each task deadline. */
+  'abortSignal'?: AbortSignal;
+  /** Composed `Signal` primitive used to derive each task's cancellation signal. Defaults to a fresh `Signal.create()`. */
   'signal'?: Signal;
 }

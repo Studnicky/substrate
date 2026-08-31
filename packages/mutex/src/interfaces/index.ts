@@ -1,3 +1,4 @@
+export type { MutexCreateOptionsInterface } from './MutexCreateOptionsInterface.js';
 export type {
   MutexInterface,
   MutexLockInterface

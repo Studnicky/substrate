@@ -1,7 +1,9 @@
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
 import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Predicates } from '@studnicky/types';
 
 import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
+import type { LruCacheCreateOptionsInterface } from './interfaces/LruCacheCreateOptionsInterface.js';
 
 import { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 import { CacheConfigError } from './errors/index.js';
@@ -59,6 +61,7 @@ class LruCacheHookInvoker extends HookInvoker {
 export class LruCache<K, V> {
   protected readonly hooks: HookInvoker = new LruCacheHookInvoker();
   readonly #capacity: number;
+  readonly #clock: Clock;
   readonly #defaultStaleMs: number | undefined;
   readonly #defaultTtlMs: number | undefined;
   readonly #nodes: Map<K, LruCacheNodeInterface<K, V>>;
@@ -80,7 +83,7 @@ export class LruCache<K, V> {
     TInstance extends LruCache<K, V> = LruCache<K, V>
   >(
     this: LruCacheConstructorInterface<TInstance> & LruCacheFunctionInterface,
-    options: LruCacheOptionsEntity.Type
+    options: LruCacheCreateOptionsInterface
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(constructed)) {
@@ -96,8 +99,9 @@ export class LruCache<K, V> {
     return constructed;
   }
 
-  protected constructor(options: LruCacheOptionsEntity.Type) {
-    if (!LruCacheOptionsEntity.validate(options)) {
+  protected constructor(options: LruCacheCreateOptionsInterface) {
+    const { 'clock': clockProvider, ...cacheOptions } = options;
+    if (!LruCacheOptionsEntity.validate(cacheOptions)) {
       const messages = (LruCacheOptionsEntity.validate.errors ?? [])
         .map((error) => {
           const message = error.message ?? String(error);
@@ -109,9 +113,15 @@ export class LruCache<K, V> {
       );
     }
 
-    this.#capacity = options.capacity;
-    this.#defaultStaleMs = options.staleMs;
-    this.#defaultTtlMs = options.ttlMs;
+    if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+      throw new CacheConfigError('clock must implement ClockProviderInterface');
+    }
+
+    const provider: ClockProviderInterface = clockProvider ?? RealTimeClockProvider.create();
+    this.#capacity = cacheOptions.capacity;
+    this.#clock = Clock.create(provider);
+    this.#defaultStaleMs = cacheOptions.staleMs;
+    this.#defaultTtlMs = cacheOptions.ttlMs;
     this.#nodes = new Map();
     this.#head = undefined;
     this.#tail = undefined;
@@ -205,7 +215,7 @@ export class LruCache<K, V> {
       return { 'found': false, 'value': undefined };
     }
 
-    if (LruCache.isExpired(node)) {
+    if (this.#isExpired(node)) {
       this.hooks.invoke('onExpire', () => {
         const result = this.onExpire(key);
         return result;
@@ -220,7 +230,7 @@ export class LruCache<K, V> {
 
     this.promoteToHead(node);
 
-    if (node.staleAt !== noExpiry && Date.now() > node.staleAt) {
+    if (node.staleAt !== noExpiry && this.#clock.now() > node.staleAt) {
       this.hooks.invoke('onStale', () => {
         const result = this.onStale(key, node.value);
         return result;
@@ -243,10 +253,10 @@ export class LruCache<K, V> {
   ): void {
     const effectiveTtl = options?.ttlMs ?? this.#defaultTtlMs;
     const expiresAt =
-      effectiveTtl !== undefined ? Date.now() + effectiveTtl : noExpiry;
+      effectiveTtl !== undefined ? this.#clock.now() + effectiveTtl : noExpiry;
     const effectiveStale = options?.staleMs ?? this.#defaultStaleMs;
     const staleAt =
-      effectiveStale !== undefined ? Date.now() + effectiveStale : noExpiry;
+      effectiveStale !== undefined ? this.#clock.now() + effectiveStale : noExpiry;
 
     const existing = this.#nodes.get(key);
 
@@ -291,7 +301,7 @@ export class LruCache<K, V> {
       return false;
     }
 
-    if (LruCache.isExpired(node)) {
+    if (this.#isExpired(node)) {
       this.hooks.invoke('onExpire', () => {
         const result = this.onExpire(key);
         return result;
@@ -351,12 +361,12 @@ export class LruCache<K, V> {
     });
   }
 
-  private static isExpired<K, V>(node: LruCacheNodeInterface<K, V>): boolean {
+  #isExpired(node: LruCacheNodeInterface<K, V>): boolean {
     if (node.expiresAt === noExpiry) {
       return false;
     }
 
-    const isExpired = Date.now() > node.expiresAt;
+    const isExpired = this.#clock.now() > node.expiresAt;
     return isExpired;
   }
 

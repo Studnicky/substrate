@@ -1,5 +1,19 @@
 # Changelog
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae381ef]
+  - @studnicky/types@12.0.1
+  - @studnicky/batch@12.0.1
+  - @studnicky/concurrency@12.0.1
+  - @studnicky/errors@12.0.1
+  - @studnicky/fsm@12.0.1
+  - @studnicky/json@12.0.1
+  - @studnicky/signal@12.0.1
+  - @studnicky/system@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

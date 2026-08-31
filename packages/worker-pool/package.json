@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/worker-pool",
-  "version": "12.0.0",
+  "version": "12.0.1",
   "description": "Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout",
   "type": "module",
   "sideEffects": false,
@@ -11,6 +11,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./lease": {
+      "types": "./dist/lease/index.d.ts",
+      "import": "./dist/lease/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
     },
     "./entities": {
       "types": "./dist/entities/index.d.ts",

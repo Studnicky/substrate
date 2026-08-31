@@ -17,6 +17,7 @@ export type { WorkerLifecycleStateInterface } from './WorkerLifecycleStateInterf
 export type { WorkerLogEnvelopeInterface } from './WorkerLogEnvelopeInterface.js';
 export type { WorkerObservationInterface } from './WorkerObservationInterface.js';
 export type { WorkerPoolConfigInterface } from './WorkerPoolConfigInterface.js';
+export type { WorkerPoolInterface } from './WorkerPoolInterface.js';
 export type { WorkerProgressEnvelopeInterface } from './WorkerProgressEnvelopeInterface.js';
 export type { WorkerResultEnvelopeInterface } from './WorkerResultEnvelopeInterface.js';
 export type { WorkerTransportInterface } from './WorkerTransportInterface.js';

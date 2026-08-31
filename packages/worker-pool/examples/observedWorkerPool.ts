@@ -12,7 +12,7 @@ import type {
 } from '../src/interfaces/index.js';
 import type { ItemEntity } from './entities/ItemEntity.js';
 
-import { WorkerPool } from '../src/index.js';
+import { WorkerPool } from '../src/node/index.js';
 
 class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
   readonly logs: string[] = [];

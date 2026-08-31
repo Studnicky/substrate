@@ -50,7 +50,10 @@
 
 export { EVENT_COMPONENTS } from './constants/EVENT_COMPONENTS.js';
 export { LOG_LEVEL } from './constants/LOG_LEVEL.js';
-export { LOG_STATUS, STATUS_CATEGORIES } from './constants/LOG_STATUS.js';
+export {
+  LOG_STATUS, STATUS_CATEGORIES
+} from './constants/LOG_STATUS.js';
+export { LogStatusEntity } from './entities/LogStatusEntity.js';
 export { CircularReferenceError } from './errors/CircularReferenceError.js';
 export { ConfigurationError } from './errors/ConfigurationError.js';
 export { FileDestinationError } from './errors/FileDestinationError.js';

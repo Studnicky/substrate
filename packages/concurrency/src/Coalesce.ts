@@ -1,6 +1,7 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
 import { HookInvoker, RuntimeError } from '@studnicky/errors';
+import { RaceTimeout } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
@@ -99,29 +100,29 @@ export class Coalesce<T> {
    * map entry is left untouched, so the underlying factory (and every other
    * caller waiting on it) proceeds unaffected.
    */
-  #awaitWithTimeout(key: string, inFlight: Promise<T>): Promise<T> {
+  async #awaitWithTimeout(key: string, inFlight: Promise<T>): Promise<T> {
     if (this.#timeout === undefined) {
-      return inFlight;
+      return await inFlight;
     }
     const timeoutMs = this.#timeout;
-    return new Promise<T>((resolve, reject) => {
-      let settled = false;
-      const timer = setTimeout(() => {
-        if (settled) { return; }
-        settled = true;
-        this.hooks.invokeAsync('onTimeout', () => {
-          const result = this.onTimeout(key, timeoutMs);
-          return result;
-        }).then(
-          () => { reject(new CoalesceTimeoutError(key, timeoutMs)); },
-          reject
-        );
-      }, timeoutMs);
-      void inFlight.then(resolve, reject).then(() => {
-        settled = true;
-        clearTimeout(timer);
+    const completionController = new AbortController();
+    const timeout = RaceTimeout.wait(timeoutMs, completionController.signal).then(async (outcome) => {
+      if (outcome === 'aborted') {
+        return await inFlight;
+      }
+
+      await this.hooks.invokeAsync('onTimeout', () => {
+        const result = this.onTimeout(key, timeoutMs);
+        return result;
       });
+      throw new CoalesceTimeoutError(key, timeoutMs);
     });
+
+    try {
+      return await Promise.race([inFlight, timeout]);
+    } finally {
+      completionController.abort();
+    }
   }
 
   isInflight(key: string): boolean {

@@ -1,11 +1,10 @@
-import type { Context } from '@studnicky/context';
-
 /**
- * One-shot request execution pattern composing fetch, retry, signal, and context, with
+ * One-shot request execution pattern composing fetch, retry, signal, and an optional scope, with
  * lifecycle hooks bracketing the retry loop for observability.
  */
+import type { FetchClientInterface } from '@studnicky/fetch';
+
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { FetchClient } from '@studnicky/fetch';
 import { Retry } from '@studnicky/retry';
 import { Signal } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
@@ -15,24 +14,24 @@ import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorD
 import type { RequestExecutorExecuteOptionsInterface } from './interfaces/RequestExecutorExecuteOptionsInterface.js';
 
 /**
- * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and `@studnicky/context`
+ * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and an optional scope port
  * into a one-shot request execution pattern.
  *
  * `execute()` composes a cancellation signal via `Signal#compose()`, runs the caller-supplied
  * `callback` through the retry loop, brackets the whole retry loop with `onExecuteStart` /
- * `onExecuteComplete` / `onExecuteError` lifecycle hooks, and — if a `Context` was composed —
- * runs the entire call inside a fresh context scope.
+ * `onExecuteComplete` / `onExecuteError` lifecycle hooks, and — if a scope factory was composed —
+ * runs the entire call inside a fresh scope.
  *
  * The three lifecycle hooks are no-ops by default and run through an internal `HookInvoker`
  * that swallows a throwing override: a rejected hook is recorded (see `hookErrorCount` /
  * `getHookErrors()`) but never replaces `execute()`'s resolved result or thrown error. Callers
- * retain explicit ownership of subclassed `FetchClient`/`Retry`/`Context` instances passed in
+ * retain explicit ownership of supplied fetch client, retry, and scope implementations passed in
  * through configuration for primitive-level observability.
  *
  * @example Direct composition
  * ```typescript
  * const executor = RequestExecutor.create({
- *   fetchClient: { baseURL: 'https://api.example.com' },
+ *   fetchClient: BrowserFetchClient.create({ baseURL: 'https://api.example.com' }),
  *   retry: { maximumRetries: 3 },
  *   deadlineMs: 5000
  * });
@@ -69,22 +68,14 @@ export class RequestExecutor {
    * @param config - Composition configuration
    * @returns New RequestExecutor instance
    */
-  static create(config: RequestExecutorConfigInterface = {}): RequestExecutor {
+  static create(config: RequestExecutorConfigInterface): RequestExecutor {
     const result = new this({
-      'context': config.context,
       'deadlineMs': config.deadlineMs,
-      'fetchClient': RequestExecutor.#resolveFetchClient(config.fetchClient),
+      'fetchClient': config.fetchClient,
       'retry': RequestExecutor.#resolveRetry(config.retry),
+      'scope': config.scope,
       'signal': config.signal ?? Signal.create()
     });
-    return result;
-  }
-
-  static #resolveFetchClient(value: RequestExecutorConfigInterface['fetchClient']): FetchClient {
-    if (value instanceof FetchClient) {
-      return value;
-    }
-    const result = FetchClient.create(value ?? {});
     return result;
   }
 
@@ -96,9 +87,9 @@ export class RequestExecutor {
     return result;
   }
 
-  readonly #context: Context | undefined;
+  readonly #scope: RequestExecutorDepsInterface['scope'];
   readonly #deadlineMs: number | undefined;
-  readonly #fetchClient: FetchClient;
+  readonly #fetchClient: FetchClientInterface;
   readonly #retry: Retry;
   readonly #signal: Signal;
 
@@ -108,23 +99,23 @@ export class RequestExecutor {
     this.#fetchClient = deps.fetchClient;
     this.#retry = deps.retry;
     this.#signal = deps.signal;
-    this.#context = deps.context;
+    this.#scope = deps.scope;
     this.#deadlineMs = deps.deadlineMs;
     this.hooks = new RequestExecutor.#OwnedHookInvoker();
   }
 
   /**
    * Runs `callback` against the composed FetchClient and a composed cancellation AbortSignal, wrapped
-   * in the retry loop and (when configured) a Context scope. The retry loop is bracketed by the
+   * in the retry loop and, when configured, an isolated scope. The retry loop is bracketed by the
    * `onExecuteStart`/`onExecuteComplete`/`onExecuteError` lifecycle hooks.
    *
-   * @param callback - Receives the composed FetchClient and the composed AbortSignal for this call.
+   * @param callback - Receives the composed fetch client and the composed AbortSignal for this call.
    *   The caller passes the signal into whichever verb call it makes (e.g. `client.get(path, { signal })`).
-   * @param options - Per-call signal/deadline/context-seed overrides
+   * @param options - Per-call signal, deadline, and scope-seed overrides
    * @returns The result of `callback`, after retries succeed
    */
   async execute<T>(
-    callback: (client: FetchClient, signal: AbortSignal) => Promise<T>,
+    callback: (client: FetchClientInterface, signal: AbortSignal) => Promise<T>,
     options?: RequestExecutorExecuteOptionsInterface
   ): Promise<T> {
     const deadlineMs = options?.deadlineMs ?? this.#deadlineMs;
@@ -162,12 +153,12 @@ export class RequestExecutor {
       }
     };
 
-    if (this.#context === undefined) {
+    if (this.#scope === undefined) {
       const result = await runObserved();
       return result;
     }
 
-    const scope = this.#context.initialize(options?.contextInitial);
+    const scope = this.#scope.initialize(options?.scopeInitial);
 
     try {
       const result = await scope.execute((): Promise<T> => {
@@ -187,7 +178,7 @@ export class RequestExecutor {
   // result or thrown error.
   // ---------------------------------------------------------------------------
 
-  /** Fires before the retry loop begins, inside the context scope when one is composed. */
+  /** Fires before the retry loop begins, inside the request scope when one is composed. */
   protected onExecuteStart(): void {}
 
   /**

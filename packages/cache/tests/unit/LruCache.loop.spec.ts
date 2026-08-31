@@ -1,3 +1,4 @@
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
 import { RuntimeError } from '@studnicky/errors';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -805,4 +806,15 @@ void describe("LruCache", () => {
       await runCase(scenario);
     });
   }
+
+  void it("uses an injected clock for expiration", () => {
+    const counter = VirtualTimeCounter.create({ startMs: 0 });
+    const clock = VirtualClockProvider.create(counter);
+    const cache = LruCache.create<string, number>({ capacity: 1, clock, ttlMs: 10 });
+
+    cache.set("entry", 1);
+    counter.advance(11);
+
+    assert.equal(cache.get("entry"), undefined);
+  });
 });

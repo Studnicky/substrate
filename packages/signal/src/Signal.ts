@@ -54,7 +54,7 @@ export class Signal {
       throw new SignalError('deadlineMs must be a non-negative number');
     }
 
-    const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
+    const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(Math.ceil(deadlineMs)) : undefined;
 
     let result: AbortSignal;
 

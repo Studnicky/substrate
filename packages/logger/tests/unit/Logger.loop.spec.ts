@@ -1,3 +1,4 @@
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors';
 import assert from 'node:assert/strict';
 import {
@@ -805,4 +806,14 @@ void describe('Logger', () => {
       await runCase(scenario);
     });
   }
+
+  void it('timestamps records with an injected clock', () => {
+    const counter = VirtualTimeCounter.create({ startMs: 42 });
+    const transport = MemoryTransport.create();
+    const logger = Logger.create({ 'clock': VirtualClockProvider.create(counter), 'transports': [transport] });
+
+    logger.info(TestFactory.body('deterministic time'));
+
+    assert.equal(transport.records()[0]?.time, 42);
+  });
 });

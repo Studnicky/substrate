@@ -3,11 +3,10 @@ import { Batch } from '@studnicky/batch';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
 import { MachineTerminatedError } from '@studnicky/fsm';
 import { Signal } from '@studnicky/signal';
-import { System } from '@studnicky/system';
+import { System } from '@studnicky/system/node';
 import { Predicates } from '@studnicky/types';
 import { Worker } from 'node:worker_threads';
 
-import type { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
 import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
 import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
 import type { RetryGuardStateInterface } from './interfaces/RetryGuardStateInterface.js';
@@ -16,9 +15,11 @@ import type { WorkerErrorEnvelopeInterface } from './interfaces/WorkerErrorEnvel
 import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';
 import type { WorkerLogEnvelopeInterface } from './interfaces/WorkerLogEnvelopeInterface.js';
 import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInterface.js';
+import type { WorkerPoolInterface } from './interfaces/WorkerPoolInterface.js';
 import type { WorkerProgressEnvelopeInterface } from './interfaces/WorkerProgressEnvelopeInterface.js';
 import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
 
+import { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
 import { WorkerPoolError } from './errors/index.js';
 import { RetryGuardMachine } from './RetryGuardMachine.js';
 import { TaskSettlementMachine } from './TaskSettlementMachine.js';
@@ -27,6 +28,7 @@ import { WorkerLifecycleMachine } from './WorkerLifecycleMachine.js';
 
 
 interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
+  'abortSignal': AbortSignal | undefined;
   'batchConcurrency': Required<WorkerPoolConfigEntity.Type>['batchConcurrency'];
   'concurrency': Required<WorkerPoolConfigEntity.Type>['concurrency'];
   'signal': Signal;
@@ -125,7 +127,7 @@ interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.
  * const results = await pool.run([1, 2, 3]);
  * ```
  */
-export class WorkerPool<TMessage = unknown, TResult = unknown> {
+export class WorkerPool<TMessage = unknown, TResult = unknown> implements WorkerPoolInterface<TMessage, TResult> {
   static readonly #OwnedHookInvoker = class WorkerPoolHookInvoker extends HookInvoker {
     protected override onHookError(_hookName: string): void {}
   };
@@ -157,20 +159,30 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     this: WorkerPoolConstructorInterface<TMessage, TResult, TInstance>,
     config: WorkerPoolConfigInterface
   ): TInstance {
-    if (!Predicates.isString(config.workerPath) || config.workerPath.length === 0) {
+    const {
+      abortSignal,
+      signal,
+      ...serializableConfig
+    } = config;
+    let parsedConfig: WorkerPoolConfigEntity.Type;
+    try {
+      parsedConfig = WorkerPoolConfigEntity.intake(serializableConfig);
+    } catch (cause) {
       throw new WorkerPoolError({
-        'code': 'workerPool.invalidWorkerPath',
-        'message': 'WorkerPool: workerPath is required'
+        'cause': cause,
+        'code': 'workerPool.invalidConfig',
+        'message': 'WorkerPool configuration is invalid'
       });
     }
 
-    const concurrency = config.concurrency ?? System.optimalWorkerCount;
+    const concurrency = parsedConfig.concurrency ?? System.optimalWorkerCount;
     const result: unknown = Reflect.construct(this, [{
-      'batchConcurrency': config.batchConcurrency ?? concurrency,
+      'abortSignal': abortSignal,
+      'batchConcurrency': parsedConfig.batchConcurrency ?? concurrency,
       'concurrency': concurrency,
-      'signal': config.signal ?? Signal.create(),
-      'timeoutMs': config.timeoutMs,
-      'workerPath': config.workerPath
+      'signal': signal ?? Signal.create(),
+      'timeoutMs': parsedConfig.timeoutMs,
+      'workerPath': parsedConfig.workerPath
     }]);
     if (!Predicates.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
       throw new WorkerPoolError({
@@ -185,7 +197,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
   readonly #concurrency: number;
   readonly #batchConcurrency: number;
   readonly #timeoutMs: number | undefined;
+  readonly #abortSignal: AbortSignal | undefined;
   readonly #signal: Signal;
+  #closed = false;
 
   protected readonly hooks: HookInvoker;
 
@@ -199,6 +213,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     this.#workerPath = deps.workerPath;
     this.#concurrency = deps.concurrency;
     this.#batchConcurrency = deps.batchConcurrency;
+    this.#abortSignal = deps.abortSignal;
     this.#timeoutMs = deps.timeoutMs;
     this.#signal = deps.signal;
   }
@@ -211,6 +226,12 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
    * @returns Results in the same order as `items`
    */
   async run(items: readonly TMessage[]): Promise<TResult[]> {
+    if (this.#closed) {
+      throw new WorkerPoolError({
+        'code': 'workerPool.closed',
+        'message': 'WorkerPool is closed'
+      });
+    }
     // Every FSM instance below is constructed fresh for this call and lives only in this
     // closure — never on `this` — preserving the documented invariant that two concurrent
     // `run()` calls on the same instance never share or corrupt each other's workers.
@@ -309,9 +330,14 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
     ): Promise<void> => {
       let timeoutSignal: AbortSignal | undefined;
       try {
-        timeoutSignal = this.#timeoutMs === undefined
-          ? undefined
-          : await this.#signal.compose({ 'deadlineMs': this.#timeoutMs });
+        const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
+        if (this.#timeoutMs !== undefined) {
+          composeOptions.deadlineMs = this.#timeoutMs;
+        }
+        if (this.#abortSignal !== undefined) {
+          composeOptions.signal = this.#abortSignal;
+        }
+        timeoutSignal = await this.#signal.compose(composeOptions);
       } catch (cause) {
         const error = Predicates.isError(cause)
           ? cause
@@ -360,9 +386,19 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         });
       };
 
-      // Fires when a task is in flight and its timeout signal aborts mid-run — a genuine timeout.
-      const onTimeoutAbort = (): void => {
+      // The composed signal carries either the caller cancellation source or the task deadline.
+      const onAbort = (): void => {
         settleTask(worker, (taskContext) => {
+          if (this.#abortSignal?.aborted === true) {
+            const error = WorkerPool.errorWithReason(
+              `WorkerPool: task at index ${String(taskContext.index)} was cancelled`,
+              timeoutSignal?.reason
+            );
+            reportWorkerError(error, taskContext.index);
+            taskContext.reject(error);
+            terminateAfterAbort(taskContext);
+            return;
+          }
           this.hooks.invoke('onWorkerTimeout', () => {
             const result = this.onWorkerTimeout(taskContext.index);
             return result;
@@ -391,7 +427,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
       };
 
       context.unregisterTimeout = () => {
-        timeoutSignal?.removeEventListener('abort', onTimeoutAbort);
+        timeoutSignal?.removeEventListener('abort', onAbort);
       };
 
       currentTaskByWorker.set(worker, context);
@@ -401,7 +437,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         return;
       }
 
-      timeoutSignal?.addEventListener('abort', onTimeoutAbort, { 'once': true });
+      timeoutSignal?.addEventListener('abort', onAbort, { 'once': true });
       worker.postMessage(entry.item);
     };
 
@@ -609,6 +645,13 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> {
         reportWorkerError(terminationError, workerIndex);
       });
     }
+  }
+
+  /** Prevents future runs. Workers are scoped to each completed run and are already terminated. */
+  public close(): Promise<void> {
+    this.#closed = true;
+    const result = Promise.resolve();
+    return result;
   }
 
   /** Count of hook failures recorded by `onHookError` since construction. */

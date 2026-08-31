@@ -8,5 +8,6 @@ export interface WorkerLeaseInterface<TWorker> {
     transport: WorkerTransportInterface<TWorker, TRequest, TResponse>,
     request: TRequest
   ): Promise<TResponse>;
+  terminate(): Promise<void>;
   readonly 'worker': TWorker;
 }

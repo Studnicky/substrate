@@ -12,6 +12,8 @@ Entries can also carry an optional `staleMs` threshold, shorter than `ttlMs`: on
 
 `@studnicky/cache` exposes `LruCache` and cache errors at its root. Import `LruCacheOptionsEntity` and `LruCacheNodeTimingEntity` from `@studnicky/cache/entities` for schema-derived construction and timing fields.
 
+`LruCache.create` accepts an optional `ClockProviderInterface` through `clock`, which supplies both TTL expiry and soft-staleness timestamps. A `VirtualClockProvider` makes cache-time tests deterministic.
+
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:

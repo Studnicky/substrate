@@ -29,13 +29,9 @@ interface SourceModuleLoaderInterface {
 //   context      — uses node:async_hooks (AsyncLocalStorage); cross-await
 //                  propagation has no faithful browser equivalent
 //   eslint-config — Node dev tool; pulls in typescript-eslint, unrs-resolver
-//   worker-pool  — uses node:worker_threads directly; no browser equivalent
 //
-// system, file-lock, and fetch are isomorphic: their Node-only internals are
-// swapped for browser siblings by the `substrate-browser-swap` Vite plugin (see
-// docs/.vitepress/config.ts), so they ARE included here. (fetch runs over the
-// browser's native `fetch`; the undici connection-pool dispatcher is the
-// swapped Node-only enhancement.)
+// Browser-capable packages expose their browser entrypoint separately. Node adapter
+// entrypoints are never loaded into the documentation bundle.
 const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
   [
     '../../../../packages/*/src/index.ts',
@@ -44,8 +40,7 @@ const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
     '!../../../../packages/context/src/**/index.ts',
     '!../../../../packages/eslint-config/src/index.ts',
     '!../../../../packages/eslint-config/src/**/index.ts',
-    '!../../../../packages/worker-pool/src/index.ts',
-    '!../../../../packages/worker-pool/src/**/index.ts'
+    '!../../../../packages/*/src/node/index.ts'
   ]
 );
 

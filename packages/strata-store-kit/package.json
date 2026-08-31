@@ -1,0 +1,62 @@
+{
+  "name": "@studnicky/strata-store-kit",
+  "version": "12.0.1",
+  "description": "Composable store strata with deterministic lower-to-higher propagation",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "node ../../scripts/test-suite.mjs all --package ."
+  },
+  "keywords": [
+    "store",
+    "state",
+    "composition",
+    "strata"
+  ],
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/strata-store-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/strata-store-kit",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/mutex": "workspace:*",
+    "@studnicky/store": "workspace:*"
+  }
+}

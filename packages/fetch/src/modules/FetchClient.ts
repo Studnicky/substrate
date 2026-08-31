@@ -4,8 +4,10 @@
 
 import type { Agent } from 'undici';
 
+import { Clock, RealTimeClockProvider } from '@studnicky/clock';
 import { HookInvoker, RuntimeError } from '@studnicky/errors';
 import { Clone, SchemaIntakeError } from '@studnicky/json';
+import { Signal } from '@studnicky/signal';
 import { Predicates } from '@studnicky/types';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -108,13 +110,17 @@ export class FetchClient implements FetchClientInterface {
   protected readonly hooks: HookInvoker;
 
   private readonly config: ClientConfigInterface;
+  private readonly clock: Clock;
   private readonly dispatcher: undefined | UndiciDispatcher;
   private readonly dispatcherAgent: Agent | TestDispatcher | undefined;
+  private readonly signal: Signal;
 
   protected constructor(config: ClientConfigInterface = {}) {
     const validated = FetchClient.validateConfig(config);
 
     this.config = validated;
+    this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
+    this.signal = validated.signal ?? Signal.create();
     this.hooks = validated.hookTimeoutMs === undefined
       ? new HookInvoker()
       : new HookInvoker({ 'timeoutMs': validated.hookTimeoutMs });
@@ -249,10 +255,10 @@ export class FetchClient implements FetchClientInterface {
     method: string,
     requestId: string
   ): Promise<Response> {
-    const startTime = Date.now();
+    const startTime = this.clock.now();
     let timeoutMs: number | undefined;
-    let timeoutController: AbortController | undefined;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let requestSignal: AbortSignal | undefined;
+    let externalSignal: AbortSignal | undefined;
 
     try {
       if (!Predicates.isString(requestContext.url) || requestContext.url === '') {
@@ -264,7 +270,7 @@ export class FetchClient implements FetchClientInterface {
         'json': _json,
         'metadata': _metadata,
         'requestId': _requestId,
-        'signal': externalSignal,
+        'signal': configuredSignal,
         timeout,
         ...standardOptions
       } = requestContext.options;
@@ -273,22 +279,22 @@ export class FetchClient implements FetchClientInterface {
         throw new ConfigurationError('timeout must be a positive number');
       }
 
-      let signal = externalSignal;
-
-      if (timeout !== undefined) {
+      externalSignal = configuredSignal;
+      if (timeout !== undefined || externalSignal !== undefined) {
         timeoutMs = timeout;
-        timeoutController = new AbortController();
-        timeoutId = setTimeout(() => {
-          timeoutController?.abort(new TimeoutError(requestContext.url, timeout));
-        }, timeout);
-        signal = externalSignal === undefined
-          ? timeoutController.signal
-          : AbortSignal.any([timeoutController.signal, externalSignal]);
+        const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
+        if (timeout !== undefined) {
+          composeOptions.deadlineMs = timeout;
+        }
+        if (externalSignal !== undefined) {
+          composeOptions.signal = externalSignal;
+        }
+        requestSignal = await this.signal.compose(composeOptions);
       }
 
-      const requestInit: Record<string, unknown> = signal === undefined
+      const requestInit: Record<string, unknown> = requestSignal === undefined
         ? { ...standardOptions }
-        : { ...standardOptions, 'signal': signal };
+        : { ...standardOptions, 'signal': requestSignal };
 
       if (dispatcher !== undefined) {
         requestInit.dispatcher = dispatcher;
@@ -296,11 +302,7 @@ export class FetchClient implements FetchClientInterface {
 
       const response = await FetchTransport.fetch(requestContext.url, requestInit);
 
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-        timeoutId = undefined;
-      }
-      const duration = Date.now() - startTime;
+      const duration = this.clock.now() - startTime;
 
       if (response.ok) {
         await this.hooks.invokeAsync('onResponseSuccess', () => {
@@ -316,16 +318,16 @@ export class FetchClient implements FetchClientInterface {
 
       return response;
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const duration = this.clock.now() - startTime;
       let requestError = error;
 
       if (
         !(error instanceof TimeoutError)
         && !(error instanceof AbortError)
         && (error instanceof Error || error instanceof DOMException)
-        && error.name === 'AbortError'
+        && (error.name === 'AbortError' || error.name === 'TimeoutError')
       ) {
-        requestError = timeoutController?.signal.aborted === true && timeoutMs !== undefined
+        requestError = requestSignal?.aborted === true && timeoutMs !== undefined && externalSignal?.aborted !== true
           ? new TimeoutError(requestContext.url, timeoutMs)
           : new AbortError(requestContext.url, error.message);
       }
@@ -369,10 +371,6 @@ export class FetchClient implements FetchClientInterface {
         return result;
       });
       throw requestError;
-    } finally {
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
     }
   }
 
@@ -763,8 +761,10 @@ export class FetchClient implements FetchClientInterface {
     }
 
     const {
+      'clock': clockProvider,
       'options': configuredOptions,
       requestIdGenerator,
+      'signal': signalComposer,
       ...configData
     } = config;
     const intakeData: object = {};
@@ -841,6 +841,12 @@ export class FetchClient implements FetchClientInterface {
     if (!Predicates.isNullish(requestIdGenerator)) {
       FetchClient.assertRequestIdGenerator(requestIdGenerator);
     }
+    if (!Predicates.isNullish(clockProvider) && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+      throw new ConfigurationError('clock must implement ClockProviderInterface');
+    }
+    if (!Predicates.isNullish(signalComposer) && !(signalComposer instanceof Signal)) {
+      throw new ConfigurationError('signal must be a Signal instance');
+    }
 
     const options: FetchOptionsInterface | undefined = parsed.options === undefined
       ? undefined
@@ -855,8 +861,10 @@ export class FetchClient implements FetchClientInterface {
       });
     const result: ClientConfigInterface = {
       ...parsed,
+      ...(Predicates.isNullish(clockProvider) ? {} : { 'clock': clockProvider }),
       ...(options === undefined ? {} : { 'options': options }),
-      ...(Predicates.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator })
+      ...(Predicates.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator }),
+      ...(Predicates.isNullish(signalComposer) ? {} : { 'signal': signalComposer })
     };
     return result;
   }

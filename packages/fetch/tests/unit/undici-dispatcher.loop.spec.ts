@@ -204,7 +204,7 @@ const runnerMap: RunnerMap = {
     let capturedMs: number | undefined;
     let releaseTimer: (() => void) | undefined;
 
-    // Spy on the global timer instead of waiting on the wall clock: Delay.for
+    // Spy on the global timer instead of waiting on the wall clock: RaceTimeout.wait
     // schedules a real setTimeout, so capturing its arguments and controlling
     // when it fires proves the destroy call is actually gated behind it,
     // deterministically and without any real wait.

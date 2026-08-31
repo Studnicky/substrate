@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { System } from '../src/index.js';
+import { System } from '../src/node/index.js';
 
 const cpu = System.cpu;
 console.log('CPU:');
@@ -20,9 +20,13 @@ console.log(`  memory.totalMb = ${mem.totalMb}`);
 console.log(`  memory.freeMb  = ${mem.freeMb}`);
 
 const plat = System.platform;
+const nodeVersion = plat.nodeVersion;
+if (nodeVersion === undefined) {
+  throw new Error('Node System adapter must report nodeVersion');
+}
 console.log('Platform:');
 console.log(`  platform.os             = ${plat.os}`);
-console.log(`  platform.nodeVersion    = ${plat.nodeVersion}`);
+console.log(`  platform.nodeVersion    = ${nodeVersion}`);
 console.log(`  platform.isAppleSilicon = ${plat.isAppleSilicon}`);
 // #endregion usage
 
@@ -37,7 +41,7 @@ assert.ok(mem.totalMb > 0, 'totalMb must be > 0');
 assert.ok(mem.freeMb >= 0, 'freeMb must be >= 0');
 assert.ok(mem.freeMb <= mem.totalMb, 'freeMb must be <= totalMb');
 assert.ok(typeof plat.os === 'string' && plat.os.length > 0, 'os must be a non-empty string');
-assert.ok(plat.nodeVersion.startsWith('v'), 'nodeVersion must start with "v"');
+assert.ok(nodeVersion.startsWith('v'), 'nodeVersion must start with "v"');
 assert.equal(typeof plat.isAppleSilicon, 'boolean', 'platform.isAppleSilicon must be boolean');
 
 console.log('cpuMemoryPlatform: all assertions passed');

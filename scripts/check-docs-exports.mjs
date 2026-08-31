@@ -21,6 +21,8 @@ const docsRoot = path.join(repoRoot, 'docs', 'packages');
 
 const entrypointSource = new Map([
   ['.', 'src/index.ts'],
+  ['./browser', 'src/browser/index.ts'],
+  ['./node', 'src/node/index.ts'],
   ['./entities', 'src/entities/index.ts'],
   ['./interfaces', 'src/interfaces/index.ts'],
   ['./filters', 'src/filters/index.ts']

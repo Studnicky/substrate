@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/system'
-description: CPU, GPU, memory, and platform introspection for Node.js processes.
+description: Portable runtime facts with Node and browser adapters.
 ---
 
 # @studnicky/system
 
-> Static host-system inspection: CPU topology, GPU detection (Metal/CUDA/ROCm), memory, and platform info.
+> Portable runtime facts with Node host inspection and browser capability reporting.
 
 ## Install
 
@@ -25,9 +25,9 @@ Read CPU topology, memory usage, and platform info synchronously, plus the compu
 
 ### GPU detection
 
-`System.gpu()` synchronously detects and caches GPU information, then returns a defensive copy. It invokes `system_profiler`
+`System.gpu()` synchronously detects and caches GPU information, then returns a defensive copy. The Node adapter invokes `system_profiler`
 on macOS, `nvidia-smi` for Linux NVIDIA systems, or `rocm-smi` for Linux AMD systems,
-returning `null` when detection is unavailable. Import `System` from `@studnicky/system` and
+returning `null` when detection is unavailable. Import the Node adapter from `@studnicky/system/node` and
 use the canonical `System.cpu`, `System.gpu()`, `System.memory`, and `System.platform` APIs.
 
 ## Try it
@@ -91,4 +91,6 @@ import type { SystemProviderInterface } from '@studnicky/system/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `System` | Provides system functionality. | `@studnicky/system` |
+| `System` | Provides Node runtime facts. | `@studnicky/system/node` |
+| `SystemInterface` | Defines shared Node and browser runtime facts. | `@studnicky/system` |
+| `System` | Provides browser runtime facts. | `@studnicky/system/browser` |

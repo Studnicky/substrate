@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/worker-pool'
-description: Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout.
+description: Portable worker leases plus Node worker-thread and Web Worker pool adapters.
 ---
 
 # @studnicky/worker-pool
 
-> Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout.
+> Portable worker leases plus Node worker-thread and Web Worker pool adapters.
 
 ## Install
 
@@ -13,11 +13,9 @@ description: Bounded node:worker_threads pool that fans work items across worker
 pnpm add @studnicky/worker-pool
 ```
 
-`@studnicky/worker-pool` exposes a runtime entrypoint plus explicit entity and interface subpaths.
-
-::: info Live demo unavailable
-In-browser execution of this package is not supported. `run()` spawns real `node:worker_threads` workers, which browsers do not provide. The example below is shown statically.
-:::
+`@studnicky/worker-pool` exposes the runtime-neutral lease pool and common contracts. Import the
+Node worker-thread adapter from `@studnicky/worker-pool/node` and the Web Worker adapter from
+`@studnicky/worker-pool/browser`.
 
 ## Usage
 
@@ -26,6 +24,33 @@ Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
 The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+
+## Try it in a browser
+
+`WebWorkerFactory` owns native Worker creation and lifecycle observation. `WebWorkerMessageTransport`
+normalizes the response at the message boundary, so `WebWorkerPool` keeps the same `run()` and
+`close()` contract as the Node adapter.
+
+<RunnableExample src="packages/worker-pool/examples/browserWorkerPool" title="WebWorkerPool — native browser worker messages" />
+
+## Cancellation and deadlines
+
+Both adapters own the portable `Signal` primitive and compose each task's deadline with an optional
+caller-provided `abortSignal`. The same option names and semantics apply in Node and browsers:
+
+<!-- inline-ts-ok: focused cancellation illustration; the browser worker example exercises the runnable pool contract. -->
+```typescript
+import { Signal } from '@studnicky/signal';
+
+const signal = Signal.create();
+const controller = new AbortController();
+
+// Pass `signal` and `abortSignal` to either pool adapter's create() options.
+controller.abort();
+```
+
+A caller abort rejects the task as cancelled. An elapsed `timeoutMs` rejects it as timed out. Both
+outcomes terminate the affected worker before its capacity becomes available again.
 
 ## Ordering and failure semantics
 
@@ -39,7 +64,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 
 | Method | Description |
 |--------|-------------|
-| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, `timeoutMs`, and `signal` default |
+| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, `timeoutMs`, and `signal` default; `abortSignal` is optional |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
 | `getHookErrorCount()` | Count of hook failures recorded since construction |
 | `getHookErrors()` | Defensive copy of every hook failure recorded since construction |
@@ -76,8 +101,9 @@ import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/inter
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `WorkerPool` | Creates a bounded Node.js worker-thread pool. | `@studnicky/worker-pool` |
-| `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool` |
+| `WorkerPool` | Creates a bounded Node.js worker-thread pool. | `@studnicky/worker-pool/node` |
+| `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool/node` |
+| `WorkerPoolInterface<TInput, TOutput>` | Shared `run()` and `close()` contract for Node and browser pools. | `@studnicky/worker-pool` |
 | `WorkerPoolError` | Represents worker-pool configuration and lifecycle failures. | `@studnicky/worker-pool` |
 | `WorkerFactoryInterface` | Defines worker creation, initialization, observation, and termination. | `@studnicky/worker-pool` |
 | `WorkerLeaseInterface` | Defines an active leased worker and caller-owned request transport. | `@studnicky/worker-pool` |
@@ -85,12 +111,21 @@ import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/inter
 | `WorkerLeasePoolOptionsInterface` | Defines the factory and lease limit for `WorkerLeasePool`. | `@studnicky/worker-pool` |
 | `WorkerObservationInterface` | Defines liveness observation and observer cleanup. | `@studnicky/worker-pool` |
 | `WorkerTransportInterface` | Defines one caller-owned request/response transport. | `@studnicky/worker-pool` |
+| `WebWorkerPool` | Runs work through bounded Web Worker leases. | `@studnicky/worker-pool/browser` |
+| `WebWorkerFactory` | Creates and observes native browser Workers. | `@studnicky/worker-pool/browser` |
+| `WebWorkerFactoryOptionsInterface` | Defines the native Worker script and options. | `@studnicky/worker-pool/browser` |
+| `WebWorkerInterface` | Defines the browser Worker lifecycle surface. | `@studnicky/worker-pool/browser` |
+| `WebWorkerMessageTransport<TRequest, TResponse>` | Sends one request and decodes one Worker response. | `@studnicky/worker-pool/browser` |
+| `WebWorkerMessageTransportOptionsInterface<TResponse>` | Defines the response decoder for worker messages. | `@studnicky/worker-pool/browser` |
+| `WebWorkerPoolOptionsInterface<TInput, TOutput>` | Defines the Web Worker factory, worker limit, `Signal`, caller abort source, timeout, and request transport. | `@studnicky/worker-pool/browser` |
 
 ## Scope
 
 `WorkerPool` is the generic worker-thread fan-out/collect kernel underneath two independently hand-rolled implementations found elsewhere in the wider project family — it owns only worker lifecycle, typed dispatch, bounded concurrency, and per-task timeout. It has no DAG/RPC request-routing semantics, no persistence, and no workflow-DSL; a consumer building a request/response protocol on top of the envelope contract layers that on top of `WorkerPool`, not inside it.
 
-`WorkerPool` depends on `node:worker_threads` and is Node-specific, following the same precedent already set by `@studnicky/file-lock`.
+`WorkerPool` depends on `node:worker_threads` and is available only through the Node entrypoint.
+`WebWorkerPool` implements the same `WorkerPoolInterface` through the browser entrypoint. The
+root and browser entrypoints do not import Node worker code.
 
 ## Documentation
 

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types';
 
-import { FileLockContentionError, FileRenameLock } from '../../../src/index.js';
+import { FileLockContentionError, FileRenameLock } from '../../../src/node/index.js';
 import scenarioGroups from './FileRenameLock.scenarios.json' with { type: 'json' };
 
 type AcquireReleaseScenarioCase = {

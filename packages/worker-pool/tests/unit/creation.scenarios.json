@@ -7,7 +7,7 @@
       "input": {
         "workerPool": { "workerPath": "" }
       },
-      "expected": { "errorMessageIncludes": "workerPath is required" }
+      "expected": { "errorMessageIncludes": "configuration is invalid" }
     },
     {
       "name": "default-concurrency",

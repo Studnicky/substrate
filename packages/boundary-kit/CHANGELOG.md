@@ -1,5 +1,16 @@
 # Changelog
 
+## 12.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae381ef]
+  - @studnicky/types@12.0.1
+  - @studnicky/errors@12.0.1
+  - @studnicky/resilience@12.0.1
+  - @studnicky/retry@12.0.1
+  - @studnicky/throttle@12.0.1
+
 ## 12.0.0
 
 ### Patch Changes

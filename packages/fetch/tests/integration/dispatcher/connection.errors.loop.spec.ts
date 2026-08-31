@@ -9,7 +9,7 @@ import {
   FetchClient,
   TimeoutError,
   UndiciDispatcher
-} from '../../../src/index.js';
+} from '../../../src/node/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { ClientConfigDataEntity } from '../../../src/entities/ClientConfigDataEntity.js';
 import {
