@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/store",
-  "version": "12.1.0",
+  "version": "12.1.1",
   "description": "Observable state stores with interchangeable persistence adapters",
   "type": "module",
   "sideEffects": false,

@@ -1,5 +1,17 @@
 # Changelog
 
+## 12.1.1
+
+### Patch Changes
+
+- @studnicky/clock@12.1.1
+  - @studnicky/config@12.1.1
+  - @studnicky/errors@12.1.1
+  - @studnicky/fsm@12.1.1
+  - @studnicky/json@12.1.1
+  - @studnicky/signal@12.1.1
+  - @studnicky/types@12.1.1
+
 ## 12.1.0
 
 ### Patch Changes

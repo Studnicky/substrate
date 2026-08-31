@@ -1,5 +1,15 @@
 # Changelog
 
+## 12.1.1
+
+### Patch Changes
+
+- @studnicky/errors@12.1.1
+  - @studnicky/resilience@12.1.1
+  - @studnicky/retry@12.1.1
+  - @studnicky/throttle@12.1.1
+  - @studnicky/types@12.1.1
+
 ## 12.1.0
 
 ### Patch Changes
