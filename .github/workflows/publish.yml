@@ -78,7 +78,6 @@ jobs:
   publish:
     name: Publish to GitHub Packages
     needs: [ gates, validate ]
-    if: ${{ vars.SUBSTRATE_GITHUB_PACKAGES_PUBLISH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
