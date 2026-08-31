@@ -213,6 +213,7 @@ class WorkerLeaseCoordinator<TWorker> {
 
 class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
   readonly #coordinator: WorkerLeaseCoordinator<TWorker>;
+  readonly #onRelease: () => void;
   readonly #record: WorkerRecordInterface<TWorker>;
   readonly #releasePermit: () => Promise<void>;
   #released = false;
@@ -221,9 +222,11 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
   public constructor(
     record: WorkerRecordInterface<TWorker>,
     coordinator: WorkerLeaseCoordinator<TWorker>,
-    releasePermit: () => Promise<void>
+    releasePermit: () => Promise<void>,
+    onRelease: () => void
   ) {
     this.#coordinator = coordinator;
+    this.#onRelease = onRelease;
     this.#record = record;
     this.#releasePermit = releasePermit;
     this.worker = record.worker;
@@ -261,6 +264,7 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
     try {
       await this.#coordinator.release(this.#record);
     } finally {
+      this.#onRelease();
       await this.#releasePermit();
     }
   }
@@ -273,14 +277,16 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
     try {
       await this.#coordinator.terminate(this.#record);
     } finally {
+      this.#onRelease();
       await this.#releasePermit();
     }
   }
 }
 
 export class WorkerLeasePool<TWorker> {
-  readonly #closeController = new AbortController();
   readonly #coordinator: WorkerLeaseCoordinator<TWorker>;
+  readonly #leasePermitReleases = new Set<() => Promise<void>>();
+  readonly #pendingAcquisitions = new Set<Promise<void>>();
   readonly #semaphore: Semaphore;
   #closed = false;
 
@@ -318,20 +324,21 @@ export class WorkerLeasePool<TWorker> {
         'message': 'WorkerLeasePool is closed'
       });
     }
-    let releasePermit: () => Promise<void>;
-    try {
-      releasePermit = await this.#semaphore.acquire({ 'signal': this.#closeController.signal });
-    } catch (cause) {
-      if (this.#closed) {
-        throw new WorkerPoolError({
-          'cause': cause,
-          'code': 'workerLeasePool.closed',
-          'message': 'WorkerLeasePool is closed'
-        });
+    const acquisition = Promise.withResolvers<void>();
+    this.#pendingAcquisitions.add(acquisition.promise);
+    let acquisitionSettled = false;
+    const settleAcquisition = (): void => {
+      if (acquisitionSettled) {
+        return;
       }
-      throw cause;
-    }
+      acquisitionSettled = true;
+      this.#pendingAcquisitions.delete(acquisition.promise);
+      acquisition.resolve();
+    };
+    let releasePermit: (() => Promise<void>) | undefined;
     try {
+      const acquiredPermit = await this.#semaphore.acquire();
+      releasePermit = acquiredPermit;
       if (this.#closed) {
         throw new WorkerPoolError({
           'code': 'workerLeasePool.closed',
@@ -339,19 +346,49 @@ export class WorkerLeasePool<TWorker> {
         });
       }
       const record = await this.#coordinator.acquire();
-      return new WorkerLease(record, this.#coordinator, releasePermit);
+      const onRelease = (): void => {
+        this.#leasePermitReleases.delete(acquiredPermit);
+      };
+      this.#leasePermitReleases.add(acquiredPermit);
+      return new WorkerLease(record, this.#coordinator, acquiredPermit, onRelease);
     } catch (error) {
-      await releasePermit();
+      if (releasePermit !== undefined) {
+        await releasePermit();
+      }
       throw error;
+    } finally {
+      settleAcquisition();
     }
   }
 
   public async close(): Promise<void> {
     this.#closed = true;
-    this.#closeController.abort(new WorkerPoolError({
-      'code': 'workerLeasePool.closed',
-      'message': 'WorkerLeasePool is closed'
+    const coordinatorClose = Promise.allSettled([this.#coordinator.close()]);
+    const leasePermitReleases = Array.from(this.#leasePermitReleases);
+    const pendingAcquisitions = Array.from(this.#pendingAcquisitions);
+    const releaseOutcomes = await Promise.allSettled(leasePermitReleases.map(async (releasePermit): Promise<void> => {
+      await this.#releaseTrackedPermit(releasePermit);
     }));
-    await this.#coordinator.close();
+    await Promise.all(pendingAcquisitions);
+    const coordinatorOutcomes = await coordinatorClose;
+    const coordinatorFailure = coordinatorOutcomes.at(0);
+    if (coordinatorFailure?.status === 'rejected') {
+      throw coordinatorFailure.reason;
+    }
+    const failedRelease = releaseOutcomes.find((outcome): outcome is PromiseRejectedResult => {
+      const result = outcome.status === 'rejected';
+      return result;
+    });
+    if (failedRelease !== undefined) {
+      throw failedRelease.reason;
+    }
+  }
+
+  async #releaseTrackedPermit(releasePermit: () => Promise<void>): Promise<void> {
+    try {
+      await releasePermit();
+    } finally {
+      this.#leasePermitReleases.delete(releasePermit);
+    }
   }
 }

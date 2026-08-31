@@ -321,15 +321,19 @@ void describe('WorkerLeasePool', () => {
     });
   }
 
-  void it('rejects a queued acquisition when the pool closes', async () => {
+  void it('rejects queued acquisitions on close without leaking returned permits', async () => {
     const factory = new CountingWorkerFactory('worker-a');
     const pool = WorkerLeasePool.create({ 'factory': factory, 'maximumLeases': 1 });
     const active = await pool.acquire();
-    const queued = pool.acquire();
+    const firstQueued = pool.acquire();
+    const secondQueued = pool.acquire();
 
     await pool.close();
 
-    await assert.rejects(queued, /WorkerLeasePool is closed/u);
+    await Promise.all([
+      assert.rejects(firstQueued, /WorkerLeasePool is closed/u),
+      assert.rejects(secondQueued, /WorkerLeasePool is closed/u)
+    ]);
     await active.release();
   });
 
@@ -339,10 +343,17 @@ void describe('WorkerLeasePool', () => {
     const acquisition = pool.acquire();
 
     await factory.waitForInitialization();
-    await pool.close();
+    let closeSettled = false;
+    const close = pool.close().then((): void => {
+      closeSettled = true;
+    });
+
+    await Promise.resolve();
+    assert.equal(closeSettled, false);
     await factory.releaseInitialization();
 
     await assert.rejects(acquisition, /WorkerLeasePool is closed/u);
+    await close;
     assert.equal(factory.terminatedWorkers, 1);
   });
 });
