@@ -33,6 +33,13 @@ normalizes the response at the message boundary, so `WebWorkerPool` keeps the sa
 
 <RunnableExample src="packages/worker-pool/examples/browserWorkerPool" title="WebWorkerPool — native browser worker messages" />
 
+## Lease lifecycle
+
+`WorkerLeasePool.close()` is terminal. It rejects every acquisition that is waiting for capacity,
+waits for acquisitions already in progress to settle, releases capacity held by outstanding leases,
+and terminates the tracked workers before it resolves. Await `close()` before discarding a pool or
+the factory resources it owns.
+
 ## Cancellation and deadlines
 
 Both adapters own the portable `Signal` primitive and compose each task's deadline with an optional

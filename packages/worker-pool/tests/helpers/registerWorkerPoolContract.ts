@@ -78,5 +78,15 @@ export function registerWorkerPoolContract(harness: WorkerPoolContractHarnessInt
 
       await assert.rejects(subject.pool.run([{ 'value': 'closed' }]), /closed/u);
     });
+
+    void it('allows a run already in progress to settle after close()', async () => {
+      const subject = harness.create({ 'maximumWorkers': 1 });
+      const active = subject.pool.run([{ 'ms': 10, 'value': 'in-flight' }]);
+
+      await subject.pool.close();
+
+      assert.deepEqual(await active, ['in-flight']);
+      await assert.rejects(subject.pool.run([{ 'value': 'closed' }]), /closed/u);
+    });
   });
 }

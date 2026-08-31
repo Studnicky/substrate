@@ -134,6 +134,15 @@ void describe('async filesystem adapters', () => {
   });
 
   void it('reports unavailable OPFS without dereferencing a missing navigator', () => {
-    assert.throws(() => OpfsFileSystem.create(), VirtualFileSystemError);
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    assert.equal(Reflect.deleteProperty(globalThis, 'navigator'), true);
+
+    try {
+      assert.throws(() => OpfsFileSystem.create(), VirtualFileSystemError);
+    } finally {
+      if (descriptor !== undefined) {
+        Object.defineProperty(globalThis, 'navigator', descriptor);
+      }
+    }
   });
 });
