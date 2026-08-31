@@ -1,5 +1,11 @@
 # Changelog
 
+## 12.1.0
+
+### Patch Changes
+
+- aa12145: Keeps protected pull-request policy checks pinned to the event's trusted base revision.
+
 ## 12.0.1
 
 ### Patch Changes

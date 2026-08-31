@@ -1,5 +1,12 @@
 # Changelog
 
+## 12.1.0
+
+### Patch Changes
+
+- @studnicky/errors@12.1.0
+  - @studnicky/json@12.1.0
+
 ## 12.0.1
 
 ### Patch Changes

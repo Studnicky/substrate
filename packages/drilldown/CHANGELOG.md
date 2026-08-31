@@ -1,5 +1,14 @@
 # @studnicky/drilldown
 
+## 12.1.0
+
+### Patch Changes
+
+- Updated dependencies [aa12145]
+  - @studnicky/types@12.1.0
+  - @studnicky/cache@12.1.0
+  - @studnicky/json@12.1.0
+
 ## 12.0.1
 
 ### Patch Changes
