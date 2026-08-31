@@ -18,6 +18,7 @@ assert_contains "branch workflow checks out the trusted base revision" "git chec
 assert_contains "branch workflow verifies its checkout against the fixed base ref" 'git rev-parse --verify refs/substrate/pull-request-base' "$workflow"
 assert_contains "branch workflow rejects a mismatched base checkout" "Checked-out base revision does not match the event base SHA" "$workflow"
 assert_resolve_pull_request_head_action "branch workflow" "$workflow"
+assert_before "branch workflow resolves the submitted head before detaching the base" "uses: ./.github/actions/resolve-pull-request-head" "git checkout --detach refs/substrate/pull-request-base" "$workflow"
 assert_contains "branch workflow executes shared policy with the fixed ref" 'bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"' "$workflow"
 assert_not_contains "branch workflow does not construct a source ref" 'refs/heads/$HEAD_REF' "$workflow"
 assert_not_contains "branch workflow does not use a dynamic checkout ref" "ref: \${{ github.event.pull_request.base.sha }}" "$workflow"

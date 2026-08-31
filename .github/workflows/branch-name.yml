@@ -19,6 +19,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+      - uses: ./.github/actions/resolve-pull-request-head
+        with:
+          base-ref: ${{ github.base_ref }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - name: Verify trusted base revision
         shell: bash
         env:
@@ -32,11 +37,6 @@ jobs:
             exit 1
           fi
       - uses: ./.github/actions/pnpm-node-setup
-      - uses: ./.github/actions/resolve-pull-request-head
-        with:
-          base-ref: ${{ github.base_ref }}
-          pull-request-number: ${{ github.event.pull_request.number }}
-          expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - name: Validate the branch route and release state
         shell: bash
         env:

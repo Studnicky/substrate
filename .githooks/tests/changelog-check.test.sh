@@ -23,6 +23,7 @@ assert_contains "lifecycle gate names its route" "name: Validate branch route an
 assert_contains "lifecycle gate receives the target" "BASE_REF: \${{ github.base_ref }}" "$workflow"
 assert_contains "lifecycle gate receives the head" "HEAD_REF: \${{ github.head_ref }}" "$workflow"
 assert_resolve_pull_request_head_action "lifecycle gate" "$workflow"
+assert_before "lifecycle gate resolves the submitted head before detaching the base" "uses: ./.github/actions/resolve-pull-request-head" "git checkout --detach refs/substrate/pull-request-base" "$workflow"
 assert_contains "lifecycle gate validates the source branch" 'bash scripts/policy-suite.sh branch "$HEAD_REF"' "$workflow"
 assert_contains "lifecycle gate uses shared route" 'bash scripts/policy-suite.sh release-flow "origin/$BASE_REF" refs/substrate/pull-request-head "$HEAD_REF"' "$workflow"
 assert_not_contains "lifecycle gate does not construct a ref from the source branch" 'refs/heads/$HEAD_REF' "$workflow"
