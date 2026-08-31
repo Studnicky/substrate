@@ -1,5 +1,17 @@
 # Changelog
 
+## 12.1.0
+
+### Patch Changes
+
+- Updated dependencies [aa12145]
+  - @studnicky/types@12.1.0
+  - @studnicky/errors@12.1.0
+  - @studnicky/fsm@12.1.0
+  - @studnicky/json@12.1.0
+  - @studnicky/scheduler@12.1.0
+  - @studnicky/signal@12.1.0
+
 ## 12.0.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # Changelog
 
+## 12.1.0
+
+### Patch Changes
+
+- Updated dependencies [aa12145]
+  - @studnicky/types@12.1.0
+  - @studnicky/intake-kit@12.1.0
+
 ## 12.0.1
 
 ### Patch Changes
