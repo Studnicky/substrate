@@ -1,5 +1,14 @@
 # Changelog
 
+## 12.1.1
+
+### Patch Changes
+
+- @studnicky/errors@12.1.1
+  - @studnicky/matching@12.1.1
+  - @studnicky/topic-router@12.1.1
+  - @studnicky/types@12.1.1
+
 ## 12.1.0
 
 ### Patch Changes

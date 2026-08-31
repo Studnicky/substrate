@@ -1,5 +1,16 @@
 # Changelog
 
+## 12.1.1
+
+### Patch Changes
+
+- @studnicky/errors@12.1.1
+  - @studnicky/fetch@12.1.1
+  - @studnicky/json@12.1.1
+  - @studnicky/retry@12.1.1
+  - @studnicky/signal@12.1.1
+  - @studnicky/types@12.1.1
+
 ## 12.1.0
 
 ### Patch Changes
