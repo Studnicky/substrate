@@ -72,7 +72,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "double-metaphone": "2.0.1",
-    "picomatch": "4.0.5"
+    "picomatch": "4.0.7"
   },
   "devDependencies": {
     "@types/picomatch": "4.0.3"
