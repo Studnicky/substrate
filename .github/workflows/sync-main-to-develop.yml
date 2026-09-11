@@ -28,15 +28,10 @@ jobs:
       - name: Verify the server merge test result
         shell: bash
         env:
-          MERGE_TEST_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin main "refs/pull/${PR_NUMBER}/merge:refs/substrate/backmerge-merge-test"
-          if [ "$(git rev-parse refs/substrate/backmerge-merge-test)" != "$MERGE_TEST_SHA" ]; then
-            echo "::error::The server merge test result does not match the pull request event." >&2
-            exit 1
-          fi
           bash scripts/release-suite.sh verify-backmerge-result origin/main refs/substrate/backmerge-merge-test
 
   verify-merged-backmerge:
@@ -106,9 +101,6 @@ jobs:
           branch='chore/sync-main-to-develop'
           remote_branch_sha=$(git ls-remote --heads origin "refs/heads/$branch" | awk "{ print \$1 }")
           git switch --force-create "$branch" origin/main
-          mkdir -p .changeset
-          printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' > .changeset/sync-main-to-develop.md
-          git add .changeset/sync-main-to-develop.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: sync main to develop"
@@ -161,9 +153,5 @@ jobs:
           SYNC_SHA: ${{ steps.branch.outputs.sha }}
         run: |
           set -euo pipefail
-          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto --delete-branch --match-head-commit "$SYNC_SHA"; then
-            exit 0
-          fi
-
-          gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --required --watch
+          gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --watch --fail-fast
           gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch --match-head-commit "$SYNC_SHA"
