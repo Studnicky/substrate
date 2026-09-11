@@ -53,6 +53,7 @@ check_rebased_onto_base() {
 check_no_leaked_main_commits() {
   local sha="${1:-HEAD}"
   local label="${2:-Branch}"
+  local source_branch="${3:-}"
 
   if ! git show-ref --verify --quiet refs/remotes/origin/main \
      || ! git show-ref --verify --quiet refs/remotes/origin/develop; then
@@ -62,6 +63,15 @@ check_no_leaked_main_commits() {
   # Nothing to leak once main and develop are back in sync.
   if git merge-base --is-ancestor origin/main origin/develop; then
     return 0
+  fi
+
+  # The dedicated back-merge branch carries main by design and must retain its ancestry.
+  if [ "$source_branch" = "chore/sync-main-to-develop" ]; then
+    if git merge-base --is-ancestor origin/main "$sha"; then
+      return 0
+    fi
+    echo "  ❌ ${label} must retain origin/main as an ancestor."
+    return 1
   fi
 
   if git rev-list "$sha" ^origin/develop | grep -qFf <(git rev-list origin/main ^origin/develop); then
