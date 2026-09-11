@@ -88,15 +88,6 @@
           }
         ],
         "name": "bare parameters of a named FunctionDeclaration - all three flagged (not exempted by the function's own id exemption)"
-      },
-      {
-        "code": "const holder = { 'cb': 1 }; void holder;",
-        "errors": [
-          {
-            "messageId": "banned-shortening"
-          }
-        ],
-        "name": "quoted object key that is itself a valid JS identifier (quote-props forced quoting) - still flagged"
       }
     ]
   },

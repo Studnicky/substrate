@@ -1,5 +1,17 @@
 # Changelog
 
+## 12.2.0
+
+### Minor Changes
+
+- 877442e: Add a rule requiring reuse or composition of public direct-dependency types instead of structural redefinition.
+
+### Patch Changes
+
+- @studnicky/errors@12.2.0
+  - @studnicky/json@12.2.0
+  - @studnicky/types@12.2.0
+
 ## 12.1.1
 
 ### Patch Changes

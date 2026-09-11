@@ -15,7 +15,7 @@ concurrency:
 jobs:
   verify-backmerge-source:
     name: Validate canonical backmerge
-    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'main' && github.event.pull_request.base.ref == 'develop'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chore/sync-main-to-develop' && github.event.pull_request.base.ref == 'develop'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,7 +40,7 @@ jobs:
           bash scripts/release-suite.sh verify-backmerge-result origin/main refs/substrate/backmerge-merge-test
 
   verify-merged-backmerge:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'main' && github.event.pull_request.base.ref == 'develop'
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chore/sync-main-to-develop' && github.event.pull_request.base.ref == 'develop'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,7 +62,7 @@ jobs:
     if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.action == 'closed' && needs.verify-merged-backmerge.result == 'failure'))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -90,8 +90,8 @@ jobs:
         if: steps.diff.outputs.in_sync == 'true'
         run: echo "develop already contains main."
 
-      - name: Resolve the back-merge pull request
-        id: pr
+      - name: Build the back-merge branch
+        id: branch
         if: steps.diff.outputs.in_sync == 'false'
         shell: bash
         env:
@@ -99,19 +99,51 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$GH_TOKEN" ]; then
+            echo "::error::PAT is required to create the disposable main-to-develop branch." >&2
+            exit 1
+          fi
+
+          branch='chore/sync-main-to-develop'
+          remote_branch_sha=$(git ls-remote --heads origin "refs/heads/$branch" | awk "{ print \$1 }")
+          git switch --force-create "$branch" origin/main
+          mkdir -p .changeset
+          printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' > .changeset/sync-main-to-develop.md
+          git add .changeset/sync-main-to-develop.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync main to develop"
+          if [ -n "$remote_branch_sha" ]; then
+            git push --force-with-lease="refs/heads/$branch:$remote_branch_sha" origin "HEAD:refs/heads/$branch"
+          else
+            git push origin "HEAD:refs/heads/$branch"
+          fi
+
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the back-merge pull request
+        id: pr
+        if: steps.diff.outputs.in_sync == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+          SYNC_BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
             echo "::error::PAT is required to create a main-to-develop pull request that triggers required CI."
             exit 1
           fi
-          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head main --state open --json number --jq '.[0].number // empty')
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')
 
           if [ -z "$number" ]; then
             gh pr create \
               --repo "$GITHUB_REPOSITORY" \
               --base develop \
-              --head main \
+              --head "$SYNC_BRANCH" \
               --title "chore: sync main to develop" \
-              --body "Merges the current release history from main into develop with a merge commit."
-            number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head main --state open --json number --jq '.[0].number // empty')
+              --body "Merges the current release history from main into develop with a merge commit. The disposable source branch preserves main."
+            number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base develop --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')
           fi
 
           if [ -z "$number" ]; then
@@ -126,10 +158,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SYNC_SHA: ${{ steps.branch.outputs.sha }}
         run: |
           set -euo pipefail
-          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto; then
+          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto --delete-branch --match-head-commit "$SYNC_SHA"; then
             exit 0
           fi
 
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge
+          gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --required --watch
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch --match-head-commit "$SYNC_SHA"

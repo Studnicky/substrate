@@ -307,6 +307,57 @@ class DeclaratorName {
     return result;
   }
 
+  // `Object.freeze(<ObjectExpression|ArrayExpression>)` produces a frozen data constant, not
+  // a reference — the same reasoning as isPrimitiveWrapperLiteralCall, just for a
+  // MemberExpression callee instead of a bare-Identifier one. Frozen object and array
+  // literals keep function-valued members out of the data-constant category.
+  static isFrozenDataLiteralCall(node: unknown): boolean {
+    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
+      return false;
+    }
+
+    const callee: unknown = node.callee;
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
+      return false;
+    }
+
+    const calleeObject: unknown = callee.object;
+    const calleeProperty: unknown = callee.property;
+    const isObjectFreeze = Predicates.isRecord(calleeObject) && calleeObject.type === 'Identifier'
+      && calleeObject.name === 'Object'
+      && Predicates.isRecord(calleeProperty) && calleeProperty.type === 'Identifier'
+      && calleeProperty.name === 'freeze';
+
+    if (!isObjectFreeze) {
+      return false;
+    }
+
+    const argumentList: unknown = node.arguments;
+
+    if (!Array.isArray(argumentList) || argumentList.length !== 1) {
+      return false;
+    }
+
+    const argument: unknown = argumentList.at(0);
+
+    if (!Predicates.isRecord(argument)) {
+      return false;
+    }
+    if (argument.type === 'ArrayExpression') {
+      const result = !DeclaratorName.isFunctionValuedArrayExpression(argument);
+
+      return result;
+    }
+    if (argument.type === 'ObjectExpression') {
+      const result = !DeclaratorName.isFunctionValuedObjectExpression(argument);
+
+      return result;
+    }
+
+    return false;
+  }
+
   // A value counts as function/reference-like — and therefore not inline
   // data — when it is a function literal, a call result, a member-access
   // reference (e.g. `Ns.method`, an interop-shim `.default` access), or a
@@ -338,7 +389,7 @@ class DeclaratorName {
       return true;
     }
     if (nodeType === 'CallExpression') {
-      const result = !DeclaratorName.isPrimitiveWrapperLiteralCall(unwrapped);
+      const result = !DeclaratorName.isPrimitiveWrapperLiteralCall(unwrapped) && !DeclaratorName.isFrozenDataLiteralCall(unwrapped);
 
       return result;
     }
@@ -350,6 +401,21 @@ class DeclaratorName {
     }
 
     return false;
+  }
+
+  // A frozen array of functions is a callback collection, not data.
+  static isFunctionValuedArrayExpression(node: unknown): boolean {
+    if (!Predicates.isRecord(node) || !Array.isArray(node.elements)) {
+      return false;
+    }
+
+    const result = node.elements.some((element) => {
+      const isFunctionOrReference = DeclaratorName.isFunctionOrReferenceValue(element);
+
+      return isFunctionOrReference;
+    });
+
+    return result;
   }
 
   // An object literal is a function namespace (dispatch map / matcher set),
@@ -507,7 +573,7 @@ class NamespaceScanner {
     return false;
   }
 
-  static scanBody(bodyNode: unknown) {
+  static scanBody(bodyNode: unknown, context: Rule.RuleContext) {
     const result = {
       'hasCreate': false,
       'hasIntake': false,
@@ -555,6 +621,15 @@ class NamespaceScanner {
           const d: unknown = declarations.at(declIndex);
 
           if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
+            continue;
+          }
+          const bundleMembers = SchemaMemberGuards.boundaryBundleMembers(d, context);
+
+          if (bundleMembers.length > 0) {
+            result.hasCreate = result.hasCreate || bundleMembers.includes('create');
+            result.hasIntake = result.hasIntake || bundleMembers.includes('intake');
+            result.hasValidate = result.hasValidate || bundleMembers.includes('validate');
+            result.hasValidateTypeGuard = result.hasValidateTypeGuard || bundleMembers.includes('validate');
             continue;
           }
           const { name } = d.id;
@@ -646,7 +721,7 @@ class EntityNamespaceCheck {
         });
       }
 
-      const members = NamespaceScanner.scanBody(decl.body);
+      const members = NamespaceScanner.scanBody(decl.body, context);
       const reportNode = exportStmt as Rule.Node;
 
       if (!members.hasSchema) {
@@ -1087,7 +1162,7 @@ class ConstantsCountCheck {
   }
 }
 
-namespace FileCategoryEntity {
+namespace FileCategorySchema {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
@@ -1112,11 +1187,10 @@ namespace FileCategoryEntity {
     'type': 'object'
   } as const satisfies JSONSchema;
 
-  export type Type = FromSchema<typeof Schema>;
 }
 
 class FileCategoryResolver {
-  static resolve(filename: string): FileCategoryEntity.Type {
+  static resolve(filename: string): FromSchema<typeof FileCategorySchema.Schema> {
     if (FolderCategory.isEmptyFilename(filename)) {
       return {
         'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false

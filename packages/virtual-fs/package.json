@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/virtual-fs",
-  "version": "12.1.1",
+  "version": "12.2.0",
   "description": "In-memory synchronous filesystem primitive with injectable clock and zero node: imports",
   "type": "module",
   "sideEffects": false,

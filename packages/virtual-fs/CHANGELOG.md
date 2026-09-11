@@ -1,5 +1,14 @@
 # @studnicky/virtual-fs
 
+## 12.2.0
+
+### Patch Changes
+
+- @studnicky/clock@12.2.0
+  - @studnicky/errors@12.2.0
+  - @studnicky/json@12.2.0
+  - @studnicky/types@12.2.0
+
 ## 12.1.1
 
 ### Patch Changes

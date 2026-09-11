@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "12.1.1",
+  "version": "12.2.0",
   "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
@@ -105,7 +105,8 @@
   "packageManager": "pnpm@10.32.1",
   "pnpm": {
     "overrides": {
-      "vite": "^6.4.3"
+      "vite": "^6.4.3",
+      "fast-uri": "3.1.6"
     }
   },
   "substrate": {
