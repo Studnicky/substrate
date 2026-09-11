@@ -17,6 +17,7 @@ export const entitySuite: Linter.Config = {
     '@studnicky/interface-suffix': 'error',
     '@studnicky/interfaces-compose-named-types': 'error',
     '@studnicky/no-mixed-callable-shapes': 'error',
+    '@studnicky/no-redefined-external-types': 'error',
     '@studnicky/type-alias-invariants': 'error',
     '@studnicky/whole-canonical-types': 'error',
     '@typescript-eslint/prefer-function-type': 'off'

@@ -104,24 +104,22 @@ jobs:
           fi
 
           branch='chore/sync-main-to-develop'
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-            git fetch --no-tags origin main "$branch"
-            if ! bash scripts/policy-suite.sh sync-ancestry origin/main "origin/$branch"; then
-              echo "::error::${branch} does not contain the current main history." >&2
-              exit 1
-            fi
+          remote_branch_sha=$(git ls-remote --heads origin "refs/heads/$branch" | awk "{ print \$1 }")
+          git switch --force-create "$branch" origin/main
+          mkdir -p .changeset
+          printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' > .changeset/sync-main-to-develop.md
+          git add .changeset/sync-main-to-develop.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync main to develop"
+          if [ -n "$remote_branch_sha" ]; then
+            git push --force-with-lease="refs/heads/$branch:$remote_branch_sha" origin "HEAD:refs/heads/$branch"
           else
-            git switch --create "$branch" main
-            mkdir -p .changeset
-            printf -- '---\n---\n\nSyncs the release commits on `main` into `develop`. No package changes.\n' > .changeset/sync-main-to-develop.md
-            git add .changeset/sync-main-to-develop.md
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: sync main to develop"
             git push origin "HEAD:refs/heads/$branch"
           fi
 
           echo "name=$branch" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve the back-merge pull request
         id: pr
@@ -160,10 +158,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
+          SYNC_SHA: ${{ steps.branch.outputs.sha }}
         run: |
           set -euo pipefail
-          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto; then
+          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --auto --delete-branch --match-head-commit "$SYNC_SHA"; then
             exit 0
           fi
 
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge
+          gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --required --watch
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch --match-head-commit "$SYNC_SHA"

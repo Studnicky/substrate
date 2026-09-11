@@ -206,6 +206,11 @@
       "name": "[constants] two new Set()/new Map() data consts, nothing else in the file -> exempt as a pure constants module"
     },
     {
+      "code": "export const CALLBACKS = Object.freeze([(): void => {}]); export const LIMIT = 1; export function run(): void {}",
+      "filename": "/project/src/http/frozenCallbacks.ts",
+      "name": "[constants] a frozen array containing a function is a callback collection, not a data constant"
+    },
+    {
       "code": "export const VALID_ID = /^[a-z0-9-]+$/u;",
       "filename": "/project/src/validation/patterns.ts",
       "name": "[regex] a single top-level regex data const, nothing else in the file -> exempt as a pure constants module"
@@ -548,6 +553,230 @@
       ],
       "filename": "/project/tests/unit/isEmail.test.ts",
       "name": "[regex] a tests/ path buys no escape from the inline-regex check -> flagged"
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Other); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: wrong-schema",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Other>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: wrong-type",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.factory<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: factory",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,other} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: wrong-key",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate: guard,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: alias",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate = fallback,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: default",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from 'another-package'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: foreign-import",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { const SchemaValidator = {compileEntity(){return {}}}; export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: shadow",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,...rest} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: rest",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: missing-intake",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type<string>>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: generic-type",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@enginseer/entities'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator['compileEntity']<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: computed-method",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: local-import",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
+    },
+    {
+      "code": "import { SchemaValidator } from '@studnicky/json'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+      "filename": "/project/src/entities/ExampleEntity.ts",
+      "name": "canonical bundle: speculative-json",
+      "errors": [
+        {
+          "messageId": "missingValidate"
+        },
+        {
+          "messageId": "missingIntake"
+        },
+        {
+          "messageId": "missingCreate"
+        }
+      ]
     }
   ]
 }

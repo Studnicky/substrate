@@ -1,105 +1,524 @@
-<p align="center"><a href="https://studnicky.github.io/substrate/"><img src="https://raw.githubusercontent.com/Studnicky/substrate/main/docs/public/og-image.png" alt="@studnicky/substrate: subclass-first TypeScript primitives — retry, throttle, mutex, scheduler, clock, pipeline, and more, each a usable class and an extension base" width="1200" /></a></p>
+<p align="center"><a href="https://studnicky.github.io/substrate/"><img src="https://raw.githubusercontent.com/Studnicky/substrate/main/docs/public/og-image.png" alt="@studnicky/substrate TypeScript packages" width="1200" /></a></p>
 
 # @studnicky/substrate
 
-> Subclass-first TypeScript primitives.
+Composable TypeScript packages for asynchronous work, state, data, routing, and I/O.
 
 [![CI](https://github.com/Studnicky/substrate/actions/workflows/ci.yml/badge.svg)](https://github.com/Studnicky/substrate/actions/workflows/ci.yml)
 [![docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/)
 [![node](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen)](package.json)
 [![release](https://img.shields.io/github/v/release/Studnicky/substrate?display_name=tag&color=14b8a6)](https://github.com/Studnicky/substrate/releases)
 
-**[Documentation](https://studnicky.github.io/substrate/)** · **[Releases](https://github.com/Studnicky/substrate/releases)**
+[Browse all package guides →](https://studnicky.github.io/substrate/packages/)
 
-A subclass-first toolkit of TypeScript primitives — retry, throttle, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Stateful primitives use explicit factories, direct operations, protected lifecycle hooks, and named state transitions; stateless utilities expose focused static operations.
+> [!CAUTION]
+> Packages require Node.js 24 or later. Check the package guide before using a package in a browser or another runtime.
 
-## Architecture
+> [!TIP]
+> Choose the smallest package that matches the problem you are solving.
 
-- **Subclass-first:** Every public API delegates to documented `protected` seams. Some seams are passive observer hooks; some are in-band behavioral hooks that transform, classify, or intercept the operation itself.
-- **One public path:** Import package-owned symbols from `@studnicky/<package>`, construct stateful primitives through `Class.create(config)`, and invoke their direct operation methods. These root imports and direct factories define the public API.
-- **Dependency ownership:** Composition packages expose their own behavior and contracts without proxy-exporting dependency functionality. Consumers import dependency-owned values and types from the dependency root.
-- **No observability in bare classes:** Telemetry seams are `protected` no-op hooks (`onRetry`, `onThrottle`, `onAcquire`, etc.). Consumers add metrics and logging by overriding those hooks; the base implementation has zero dependency on any logger or metrics backend. Observer hooks stay observational. Behavioral hooks remain in-band and are documented per package.
-- **No exported stateful singletons:** Stateless utilities are pure-`static` classes; stateful classes are created explicitly and injected. Stateful transition systems use named funnels and protected lifecycle hooks.
-
-## Packages
-
-| Package | Description |
-|---|---|
-| [@studnicky/batch](https://studnicky.github.io/substrate/packages/batch) | Batch concurrent execution for processing items in controlled batches |
-| [@studnicky/boundary-kit](https://studnicky.github.io/substrate/packages/boundary-kit) | Boundary Kit — composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern |
-| [@studnicky/bounded-dispatcher](https://studnicky.github.io/substrate/packages/bounded-dispatcher) | Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler |
-| [@studnicky/cache](https://studnicky.github.io/substrate/packages/cache) | LRU cache with optional TTL and capacity bounds |
-| [@studnicky/circular-buffer](https://studnicky.github.io/substrate/packages/circular-buffer) | Generic circular buffer with O(1) push and shift operations |
-| [@studnicky/clock](https://studnicky.github.io/substrate/packages/clock) | Wall-clock and monotonic time primitives with injectable providers for deterministic testing |
-| [@studnicky/concurrency](https://studnicky.github.io/substrate/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives |
-| [@studnicky/config](https://studnicky.github.io/substrate/packages/config) | Configuration validation and clamping utilities |
-| [@studnicky/context](https://studnicky.github.io/substrate/packages/context) | Per-request async context isolation using AsyncLocalStorage |
-| [@studnicky/entity-store](https://studnicky.github.io/substrate/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
-| [@studnicky/errors](https://studnicky.github.io/substrate/packages/errors) | Standardized error handling for all modules |
-| [@studnicky/eslint-config](https://studnicky.github.io/substrate/packages/eslint-config) | Shared ESLint flat config for @studnicky packages |
-| [@studnicky/event-bus](https://studnicky.github.io/substrate/packages/event-bus) | Publish/subscribe event bus with backpressure-aware queues |
-| [@studnicky/fetch](https://studnicky.github.io/substrate/packages/fetch) | Professional HTTP client with timeout, interceptors, and configured clients for Node.js |
-| [@studnicky/file-lock](https://studnicky.github.io/substrate/packages/file-lock) | Process-level advisory file locking |
-| [@studnicky/flag-evaluator](https://studnicky.github.io/substrate/packages/flag-evaluator) | Local deterministic feature-flag evaluation with percentage rollout and observability hooks |
-| [@studnicky/fsm](https://studnicky.github.io/substrate/packages/fsm) | Abstract finite state machine base class with effect interpreter |
-| [@studnicky/health-registry](https://studnicky.github.io/substrate/packages/health-registry) | Named async health-check registry with worst-status-wins aggregation |
-| [@studnicky/idempotency-guard](https://studnicky.github.io/substrate/packages/idempotency-guard) | Idempotency key guard composing cache, concurrency, and json: dedupes concurrent calls, replays cached results within a TTL window, rejects key reuse with a different payload |
-| [@studnicky/json](https://studnicky.github.io/substrate/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash |
-| [@studnicky/keyed-rate-limiter](https://studnicky.github.io/substrate/packages/keyed-rate-limiter) | Per-key rate limiting composing cache and resilience: lazily creates one rate-limiting strategy per key, evicting idle keys via LRU+TTL |
-| [@studnicky/keyed-work-gate](https://studnicky.github.io/substrate/packages/keyed-work-gate) | Keyed single-flight and serialized work gate composing @studnicky/mutex and @studnicky/concurrency's Coalesce |
-| [@studnicky/logger](https://studnicky.github.io/substrate/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and metadata support for Node.js |
-| [@studnicky/memoize](https://studnicky.github.io/substrate/packages/memoize) | Pure function memoization composing cache and concurrency: LRU+TTL result caching keyed by a caller-supplied key derivation, with in-flight call dedup |
-| [@studnicky/matching](https://studnicky.github.io/substrate/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
-| [@studnicky/matching-filters](https://studnicky.github.io/substrate/packages/matching-filters) | Optional one-operation filter adapters for deterministic matching scores |
-| [@studnicky/mutex](https://studnicky.github.io/substrate/packages/mutex) | Key-based async mutex for preventing race conditions in concurrent operations |
-| [@studnicky/paginator](https://studnicky.github.io/substrate/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
-| [@studnicky/pipeline](https://studnicky.github.io/substrate/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
-| [@studnicky/predicates](https://studnicky.github.io/substrate/packages/predicates) | Type-safe predicates and coercion utilities |
-| [@studnicky/process-kit](https://studnicky.github.io/substrate/packages/process-kit) | Reducer-with-effects process pattern composing @studnicky/fsm and /scheduler |
-| [@studnicky/request-executor](https://studnicky.github.io/substrate/packages/request-executor) | One-shot request execution pattern composing @studnicky/fetch, /retry, /signal, /timing, and /context |
-| [@studnicky/resilience](https://studnicky.github.io/substrate/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |
-| [@studnicky/retry](https://studnicky.github.io/substrate/packages/retry) | Generic async retry utility with extensible error classification |
-| [@studnicky/sample-buffer](https://studnicky.github.io/substrate/packages/sample-buffer) | Fixed-capacity circular buffer for numeric samples with percentile calculation |
-| [@studnicky/scheduler](https://studnicky.github.io/substrate/packages/scheduler) | Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations |
-| [@studnicky/signal](https://studnicky.github.io/substrate/packages/signal) | Instance-based AbortSignal composition and timeout utilities |
-| [@studnicky/sliding-window-limiter](https://studnicky.github.io/substrate/packages/sliding-window-limiter) | Sliding-window rate limiter: exact timestamp-log or approximate blended-counter algorithm |
-| [@studnicky/system](https://studnicky.github.io/substrate/packages/system) | CPU/GPU/memory/platform detection for worker sizing |
-| [@studnicky/throttle](https://studnicky.github.io/substrate/packages/throttle) | Generic async operation throttle with sliding window concurrency control |
-| [@studnicky/timing](https://studnicky.github.io/substrate/packages/timing) | High-resolution timing tracker for collecting operation metrics |
-| [@studnicky/topic-router](https://studnicky.github.io/substrate/packages/topic-router) | Pattern-based multi-subscriber event fan-out |
-| [@studnicky/types](https://studnicky.github.io/substrate/packages/types) | Shared zero-runtime utility types and type-guard helpers for @studnicky/substrate |
-| [@studnicky/visible-range](https://studnicky.github.io/substrate/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list |
-| [@studnicky/worker-pool](https://studnicky.github.io/substrate/packages/worker-pool) | Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout |
-
-## Requirements
-
-Node 24+.
+> [!NOTE]
+> This README helps you choose a package. Complete usage guidance, APIs, and examples are on GitHub Pages.
 
 ## Install
 
-Packages publish to GitHub Packages. Add the registry to `.npmrc`:
+Packages are published to GitHub Packages. Add the registry to your project's `.npmrc`:
 
 ```
 @studnicky:registry=https://npm.pkg.github.com
 ```
 
-Then install any package:
+Install the package you need:
 
 ```sh
 pnpm add @studnicky/retry
 ```
 
-## Develop
+## Find a package
 
-```sh
-git clone https://github.com/Studnicky/substrate.git
-cd substrate
-pnpm install
-pnpm build
-pnpm run test:all
-pnpm lint
-pnpm docs:dev
-```
+### Concurrency
+
+<details>
+<summary><strong>@studnicky/retry</strong> — retry transient async operations</summary>
+
+Use it when an operation can fail temporarily and your application decides which failures are safe to retry.
+
+[Read the retry guide →](https://studnicky.github.io/substrate/packages/retry)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/throttle</strong> — control concurrent async work</summary>
+
+Use it to limit active operations and protect a constrained service or resource.
+
+[Read the throttle guide →](https://studnicky.github.io/substrate/packages/throttle)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/mutex</strong> — serialize work by key</summary>
+
+Use it to prevent conflicting async operations for the same resource.
+
+[Read the mutex guide →](https://studnicky.github.io/substrate/packages/mutex)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/batch</strong> — process items in controlled parallel groups</summary>
+
+Use it to process a collection with a bounded amount of parallel work.
+
+[Read the batch guide →](https://studnicky.github.io/substrate/packages/batch)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/concurrency</strong> — coordinate asynchronous work</summary>
+
+Use it for keyed channels, semaphores, and coalescing when you need lower-level concurrency primitives.
+
+[Read the concurrency guide →](https://studnicky.github.io/substrate/packages/concurrency)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/file-lock</strong> — coordinate access with a file lock</summary>
+
+Use it when separate processes need advisory access to the same filesystem resource.
+
+[Read the file-lock guide →](https://studnicky.github.io/substrate/packages/file-lock)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/virtual-fs</strong> — use an in-memory filesystem</summary>
+
+Use it when application code needs a synchronous filesystem abstraction that also works in browsers.
+
+[Read the virtual-fs guide →](https://studnicky.github.io/substrate/packages/virtual-fs)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/signal</strong> — compose cancellation and timeouts</summary>
+
+Use it to combine AbortSignals and place time limits around asynchronous operations.
+
+[Read the signal guide →](https://studnicky.github.io/substrate/packages/signal)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/idempotency-guard</strong> — deduplicate idempotent requests</summary>
+
+Use it to coalesce in-flight work, replay recent results, and reject conflicting reuse of an idempotency key.
+
+[Read the idempotency-guard guide →](https://studnicky.github.io/substrate/packages/idempotency-guard)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/memoize</strong> — cache pure function results</summary>
+
+Use it to cache results by a caller-defined key while sharing concurrent evaluations.
+
+[Read the memoize guide →](https://studnicky.github.io/substrate/packages/memoize)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/bounded-dispatcher</strong> — dispatch work within a fixed bound</summary>
+
+Use it to send work through a bounded execution path with scheduling and event delivery.
+
+[Read the bounded-dispatcher guide →](https://studnicky.github.io/substrate/packages/bounded-dispatcher)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/keyed-work-gate</strong> — run one operation per key</summary>
+
+Use it to serialize or single-flight work independently for each key.
+
+[Read the keyed-work-gate guide →](https://studnicky.github.io/substrate/packages/keyed-work-gate)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/keyed-rate-limiter</strong> — apply rate limits per key</summary>
+
+Use it when each customer, route, or other key needs its own rate-limiting strategy.
+
+[Read the keyed-rate-limiter guide →](https://studnicky.github.io/substrate/packages/keyed-rate-limiter)
+
+</details>
+
+### Time
+
+<details>
+<summary><strong>@studnicky/clock</strong> — read injectable wall and monotonic time</summary>
+
+Use it to make time-dependent application code deterministic in tests.
+
+[Read the clock guide →](https://studnicky.github.io/substrate/packages/clock)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/scheduler</strong> — schedule real or virtual time-based work</summary>
+
+Use it for timers in production and deterministic time control in tests.
+
+[Read the scheduler guide →](https://studnicky.github.io/substrate/packages/scheduler)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/timing</strong> — measure operation duration</summary>
+
+Use it to collect high-resolution timings for an operation.
+
+[Read the timing guide →](https://studnicky.github.io/substrate/packages/timing)
+
+</details>
+
+### State & Flow
+
+<details>
+<summary><strong>@studnicky/context</strong> — isolate request context</summary>
+
+Use it to keep request-scoped values available across asynchronous work.
+
+[Read the context guide →](https://studnicky.github.io/substrate/packages/context)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/fsm</strong> — model finite state transitions</summary>
+
+Use it when an application feature has explicit states, transitions, and effects.
+
+[Read the fsm guide →](https://studnicky.github.io/substrate/packages/fsm)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/pipeline</strong> — run typed async processing stages</summary>
+
+Use it to transform a value through ordered asynchronous stages.
+
+[Read the pipeline guide →](https://studnicky.github.io/substrate/packages/pipeline)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/paginator</strong> — track paginated data</summary>
+
+Use it to manage cursor or page-list state from a paginated data source.
+
+[Read the paginator guide →](https://studnicky.github.io/substrate/packages/paginator)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/process-kit</strong> — build reducer-and-effects processes</summary>
+
+Use it when a stateful process needs explicit state updates and scheduled effects.
+
+[Read the process-kit guide →](https://studnicky.github.io/substrate/packages/process-kit)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/store</strong> — keep observable application state</summary>
+
+Use it for observable state with in-memory or browser-native persistence.
+
+[Read the store guide →](https://studnicky.github.io/substrate/packages/store)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/strata-store-kit</strong> — synchronize cache and browser state</summary>
+
+Use it to keep ordered cache and durable browser state aligned.
+
+[Read the strata-store-kit guide →](https://studnicky.github.io/substrate/packages/strata-store-kit)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/visible-range</strong> — calculate virtualized list ranges</summary>
+
+Use it to determine which item indexes are visible for a scroll offset and viewport.
+
+[Read the visible-range guide →](https://studnicky.github.io/substrate/packages/visible-range)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/flag-evaluator</strong> — evaluate local feature flags</summary>
+
+Use it for deterministic flag decisions, including percentage rollouts.
+
+[Read the flag-evaluator guide →](https://studnicky.github.io/substrate/packages/flag-evaluator)
+
+</details>
+
+### Data
+
+<details>
+<summary><strong>@studnicky/cache</strong> — store bounded cached values</summary>
+
+Use it for an LRU cache with optional expiry and capacity limits.
+
+[Read the cache guide →](https://studnicky.github.io/substrate/packages/cache)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/entity-store</strong> — manage normalized entities</summary>
+
+Use it to keep ID-indexed records with fast lookup and CRUD operations.
+
+[Read the entity-store guide →](https://studnicky.github.io/substrate/packages/entity-store)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/json</strong> — work safely with JSON-shaped values</summary>
+
+Use it for common object operations such as merging, cloning, comparing, freezing, and patching.
+
+[Read the json guide →](https://studnicky.github.io/substrate/packages/json)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/types</strong> — use zero-runtime TypeScript helpers</summary>
+
+Use it for reusable utility types, type guards, and predicate helpers.
+
+[Read the types guide →](https://studnicky.github.io/substrate/packages/types)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/drilldown</strong> — group, facet, and sort records</summary>
+
+Use it to explore arbitrary record data through deterministic multi-level drilldowns.
+
+[Read the drilldown guide →](https://studnicky.github.io/substrate/packages/drilldown)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/filters</strong> — compose declarative filters</summary>
+
+Use it to express reusable filtering rules over application data.
+
+[Read the filters guide →](https://studnicky.github.io/substrate/packages/filters)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/config</strong> — validate and clamp configuration</summary>
+
+Use it to turn configuration input into values that satisfy your application limits.
+
+[Read the config guide →](https://studnicky.github.io/substrate/packages/config)
+
+</details>
+
+### Matching & Routing
+
+<details>
+<summary><strong>@studnicky/matching</strong> — normalize, compare, and score candidates</summary>
+
+Use it to build deterministic matching and ranking flows over application data.
+
+[Read the matching guide →](https://studnicky.github.io/substrate/packages/matching)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/matching-filters</strong> — filter matching scores</summary>
+
+Use it to add focused filters to a deterministic matching result.
+
+[Read the matching-filters guide →](https://studnicky.github.io/substrate/packages/matching-filters)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/semantic-matching</strong> — define semantic matching integrations</summary>
+
+Use it when your application supplies vectorization, search, reranking, or classification providers.
+
+[Read the semantic-matching guide →](https://studnicky.github.io/substrate/packages/semantic-matching)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/topic-router</strong> — fan out events by topic pattern</summary>
+
+Use it to deliver one published topic to every matching subscriber.
+
+[Read the topic-router guide →](https://studnicky.github.io/substrate/packages/topic-router)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/topic-router-models</strong> — describe model-backed topic delivery</summary>
+
+Use it to map model evidence into a topic-delivery flow.
+
+[Read the topic-router-models guide →](https://studnicky.github.io/substrate/packages/topic-router-models)
+
+</details>
+
+### I/O & Observability
+
+<details>
+<summary><strong>@studnicky/event-bus</strong> — publish and subscribe with queues</summary>
+
+Use it to deliver events through backpressure-aware subscriber queues.
+
+[Read the event-bus guide →](https://studnicky.github.io/substrate/packages/event-bus)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/fetch</strong> — make configured HTTP requests</summary>
+
+Use it for HTTP calls with timeouts and request customization.
+
+[Read the fetch guide →](https://studnicky.github.io/substrate/packages/fetch)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/logger</strong> — emit structured application logs</summary>
+
+Use it to write structured logs with child loggers and metadata.
+
+[Read the logger guide →](https://studnicky.github.io/substrate/packages/logger)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/errors</strong> — represent API-safe errors</summary>
+
+Use it to create a consistent error hierarchy that serializes to Problem Details.
+
+[Read the errors guide →](https://studnicky.github.io/substrate/packages/errors)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/request-executor</strong> — run one resilient HTTP request</summary>
+
+Use it to combine a request, retry policy, cancellation, timing, and request context.
+
+[Read the request-executor guide →](https://studnicky.github.io/substrate/packages/request-executor)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/resilience</strong> — protect unreliable dependencies</summary>
+
+Use it for circuit breaking, token buckets, and dead-letter queues.
+
+[Read the resilience guide →](https://studnicky.github.io/substrate/packages/resilience)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/sliding-window-limiter</strong> — enforce a sliding-window rate limit</summary>
+
+Use it when you need exact or approximate rate limiting over a time window.
+
+[Read the sliding-window-limiter guide →](https://studnicky.github.io/substrate/packages/sliding-window-limiter)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/boundary-kit</strong> — apply a fixed dependency-call boundary</summary>
+
+Use it to combine throttling, circuit breaking, and retry around an external call.
+
+[Read the boundary-kit guide →](https://studnicky.github.io/substrate/packages/boundary-kit)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/health-registry</strong> — aggregate named health checks</summary>
+
+Use it to register asynchronous checks and report their combined status.
+
+[Read the health-registry guide →](https://studnicky.github.io/substrate/packages/health-registry)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/system</strong> — inspect host capacity</summary>
+
+Use it to read CPU, GPU, memory, and platform information for application sizing.
+
+[Read the system guide →](https://studnicky.github.io/substrate/packages/system)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/worker-pool</strong> — run bounded Node worker-thread jobs</summary>
+
+Use it to fan typed work items across a limited pool of Node.js workers.
+
+[Read the worker-pool guide →](https://studnicky.github.io/substrate/packages/worker-pool)
+
+</details>
+
+### Buffers
+
+<details>
+<summary><strong>@studnicky/circular-buffer</strong> — keep a fixed-capacity queue</summary>
+
+Use it for constant-time insertion and removal from a bounded circular buffer.
+
+[Read the circular-buffer guide →](https://studnicky.github.io/substrate/packages/circular-buffer)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/sample-buffer</strong> — retain numeric samples</summary>
+
+Use it to keep a fixed-size sample set and calculate percentiles.
+
+[Read the sample-buffer guide →](https://studnicky.github.io/substrate/packages/sample-buffer)
+
+</details>
+
+### Foundation
+
+<details>
+<summary><strong>@studnicky/eslint-config</strong> — configure ESLint for a TypeScript project</summary>
+
+Use it to apply the shared flat ESLint configuration to your project.
+
+[Read the eslint-config guide →](https://studnicky.github.io/substrate/packages/eslint-config)
+
+</details>
+
+<details>
+<summary><strong>@studnicky/intake-kit</strong> — build schema-backed data boundaries</summary>
+
+Use it to define common boundary primitives for schema-backed entity handling.
+
+[Read the intake-kit guide →](https://studnicky.github.io/substrate/packages/intake-kit)
+
+</details>
 
 ## License
 

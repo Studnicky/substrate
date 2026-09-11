@@ -146,6 +146,26 @@ class DeferredInitializationWorkerFactory extends CountingWorkerFactory {
   }
 }
 
+class DeferredTerminationWorkerFactory extends CountingWorkerFactory {
+  readonly #releaseTermination = Promise.withResolvers<void>();
+  readonly #terminationStarted = Promise.withResolvers<void>();
+
+  public override async terminate(worker: WorkerFixtureInterface): Promise<void> {
+    this.#terminationStarted.resolve();
+    await this.#releaseTermination.promise;
+    await super.terminate(worker);
+  }
+
+  public async releaseTermination(): Promise<void> {
+    this.#releaseTermination.resolve();
+    await Promise.resolve();
+  }
+
+  public async waitForTermination(): Promise<void> {
+    await this.#terminationStarted.promise;
+  }
+}
+
 function requireBoolean(value: unknown, name: string): boolean {
   if (!Predicates.isBoolean(value)) { throw RuntimeError.create(`${name} must be a boolean`); }
   return value;
@@ -304,6 +324,7 @@ void describe('WorkerLeasePool', () => {
             return true;
           });
           await lease.release();
+          assert.equal(factory.terminatedWorkers, scenarioCase.expected.terminatedWorkers);
           return;
         }
         case 'close-during-request': {
@@ -335,6 +356,26 @@ void describe('WorkerLeasePool', () => {
       assert.rejects(secondQueued, /WorkerLeasePool is closed/u)
     ]);
     await active.release();
+  });
+
+  void it('shares completion for concurrent close calls', async () => {
+    const factory = new DeferredTerminationWorkerFactory('worker-a');
+    const pool = WorkerLeasePool.create({ 'factory': factory, 'maximumLeases': 1 });
+    const lease = await pool.acquire();
+    const firstClose = pool.close();
+
+    await factory.waitForTermination();
+    let secondCloseSettled = false;
+    const secondClose = pool.close().then((): void => {
+      secondCloseSettled = true;
+    });
+
+    await Promise.resolve();
+    assert.equal(secondCloseSettled, false);
+    await factory.releaseTermination();
+    await Promise.all([firstClose, secondClose]);
+    assert.equal(factory.terminatedWorkers, 1);
+    await lease.release();
   });
 
   void it('rejects a lease whose initialization completes after close', async () => {

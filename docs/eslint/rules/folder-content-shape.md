@@ -23,6 +23,8 @@ An entity file is a non-barrel file under an `entities/` path segment or with a 
 
 The object-only decision reads the `Schema` declarator's own top-level `type` property. A nested property schema does not count. When a builder call, spread, or composition does not expose a literal root type, the rule does not require `create`, avoiding a false positive.
 
+When the resolved `SchemaValidator` symbol comes from `@enginseer/entities` source, `compileEntity<Type>(Schema)` may directly destructure its members. Use direct shorthand members only: `const { validate, intake } = SchemaValidator.compileEntity<Type>(Schema)` for scalar entities, and `const { validate, intake, create } = SchemaValidator.compileEntity<Type>(Schema)` for literal object-root entities.
+
 The rule reports a missing namespace and every namespace export that does not match the entity filename. It checks every exported namespace rather than silently choosing one.
 
 <!-- inline-ts-ok: conceptual rule example -->
@@ -76,7 +78,7 @@ export type UserType = {
 
 ## Data constants
 
-For files that are neither entity nor declaration-folder files, the rule reports two or more top-level data-constant declarators when the module also contains other top-level content. Function-valued constants, member references, non-literal factory calls, dispatch maps, and non-collection instances are not data constants. `Set`, `Map`, `WeakSet`, and `WeakMap` constructions are data constants; `Number`, `String`, and `Boolean` calls with one literal argument are also data constants.
+For files that are neither entity nor declaration-folder files, the rule reports two or more top-level data-constant declarators when the module also contains other top-level content. Function-valued constants, member references, non-literal factory calls, dispatch maps, and non-collection instances are not data constants. `Set`, `Map`, `WeakSet`, and `WeakMap` constructions are data constants; `Number`, `String`, and `Boolean` calls with one literal argument are also data constants; `Object.freeze(...)` wrapping a data object or array literal is a data constant; a frozen object or array containing a function-valued member remains a dispatch or callback collection.
 
 A module is structurally exempt from both this check and the inline-regex check when it is one of the following:
 

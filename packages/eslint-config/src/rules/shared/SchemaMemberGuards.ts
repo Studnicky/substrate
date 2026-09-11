@@ -1,6 +1,10 @@
+import type { Rule } from 'eslint';
+import type ts from 'typescript';
+
 import { Predicates } from '@studnicky/types';
 
 import { AstHelpers } from './astHelpers.js';
+import { PackageBoundary } from './PackageBoundary.js';
 
 // Shared between `folder-content-shape`, which REQUIRES an entity namespace to expose a
 // `validate` type guard, and `static-method-verbs`, which would otherwise report that same
@@ -9,6 +13,121 @@ import { AstHelpers } from './astHelpers.js';
 // than duplicated — a second copy is how the two drifted into contradiction before.
 
 export class SchemaMemberGuards {
+  private static readonly boundaryMemberNames = new Set(['create', 'intake', 'validate']);
+
+  private static isCanonicalBoundaryCompiler(identifier: unknown, context: Rule.RuleContext): boolean {
+    const services: unknown = context.sourceCode.parserServices;
+    if (!AstHelpers.hasTypeServices(services)) {
+      return false;
+    }
+    const node = services.esTreeNodeToTSNodeMap.get(identifier);
+    if (node === undefined) {
+      return false;
+    }
+    const checker = services.program.getTypeChecker();
+    const imported = checker.getSymbolAtLocation(node);
+    if (imported === undefined) {
+      return false;
+    }
+    let target: ts.Symbol;
+    try {
+      target = checker.getAliasedSymbol(imported);
+    } catch {
+      return false;
+    }
+    const declarations = target.getDeclarations();
+    const declaration = declarations?.at(0);
+    if (target.getName() !== 'SchemaValidator' || declarations?.length !== 1 || declaration === undefined) {
+      return false;
+    }
+
+    const result = PackageBoundary.isSourceForPackage(
+      declaration.getSourceFile(),
+      services.program,
+      '@enginseer/entities',
+      'src/SchemaValidator.ts'
+    );
+
+    return result;
+  }
+
+  static boundaryBundleMembers(declarator: unknown, context: Rule.RuleContext): readonly string[] {
+    if (!Predicates.isRecord(declarator) || !Predicates.isRecord(declarator.id)
+      || AstHelpers.getNodeType(declarator.id) !== 'ObjectPattern'
+      || !Predicates.isRecord(declarator.init)) {
+      return [];
+    }
+    const call = declarator.init;
+    if (AstHelpers.getNodeType(call) !== 'CallExpression' || call.optional === true
+      || !Predicates.isRecord(call.callee)) {
+      return [];
+    }
+    const callee = call.callee;
+    if (AstHelpers.getNodeType(callee) !== 'MemberExpression' || callee.computed === true
+      || callee.optional === true || !Predicates.isRecord(callee.object)
+      || AstHelpers.getNodeType(callee.object) !== 'Identifier'
+      || callee.object.name !== 'SchemaValidator' || !Predicates.isRecord(callee.property)
+      || callee.property.name !== 'compileEntity') {
+      return [];
+    }
+    const typeArguments = call.typeArguments ?? call.typeParameters;
+    if (!Predicates.isRecord(typeArguments) || !Array.isArray(typeArguments.params)
+      || typeArguments.params.length !== 1 || !Array.isArray(call.arguments)
+      || call.arguments.length !== 1) {
+      return [];
+    }
+    const typeArgument: unknown = typeArguments.params.at(0);
+    const schemaArgument: unknown = call.arguments.at(0);
+    if (!Predicates.isRecord(typeArgument) || AstHelpers.getNodeType(typeArgument) !== 'TSTypeReference'
+      || typeArgument.typeArguments !== undefined || typeArgument.typeParameters !== undefined
+      || !Predicates.isRecord(typeArgument.typeName) || typeArgument.typeName.name !== 'Type'
+      || !Predicates.isRecord(schemaArgument) || AstHelpers.getNodeType(schemaArgument) !== 'Identifier'
+      || schemaArgument.name !== 'Schema') {
+      return [];
+    }
+    const references = context.sourceCode.scopeManager?.scopes.flatMap(scope => {return scope.references;}) ?? [];
+    const compiler = references.find(reference => { const result = reference.identifier === callee.object; return result; })?.resolved;
+    const schema = references.find(reference => { const result = Object.is(reference.identifier, schemaArgument); return result; })?.resolved;
+    const entityType = references.find(reference => { const result = reference.identifier === typeArgument.typeName; return result; })?.resolved;
+    if (compiler?.defs.length !== 1 || schema?.scope === undefined
+      || schema.scope !== entityType?.scope) {
+      return [];
+    }
+    const definition = compiler.defs.at(0);
+    if (definition?.type !== 'ImportBinding') {
+      return [];
+    }
+    const specifier: unknown = definition.node;
+    if (!Predicates.isRecord(specifier) || AstHelpers.getNodeType(specifier) !== 'ImportSpecifier'
+      || !Predicates.isRecord(specifier.imported) || specifier.imported.name !== 'SchemaValidator') {
+      return [];
+    }
+    if (!SchemaMemberGuards.isCanonicalBoundaryCompiler(callee.object, context)) {
+      return [];
+    }
+    const properties: unknown = declarator.id.properties;
+    if (!Array.isArray(properties) || (properties.length !== 2 && properties.length !== 3)) {
+      return [];
+    }
+    const members = new Set<string>();
+    const propertyCount = properties.length;
+    for (let index = 0; index < propertyCount; index += 1) {
+      const property: unknown = properties.at(index);
+      if (!Predicates.isRecord(property) || AstHelpers.getNodeType(property) !== 'Property'
+        || property.computed === true || property.shorthand !== true
+        || !Predicates.isRecord(property.key) || !Predicates.isRecord(property.value)
+        || AstHelpers.getNodeType(property.value) !== 'Identifier'
+        || property.key.name !== property.value.name || typeof property.key.name !== 'string'
+        || !SchemaMemberGuards.boundaryMemberNames.has(property.key.name)
+        || members.has(property.key.name)) {
+        return [];
+      }
+      members.add(property.key.name);
+    }
+    return [...members];
+  }
+
+
   static isConstTypeAnnotation(typeAnnotation: unknown): boolean {
     if (!Predicates.isRecord(typeAnnotation)) {
       return false;

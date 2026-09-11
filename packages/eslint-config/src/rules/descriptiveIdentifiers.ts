@@ -1,11 +1,13 @@
 import type { Rule } from 'eslint';
 
 import { Predicates } from '@studnicky/types';
+import { isObjectLiteralExpression, type Program, type SourceFile, type Symbol, type Type, type TypeChecker } from 'typescript';
 
 import {
-  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, EXTERNAL_VOCABULARY_KEYS, IDENTIFIER_NAME_PATTERN
+  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, IDENTIFIER_NAME_PATTERN
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { PackageBoundary } from './shared/PackageBoundary.js';
 
 // Manual scan instead of a single backtracking regex: the equivalent
 // `/[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|$)/g` is polynomial-time on an
@@ -115,66 +117,133 @@ class BannedToken {
   }
 }
 
-// THE BLIND SPOT THIS CLASS CLOSES.
-//
-// `AstHelpers.getIdentifierName` reads only `node.name` — correct for an
-// `Identifier`, but a key forced into quotes is a `Literal` node instead, and
-// `Literal` has no `.name`. `eslint.config.mjs` sets
-// `@stylistic/quote-props: ['error', 'always']`, which forces EVERY object
-// key — every `Property`/class-member key this rule inspects via
-// `onNodeWithKey` — into that shape. Before this fix, `{ cb: fn }` (unquoted,
-// pre-quote-props) was checked; `{ 'cb': fn }` (what quote-props actually
-// requires) was invisible, making the `Property`/`PropertyDefinition`/
-// `MethodDefinition`/`TSPropertySignature`/`TSMethodSignature` paths
-// permanently blind for their entire configured lifetime.
-//
-// `AstHelpers.getIdentifierName` itself is a `shared/` module used by other
-// rules and out of this rule's ownership scope — this key-specific extension
-// stays local to `descriptive-identifiers` rather than changing shared
-// behavior other rules depend on. It tries the `Identifier` shape first
-// (unchanged behavior for every non-quoted-key call site: `onNodeWithId`,
-// `onIdentifier`, `onTSTypeParameter` are untouched), then falls back to a
-// string-valued `Literal` — deliberately NOT a numeric literal (`{ 5: x }`),
-// which is an index, not a name, and carries no shortening to flag.
-//
-// THE OVER-CORRECTION THAT FIX INTRODUCED, AND WHY THIS CHECKS IDENTIFIER SHAPE.
-//
-// Reading `Literal.value` for every quoted key also picks up a key that is a
-// string ONLY because it needed to be one — an ESLint rule id
-// (`'@studnicky/v8/max-switch-cases'`), a URL, a file path, anything foreign
-// with no author-chosen "identifier" reading at all. `max-switch-cases`
-// contains `max` only because `-` glued unrelated words together; it is not
-// camelCase/PascalCase the way `cb`/`ctx`/`opts` are, and CamelCase.split
-// would butcher it regardless. A quoted key that IS a valid JavaScript
-// identifier (`'cb'`, `'ctx'`) is "an identifier the author chose, merely
-// quoted (by quote-props)" and stays in scope; a quoted key that is NOT a
-// valid identifier (contains `@`, `/`, `-`, a leading digit, whitespace, …)
-// is a foreign/opaque string key and is out of scope, same as any other
-// string literal this rule never inspects.
+// An object property can be dictated by an external API rather than chosen by the
+// project. Report its key only when the checker proves that its contextual declaration
+// belongs to this package; absent provenance is not safe evidence for a rename.
+class ExternalPropertyProvenance {
+  public static shouldSkip(node: Rule.Node, name: string, context: Rule.RuleContext): boolean {
+    const services: unknown = context.sourceCode.parserServices;
+
+    if (!AstHelpers.hasTypeServices(services)) {
+      const result = ExternalPropertyProvenance.isObjectProperty(node);
+
+      return result;
+    }
+    const property = services.esTreeNodeToTSNodeMap.get(node);
+
+    if (property === undefined || !isObjectLiteralExpression(property.parent)) {
+      const result = ExternalPropertyProvenance.isObjectProperty(node);
+
+      return result;
+    }
+    const checker = services.program.getTypeChecker();
+    const contextualType = checker.getContextualType(property.parent);
+
+    if (contextualType === undefined) {
+      return true;
+    }
+    const symbols = ExternalPropertyProvenance.propertiesNamed(contextualType, name, checker);
+
+    if (symbols.length === 0) {
+      return true;
+    }
+    const result = symbols.every((symbol) => {
+      const matches = ExternalPropertyProvenance.isDeclaredOutsideCurrentPackage(symbol, property.getSourceFile(), services.program);
+
+      return matches;
+    });
+
+    return result;
+  }
+
+  private static isObjectProperty(node: Rule.Node): boolean {
+    const result = node.type === 'Property';
+
+    return result;
+  }
+
+  private static propertiesNamed(type: Type, name: string, checker: TypeChecker): readonly Symbol[] {
+    const property = checker.getPropertyOfType(type, name);
+
+    if (property !== undefined) {
+      const result = [property];
+
+      return result;
+    }
+    if (!type.isUnionOrIntersection()) {
+      return [];
+    }
+    const properties = new Set<Symbol>();
+    const constituentCount = type.types.length;
+
+    for (let index = 0; index < constituentCount; index += 1) {
+      const constituentProperties = ExternalPropertyProvenance.propertiesNamed(type.types[index]!, name, checker);
+      const propertyCount = constituentProperties.length;
+
+      for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
+        const constituentProperty = constituentProperties[propertyIndex]!;
+
+        properties.add(constituentProperty);
+      }
+    }
+
+    const result = [...properties];
+
+    return result;
+  }
+
+  private static isDeclaredOutsideCurrentPackage(symbol: Symbol, currentSource: SourceFile, program: Program): boolean {
+    const currentPackage = PackageBoundary.rootFor(currentSource, program);
+    const declarations = symbol.getDeclarations() ?? [];
+
+    if (currentPackage === undefined || declarations.length === 0) {
+      return false;
+    }
+
+    const everyDeclarationIsExternal = declarations.every((declaration) => {
+      const declarationSource = declaration.getSourceFile();
+
+      if (program.isSourceFileDefaultLibrary(declarationSource)) {
+        const result = true;
+
+        return result;
+      }
+      const declarationPackage = PackageBoundary.rootFor(declarationSource, program);
+
+      const result = declarationPackage !== undefined && declarationPackage !== currentPackage;
+
+      return result;
+    });
+
+    return everyDeclarationIsExternal;
+  }
+}
+
+// `quote-props` represents quoted keys as literals. This keeps quoted identifiers in
+// scope while leaving opaque string keys such as rule IDs and URLs alone.
 class KeyName {
-  public static extract(node: unknown): string | undefined {
-    const identifierName = AstHelpers.getIdentifierName(node);
+  public static extract(node: Rule.Node, context: Rule.RuleContext): string | undefined {
+    const key = AstHelpers.getNodeProperty(node, 'key');
+    const identifierName = AstHelpers.getIdentifierName(key);
 
     if (identifierName !== undefined) {
-      return identifierName;
+      const result = ExternalPropertyProvenance.shouldSkip(node, identifierName, context) ? undefined : identifierName;
+
+      return result;
     }
-    if (!Predicates.isRecord(node) || node.type !== 'Literal') {
+    if (!Predicates.isRecord(key) || key.type !== 'Literal') {
       return undefined;
     }
 
-    const { value } = node;
+    const { value } = key;
 
     if (typeof value !== 'string' || !IDENTIFIER_NAME_PATTERN.test(value)) {
       return undefined;
     }
-    // External-vocabulary keys (JSON Schema) are not author-chosen identifiers. Renaming
-    // `'minLength'` in a Schema breaks validation rather than improving a name, and no
-    // compliant rewrite exists — see EXTERNAL_VOCABULARY_KEYS for the full reasoning.
-    if (EXTERNAL_VOCABULARY_KEYS.has(value)) {
-      return undefined;
-    }
 
-    return value;
+    const result = ExternalPropertyProvenance.shouldSkip(node, value, context) ? undefined : value;
+
+    return result;
   }
 }
 
@@ -256,7 +325,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithKey(node: Rule.Node): void {
-      const name = KeyName.extract(AstHelpers.getNodeProperty(node, 'key'));
+      const name = KeyName.extract(node, context);
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
