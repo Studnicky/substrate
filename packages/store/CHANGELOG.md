@@ -1,5 +1,12 @@
 # @studnicky/store
 
+## 12.2.0
+
+### Patch Changes
+
+- @studnicky/json@12.2.0
+  - @studnicky/mutex@12.2.0
+
 ## 12.1.1
 
 ### Patch Changes

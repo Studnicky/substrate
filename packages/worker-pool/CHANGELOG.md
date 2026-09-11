@@ -1,5 +1,19 @@
 # Changelog
 
+## 12.2.0
+
+### Patch Changes
+
+- 877442e: Ensure pool closure settles queued worker-lease acquisitions without leaking permits.
+- @studnicky/batch@12.2.0
+  - @studnicky/concurrency@12.2.0
+  - @studnicky/errors@12.2.0
+  - @studnicky/fsm@12.2.0
+  - @studnicky/json@12.2.0
+  - @studnicky/signal@12.2.0
+  - @studnicky/system@12.2.0
+  - @studnicky/types@12.2.0
+
 ## 12.1.1
 
 ### Patch Changes
