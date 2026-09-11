@@ -102,9 +102,21 @@ assert_release_suite_routes_canonical_backmerge() {
     main_sha=$(git rev-parse HEAD)
     git update-ref refs/remotes/origin/main "$main_sha"
 
+    git switch -q develop
+    git switch -q -c chore/sync-main-to-develop
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-flow origin/develop HEAD chore/sync-main-to-develop 2>release-suite-stale-sync.out; then
+      fail "stale canonical backmerge" "expected a sync branch without main ancestry to fail"
+    fi
+    assert_contains "stale canonical backmerge error" "must retain origin/main as an ancestor" "$(cat release-suite-stale-sync.out)"
+
     git switch -q main
-    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-flow origin/develop refs/heads/main main
-    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-backmerge 1.0.0 origin/develop refs/heads/main
+    git switch -q -C chore/sync-main-to-develop origin/main
+    PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-flow origin/develop HEAD chore/sync-main-to-develop
+
+    if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-flow origin/develop refs/heads/main main 2>release-suite-direct-main.out; then
+      fail "direct main backmerge" "expected only the canonical sync branch to bypass delivery changeset enforcement"
+    fi
+    assert_contains "direct main backmerge error" "must add a non-empty changeset" "$(cat release-suite-direct-main.out)"
   )
   rm -rf "$repo"
 }

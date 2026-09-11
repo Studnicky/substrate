@@ -69,12 +69,12 @@ release_suite_verify_flow() {
   version=$(release_root_version "$head_ref")
 
   case "$base_branch:$head_branch" in
-    develop:main)
-      release_suite_verify_backmerge "$version" origin/main "$base_ref" "$head_ref"
-      ;;
     develop:release/*|develop:hotfix/*)
       echo "::error::${head_branch} must target main, not develop." >&2
       return 1
+      ;;
+    develop:chore/sync-main-to-develop)
+      release_suite_verify_backmerge_result origin/main "$head_ref"
       ;;
     develop:*)
       assert_changeset_required "$base_ref" "$head_ref"
