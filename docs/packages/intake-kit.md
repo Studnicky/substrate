@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/intake-kit'
-description: Generic boundary-crossing primitives shared by every schema-backed entity engine.
+description: Parser-backed entity intake APIs and cycle checks for application values.
 ---
 
 # @studnicky/intake-kit
 
-> Generic boundary-crossing primitives shared by every schema-backed entity engine.
+> Parser-backed entity intake APIs and cycle checks for application values.
 
 ## Install
 
@@ -17,27 +17,24 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-`@studnicky/intake-kit` factors out the two pieces of logic every entity-intake engine needs and
-none of them should hand-roll separately: a cycle-safe value-graph walk (`BoundaryCycleGuard`), and
-the generic `{create, intake}` compile orchestration a schema-backed parser gets wrapped in
-(`IntakeCompiler`). It has zero dependency on anything else in the workspace — `@studnicky/errors`
-and `@studnicky/json` both depend on it instead of on each other, which is what breaks the circular
-dependency that used to force `errors` to hand-roll its own copy of this machinery from scratch (see
-[Why this exists](#why-this-exists)).
+Use `IntakeCompiler` to expose two entity entry points from one record parser:
 
-`IntakeCompiler.compile` takes a parser — `(candidate, options) => TEntity | undefined` — and an
-injected `BoundaryConfigInterface` (a clone strategy and a failure path), and returns a
-`{create, intake}` pair with the standard semantics: `intake` clones then strips unknown
-properties; `create` clones then fills defaults without stripping. Neither coerces a value's type —
-a wrong-typed field is rejected, not silently converted.
+- `intake(input)` accepts values crossing into your application.
+- `create(partial)` builds a value your application owns.
+
+Both functions clone their input before parsing, so parser-side normalization cannot mutate the caller's value. The compiler asks the parser to use `rejectUnknownProperties: false` for `intake` and `true` for `create`; the parser defines how each mode handles defaults and unknown properties.
+
+### Compile an entity intake API
+
+Provide a parser that returns the entity or `undefined`, an entity name for diagnostics, and a clone/error configuration that fits your application:
 
 <!-- inline-ts-ok: illustrates the generic parser/config shape, not a runnable example against a concrete entity. -->
 ```typescript
 import { IntakeCompiler } from '@studnicky/intake-kit';
 
 const parser: IntakeCompiler.ParserInterface<MyEntity> = (candidate, options) => {
-  // validate `candidate` per `options.rejectUnknownProperties`,
-  // returning the parsed entity or `undefined` to reject it
+  // Return an entity when `candidate` is valid for the selected parser mode.
+  // Return undefined when it is not.
 };
 
 const { create, intake } = IntakeCompiler.compile(parser, 'MyEntity', {
@@ -46,30 +43,23 @@ const { create, intake } = IntakeCompiler.compile(parser, 'MyEntity', {
 });
 ```
 
-Every failure path and clone strategy is injected, so `IntakeCompiler` never throws a
-domain-specific error type and never depends on `@studnicky/errors` or `@studnicky/json` — each
-consumer supplies its own.
+Call `intake` at an input boundary and `create` when producing an entity in your own code. Your `clone` function controls how values are copied, and `onInvalidCandidate` defines the error your application receives for a non-object or parser rejection.
 
-`BoundaryCycleGuard.hasCycle(value)` walks arrays, `Map` entries, `Set` members, and plain-object
-properties with a `WeakSet` ancestor check, returning `true` the instant a value is revisited. Use it
-as a clone strategy's cycle pre-check before a deep clone.
+### Reject cyclic values
 
-## Why this exists
+Use `BoundaryCycleGuard.hasCycle(value)` before cloning, serializing, or otherwise processing a value that must be acyclic. It traverses arrays, `Map` entries, `Set` members, and object properties.
 
-`@studnicky/json`'s `SchemaValidator` depends on `@studnicky/errors` (for `BaseError`). That means
-`@studnicky/errors` cannot depend back on `@studnicky/json` — the reverse edge would be a circular
-workspace reference. Every schema-backed error entity used to work around that by hand-rolling its
-own clone/validate wrapping instead of reusing `SchemaValidator`'s. That duplicated the one
-piece of logic that doesn't actually vary between an Ajv-schema-driven parser and a hand-written
-one: given a candidate value and a parser capable of turning it into `TEntity` or rejecting it,
-produce a `{create, intake}` pair with the right clone-before-parse and reject-unknown
-semantics, and fail through a caller-supplied error path. Neither coerces a value's type.
+<!-- inline-ts-ok: conceptual cycle-detection example; no package example fixture exists. -->
+```typescript
+import { BoundaryCycleGuard } from '@studnicky/intake-kit';
 
-`@studnicky/intake-kit` has no dependency on `@studnicky/errors` or `@studnicky/json` — every
-failure path and clone strategy is injected — so both packages depend downward on it instead of on
-each other. `@studnicky/errors`' `EntityIntake` and `@studnicky/json`'s `SchemaValidator` both build
-on it now, and the circular-dependency constraint that used to force `errors` to hand-roll its own
-copy no longer applies.
+const payload: { parent?: unknown } = {};
+payload.parent = payload;
+
+if (BoundaryCycleGuard.hasCycle(payload)) {
+  throw new TypeError('payload must not contain a cycle');
+}
+```
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/intake-kit)
 

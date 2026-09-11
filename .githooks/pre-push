@@ -60,7 +60,7 @@ while read -r local_ref local_sha _; do
         check_rebased_onto_base "${base_ref#origin/}" "$local_sha" "$local_ref"
       fi
       if [ "$base_ref" = "$develop_ref" ] && [ "$head_branch" != main ] && [ "$head_branch" != develop ] && [ "$local_sha" != "$empty_sha" ]; then
-        check_no_leaked_main_commits "$local_sha" "$local_ref"
+        check_no_leaked_main_commits "$local_sha" "$local_ref" "$head_branch"
       fi
       ;;
     refs/tags/*)

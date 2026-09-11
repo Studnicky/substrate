@@ -39,6 +39,41 @@ repo=$(make_repo)
 )
 rm -rf "$repo"
 
+# The pre-push hook passes each pushed branch into the main-only commit guard.
+# A canonical sync ref based on origin/main is accepted while a normal feature
+# ref with the same ancestry remains refused.
+repo=$(make_repo feature/holding)
+(
+  cd "$repo" || exit 1
+  setup_pre_push_fixture "$repo" "$REPO_ROOT"
+
+  base_sha=$(git rev-parse HEAD)
+  git branch -q main "$base_sha"
+  git update-ref refs/remotes/origin/develop "$base_sha"
+
+  git switch -q main
+  printf "release only\n" >> README.md
+  git add README.md
+  git commit -q -m "chore(release): prepare vX.Y.Z"
+  main_sha=$(git rev-parse HEAD)
+  git update-ref refs/remotes/origin/main "$main_sha"
+
+  stub_pre_push_hook_suite "$repo"
+
+  git switch -q -c chore/sync-main-to-develop "$main_sha"
+  if ! printf "refs/heads/chore/sync-main-to-develop %s refs/heads/chore/sync-main-to-develop %s\n" "$main_sha" "$base_sha" | .githooks/pre-push >/tmp/pre-push-sync-branch.out 2>&1; then
+    fail "pre-push canonical sync branch" "$(cat /tmp/pre-push-sync-branch.out)"
+  fi
+
+  git switch -q -c feature/from-main "$main_sha"
+  if printf "refs/heads/feature/from-main %s refs/heads/feature/from-main %s\n" "$main_sha" "$base_sha" | .githooks/pre-push >/tmp/pre-push-feature-from-main.out 2>&1; then
+    fail "pre-push feature branch from main" "pre-push accepted main-only commits on a feature branch"
+  fi
+
+  assert_contains "pre-push feature branch from main rejection" "hasn't absorbed yet" "$(cat /tmp/pre-push-feature-from-main.out)"
+)
+rm -rf "$repo"
+
 repo=$(make_repo release/v1.0.0)
 (
   cd "$repo" || exit 1
