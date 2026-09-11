@@ -46,7 +46,7 @@ deliberate choice to adopt that whole domain; registering `plugin` alone enables
 
 | Suite | Domain |
 |---|---|
-| `entitySuite` | Entity and data-shape conventions — `all-types-are-entities`, `folder-content-shape`, `interface-must-be-contract`, `interface-suffix`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `type-alias-invariants`, `whole-canonical-types` |
+| `entitySuite` | Entity and data-shape conventions — `all-types-are-entities`, `folder-content-shape`, `interface-must-be-contract`, `interface-suffix`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `no-redefined-external-types`, `type-alias-invariants`, `whole-canonical-types` |
 | `hygieneSuite` | General code hygiene — `canonical-export-names`, `clean-diagnostics`, `descriptive-identifiers`, `direct-invocation-only`, `hash-private-fields`, `inline-trivial-logic`, `lexical-this-only`, `prefer-collection-types`, `require-options-object`, `single-export`, `static-method-verbs` |
 | `v8Suite` | V8 performance rules — all 27 rules in the [V8 rules](#v8-rules) table below |
 | `HexagonalSuite` | Hexagonal-architecture import boundaries — `adapter-only-import`, `domain-purity`, `known-types-outside-adapters`, `layer-import-boundary`. A factory, not a static config: call `HexagonalSuite.create(...)` with the shared layer config, since all four rules take distinct extra options on top of a common `layers`/`sourceRoot` shape. |
@@ -131,7 +131,7 @@ export default [
 
 ## Configuration rules
 
-26 rules that enforce structural, semantic, and stylistic constraints.
+27 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
@@ -154,6 +154,7 @@ export default [
 | [`@studnicky/layer-import-boundary`](/eslint/rules/layer-import-boundary) | No | `error` |
 | [`@studnicky/lexical-this-only`](/eslint/rules/lexical-this-only) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
+| [`@studnicky/no-redefined-external-types`](/eslint/rules/no-redefined-external-types) | No | `error` |
 | [`@studnicky/no-unparsed-assertion`](/eslint/rules/no-unparsed-assertion) | No | `error` |
 | [`@studnicky/prefer-collection-types`](/eslint/rules/prefer-collection-types) | No | `warn` |
 | [`@studnicky/require-options-object`](/eslint/rules/require-options-object) | No | `error` |

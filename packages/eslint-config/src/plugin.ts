@@ -22,6 +22,7 @@ import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes
 import { interfaceSuffix } from './rules/interfaceSuffix.js';
 import { noFunctionRegistries } from './rules/noFunctionRegistries.js';
 import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
+import { noRedefinedExternalTypes } from './rules/noRedefinedExternalTypes.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
 import { singleExport } from './rules/singleExport.js';
@@ -51,6 +52,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'lexical-this-only': lexicalThisOnly,
     'no-function-registries': noFunctionRegistries,
     'no-mixed-callable-shapes': noMixedCallableShapes,
+    'no-redefined-external-types': noRedefinedExternalTypes,
     'no-threaded-vocabulary': noThreadedVocabulary,
     'no-unparsed-assertion': noUnparsedAssertion,
     'prefer-collection-types': preferCollectionTypes,

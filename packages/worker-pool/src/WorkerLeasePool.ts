@@ -211,24 +211,50 @@ class WorkerLeaseCoordinator<TWorker> {
   }
 }
 
+class LeasePermit {
+  readonly #identifier: symbol;
+  readonly #releaseSemaphorePermit: () => Promise<void>;
+  readonly #trackedPermits: Map<symbol, LeasePermit>;
+  #released = false;
+
+  public constructor(
+    identifier: symbol,
+    releaseSemaphorePermit: () => Promise<void>,
+    trackedPermits: Map<symbol, LeasePermit>
+  ) {
+    this.#identifier = identifier;
+    this.#releaseSemaphorePermit = releaseSemaphorePermit;
+    this.#trackedPermits = trackedPermits;
+  }
+
+  public async release(): Promise<void> {
+    if (this.#released) {
+      return;
+    }
+    this.#released = true;
+    try {
+      await this.#releaseSemaphorePermit();
+    } finally {
+      this.#trackedPermits.delete(this.#identifier);
+    }
+  }
+}
+
 class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
   readonly #coordinator: WorkerLeaseCoordinator<TWorker>;
-  readonly #onRelease: () => void;
+  readonly #permit: LeasePermit;
   readonly #record: WorkerRecordInterface<TWorker>;
-  readonly #releasePermit: () => Promise<void>;
   #released = false;
   public readonly worker: TWorker;
 
   public constructor(
     record: WorkerRecordInterface<TWorker>,
     coordinator: WorkerLeaseCoordinator<TWorker>,
-    releasePermit: () => Promise<void>,
-    onRelease: () => void
+    permit: LeasePermit
   ) {
     this.#coordinator = coordinator;
-    this.#onRelease = onRelease;
+    this.#permit = permit;
     this.#record = record;
-    this.#releasePermit = releasePermit;
     this.worker = record.worker;
   }
 
@@ -264,8 +290,7 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
     try {
       await this.#coordinator.release(this.#record);
     } finally {
-      this.#onRelease();
-      await this.#releasePermit();
+      await this.#permit.release();
     }
   }
 
@@ -277,15 +302,15 @@ class WorkerLease<TWorker> implements WorkerLeaseInterface<TWorker> {
     try {
       await this.#coordinator.terminate(this.#record);
     } finally {
-      this.#onRelease();
-      await this.#releasePermit();
+      await this.#permit.release();
     }
   }
 }
 
 export class WorkerLeasePool<TWorker> {
+  #closePromise: Promise<void> | undefined;
   readonly #coordinator: WorkerLeaseCoordinator<TWorker>;
-  readonly #leasePermitReleases = new Set<() => Promise<void>>();
+  readonly #leasePermits = new Map<symbol, LeasePermit>();
   readonly #pendingAcquisitions = new Set<Promise<void>>();
   readonly #semaphore: Semaphore;
   #closed = false;
@@ -335,10 +360,11 @@ export class WorkerLeasePool<TWorker> {
       this.#pendingAcquisitions.delete(acquisition.promise);
       acquisition.resolve();
     };
-    let releasePermit: (() => Promise<void>) | undefined;
+    let permit: LeasePermit | undefined;
     try {
       const acquiredPermit = await this.#semaphore.acquire();
-      releasePermit = acquiredPermit;
+      const permitIdentifier = Symbol();
+      permit = new LeasePermit(permitIdentifier, acquiredPermit, this.#leasePermits);
       if (this.#closed) {
         throw new WorkerPoolError({
           'code': 'workerLeasePool.closed',
@@ -346,14 +372,11 @@ export class WorkerLeasePool<TWorker> {
         });
       }
       const record = await this.#coordinator.acquire();
-      const onRelease = (): void => {
-        this.#leasePermitReleases.delete(acquiredPermit);
-      };
-      this.#leasePermitReleases.add(acquiredPermit);
-      return new WorkerLease(record, this.#coordinator, acquiredPermit, onRelease);
+      this.#leasePermits.set(permitIdentifier, permit);
+      return new WorkerLease(record, this.#coordinator, permit);
     } catch (error) {
-      if (releasePermit !== undefined) {
-        await releasePermit();
+      if (permit !== undefined) {
+        await permit.release();
       }
       throw error;
     } finally {
@@ -361,13 +384,18 @@ export class WorkerLeasePool<TWorker> {
     }
   }
 
-  public async close(): Promise<void> {
+  public close(): Promise<void> {
+    this.#closePromise ??= this.#close();
+    return this.#closePromise;
+  }
+
+  async #close(): Promise<void> {
     this.#closed = true;
     const coordinatorClose = Promise.allSettled([this.#coordinator.close()]);
-    const leasePermitReleases = Array.from(this.#leasePermitReleases);
+    const leasePermits = Array.from(this.#leasePermits.values());
     const pendingAcquisitions = Array.from(this.#pendingAcquisitions);
-    const releaseOutcomes = await Promise.allSettled(leasePermitReleases.map(async (releasePermit): Promise<void> => {
-      await this.#releaseTrackedPermit(releasePermit);
+    const releaseOutcomes = await Promise.allSettled(leasePermits.map(async (permit): Promise<void> => {
+      await permit.release();
     }));
     await Promise.all(pendingAcquisitions);
     const coordinatorOutcomes = await coordinatorClose;
@@ -384,11 +412,4 @@ export class WorkerLeasePool<TWorker> {
     }
   }
 
-  async #releaseTrackedPermit(releasePermit: () => Promise<void>): Promise<void> {
-    try {
-      await releasePermit();
-    } finally {
-      this.#leasePermitReleases.delete(releasePermit);
-    }
-  }
 }

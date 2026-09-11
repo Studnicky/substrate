@@ -49,26 +49,10 @@ export const BANNED_SHORTENINGS = new Set([
 export const IDENTIFIER_NAME_PATTERN = /^[A-Za-z_$][\w$]*$/u;
 
 /**
- * JSON Schema vocabulary keywords. These are EXTERNAL SPEC identifiers, not names the
- * author chose, so the banned-shortening check must not apply to them: renaming
- * `'minLength'` inside a Schema does not rename a variable, it silently breaks
- * validation, and there is no compliant rewrite. Same reasoning as the ESLint rule-ID
- * exemption — a key that belongs to someone else's vocabulary is data, not an identifier.
- */
-export const EXTERNAL_VOCABULARY_KEYS: ReadonlySet<string> = new Set([
-  'additionalItems', 'additionalProperties', 'exclusiveMaximum', 'exclusiveMinimum',
-  'maxContains', 'maximum', 'maxItems', 'maxLength',
-  'maxProperties', 'minContains', 'minimum', 'minItems',
-  'minLength', 'minProperties', 'multipleOf', 'patternProperties',
-  'propertyNames', 'unevaluatedItems', 'unevaluatedProperties', 'uniqueItems'
-]);
-
-/**
  * Global platform class names an identifier is allowed to end with even when a camelCase token
  * inside that name matches a banned shortening — `URLSearchParams` is the actual runtime class
  * (`instanceof URLSearchParams`), not an author-chosen abbreviation of "parameters", and
  * `isURLSearchParams`/the type reference `URLSearchParams` have no compliant rewrite: renaming
- * either breaks the reference to the real global. Same reasoning as `EXTERNAL_VOCABULARY_KEYS` —
- * a name that belongs to someone else's vocabulary is a reference, not an identifier choice.
+ * either breaks the reference to the real global.
  */
 export const EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES: readonly string[] = ['URLSearchParams'];
