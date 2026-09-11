@@ -1,5 +1,15 @@
 # Changelog
 
+## 12.2.1
+
+### Patch Changes
+
+- @studnicky/cache@12.2.1
+  - @studnicky/concurrency@12.2.1
+  - @studnicky/errors@12.2.1
+  - @studnicky/json@12.2.1
+  - @studnicky/types@12.2.1
+
 ## 12.2.0
 
 ### Patch Changes
