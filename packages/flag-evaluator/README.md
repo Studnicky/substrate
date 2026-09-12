@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/flag-evaluator)
 
-Registers named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolves each `evaluate()` call deterministically via `@studnicky/json`'s `Hash` — the same flag and targeting key always land in the same rollout bucket, so the same caller always gets the same answer. `FlagEvaluator` is **local evaluation only**: no remote fetch, no polling, no SDK/vendor coupling. This is the exact "local flag evaluation" core that OpenFeature's spec separates from its remote `Provider` — a consuming application wires its own remote-fetch/polling layer on top of this if it needs one; that boundary is deliberate, not a missing feature.
+Registers named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolves each `evaluate()` call deterministically via `@studnicky/json/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket, so the same caller always gets the same answer. `FlagEvaluator` is **local evaluation only**: no remote fetch, no polling, no SDK/vendor coupling. This is the exact "local flag evaluation" core that OpenFeature's spec separates from its remote `Provider` — a consuming application wires its own remote-fetch/polling layer on top of this if it needs one; that boundary is deliberate, not a missing feature.
 
 ## Install
 
@@ -21,7 +21,7 @@ pnpm add @studnicky/flag-evaluator
 ## Usage
 
 ```typescript
-import { FlagEvaluator } from '@studnicky/flag-evaluator';
+import { FlagEvaluator } from '@studnicky/flag-evaluator/node';
 
 const evaluator = FlagEvaluator.create();
 
@@ -70,7 +70,7 @@ These are two distinct outcomes, both returning a boolean, for different reasons
 | `onRuleMismatch(flag, context)` | When an enabled flag's rollout bucket falls outside the enabled range (rollout exclusion only — never fires for a disabled flag) |
 
 ```typescript
-import { FlagEvaluator } from '@studnicky/flag-evaluator';
+import { FlagEvaluator } from '@studnicky/flag-evaluator/node';
 
 class TelemetryFlagEvaluator extends FlagEvaluator {
   protected override onEvaluate(flag: string, _context: Record<string, unknown>, result: boolean): void {

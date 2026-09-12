@@ -1,6 +1,6 @@
 /** Iterable collection of validation violations with RFC 9457 Problem Details reporting. */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';

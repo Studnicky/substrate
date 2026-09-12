@@ -13,12 +13,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 
 ## Public path contract
 
-Each package root exports its portable API. A package publishes `./interfaces` for public
-substitution contracts, `./entities` for canonical structured data, and platform entrypoints such
-as `./browser` only when the runtime implementation differs. Construct stateful primitives through
-`Class.create(config)` and invoke their direct operation methods. Composition packages do not
-proxy dependency functionality; import dependency-owned contracts from that dependency's public
-entrypoint.
+Each package publishes `./node` and `./browser` runtime entrypoints, `./interfaces` for public substitution contracts, and `./entities` for canonical structured data. Runtime entrypoints contain executable code; neutral contracts retain their own import paths. Construct stateful primitives through `Class.create(config)` and invoke their direct operation methods. Composition packages do not proxy dependency functionality; import dependency-owned contracts from that dependency's canonical public entrypoint.
 
 See the [Composition Contract](/concepts/composition-contract) and
 [Package Registry](/concepts/package-registry) for the workspace-wide rules and current

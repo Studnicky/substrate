@@ -2,8 +2,8 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '@studnicky/errors';
-import { Signal } from '@studnicky/signal';
+import { BaseError } from '@studnicky/errors/node';
+import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';

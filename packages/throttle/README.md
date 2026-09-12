@@ -21,7 +21,7 @@ pnpm add @studnicky/throttle
 ## Usage
 
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 
 const throttle = Throttle.create({ concurrencyLimit: 5 });
 
@@ -46,7 +46,7 @@ import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
 Subclass `Throttle` and override any of the protected lifecycle hooks to add telemetry, logging, or custom behaviour without touching the core scheduling logic.
 
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 
 class InstrumentedThrottle extends Throttle {
   readonly acquireLog: Array<{ activeCount: number; queuedCount: number }> = [];

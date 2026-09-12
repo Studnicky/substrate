@@ -19,11 +19,12 @@ pnpm add @studnicky/bounded-dispatcher
 
 <<< ../../packages/bounded-dispatcher/examples/observedBoundedDispatcher.ts#usage
 
+
 ## Transparency contract
 
-Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher`; configuration, topic-map, and dispatch-event contracts use its `./interfaces` subpath. Dispatch-event entities use `./entities`. Import `Semaphore`, `EventBus`, and scheduler contracts directly from their owning package roots.
+Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`; configuration, topic-map, and dispatch-event contracts use `@studnicky/bounded-dispatcher/interfaces`, while dispatch-event entities use `@studnicky/bounded-dispatcher/entities`. Import `Semaphore` from `@studnicky/concurrency/node`, `EventBus` from `@studnicky/event-bus/node`, and scheduler contracts from `@studnicky/scheduler/interfaces`.
 
-The package root also exports `BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity`. These entities own the schema-derived phase discriminants; the event interfaces compose those fields with their runtime result and error values.
+`BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity` own the schema-derived phase discriminants; the event interfaces compose those fields with their runtime result and error values.
 
 `BoundedDispatcher` introduces no hook of its own — every observable stage is either already covered by a composed primitive's own hooks, or surfaced as the `'dispatch'` topic on the composed `EventBus`:
 
@@ -38,6 +39,12 @@ The package root also exports `BoundedDispatcherStartEventEntity`, `BoundedDispa
 `BoundedDispatcher` never re-exposes a stage a wrapped primitive's hook already covers. Permit-level observability stays on `Semaphore#onAcquire`/`onAcquireWait`/`onContended`/`onRelease`/`onReleaseDelegated`; dispatch-level observability is the `'dispatch'` topic reached through `getBus()`. Publication completion remains outside the permit hold. Rejections do not replace the work result or error.
 
 Passing a `VirtualScheduler` gives deterministic test fixtures for free — `scheduleDispatch()` only fires once the virtual clock is advanced past `atMs`, with no kit-side test-mode flag.
+
+## Try it
+
+Run bounded tasks, observe the completion events, and schedule a later task through the same dispatcher.
+
+<RunnableExample src="packages/bounded-dispatcher/examples/observedBoundedDispatcher" title="Bounded dispatch and scheduled work" />
 
 ## Composition order
 
@@ -75,4 +82,4 @@ import type { BoundedDispatcherConfigInterface } from '@studnicky/bounded-dispat
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundedDispatcher` | Provides bounded dispatcher functionality. | `@studnicky/bounded-dispatcher` |
+| `BoundedDispatcher` | Provides bounded dispatcher functionality. | `@studnicky/bounded-dispatcher/node` |

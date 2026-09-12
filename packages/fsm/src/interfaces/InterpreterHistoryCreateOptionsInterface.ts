@@ -1,5 +1,5 @@
 import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
 
 import type { StateMachine } from '../StateMachine.js';
 import type { EffectHandlerInterface } from './EffectHandlerInterface.js';

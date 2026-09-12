@@ -14,9 +14,9 @@
  * Mirrors the PHP port's `TaskSettlementMachine` — see
  * `substrate-php/packages/worker-pool/src/Internal/Fsm/TaskSettlementMachine.php`.
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine } from '@studnicky/fsm';
+import { StateMachine } from '@studnicky/fsm/node';
 
 import type { SettleTaskEventInterface } from './interfaces/SettleTaskEventInterface.js';
 import type { TaskSettlementStateInterface } from './interfaces/TaskSettlementStateInterface.js';

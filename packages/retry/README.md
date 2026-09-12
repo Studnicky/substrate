@@ -21,8 +21,8 @@ pnpm add @studnicky/retry
 ## Usage
 
 ```typescript
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
-import { Retry } from '@studnicky/retry';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import { Retry } from '@studnicky/retry/node';
 
 const retry = Retry.create({
   maximumRetries: 3,
@@ -44,7 +44,7 @@ Backoff has the same dual-path treatment as error classification: supply a `back
 Config-based, using a shipped `BackoffStrategy`:
 
 ```typescript
-import { Retry, BackoffStrategy } from '@studnicky/retry';
+import { Retry, BackoffStrategy } from '@studnicky/retry/node';
 
 const retry = Retry.create({
   maximumRetries: 3,
@@ -57,7 +57,7 @@ Subclass-override, for full control over `context.delayMs`:
 ```typescript
 import type { RetryContextInterface } from '@studnicky/retry/interfaces';
 
-import { Retry, BackoffStrategy } from '@studnicky/retry';
+import { Retry, BackoffStrategy } from '@studnicky/retry/node';
 
 class CustomBackoffRetry extends Retry {
   protected override onRetryScheduled(context: RetryContextInterface): void {
@@ -81,7 +81,7 @@ Omitting `maximumElapsedMs` preserves the default behavior: only `maximumRetries
 
 ### Hook timeout
 
-All lifecycle hooks, including behavioral `onRetryScheduled` and FSM `enterCall`, run through a composed `HookInvoker` (see `@studnicky/errors`). Hook failures are advisory and never replace the retry result. Pass `hookTimeoutMs` to bound how long an awaited async hook may run before it is treated as a failure — left unset, an awaited hook may take arbitrarily long:
+All lifecycle hooks, including behavioral `onRetryScheduled` and FSM `enterCall`, run through a composed `HookInvoker` (see `@studnicky/errors/node`). Hook failures are advisory and never replace the retry result. Pass `hookTimeoutMs` to bound how long an awaited async hook may run before it is treated as a failure — left unset, an awaited hook may take arbitrarily long:
 
 ```typescript
 const retry = Retry.create({
@@ -95,10 +95,10 @@ const retry = Retry.create({
 Subclass `Retry` and override any of the protected lifecycle hooks to add telemetry without changing the retry logic. All hooks are no-ops in the base class.
 
 ```typescript
-import type { ErrorClassificationEntity } from '@studnicky/errors';
+import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 
-import { Retry } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry/node';
 
 class InstrumentedRetry extends Retry {
   readonly events: string[] = [];

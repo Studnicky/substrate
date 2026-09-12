@@ -23,17 +23,14 @@ Create a `Logger` with one configuration object, attach transports, then pass st
 
 ## Browser console transport
 
-`Logger` and `ConsoleTransport` use the portable root entrypoint because their public behavior is
-the same in browser and server environments. The console transport dispatches records to the
-native browser console without importing a server runtime.
+`Logger` and `ConsoleTransport` use the `/browser` entrypoint in browser applications and the `/node` entrypoint in Node.js applications. The console transport dispatches records to the native browser console without importing a server runtime.
 
 ## Immutable LogBody and LogFault configuration
 
 `LogBody.create(config)` and `LogFault.create(config)` validate one readonly configuration
 object and return an immutable normalized entry. Both require `component`, `operation`,
 `status`, `message`, and `context`; faults also require `name`. Missing required fields throw
-`LogBuildError`. The usage example above exercises both factories directly from the package
-root.
+`LogBuildError`. The usage example above exercises both factories from the selected runtime entrypoint.
 
 ## Fan-out and level filtering
 
@@ -43,7 +40,7 @@ Pass multiple transports to `Logger.create`. Each transport has its own level fl
 
 ## Custom transports
 
-Implement `TransportInterface` directly for a custom sink. Use the root-exported `ParseLogLevel.parse()` when the transport accepts named or numeric level configuration:
+Implement `TransportInterface` directly for a custom sink. Use `ParseLogLevel.parse()` from `@studnicky/logger/node` when the transport accepts named or numeric level configuration:
 
 <<< ../../packages/logger/examples/04-custom-transport.ts#usage
 
@@ -88,26 +85,26 @@ Entity source files import `JSONSchema` and `FromSchema` directly from `json-sch
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Logger` | Creates loggers and emits structured entries. | `@studnicky/logger` |
-| `LogBody` | Creates validated immutable non-fault log entries. | `@studnicky/logger` |
-| `LogFault` | Creates validated immutable fault log entries. | `@studnicky/logger` |
-| `ConsoleTransport` | Writes log records to the console. | `@studnicky/logger` |
-| `FunctionTransport` | Delivers log records to a supplied function. | `@studnicky/logger` |
-| `MemoryTransport` | Captures log records in memory. | `@studnicky/logger` |
-| `NoOpTransport` | Discards log records. | `@studnicky/logger` |
-| `TransportInterface` | Defines the contract for custom transports. | `@studnicky/logger` |
-| `ParseLogLevel` | Normalizes named and numeric log levels. | `@studnicky/logger` |
-| `EVENT_COMPONENTS` | Provides supported event-component values. | `@studnicky/logger` |
-| `LOG_LEVEL` | Provides numeric log-level values. | `@studnicky/logger` |
-| `LOG_STATUS` | Provides supported log-status values. | `@studnicky/logger` |
-| `STATUS_CATEGORIES` | Groups log statuses for result filtering. | `@studnicky/logger` |
-| `CircularReferenceError` | Represents circular-reference serialization failures. | `@studnicky/logger` |
-| `ConfigurationError` | Represents invalid logger configuration. | `@studnicky/logger` |
-| `FileDestinationError` | Represents file transport destination failures. | `@studnicky/logger` |
-| `InvalidLogLevelError` | Represents invalid log-level configuration. | `@studnicky/logger` |
-| `LogBuildError` | Represents invalid log-entry construction. | `@studnicky/logger` |
-| `LogStatusEntity` | Provides the schema and type for structured log statuses. | `@studnicky/logger` |
-| `LoggerError` | Base error for logger failures. | `@studnicky/logger` |
+| `Logger` | Creates loggers and emits structured entries. | `@studnicky/logger/node` |
+| `LogBody` | Creates validated immutable non-fault log entries. | `@studnicky/logger/node` |
+| `LogFault` | Creates validated immutable fault log entries. | `@studnicky/logger/node` |
+| `ConsoleTransport` | Writes log records to the console. | `@studnicky/logger/node` |
+| `FunctionTransport` | Delivers log records to a supplied function. | `@studnicky/logger/node` |
+| `MemoryTransport` | Captures log records in memory. | `@studnicky/logger/node` |
+| `NoOpTransport` | Discards log records. | `@studnicky/logger/node` |
+| `TransportInterface` | Defines the contract for custom transports. | `@studnicky/logger/interfaces` |
+| `ParseLogLevel` | Normalizes named and numeric log levels. | `@studnicky/logger/node` |
+| `EVENT_COMPONENTS` | Provides supported event-component values. | `@studnicky/logger/node` |
+| `LOG_LEVEL` | Provides numeric log-level values. | `@studnicky/logger/node` |
+| `LOG_STATUS` | Provides supported log-status values. | `@studnicky/logger/node` |
+| `STATUS_CATEGORIES` | Groups log statuses for result filtering. | `@studnicky/logger/node` |
+| `CircularReferenceError` | Represents circular-reference serialization failures. | `@studnicky/logger/node` |
+| `ConfigurationError` | Represents invalid logger configuration. | `@studnicky/logger/node` |
+| `FileDestinationError` | Represents file transport destination failures. | `@studnicky/logger/node` |
+| `InvalidLogLevelError` | Represents invalid log-level configuration. | `@studnicky/logger/node` |
+| `LogBuildError` | Represents invalid log-entry construction. | `@studnicky/logger/node` |
+| `LogStatusEntity` | Provides the schema and type for structured log statuses. | `@studnicky/logger/entities` |
+| `LoggerError` | Base error for logger failures. | `@studnicky/logger/node` |
 
 ## Try it
 

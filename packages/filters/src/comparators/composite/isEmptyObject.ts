@@ -2,7 +2,7 @@
  * Checks if object (Set, Map, or plain object) is empty
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class IsEmptyObject {
   static isEmptyObject(value: unknown): boolean {

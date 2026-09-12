@@ -4,11 +4,12 @@
   "description": "Generic boundary-crossing primitives (cycle-safe graph walks, create/intake compile orchestration) shared by every schema-backed entity engine",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },

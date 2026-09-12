@@ -5,7 +5,7 @@
  */
 
 import { ThrownValueEntity } from '@studnicky/errors/entities';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type {
   ArrayWildcardValueInterface,

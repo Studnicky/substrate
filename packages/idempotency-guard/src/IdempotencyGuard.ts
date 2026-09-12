@@ -2,10 +2,10 @@
  * Idempotency key guard composing cache, concurrency, and json
  */
 
-import { LruCache } from '@studnicky/cache';
-import { Coalesce } from '@studnicky/concurrency';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { LruCache } from '@studnicky/cache/node';
+import { Coalesce } from '@studnicky/concurrency/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';

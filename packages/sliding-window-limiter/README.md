@@ -28,7 +28,7 @@ pnpm add @studnicky/sliding-window-limiter
 ### `'log'` algorithm — exact
 
 ```typescript
-import { SlidingWindowLimiter, SlidingWindowExhaustedError } from '@studnicky/sliding-window-limiter';
+import { SlidingWindowLimiter, SlidingWindowExhaustedError } from '@studnicky/sliding-window-limiter/node';
 
 const limiter = SlidingWindowLimiter.create({
   limit: 100,

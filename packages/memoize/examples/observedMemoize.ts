@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedMemoize — override onMemoHit/onMemoMiss/onMemoCoalesced to collect telemetry. Run: npx tsx examples/observedMemoize.ts */
 import assert from 'node:assert/strict';
 

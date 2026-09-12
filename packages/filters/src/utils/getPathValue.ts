@@ -3,7 +3,7 @@
  * @description Extracts values from objects using dot notation paths with security protections
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { FilterValueGuard } from '../FilterValueGuard.js';
 import { FilterTypeGuards } from '../interfaces.js';

@@ -1,6 +1,6 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { SignalError } from './errors/SignalError.js';
 

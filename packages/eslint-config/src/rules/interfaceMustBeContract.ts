@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import {
   isInterfaceDeclaration, type Node, type Program
 } from 'typescript';

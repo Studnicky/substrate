@@ -12,7 +12,7 @@
  * IsInRange.isInRange(15, [1, 10]); // false
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 

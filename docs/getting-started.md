@@ -24,13 +24,13 @@ Then install any package:
 pnpm add @studnicky/cache
 ```
 
-Import public code from the package root, such as `@studnicky/cache`.
+Import runtime code from `@studnicky/cache/node` or `@studnicky/cache/browser`; import runtime-neutral schemas and contracts from `/entities` and `/interfaces`.
 
 ## Minimal usage example
 
-<!-- inline-ts-ok: consumer-facing snippet using the published package-root import -->
+<!-- inline-ts-ok: consumer-facing snippet using the published Node entrypoint -->
 ```typescript
-import { LruCache } from '@studnicky/cache';
+import { LruCache } from '@studnicky/cache/node';
 
 const users = LruCache.create<string, { name: string }>({
   capacity: 100,
@@ -42,13 +42,15 @@ users.set('user-42', { name: 'Ada' });
 const user = users.get('user-42');
 ```
 
+For browser targets, import the same runtime symbol from `@studnicky/cache/browser`.
+
 ## Extending a primitive
 
 Every class exposes documented protected seams. Most are observer hooks for tracing and metrics; some packages also expose behavioral hooks that intentionally transform or redirect control flow. Subclass to add observability without touching the base class:
 
-<!-- inline-ts-ok: consumer-facing subclass illustration using the published package-root import -->
+<!-- inline-ts-ok: consumer-facing subclass illustration using the published Node entrypoint -->
 ```typescript
-import { LruCache } from '@studnicky/cache';
+import { LruCache } from '@studnicky/cache/node';
 
 class InstrumentedCache extends LruCache<string, { name: string }> {
   protected override onHit(key: string, value: { name: string }): void {

@@ -1,4 +1,4 @@
-import { RuntimeError, HookInvocationError, HookTimeoutError } from '@studnicky/errors';
+import { RuntimeError, HookInvocationError, HookTimeoutError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   afterEach, beforeEach, describe, it

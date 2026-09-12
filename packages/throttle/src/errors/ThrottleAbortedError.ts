@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 
 /**
  * Error thrown when a throttled operation is aborted

@@ -1,11 +1,11 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience';
-import { MaximumRetriesExceededError, Retry } from '@studnicky/retry';
+import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
+import { MaximumRetriesExceededError, Retry } from '@studnicky/retry/node';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
 import { BoundaryKit } from '../../../src/index.js';

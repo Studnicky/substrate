@@ -70,4 +70,4 @@ import type { PaginatorAvailableCursorInterface } from '@studnicky/paginator/int
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Paginator` | Provides paginator functionality. | `@studnicky/paginator` |
+| `Paginator` | Provides paginator functionality. | `@studnicky/paginator/node` |

@@ -5,7 +5,7 @@ description: One-shot request execution pattern composing fetch, retry, signal, 
 
 # @studnicky/request-executor
 
-> One-shot request execution pattern composing `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and an optional scope port.
+> One-shot request execution pattern composing a fetch client, retry policy, abort signal, and optional scope port.
 
 ## Install
 
@@ -32,14 +32,14 @@ The output shows the native browser client retrying two temporary failures and r
 | Config key | Accepts | Default |
 |------------|---------|---------|
 | `fetchClient` | `FetchClientInterface`, including `BrowserFetchClient` or the Node adapter | Required |
-| `retry` | `Retry` instance or `RetryConfigInterface` from `@studnicky/retry` | `Retry.create({})` |
+| `retry` | `Retry` instance or `RetryConfigInterface` from `@studnicky/retry/node` and `@studnicky/retry/interfaces` | `Retry.create({})` |
 | `signal` | `Signal` instance | `Signal.create()` |
 | `scope` | `RequestScopeFactoryInterface` | `undefined` — no scope wrapping |
 | `deadlineMs` | Default deadline (ms) for calls that don't pass their own | `undefined` |
 
 Callers retain references to supplied fetch client, retry, signal, and scope implementations when they need those primitives' own hooks or state. The executor never re-exposes a stage a wrapped primitive already owns.
 
-Import `RequestExecutor` from `@studnicky/request-executor`, its schema namespace from `@studnicky/request-executor/entities`, and its type contracts from `@studnicky/request-executor/interfaces`. Import a runtime fetch adapter from `@studnicky/fetch/browser` or `@studnicky/fetch/node`.
+Import `RequestExecutor` from `@studnicky/request-executor/node`, its schema namespace from `@studnicky/request-executor/entities`, and its type contracts from `@studnicky/request-executor/interfaces`. Import a runtime fetch adapter from `@studnicky/fetch/browser` or `@studnicky/fetch/node`.
 
 ## Composition order
 
@@ -75,6 +75,6 @@ import type { RequestExecutorConfigInterface } from '@studnicky/request-executor
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `RequestExecutor` | Composes request dependencies for a retried one-shot call. | `@studnicky/request-executor` |
+| `RequestExecutor` | Composes request dependencies for a retried one-shot call. | `@studnicky/request-executor/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/request-executor)

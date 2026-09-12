@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';

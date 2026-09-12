@@ -12,7 +12,7 @@
  * HasPropertyPath.hasPropertyPath(user, 'profile.address.city'); // false
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { ARRAY_INDEX_SEGMENT_PATTERN } from './constants/ArrayIndexSegmentPattern.js';
 import { PROPERTY_PATH_SEGMENT_DELIMITER_PATTERN } from './constants/PropertyPathSegmentDelimiterPattern.js';

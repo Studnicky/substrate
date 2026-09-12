@@ -1,6 +1,6 @@
 /** Schema hashing with metadata-key stripping. */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { Hash } from './Hash.js';

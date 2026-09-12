@@ -1,5 +1,5 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 

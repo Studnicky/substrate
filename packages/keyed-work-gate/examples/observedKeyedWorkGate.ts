@@ -1,9 +1,9 @@
 /** observedKeyedWorkGate — direct composition of subclassed primitives, plus an extension subclass reaching composed instances via getters. Run: npx tsx examples/observedKeyedWorkGate.ts */
 
-// #region usage
-import { Coalesce } from '@studnicky/concurrency';
 import { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
-import { Mutex } from '@studnicky/mutex';
+// #region usage
+import { Coalesce } from '@studnicky/concurrency/node';
+import { Mutex } from '@studnicky/mutex/node';
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 

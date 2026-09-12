@@ -1,2 +1,3 @@
-export type { SystemInterface } from '../interfaces/index.js';
+export type * from '../index.js';
+
 export { System } from './System.js';

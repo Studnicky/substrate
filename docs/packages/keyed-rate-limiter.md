@@ -13,7 +13,7 @@ description: Per-key rate limiting composing cache and resilience — one strate
 pnpm add @studnicky/keyed-rate-limiter
 ```
 
-`@studnicky/keyed-rate-limiter` declares a root usage API and explicit public subpaths.
+`@studnicky/keyed-rate-limiter/node` provides the runtime API; entities and interfaces retain their canonical public subpaths.
 
 ## Usage
 
@@ -33,7 +33,7 @@ The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user
 
 <<< ../../packages/keyed-rate-limiter/src/interfaces/RateLimiterStrategyInterface.ts
 
-`@studnicky/resilience`'s `TokenBucket` matches this shape without declaring or importing it. `KeyedRateLimiter.create(config)` accepts either of two root-exported config families:
+`@studnicky/resilience`'s `TokenBucket` matches this shape without declaring or importing it. `KeyedRateLimiter.create(config)` accepts either of two node-exported config families:
 
 - `KeyedRateLimiterCreateConfigInterface` supplies `requestsPerSecond`, `burstSize`, and optional `clock`, `maxKeys`, and `keyIdleTtlMs` for the default `TokenBucket`-per-key path.
 - `KeyedRateLimiterStrategyConfigInterface<TStrategy>` supplies `factory`, `maxKeys`, and `keyIdleTtlMs` for any structural strategy implementation.
@@ -95,7 +95,7 @@ import type { KeyedRateLimiterCreateConfigInterface } from '@studnicky/keyed-rat
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `KeyedRateLimiter` | Provides keyed rate limiter functionality. | `@studnicky/keyed-rate-limiter` |
-| `KeyedRateLimiterConfigError` | Represents keyed rate limiter config failures. | `@studnicky/keyed-rate-limiter` |
-| `KeyedRateLimiterError` | Represents keyed rate limiter failures. | `@studnicky/keyed-rate-limiter` |
-| `RateLimiterStrategyInterface` | Defines the rate limiter strategy contract. | `@studnicky/keyed-rate-limiter` |
+| `KeyedRateLimiter` | Provides keyed rate limiter functionality. | `@studnicky/keyed-rate-limiter/node` |
+| `KeyedRateLimiterConfigError` | Represents keyed rate limiter config failures. | `@studnicky/keyed-rate-limiter/node` |
+| `KeyedRateLimiterError` | Represents keyed rate limiter failures. | `@studnicky/keyed-rate-limiter/node` |
+| `RateLimiterStrategyInterface` | Defines the rate limiter strategy contract. | `@studnicky/keyed-rate-limiter/interfaces` |

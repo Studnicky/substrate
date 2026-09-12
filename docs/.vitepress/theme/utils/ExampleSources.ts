@@ -2,10 +2,13 @@ interface RawSourceLoaderInterface {
   (): Promise<string>;
 }
 
+// The browser playground registers the Context demo only; the remaining Context examples use Node entrypoints.
 const RAW_SOURCE_LOADERS = import.meta.glob<string>(
   [
     '../../../../packages/*/examples/**/*.ts',
-    '!../../../../packages/context/examples/**/*.ts',
+    '!../../../../packages/context/examples/basic-context.ts',
+    '!../../../../packages/context/examples/observedContext.ts',
+    '!../../../../packages/context/examples/subclass-hooks.ts',
     '!../../../../packages/eslint-config/examples/**/*.ts',
     '!../../../../packages/worker-pool/examples/**/*.ts'
   ],

@@ -15,9 +15,9 @@ pnpm add @studnicky/virtual-fs
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/virtual-fs` declares a root usage API and explicit public subpaths.
+`@studnicky/virtual-fs/node` exposes Node filesystem APIs and `@studnicky/virtual-fs/browser` exposes browser APIs.
 
-The root `VirtualFileSystem` remains the synchronous in-memory primitive. For durable async
+`@studnicky/virtual-fs/node` exports `VirtualFileSystem`, the synchronous in-memory primitive. For durable async
 files, `@studnicky/virtual-fs/node` exposes Node promise-based files and
 `@studnicky/virtual-fs/browser` exposes native Origin Private File System storage.
 
@@ -69,8 +69,8 @@ Pass a `@studnicky/clock` `ClockProviderInterface` through `VirtualFileSystem.cr
 
 <!-- inline-ts-ok: conceptual API illustration -->
 ```typescript
-import type { ClockProviderInterface } from '@studnicky/clock';
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 
 // Any ClockProviderInterface drives mtimeMs — here a fixed, deterministic clock.
 const clock: ClockProviderInterface = {
@@ -82,11 +82,11 @@ const vfs = VirtualFileSystem.create({ clock });
 
 ## `FileSystemInterface` contract
 
-`VirtualFileSystem` implements `FileSystemInterface`, which is also exported from `@studnicky/virtual-fs`. Any code that depends on filesystem access can accept `FileSystemInterface` and receive either the real Node.js `fs` module adapter or a `VirtualFileSystem` — enabling browser-safe and test-isolated execution of the same logic.
+`VirtualFileSystem` implements `FileSystemInterface`, exported from `@studnicky/virtual-fs/interfaces`. Any code that depends on filesystem access can accept `FileSystemInterface` and receive either the real Node.js `fs` module adapter or a `VirtualFileSystem` — enabling browser-safe and test-isolated execution of the same logic.
 
 <!-- inline-ts-ok: conceptual API illustration -->
 ```typescript
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/interfaces';
 
 function processFiles(fs: FileSystemInterface): void {
   const entries = fs.readdirSync('/data');
@@ -102,7 +102,7 @@ Use `NodeFileSystem` on the server or `OpfsFileSystem` in browsers that provide 
 
 ## Public API
 
-The root exports `VirtualFileSystem`, `VirtualFileSystemError`, and `FileSystemInterface`. Filesystem entities use `@studnicky/virtual-fs/entities`; option and stat contracts use `@studnicky/virtual-fs/interfaces`.
+`@studnicky/virtual-fs/node` exports `VirtualFileSystem` and `VirtualFileSystemError`; `FileSystemInterface` is available from `@studnicky/virtual-fs/interfaces`. Filesystem entities use `@studnicky/virtual-fs/entities`; option and stat contracts use `@studnicky/virtual-fs/interfaces`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/virtual-fs)
 
@@ -128,11 +128,11 @@ import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `FileSystemInterface` | Defines the synchronous in-memory file system contract. | `@studnicky/virtual-fs` |
-| `AsyncFileSystemInterface` | Defines durable asynchronous file operations. | `@studnicky/virtual-fs` |
+| `FileSystemInterface` | Defines the synchronous in-memory file system contract. | `@studnicky/virtual-fs/interfaces` |
+| `AsyncFileSystemInterface` | Defines durable asynchronous file operations. | `@studnicky/virtual-fs/interfaces` |
 | `NodeFileSystem` | Provides Node promise-based filesystem operations. | `@studnicky/virtual-fs/node` |
 | `OpfsFileSystem` | Provides native browser Origin Private File System operations. | `@studnicky/virtual-fs/browser` |
 | `OpfsFileSystemOptionsInterface` | Defines OPFS construction options. | `@studnicky/virtual-fs/browser` |
 | `OpfsStorageInterface` | Defines the injected OPFS storage boundary. | `@studnicky/virtual-fs/browser` |
-| `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs` |
-| `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs` |
+| `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs/node` |
+| `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs/node` |

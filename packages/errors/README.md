@@ -21,7 +21,7 @@ pnpm add @studnicky/errors
 ## Usage
 
 ```typescript
-import { ModuleError, ErrorDefaults } from '@studnicky/errors';
+import { ModuleError, ErrorDefaults } from '@studnicky/errors/node';
 
 // Quick error with scenario defaults
 const err = ModuleError.create('User not found', {
@@ -43,7 +43,7 @@ const json = err.toJSON();
 Subclass `ModuleError` to define domain-specific error classes with fixed defaults:
 
 ```typescript
-import { ModuleError } from '@studnicky/errors';
+import { ModuleError } from '@studnicky/errors/node';
 
 export class DatabaseError extends ModuleError {
   static override create(
@@ -76,7 +76,7 @@ Override `formatUserMessage()` to provide user-safe messages distinct from inter
 Leaf error classes that just carry typed fields onto a domain error base can skip the manual `this.x = x` assignment ceremony with `DomainErrorArgumentList.build()`:
 
 ```typescript
-import { DomainErrorArgumentList } from '@studnicky/errors';
+import { DomainErrorArgumentList } from '@studnicky/errors/node';
 
 class RateLimitExceededError extends RateLimitError {
   readonly route!: string;
@@ -108,16 +108,16 @@ class RateLimitExceededError extends RateLimitError {
 
 ## Public construction and serialization types
 
-Construction contracts are interfaces exported from the package root. JSON value types remain owned by their declaration module:
+Construction contracts import from `@studnicky/errors/interfaces`. JSON value types remain owned by their declaration module:
 
 ```typescript
 import type { JSONSchema7Object, JSONSchema7Type } from 'json-schema';
 
+import type { BaseError } from '@studnicky/errors/node';
 import type {
-  BaseError,
   BaseErrorArgumentsInterface,
   DomainErrorOptionsInterface
-} from '@studnicky/errors';
+} from '@studnicky/errors/interfaces';
 
 const metadata: Readonly<Record<string, JSONSchema7Type>> = {
   requestId: 'req-123'
@@ -148,7 +148,7 @@ Import `JSONSchema7Type` and `JSONSchema7Object` from the module specifier `json
 A class composes a `HookInvoker` as a field and calls `invoke` from its own methods. Composition keeps the mechanism available to a class that already extends something else. The constructor consumes `HookInvokerOptionsEntity.Type` directly; `HookInvokerOptionsEntity` exports its schema, derived type, and runtime validator:
 
 ```typescript
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors/node';
 
 class ObservedStore {
   static readonly #OwnedHookInvoker = class StoreHookInvoker extends HookInvoker {
@@ -175,7 +175,7 @@ class ObservedStore {
 ```typescript
 import type { HookInvokerOptionsEntity } from '@studnicky/errors/entities';
 
-import { HookInvoker } from '@studnicky/errors';
+import { HookInvoker } from '@studnicky/errors/node';
 
 const hookOptions: HookInvokerOptionsEntity.Type = { timeoutMs: 5_000 };
 const hooks = new HookInvoker(hookOptions);
@@ -190,7 +190,7 @@ An optional `detectReentrancy: true` makes a synchronous, same-call-stack reentr
 `EventRecorder` collapses the "record an event, then `console.log` a trace line" ceremony that lifecycle-hook overrides duplicate into a single `record()` call. It snapshots recorded data and returns detached event projections so observers cannot mutate recorder state. It stays intentionally minimal — no config, no pluggable sinks — since it's meant for demo/observability glue, not a general event bus:
 
 ```typescript
-import { EventRecorder } from '@studnicky/errors';
+import { EventRecorder } from '@studnicky/errors/node';
 
 class TracingCache {
   #recorder = new EventRecorder<{ event: string; key: string }>();
@@ -224,7 +224,7 @@ import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 
 ## Exports
 
-The complete root API is listed in the package documentation: https://studnicky.github.io/substrate/packages/errors#exports.
+The complete runtime API is listed in the package documentation: https://studnicky.github.io/substrate/packages/errors#exports.
 
 ## Documentation
 

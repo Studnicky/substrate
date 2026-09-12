@@ -2,7 +2,7 @@
  * Checks if an object has any of the specified properties
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 

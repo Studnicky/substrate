@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Signal } from '@studnicky/signal';
+import { Signal } from '@studnicky/signal/node';
 
 import type {
   WorkerFactoryInterface,

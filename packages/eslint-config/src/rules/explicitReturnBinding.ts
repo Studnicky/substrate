@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import {
   REQUIRES_BINDING_TYPES, TS_WRAPPER_EXPRESSION_TYPES

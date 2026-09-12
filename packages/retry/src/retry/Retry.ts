@@ -1,16 +1,16 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
-import { ConfigurationError } from '@studnicky/config';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { ConfigurationError } from '@studnicky/config/node';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker,
   RuntimeError
-} from '@studnicky/errors';
-import { TransitionRejectedError } from '@studnicky/fsm';
-import { SchemaIntakeError } from '@studnicky/json';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+} from '@studnicky/errors/node';
+import { TransitionRejectedError } from '@studnicky/fsm/node';
+import { SchemaIntakeError } from '@studnicky/json/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';

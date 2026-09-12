@@ -6,7 +6,7 @@
 
 `VirtualFileSystem` implements a small synchronous filesystem contract for browser-compatible code and deterministic tests. It supports files and directories in memory, seeded content, controlled modification times, and protected lifecycle hooks.
 
-`@studnicky/virtual-fs` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
+Runtime values import from `@studnicky/virtual-fs/node`; schema data imports from `@studnicky/virtual-fs/entities`, and type-only contracts import from `@studnicky/virtual-fs/interfaces`.
 
 ## Install
 
@@ -23,7 +23,7 @@ pnpm add @studnicky/virtual-fs
 ## Usage
 
 ```typescript
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 
 const vfs = VirtualFileSystem.create({
   seed: new Map([['/data/hello.txt', 'Hello, virtual world!']])
@@ -46,7 +46,7 @@ import type {
   StatResultInterface,
   VirtualFileSystemOptionsInterface
 } from '@studnicky/virtual-fs/interfaces';
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/interfaces';
 ```
 
 - `EntryEntity.Type` is schema-derived pure filesystem-entry data.
@@ -57,12 +57,12 @@ import type { FileSystemInterface } from '@studnicky/virtual-fs';
 
 ## Injectable clock
 
-Pass a `ClockProviderInterface` from `@studnicky/clock` to control `mtimeMs` deterministically:
+Pass a `ClockProviderInterface` from `@studnicky/clock/interfaces` to control `mtimeMs` deterministically:
 
 ```typescript
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
 
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 
 const clock: ClockProviderInterface = {
   hrtime: () => 1_000_000_000n,

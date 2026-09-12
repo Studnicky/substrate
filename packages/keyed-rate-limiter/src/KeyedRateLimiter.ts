@@ -3,12 +3,12 @@
  */
 
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
-import type { TokenBucketOptionsInterface } from '@studnicky/resilience';
+import type { TokenBucketOptionsInterface } from '@studnicky/resilience/node';
 
-import { LruCache } from '@studnicky/cache';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { TokenBucket } from '@studnicky/resilience';
-import { Predicates } from '@studnicky/types';
+import { LruCache } from '@studnicky/cache/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { TokenBucket } from '@studnicky/resilience/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { RateLimitRequestEntity } from './entities/RateLimitRequestEntity.js';
 import type { KeyedRateLimiterCreateConfigInterface } from './interfaces/KeyedRateLimiterCreateConfigInterface.js';

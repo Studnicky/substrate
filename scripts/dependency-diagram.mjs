@@ -3,6 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 const repoRoot = process.cwd();
 const docsPath = path.join(repoRoot, 'docs', 'dependency-graph.md');
@@ -51,49 +52,126 @@ function resolvePackage(filePath, packageDirs, packageByDir, baseDir) {
   return null;
 }
 
+function entrypointsFromDir(dir) {
+  const sourceDir = path.join(dir, 'src');
+  const candidates = [
+    path.join(sourceDir, 'index.ts'),
+    path.join(sourceDir, 'node', 'index.ts'),
+    path.join(sourceDir, 'browser', 'index.ts'),
+  ];
+  const entrypoints = candidates.filter(existsSync);
+  return entrypoints.length > 0 ? entrypoints : [sourceDir];
+}
+
+function sourceFilesFromGraph(graph, sourceDir, entrypoints) {
+  const sourceFiles = new Set();
+  for (const entrypoint of entrypoints) {
+    if (existsSync(entrypoint) && path.extname(entrypoint) !== '') {
+      sourceFiles.add(entrypoint);
+    }
+  }
+  for (const file of Object.keys(graph)) {
+    const sourcePath = path.resolve(sourceDir, file);
+    if (existsSync(sourcePath)) {
+      sourceFiles.add(sourcePath);
+    }
+  }
+  return [...sourceFiles].toSorted();
+}
+
+function staticModuleSpecifiers(sourcePath) {
+  const sourceFile = ts.createSourceFile(
+    sourcePath,
+    readFileSync(sourcePath, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+    path.extname(sourcePath) === '.tsx' ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const specifiers = new Set();
+
+  const visit = (node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+      specifiers.add(node.moduleSpecifier.text);
+    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
+      specifiers.add(node.moduleReference.expression.text);
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      specifiers.add(node.argument.literal.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return specifiers;
+}
+
+function workspacePackageFromSpecifier(specifier, workspacePackages) {
+  const [scope, name] = specifier.split('/');
+  if (scope !== '@studnicky' || name === undefined || name === '') {
+    return null;
+  }
+  const packageName = scope + '/' + name;
+  return workspacePackages.has(packageName) ? packageName : null;
+}
+
 function buildGraph() {
   const packageDirs = listPackageDirs();
   const packageByDir = new Map(packageDirs.map((dir) => [dir, packageNameFromDir(dir)]));
+  const workspacePackages = new Set(packageByDir.values());
   const packageToFiles = new Map();
 
   for (const dir of packageDirs) {
     const tsconfigPath = tsconfigFromDir(dir);
-    const srcIndex = path.join(dir, 'src', 'index.ts');
-    const entryPath = existsSync(srcIndex) ? srcIndex : path.join(dir, 'src');
-    if (!tsconfigPath || !existsSync(entryPath)) {
+    const entrypoints = entrypointsFromDir(dir);
+    if (!tsconfigPath || !existsSync(entrypoints[0])) {
       continue;
     }
 
-    const graph = madgeGraph(entryPath, tsconfigPath);
+    const graph = {};
+    for (const entrypoint of entrypoints) {
+      Object.assign(graph, madgeGraph(entrypoint, tsconfigPath));
+    }
+
     packageToFiles.set(packageByDir.get(dir), {
-      dir,
       graph,
-      rootDir: path.dirname(entryPath),
+      rootDir: path.join(dir, 'src'),
+      sourceFiles: sourceFilesFromGraph(graph, path.join(dir, 'src'), entrypoints),
     });
   }
 
   const edges = new Set();
   for (const [packageName, payload] of packageToFiles.entries()) {
-    const files = Object.keys(payload.graph);
-    for (const file of files) {
+    for (const [file, dependencies] of Object.entries(payload.graph)) {
       const fromPackage = resolvePackage(file, packageDirs, packageByDir, payload.rootDir);
       if (fromPackage !== packageName) {
         continue;
       }
 
-      for (const dep of payload.graph[file]) {
-        const toPackage = resolvePackage(dep, packageDirs, packageByDir, payload.rootDir);
-        if (!toPackage || toPackage === fromPackage) {
-          continue;
+      for (const dependency of dependencies) {
+        const toPackage = resolvePackage(dependency, packageDirs, packageByDir, payload.rootDir);
+        if (toPackage !== null && toPackage !== fromPackage) {
+          edges.add([fromPackage, toPackage].join(' -> '));
         }
-        edges.add(`${fromPackage} -> ${toPackage}`);
+      }
+    }
+
+    for (const sourcePath of payload.sourceFiles) {
+      const fromPackage = resolvePackage(sourcePath, packageDirs, packageByDir, payload.rootDir);
+      if (fromPackage !== packageName) {
+        continue;
+      }
+
+      for (const specifier of staticModuleSpecifiers(sourcePath)) {
+        const toPackage = workspacePackageFromSpecifier(specifier, workspacePackages);
+        if (toPackage !== null && toPackage !== fromPackage) {
+          edges.add([fromPackage, toPackage].join(' -> '));
+        }
       }
     }
   }
 
   return {
-    edges: [...edges].sort(),
-    packages: [...packageByDir.values()].sort(),
+    edges: [...edges].toSorted(),
+    packages: [...workspacePackages].toSorted(),
   };
 }
 
@@ -138,14 +216,14 @@ function buildMermaid(packages, edges, highlights = {}) {
   const statuses = highlights.statuses ?? new Map();
   const impactedHops = highlights.impactedHops ?? new Map();
   const missingTests = highlights.missingTests ?? new Set();
-  const nodeLines = packages.map((name) => `${sanitizeNodeId(name)}["${name}"]`).sort();
+  const nodeLines = packages.map((name) => `${sanitizeNodeId(name)}["${name}"]`).toSorted();
   const mermaidEdges = edges.filter((edge) => {
     const [from, to] = edge.split(' -> ');
     return packageSet.has(from) && packageSet.has(to);
   }).map((edge) => {
     const [from, to] = edge.split(' -> ');
     return `${sanitizeNodeId(from)} --> ${sanitizeNodeId(to)}`;
-  }).sort();
+  }).toSorted();
 
   const graphLines = [...nodeLines, ...mermaidEdges];
   const keptNodeIds = collectNodeIds(graphLines);
@@ -179,14 +257,14 @@ function buildMermaid(packages, edges, highlights = {}) {
   }
 
   const maxHopSeen = presentHops.size > 0 ? Math.max(...presentHops) : 1;
-  for (const hop of [...presentHops].sort((a, b) => a - b)) {
+  for (const hop of [...presentHops].toSorted((a, b) => a - b)) {
     const fill = blastFill(hop, maxHopSeen);
     classDefinitions.push(`classDef impacted_${hop} fill:${fill},stroke:${BLAST_STROKE},color:${contrastText(fill)}`);
   }
 
   const noteLines = [];
   let missingTestNoteCount = 0;
-  for (const name of [...missingTests].sort()) {
+  for (const name of [...missingTests].toSorted()) {
     const nodeId = sanitizeNodeId(name);
     if (!keptNodeIds.has(nodeId)) {
       continue;
@@ -211,7 +289,7 @@ function buildMermaid(packages, edges, highlights = {}) {
       legendLines.push(`legend_${status}["${legendLabels.get(status)}"]:::${status}`);
     }
   }
-  for (const hop of [...presentHops].sort((a, b) => a - b)) {
+  for (const hop of [...presentHops].toSorted((a, b) => a - b)) {
     legendLines.push(`legend_impacted_${hop}["Impacted ${hop === 1 ? '1 hop' : `${hop} hops`} away"]:::impacted_${hop}`);
   }
   if (missingTestNoteCount > 0) {
@@ -238,7 +316,7 @@ function buildMarkdown(packages, edges) {
   return [
     '# Workspace Dependency Graph',
     '',
-    'Generated from `madge` over each workspace package entrypoint.',
+    'Generated from `madge` local traversal and TypeScript static workspace imports over each package entrypoint.',
     '',
     '```mermaid',
     mermaid,
@@ -370,12 +448,12 @@ function parseBaseRef() {
 }
 
 function changedFiles(baseRef, diffFilter = null) {
-  const args = ['diff', '--name-only'];
+  const gitArguments = ['diff', '--name-only'];
   if (diffFilter !== null) {
-    args.push(`--diff-filter=${diffFilter}`);
+    gitArguments.push(`--diff-filter=${diffFilter}`);
   }
-  args.push(`${baseRef}...HEAD`);
-  const output = execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
+  gitArguments.push(`${baseRef}...HEAD`);
+  const output = execFileSync('git', gitArguments, { cwd: repoRoot, encoding: 'utf8' });
   return output.split('\n').map((line) => line.trim()).filter(Boolean);
 }
 
@@ -472,12 +550,12 @@ function computeBlastRadius(graph, baseRef) {
   );
 
   return {
-    impacted: [...impacted].sort(),
+    impacted: [...impacted].toSorted(),
     impactedHops,
     missingTests,
     statuses,
     testCounts,
-    touched: [...touched].sort(),
+    touched: [...touched].toSorted(),
   };
 }
 

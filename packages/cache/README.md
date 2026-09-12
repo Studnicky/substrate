@@ -10,7 +10,7 @@ Each entry can carry its own TTL, overriding the cache-level default. This makes
 
 Entries can also carry an optional `staleMs` threshold, shorter than `ttlMs`: once past it, `get()` still serves the (still-live) value but fires `onStale` instead of `onHit`, so a subclass can flag aging data without evicting it early. `deleteWhere(predicate)` removes every entry matching a `(key, value) => boolean` predicate in one call, firing `onDelete` for each removal.
 
-`@studnicky/cache` exposes `LruCache` and cache errors at its root. Import `LruCacheOptionsEntity` and `LruCacheNodeTimingEntity` from `@studnicky/cache/entities` for schema-derived construction and timing fields.
+`LruCache` and cache errors are available from `@studnicky/cache/node`. Import `LruCacheOptionsEntity` and `LruCacheNodeTimingEntity` from `@studnicky/cache/entities` for schema-derived construction and timing fields.
 
 `LruCache.create` accepts an optional `ClockProviderInterface` through `clock`, which supplies both TTL expiry and soft-staleness timestamps. A `VirtualClockProvider` makes cache-time tests deterministic.
 
@@ -29,7 +29,7 @@ pnpm add @studnicky/cache
 ## Usage
 
 ```typescript
-import { LruCache } from '@studnicky/cache';
+import { LruCache } from '@studnicky/cache/node';
 
 // 1. Basic set/get — construct via LruCache.create()
 const cache = LruCache.create<string, number>({ capacity: 100 });

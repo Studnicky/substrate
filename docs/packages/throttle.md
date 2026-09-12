@@ -45,7 +45,7 @@ await throttle.abort();
 
 ## Public API
 
-Import the runtime API from `@studnicky/throttle`. Defaults and scheduling constants are implementation details.
+Import the runtime API from `@studnicky/throttle/node`. Defaults and scheduling constants are implementation details.
 
 `Throttle.create(config)` validates and copies the supplied configuration into instance-owned state. Adaptive concurrency may adjust the instance's effective limit without mutating the caller's config object.
 
@@ -55,7 +55,7 @@ Use `ThrottleConfigEntity.validate(candidate)` at an untrusted configuration bou
 
 <!-- inline-ts-ok: compact validation example -->
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
 
 const throttle = Throttle.create({ concurrencyLimit: 3 });
@@ -88,10 +88,10 @@ import type { ThrottleInterface } from '@studnicky/throttle/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Throttle` | Creates and runs a sliding-window concurrency throttle. | `@studnicky/throttle` |
-| `ThrottleInterface` | Defines the consumer-facing throttle contract. | `@studnicky/throttle` |
-| `ThrottleAbortedError` | Represents an aborted throttle operation. | `@studnicky/throttle` |
-| `ThrottleDrainingError` | Represents work rejected while the throttle drains. | `@studnicky/throttle` |
+| `Throttle` | Creates and runs a sliding-window concurrency throttle. | `@studnicky/throttle/node` |
+| `ThrottleInterface` | Defines the consumer-facing throttle contract. | `@studnicky/throttle/interfaces` |
+| `ThrottleAbortedError` | Represents an aborted throttle operation. | `@studnicky/throttle/node` |
+| `ThrottleDrainingError` | Represents work rejected while the throttle drains. | `@studnicky/throttle/node` |
 
 ## Observability hooks
 

@@ -4,11 +4,11 @@
 
 import type { Agent } from 'undici';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Clone, SchemaIntakeError } from '@studnicky/json';
-import { Signal } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Clone, SchemaIntakeError } from '@studnicky/json/node';
+import { Signal } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
@@ -833,7 +833,7 @@ export class FetchClient implements FetchClientInterface {
       parsed = ClientConfigDataEntity.intake(input);
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
-        throw new ConfigurationError(error.message);
+        throw new ConfigurationError(RuntimeError.toMessage(error));
       }
       throw error;
     }

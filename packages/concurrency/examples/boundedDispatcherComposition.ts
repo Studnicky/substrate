@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** boundedDispatcherComposition — hand-composes concurrency's Semaphore, event-bus's EventBus,
  * and scheduler's RealTimeScheduler into the Coordination Kit's documentation-only
  * BoundedDispatcher recipe (no `@studnicky/bounded-dispatcher` package exists; this
@@ -10,8 +10,8 @@ import { RuntimeError } from '@studnicky/errors';
  * this composition no longer has to work around an untunable bus. Run:
  * npx tsx examples/boundedDispatcherComposition.ts */
 // #region usage
-import { EventBus } from '@studnicky/event-bus';
-import { RealTimeScheduler } from '@studnicky/scheduler';
+import { EventBus } from '@studnicky/event-bus/node';
+import { RealTimeScheduler } from '@studnicky/scheduler/node';
 import assert from 'node:assert/strict';
 
 import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '../src/entities/index.js';

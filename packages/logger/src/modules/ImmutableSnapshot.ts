@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class ImmutableSnapshot {
   public static from<T>(value: T): T {

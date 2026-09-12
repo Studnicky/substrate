@@ -1,10 +1,10 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { ScoreEvidenceInterface } from '@studnicky/matching';
-import type { TopicSelectionInterface } from '@studnicky/topic-router';
-import { Predicates } from '@studnicky/types';
+import type { ScoreEvidenceInterface } from '@studnicky/matching/node';
+import type { TopicSelectionInterface } from '@studnicky/topic-router/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { TopicInferenceInterface, TopicSelectionMapperInterface } from '../../../src/index.js';
 import scenarioGroups from './TopicRouterModels.scenarios.json' with { type: 'json' };

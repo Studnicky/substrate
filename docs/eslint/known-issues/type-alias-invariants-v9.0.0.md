@@ -1,6 +1,6 @@
 # `type-alias-invariants` consumer constraints
 
-`type-alias-invariants` accepts a schema-derived data alias when it verifies the derivation structurally: a type-level derivation applied to a value-first schema and resolving to a JSON-plain result. The deriving function can be a generic type alias, declared in a `.d.ts` file, marked with `@schemaDerivation`, or share a package root with the schema builder.
+`type-alias-invariants` accepts a schema-derived data alias when it verifies the derivation structurally: a type-level derivation applied to a value-first schema and resolving to a JSON-plain result. The deriving function can be a generic type alias, declared in a `.d.ts` file, marked with `@schemaDerivation`, or belong to the same owning package as the schema builder.
 
 Generic conditional, mapped, and indexed-access alias declarations remain type-level functions. They stay aliases because TypeScript interfaces cannot express those shapes.
 

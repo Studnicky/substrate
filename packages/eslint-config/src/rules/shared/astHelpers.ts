@@ -1,6 +1,6 @@
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 // `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configurations and
 // `WeakMap`-shaped under others (e.g. `@typescript-eslint/parser`'s

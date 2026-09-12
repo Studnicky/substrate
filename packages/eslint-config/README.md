@@ -4,11 +4,12 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/eslint-config)
 
-Custom ESLint rule plugin that ships two namespaced rule sets for TypeScript projects — 22 core rules (`plugin`) and 27 V8-optimization rules (`v8Plugin`) — plus domain-grouped suite presets for one-import consumption. Register `plugin` and `v8Plugin` in your flat config and enable the rules you want, or spread a suite in directly.
+Custom ESLint rule plugin that ships two namespaced rule sets for TypeScript projects — 29 core rules (`plugin`) and 27 V8-optimization rules (`v8Plugin`) — plus domain-grouped suite presets for one-import consumption. Register `plugin` and `v8Plugin` in your flat config and enable the rules you want, or spread a suite in directly.
 
 ## Install
 
 Packages publish to GitHub Packages — add the registry to `.npmrc`:
+
 
 ```
 @studnicky:registry=https://npm.pkg.github.com
@@ -28,7 +29,7 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ```js
 // eslint.config.mjs
-import { plugin, v8Plugin } from '@studnicky/eslint-config';
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
 
 export default [
   {
@@ -46,11 +47,35 @@ export default [
 ];
 ```
 
-The package root is the sole code entrypoint. Individual rule modules are available through `plugin.rules` and `v8Plugin.rules`; the package does not expose parallel named rule-object imports.
+Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `HexagonalSuite`, and `v8Suite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project files or module resolution.
+
+
+## Browser hosts
+
+Configure a browser host through ESLint settings when project-aware rules need virtual project services:
+
+```ts
+import { plugin } from '@studnicky/eslint-config/browser';
+import type { ProjectHostInterface } from '@studnicky/eslint-config/interfaces';
+
+const virtualFiles = new Map<string, string>();
+const projectHost: ProjectHostInterface = {
+  findPackageRoot(filename) { return filename.startsWith('/project/') ? '/project' : undefined; },
+  isBuiltinSpecifier(specifier) { return specifier.startsWith('browser:'); },
+  readTextFile(filename) { return virtualFiles.get(filename); },
+  realPath(path) { return path; },
+  resolveModule() { return undefined; },
+  resolveRelativePath(importerFilename, relativeSpecifier) {
+    return new URL(relativeSpecifier, new URL(importerFilename, 'https://project.local')).pathname;
+  }
+};
+
+export default [{ settings: { '@studnicky/projectHost': projectHost }, plugins: { '@studnicky': plugin } }];
+```
 
 ## Suites
 
-Wiring all 46 rules individually is tedious, so the package also exports domain-grouped presets. Each suite is a plain `Linter.Config` object — spread it into a flat-config array alongside your other config entries.
+Wiring all 56 rules individually is tedious, so the package also exports domain-grouped presets. Each suite is a plain `Linter.Config` object — spread it into a flat-config array alongside your other config entries.
 
 | Suite | Domain |
 |-------|--------|
@@ -61,7 +86,7 @@ Wiring all 46 rules individually is tedious, so the package also exports domain-
 
 ```js
 // eslint.config.mjs
-import { entitySuite, hygieneSuite, v8Suite, HexagonalSuite } from '@studnicky/eslint-config';
+import { entitySuite, hygieneSuite, v8Suite, HexagonalSuite } from '@studnicky/eslint-config/node';
 
 export default [
   entitySuite,
@@ -134,7 +159,7 @@ export default [
 
 ## Custom rules
 
-**`@studnicky` namespace** (22 rules via root-exported `plugin`):
+**`@studnicky` namespace** (29 rules via `plugin`):
 
 | Rule | Purpose |
 |------|---------|
@@ -161,7 +186,7 @@ export default [
 | `@studnicky/type-alias-invariants` | Enforce alias identity, verified schema-derived data provenance, contract declaration shape, naming, and mutable data output in diagnostic-precedence order |
 | `@studnicky/whole-canonical-types` | Disallow deriving `Partial`/`Pick`/`Omit` subset views from canonical, codebase-owned named types/interfaces — define an explicit type instead |
 
-**`@studnicky/v8` namespace** (27 rules via root-exported `v8Plugin`):
+**`@studnicky/v8` namespace** (27 rules via `v8Plugin`):
 
 | Rule | Purpose |
 |------|---------|

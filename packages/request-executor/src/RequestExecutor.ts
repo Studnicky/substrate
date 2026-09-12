@@ -2,12 +2,12 @@
  * One-shot request execution pattern composing fetch, retry, signal, and an optional scope, with
  * lifecycle hooks bracketing the retry loop for observability.
  */
-import type { FetchClientInterface } from '@studnicky/fetch';
+import type { FetchClientInterface } from '@studnicky/fetch/node';
 
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Retry } from '@studnicky/retry';
-import { Signal } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Retry } from '@studnicky/retry/node';
+import { Signal } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';

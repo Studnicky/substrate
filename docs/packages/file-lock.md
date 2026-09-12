@@ -15,8 +15,7 @@ pnpm add @studnicky/file-lock
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/file-lock` exports the shared `LockInterface` and package errors. Import the
-filesystem adapter from `./node` and the Web Locks adapter from `./browser`.
+Import package errors and the filesystem adapter from `@studnicky/file-lock/node`, the Web Locks adapter from `@studnicky/file-lock/browser`, and the shared `LockInterface` from `@studnicky/file-lock/interfaces`.
 
 ## Usage
 
@@ -43,12 +42,12 @@ const lock = await FileLock.create({
 
 ### Deterministic acquisition timing
 
-`FileLock.create` composes `@studnicky/clock` and `@studnicky/scheduler` rather than owning a timer. Supply a shared virtual clock and scheduler for deterministic contention tests; the same providers measure the deadline and defer every retry.
+`FileLock.create` composes `@studnicky/clock/node` and `@studnicky/scheduler/node` rather than owning a timer. Supply a shared virtual clock and scheduler for deterministic contention tests; the same providers measure the deadline and defer every retry.
 
 <!-- inline-ts-ok: focused dependency-injection illustration; contention behavior is covered by the runnable examples. -->
 ```typescript
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
-import { VirtualScheduler } from '@studnicky/scheduler';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
 
 const counter = VirtualTimeCounter.create({ startMs: 0 });
 const clock = VirtualClockProvider.create(counter);
@@ -83,11 +82,11 @@ const lock = await FileLock.create({ clock, path: '/var/data/queue.json', schedu
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
-A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors`'s `HookInvoker`.
+A hook override that throws or rejects does not abort acquisition or release — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors/node`'s `HookInvoker`.
 
 ## Try it in the browser
 
-By default, `FileLock` performs all filesystem operations through the real Node.js `fs` module (atomic rename on disk). These demos inject an in-memory `@studnicky/virtual-fs` `VirtualFileSystem` so the exact same lock semantics — atomic rename-based acquisition, contention polling, release — run entirely in the browser.
+By default, `FileLock` performs all filesystem operations through the real Node.js `fs` module (atomic rename on disk). These demos inject an in-memory `@studnicky/virtual-fs/browser` `VirtualFileSystem` so the exact same lock semantics — atomic rename-based acquisition, contention polling, release — run entirely in the browser.
 
 ### Native Web Locks
 
@@ -156,23 +155,23 @@ import { FileLockOptionsEntity } from '@studnicky/file-lock/entities';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `FileLock` | Provides filesystem lock functionality. | `@studnicky/file-lock/node` |
-| `FileLockConfigError` | Represents file lock config failures. | `@studnicky/file-lock` |
-| `FileLockContentionError` | Represents an unsuccessful atomic lock acquisition. | `@studnicky/file-lock` |
-| `FileLockCreateOptionsInterface` | Defines the filesystem lock create options contract. | `@studnicky/file-lock/node` |
-| `FileLockError` | Represents file lock failures. | `@studnicky/file-lock` |
+| `FileLockConfigError` | Represents file lock config failures. | `@studnicky/file-lock/node` |
+| `FileLockContentionError` | Represents an unsuccessful atomic lock acquisition. | `@studnicky/file-lock/node` |
+| `FileLockCreateOptionsInterface` | Defines the filesystem lock create options contract. | `@studnicky/file-lock/interfaces` |
+| `FileLockError` | Represents file lock failures. | `@studnicky/file-lock/node` |
 | `FileLockInspection` | Inspects a lock path without changing it. | `@studnicky/file-lock/node` |
-| `FileLockInspectionOptionsInterface` | Defines the lock inspection input contract. | `@studnicky/file-lock/node` |
+| `FileLockInspectionOptionsInterface` | Defines the lock inspection input contract. | `@studnicky/file-lock/interfaces` |
 | `FileLockRecovery` | Recovers an explicitly verified stale lock. | `@studnicky/file-lock/node` |
-| `FileLockRecoveryConflictError` | Represents recovery blocked by a changed lock state. | `@studnicky/file-lock` |
-| `FileLockRecoveryOptionsInterface` | Defines the explicit stale-lock recovery contract. | `@studnicky/file-lock/node` |
-| `FileLockTimeoutError` | Represents file lock timeout failures. | `@studnicky/file-lock` |
+| `FileLockRecoveryConflictError` | Represents recovery blocked by a changed lock state. | `@studnicky/file-lock/node` |
+| `FileLockRecoveryOptionsInterface` | Defines the explicit stale-lock recovery contract. | `@studnicky/file-lock/interfaces` |
+| `FileLockTimeoutError` | Represents file lock timeout failures. | `@studnicky/file-lock/node` |
 | `FileRenameLock` | Provides atomic rename-based acquire and release. | `@studnicky/file-lock/node` |
-| `FileRenameLockCreateOptionsInterface` | Defines the atomic rename-lock construction contract. | `@studnicky/file-lock/node` |
+| `FileRenameLockCreateOptionsInterface` | Defines the atomic rename-lock construction contract. | `@studnicky/file-lock/interfaces` |
 | `NodeOwnerLiveness` | Checks Node process liveness for a lock owner. | `@studnicky/file-lock/node` |
-| `OwnerLivenessInterface` | Defines a lock-owner liveness check. | `@studnicky/file-lock/node` |
-| `OwnerTokenInterface` | Defines the owner token contract. | `@studnicky/file-lock/node` |
-| `LockInterface` | Defines the shared release lifecycle. | `@studnicky/file-lock` |
+| `OwnerLivenessInterface` | Defines a lock-owner liveness check. | `@studnicky/file-lock/interfaces` |
+| `OwnerTokenInterface` | Defines the owner token contract. | `@studnicky/file-lock/interfaces` |
+| `LockInterface` | Defines the shared release lifecycle. | `@studnicky/file-lock/interfaces` |
 | `WebLock` | Acquires an exclusive native browser lock. | `@studnicky/file-lock/browser` |
-| `WebLockCreateOptionsInterface` | Defines native browser lock acquisition options. | `@studnicky/file-lock/browser` |
-| `WebLockManagerInterface` | Defines the native lock-manager dependency surface. | `@studnicky/file-lock/browser` |
-| `WebLockOptionsEntity` | Validates browser lock acquisition options. | `@studnicky/file-lock/browser` |
+| `WebLockCreateOptionsInterface` | Defines native browser lock acquisition options. | `@studnicky/file-lock/interfaces` |
+| `WebLockManagerInterface` | Defines the native lock-manager dependency surface. | `@studnicky/file-lock/interfaces` |
+| `WebLockOptionsEntity` | Validates browser lock acquisition options. | `@studnicky/file-lock/entities` |

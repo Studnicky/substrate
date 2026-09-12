@@ -26,10 +26,10 @@
  * `tokens` value is accepted but ignored: every `consume()` call, regardless
  * of what is passed, is treated as exactly one admitted request.
  */
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { SchemaValidator } from '@studnicky/json';
-import { RaceTimeout, Signal } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { SchemaValidator } from '@studnicky/json/node';
+import { RaceTimeout, Signal } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 

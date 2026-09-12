@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 
 import type { JSONSchema7Type } from 'json-schema';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
 import {

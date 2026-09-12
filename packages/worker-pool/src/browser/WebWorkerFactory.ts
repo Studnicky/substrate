@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { WorkerFactoryInterface, WorkerObservationInterface } from '../interfaces/index.js';
 import type { WebWorkerFactoryOptionsInterface } from './WebWorkerFactoryOptionsInterface.js';

@@ -15,7 +15,7 @@ pnpm add @studnicky/cache
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/cache` exposes runtime cache operations at its root and schema namespaces at `@studnicky/cache/entities`.
+`@studnicky/cache/node` exports runtime cache operations; schemas remain available from `@studnicky/cache/entities`.
 
 ## Usage
 
@@ -41,8 +41,8 @@ Pass `ttlMs` to expire entries automatically. Eviction is lazy: entries are remo
 
 <!-- inline-ts-ok: focused dependency-injection illustration; the runnable cache examples cover observable behavior. -->
 ```typescript
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
-import { LruCache } from '@studnicky/cache';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
+import { LruCache } from '@studnicky/cache/node';
 
 const counter = VirtualTimeCounter.create({ startMs: 0 });
 const cache = LruCache.create<string, string>({
@@ -120,9 +120,9 @@ import { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `LruCache` | Stores bounded least-recently-used values with optional expiry. | `@studnicky/cache` |
-| `CacheConfigError` | Represents invalid cache configuration. | `@studnicky/cache` |
-| `CacheError` | Base error for cache failures. | `@studnicky/cache` |
-| `LruCacheCreateOptionsInterface` | Defines cache settings and the clock collaborator. | `@studnicky/cache` |
+| `LruCache` | Stores bounded least-recently-used values with optional expiry. | `@studnicky/cache/node` |
+| `CacheConfigError` | Represents invalid cache configuration. | `@studnicky/cache/node` |
+| `CacheError` | Base error for cache failures. | `@studnicky/cache/node` |
+| `LruCacheCreateOptionsInterface` | Defines cache settings and the clock collaborator. | `@studnicky/cache/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/cache)

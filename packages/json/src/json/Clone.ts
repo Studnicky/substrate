@@ -1,6 +1,6 @@
 /** Deep cloning for JavaScript values. */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class Clone {
   /** Clone an array element-by-element. */

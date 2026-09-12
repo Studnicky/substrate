@@ -1,5 +1,5 @@
-import { Semaphore } from '@studnicky/concurrency';
-import { Predicates } from '@studnicky/types';
+import { Semaphore } from '@studnicky/concurrency/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { WorkerFactoryInterface } from './interfaces/WorkerFactoryInterface.js';
 import type { WorkerLeaseInterface } from './interfaces/WorkerLeaseInterface.js';

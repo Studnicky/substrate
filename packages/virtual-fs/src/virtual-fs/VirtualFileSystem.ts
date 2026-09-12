@@ -1,6 +1,6 @@
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';

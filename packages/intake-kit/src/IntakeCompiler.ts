@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { EntityCreateFunctionInterface } from './interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFunctionInterface.js';

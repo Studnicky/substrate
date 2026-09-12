@@ -4,10 +4,10 @@
  * four primitives by hand, including the lifecycle hook points RequestExecutor brackets the
  * retry loop with. Compare with observedRequestExecutor.ts, which does identical work through
  * the kit. Run: npx tsx examples/directComposition.ts */
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import { FetchClient } from '@studnicky/fetch/node';
-import { Retry } from '@studnicky/retry';
-import { Signal } from '@studnicky/signal';
+import { Retry } from '@studnicky/retry/node';
+import { Signal } from '@studnicky/signal/node';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 

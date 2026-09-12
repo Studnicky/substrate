@@ -1,4 +1,4 @@
-import { LruCache } from '@studnicky/cache';
+import { LruCache } from '@studnicky/cache/node';
 
 export class SuffixMatcher {
   private static readonly skipTables = LruCache.create<string, ReadonlyMap<string, number>>({ 'capacity': 256 });

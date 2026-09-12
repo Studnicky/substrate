@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/browser';
 
+import { ProjectHostRegistry } from '../../runtime/ProjectHostRegistry.js';
 import { AstHelpers } from './astHelpers.js';
 import { PackageBoundary } from './PackageBoundary.js';
 
@@ -44,6 +45,7 @@ export class SchemaMemberGuards {
     const result = PackageBoundary.isSourceForPackage(
       declaration.getSourceFile(),
       services.program,
+      ProjectHostRegistry.hostFor(context),
       '@enginseer/entities',
       'src/SchemaValidator.ts'
     );

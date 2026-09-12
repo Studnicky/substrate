@@ -1,9 +1,9 @@
-import { RuntimeError, BaseError } from '@studnicky/errors';
+import { RuntimeError, BaseError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { WorkerFactoryInterface, WorkerObservationInterface, WorkerTransportInterface } from '../../../src/index.js';
 import { WorkerLeasePool } from '../../../src/index.js';

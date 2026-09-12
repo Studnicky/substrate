@@ -1,4 +1,4 @@
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 

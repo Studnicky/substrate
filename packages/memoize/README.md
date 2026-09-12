@@ -25,7 +25,7 @@ pnpm add @studnicky/memoize
 ## Usage
 
 ```typescript
-import { Memoize } from '@studnicky/memoize';
+import { Memoize } from '@studnicky/memoize/node';
 
 const memo = Memoize.create(
   (userId: string) => fetchUser(userId),
@@ -93,7 +93,7 @@ The composed `LruCache` and `Coalesce` remain private. Callers control cached st
 Subclass `Memoize` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library.
 
 ```typescript
-import { Memoize } from '@studnicky/memoize';
+import { Memoize } from '@studnicky/memoize/node';
 
 class TelemetryMemoize extends Memoize<[string], User> {
   readonly events: string[] = [];

@@ -7,7 +7,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { regexpInLoops } from '../../../src/rules/v8/regexpInLoops.js';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import scenarioGroups from './regexpInLoops.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {

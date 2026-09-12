@@ -35,7 +35,7 @@ The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice 
 
 ## Public API
 
-Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry`. Configuration is parsed at the boundary through `RetryConfigEntity.intake`, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
+Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry/node`. Configuration is parsed at the boundary through `RetryConfigEntity.intake`, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
 
 ## Custom error classification
 
@@ -81,10 +81,10 @@ import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BackoffStrategy` | Provides backoff strategy functionality. | `@studnicky/retry` |
-| `BackoffStrategyInterface` | Defines the backoff strategy contract. | `@studnicky/retry` |
-| `Retry` | Provides retry functionality. | `@studnicky/retry` |
-| `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry` |
-| `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry` |
-| `RetryError` | Represents retry failures. | `@studnicky/retry` |
+| `BackoffStrategy` | Provides backoff strategy functionality. | `@studnicky/retry/node` |
+| `BackoffStrategyInterface` | Defines the backoff strategy contract. | `@studnicky/retry/interfaces` |
+| `Retry` | Provides retry functionality. | `@studnicky/retry/node` |
+| `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry/node` |
+| `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry/node` |
+| `RetryError` | Represents retry failures. | `@studnicky/retry/node` |
 | `RetryConfigInterface` | Defines retry settings and the optional clock collaborator. | `@studnicky/retry/interfaces` |

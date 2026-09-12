@@ -8,12 +8,12 @@
  * through Signal. Run: npx tsx examples/observedProcessKit.ts */
 
 // #region usage
-import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm/node';
 
-import { VirtualTimeCounter } from '@studnicky/clock';
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
-import { VirtualScheduler } from '@studnicky/scheduler';
-import { Signal } from '@studnicky/signal';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
+import { Signal } from '@studnicky/signal/node';
 import assert from 'node:assert/strict';
 
 import type { JobEffectEntity } from './entities/JobEffectEntity.js';

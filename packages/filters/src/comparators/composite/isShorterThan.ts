@@ -2,7 +2,7 @@
  * Checks if a value's length/size/magnitude is shorter/less than a threshold
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 /**
  * Supported types:

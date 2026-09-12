@@ -67,7 +67,7 @@ Compile a JSON Schema 2020-12 document into a reusable type-guard predicate, bac
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 export namespace RecordEntity {
   export const Schema = {
@@ -161,18 +161,18 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Clone` | Provides clone functionality. | `@studnicky/json` |
-| `DataType` | Provides data type functionality. | `@studnicky/json` |
-| `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json` |
-| `Frozen` | Provides frozen functionality. | `@studnicky/json` |
-| `Hash` | Provides hash functionality. | `@studnicky/json` |
-| `Merge` | Provides merge functionality. | `@studnicky/json` |
-| `Patch` | Provides patch functionality. | `@studnicky/json` |
-| `Path` | Provides path functionality. | `@studnicky/json` |
-| `Sort` | Provides sort functionality. | `@studnicky/json` |
-| `StructuralHash` | Provides structural hash functionality. | `@studnicky/json` |
-| `SchemaValidator` | Provides schema validator functionality. | `@studnicky/json` |
-| `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json` |
-| `JsonError` | Represents json failures. | `@studnicky/json` |
-| `PatchError` | Represents patch failures. | `@studnicky/json` |
-| `SchemaIntakeError` | Represents schema intake failures. | `@studnicky/json` |
+| `Clone` | Provides clone functionality. | `@studnicky/json/node` |
+| `DataType` | Provides data type functionality. | `@studnicky/json/node` |
+| `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json/node` |
+| `Frozen` | Provides frozen functionality. | `@studnicky/json/node` |
+| `Hash` | Provides hash functionality. | `@studnicky/json/node` |
+| `Merge` | Provides merge functionality. | `@studnicky/json/node` |
+| `Patch` | Provides patch functionality. | `@studnicky/json/node` |
+| `Path` | Provides path functionality. | `@studnicky/json/node` |
+| `Sort` | Provides sort functionality. | `@studnicky/json/node` |
+| `StructuralHash` | Provides structural hash functionality. | `@studnicky/json/node` |
+| `SchemaValidator` | Provides schema validator functionality. | `@studnicky/json/node` |
+| `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json/node` |
+| `JsonError` | Represents json failures. | `@studnicky/json/node` |
+| `PatchError` | Represents patch failures. | `@studnicky/json/node` |
+| `SchemaIntakeError` | Represents schema intake failures. | `@studnicky/json/node` |

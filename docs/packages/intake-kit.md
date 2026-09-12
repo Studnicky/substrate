@@ -30,7 +30,7 @@ Provide a parser that returns the entity or `undefined`, an entity name for diag
 
 <!-- inline-ts-ok: illustrates the generic parser/config shape, not a runnable example against a concrete entity. -->
 ```typescript
-import { IntakeCompiler } from '@studnicky/intake-kit';
+import { IntakeCompiler } from '@studnicky/intake-kit/node';
 
 const parser: IntakeCompiler.ParserInterface<MyEntity> = (candidate, options) => {
   // Return an entity when `candidate` is valid for the selected parser mode.
@@ -51,7 +51,7 @@ Use `BoundaryCycleGuard.hasCycle(value)` before cloning, serializing, or otherwi
 
 <!-- inline-ts-ok: conceptual cycle-detection example; no package example fixture exists. -->
 ```typescript
-import { BoundaryCycleGuard } from '@studnicky/intake-kit';
+import { BoundaryCycleGuard } from '@studnicky/intake-kit/node';
 
 const payload: { parent?: unknown } = {};
 payload.parent = payload;
@@ -61,13 +61,20 @@ if (BoundaryCycleGuard.hasCycle(payload)) {
 }
 ```
 
+
+## Try it
+
+Run one intake boundary, confirm that `create` rejects undeclared owned-object fields, and check an acyclic and cyclic value graph.
+
+<RunnableExample src="packages/intake-kit/examples/intakeCompiler" title="Intake compilation and cycle detection" />
+
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/intake-kit)
 
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/intake-kit` |
-| `IntakeCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/intake-kit` |
-| `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/intake-kit` |
-| `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/intake-kit` |
+| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/intake-kit/node` |
+| `IntakeCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/intake-kit/node` |
+| `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/intake-kit/interfaces` |
+| `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/intake-kit/interfaces` |

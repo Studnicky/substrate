@@ -6,7 +6,7 @@
 
 A fixed-capacity sliding window of numeric samples. When the buffer reaches capacity, the oldest sample is automatically evicted to make room for the new one. Supports percentile calculation with linear interpolation and extensible lifecycle hooks.
 
-`@studnicky/sample-buffer` exposes runtime operations at its root, schemas at `@studnicky/sample-buffer/entities`, and type contracts at `@studnicky/sample-buffer/interfaces`.
+Runtime operations are available from `@studnicky/sample-buffer/node`, schemas from `@studnicky/sample-buffer/entities`, and type contracts from `@studnicky/sample-buffer/interfaces`.
 
 ## Install
 
@@ -23,7 +23,7 @@ pnpm add @studnicky/sample-buffer
 ## Usage
 
 ```typescript
-import { SampleBuffer } from '@studnicky/sample-buffer';
+import { SampleBuffer } from '@studnicky/sample-buffer/node';
 
 const buffer = SampleBuffer.create({ capacity: 5 });
 
@@ -61,7 +61,7 @@ console.log(buffer.length);  // 0
 Override the protected lifecycle hooks to observe buffer events without modifying the core logic:
 
 ```typescript
-import { SampleBuffer } from '@studnicky/sample-buffer';
+import { SampleBuffer } from '@studnicky/sample-buffer/node';
 
 class TrackedBuffer extends SampleBuffer {
   readonly evicted: number[] = [];

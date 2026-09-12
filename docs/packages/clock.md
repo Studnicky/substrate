@@ -21,7 +21,7 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 ## Public API
 
-Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, `ClockProviderInterface`, and `ClockError` from `@studnicky/clock`. Provider and counter option entities use `@studnicky/clock/entities`. Construct each stateful primitive through its root-exported `create(...)` method.
+Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, and `ClockError` from `@studnicky/clock/node`; import `ClockProviderInterface` from `@studnicky/clock/interfaces`. Provider and counter option entities use `@studnicky/clock/entities`. Construct each stateful primitive through its `create(...)` method.
 
 ## Virtual time control
 
@@ -60,7 +60,8 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 <!-- inline-ts-ok: conceptual subclass pattern; no standalone runnable example exists for Clock subclassing -->
 ```typescript
-import { Clock, type ClockProviderInterface } from '@studnicky/clock';
+import { Clock } from '@studnicky/clock/node';
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
 
 class TrackedClock extends Clock {
   protected override readHrtime(): bigint {
@@ -108,9 +109,9 @@ import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Clock` | Provides clock functionality. | `@studnicky/clock` |
-| `ClockError` | Represents clock failures. | `@studnicky/clock` |
-| `ClockProviderInterface` | Defines the clock provider contract. | `@studnicky/clock` |
-| `RealTimeClockProvider` | Provides real time clock provider functionality. | `@studnicky/clock` |
-| `VirtualClockProvider` | Provides virtual clock provider functionality. | `@studnicky/clock` |
-| `VirtualTimeCounter` | Provides virtual time counter functionality. | `@studnicky/clock` |
+| `Clock` | Provides clock functionality. | `@studnicky/clock/node` |
+| `ClockError` | Represents clock failures. | `@studnicky/clock/node` |
+| `ClockProviderInterface` | Defines the clock provider contract. | `@studnicky/clock/interfaces` |
+| `RealTimeClockProvider` | Provides real time clock provider functionality. | `@studnicky/clock/node` |
+| `VirtualClockProvider` | Provides virtual clock provider functionality. | `@studnicky/clock/node` |
+| `VirtualTimeCounter` | Provides virtual time counter functionality. | `@studnicky/clock/node` |

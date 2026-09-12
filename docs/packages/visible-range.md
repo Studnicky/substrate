@@ -37,7 +37,7 @@ The output shows fixed-mode `onRangeChange` firing only when the computed range 
 
 <!-- inline-ts-ok: conceptual error-handling snippet, not backed by a runnable example file -->
 ```typescript
-import { VisibleRange, VisibleRangeError } from '@studnicky/visible-range';
+import { VisibleRange, VisibleRangeError } from '@studnicky/visible-range/node';
 
 try {
   VisibleRange.create({ count: 100 }); // neither itemSize nor estimateSize supplied
@@ -63,7 +63,7 @@ Subclass `VisibleRange` and override the protected hook to inject trace logging,
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
-Import `VisibleRange`, `VisibleRangeEntity`, `VisibleRangeConfigInterface`, and `VisibleRangeError` from `@studnicky/visible-range`. The package declares separate root, entity, and interface import surfaces.
+Import `VisibleRange` and `VisibleRangeError` from `@studnicky/visible-range/node`, `VisibleRangeEntity` from `@studnicky/visible-range/entities`, and `VisibleRangeConfigInterface` from `@studnicky/visible-range/interfaces`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/visible-range)
 
@@ -89,5 +89,5 @@ import type { VisibleRangeConfigInterface } from '@studnicky/visible-range/inter
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `VisibleRange` | Provides visible range functionality. | `@studnicky/visible-range` |
-| `VisibleRangeError` | Represents visible range failures. | `@studnicky/visible-range` |
+| `VisibleRange` | Provides visible range functionality. | `@studnicky/visible-range/node` |
+| `VisibleRangeError` | Represents visible range failures. | `@studnicky/visible-range/node` |

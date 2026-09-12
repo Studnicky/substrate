@@ -2,8 +2,8 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Clone, SchemaIntakeError, SchemaValidator } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { Clone, SchemaIntakeError, SchemaValidator } from '@studnicky/json/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { DispatcherConfigEntity } from './DispatcherConfigEntity.js';
 import { FetchRequestOptionsEntity } from './FetchRequestOptionsEntity.js';

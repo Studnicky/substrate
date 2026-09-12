@@ -1,5 +1,5 @@
-import { LruCache } from '@studnicky/cache';
-import { Predicates } from '@studnicky/types';
+import { LruCache } from '@studnicky/cache/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { JsonPropertyTypeEntity } from '../entities/JsonPropertyTypeEntity.js';
 import type { NumericGroupEntity } from '../entities/NumericGroupEntity.js';

@@ -22,8 +22,8 @@
  */
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
-import { BoundaryCycleGuard } from '@studnicky/intake-kit';
-import { JsonObject, JsonValue, Predicates } from '@studnicky/types';
+import { BoundaryCycleGuard } from '@studnicky/intake-kit/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
 
 import type { SchemaCreateFunctionInterface } from '../interfaces/SchemaCreateFunctionInterface.js';
 import type { SchemaIntakeFunctionInterface } from '../interfaces/SchemaIntakeFunctionInterface.js';

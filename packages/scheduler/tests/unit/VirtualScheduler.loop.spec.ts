@@ -1,4 +1,4 @@
-import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors';
+import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
 /**
  * Unit tests for `VirtualScheduler`.
  * Requires `@studnicky/clock` — `VirtualTimeCounter` and `VirtualClockProvider`.
@@ -6,7 +6,7 @@ import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/error
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
 
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';

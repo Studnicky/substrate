@@ -23,7 +23,7 @@ pnpm add @studnicky/clock
 ### Production — real wall-clock time
 
 ```ts
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
 
 const provider = RealTimeClockProvider.create();
 const clock = Clock.create(provider);
@@ -43,7 +43,7 @@ const clock = Clock.create(skewed);
 ### Testing — deterministic virtual time
 
 ```ts
-import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
 const counter = VirtualTimeCounter.create();         // start at epoch-ms 0
 const provider = VirtualClockProvider.create(counter);
@@ -73,8 +73,8 @@ console.log(clockB.now()); // 200
 `ClockProviderInterface` is the DI seam — implement it to inject any time source:
 
 ```ts
-import type { ClockProviderInterface } from '@studnicky/clock';
-import { Clock } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
+import { Clock } from '@studnicky/clock/node';
 
 class FixedClockProvider implements ClockProviderInterface {
   hrtime(): bigint { return 42_000_000n; }

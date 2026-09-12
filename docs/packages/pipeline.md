@@ -36,7 +36,7 @@ The hooks demo subclasses `Pipeline` and overrides all eight protected lifecycle
 
 ## Public API
 
-Import `Pipeline` and `PipelineError` from `@studnicky/pipeline`; import schema namespaces from `@studnicky/pipeline/entities` and type contracts from `@studnicky/pipeline/interfaces`.
+Import `Pipeline` and `PipelineError` from `@studnicky/pipeline/node`; import schema namespaces from `@studnicky/pipeline/entities` and type contracts from `@studnicky/pipeline/interfaces`.
 
 ## Extending
 
@@ -92,7 +92,7 @@ import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Pipeline` | Runs typed transformation stages in sequence. | `@studnicky/pipeline` |
-| `PipelineError` | Represents pipeline execution failures. | `@studnicky/pipeline` |
+| `Pipeline` | Runs typed transformation stages in sequence. | `@studnicky/pipeline/node` |
+| `PipelineError` | Represents pipeline execution failures. | `@studnicky/pipeline/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

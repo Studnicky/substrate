@@ -8,6 +8,7 @@ import { Linter, RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 import ts from 'typescript';
 
+import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { descriptiveIdentifiers } from '../../src/rules/descriptiveIdentifiers.js';
 import scenarioGroups from './descriptiveIdentifiers.scenarios.json' with { type: 'json' };
 
@@ -70,6 +71,7 @@ void describe('descriptive-identifiers', () => {
         files: ['**/*.ts'],
         languageOptions: { parser, parserOptions: { programs: [program], tsconfigRootDir: root } },
         plugins: { test: { rules: { 'descriptive-identifiers': descriptiveIdentifiers } } },
+        settings: { '@studnicky/projectHost': new NodeProjectHost() },
         rules: { 'test/descriptive-identifiers': 'error' }
       }], { filename: entry });
 

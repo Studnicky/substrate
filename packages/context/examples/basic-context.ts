@@ -1,9 +1,8 @@
 /** basic-context — complete create → initialize → execute → terminate lifecycle. Run: npx tsx packages/context/examples/basic-context.ts */
 
-import assert from 'node:assert/strict';
-
 // #region usage
-import { Context } from '../src/index.js';
+import { Context } from '@studnicky/context/node';
+import assert from 'node:assert/strict';
 
 const context = Context.create({ 'name': 'request' });
 

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/topic-router)
 
-`TopicRouter` owns a subscription registry, resolution of registered IDs, immutable delivery envelopes, and fan-out. It does not select an algorithm, score a candidate, require a cascade, or impose an eligibility policy. Supply a matcher or candidate source from `@studnicky/matching`, then compose any selection policy outside the router.
+`TopicRouter` owns a subscription registry, resolution of registered IDs, immutable delivery envelopes, and fan-out. It does not select an algorithm, score a candidate, require a cascade, or impose an eligibility policy. Supply a matcher or candidate source from `@studnicky/matching/node`, then compose any selection policy outside the router.
 
 This package is not an HTTP or RPC router. It delivers every selected subscription for one topic; request routing selects one primary handler.
 
@@ -23,8 +23,8 @@ pnpm add @studnicky/topic-router
 ## Usage
 
 ```ts
-import { TreeMatcher } from '@studnicky/matching';
-import { TopicRouter } from '@studnicky/topic-router';
+import { TreeMatcher } from '@studnicky/matching/node';
+import { TopicRouter } from '@studnicky/topic-router/node';
 
 const candidates = new TreeMatcher();
 candidates.register('audit', 'api.**');

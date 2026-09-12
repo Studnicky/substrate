@@ -8,7 +8,7 @@
 
 The file must exist at the given path before calling `create`. If the file is absent or already locked by another process, `create` throws `FileLockTimeoutError` after the configured timeout. The `FileLock` instance exposes `read` and `write` for operating on the locked file, and `release` (or `Symbol.dispose`) to return it to its original path.
 
-Serializable configuration and retained path state are canonicalized by `FileLockOptionsEntity` and `FileLockPathStateEntity`, both exported from the package root with runtime validators. `FileLockCreateOptionsInterface` adds live filesystem, owner-token, clock, and scheduler collaborators while indexing its data fields from `FileLockOptionsEntity.Type`.
+Serializable configuration and retained path state are canonicalized by `FileLockOptionsEntity` and `FileLockPathStateEntity`, both exported from `@studnicky/file-lock/entities` with runtime validators. `FileLockCreateOptionsInterface` adds live filesystem, owner-token, clock, and scheduler collaborators while indexing its data fields from `FileLockOptionsEntity.Type`.
 
 ## Install
 
@@ -27,7 +27,7 @@ pnpm add @studnicky/file-lock
 ### Acquire, read, write, release
 
 ```typescript
-import { FileLock } from '@studnicky/file-lock';
+import { FileLock } from '@studnicky/file-lock/node';
 
 const lock = await FileLock.create({ path: '/data/config.json' });
 
@@ -44,7 +44,7 @@ try {
 ### Automatic release with `await using`
 
 ```typescript
-import { FileLock } from '@studnicky/file-lock';
+import { FileLock } from '@studnicky/file-lock/node';
 
 {
   await using lock = await FileLock.create({ path: '/data/config.json' });
@@ -55,7 +55,7 @@ import { FileLock } from '@studnicky/file-lock';
 ### Custom poll and timeout
 
 ```typescript
-import { FileLock } from '@studnicky/file-lock';
+import { FileLock } from '@studnicky/file-lock/node';
 
 const lock = await FileLock.create({
   path: '/data/config.json',
@@ -77,7 +77,7 @@ try {
 ### Handling lock contention
 
 ```typescript
-import { FileLock, FileLockTimeoutError } from '@studnicky/file-lock';
+import { FileLock, FileLockTimeoutError } from '@studnicky/file-lock/node';
 
 try {
   const lock = await FileLock.create({ path: '/data/config.json', timeoutMs: 2000 });

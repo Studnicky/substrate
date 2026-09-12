@@ -5,33 +5,33 @@ description: The public-path, ownership, and extension contracts behind Substrat
 
 # Architecture
 
-Substrate primitives follow one public path and one ownership model. Package roots own their public behavior and contracts, stateful classes use a direct factory and direct operation methods, and protected seams support application-specific behavior without infrastructure coupling.
+Substrate primitives follow one public entrypoint convention and one ownership model. Runtime behavior uses `/node` or `/browser`; schemas and contracts use `/entities` and `/interfaces`. Stateful classes use a direct factory and direct operation methods, and protected seams support application-specific behavior without infrastructure coupling.
 
-## 1. One public path
+## 1. Public entrypoints
 
 Consumers use one canonical sequence:
 
-1. Import package-owned symbols from `@studnicky/<package>`.
+1. Import runtime behavior from `@studnicky/<package>/node` or `@studnicky/<package>/browser`, and import runtime-neutral schemas or contracts from `/entities` or `/interfaces`.
 2. Construct a stateful primitive through `Class.create(config)`.
 3. Invoke its direct operation methods.
 
-<!-- inline-ts-ok: conceptual root-import and direct-construction example -->
+<!-- inline-ts-ok: conceptual Node-entrypoint and direct-construction example -->
 ```typescript
-import { Retry } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry/node';
 
 const retry = Retry.create({ maxRetries: 3 });
 const result = await retry.execute(async () => loadRecord());
 ```
 
-Root imports and direct factories define the public API. Protected constructors keep creation inside the factory path while allowing inherited factories to construct subclasses.
+Runtime entrypoints and direct factories define the public API. Protected constructors keep creation inside the factory path while allowing inherited factories to construct subclasses.
 
 ## 2. Subclass-first seams
 
 Public methods delegate to documented protected seams. Passive observer hooks have no-op defaults; behavioral seams transform, classify, or intercept an operation in-band.
 
-<!-- inline-ts-ok: conceptual subclass seam using a published root import and application metric sink -->
+<!-- inline-ts-ok: conceptual subclass seam using a published Node entrypoint and application metric sink -->
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 
 class MeteredThrottle extends Throttle {
   protected override onAcquire(activeCount: number, queuedCount: number): void {
@@ -51,7 +51,7 @@ The base class documents each extension site. Observer hooks observe committed w
 
 ## 3. Dependency ownership
 
-Composition packages expose the ordering, failure, or aggregation behavior they own. They do not proxy-export dependency functionality. Consumers import dependency-owned values and types from that dependency's root.
+Composition packages expose the ordering, failure, or aggregation behavior they own. They do not proxy-export dependency functionality. Consumers import dependency-owned values and types from that dependency's canonical public entrypoint.
 
 A caller retains references to configured collaborators when it needs their state or lifecycle API. Composition classes do not add scheduler, cache, retry, signal, timing, or context getters merely to mirror their dependencies. `BoundedDispatcher.getBus()` is a functional operation: it supplies the dispatcher-owned bus used to subscribe to and drain dispatch publications.
 
@@ -61,7 +61,7 @@ Bare primitives never require a logger, metric backend, storage service, transpo
 
 <!-- inline-ts-ok: conceptual production extension with an application-owned logger -->
 ```typescript
-import { Retry } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry/node';
 
 class AppRetry extends Retry {
   protected override onGiveUp(
@@ -106,7 +106,7 @@ flowchart TD
     Consumer -->|"compose"| MatchingAndRouting
 ```
 
-Text equivalent: consumer code creates or subclasses a stateful primitive, makes a static call into a stateless utility, and composes matching/routing tools with its own policies and collaborators. Cross-package composition retains one owning package for each behavior and one root import for each owner.
+Text equivalent: consumer code creates or subclasses a stateful primitive, makes a static call into a stateless utility, and composes matching/routing tools with its own policies and collaborators. Cross-package composition retains one owning package for each behavior and one canonical public entrypoint for each owner.
 
 ## FSM overview
 

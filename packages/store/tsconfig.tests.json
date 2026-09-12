@@ -10,6 +10,7 @@
   "exclude": ["dist", "node_modules"],
   "references": [
     { "path": "./tsconfig.json" },
+    { "path": "../context" },
     { "path": "../json" },
     { "path": "../mutex" }
   ]

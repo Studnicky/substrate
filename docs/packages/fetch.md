@@ -13,9 +13,7 @@ description: Portable fetch contracts with Node Undici and browser-native adapte
 pnpm add @studnicky/fetch
 ```
 
-`@studnicky/fetch` exports portable contracts, errors, and URL utilities. The Node client and
-Undici connection pooling are available from `@studnicky/fetch/node`. Browser applications use
-`@studnicky/fetch/browser`, whose `BrowserFetchClient` delegates directly to native `fetch`.
+Import Node runtime APIs from `@studnicky/fetch/node` and browser runtime APIs from `@studnicky/fetch/browser`. Package-owned interfaces and entities retain their canonical `@studnicky/fetch/interfaces` and `@studnicky/fetch/entities` subpaths. `BrowserFetchClient` delegates directly to native `fetch`.
 
 `FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
 
@@ -61,7 +59,7 @@ A real `GET` over native `fetch`, with override hooks and a timeout — press Ru
 
 `ClientConfigDataEntity.intake` is the configuration data boundary. It accepts the JSON-shaped configuration fields (`autoGenerateRequestId`, `baseURL`, pool `dispatcher` settings, headers, hook timeout, metadata, default options, parameters, and timeout), clones and normalizes them, and rejects invalid data. `FetchClient` translates a failed intake to `ConfigurationError`.
 
-`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. `signal` accepts an injected `@studnicky/signal` `Signal` composer, which combines each request timeout and caller `AbortSignal` identically in Node and browser clients. `clock` accepts a `ClockProviderInterface` and measures Node request lifecycle durations. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
+`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. `signal` accepts an injected `@studnicky/signal/node` `Signal` composer, which combines each request timeout and caller `AbortSignal` identically in Node and browser clients. `clock` accepts a `ClockProviderInterface` and measures Node request lifecycle durations. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
 
 `@studnicky/fetch/entities` exports every schema namespace in `src/entities`, including client and dispatcher configuration, request and response metadata, events, and dispatcher health data.
 
@@ -85,27 +83,27 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 |---|---|---|
 | `FetchClient` | Creates configured Node HTTP clients. | `@studnicky/fetch/node` |
 | `UndiciDispatcher` | Manages a caller-owned undici connection pool. | `@studnicky/fetch/node` |
-| `UrlQueryString` | Builds and parses URL query strings. | `@studnicky/fetch` |
+| `UrlQueryString` | Builds and parses URL query strings. | `@studnicky/fetch/node` |
 | `DEFAULT_DISPATCHER_CONFIG` | Provides default connection-pool settings. | `@studnicky/fetch/node` |
-| `AbortError` | Represents caller-aborted requests. | `@studnicky/fetch` |
-| `BodyTimeoutError` | Represents response-body timeout failures. | `@studnicky/fetch` |
-| `ConfigurationError` | Represents invalid fetch configuration. | `@studnicky/fetch` |
-| `ConnectTimeoutError` | Represents connection timeout failures. | `@studnicky/fetch` |
-| `FetchBaseError` | Base error for fetch failures. | `@studnicky/fetch` |
-| `HeadersTimeoutError` | Represents response-header timeout failures. | `@studnicky/fetch` |
-| `HTTPError` | Represents non-success HTTP responses. | `@studnicky/fetch` |
-| `SocketError` | Represents socket failures. | `@studnicky/fetch` |
-| `SocketExhaustionError` | Represents exhausted connection pools. | `@studnicky/fetch` |
-| `TimeoutError` | Represents request timeout failures. | `@studnicky/fetch` |
-| `BodyRequestOptionsInterface` | Defines options for body-bearing requests. | `@studnicky/fetch` |
-| `ClientConfigInterface` | Defines configured-client options. | `@studnicky/fetch` |
-| `FetchClientInterface` | Defines the client contract for composition. | `@studnicky/fetch` |
-| `FetchOptionsInterface` | Defines options for non-body requests. | `@studnicky/fetch` |
-| `QueryParametersInterface` | Defines URL query parameter values. | `@studnicky/fetch` |
-| `RequestContextInterface` | Defines the request lifecycle context. | `@studnicky/fetch` |
-| `RequestIdGeneratorInterface` | Defines the request-ID collaborator contract. | `@studnicky/fetch` |
-| `ResponseContextInterface` | Defines the response lifecycle context. | `@studnicky/fetch` |
-| `UndiciDispatcherInterface` | Defines the dispatcher lifecycle contract. | `@studnicky/fetch` |
+| `AbortError` | Represents caller-aborted requests. | `@studnicky/fetch/node` |
+| `BodyTimeoutError` | Represents response-body timeout failures. | `@studnicky/fetch/node` |
+| `ConfigurationError` | Represents invalid fetch configuration. | `@studnicky/fetch/node` |
+| `ConnectTimeoutError` | Represents connection timeout failures. | `@studnicky/fetch/node` |
+| `FetchBaseError` | Base error for fetch failures. | `@studnicky/fetch/node` |
+| `HeadersTimeoutError` | Represents response-header timeout failures. | `@studnicky/fetch/node` |
+| `HTTPError` | Represents non-success HTTP responses. | `@studnicky/fetch/node` |
+| `SocketError` | Represents socket failures. | `@studnicky/fetch/node` |
+| `SocketExhaustionError` | Represents exhausted connection pools. | `@studnicky/fetch/node` |
+| `TimeoutError` | Represents request timeout failures. | `@studnicky/fetch/node` |
+| `BodyRequestOptionsInterface` | Defines options for body-bearing requests. | `@studnicky/fetch/interfaces` |
+| `ClientConfigInterface` | Defines configured-client options. | `@studnicky/fetch/interfaces` |
+| `FetchClientInterface` | Defines the client contract for composition. | `@studnicky/fetch/interfaces` |
+| `FetchOptionsInterface` | Defines options for non-body requests. | `@studnicky/fetch/interfaces` |
+| `QueryParametersInterface` | Defines URL query parameter values. | `@studnicky/fetch/interfaces` |
+| `RequestContextInterface` | Defines the request lifecycle context. | `@studnicky/fetch/interfaces` |
+| `RequestIdGeneratorInterface` | Defines the request-ID collaborator contract. | `@studnicky/fetch/interfaces` |
+| `ResponseContextInterface` | Defines the response lifecycle context. | `@studnicky/fetch/interfaces` |
+| `UndiciDispatcherInterface` | Defines the dispatcher lifecycle contract. | `@studnicky/fetch/interfaces` |
 | `BrowserFetchClient` | Provides native browser fetch through the shared client contract. | `@studnicky/fetch/browser` |
 | `FetchTransport` | Routes browser requests to native fetch. | `@studnicky/fetch/browser` |
 

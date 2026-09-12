@@ -21,7 +21,7 @@ pnpm add @studnicky/json
 ## Usage
 
 ```ts
-import { Clone, DataType, Draft, Frozen, FrozenMutationError, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json';
+import { Clone, DataType, Draft, Frozen, FrozenMutationError, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json/node';
 
 // --- Merge ---
 const base = { a: 1, b: { x: 10, y: 20 } };
@@ -122,7 +122,7 @@ Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate, ba
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 export namespace RecordEntity {
   export const Schema = {
@@ -164,7 +164,7 @@ Import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts`, and impo
 All classes are pure-static (except `Patch`, which is instance-based). Each exposes `protected static` steps you can override in a subclass.
 
 ```ts
-import { Merge } from '@studnicky/json';
+import { Merge } from '@studnicky/json/node';
 
 // Concat arrays instead of replacing them
 class ConcatMerge extends Merge {
@@ -180,7 +180,7 @@ const result = ConcatMerge.deep({ tags: ['a'] }, { tags: ['b'] });
 Other useful overrides:
 
 ```ts
-import { Hash } from '@studnicky/json';
+import { Hash } from '@studnicky/json/node';
 
 // Include a custom salt in every hash
 class SaltedHash extends Hash {
@@ -189,7 +189,7 @@ class SaltedHash extends Hash {
   }
 }
 
-import { Frozen } from '@studnicky/json';
+import { Frozen } from '@studnicky/json/node';
 
 // Skip freezing class instances
 class SelectiveFrozen extends Frozen {

@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { GpuCacheComputedEventEntity } from './entities/GpuCacheComputedEventEntity.js';
 import type { GpuCacheComputedNoneStateEntity } from './entities/GpuCacheComputedNoneStateEntity.js';

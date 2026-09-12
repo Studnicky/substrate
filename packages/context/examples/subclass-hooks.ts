@@ -1,11 +1,10 @@
 /** subclass-hooks — override onInitialize to seed default values into every scope. Run: npx tsx packages/context/examples/subclass-hooks.ts */
 
-import assert from 'node:assert/strict';
-
 // #region usage
-import type { ContextScopeInterface } from '../src/interfaces/index.js';
+import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 
-import { Context } from '../src/index.js';
+import { Context } from '@studnicky/context/node';
+import assert from 'node:assert/strict';
 
 /**
  * A Context subclass that automatically seeds `_createdAt` on every scope.

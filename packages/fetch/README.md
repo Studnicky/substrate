@@ -6,7 +6,7 @@
 
 `@studnicky/fetch` wraps the native `fetch` API with a configured client and direct HTTP verb methods. Timeout, abort, body serialization, and dispatcher behavior all use the same request path. Timeout and caller cancellation compose through an optional injected `@studnicky/signal` `Signal` in both Node and browser clients. Node request durations compose through an optional `@studnicky/clock` provider. Observable behavior such as telemetry, logging, and tracing is added through lifecycle hooks.
 
-`@studnicky/fetch` exposes runtime APIs at its package root, schema entities from
+Runtime APIs are available from `@studnicky/fetch/node`, schema entities from
 `@studnicky/fetch/entities`, and TypeScript contracts from `@studnicky/fetch/interfaces`.
 
 `FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
@@ -26,7 +26,7 @@ pnpm add @studnicky/fetch
 ## Usage
 
 ```typescript
-import { FetchClient } from '@studnicky/fetch';
+import { FetchClient } from '@studnicky/fetch/node';
 
 const api = FetchClient.create({
   baseURL: 'https://api.example.com',
@@ -46,7 +46,7 @@ const users = await response.json();
 `FetchClient` provides three protected hook points that subclasses override to add telemetry. The base class hooks are no-ops — all observability is supplied by the subclass:
 
 ```typescript
-import { FetchClient } from '@studnicky/fetch';
+import { FetchClient } from '@studnicky/fetch/node';
 
 class TracedClient extends FetchClient {
   protected override onRequestStart(method: string, path: string, requestId: string, url: string): void {

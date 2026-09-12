@@ -23,7 +23,7 @@ pnpm add @studnicky/keyed-rate-limiter
 ## Usage
 
 ```typescript
-import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter';
+import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter/node';
 
 const limiter = KeyedRateLimiter.create({ requestsPerSecond: 10, burstSize: 20 });
 

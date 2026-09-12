@@ -21,7 +21,7 @@
 import {
   JsonValue,
   Predicates
-} from '@studnicky/types';
+} from '@studnicky/types/node';
 
 export class IsSerializable {
   static isSerializable(value: object | string | number | boolean | bigint | symbol | null | undefined): boolean {

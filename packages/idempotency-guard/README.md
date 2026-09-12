@@ -21,7 +21,7 @@ pnpm add @studnicky/idempotency-guard
 ## Usage
 
 ```typescript
-import { IdempotencyGuard } from '@studnicky/idempotency-guard';
+import { IdempotencyGuard } from '@studnicky/idempotency-guard/node';
 
 const guard = IdempotencyGuard.create<Awaited<ReturnType<typeof chargeCard>>>({
   capacity: 1000,
@@ -80,7 +80,7 @@ Concurrent calls with the same key and payload, issued before the first resolves
 Subclass `IdempotencyGuard` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library.
 
 ```typescript
-import { IdempotencyGuard } from '@studnicky/idempotency-guard';
+import { IdempotencyGuard } from '@studnicky/idempotency-guard/node';
 
 class TelemetryIdempotencyGuard extends IdempotencyGuard<Awaited<ReturnType<typeof chargeCard>>> {
   readonly events: string[] = [];

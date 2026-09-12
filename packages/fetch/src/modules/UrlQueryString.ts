@@ -2,7 +2,7 @@
  * URL and query string utilities as static class methods
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { QueryParametersInterface } from '../interfaces/QueryParametersInterface.js';
 

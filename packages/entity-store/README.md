@@ -23,7 +23,7 @@ pnpm add @studnicky/entity-store
 ```typescript
 import type { UserEntity } from './entities/UserEntity.js';
 
-import { EntityStore } from '@studnicky/entity-store';
+import { EntityStore } from '@studnicky/entity-store/node';
 
 const store = EntityStore.create<UserEntity.Type>({
   selectId: (user) => user.id
@@ -55,7 +55,7 @@ const store = EntityStore.create<UserEntity.Type>({
 Subclass `EntityStore` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library.
 
 ```typescript
-import { EntityStore } from '@studnicky/entity-store';
+import { EntityStore } from '@studnicky/entity-store/node';
 
 class InstrumentedStore<T> extends EntityStore<T> {
   protected override onUpsert(id: string, entity: T): void {

@@ -3,9 +3,9 @@
  */
 
 import type { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
-import type { EventBus } from '@studnicky/event-bus';
 import type { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { EventBus } from '@studnicky/event-bus/node';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
 import type { BoundedDispatcherTopicMapInterface } from './BoundedDispatcherTopicMapInterface.js';
 

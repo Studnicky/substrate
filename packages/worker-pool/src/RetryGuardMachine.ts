@@ -12,9 +12,9 @@
  * Mirrors the PHP port's `RetryGuardMachine` — see
  * `substrate-php/packages/worker-pool/src/Internal/Fsm/RetryGuardMachine.php`.
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine } from '@studnicky/fsm';
+import { StateMachine } from '@studnicky/fsm/node';
 
 import type { RequestRetryEventInterface } from './interfaces/RequestRetryEventInterface.js';
 import type { RetryGuardStateInterface } from './interfaces/RetryGuardStateInterface.js';

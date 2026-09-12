@@ -25,7 +25,7 @@ pnpm add @studnicky/signal
 ## Usage
 
 ```typescript
-import { Signal, SignalError } from '@studnicky/signal';
+import { Signal, SignalError } from '@studnicky/signal/node';
 
 const signals = Signal.create();
 
@@ -61,7 +61,7 @@ try {
 Subclass `Signal` and override `onCompose` to observe every composed signal — the base class never logs on its own:
 
 ```typescript
-import { Signal } from '@studnicky/signal';
+import { Signal } from '@studnicky/signal/node';
 
 class ObservedSignal extends Signal {
   protected override onCompose(
