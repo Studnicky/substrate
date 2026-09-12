@@ -8,6 +8,7 @@ import parser from '@typescript-eslint/parser';
 import { Linter } from 'eslint';
 import ts from 'typescript';
 
+import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { folderContentShape } from '../../src/rules/folderContentShape.js';
 import scenarios from './boundaryBundleResolution.scenarios.json' with { type: 'json' };
 
@@ -34,6 +35,7 @@ it('recognizes only resolved canonical local boundary bundles', () => {
         files: ['**/*.ts'],
         languageOptions: { parser, parserOptions: { programs: [program], tsconfigRootDir: root } },
         plugins: { test: { rules: { shape: folderContentShape } } },
+        settings: { '@studnicky/projectHost': new NodeProjectHost() },
         rules: { 'test/shape': 'error' }
       }], { filename: entry });
       if ('expectedMessageIds' in scenario) {

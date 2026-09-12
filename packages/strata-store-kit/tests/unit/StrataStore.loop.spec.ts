@@ -1,7 +1,9 @@
 import {
-  JsonStateCodec, MemoryPersistence, Store
-} from '@studnicky/store';
-import type { StatePersistenceInterface } from '@studnicky/store/interfaces';
+  ContextStore, JsonStateCodec, MemoryPersistence, Store
+} from '@studnicky/store/node';
+import type {
+  StatePersistenceInterface, StoreInterface
+} from '@studnicky/store/interfaces';
 import {
   BrowserPersistence, StorageTarget
 } from '@studnicky/store/browser';
@@ -9,6 +11,8 @@ import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
+
+import { Context } from '@studnicky/context/node';
 
 import {
   StrataStore
@@ -221,5 +225,64 @@ void describe('StrataStore', () => {
 
     assert.equal(cache.getSnapshot(), 2);
     assert.equal(durable.getSnapshot(), 2);
+  });
+
+  void it('propagates ContextStore writes to a durable layer while isolating scoped state', async () => {
+    const context = Context.create({ 'name': 'request' });
+    let lowerStoreCreates = 0;
+    const lower = ContextStore.create<number>({
+      'context': context,
+      'createStore': (): StoreInterface<number> => {
+        lowerStoreCreates += 1;
+
+        return Store.create({
+          'initialState': 0,
+          'key': 'request-cache:' + lowerStoreCreates,
+          'persistence': MemoryPersistence.create<number>()
+        });
+      },
+      'key': 'request-cache'
+    });
+    const durablePersistence = MemoryPersistence.create<number>();
+    const durable = Store.create({
+      'initialState': 0,
+      'key': 'durable-counter',
+      'persistence': durablePersistence
+    });
+    const firstScope = context.initialize();
+    const secondScope = context.initialize();
+
+    await firstScope.execute(async (): Promise<void> => {
+      const store = StrataStore.create({ 'layers': [lower, durable] });
+
+      await store.setState(7);
+
+      assert.equal(lower.getSnapshot(), 7);
+      assert.equal(store.getSnapshot(), 7);
+      assert.equal(durable.getSnapshot(), 7);
+      assert.equal(await durablePersistence.load('durable-counter'), 7);
+      store.dispose();
+    });
+
+    await secondScope.execute(async (): Promise<void> => {
+      const store = StrataStore.create({ 'layers': [lower, durable] });
+
+      assert.equal(lower.getSnapshot(), 0);
+      assert.equal(store.getSnapshot(), 7);
+
+      await store.setState(2);
+
+      assert.equal(lower.getSnapshot(), 2);
+      assert.equal(store.getSnapshot(), 2);
+      assert.equal(await durablePersistence.load('durable-counter'), 2);
+      store.dispose();
+    });
+
+    const firstScopeSnapshot = firstScope.execute((): number => lower.getSnapshot());
+
+    assert.equal(firstScopeSnapshot, 7);
+    assert.equal(lowerStoreCreates, 2);
+    firstScope.terminate();
+    secondScope.terminate();
   });
 });

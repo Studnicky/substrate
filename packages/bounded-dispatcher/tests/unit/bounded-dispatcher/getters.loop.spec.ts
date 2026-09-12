@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { EventBus } from '@studnicky/event-bus';
+import { EventBus } from '@studnicky/event-bus/node';
 
 import type { BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 

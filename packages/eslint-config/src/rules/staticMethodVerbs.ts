@@ -8,8 +8,8 @@ import type {
 } from 'typescript';
 import type * as ts from 'typescript';
 
-import { SchemaValidator } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { SchemaValidator } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
 import { ParameterNames } from './shared/ParameterNames.js';

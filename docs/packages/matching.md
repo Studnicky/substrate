@@ -15,41 +15,47 @@ description: Deterministic matching, scoring, encoding, extraction, and candidat
 pnpm add @studnicky/matching
 ```
 
+## Try it
+
+Normalize a user query, retrieve likely candidates from an n-gram index, and rank them with deterministic edit-distance scoring.
+
+<RunnableExample src="packages/matching/examples/findSimilarText" title="Normalize, retrieve candidates, and score similar text" />
+
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BloomCandidateFilter` | Probabilistic membership prefilter with false-positive evidence. | `@studnicky/matching` |
-| `CandidateSetInterface` | Defines a materialized candidate identifier set. | `@studnicky/matching` |
-| `CuckooCandidateFilter` | Deletable probabilistic membership prefilter. | `@studnicky/matching` |
-| `LshCandidateIndex` | Locality-sensitive candidate materialization index. | `@studnicky/matching` |
-| `NgramCandidateIndex` | Candidate index keyed by character n-grams. | `@studnicky/matching` |
-| `DoubleMetaphoneEncoder` | Primary and alternate phonetic encoding. | `@studnicky/matching` |
-| `MetaphoneEncoder` | Deterministic phonetic encoding. | `@studnicky/matching` |
-| `MinimumHashEncoder` | Fixed-seed approximate set-similarity signature. | `@studnicky/matching` |
-| `MatchEvidenceInterface` | Defines deterministic match evidence for a candidate. | `@studnicky/matching` |
-| `SoundexEncoder` | English phonetic encoding. | `@studnicky/matching` |
-| `TfIdfEncoder` | Sparse TF-IDF vector encoder. | `@studnicky/matching` |
-| `NgramExtractor` | Character n-gram extraction. | `@studnicky/matching` |
-| `TokenExtractor` | Token extraction. | `@studnicky/matching` |
-| `AhoCorasickMatcher` | Literal substring matching with an Aho–Corasick automaton. | `@studnicky/matching` |
-| `ExactMatcher` | Exact value matching. | `@studnicky/matching` |
-| `GlobMatcher` | Glob pattern matching. | `@studnicky/matching` |
-| `RadixMatcher` | Prefix-compressed structural pattern matching. | `@studnicky/matching` |
-| `SuffixMatcher` | Boyer–Moore-style suffix matching. | `@studnicky/matching` |
-| `TreeMatcher` | Hierarchical structural matching. | `@studnicky/matching` |
-| `TrieMatcher` | Segment-trie structural matching. | `@studnicky/matching` |
-| `StringNormalizer` | Boundary string canonicalization. | `@studnicky/matching` |
-| `CosineScorer` | Sparse-vector cosine similarity. | `@studnicky/matching` |
-| `DamerauLevenshteinScorer` | Transposition-aware edit-distance similarity. | `@studnicky/matching` |
-| `JaccardScorer` | Set overlap similarity. | `@studnicky/matching` |
-| `JaroScorer` | Short-string similarity. | `@studnicky/matching` |
-| `JaroWinklerScorer` | Prefix-weighted short-string similarity. | `@studnicky/matching` |
-| `LevenshteinScorer` | Edit-distance similarity. | `@studnicky/matching` |
-| `NgramScorer` | Character n-gram similarity. | `@studnicky/matching` |
-| `SorensenDiceScorer` | Set overlap similarity. | `@studnicky/matching` |
-| `ScoreEvidenceInterface` | Defines a score and its deterministic evidence. | `@studnicky/matching` |
-| `SelectionInterface` | Defines a selected candidate and score. | `@studnicky/matching` |
+| `BloomCandidateFilter` | Probabilistic membership prefilter with false-positive evidence. | `@studnicky/matching/node` |
+| `CandidateSetInterface` | Defines a materialized candidate identifier set. | `@studnicky/matching/interfaces` |
+| `CuckooCandidateFilter` | Deletable probabilistic membership prefilter. | `@studnicky/matching/node` |
+| `LshCandidateIndex` | Locality-sensitive candidate materialization index. | `@studnicky/matching/node` |
+| `NgramCandidateIndex` | Candidate index keyed by character n-grams. | `@studnicky/matching/node` |
+| `DoubleMetaphoneEncoder` | Primary and alternate phonetic encoding. | `@studnicky/matching/node` |
+| `MetaphoneEncoder` | Deterministic phonetic encoding. | `@studnicky/matching/node` |
+| `MinimumHashEncoder` | Fixed-seed approximate set-similarity signature. | `@studnicky/matching/node` |
+| `MatchEvidenceInterface` | Defines deterministic match evidence for a candidate. | `@studnicky/matching/interfaces` |
+| `SoundexEncoder` | English phonetic encoding. | `@studnicky/matching/node` |
+| `TfIdfEncoder` | Sparse TF-IDF vector encoder. | `@studnicky/matching/node` |
+| `NgramExtractor` | Character n-gram extraction. | `@studnicky/matching/node` |
+| `TokenExtractor` | Token extraction. | `@studnicky/matching/node` |
+| `AhoCorasickMatcher` | Literal substring matching with an Aho–Corasick automaton. | `@studnicky/matching/node` |
+| `ExactMatcher` | Exact value matching. | `@studnicky/matching/node` |
+| `GlobMatcher` | Glob pattern matching. | `@studnicky/matching/node` |
+| `RadixMatcher` | Prefix-compressed structural pattern matching. | `@studnicky/matching/node` |
+| `SuffixMatcher` | Boyer–Moore-style suffix matching. | `@studnicky/matching/node` |
+| `TreeMatcher` | Hierarchical structural matching. | `@studnicky/matching/node` |
+| `TrieMatcher` | Segment-trie structural matching. | `@studnicky/matching/node` |
+| `StringNormalizer` | Boundary string canonicalization. | `@studnicky/matching/node` |
+| `CosineScorer` | Sparse-vector cosine similarity. | `@studnicky/matching/node` |
+| `DamerauLevenshteinScorer` | Transposition-aware edit-distance similarity. | `@studnicky/matching/node` |
+| `JaccardScorer` | Set overlap similarity. | `@studnicky/matching/node` |
+| `JaroScorer` | Short-string similarity. | `@studnicky/matching/node` |
+| `JaroWinklerScorer` | Prefix-weighted short-string similarity. | `@studnicky/matching/node` |
+| `LevenshteinScorer` | Edit-distance similarity. | `@studnicky/matching/node` |
+| `NgramScorer` | Character n-gram similarity. | `@studnicky/matching/node` |
+| `SorensenDiceScorer` | Set overlap similarity. | `@studnicky/matching/node` |
+| `ScoreEvidenceInterface` | Defines a score and its deterministic evidence. | `@studnicky/matching/interfaces` |
+| `SelectionInterface` | Defines a selected candidate and score. | `@studnicky/matching/interfaces` |
 
 Each category is also available from its named subpath: `candidate-sources`, `encoders`, `extractors`, `matchers`, `normalizers`, and `scorers`.
 

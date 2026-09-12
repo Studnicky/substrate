@@ -4,8 +4,8 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { SchemaValidator } from '@studnicky/json/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';

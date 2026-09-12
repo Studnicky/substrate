@@ -1,4 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
 
 import type { LoggerOptionsEntity } from '../entities/LoggerOptionsEntity.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';

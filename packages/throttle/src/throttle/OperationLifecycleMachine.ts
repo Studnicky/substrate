@@ -30,10 +30,10 @@
  *
  * @module
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { RuntimeError } from '@studnicky/errors';
-import { StateMachine } from '@studnicky/fsm';
+import { RuntimeError } from '@studnicky/errors/node';
+import { StateMachine } from '@studnicky/fsm/node';
 
 import type { OperationLifecycleEffect } from './OperationLifecycleEffect.js';
 import type { OperationLifecycleEvent } from './OperationLifecycleEvent.js';

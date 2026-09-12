@@ -1,4 +1,4 @@
-import { JsonValue } from '@studnicky/types';
+import { JsonValue } from '@studnicky/types/node';
 
 /** Ajv schema keyword that admits only finite, acyclic plain JSON data. */
 export const PLAIN_JSON_VALUE_KEYWORD = {

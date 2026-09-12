@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch, BatchError } from '../../../src/index.js';

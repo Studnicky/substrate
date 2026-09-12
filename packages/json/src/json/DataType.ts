@@ -1,6 +1,6 @@
 /** Value type guards, cycle detection, and structural equality. */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class DataType {
   protected static walkForCycle(value: unknown, seen: WeakSet<object>): boolean {

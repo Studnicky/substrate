@@ -1,4 +1,4 @@
-import { plugin, v8Plugin } from '@studnicky/eslint-config';
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
 import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
 import perfectionistPlugin from 'eslint-plugin-perfectionist';

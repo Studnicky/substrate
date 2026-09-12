@@ -1,6 +1,6 @@
 # Workspace Dependency Graph
 
-Generated from `madge` over each workspace package entrypoint.
+Generated from `madge` local traversal and TypeScript static workspace imports over each package entrypoint.
 
 ```mermaid
 flowchart LR
@@ -216,8 +216,11 @@ p__studnicky_sliding_window_limiter --> p__studnicky_errors
 p__studnicky_sliding_window_limiter --> p__studnicky_json
 p__studnicky_sliding_window_limiter --> p__studnicky_signal
 p__studnicky_sliding_window_limiter --> p__studnicky_types
+p__studnicky_store --> p__studnicky_context
 p__studnicky_store --> p__studnicky_mutex
 p__studnicky_strata_store_kit --> p__studnicky_mutex
+p__studnicky_strata_store_kit --> p__studnicky_store
+p__studnicky_system --> p__studnicky_errors
 p__studnicky_system --> p__studnicky_json
 p__studnicky_throttle --> p__studnicky_circular_buffer
 p__studnicky_throttle --> p__studnicky_config

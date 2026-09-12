@@ -1,7 +1,7 @@
 /** observedVirtualFs — lifecycle hooks demo: subclass and override onCreate/onWrite/onRead/onRename/onDelete. Run: npx tsx examples/observedVirtualFs.ts */
 
 // #region usage
-import { EventRecorder } from '@studnicky/errors';
+import { EventRecorder } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 import type { HookEventEntity } from './entities/HookEventEntity.js';

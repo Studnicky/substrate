@@ -5,7 +5,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { evalFunction } from '../../../src/rules/v8/evalFunction.js';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import scenarioGroups from './evalFunction.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {

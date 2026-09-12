@@ -4,14 +4,7 @@
   "description": "Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./lease": {
       "types": "./dist/lease/index.d.ts",
       "import": "./dist/lease/index.js"

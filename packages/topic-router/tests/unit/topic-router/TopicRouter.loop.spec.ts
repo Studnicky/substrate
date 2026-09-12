@@ -1,9 +1,9 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { GlobMatcher, TreeMatcher } from '@studnicky/matching';
-import { Predicates } from '@studnicky/types';
+import { GlobMatcher, TreeMatcher } from '@studnicky/matching/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { TopicRouterOptionsInterface, TopicSelectionInterface } from '../../../src/index.js';
 import { TopicRouter } from '../../../src/index.js';

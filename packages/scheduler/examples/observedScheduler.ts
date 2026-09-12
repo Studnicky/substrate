@@ -1,6 +1,6 @@
-import { VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
 /** observedScheduler — override all lifecycle hooks to emit a debug trace. Run: npx tsx examples/observedScheduler.ts */
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 import { VirtualScheduler } from '../src/index.js';

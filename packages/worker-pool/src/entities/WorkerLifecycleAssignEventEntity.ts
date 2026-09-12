@@ -2,7 +2,7 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Requests a worker's `idle → busy` transition when a task is posted to it. */
 export namespace WorkerLifecycleAssignEventEntity {

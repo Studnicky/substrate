@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** basicRetry — flaky operation that fails twice then succeeds. Run: npx tsx examples/basicRetry.ts */
 import assert from 'node:assert/strict';
 

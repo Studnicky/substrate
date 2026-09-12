@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
 
 /** Abstract base for all concurrency-domain errors. */
 export abstract class ConcurrencyError extends BaseError {

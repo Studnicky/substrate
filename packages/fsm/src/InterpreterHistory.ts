@@ -1,8 +1,8 @@
 import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
-import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
-import { Clone } from '@studnicky/json';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { Clone } from '@studnicky/json/node';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { InterpreterHistoryCreateOptionsInterface } from './interfaces/InterpreterHistoryCreateOptionsInterface.js';

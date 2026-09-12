@@ -21,7 +21,7 @@ pnpm add @studnicky/health-registry
 ## Usage
 
 ```typescript
-import { HealthRegistry } from '@studnicky/health-registry';
+import { HealthRegistry } from '@studnicky/health-registry/node';
 
 const registry = HealthRegistry.create();
 
@@ -69,7 +69,7 @@ A check that rejects, and a check that exceeds its `timeoutMs`, are both folded 
 A hook override that throws or rejects does not abort `evaluate()` — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `hookErrorCount`/`getHookErrors()`.
 
 ```typescript
-import { HealthRegistry } from '@studnicky/health-registry';
+import { HealthRegistry } from '@studnicky/health-registry/node';
 
 class TelemetryHealthRegistry extends HealthRegistry {
   protected override onCheckResult(name: string, status: string, metadata?: unknown): void {

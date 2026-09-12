@@ -27,7 +27,7 @@ pnpm add @studnicky/visible-range
 Every item shares one size — O(1) division-based range math.
 
 ```typescript
-import { VisibleRange } from '@studnicky/visible-range';
+import { VisibleRange } from '@studnicky/visible-range/node';
 
 const rows = VisibleRange.create({ count: 10_000, itemSize: 40, overscan: 2 });
 
@@ -44,7 +44,7 @@ const { start, end } = rows.getRange();
 A per-index size estimator drives a binary-searched cumulative-offset array. `measureItem()` corrects the estimate once a real size is known (e.g. after a row renders and reports its measured height).
 
 ```typescript
-import { VisibleRange } from '@studnicky/visible-range';
+import { VisibleRange } from '@studnicky/visible-range/node';
 
 const list = VisibleRange.create({
   count: 500,
@@ -96,7 +96,7 @@ Subclass `VisibleRange` and override `onRangeChange` to add telemetry without co
 ```typescript
 import type { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 
-import { VisibleRange } from '@studnicky/visible-range';
+import { VisibleRange } from '@studnicky/visible-range/node';
 
 class InstrumentedVisibleRange extends VisibleRange {
   protected override onRangeChange(range: VisibleRangeEntity.Type): void {

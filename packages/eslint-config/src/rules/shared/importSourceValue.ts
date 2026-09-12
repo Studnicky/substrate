@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class ImportSourceValue {
   public static get(node: unknown): string | undefined {

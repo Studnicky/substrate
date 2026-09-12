@@ -1,4 +1,4 @@
-import { DomainErrorArgumentList } from '@studnicky/errors';
+import { DomainErrorArgumentList } from '@studnicky/errors/node';
 
 import { FileLockError } from './FileLockError.js';
 

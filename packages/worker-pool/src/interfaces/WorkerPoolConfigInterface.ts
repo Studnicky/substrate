@@ -1,4 +1,4 @@
-import type { Signal } from '@studnicky/signal';
+import type { Signal } from '@studnicky/signal/node';
 
 import type { WorkerPoolConfigEntity } from '../entities/WorkerPoolConfigEntity.js';
 

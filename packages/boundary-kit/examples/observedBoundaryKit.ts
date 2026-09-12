@@ -1,13 +1,13 @@
 // #region usage
-import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience';
+import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
 /** observedBoundaryKit — default construction, then direct composition of subclassed primitives. Run: npx tsx examples/observedBoundaryKit.ts */
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
-import { RuntimeError } from '@studnicky/errors';
-import { CircuitBreaker } from '@studnicky/resilience';
-import { Retry } from '@studnicky/retry';
-import { Throttle } from '@studnicky/throttle';
+import { RuntimeError } from '@studnicky/errors/node';
+import { CircuitBreaker } from '@studnicky/resilience/node';
+import { Retry } from '@studnicky/retry/node';
+import { Throttle } from '@studnicky/throttle/node';
 import assert from 'node:assert/strict';
 
 import { BoundaryKit } from '../src/index.js';

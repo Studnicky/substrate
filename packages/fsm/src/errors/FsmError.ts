@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 
 /**
  * Abstract package-level error ancestor for all FSM errors.

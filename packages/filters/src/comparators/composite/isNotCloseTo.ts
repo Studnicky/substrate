@@ -2,7 +2,7 @@
  * Checks if a numeric value is not close to another within a specified precision
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 

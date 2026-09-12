@@ -8,7 +8,7 @@
  * the ring-buffer arithmetic.
  */
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
 
 export class TimestampLog extends CircularBuffer<number> {
   /** Returns the oldest (front) timestamp without removing it, or undefined if empty. */

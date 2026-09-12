@@ -6,7 +6,7 @@ import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { inlineFunctions } from '../../../src/rules/v8/inlineFunctions.js';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import scenarioGroups from './inlineFunctions.scenarios.json' with { type: 'json' };
 
 function toMessageId(report: unknown): string {

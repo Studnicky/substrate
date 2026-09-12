@@ -1,4 +1,4 @@
-import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/node';
 
 import type { CircuitBreakerOptionsEntity } from '../entities/CircuitBreakerOptionsEntity.js';
 

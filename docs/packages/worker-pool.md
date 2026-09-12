@@ -13,13 +13,11 @@ description: Portable worker leases plus Node worker-thread and Web Worker pool 
 pnpm add @studnicky/worker-pool
 ```
 
-`@studnicky/worker-pool` exposes the runtime-neutral lease pool and common contracts. Import the
-Node worker-thread adapter from `@studnicky/worker-pool/node` and the Web Worker adapter from
-`@studnicky/worker-pool/browser`.
+`@studnicky/worker-pool/node` exposes the Node worker-thread adapter; `@studnicky/worker-pool/browser` exposes the Web Worker adapter; and `@studnicky/worker-pool/interfaces` exports their shared contracts.
 
 ## Usage
 
-Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted, and `batchConcurrency` defaults to `concurrency`:
+Composes `@studnicky/batch/node`, `@studnicky/system/node`, and `@studnicky/signal/node` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses them for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. `concurrency` defaults to `System.optimalWorkerCount` when omitted, and `batchConcurrency` defaults to `concurrency`:
 
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
@@ -47,7 +45,7 @@ caller-provided `abortSignal`. The same option names and semantics apply in Node
 
 <!-- inline-ts-ok: focused cancellation illustration; the browser worker example exercises the runnable pool contract. -->
 ```typescript
-import { Signal } from '@studnicky/signal';
+import { Signal } from '@studnicky/signal/node';
 
 const signal = Signal.create();
 const controller = new AbortController();
@@ -84,7 +82,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 | `onWorkerTimeout(index)` | When a task exceeds its configured `timeoutMs`, immediately before the worker is terminated |
 | `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, or termination fails |
 
-A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating; inspect it via `getHookErrorCount()` (a running total) and `getHookErrors()` (a defensive copy of every recorded failure), backed internally by `@studnicky/errors`'s `HookInvoker`.
+A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating; inspect it via `getHookErrorCount()` (a running total) and `getHookErrors()` (a defensive copy of every recorded failure), backed internally by `@studnicky/errors/node`'s `HookInvoker`.
 
 ## Entities
 
@@ -109,15 +107,15 @@ import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/inter
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `WorkerPool` | Creates a bounded Node.js worker-thread pool. | `@studnicky/worker-pool/node` |
-| `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool/node` |
-| `WorkerPoolInterface<TInput, TOutput>` | Shared `run()` and `close()` contract for Node and browser pools. | `@studnicky/worker-pool` |
-| `WorkerPoolError` | Represents worker-pool configuration and lifecycle failures. | `@studnicky/worker-pool` |
-| `WorkerFactoryInterface` | Defines worker creation, initialization, observation, and termination. | `@studnicky/worker-pool` |
-| `WorkerLeaseInterface` | Defines an active leased worker and caller-owned request transport. | `@studnicky/worker-pool` |
-| `WorkerLeasePool` | Provides reusable, bounded worker leases. | `@studnicky/worker-pool` |
-| `WorkerLeasePoolOptionsInterface` | Defines the factory and lease limit for `WorkerLeasePool`. | `@studnicky/worker-pool` |
-| `WorkerObservationInterface` | Defines liveness observation and observer cleanup. | `@studnicky/worker-pool` |
-| `WorkerTransportInterface` | Defines one caller-owned request/response transport. | `@studnicky/worker-pool` |
+| `WorkerPoolConfigInterface` | Defines the configuration passed to `WorkerPool.create`. | `@studnicky/worker-pool/interfaces` |
+| `WorkerPoolInterface<TInput, TOutput>` | Shared `run()` and `close()` contract for Node and browser pools. | `@studnicky/worker-pool/interfaces` |
+| `WorkerPoolError` | Represents worker-pool configuration and lifecycle failures. | `@studnicky/worker-pool/node` |
+| `WorkerFactoryInterface` | Defines worker creation, initialization, observation, and termination. | `@studnicky/worker-pool/interfaces` |
+| `WorkerLeaseInterface` | Defines an active leased worker and caller-owned request transport. | `@studnicky/worker-pool/interfaces` |
+| `WorkerLeasePool` | Provides reusable, bounded worker leases. | `@studnicky/worker-pool/node` |
+| `WorkerLeasePoolOptionsInterface` | Defines the factory and lease limit for `WorkerLeasePool`. | `@studnicky/worker-pool/interfaces` |
+| `WorkerObservationInterface` | Defines liveness observation and observer cleanup. | `@studnicky/worker-pool/interfaces` |
+| `WorkerTransportInterface` | Defines one caller-owned request/response transport. | `@studnicky/worker-pool/interfaces` |
 | `WebWorkerPool` | Runs work through bounded Web Worker leases. | `@studnicky/worker-pool/browser` |
 | `WebWorkerFactory` | Creates and observes native browser Workers. | `@studnicky/worker-pool/browser` |
 | `WebWorkerFactoryOptionsInterface` | Defines the native Worker script and options. | `@studnicky/worker-pool/browser` |

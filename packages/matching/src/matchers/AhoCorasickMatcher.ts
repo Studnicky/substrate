@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 export class AhoCorasickMatcher {
   readonly #root = new AhoCorasickNode();

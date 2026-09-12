@@ -15,7 +15,7 @@ pnpm add @studnicky/resilience
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-Construct runtime primitives through the package root. Schema-backed data declarations live at `@studnicky/resilience/entities`, and type-only contracts live at `@studnicky/resilience/interfaces`.
+Construct runtime primitives through `@studnicky/resilience/node`. Schema-backed data declarations live at `@studnicky/resilience/entities`, and type-only contracts live at `@studnicky/resilience/interfaces`.
 
 ## Usage
 
@@ -97,21 +97,21 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 
 | Symbol | Purpose | Import path |
 |--------|---------|-------------|
-| `CircuitBreaker` | Three-state async circuit breaker. | `@studnicky/resilience` |
-| `CircuitBreakerOpenError` | Signals a call rejected by an open circuit. | `@studnicky/resilience` |
-| `CircuitBreakerOptionsInterface` | Caller-supplied circuit-breaker options, including clock and error classifier. | `@studnicky/resilience` |
-| `DeadLetterQueue<T>` | Bounded FIFO queue with async-generator drain. | `@studnicky/resilience` |
-| `DeadLetterQueueAbortedError` | Signals enqueue after queue abort. | `@studnicky/resilience` |
-| `DeadLetterQueueClosedError` | Signals enqueue after queue close. | `@studnicky/resilience` |
-| `DeadLetterQueueFullError` | Signals enqueue at queue capacity. | `@studnicky/resilience` |
-| `DeadLetterQueueOptionsInterface` | Caller-supplied queue options, including clock and abort signal. | `@studnicky/resilience` |
-| `DeadLetterQueueRetryGenerator<T>` | Re-yields queue entries after a configurable pause. | `@studnicky/resilience` |
-| `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | Caller-supplied retry-generator options with a live queue. | `@studnicky/resilience` |
-| `ResilienceConfigError` | Signals invalid resilience configuration. | `@studnicky/resilience` |
-| `ResilienceError` | Base error for the package. | `@studnicky/resilience` |
-| `TokenBucket` | Token-bucket rate limiter. | `@studnicky/resilience` |
-| `TokenBucketExhaustedError` | Signals insufficient available tokens. | `@studnicky/resilience` |
-| `TokenBucketOptionsInterface` | Caller-supplied token-bucket options, including clock. | `@studnicky/resilience` |
+| `CircuitBreaker` | Three-state async circuit breaker. | `@studnicky/resilience/node` |
+| `CircuitBreakerOpenError` | Signals a call rejected by an open circuit. | `@studnicky/resilience/node` |
+| `CircuitBreakerOptionsInterface` | Caller-supplied circuit-breaker options, including clock and error classifier. | `@studnicky/resilience/interfaces` |
+| `DeadLetterQueue<T>` | Bounded FIFO queue with async-generator drain. | `@studnicky/resilience/node` |
+| `DeadLetterQueueAbortedError` | Signals enqueue after queue abort. | `@studnicky/resilience/node` |
+| `DeadLetterQueueClosedError` | Signals enqueue after queue close. | `@studnicky/resilience/node` |
+| `DeadLetterQueueFullError` | Signals enqueue at queue capacity. | `@studnicky/resilience/node` |
+| `DeadLetterQueueOptionsInterface` | Caller-supplied queue options, including clock and abort signal. | `@studnicky/resilience/interfaces` |
+| `DeadLetterQueueRetryGenerator<T>` | Re-yields queue entries after a configurable pause. | `@studnicky/resilience/node` |
+| `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | Caller-supplied retry-generator options with a live queue. | `@studnicky/resilience/interfaces` |
+| `ResilienceConfigError` | Signals invalid resilience configuration. | `@studnicky/resilience/node` |
+| `ResilienceError` | Base error for the package. | `@studnicky/resilience/node` |
+| `TokenBucket` | Token-bucket rate limiter. | `@studnicky/resilience/node` |
+| `TokenBucketExhaustedError` | Signals insufficient available tokens. | `@studnicky/resilience/node` |
+| `TokenBucketOptionsInterface` | Caller-supplied token-bucket options, including clock. | `@studnicky/resilience/interfaces` |
 
 ## Entities
 
@@ -124,7 +124,7 @@ import { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
 
 ## Interfaces
 
-`@studnicky/resilience/interfaces` exports type-only event, effect, queue-entry, and option contracts. Option interfaces that callers pass to public factories are also available from the package root.
+`@studnicky/resilience/interfaces` exports type-only event, effect, queue-entry, and option contracts.
 
 <!-- inline-ts-ok: Documents the interfaces subpath import. -->
 ```typescript

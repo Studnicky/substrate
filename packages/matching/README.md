@@ -21,7 +21,7 @@ pnpm add @studnicky/matching
 ## Usage
 
 ```ts
-import { GlobMatcher, JaccardScorer, NgramCandidateIndex, StringNormalizer } from '@studnicky/matching';
+import { GlobMatcher, JaccardScorer, NgramCandidateIndex, StringNormalizer } from '@studnicky/matching/node';
 
 const topic = StringNormalizer.normalize(' API.V1.Users ');
 const patternMatches = GlobMatcher.matches('api.**', topic);

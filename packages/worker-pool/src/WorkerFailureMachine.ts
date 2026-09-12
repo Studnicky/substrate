@@ -20,9 +20,9 @@
  * `WorkerFailureMachine` is instantiated fresh inside each `run()` call, alongside every other
  * piece of that call's per-run bookkeeping — never hoisted to an instance field.
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine } from '@studnicky/fsm';
+import { StateMachine } from '@studnicky/fsm/node';
 
 import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
 import type { WorkerFailureEventInterface } from './interfaces/WorkerFailureEventInterface.js';

@@ -21,9 +21,9 @@
  * already-idle worker onto the pool is not an illegal edge; it is a no-op transition that
  * `run()` simply skips requesting.
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { WorkerLifecycleEventEntity } from './entities/WorkerLifecycleEventEntity.js';
 import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';

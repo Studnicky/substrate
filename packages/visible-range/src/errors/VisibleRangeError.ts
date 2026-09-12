@@ -1,7 +1,7 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { JSONSchema7Type } from 'json-schema';
 
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';
+import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/node';
 
 /** Optional construction arguments for {@link VisibleRangeError}; the class supplies its own code and message. */
 interface VisibleRangeErrorArgumentListInterface {

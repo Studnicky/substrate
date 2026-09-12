@@ -1,4 +1,4 @@
-import { Signal } from '@studnicky/signal';
+import { Signal } from '@studnicky/signal/browser';
 
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
 import type { BodyRequestOptionsInterface } from '../../interfaces/BodyRequestOptionsInterface.js';

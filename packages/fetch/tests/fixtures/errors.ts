@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /**
  * Reusable error and dispatcher statistics fixtures for tests
  */

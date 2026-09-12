@@ -1,5 +1,5 @@
-import { Signal } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { Signal } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   WorkerLeaseInterface,

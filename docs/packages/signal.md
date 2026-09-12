@@ -39,9 +39,9 @@ The output confirms each composition case: caller+deadline composite, caller-onl
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Signal` | Composes caller and deadline abort signals. | `@studnicky/signal` |
-| `SignalError` | Represents invalid signal-composition configuration. | `@studnicky/signal` |
-| `RaceTimeout` | Races a value against an abort-aware timeout. | `@studnicky/signal` |
+| `Signal` | Composes caller and deadline abort signals. | `@studnicky/signal/node` |
+| `SignalError` | Represents invalid signal-composition configuration. | `@studnicky/signal/node` |
+| `RaceTimeout` | Races a value against an abort-aware timeout. | `@studnicky/signal/node` |
 
 ### `Signal`
 

@@ -2,7 +2,7 @@
  * Checks if a string ends with a suffix with case sensitivity support
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type {
   FilterConditionInterface

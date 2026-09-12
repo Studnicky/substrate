@@ -30,7 +30,7 @@ The rule reports a missing namespace and every namespace export that does not ma
 <!-- inline-ts-ok: conceptual rule example -->
 ```ts
 // src/entities/UserEntity.ts
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 import type { FromSchema } from 'json-schema-to-ts';
 
 export namespace UserEntity {
@@ -45,7 +45,7 @@ export namespace UserEntity {
 <!-- inline-ts-ok: scalar entity example -->
 ```ts
 // src/entities/HealthStatusEntity.ts
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 import type { FromSchema } from 'json-schema-to-ts';
 
 export namespace HealthStatusEntity {
@@ -128,7 +128,7 @@ export function matches(value: string, pattern: string): boolean {
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 // filename: /project/src/FooEntity.ts
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 import type { FromSchema } from 'json-schema-to-ts';
 
 export namespace FooEntity {

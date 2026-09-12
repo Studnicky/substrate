@@ -21,7 +21,7 @@ pnpm add @studnicky/bounded-dispatcher
 ## Usage
 
 ```typescript
-import { BoundedDispatcher } from '@studnicky/bounded-dispatcher';
+import { BoundedDispatcher } from '@studnicky/bounded-dispatcher/node';
 
 const dispatcher = BoundedDispatcher.create({ permits: 2 });
 

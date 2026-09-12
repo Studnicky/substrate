@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import { type Node, type Program, TypeFlags } from 'typescript';
 
 // WHY THE TYPE, AND NOT THE SYNTAX.

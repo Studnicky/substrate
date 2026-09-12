@@ -1,7 +1,7 @@
-import type { VirtualTimeCounter } from '@studnicky/clock';
-import type { HookInvoker } from '@studnicky/errors';
+import type { VirtualTimeCounter } from '@studnicky/clock/node';
+import type { HookInvoker } from '@studnicky/errors/node';
 
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -13,7 +13,7 @@ import { RuntimeError } from '@studnicky/errors';
  *
  * @module
  */
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';

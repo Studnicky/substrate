@@ -1,10 +1,10 @@
-import { RuntimeError, HookInvocationError } from '@studnicky/errors';
+import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import { ConfigurationError } from '@studnicky/config';
+import { ConfigurationError } from '@studnicky/config/node';
 
 
 import { DEFAULT_MAXIMUM_EVENTS, TIMING_STATUS } from '../../src/constants/index.js';

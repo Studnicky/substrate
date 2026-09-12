@@ -15,7 +15,7 @@ pnpm add @studnicky/flag-evaluator
 
 ## Usage
 
-Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/json`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
+Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/json/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
 
 <<< ../../packages/flag-evaluator/examples/observedFlagEvaluator.ts#usage
 
@@ -80,7 +80,7 @@ import type { FlagContextInterface } from '@studnicky/flag-evaluator/interfaces'
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator` |
-| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator` |
+| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator/node` |
+| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/flag-evaluator)

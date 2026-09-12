@@ -23,7 +23,7 @@ pnpm add @studnicky/request-executor
 ## Usage
 
 ```typescript
-import { RequestExecutor } from '@studnicky/request-executor';
+import { RequestExecutor } from '@studnicky/request-executor/node';
 
 const executor = RequestExecutor.create({
   fetchClient: { baseURL: 'https://api.example.com' },
@@ -45,11 +45,11 @@ Each composed primitive accepts either a pre-built instance (subclassed or not) 
 Override `onExecuteStart`/`onExecuteComplete`/`onExecuteError` to observe the whole call, or subclass the composed primitives (`FetchClient`, `Retry`, `Context`) to observe or transform request/response/attempt/event stages; those primitive hooks fire exactly as they would standalone. A `RequestExecutor` subclass that needs one of those dependencies explicitly owns it through the resolved constructor contract.
 
 ```typescript
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry';
+import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 import type { RequestExecutorDepsInterface } from '@studnicky/request-executor/interfaces';
 
-import { Retry } from '@studnicky/retry';
-import { RequestExecutor } from '@studnicky/request-executor';
+import { Retry } from '@studnicky/retry/node';
+import { RequestExecutor } from '@studnicky/request-executor/node';
 
 class TelemetryRetry extends Retry {
   readonly scheduledRetries: number[] = [];

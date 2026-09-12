@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /**
  * `Throttle` subclass whose `now()` reads a virtual clock instead of the wall
  * clock, so adaptive-concurrency tests can drive operation latency
@@ -7,7 +7,7 @@ import { RuntimeError } from '@studnicky/errors';
  * @module
  */
 
-import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
 import type { ThrottleConfigEntity } from '../../src/entities/ThrottleConfigEntity.js';
 

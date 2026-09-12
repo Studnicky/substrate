@@ -1,7 +1,7 @@
 /** RFC-6902 JSON Patch operations for arbitrary object targets. */
 
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN, SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';

@@ -9,7 +9,7 @@
  * @throws {RegexError} When a pattern is detected as too dangerous to execute
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { ErrorCodes } from '../../enums/ErrorCodes.js';
 import { RegexError } from '../../errors/RegexError.js';

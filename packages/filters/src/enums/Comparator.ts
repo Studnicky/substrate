@@ -2,7 +2,7 @@
  * Comparator functions with direct function access
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ComparatorFunctionInterface } from '../interfaces.js';
 

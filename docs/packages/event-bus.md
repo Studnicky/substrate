@@ -123,10 +123,10 @@ import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BusQueue` | Provides bus queue functionality. | `@studnicky/event-bus` |
-| `BusQueueCreateOptionsInterface` | Defines the bus queue create options contract. | `@studnicky/event-bus` |
-| `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus` |
-| `EventBus` | Provides event bus functionality. | `@studnicky/event-bus` |
-| `EventBusError` | Represents event bus failures. | `@studnicky/event-bus` |
-| `EventHandlerInterface` | Defines the event handler contract. | `@studnicky/event-bus` |
-| `UnsubscribeInterface` | Defines the unsubscribe contract. | `@studnicky/event-bus` |
+| `BusQueue` | Provides bus queue functionality. | `@studnicky/event-bus/node` |
+| `BusQueueCreateOptionsInterface` | Defines the bus queue create options contract. | `@studnicky/event-bus/interfaces` |
+| `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus/node` |
+| `EventBus` | Provides event bus functionality. | `@studnicky/event-bus/node` |
+| `EventBusError` | Represents event bus failures. | `@studnicky/event-bus/node` |
+| `EventHandlerInterface` | Defines the event handler contract. | `@studnicky/event-bus/interfaces` |
+| `UnsubscribeInterface` | Defines the unsubscribe contract. | `@studnicky/event-bus/interfaces` |

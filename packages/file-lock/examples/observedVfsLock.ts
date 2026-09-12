@@ -1,8 +1,8 @@
 /** observedVfsLock — lifecycle hooks demo: two locks over a shared VirtualFileSystem so one contends. Run: npx tsx examples/observedVfsLock.ts */
 
-import { EventRecorder } from '@studnicky/errors';
+import { EventRecorder } from '@studnicky/errors/node';
 // #region usage
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 import assert from 'node:assert/strict';
 
 import type { LockEventEntity } from './entities/LockEventEntity.js';

@@ -1,6 +1,6 @@
 /** Thrown when a pipeline stage fails. */
 
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 
 export class PipelineError extends BaseError {
   public constructor(message: string, cause?: Error) {

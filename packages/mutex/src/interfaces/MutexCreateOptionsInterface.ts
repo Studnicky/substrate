@@ -1,4 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
 
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 

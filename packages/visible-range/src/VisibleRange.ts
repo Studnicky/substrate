@@ -5,8 +5,8 @@
  * measurement and feeds the results in via `setScrollOffset()` /
  * `setViewportSize()`.
  */
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';

@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntity.js';
 import type { ContextScopeStateInterface } from '../interfaces/ContextScopeStateInterface.js';

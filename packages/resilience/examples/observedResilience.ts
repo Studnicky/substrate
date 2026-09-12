@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedResilience — trace every lifecycle hook across CircuitBreaker, TokenBucket, and DeadLetterQueue. Run: npx tsx examples/observedResilience.ts */
 import assert from 'node:assert/strict';
 

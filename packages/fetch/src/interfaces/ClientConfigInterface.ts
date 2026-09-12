@@ -2,8 +2,8 @@
  * FetchClient configuration types
  */
 
-import type { ClockProviderInterface } from '@studnicky/clock';
-import type { Signal } from '@studnicky/signal';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
+import type { Signal } from '@studnicky/signal/node';
 
 import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';

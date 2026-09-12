@@ -14,6 +14,7 @@ export type { AnalysisResultInterface } from './AnalysisResultInterface.js';
 export type { DataRecordInterface } from './DataRecordInterface.js';
 export type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
 export type { GroupNodeInterface } from './GroupNodeInterface.js';
+export type { AlphabeticGroupValueInterface, CidrGroupValueInterface, DateGroupValueInterface, GroupRuleInterface, RangeGroupValueInterface, SemverGroupValueInterface, SequentialGroupValueInterface, StringGroupValueInterface } from './GroupValueInterface.js';
 export type { AlphabeticMatcherInterface, CidrMatcherInterface, DateMatcherInterface, RangeMatcherInterface, SemverMatcherInterface, SequentialMatcherInterface, StringMatcherInterface } from './MatcherInterface.js';
 export type { PartitionGroupInterface } from './PartitionGroupInterface.js';
 export type { PropertyInfoInterface } from './PropertyInfoInterface.js';

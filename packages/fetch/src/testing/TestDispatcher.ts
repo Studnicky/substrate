@@ -1,6 +1,6 @@
-import { RuntimeError } from '@studnicky/errors';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';

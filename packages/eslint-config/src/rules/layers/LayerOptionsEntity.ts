@@ -4,7 +4,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 import { LayerBindingEntity } from './LayerBindingEntity.js';
 

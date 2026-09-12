@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** error-handling — ReducerThrewError wrapping, InterpreterNotStartedError, and InterpreterNotRunningError. Run: npx tsx examples/error-handling.ts */
 import assert from 'node:assert/strict';
 

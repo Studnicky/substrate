@@ -3,8 +3,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types';
-import path from 'node:path';
+import { Predicates } from '@studnicky/types/browser';
 
 import {
   BUILTIN_COLLECTION_CONSTRUCTOR_NAMES,
@@ -88,6 +87,22 @@ import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
  *    own — re-exports carry no data of their own to relocate.
  */
 
+class PortablePath {
+  public static basename(filename: string): string {
+    const normalized = PortablePath.normalize(filename);
+    const segmentIndex = normalized.lastIndexOf('/');
+    const result = segmentIndex === -1 ? normalized : normalized.slice(segmentIndex + 1);
+
+    return result;
+  }
+
+  public static normalize(filename: string): string {
+    const result = filename.replaceAll('\\', '/');
+
+    return result;
+  }
+}
+
 class FolderCategory {
   static isEmptyFilename(filename: string): boolean {
     const result = filename === '<input>' || filename.length === 0;
@@ -100,7 +115,7 @@ class FolderCategory {
   // as a `types/`/`interfaces/` convention-folder signal on its own — only a
   // real subfolder within the package does.
   static isUnderFolder(filename: string, folder: string): boolean {
-    const normalized = filename.split(path.sep).join('/');
+    const normalized = PortablePath.normalize(filename);
     const segments = normalized.split('/');
     const packagesIndex = segments.indexOf('packages');
     const relevantSegments = packagesIndex === -1 ? segments : segments.slice(packagesIndex + 2);
@@ -110,11 +125,11 @@ class FolderCategory {
   }
 
   static isEntityFile(filename: string): boolean {
-    if (INDEX_FILES.has(path.basename(filename))) {
+    if (INDEX_FILES.has(PortablePath.basename(filename))) {
       return false;
     }
 
-    const normalized = filename.split(path.sep).join('/');
+    const normalized = PortablePath.normalize(filename);
     const result = ENTITY_FILE_REGEX.test(normalized) || ENTITY_DIR_REGEX.test(normalized);
 
     return result;
@@ -1152,7 +1167,7 @@ class ConstantsCountCheck {
       context.report({
         'data': {
           'count': String(constNames.length),
-          'file': path.basename(physicalFilename),
+          'file': PortablePath.basename(physicalFilename),
           'names': constNames.join(', ')
         },
         'messageId': 'constantsNotIsolated',
@@ -1199,7 +1214,7 @@ class FileCategoryResolver {
 
     if (FolderCategory.isEntityFile(filename)) {
       return {
-        'expectedName': path.basename(filename).replace(FILE_EXTENSION_STRIP_PATTERN, ''),
+        'expectedName': PortablePath.basename(filename).replace(FILE_EXTENSION_STRIP_PATTERN, ''),
         'shape': 'entity',
         'underInterfacesFolder': false,
         'underTypesFolder': false

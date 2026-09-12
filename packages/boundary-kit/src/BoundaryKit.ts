@@ -2,11 +2,11 @@
  * Boundary Kit — composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern
  */
 
-import { RuntimeError } from '@studnicky/errors';
-import { CircuitBreaker } from '@studnicky/resilience';
-import { Retry } from '@studnicky/retry';
-import { Throttle } from '@studnicky/throttle';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { CircuitBreaker } from '@studnicky/resilience/node';
+import { Retry } from '@studnicky/retry/node';
+import { Throttle } from '@studnicky/throttle/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
 import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';

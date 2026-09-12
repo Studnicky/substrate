@@ -21,7 +21,7 @@ pnpm add @studnicky/pipeline
 ## Usage
 
 ```typescript
-import { Pipeline } from '@studnicky/pipeline';
+import { Pipeline } from '@studnicky/pipeline/node';
 import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
 import type { OrderContextEntity } from './entities/OrderContextEntity.js';
 
@@ -46,7 +46,7 @@ const result = await pipeline.run({ items: ['a', 'b', 'c'], total: 0, discount: 
 Subclass `Pipeline<T>` to observe or transform execution at any fire point. All four protected hooks have pass-through defaults — override only what you need. `onRunStart` runs once before stage 0, `beforeStage` and `afterStage` wrap each individual stage, and `onRunComplete` runs after all stages and determines the final resolved value.
 
 ```typescript
-import { Pipeline } from '@studnicky/pipeline';
+import { Pipeline } from '@studnicky/pipeline/node';
 import type { AuditContextEntity } from './entities/AuditContextEntity.js';
 
 class AuditPipeline extends Pipeline<AuditContextEntity.Type> {
@@ -75,7 +75,7 @@ const result = await pipeline.run({ userId: 'u1', action: 'login' });
 // result.timestamp is set; audit log emitted after all stages
 ```
 
-The four void observer hooks (`onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`) run through a composed `HookInvoker` (see `@studnicky/errors`). Pass `hookTimeoutMs` to bound how long an async observer hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
+The four void observer hooks (`onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`) run through a composed `HookInvoker` (see `@studnicky/errors/node`). Pass `hookTimeoutMs` to bound how long an async observer hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
 
 ```typescript
 const pipeline = Pipeline.create<OrderContextEntity.Type>([calculateTotal], { hookTimeoutMs: 5000 });

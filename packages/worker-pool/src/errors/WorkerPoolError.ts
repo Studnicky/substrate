@@ -1,4 +1,4 @@
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';
+import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/node';
 
 interface WorkerPoolErrorOptionsInterface {
   readonly 'cause'?: unknown;

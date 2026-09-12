@@ -4,8 +4,8 @@
  */
 
 
-import { RuntimeError } from '@studnicky/errors';
-import { RaceTimeout } from '@studnicky/signal';
+import { RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout } from '@studnicky/signal/node';
 import { Agent } from 'undici';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';

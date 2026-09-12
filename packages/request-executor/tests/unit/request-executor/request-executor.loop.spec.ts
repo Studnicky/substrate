@@ -1,11 +1,10 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
-import { AbortError, type ClientConfigInterface, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch';
-import { FetchClient } from '@studnicky/fetch/node';
-import { Retry } from '@studnicky/retry';
+import { AbortError, type ClientConfigInterface, FetchClient, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch/node';
+import { Retry } from '@studnicky/retry/node';
 import type { RetryContextInterface, RetryConfigInterface } from '@studnicky/retry/interfaces';
 
 import { RequestExecutor } from '../../../src/index.js';

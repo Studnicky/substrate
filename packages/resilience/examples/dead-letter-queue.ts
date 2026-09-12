@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** dead-letter-queue — enqueue failed items; drain via async generator; close to end iteration. Run: npx tsx examples/dead-letter-queue.ts */
 import assert from 'node:assert/strict';
 

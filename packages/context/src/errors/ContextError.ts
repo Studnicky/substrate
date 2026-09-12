@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/browser';
 
 /**
  * Error thrown when context operations fail.

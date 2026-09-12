@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';

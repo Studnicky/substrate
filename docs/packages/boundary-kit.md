@@ -16,7 +16,7 @@ pnpm add @studnicky/boundary-kit
 ## Usage
 
 `BoundaryKit` composes calls in the fixed order `throttle → circuitBreaker → retry → fn`.
-Import `BoundaryKit` from `@studnicky/boundary-kit`, call
+Import `BoundaryKit` from `@studnicky/boundary-kit/node`, call
 `BoundaryKit.create({ circuitBreaker, retry, throttle })`, then pass the operation to
 `boundary.execute(fn)`. Omitted configuration fields resolve to package defaults.
 
@@ -69,7 +69,7 @@ import type { BoundaryKitConfigInterface } from '@studnicky/boundary-kit/interfa
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundaryKit` | Applies throttle, circuit breaking, and retry in a fixed order. | `@studnicky/boundary-kit` |
-| `BoundaryKitAbortedError` | Signals a detached throttle call that never ran. | `@studnicky/boundary-kit` |
+| `BoundaryKit` | Applies throttle, circuit breaking, and retry in a fixed order. | `@studnicky/boundary-kit/node` |
+| `BoundaryKitAbortedError` | Signals a detached throttle call that never ran. | `@studnicky/boundary-kit/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/boundary-kit)

@@ -34,7 +34,7 @@ import type {
   UserDeletedEventEntity
 } from './entities/UserEventEntities.js';
 
-import { EventBus } from '@studnicky/event-bus';
+import { EventBus } from '@studnicky/event-bus/node';
 
 interface AppEventsInterface {
   readonly 'user:created': UserCreatedEventEntity.Type;
@@ -62,7 +62,7 @@ await bus.close();
 ### AbortSignal unsubscription
 
 ```typescript
-import { EventBus } from '@studnicky/event-bus';
+import { EventBus } from '@studnicky/event-bus/node';
 
 interface PingEventsInterface {
   readonly 'ping': string;
@@ -92,7 +92,7 @@ await bus.close();
 ### `BusQueue` standalone usage
 
 ```typescript
-import { BusQueue } from '@studnicky/event-bus';
+import { BusQueue } from '@studnicky/event-bus/node';
 
 const queue = BusQueue.create<string>({
   handler: async (item) => {

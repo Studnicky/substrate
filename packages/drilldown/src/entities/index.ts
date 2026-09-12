@@ -1,3 +1,5 @@
+export { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
+export { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
 export { AlphabeticRangeEntity } from './AlphabeticRangeEntity.js';
 export { AutoGroupingConfigEntity } from './AutoGroupingConfigEntity.js';
 export { BoundsAccumulatorEntity } from './BoundsAccumulatorEntity.js';

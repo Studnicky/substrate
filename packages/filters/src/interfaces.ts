@@ -2,11 +2,10 @@
  * Core type definitions for the FilterEngine
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from './FilterValueEntity.js';
 import type { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
-
 // Operator function signature - options carries the compiled condition and evaluation data
 export interface OperatorFunctionInterface {
   (

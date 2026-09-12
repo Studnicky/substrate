@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** custom-error — build a configuration error with an Error cause. Run: npx tsx packages/config/examples/custom-error.ts */
 import assert from 'node:assert/strict';
 

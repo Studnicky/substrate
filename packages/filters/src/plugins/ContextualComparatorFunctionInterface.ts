@@ -7,5 +7,5 @@ export interface ContextualComparatorFunctionInterface {
     value1: FilterValueEntity.Type,
     value2: FilterValueEntity.Type,
     context?: PluginContextInterface
-  ): number;
+  ): boolean;
 }

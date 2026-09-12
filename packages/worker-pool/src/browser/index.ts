@@ -1,15 +1,7 @@
 /** Browser-safe Web Worker lease-pool API. */
 
-export { WorkerPoolError } from '../errors/index.js';
-export type {
-  WorkerFactoryInterface,
-  WorkerLeaseInterface,
-  WorkerLeasePoolOptionsInterface,
-  WorkerObservationInterface,
-  WorkerPoolInterface,
-  WorkerTransportInterface
-} from '../interfaces/index.js';
-export { WorkerLeasePool } from '../WorkerLeasePool.js';
+export * from '../index.js';
+
 export type { WebWorkerErrorEventInterface } from './WebWorkerErrorEventInterface.js';
 export { WebWorkerFactory } from './WebWorkerFactory.js';
 export type { WebWorkerFactoryOptionsInterface } from './WebWorkerFactoryOptionsInterface.js';

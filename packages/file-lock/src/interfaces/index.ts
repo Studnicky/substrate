@@ -1,3 +1,5 @@
+export type { WebLockCreateOptionsInterface } from '../browser/WebLockCreateOptionsInterface.js';
+export type { WebLockManagerInterface } from '../browser/WebLockManagerInterface.js';
 export type { FileLockCreateOptionsInterface } from './FileLockCreateOptionsInterface.js';
 export type { FileLockInspectionOptionsInterface } from './FileLockInspectionOptionsInterface.js';
 export type { FileLockRecoveryOptionsInterface } from './FileLockRecoveryOptionsInterface.js';
