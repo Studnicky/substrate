@@ -119,6 +119,16 @@
           "code": "export class UserRepository {}",
           "filename": "/project/src/UserRepository.ts",
           "name": "allows single non-error class export matching filename"
+        },
+        {
+          "code": "export type AvailabilityType = 'date_specific' | 'regular'; export const AvailabilityType = { DATE_SPECIFIC: 'date_specific', REGULAR: 'regular' } satisfies Record<string, AvailabilityType>; export const AvailabilityTypeValues = Object.values(AvailabilityType);",
+          "filename": "/project/src/AvailabilityType.ts",
+          "name": "allows a companion enum (type + const of the same name) alongside a Values sibling"
+        },
+        {
+          "code": "export const CountryCode = { US: 'US' } as const satisfies Record<string, string>; export type CountryCode = (typeof CountryCode)[keyof typeof CountryCode];",
+          "filename": "/project/src/CountryCode.ts",
+          "name": "allows a bare companion enum (const + type of the same name only)"
         }
       ],
       "invalid": [
@@ -371,6 +381,36 @@
           ],
           "filename": "/project/src/errors/wrongName.ts",
           "name": "forbids a single gamed blank-content export under errors/ that isn't Error-shaped -> falls through to the normal mismatch check, not tooMany"
+        },
+        {
+          "code": "export function loadFoo(): void {} export function loadBar(): void {}",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/loaders.ts",
+          "name": "forbids two unrelated function exports (companion-enum carve-out does not apply)"
+        },
+        {
+          "code": "export type Foo = string; export const Bar = { a: 1 } as const;",
+          "errors": [
+            {
+              "messageId": "tooMany"
+            }
+          ],
+          "filename": "/project/src/fooBar.ts",
+          "name": "forbids a type and a const of differing names (not a companion enum)"
+        },
+        {
+          "code": "export type AvailabilityType = 'date_specific' | 'regular'; export const AvailabilityType = { DATE_SPECIFIC: 'date_specific', REGULAR: 'regular' } satisfies Record<string, AvailabilityType>; export const AvailabilityTypeValues = Object.values(AvailabilityType);",
+          "errors": [
+            {
+              "messageId": "mismatch"
+            }
+          ],
+          "filename": "/project/src/WrongName.ts",
+          "name": "forbids a companion enum whose filename does not match the shared companion name (mismatch)"
         }
       ]
     },

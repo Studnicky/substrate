@@ -11,6 +11,8 @@ Index files (`index.ts`, `index.mts`, `index.cts`, `index.tsx`) are exempt from 
 
 Restricted topology may be expressed either as folders (`entities/`, `errors/`, `interfaces/`, `constants/`, `types/`) or as filename suffixes such as `user.constants.ts` and `request.types.ts`. The `entities`, `errors`, `interfaces`, and `types` exemptions apply only when at least one export has the matching shape; a path alone does not earn an exemption. Constant modules are content-gated by their naming rule. Outside that topology, enum files are exempt only when every export is an `enum` or a const value.
 
+A companion enum — a type alias and a const of the same name, the type + const satisfies-object pattern — earns the same exemption as an `enum` file, provided every other export in the file is a type alias or a const value. The file must still be named for the shared companion name.
+
 Constant modules have an additional constraint: every exported symbol must use `SCREAMING_SNAKE_CASE`.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
@@ -71,4 +73,15 @@ export const MAX_RETRIES = 3;
 // Direction.ts — enum files may also export companion constants
 export enum Direction { Up, Down }
 export const DEFAULT_DIRECTION = Direction.Up;
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// AvailabilityType.ts — a companion enum (type + const of the same name) may export a values sibling
+export type AvailabilityType = 'date_specific' | 'regular'
+export const AvailabilityType = {
+  DATE_SPECIFIC: 'date_specific',
+  REGULAR: 'regular'
+} satisfies Record<string, AvailabilityType>
+export const AvailabilityTypeValues: readonly AvailabilityType[] = Object.values(AvailabilityType)
 ```
