@@ -109,4 +109,4 @@ platform-parity status.
 | Package | Description |
 |---------|-------------|
 | [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
-| [@studnicky/intake-kit](/packages/intake-kit) | Generic boundary-crossing primitives shared by every schema-backed entity engine |
+| [@studnicky/entity](/packages/entity) | Strict entity input compilation and cycle detection |

@@ -1,9 +1,8 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 import {
@@ -99,14 +98,7 @@ export namespace ProblemDetailsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   *
-   * Every member is optional, so this checks the type of each member that IS present and
-   * accepts unrecognised members untouched, per §3.1 and §3.2.
-   */
+  /** Validates present Problem Details members while allowing extension members. */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
 

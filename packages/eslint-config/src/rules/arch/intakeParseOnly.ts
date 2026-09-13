@@ -67,7 +67,7 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 // machinery every parser is built from (`Predicates.isObject`, `JsonObject.is`, `Predicates.coerceValue`,
 // and the `as*` helpers that already return a value), so requiring intake there is circular.
 // `@studnicky/eslint-config` operates on foreign ESLint and TypeScript AST node shapes rather
-// than application data. `@studnicky/intake-kit` is the generic compile-orchestration and clone
+// than application data. `@studnicky/entity` is the generic compile-orchestration and clone
 // engine every entity's `intake` is built from — same circularity as `@studnicky/types`. None of
 // these packages should be forced into application entities. The exemption is by package name so
 // it is visible and cannot quietly widen to cover a package that should be parsing.

@@ -524,11 +524,11 @@ Use it to apply the shared flat ESLint configuration to your project.
 </details>
 
 <details>
-<summary><strong>@studnicky/intake-kit</strong> — build schema-backed data boundaries</summary>
+<summary><strong>@studnicky/entity</strong> — build schema-backed data boundaries</summary>
 
-Use it to define common boundary primitives for schema-backed entity handling.
+Use it to compile strict entity input boundaries and detect cyclic value graphs.
 
-[Read the intake-kit guide →](https://studnicky.github.io/substrate/packages/intake-kit)
+[Read the entity guide →](https://studnicky.github.io/substrate/packages/entity)
 
 </details>
 

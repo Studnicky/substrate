@@ -323,6 +323,61 @@ void describe('SchemaValidator intake and create', () => {
     );
   });
 
+  void it('schema-intake-honors-additional-properties-without-removing-data', () => {
+    const strictIntake = SchemaValidator.compileIntake<{ port: number }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-strict-additional-properties',
+      'additionalProperties': false,
+      'properties': { 'port': { 'type': 'integer' } },
+      'required': ['port'],
+      'type': 'object'
+    });
+    const strictInput = { 'port': 8080, 'unexpected': 'retain' };
+    assert.throws(() => strictIntake(strictInput), SchemaIntakeError);
+    assert.deepEqual(strictInput, { 'port': 8080, 'unexpected': 'retain' });
+
+    const extensibleIntake = SchemaValidator.compileIntake<Record<string, unknown>>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-extensible-additional-properties',
+      'additionalProperties': { 'type': 'string' },
+      'properties': { 'port': { 'type': 'integer' } },
+      'required': ['port'],
+      'type': 'object'
+    });
+    assert.deepEqual(extensibleIntake(strictInput), strictInput);
+    assert.throws(() => extensibleIntake({ 'port': 8080, 'unexpected': false }), SchemaIntakeError);
+  });
+
+  void it('schema-intake-does-not-mutate-any-of-branches', () => {
+    const intake = SchemaValidator.compileIntake<{ ok: true; result: { id: string } }>({
+      '$id': 'https://studnicky.dev/schemas/schema-intake-any-of-branches',
+      'anyOf': [
+        {
+          'additionalProperties': false,
+          'properties': { 'error': { 'type': 'string' } },
+          'required': ['error'],
+          'type': 'object'
+        },
+        {
+          'additionalProperties': false,
+          'properties': {
+            'ok': { 'const': true },
+            'result': {
+              'additionalProperties': false,
+              'properties': { 'id': { 'type': 'string' } },
+              'required': ['id'],
+              'type': 'object'
+            }
+          },
+          'required': ['ok', 'result'],
+          'type': 'object'
+        }
+      ],
+      'type': 'object'
+    });
+    const input = { 'ok': true, 'result': { 'id': 'result-1' } };
+    assert.deepEqual(intake(input), input);
+    assert.deepEqual(input, { 'ok': true, 'result': { 'id': 'result-1' } });
+  });
+
   void it('schema-intake-nan-in-object-throws-naming-path', () => {
     const intake = SchemaValidator.compileIntake<{ x: number }>({
       '$id': 'https://studnicky.dev/schemas/schema-intake-nan-in-object',

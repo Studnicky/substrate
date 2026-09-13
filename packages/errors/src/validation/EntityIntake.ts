@@ -1,37 +1,19 @@
-import { BoundaryCycleGuard, IntakeCompiler } from '@studnicky/intake-kit/node';
-import { Predicates } from '@studnicky/types/node';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
-import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+import { BoundaryCycleGuard, EntityCompiler } from '@studnicky/entity/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { ValidationError } from '../errors/ValidationError.js';
 
-// WHY THIS DELEGATES TO `@studnicky/intake-kit`.
-//
-// `@studnicky/errors` cannot depend on `@studnicky/json`'s Ajv-backed `SchemaValidator` — `json`
-// already depends on `errors` for `BaseError`, so the reverse edge would be circular. Every
-// schema-backed error entity used to work around that by inheriting a hand-rolled copy of the
-// generic `{create, intake}` wrapping and cycle-detection logic that lived entirely in this file.
-// `@studnicky/intake-kit` has no dependency on either package — it factors out exactly that
-// generic orchestration — so this file now supplies its own error type and clone strategy to
-// `IntakeCompiler`/`BoundaryCycleGuard` instead of re-deriving them. The wrapping semantics
-// (`intake` clones-then-strips-unknown; `create` clones-then-fills-defaults; neither coerces a
-// scalar's type) are unchanged, and every one of the entities that call `EntityIntake.compile*`
-// below keeps its existing call signature.
-
 export namespace EntityIntake {
-  export interface ParseOptionsInterface {
-    readonly 'rejectUnknownProperties': boolean;
-  }
-
   export interface ParserInterface<TEntity> {
-    (candidate: Record<string, Parameters<EntityIntakeFunctionInterface<never>>[0]>, options: ParseOptionsInterface): TEntity | undefined;
+    (candidate: Record<string, Parameters<EntityIntakeFunctionInterface<never>>[0]>, options: EntityCompiler.ParseOptionsInterface): TEntity | undefined;
   }
 }
 
 /** Shared untrusted-input boundary for schema-backed error entities. */
 export class EntityIntake {
-  private static readonly BOUNDARY_CONFIG: IntakeCompiler.BoundaryConfigInterface = {
+  private static readonly BOUNDARY_CONFIG: EntityCompiler.BoundaryConfigInterface = {
     'clone': EntityIntake.clone,
     'onInvalidCandidate': EntityIntake.fail
   };
@@ -40,7 +22,7 @@ export class EntityIntake {
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): EntityCreateFunctionInterface<TEntity> {
-    const result = IntakeCompiler.compileCreate(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
+    const result = EntityCompiler.compileCreate(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
     return result;
   }
 
@@ -51,7 +33,7 @@ export class EntityIntake {
     readonly 'create': EntityCreateFunctionInterface<TEntity>;
     readonly 'intake': EntityIntakeFunctionInterface<TEntity>;
   } {
-    const result = IntakeCompiler.compile(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
+    const result = EntityCompiler.compile(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
     return result;
   }
 
@@ -59,7 +41,7 @@ export class EntityIntake {
     parser: EntityIntake.ParserInterface<TEntity>,
     entityName: string
   ): EntityIntakeFunctionInterface<TEntity> {
-    const result = IntakeCompiler.compileIntake(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
+    const result = EntityCompiler.compileIntake(parser, entityName, EntityIntake.BOUNDARY_CONFIG);
     return result;
   }
 

@@ -1,3 +1,4 @@
+import type { EntityCompiler } from '@studnicky/entity/node';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
@@ -33,11 +34,6 @@ export namespace ValidationViolationDetailEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
     if (!Predicates.isString(candidate.message)) { return false; }
@@ -47,7 +43,7 @@ export namespace ValidationViolationDetailEntity {
   };
 
   class Parser {
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+    public static parse(candidate: Record<string, unknown>, options: EntityCompiler.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['details', 'message', 'path'])) { return undefined; }
       const message = EntityIntake.string(candidate.message);
       const path = EntityIntake.string(candidate.path);

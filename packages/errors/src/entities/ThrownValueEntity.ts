@@ -1,9 +1,8 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { EntityCreateFunctionInterface } from '../interfaces/EntityCreateFunctionInterface.js';
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
@@ -68,11 +67,6 @@ export namespace ThrownValueEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
     if (!Predicates.isString(candidate.type)) { return false; }

@@ -1,4 +1,4 @@
-# @studnicky/intake-kit
+# @studnicky/entity
 
 ## 12.2.1
 

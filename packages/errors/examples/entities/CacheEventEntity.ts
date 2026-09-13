@@ -1,3 +1,4 @@
+import type { EntityCompiler } from '@studnicky/entity/node';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
@@ -27,7 +28,7 @@ export namespace CacheEventEntity {
   };
 
   class Parser {
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+    public static parse(candidate: Record<string, unknown>, options: EntityCompiler.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['event', 'key'])) { return undefined; }
       const event = EntityIntake.string(candidate.event);
       const key = EntityIntake.string(candidate.key);

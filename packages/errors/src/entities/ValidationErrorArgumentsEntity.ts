@@ -1,8 +1,9 @@
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { EntityCompiler } from '@studnicky/entity/node';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 import { EntityIntake } from '../validation/EntityIntake.js';
@@ -77,7 +78,7 @@ export namespace ValidationErrorArgumentsEntity {
       return result;
     }
 
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+    public static parse(candidate: Record<string, unknown>, options: EntityCompiler.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['correlationId', 'message', 'path', 'violations'])) { return undefined; }
       const message = EntityIntake.string(candidate.message);
       const path = EntityIntake.string(candidate.path);

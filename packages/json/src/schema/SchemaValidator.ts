@@ -8,10 +8,9 @@
  * second, hand-written validator to drift out of sync.
  *
  * `compileIntake` parses data from outside the codebase; `compileCreate` builds
- * object entities from trusted data. Running transforms over your own fixture is
- * wrong; skipping them on a request body is worse. Intake therefore fills defaults
- * and strips unknown properties, while create only fills defaults — neither coerces
- * a scalar's type; a mismatch is rejected, not silently converted. Intake applies to
+ * object entities from trusted data. Both fill schema defaults and validate the
+ * cloned value according to its schema. Neither coerces a scalar's type; a
+ * mismatch is rejected. Intake applies to
  * every entity, including scalar schemas; create is restricted to object entities
  * because a partial scalar is not meaningful.
  *
@@ -22,7 +21,7 @@
  */
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
-import { BoundaryCycleGuard } from '@studnicky/intake-kit/node';
+import { BoundaryCycleGuard } from '@studnicky/entity/node';
 import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
 
 import type { SchemaCreateFunctionInterface } from '../interfaces/SchemaCreateFunctionInterface.js';
@@ -221,19 +220,13 @@ export class SchemaValidator {
     return result;
   }
 
-  /**
-   * Detects cycles that `Clone.deep` would recurse through.
-   *
-   * Delegates to `@studnicky/intake-kit`'s `BoundaryCycleGuard` — the same `Array`/`Map`/`Set`
-   * /plain-object `WeakSet` walk this method used to hand-roll, shared with
-   * `@studnicky/errors`' `EntityIntake.clone` so the two packages' intake engines don't drift.
-   */
+  /** Detects cycles before the JSON-value clone. */
   protected static hasCloneCycle(value: unknown, ancestors = new WeakSet<object>()): boolean {
     const result = BoundaryCycleGuard.hasCycle(value, ancestors);
     return result;
   }
 
-  /** Strips undefined properties recursively. */
+  /** Omits undefined object properties before JSON validation. */
   protected static stripUndefinedProperties(value: unknown): unknown {
     if (!Predicates.isObjectLike(value)) {
       const result = value;

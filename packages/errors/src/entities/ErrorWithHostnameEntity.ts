@@ -22,11 +22,6 @@ export namespace ErrorWithHostnameEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
     const result = Predicates.isString(candidate.hostname);

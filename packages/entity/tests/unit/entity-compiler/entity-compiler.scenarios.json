@@ -45,6 +45,17 @@
       }
     },
     {
+      "name": "intake-rejects-undeclared-property",
+      "description": "intake rejects a property the parser does not declare",
+      "shape": "intake-rejects-parser-undefined",
+      "input": {
+        "candidate": { "name": "gear", "unexpected": true }
+      },
+      "expected": {
+        "message": "WidgetEntity: does not match the declared schema"
+      }
+    },
+    {
       "name": "intake-rejects-parser-undefined",
       "description": "intake rejects when the parser returns undefined",
       "shape": "intake-rejects-parser-undefined",

@@ -49,9 +49,9 @@ export namespace LayerOptionsEntity {
 
   // `validate` remains a predicate for callers checking the shared base shape inside a wider
   // derived option object. It therefore accepts those legitimate supersets. `intake` is the
-  // closed base parser and strips properties that this schema does not declare; derived rules
-  // must compile their own intake from a schema that spreads these properties before adding its
-  // stricter `additionalProperties: false`, so their rule-specific fields survive parsing.
+  // closed base parser and rejects properties that this schema does not declare; derived rules
+  // compile their own intake from a schema that spreads these properties before adding their
+  // rule-specific properties.
   const LenientSchema = {
     ...Schema,
     'additionalProperties': true

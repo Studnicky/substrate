@@ -1,21 +1,22 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { IntakeCompiler } from '../../../src/IntakeCompiler.js';
-import scenarioGroups from './intake-compiler.scenarios.json' with { type: 'json' };
+import { EntityCompiler } from '../../../src/EntityCompiler.js';
+import scenarioGroups from './entity-compiler.scenarios.json' with { type: 'json' };
 
 interface WidgetEntityInterface {
   readonly 'name': string;
 }
 
-const CONFIG: IntakeCompiler.BoundaryConfigInterface = {
+const CONFIG: EntityCompiler.BoundaryConfigInterface = {
   'clone': (value) => structuredClone(value),
   'onInvalidCandidate': (entityName, reason) => { throw { 'message': `${entityName}: ${reason}` }; }
 };
 
-const parser: IntakeCompiler.ParserInterface<WidgetEntityInterface> = (candidate) => {
+const parser: EntityCompiler.ParserInterface<WidgetEntityInterface> = (candidate, options) => {
   const rawName = candidate.name;
-  if (typeof rawName === 'string') {
+  const containsOnlyName = Object.keys(candidate).every((key) => key === 'name');
+  if (typeof rawName === 'string' && (!options.rejectUnknownProperties || containsOnlyName)) {
     return { 'name': rawName };
   }
   return undefined;
@@ -75,12 +76,12 @@ const requireResult = (scenarioCase: ScenarioCase): Record<string, unknown> => {
 const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'clone-isolation': (scenarioCase) => {
     let observedCandidate: unknown;
-    const observingParser: IntakeCompiler.ParserInterface<WidgetEntityInterface> = (candidate) => {
+    const observingParser: EntityCompiler.ParserInterface<WidgetEntityInterface> = (candidate) => {
       observedCandidate = candidate;
       Reflect.set(candidate, 'name', 'mutated');
       return { 'name': String(candidate.name) };
     };
-    const { intake } = IntakeCompiler.compile(observingParser, 'WidgetEntity', CONFIG);
+    const { intake } = EntityCompiler.compile(observingParser, 'WidgetEntity', CONFIG);
     const originalName = scenarioCase.input.originalName ?? 'original';
     const original = { 'name': originalName };
     intake(original);
@@ -95,23 +96,23 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.ok(createResult !== undefined, `${scenarioCase.name} must define expected.createResult`);
     assert.ok(intakeResult !== undefined, `${scenarioCase.name} must define expected.intakeResult`);
 
-    const create = IntakeCompiler.compileCreate(parser, 'WidgetEntity', CONFIG);
-    const intake = IntakeCompiler.compileIntake(parser, 'WidgetEntity', CONFIG);
+    const create = EntityCompiler.compileCreate(parser, 'WidgetEntity', CONFIG);
+    const intake = EntityCompiler.compileIntake(parser, 'WidgetEntity', CONFIG);
     assert.deepEqual(create(createCandidate as Partial<WidgetEntityInterface>), createResult);
     assert.deepEqual(intake(intakeCandidate), intakeResult);
   },
   'create-passthrough': (scenarioCase) => {
-    const { create } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
+    const { create } = EntityCompiler.compile(parser, 'WidgetEntity', CONFIG);
     const result = create(requireCandidate(scenarioCase) as Partial<WidgetEntityInterface>);
     assert.deepEqual(result, requireResult(scenarioCase));
   },
   'create-throws': (scenarioCase) => {
-    const { create } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
+    const { create } = EntityCompiler.compile(parser, 'WidgetEntity', CONFIG);
     const candidate = requireCandidate(scenarioCase) as unknown as Partial<WidgetEntityInterface>;
     assert.throws(() => create(candidate), { 'message': requireMessage(scenarioCase) });
   },
   'intake-rejects-invalid-candidate': (scenarioCase) => {
-    const { intake } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
+    const { intake } = EntityCompiler.compile(parser, 'WidgetEntity', CONFIG);
     const { candidates } = scenarioCase.input;
     assert.ok(Array.isArray(candidates), `${scenarioCase.name} must define input.candidates`);
     const message = requireMessage(scenarioCase);
@@ -120,12 +121,12 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
   },
   'intake-rejects-parser-undefined': (scenarioCase) => {
-    const { intake } = IntakeCompiler.compile(parser, 'WidgetEntity', CONFIG);
+    const { intake } = EntityCompiler.compile(parser, 'WidgetEntity', CONFIG);
     assert.throws(() => intake(requireCandidate(scenarioCase)), { 'message': requireMessage(scenarioCase) });
   }
 };
 
-void describe('IntakeCompiler.compile', () => {
+void describe('EntityCompiler.compile', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, () => {
       runnerMap[scenarioCase.shape](scenarioCase);

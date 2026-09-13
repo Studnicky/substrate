@@ -17,6 +17,7 @@ p__studnicky_concurrency["@studnicky/concurrency"]
 p__studnicky_config["@studnicky/config"]
 p__studnicky_context["@studnicky/context"]
 p__studnicky_drilldown["@studnicky/drilldown"]
+p__studnicky_entity["@studnicky/entity"]
 p__studnicky_entity_store["@studnicky/entity-store"]
 p__studnicky_errors["@studnicky/errors"]
 p__studnicky_eslint_config["@studnicky/eslint-config"]
@@ -28,7 +29,6 @@ p__studnicky_flag_evaluator["@studnicky/flag-evaluator"]
 p__studnicky_fsm["@studnicky/fsm"]
 p__studnicky_health_registry["@studnicky/health-registry"]
 p__studnicky_idempotency_guard["@studnicky/idempotency-guard"]
-p__studnicky_intake_kit["@studnicky/intake-kit"]
 p__studnicky_json["@studnicky/json"]
 p__studnicky_keyed_rate_limiter["@studnicky/keyed-rate-limiter"]
 p__studnicky_keyed_work_gate["@studnicky/keyed-work-gate"]
@@ -99,8 +99,9 @@ p__studnicky_context --> p__studnicky_types
 p__studnicky_drilldown --> p__studnicky_cache
 p__studnicky_drilldown --> p__studnicky_json
 p__studnicky_drilldown --> p__studnicky_types
+p__studnicky_entity --> p__studnicky_types
 p__studnicky_entity_store --> p__studnicky_errors
-p__studnicky_errors --> p__studnicky_intake_kit
+p__studnicky_errors --> p__studnicky_entity
 p__studnicky_errors --> p__studnicky_types
 p__studnicky_eslint_config --> p__studnicky_json
 p__studnicky_eslint_config --> p__studnicky_types
@@ -138,9 +139,8 @@ p__studnicky_idempotency_guard --> p__studnicky_concurrency
 p__studnicky_idempotency_guard --> p__studnicky_errors
 p__studnicky_idempotency_guard --> p__studnicky_json
 p__studnicky_idempotency_guard --> p__studnicky_types
-p__studnicky_intake_kit --> p__studnicky_types
+p__studnicky_json --> p__studnicky_entity
 p__studnicky_json --> p__studnicky_errors
-p__studnicky_json --> p__studnicky_intake_kit
 p__studnicky_json --> p__studnicky_types
 p__studnicky_keyed_rate_limiter --> p__studnicky_cache
 p__studnicky_keyed_rate_limiter --> p__studnicky_errors

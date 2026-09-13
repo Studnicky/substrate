@@ -18,6 +18,10 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/json
 ```
 
+## Runtime imports
+
+Use `@studnicky/json/node` in Node.js and `@studnicky/json/browser` in browser bundles. Both runtime entry points expose the same API. Types, interfaces, and entities use their shared subpaths.
+
 ## Usage
 
 ```ts

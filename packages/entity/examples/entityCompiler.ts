@@ -1,6 +1,6 @@
-/** intakeCompiler — parse external input, enforce owned-object shape, and reject cycles. Run: npx tsx packages/intake-kit/examples/intakeCompiler.ts */
+/** entityCompiler — parse external input, enforce owned-object shape, and reject cycles. Run: npx tsx packages/entity/examples/entityCompiler.ts */
 
-import { BoundaryCycleGuard, IntakeCompiler } from '@studnicky/intake-kit/node';
+import { BoundaryCycleGuard, EntityCompiler } from '@studnicky/entity/node';
 import assert from 'node:assert/strict';
 
 interface SubscriberInterface {
@@ -19,7 +19,7 @@ class SubscriberExample {
     return result;
   }
 
-  static parse(candidate: unknown, options: IntakeCompiler.ParseOptionsInterface): SubscriberInterface | undefined {
+  static parse(candidate: unknown, options: EntityCompiler.ParseOptionsInterface): SubscriberInterface | undefined {
     if (!SubscriberExample.isRecord(candidate) || typeof candidate.email !== 'string' || typeof candidate.name !== 'string') {
       return undefined;
     }
@@ -39,7 +39,7 @@ class SubscriberExample {
 }
 
 // #region usage
-const { create, intake } = IntakeCompiler.compile(SubscriberExample.parse, 'Subscriber', {
+const { create, intake } = EntityCompiler.compile(SubscriberExample.parse, 'Subscriber', {
   'clone': (value) => {
     const result = structuredClone(value);
     return result;
@@ -49,6 +49,11 @@ const { create, intake } = IntakeCompiler.compile(SubscriberExample.parse, 'Subs
 
 const subscriber = intake({ 'email': 'ada@example.test', 'name': 'Ada' });
 console.log('Boundary input:', subscriber);
+
+assert.throws(() => {
+  intake({ 'email': 'ada@example.test', 'name': 'Ada', 'unexpected': true });
+}, TypeError);
+console.log('Boundary input: undeclared fields rejected');
 
 assert.throws(() => {
   create({});
@@ -65,4 +70,4 @@ assert.equal(BoundaryCycleGuard.hasCycle(subscriber), false);
 assert.equal(BoundaryCycleGuard.hasCycle(cyclic), true);
 // #endregion usage
 
-console.log('intakeCompiler: all assertions passed');
+console.log('entityCompiler: all assertions passed');

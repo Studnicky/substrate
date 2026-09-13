@@ -2,16 +2,14 @@
   "cases": [
     {
       "name": "schema-intake-transforms-without-mutating-input",
-      "description": "intake defaults, strips, and preserves the caller input, without coercing a correctly-typed value",
+      "description": "intake fills schema defaults and preserves the caller input without coercing a correctly-typed value",
       "shape": "intake-transforms",
       "input": {
-        "port": 8080,
-        "unexpected": "discard"
+        "port": 8080
       },
       "expected": {
         "original": {
-          "port": 8080,
-          "unexpected": "discard"
+          "port": 8080
         },
         "result": {
           "host": "localhost",
@@ -74,7 +72,7 @@
     },
     {
       "name": "schema-assert-validator-remains-untransformed",
-      "description": "compile does not coerce, strip, or fill defaults",
+      "description": "compile does not transform or fill defaults",
       "shape": "assert-isolated",
       "input": {
         "port": "8080",

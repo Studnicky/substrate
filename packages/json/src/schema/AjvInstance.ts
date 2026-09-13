@@ -16,34 +16,18 @@ import { PLAIN_JSON_VALUE_KEYWORD } from './constants/PlainJsonObjectKeyword.js'
 const ajvInstance = new Ajv2020({
   'allErrors': true,
   'allowUnionTypes': true,
-  'removeAdditional': false,
   'strict': true
 });
 
-/**
- * Intake transforms a private clone; it is separate because Ajv transforms mutate values.
- *
- * `removeAdditional: 'all'` removes every property not named in `properties`/`patternProperties`
- * REGARDLESS of the `additionalProperties` keyword's own value — including when that value is a
- * permissive schema like `{}` (Ajv's documented behavior, not a bug in the schemas that use it).
- * A wildcard object entity (`JsonObjectEntity`, `JsonValueEntity`'s object variant,
- * `PatchOperationEntity`'s object-shaped `value`) declares no `properties` at all — under `'all'`
- * mode every one of its keys reads as "additional" and intake silently returns `{}` for any
- * object input, verified empirically (`JsonValueEntity.intake({ x: 1 })` returned `{}`). `'failing'`
- * mode only removes a property that fails validation against the `additionalProperties` schema, so
- * `additionalProperties: {}` (matches anything) keeps every key, while `additionalProperties: false`
- * (used by every named-shape entity elsewhere) behaves identically to `'all'` — `false` never
- * validates, so an unnamed property still always "fails" and is still always removed.
- */
+/** Intake fills schema defaults on a private clone; validation preserves the schema's property rules. */
 const ajvIntakeInstance = new Ajv2020({
   'allErrors': true,
   'allowUnionTypes': true,
-  'removeAdditional': 'failing',
   'strict': true,
   'useDefaults': true
 });
 
-/** Create only fills defaults; it is separate so trusted values are never coerced or stripped. */
+/** Create fills schema defaults on a private clone; validation preserves the schema's property rules. */
 const ajvCreateInstance = new Ajv2020({
   'allErrors': true,
   'allowUnionTypes': true,

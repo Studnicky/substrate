@@ -1,8 +1,9 @@
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { EntityCompiler } from '@studnicky/entity/node';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 
 import { EntityIntake } from '../validation/EntityIntake.js';
@@ -31,11 +32,6 @@ export namespace ValidationAggregateViewEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
   export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
     if (!Predicates.isObject(candidate)) { return false; }
     if (!Predicates.isNumber(candidate.count)) { return false; }
@@ -57,7 +53,7 @@ export namespace ValidationAggregateViewEntity {
       return result;
     }
 
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+    public static parse(candidate: Record<string, unknown>, options: EntityCompiler.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['count', 'keywords', 'paths'])) { return undefined; }
       const count = EntityIntake.number(candidate.count);
       const keywords = Parser.parseStrings(candidate.keywords);

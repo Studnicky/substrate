@@ -13,7 +13,7 @@
     "dist"
   ],
   "references": [
-    { "path": "../intake-kit" },
+    { "path": "../entity" },
     { "path": "../types" }
   ]
 }

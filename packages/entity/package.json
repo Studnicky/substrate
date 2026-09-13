@@ -1,7 +1,7 @@
 {
-  "name": "@studnicky/intake-kit",
+  "name": "@studnicky/entity",
   "version": "12.2.1",
-  "description": "Generic boundary-crossing primitives (cycle-safe graph walks, create/intake compile orchestration) shared by every schema-backed entity engine",
+  "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -43,12 +43,12 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/intake-kit"
+    "directory": "packages/entity"
   },
   "bugs": {
     "url": "https://github.com/Studnicky/substrate/issues"
   },
-  "homepage": "https://studnicky.github.io/substrate/packages/intake-kit",
+  "homepage": "https://studnicky.github.io/substrate/packages/entity",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "public"

@@ -1,3 +1,4 @@
+import type { EntityCompiler } from '@studnicky/entity/node';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/node';
@@ -33,7 +34,7 @@ export namespace ErrorDiagnosticEntity {
   };
 
   class Parser {
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
+    public static parse(candidate: Record<string, unknown>, options: EntityCompiler.ParseOptionsInterface): Type | undefined {
       if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['message', 'name', 'stack'])) { return undefined; }
       const message = EntityIntake.string(candidate.message);
       const name = EntityIntake.string(candidate.name);

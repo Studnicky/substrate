@@ -13,6 +13,10 @@ description: JSON and object utilities for deep merge, clone, equality, freeze, 
 pnpm add @studnicky/json
 ```
 
+## Runtime imports
+
+Use `@studnicky/json/node` in Node.js and `@studnicky/json/browser` in browser bundles. Both runtime entry points expose the same API. Types, interfaces, and entities use their shared subpaths.
+
 ## Merge and Clone
 
 Deep merge nested objects: overlay wins on conflict, base keys are preserved, and arrays are replaced atomically by default. Clone produces a new object with no shared references, with full Date/Map/Set awareness:
@@ -111,27 +115,25 @@ export namespace RecordEntity {
   export const create = SchemaValidator.compileCreate<Type>(Schema);
 }
 
-// From outside the process — defaulted, stripped, or rejected. Never coerced: a wrong-typed
-// field (a string where the schema declares a number) throws, it is not silently converted.
+// From outside the process — defaults are filled and schema violations are rejected.
 const record = RecordEntity.intake(await request.json());
 
-// Produced in-process — defaults merged, nothing transformed.
+// Produced in-process — defaults are filled and schema violations are rejected.
 const fixture = RecordEntity.create({ id: 'r-1' });
 ```
 
-`intake` runs, in order: reject cyclic input, deep-clone so the caller's value is never mutated, then fill schema defaults and strip properties the schema does not declare. It never coerces a scalar's type. Invalid input throws `SchemaIntakeError`, which carries the formatted message, Ajv's raw `errors` array, and the schema's `$id` or `title` so the reader knows which entity rejected the payload.
+`intake` rejects cyclic input, deep-clones the value so the caller's value is never mutated, fills schema defaults, and validates the clone. It never coerces scalar values. `additionalProperties: false` rejects undeclared keys; `additionalProperties: true` or an `additionalProperties` schema permits values exactly as the schema declares. Object properties with `undefined` are treated as absent before JSON validation; `undefined` array entries are invalid. Invalid input throws `SchemaIntakeError`, which carries the formatted message, Ajv's raw `errors` array, and the schema's `$id` or `title` so the reader knows which entity rejected the payload.
 
-`create` is for data you produced yourself: defaults are merged, but nothing is stripped, and a wrong-typed value throws exactly as it does in `intake`. The distinction is **provenance, not shape** — running transforms over your own fixture is wrong; skipping them on a request body is worse.
+`create` is for data you produce yourself. It fills schema defaults and validates the cloned value with the same property rules as `intake`; a wrong-typed or undeclared value throws.
 
 `intake` applies to every entity. `create` is constrained at the type level to object-typed entities, because `Partial<'healthy' | 'degraded'>` is not a usable input.
 
-These run on three separate Ajv instances because Ajv's transform options (`useDefaults`, `removeAdditional`) are configured once per instance, at construction, not per call — there is no per-call toggle. `compile` needs an instance with neither option set, so validating never mutates the value being checked; `compileIntake` needs `useDefaults` and `removeAdditional` on together, to fill defaults and strip undeclared properties; `compileCreate` needs `useDefaults` alone, with no stripping. One instance can only carry one of those three configurations at a time, so serving all three contracts means three instances.
 
 Import schema and validator types from their declaring packages and declare those packages directly: `JSONSchema` and `FromSchema` come from `json-schema-to-ts`, while `ValidateFunction` comes from `ajv`. The schema and `FromSchema` derivation may be split across files; each site imports the owner symbol it uses. `SchemaValidator` supplies `@studnicky/json` runtime functionality, not proxy exports for dependency-owned declarations.
 
 ## Public API
 
-Import JSON operations, `SchemaValidator`, `FrozenMutationError`, `JsonError`, `PatchError`, and `SchemaIntakeError` from `@studnicky/json`. Package-owned schemas use `@studnicky/json/entities` and contracts use `@studnicky/json/interfaces`. Dependency-owned schema declarations remain imported directly from `json-schema-to-ts`, `ajv`, and `json-schema`.
+Import JSON operations, `SchemaValidator`, `FrozenMutationError`, `JsonError`, `PatchError`, and `SchemaIntakeError` from `@studnicky/json/node` in Node.js or `@studnicky/json/browser` in browser bundles. Package-owned schemas use `@studnicky/json/entities` and contracts use `@studnicky/json/interfaces`. Dependency-owned schema declarations remain imported directly from `json-schema-to-ts`, `ajv`, and `json-schema`.
 
 ## Extending
 

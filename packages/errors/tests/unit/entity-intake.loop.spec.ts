@@ -30,15 +30,13 @@ import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 
 void describe('errors entity intake boundaries', () => {
-  void it('strips a private clone without mutating the caller value, without coercing types', () => {
+  void it('rejects undeclared properties without mutating the caller value', () => {
     const input = {
       'ignored': { 'nested': true },
       'retryable': true
     };
 
-    const result = ErrorClassificationEntity.intake(input);
-
-    assert.deepEqual(result, { 'retryable': true });
+    assert.throws(() => ErrorClassificationEntity.intake(input), ValidationError);
     assert.deepEqual(input, {
       'ignored': { 'nested': true },
       'retryable': true
