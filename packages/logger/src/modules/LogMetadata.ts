@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CoreLogFieldsEntity } from '../entities/CoreLogFieldsEntity.js';
 import type { CorrelationMetadataInterface } from '../interfaces/CorrelationMetadataInterface.js';

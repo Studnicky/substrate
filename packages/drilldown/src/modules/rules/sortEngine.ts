@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SortRuleEntity } from '../../entities/SortRuleEntity.js';
 import type { DataRecordInterface, GroupNodeInterface } from '../../interfaces/index.js';

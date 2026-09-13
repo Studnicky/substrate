@@ -20,27 +20,21 @@ interface SourceModuleLoaderInterface {
   (): Promise<Record<string, unknown>>;
 }
 
-// Lazy glob of browser-compatible package entry points. Vite compiles each
-// selected package only when an example imports it.
+// Lazy glob of browser-safe entrypoints. Vite compiles a module only when an example imports it.
 // Keys are relative to this file (docs/.vitepress/theme/utils/), e.g.:
-//   '../../../../packages/retry/src/index.ts'
+//   '../../../../packages/retry/src/browser/index.ts'
 //
-// Packages excluded from the source glob (Node-only — cannot bundle for browser):
-//   context      — uses node:async_hooks (AsyncLocalStorage); cross-await
-//                  propagation has no faithful browser equivalent
-//   eslint-config — Node dev tool; pulls in typescript-eslint, unrs-resolver
-//
-// Browser-capable packages expose their browser entrypoint separately. Node adapter
-// entrypoints are never loaded into the documentation bundle.
+// Browser entrypoints that share the package implementation resolve the root source; packages with a browser adapter resolve `src/browser`.
+// Entities, interfaces, and types remain runtime-neutral.
 const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
   [
     '../../../../packages/*/src/index.ts',
-    '../../../../packages/*/src/**/index.ts',
+    '../../../../packages/*/src/browser/index.ts',
+    '../../../../packages/*/src/entities/index.ts',
+    '../../../../packages/*/src/interfaces/index.ts',
+    '../../../../packages/*/src/types/index.ts',
     '!../../../../packages/context/src/index.ts',
-    '!../../../../packages/context/src/**/index.ts',
-    '!../../../../packages/eslint-config/src/index.ts',
-    '!../../../../packages/eslint-config/src/**/index.ts',
-    '!../../../../packages/*/src/node/index.ts'
+    '!../../../../packages/eslint-config/src/index.ts'
   ]
 );
 
@@ -200,9 +194,10 @@ function resolveModuleSpecifier(specifier: string, fromCanonical: string): strin
     const packageParts = specifier.slice('@studnicky/'.length).split('/');
     const packageName = packageParts[0];
     const subpath = packageParts.slice(1).join('/');
-    return subpath === ''
+    const browserSubpath = subpath === 'node' ? 'browser' : subpath;
+    return browserSubpath === ''
       ? `packages/${packageName}/src/index`
-      : `packages/${packageName}/src/${subpath}/index`;
+      : `packages/${packageName}/src/${browserSubpath}/index`;
   }
 
   return specifier.startsWith('.')
@@ -211,6 +206,24 @@ function resolveModuleSpecifier(specifier: string, fromCanonical: string): strin
 }
 
 function resolveSourceCanonical(canonical: string): string | undefined {
+  const browserCanonical = canonical.replace(
+    /^(packages\/[^/]+\/src)\/index/,
+    (_match: string, prefix: string): string => { return prefix + '/browser/index'; }
+  );
+
+  if (browserCanonical in SOURCE_LOADERS) {
+    return browserCanonical;
+  }
+
+  const rootCanonical = canonical.replace(
+    /^(packages\/[^/]+\/src)\/browser\/index/,
+    (_match: string, prefix: string): string => { return prefix + '/index'; }
+  );
+
+  if (rootCanonical in SOURCE_LOADERS) {
+    return rootCanonical;
+  }
+
   if (canonical in SOURCE_LOADERS) {
     return canonical;
   }

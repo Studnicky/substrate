@@ -18,7 +18,7 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue, Predicates } from '@studnicky/types';
+import { JsonValue, Predicates } from '@studnicky/types/node';
 
 import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
 import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';

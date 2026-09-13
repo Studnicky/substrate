@@ -13,7 +13,7 @@ description: High-resolution operation timing tracker using process.hrtime.bigin
 pnpm add @studnicky/timing
 ```
 
-`@studnicky/timing` declares a root usage API and explicit public subpaths.
+`@studnicky/timing/node` exposes the Node runtime API; `@studnicky/timing/browser` exposes browser timing.
 
 ## Usage
 
@@ -43,7 +43,7 @@ Create a `Timing` instance with `Timing.create()` or a trusted `TimingOptionsEnt
 
 ## Public API
 
-The root exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`.
+`@studnicky/timing/node` exports `Timing`, `TimingEvent`, `NoOpTiming`, `TIMING_STATUS`, and `TimingBuildError`.
 `@studnicky/timing/browser` exports `BrowserTiming`, which uses the native Performance API.
 Schema-backed timing entities use `@studnicky/timing/entities`; `TimingInterface` uses
 `@studnicky/timing/interfaces`.
@@ -92,9 +92,9 @@ import type { TimingInterface } from '@studnicky/timing/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `TIMING_STATUS` | Provides supported timing status values. | `@studnicky/timing` |
-| `NoOpTiming` | Provides no op timing functionality. | `@studnicky/timing` |
-| `Timing` | Provides timing functionality. | `@studnicky/timing` |
-| `TimingBuildError` | Represents timing build failures. | `@studnicky/timing` |
-| `TimingEvent` | Provides timing event functionality. | `@studnicky/timing` |
+| `TIMING_STATUS` | Provides supported timing status values. | `@studnicky/timing/node` |
+| `NoOpTiming` | Provides no op timing functionality. | `@studnicky/timing/node` |
+| `Timing` | Provides timing functionality. | `@studnicky/timing/node` |
+| `TimingBuildError` | Represents timing build failures. | `@studnicky/timing/node` |
+| `TimingEvent` | Provides timing event functionality. | `@studnicky/timing/node` |
 | `BrowserTiming` | Provides timing through the browser Performance API. | `@studnicky/timing/browser` |

@@ -9,7 +9,7 @@
  * npx tsx examples/keyedWorkGateComposition.ts */
 
 // #region usage
-import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency';
+import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency/node';
 import assert from 'node:assert/strict';
 
 import { LockTimeoutError, Mutex } from '../src/index.js';

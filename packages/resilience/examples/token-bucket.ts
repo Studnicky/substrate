@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** token-bucket — consume() throws when exhausted; waitForToken() blocks until refill. Run: npx tsx examples/token-bucket.ts */
 import assert from 'node:assert/strict';
 

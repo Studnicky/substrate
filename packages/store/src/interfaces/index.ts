@@ -1,3 +1,4 @@
+export type { ContextStoreOptionsInterface } from './ContextStoreOptionsInterface.js';
 export type { JsonStateCodecOptionsInterface } from './JsonStateCodecOptionsInterface.js';
 export type { StateCodecInterface } from './StateCodecInterface.js';
 export type { StatePersistenceInterface } from './StatePersistenceInterface.js';

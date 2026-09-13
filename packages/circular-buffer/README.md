@@ -21,7 +21,7 @@ pnpm add @studnicky/circular-buffer
 ## Usage
 
 ```ts
-import { CircularBuffer } from '@studnicky/circular-buffer';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
 
 // Fixed-capacity ring: capacity 3, oldest item evicted when full
 const buf = CircularBuffer.create<number>({ capacity: 3 });
@@ -62,7 +62,7 @@ console.log(buf.length); // 4
 Override the protected lifecycle hooks to observe buffer events without modifying core behavior:
 
 ```ts
-import { CircularBuffer } from '@studnicky/circular-buffer';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
 
 class InstrumentedBuffer<T> extends CircularBuffer<T> {
   readonly evictedItems: T[] = [];

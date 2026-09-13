@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** 03-telemetry-hooks — FetchClient subclass with telemetry lifecycle hooks. Run: npx tsx packages/fetch/examples/03-telemetry-hooks.ts */
 import assert from 'node:assert/strict';
 

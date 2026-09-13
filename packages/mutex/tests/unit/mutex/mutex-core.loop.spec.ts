@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';

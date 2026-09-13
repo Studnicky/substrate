@@ -4,11 +4,12 @@
   "description": "Idempotency key guard composing cache, concurrency, and json: dedupes concurrent calls, replays cached results within a TTL window, rejects key reuse with a different payload",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },

@@ -29,7 +29,7 @@ Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted 
 
 ## Public API
 
-Import `CircularBuffer`, `CircularBufferOptionsEntity`, `CircularBufferStateEntity`, `CircularBufferError`, and `CircularBufferInterface` from `@studnicky/circular-buffer`. Construct a ring through `CircularBuffer.create({ capacity, overflow })`. `CircularBufferInterface.length` composes the schema-derived field owned by `CircularBufferStateEntity`. The package declares separate root, entity, and interface import surfaces; storage constants are implementation details.
+Import `CircularBuffer` and `CircularBufferError` from `@studnicky/circular-buffer/node`; import `CircularBufferOptionsEntity` and `CircularBufferStateEntity` from `@studnicky/circular-buffer/entities`; and import `CircularBufferInterface` from `@studnicky/circular-buffer/interfaces`. Construct a ring through `CircularBuffer.create({ capacity, overflow })`. `CircularBufferInterface.length` composes the schema-derived field owned by `CircularBufferStateEntity`. Runtime operations use the `/node` entrypoint; schemas and contracts remain at `/entities` and `/interfaces`. Storage constants are implementation details.
 
 ## Extending
 
@@ -77,5 +77,8 @@ import type { CircularBufferInterface } from '@studnicky/circular-buffer/interfa
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `CircularBuffer` | Provides circular buffer functionality. | `@studnicky/circular-buffer` |
-| `CircularBufferError` | Represents circular buffer failures. | `@studnicky/circular-buffer` |
+| `CircularBuffer` | Provides circular buffer functionality. | `@studnicky/circular-buffer/node` |
+| `CircularBufferError` | Represents circular buffer failures. | `@studnicky/circular-buffer/node` |
+| `CircularBufferOptionsEntity` | Defines circular buffer configuration. | `@studnicky/circular-buffer/entities` |
+| `CircularBufferStateEntity` | Defines circular buffer state. | `@studnicky/circular-buffer/entities` |
+| `CircularBufferInterface` | Defines the circular buffer contract. | `@studnicky/circular-buffer/interfaces` |

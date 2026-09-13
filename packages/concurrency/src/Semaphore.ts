@@ -1,8 +1,8 @@
 /** Counting permit gate. acquire() returns a release function. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SemaphoreAcquireOptionsInterface } from './interfaces/SemaphoreAcquireOptionsInterface.js';
 import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';

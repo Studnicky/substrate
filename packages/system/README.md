@@ -23,7 +23,7 @@ pnpm add @studnicky/system
 ## Usage
 
 ```typescript
-import { System } from '@studnicky/system';
+import { System } from '@studnicky/system/node';
 
 // CPU topology
 const cpu = System.cpu;

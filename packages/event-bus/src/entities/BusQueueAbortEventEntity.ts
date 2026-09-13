@@ -2,7 +2,7 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Requests that the queue abort — cancel in-flight work and release waiters. */
 export namespace BusQueueAbortEventEntity {

@@ -1,7 +1,5 @@
 import type { Rule } from 'eslint';
 
-import path from 'node:path';
-
 import { AstHelpers } from './shared/astHelpers.js';
 
 const INDEX_BASES = new Set([
@@ -15,7 +13,8 @@ export const canonicalExportNames: Rule.RuleModule = {
   'create': (context) => {
     const filename = context.filename;
 
-    const inIndex = INDEX_BASES.has(path.basename(filename));
+    const lastSeparator = Math.max(filename.lastIndexOf('/'), filename.lastIndexOf('\\'));
+    const inIndex = INDEX_BASES.has(filename.slice(lastSeparator + 1));
     const importedBindings = new Set<string>();
 
     const onImportDeclaration = (node: Rule.Node): void => {

@@ -23,7 +23,7 @@ pnpm add @studnicky/intake-kit
 `IntakeCompiler.compile` takes a parser — `(candidate, options) => TEntity | undefined` — and an injected `BoundaryConfigInterface` (a clone strategy and a failure path), and returns a `{create, intake}` pair with the standard semantics: `intake` clones then strips unknown properties; `create` clones then fills defaults without stripping. Neither coerces a value's type — a wrong-typed field is rejected, not silently converted.
 
 ```typescript
-import { IntakeCompiler } from '@studnicky/intake-kit';
+import { IntakeCompiler } from '@studnicky/intake-kit/node';
 
 const parser: IntakeCompiler.ParserInterface<MyEntity> = (candidate, options) => {
   // validate `candidate` per `options.rejectUnknownProperties`,
@@ -46,7 +46,7 @@ Every failure path and clone strategy is injected, so `IntakeCompiler` never thr
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/intake-kit` |
-| `IntakeCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/intake-kit` |
-| `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/intake-kit` |
-| `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/intake-kit` |
+| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/intake-kit/node` |
+| `IntakeCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/intake-kit/node` |
+| `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/intake-kit/interfaces` |
+| `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/intake-kit/interfaces` |

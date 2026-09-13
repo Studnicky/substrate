@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 /**

@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';

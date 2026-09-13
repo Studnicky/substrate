@@ -6,7 +6,7 @@
  *
  * Run: npx tsx packages/scheduler/examples/delay.ts
  */
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import assert from 'node:assert/strict';
 
 import { Delay, VirtualScheduler } from '../src/index.js';

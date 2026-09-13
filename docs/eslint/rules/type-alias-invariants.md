@@ -36,7 +36,7 @@ Recognition is library-agnostic: it inspects what a schema derivation produced, 
    - `F` is a type alias declared with type parameters;
    - `F` is declared in a `.d.ts` file;
    - `F`'s declaration carries a `/** @schemaDerivation */` JSDoc tag — the one in-code extension point, for a project-local schema-to-type function whose declaration is not itself a generic type alias; or
-   - `F` and the builder function that produced `Schema` (see below) share the same package root.
+   - `F` and the builder function that produced `Schema` (see below) share the same owning package.
 3. **Value-first authoring** — `Schema` is a module-scope `const` with no explicit type annotation (an annotation means the type came first, so the value is not the source of truth), whose initializer is either a const-asserted object literal (`{ ... } as const`, optionally `satisfies`-wrapped) or a builder call (`Type.Object(...)`, `z.object(...)`, and so on). A `let` binding never qualifies.
 4. **Result plainness** — the *resolved* type that `F<typeof Schema>` produces is JSON-plain: no call or construct signatures, no class instances, no symbol, bigint, `never`, `void`, `undefined`, `any`, or `unknown`. Recognition stops recursing into `F`'s own implementation and checks only what it resolves to, which is what makes this library-agnostic.
 

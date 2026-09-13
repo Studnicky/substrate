@@ -3,7 +3,7 @@
  * @description Base class for all FilterEngine errors
  */
 
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 
 /**
  * Options for constructing a FilterError

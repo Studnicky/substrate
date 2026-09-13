@@ -24,9 +24,9 @@
  * externally-fetched cursor rather than the machine reaching out for it.
  */
 
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';

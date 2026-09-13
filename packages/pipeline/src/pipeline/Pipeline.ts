@@ -52,8 +52,8 @@
  * ```
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { PipelineOptionsEntity } from '../entities/PipelineOptionsEntity.js';
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';

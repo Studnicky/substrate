@@ -1,13 +1,13 @@
 /** Bounded work dispatch composing concurrency's Semaphore, event-bus's EventBus, and scheduler. */
 
-import type { SchedulerProviderInterface } from '@studnicky/scheduler';
 import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
-import { Semaphore } from '@studnicky/concurrency';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { EventBus } from '@studnicky/event-bus';
-import { RealTimeScheduler } from '@studnicky/scheduler';
-import { Predicates } from '@studnicky/types';
+import { Semaphore } from '@studnicky/concurrency/node';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { EventBus } from '@studnicky/event-bus/node';
+import { RealTimeScheduler } from '@studnicky/scheduler/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';

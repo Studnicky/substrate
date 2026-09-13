@@ -6,7 +6,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Validated options for acquiring a browser Web Lock. */
 export namespace WebLockOptionsEntity {

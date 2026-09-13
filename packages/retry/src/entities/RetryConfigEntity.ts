@@ -2,8 +2,8 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaIntakeError, SchemaValidator } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { SchemaIntakeError, SchemaValidator } from '@studnicky/json/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { BackoffConfigEntity } from './BackoffConfigEntity.js';
 

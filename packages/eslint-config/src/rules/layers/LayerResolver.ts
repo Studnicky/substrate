@@ -1,8 +1,4 @@
-import { isBuiltin } from 'node:module';
-import {
-  dirname, resolve
-} from 'node:path';
-
+import type { ProjectHostInterface } from '../../interfaces/ProjectHostInterface.js';
 import type { LayerBindingEntity } from './LayerBindingEntity.js';
 import type { LayerOptionsEntity } from './LayerOptionsEntity.js';
 
@@ -90,7 +86,8 @@ class BindingResolution {
   public static forSpecifier(
     specifier: string,
     layerSet: ReadonlySet<string>,
-    bindings: readonly LayerBindingEntity.Type[]
+    bindings: readonly LayerBindingEntity.Type[],
+    host: ProjectHostInterface | undefined
   ): string | undefined {
     const bindingCount = bindings.length;
 
@@ -105,7 +102,7 @@ class BindingResolution {
       }
 
       if (binding.unit === 'builtin') {
-        if (isBuiltin(specifier)) {
+        if (host?.isBuiltinSpecifier(specifier) === true) {
           return binding.layer;
         }
 
@@ -264,9 +261,14 @@ export class LayerResolver {
    * resolves to `undefined` and stays a silent pass: an unbound external import is not an
    * implicit violation, only a bound one is checkable at all.
    */
-  public static layerForImport(importSpecifier: string, importingFilePath: string, options: LayerOptionsEntity.Type): string | undefined {
+  public static layerForImport(
+    importSpecifier: string,
+    importingFilePath: string,
+    options: LayerOptionsEntity.Type,
+    host: ProjectHostInterface | undefined
+  ): string | undefined {
     const layerSet = new Set(options.layers);
-    const specifierMatch = BindingResolution.forSpecifier(importSpecifier, layerSet, options.bindings);
+    const specifierMatch = BindingResolution.forSpecifier(importSpecifier, layerSet, options.bindings, host);
 
     if (specifierMatch !== undefined) {
       return specifierMatch;
@@ -278,7 +280,11 @@ export class LayerResolver {
       return undefined;
     }
 
-    const resolvedPath = resolve(dirname(importingFilePath), importSpecifier);
+    if (host === undefined) {
+      return undefined;
+    }
+
+    const resolvedPath = host.resolveRelativePath(importingFilePath, importSpecifier);
 
     const result = LayerResolver.layerForPath(resolvedPath, options);
 

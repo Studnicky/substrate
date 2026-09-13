@@ -1,5 +1,5 @@
 import { BrowserFetchClient } from '@studnicky/fetch/browser';
-import { Retry } from '@studnicky/retry';
+import { Retry } from '@studnicky/retry/node';
 
 import { RequestExecutor } from '../src/index.js';
 

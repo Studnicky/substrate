@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { VirtualTimeCounter } from "@studnicky/clock";
+import { VirtualTimeCounter } from "@studnicky/clock/node";
 import {
   StateMachine,
   TransitionRejectedError,
   type EffectHandlerInterface,
   type FsmStepInterface,
-} from "@studnicky/fsm";
-import { VirtualScheduler } from "@studnicky/scheduler";
+} from "@studnicky/fsm/node";
+import { VirtualScheduler } from "@studnicky/scheduler/node";
 
 import { ProcessKit } from "../../src/ProcessKit.js";
 import type { JobEffectEntity } from "../fixtures/entities/JobEffectEntity.js";

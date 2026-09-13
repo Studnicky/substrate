@@ -5,7 +5,7 @@
  *
  * Run: npx tsx packages/scheduler/examples/di-provider.ts
  */
-import { VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
 import assert from 'node:assert/strict';
 
 import type { SchedulerLogEntryEntity } from '../src/entities/index.js';

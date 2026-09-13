@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 
 import { FileLock, FileLockTimeoutError } from '../../src/node/index.js';
 import scenarioGroups from './FileLockVirtualFs.scenarios.json' with { type: 'json' };

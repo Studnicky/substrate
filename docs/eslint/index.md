@@ -7,7 +7,7 @@ description: '@studnicky ESLint plugins — configuration rules and V8 performan
 
 `@studnicky/eslint-config` ships two custom ESLint plugins:
 
-- **`@studnicky`** — 22 structural and semantic rules that enforce the substrate codebase doctrine.
+- **`@studnicky`** — Structural and semantic rules that enforce the substrate codebase doctrine.
 - **`@studnicky/v8`** — 27 rules for V8 optimization-sensitive code and the related constructs the codebase constrains consistently.
 
 Register both plugins in your flat config to enable the rules.
@@ -34,10 +34,27 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ## Public API
 
-The package root exports `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and
-`HexagonalSuite`. Individual rule implementations stay on their plugin objects: use
-`plugin.rules['single-export']` or `v8Plugin.rules['delete-property']` when programmatic
-rule access is required.
+Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and `HexagonalSuite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project services.
+
+
+## Browser hosts
+
+Use the browser entrypoint with a browser ESLint host. Project-aware rules read the host supplied through the `@studnicky/projectHost` setting.
+
+<!-- inline-ts-ok: browser ESLint hosts supply project services -->
+```ts
+import { plugin } from '@studnicky/eslint-config/browser';
+import type { ProjectHostInterface } from '@studnicky/eslint-config/interfaces';
+
+declare const projectHost: ProjectHostInterface;
+
+export default [
+  {
+    settings: { '@studnicky/projectHost': projectHost },
+    plugins: { '@studnicky': plugin }
+  }
+];
+```
 
 ## Suites are opt-in
 
@@ -59,7 +76,7 @@ member of an `*Entity` namespace, which is a convention a consumer adopts by ena
 
 ```js
 // eslint.config.mjs — one rule, without the entity conventions
-import { plugin } from '@studnicky/eslint-config';
+import { plugin } from '@studnicky/eslint-config/node';
 
 export default [
   {
@@ -75,7 +92,7 @@ Import `plugin` and `v8Plugin` and register them in a flat-config entry:
 
 ```js
 // eslint.config.mjs
-import { plugin, v8Plugin } from '@studnicky/eslint-config';
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
 
 export default [
   {
@@ -92,7 +109,7 @@ Combine with additional rules in the same entry:
 
 ```js
 // eslint.config.mjs
-import { plugin, v8Plugin } from '@studnicky/eslint-config';
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
 
 export default [
   {
@@ -113,7 +130,7 @@ Import the raw plugin objects for hand-rolled flat config:
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
 // eslint.config.ts
-import { plugin, v8Plugin } from '@studnicky/eslint-config';
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
 
 export default [
   {
@@ -131,7 +148,7 @@ export default [
 
 ## Configuration rules
 
-27 rules that enforce structural, semantic, and stylistic constraints.
+29 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|

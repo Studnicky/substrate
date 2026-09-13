@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Batch } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch/node';
 
 import { Throttle } from '../../../src/index.js';
 import { ThrottleStatsEntity } from '../../../src/entities/index.js';

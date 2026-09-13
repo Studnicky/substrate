@@ -1,11 +1,11 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, afterEach, describe, it } from 'node:test';
 
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
 import { FileLock, FileLockTimeoutError } from '../../src/node/index.js';

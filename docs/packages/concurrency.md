@@ -39,7 +39,7 @@ A `timeout` option caps how long an individual caller waits on the shared in-fli
 
 <!-- inline-ts-ok: conceptual error-handling illustration for CoalesceTimeoutError; no in-repo example file exercises the timeout/rejection path -->
 ```typescript
-import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency';
+import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency/node';
 
 const coalesce = Coalesce.create<Response>({ timeout: 5000 });
 
@@ -111,14 +111,14 @@ The async-iter demo uses native `async function*` generators as sources — no N
 
 | Symbol | Purpose | Import path |
 |--------|---------|-------------|
-| `AsyncIter` | Static combinators for async iterables. | `@studnicky/concurrency` |
-| `Channel` | String-keyed fan-in async-generator inbox. | `@studnicky/concurrency` |
-| `ChannelError` | Base error for channel operations. | `@studnicky/concurrency` |
-| `Coalesce` | Deduplicates concurrent calls by key. | `@studnicky/concurrency` |
-| `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency` |
-| `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency` |
-| `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency` |
-| `SemaphoreError` | Base error for semaphore operations. | `@studnicky/concurrency` |
+| `AsyncIter` | Static combinators for async iterables. | `@studnicky/concurrency/node` |
+| `Channel` | String-keyed fan-in async-generator inbox. | `@studnicky/concurrency/node` |
+| `ChannelError` | Base error for channel operations. | `@studnicky/concurrency/node` |
+| `Coalesce` | Deduplicates concurrent calls by key. | `@studnicky/concurrency/node` |
+| `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency/node` |
+| `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency/node` |
+| `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency/node` |
+| `SemaphoreError` | Base error for semaphore operations. | `@studnicky/concurrency/node` |
 
 ## Entities
 

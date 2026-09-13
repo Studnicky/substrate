@@ -40,7 +40,7 @@ The complete example seeds a local-storage counter as if it came from an earlier
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `StrataStore` | Ordered store composition that implements `StoreInterface<TState>`. | `@studnicky/strata-store-kit` |
-| `StrataStoreOptionsInterface<TState>` | Construction options containing source-to-target `layers`. | `@studnicky/strata-store-kit` |
+| `StrataStore` | Ordered store composition that implements `StoreInterface<TState>`. | `@studnicky/strata-store-kit/node` |
+| `StrataStoreOptionsInterface<TState>` | Construction options containing source-to-target `layers`. | `@studnicky/strata-store-kit/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/strata-store-kit)

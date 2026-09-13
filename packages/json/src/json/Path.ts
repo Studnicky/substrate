@@ -1,6 +1,6 @@
 /** JSON Pointer utilities and safe dot-path access for arbitrary values. */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';

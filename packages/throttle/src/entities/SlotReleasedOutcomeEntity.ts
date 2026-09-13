@@ -2,7 +2,7 @@ import type { SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Canonical release path recorded on `OperationLifecycleEvent`'s `SlotReleased` variant. */
 export namespace SlotReleasedOutcomeEntity {

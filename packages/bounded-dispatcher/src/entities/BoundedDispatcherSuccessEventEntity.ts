@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 export namespace BoundedDispatcherSuccessEventEntity {
   export const Schema = {

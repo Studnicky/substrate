@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';

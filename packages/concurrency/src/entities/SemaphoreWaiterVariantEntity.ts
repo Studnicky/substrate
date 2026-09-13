@@ -2,7 +2,7 @@ import type { SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Per-waiter lifecycle variant for a queued semaphore acquisition. */
 export namespace SemaphoreWaiterVariantEntity {

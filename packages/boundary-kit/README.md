@@ -21,7 +21,7 @@ pnpm add @studnicky/boundary-kit
 ## Usage
 
 ```typescript
-import { BoundaryKit } from '@studnicky/boundary-kit';
+import { BoundaryKit } from '@studnicky/boundary-kit/node';
 
 const kit = BoundaryKit.create({
   throttle: { concurrencyLimit: 10 },

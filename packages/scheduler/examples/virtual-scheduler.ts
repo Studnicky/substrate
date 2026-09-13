@@ -5,7 +5,7 @@
  *
  * Run: npx tsx packages/scheduler/examples/virtual-scheduler.ts
  */
-import { VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
 import assert from 'node:assert/strict';
 
 import { VirtualScheduler } from '../src/index.js';

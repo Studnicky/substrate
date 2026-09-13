@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ProjectedNodeInterface } from '../interfaces/ProjectedNodeInterface.js';
 import type { ProjectedValueInterface } from '../interfaces/ProjectedValueInterface.js';

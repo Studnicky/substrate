@@ -1,7 +1,7 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { RuntimeError } from '@studnicky/errors';
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { RuntimeError } from '@studnicky/errors/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
 import type { PaginatorResetEventEntity } from './entities/PaginatorResetEventEntity.js';

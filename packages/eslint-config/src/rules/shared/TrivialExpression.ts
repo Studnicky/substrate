@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type { Declaration } from 'typescript';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import {
   getCombinedModifierFlags, isFunctionLike, isSourceFile, ModifierFlags
 } from 'typescript';

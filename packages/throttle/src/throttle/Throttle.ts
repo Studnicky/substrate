@@ -1,9 +1,9 @@
-import { CircularBuffer } from '@studnicky/circular-buffer';
-import { ConfigurationError } from '@studnicky/config';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { SchemaValidator } from '@studnicky/json';
-import { SampleBuffer } from '@studnicky/sample-buffer';
-import { Predicates } from '@studnicky/types';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { ConfigurationError } from '@studnicky/config/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { SchemaValidator } from '@studnicky/json/node';
+import { SampleBuffer } from '@studnicky/sample-buffer/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';

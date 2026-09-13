@@ -1,7 +1,7 @@
 /**
  * Safely stringifies an object to JSON, handling circular references
  */
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 export class SafeStringify {
   /**

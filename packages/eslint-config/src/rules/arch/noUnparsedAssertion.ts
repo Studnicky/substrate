@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
 import { ResolvedType } from '../shared/ResolvedType.js';

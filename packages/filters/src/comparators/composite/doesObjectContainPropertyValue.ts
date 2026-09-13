@@ -2,7 +2,7 @@
  * Checks if an object has a property with a specific value
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { AreDeeplyEqual } from './areDeeplyEqual.js';
 

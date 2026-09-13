@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 
 /** Thrown when clock configuration is invalid (e.g. non-finite `offsetMs`). */
 export class ClockError extends BaseError {

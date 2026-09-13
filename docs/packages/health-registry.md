@@ -49,7 +49,7 @@ The overall status is worst-status-wins: any `'unhealthy'` check makes the overa
 | `onCheckTimeout(name, timeoutMs)` | When a check exceeds its configured `timeoutMs`, in addition to `onCheckResult` |
 | `onAggregate(overall, results)` | Once per `evaluate()` call, after every registered check has settled |
 
-A hook override that throws or rejects does not abort `evaluate()` — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors`'s `HookInvoker`.
+A hook override that throws or rejects does not abort `evaluate()` — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors/node`'s `HookInvoker`.
 
 ## Scope
 
@@ -83,5 +83,5 @@ import type { HealthCheckResultInterface } from '@studnicky/health-registry/inte
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `HealthRegistry` | Provides health registry functionality. | `@studnicky/health-registry` |
-| `HealthCheckInterface` | Defines the health check contract. | `@studnicky/health-registry` |
+| `HealthRegistry` | Provides health registry functionality. | `@studnicky/health-registry/node` |
+| `HealthCheckInterface` | Defines the health check contract. | `@studnicky/health-registry/interfaces` |

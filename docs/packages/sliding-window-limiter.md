@@ -87,9 +87,9 @@ import type { SlidingWindowLimiterOptionsInterface } from '@studnicky/sliding-wi
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `SlidingWindowLimiter` | Enforces an exact or approximate sliding-window limit. | `@studnicky/sliding-window-limiter` |
-| `SlidingWindowExhaustedError` | Signals that a request exceeds the available window capacity. | `@studnicky/sliding-window-limiter` |
-| `SlidingWindowLimiterConfigError` | Represents invalid limiter configuration. | `@studnicky/sliding-window-limiter` |
-| `SlidingWindowLimiterError` | Base error for sliding-window-limiter failures. | `@studnicky/sliding-window-limiter` |
+| `SlidingWindowLimiter` | Enforces an exact or approximate sliding-window limit. | `@studnicky/sliding-window-limiter/node` |
+| `SlidingWindowExhaustedError` | Signals that a request exceeds the available window capacity. | `@studnicky/sliding-window-limiter/node` |
+| `SlidingWindowLimiterConfigError` | Represents invalid limiter configuration. | `@studnicky/sliding-window-limiter/node` |
+| `SlidingWindowLimiterError` | Base error for sliding-window-limiter failures. | `@studnicky/sliding-window-limiter/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/sliding-window-limiter)

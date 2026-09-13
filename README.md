@@ -34,6 +34,18 @@ Install the package you need:
 pnpm add @studnicky/retry
 ```
 
+## Choose an import path
+
+Runtime APIs use an explicit platform entry point. Import executable code from `/node` in Node.js applications or `/browser` in browser applications. Every package publishes both runtime entrypoints; the public contract remains isomorphic when behavior is shared. Import shared contracts from their neutral feature path; those declarations are identical across runtimes.
+
+```typescript
+import { Store } from '@studnicky/store/node';
+import { BrowserPersistence } from '@studnicky/store/browser';
+import type { StoreInterface } from '@studnicky/store/interfaces';
+```
+
+`/interfaces`, `/entities`, and `/types` are portable contract paths; do not put them under `/node` or `/browser`.
+
 ## Find a package
 
 ### Concurrency

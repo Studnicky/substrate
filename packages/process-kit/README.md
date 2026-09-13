@@ -21,11 +21,11 @@ pnpm add @studnicky/process-kit
 ## Usage
 
 ```typescript
-import type { EffectHandlerInterface } from '@studnicky/fsm';
+import type { EffectHandlerInterface } from '@studnicky/fsm/interfaces';
 import type { JobEffectEntity } from './entities/JobEffectEntity.js';
 import type { JobEventEntity } from './entities/JobEventEntity.js';
 
-import { ProcessKit } from '@studnicky/process-kit';
+import { ProcessKit } from '@studnicky/process-kit/node';
 import { JobProcess } from './JobProcess.js';
 
 const handler: EffectHandlerInterface<

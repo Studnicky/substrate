@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedBoundedDispatcher — direct composition of BoundedDispatcher over a bounded
  * Semaphore, an EventBus tuned with a highWaterMark, and a RealTimeScheduler, with
  * dispatch observation through the composed bus. Run:

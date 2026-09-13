@@ -102,6 +102,9 @@ importers:
       typescript-eslint:
         specifier: ^8.67.0
         version: 8.67.0(eslint@10.9.0)(typescript@6.0.3)
+      vite:
+        specifier: ^6.4.3
+        version: 6.4.3(@types/node@26.2.0)(tsx@4.23.12)(yaml@2.9.0)
       vitepress:
         specifier: ^1.6.4
         version: 1.6.4(@algolia/client-search@5.56.0)(@types/node@26.2.0)(postcss@8.5.26)(search-insights@2.17.3)(tsx@4.23.12)(typescript@6.0.3)(yaml@2.9.0)
@@ -311,6 +314,9 @@ importers:
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/drilldown:
     dependencies:
@@ -1030,6 +1036,9 @@ importers:
 
   packages/store:
     dependencies:
+      '@studnicky/context':
+        specifier: workspace:*
+        version: link:../context
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
@@ -1055,6 +1064,10 @@ importers:
       '@studnicky/store':
         specifier: workspace:*
         version: link:../store
+    devDependencies:
+      '@studnicky/context':
+        specifier: workspace:*
+        version: link:../context
 
   packages/system:
     dependencies:

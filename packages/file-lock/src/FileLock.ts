@@ -1,9 +1,9 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Delay, RealTimeScheduler, type SchedulerProviderInterface } from '@studnicky/scheduler';
-import { Predicates } from '@studnicky/types';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Delay, RealTimeScheduler, type SchedulerProviderInterface } from '@studnicky/scheduler/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockStateInterface } from './FileLockStateInterface.js';

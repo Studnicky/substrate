@@ -21,7 +21,7 @@ pnpm add @studnicky/batch
 ## Usage
 
 ```typescript
-import { Batch } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch/node';
 
 const ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -44,7 +44,7 @@ for await (const batch of doubles.process(ids, async (id) => id * 2)) {
 Subclass `Batch` and override protected lifecycle hooks to observe processing without changing the worker function or batching behavior:
 
 ```typescript
-import { Batch } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch/node';
 import { BatchStatsEntity } from '@studnicky/batch/entities';
 
 class ObservedBatch extends Batch<string> {

@@ -2,8 +2,8 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { SchemaValidator } from '@studnicky/json/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';

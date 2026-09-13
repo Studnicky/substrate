@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedPipeline — trace every hook in a multi-stage pipeline. Run: npx tsx examples/observedPipeline.ts */
 import assert from 'node:assert/strict';
 

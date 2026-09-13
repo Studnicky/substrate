@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/browser';
 import { isObjectLiteralExpression, type Program, type SourceFile, type Symbol, type Type, type TypeChecker } from 'typescript';
 
+import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import {
   BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, IDENTIFIER_NAME_PATTERN
 } from './constants/DescriptiveIdentifiersConstants.js';
@@ -148,7 +149,7 @@ class ExternalPropertyProvenance {
       return true;
     }
     const result = symbols.every((symbol) => {
-      const matches = ExternalPropertyProvenance.isDeclaredOutsideCurrentPackage(symbol, property.getSourceFile(), services.program);
+      const matches = ExternalPropertyProvenance.isDeclaredOutsideCurrentPackage(symbol, property.getSourceFile(), services.program, context);
 
       return matches;
     });
@@ -192,11 +193,17 @@ class ExternalPropertyProvenance {
     return result;
   }
 
-  private static isDeclaredOutsideCurrentPackage(symbol: Symbol, currentSource: SourceFile, program: Program): boolean {
-    const currentPackage = PackageBoundary.rootFor(currentSource, program);
+  private static isDeclaredOutsideCurrentPackage(
+    symbol: Symbol,
+    currentSource: SourceFile,
+    program: Program,
+    context: Rule.RuleContext
+  ): boolean {
+    const host = ProjectHostRegistry.hostFor(context);
+    const currentPackage = PackageBoundary.rootFor(currentSource, program, host);
     const declarations = symbol.getDeclarations() ?? [];
 
-    if (currentPackage === undefined || declarations.length === 0) {
+    if (currentPackage === undefined || host === undefined || declarations.length === 0) {
       return false;
     }
 
@@ -208,7 +215,7 @@ class ExternalPropertyProvenance {
 
         return result;
       }
-      const declarationPackage = PackageBoundary.rootFor(declarationSource, program);
+      const declarationPackage = PackageBoundary.rootFor(declarationSource, program, host);
 
       const result = declarationPackage !== undefined && declarationPackage !== currentPackage;
 

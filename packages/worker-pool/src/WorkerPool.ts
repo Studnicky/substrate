@@ -1,10 +1,10 @@
-import { Batch } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch/node';
 /** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { MachineTerminatedError } from '@studnicky/fsm';
-import { Signal } from '@studnicky/signal';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { MachineTerminatedError } from '@studnicky/fsm/node';
+import { Signal } from '@studnicky/signal/node';
 import { System } from '@studnicky/system/node';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import { Worker } from 'node:worker_threads';
 
 import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';

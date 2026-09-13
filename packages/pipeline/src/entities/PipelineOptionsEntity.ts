@@ -1,7 +1,7 @@
 import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Options accepted by the `Pipeline` constructor. */
 export namespace PipelineOptionsEntity {

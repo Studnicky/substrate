@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { GroupValueDiscriminantEntity } from '../../entities/GroupValueDiscriminantEntity.js';
 import type { GroupRuleInterface } from '../../interfaces/GroupValueInterface.js';

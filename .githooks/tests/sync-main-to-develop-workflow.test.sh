@@ -29,6 +29,7 @@ assert_contains "sync workflow recovers a failed merged backmerge" "github.event
 assert_contains "sync workflow runs after a failed dependency" 'if: always() &&' "$workflow"
 assert_contains "sync workflow can push the disposable branch" 'contents: write' "$workflow"
 assert_contains "sync workflow creates the disposable branch from current main" 'git switch --force-create "$branch" origin/main' "$workflow"
+assert_contains "sync workflow creates an explicit synchronization commit" 'git commit --allow-empty -m "chore: sync main to develop"' "$workflow"
 assert_not_contains "sync workflow never rejects a stale disposable branch" 'does not contain the current main history' "$workflow"
 assert_not_contains "sync workflow never validates disposable-branch ancestry" 'sync-ancestry origin/main "origin/$branch"' "$workflow"
 assert_contains "sync workflow records the current remote branch tip" 'remote_branch_sha=$(git ls-remote --heads origin "refs/heads/$branch" | awk "{ print \$1 }")' "$workflow"

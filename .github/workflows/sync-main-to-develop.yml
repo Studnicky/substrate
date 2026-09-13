@@ -103,7 +103,7 @@ jobs:
           git switch --force-create "$branch" origin/main
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: sync main to develop"
+          git commit --allow-empty -m "chore: sync main to develop"
           if [ -n "$remote_branch_sha" ]; then
             git push --force-with-lease="refs/heads/$branch:$remote_branch_sha" origin "HEAD:refs/heads/$branch"
           else

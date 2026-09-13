@@ -2,7 +2,7 @@ import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } fro
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 import { GranularityOptionsEntity } from './GranularityOptionsEntity.js';
 import { NodeBudgetEntity } from './NodeBudgetEntity.js';

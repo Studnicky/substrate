@@ -25,7 +25,7 @@ pnpm add @studnicky/types
 `Guard` narrows `unknown` values returned from external APIs, JSON payloads, or any dynamically typed source:
 
 ```typescript
-import { Guard } from '@studnicky/types';
+import { Guard } from '@studnicky/types/node';
 
 const raw: unknown = await fetchApiResponse();
 
@@ -55,7 +55,7 @@ const items = Guard.asRecordArray(raw);
 ```typescript
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue } from '@studnicky/types';
+import { JsonValue } from '@studnicky/types/node';
 
 const candidate: unknown = JSON.parse(responseText);
 
@@ -75,7 +75,7 @@ Import `JSONSchema7Type` from `json-schema` when a public signature or local ann
 `PickDefined.from` strips `undefined`-valued keys from a record and narrows each remaining value's type away from `undefined`. It assembles an options object directly from a mix of required and optional values, replacing a manual spread-ternary chain with one call:
 
 ```typescript
-import { PickDefined } from '@studnicky/types';
+import { PickDefined } from '@studnicky/types/node';
 
 interface RateLimiterOptionsInterface {
   requestsPerSecond: number;
@@ -95,7 +95,7 @@ const options: RateLimiterOptionsInterface = PickDefined.from({
 For `Guard`, override the static `isObject` predicate in a subclass to customise record detection. Because `asRecordArray` delegates through `this.isObject`, overrides propagate automatically:
 
 ```typescript
-import { Guard } from '@studnicky/types';
+import { Guard } from '@studnicky/types/node';
 
 class StrictGuard extends Guard {
   public static override isObject(value: unknown): value is Record<string, unknown> {
@@ -110,7 +110,7 @@ if (StrictGuard.isObject(payload)) {
 
 ## Public API
 
-Import `Empty`, `Guard`, `JsonObject`, `JsonValue`, and `PickDefined` from the package root. The package has one code entrypoint.
+Import runtime helpers from `@studnicky/types/node`.
 
 ## Documentation
 

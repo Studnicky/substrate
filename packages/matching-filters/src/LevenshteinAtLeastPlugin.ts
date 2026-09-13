@@ -1,6 +1,6 @@
-import { Plugin } from '@studnicky/filters';
-import { LevenshteinScorer } from '@studnicky/matching';
-import { Predicates } from '@studnicky/types';
+import { Plugin } from '@studnicky/filters/node';
+import { LevenshteinScorer } from '@studnicky/matching/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { TextThresholdFilterValuePredicate } from './predicates/TextThresholdFilterValuePredicate.js';
 

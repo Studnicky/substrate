@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
@@ -7,7 +7,7 @@ import parser from '@typescript-eslint/parser';
 import { RuleTester } from 'eslint';
 
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import scenarioFile from './forOfArrays.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;

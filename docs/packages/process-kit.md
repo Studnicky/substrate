@@ -5,7 +5,7 @@ description: Reducer-with-effects process pattern composing fsm and scheduler.
 
 # @studnicky/process-kit
 
-> Reducer-with-effects process pattern composing `@studnicky/fsm` and `@studnicky/scheduler`.
+> Reducer-with-effects process pattern composing `@studnicky/fsm/node` and `@studnicky/scheduler/node`.
 
 ## Install
 
@@ -37,7 +37,7 @@ The output shows Job A completing after a same-cycle self-acknowledgment followe
 
 `ProcessKit` exposes no collaborator getters. Callers retain their machine and optional scheduler references when they need those primitives' lifecycle APIs. The interpreter is owned internally and receives the singular handler through `ProcessKit.create({ machine, handler, scheduler? })`.
 
-Import `ProcessKit` from `@studnicky/process-kit` and `ProcessKitConfigInterface` from `@studnicky/process-kit/interfaces`.
+Import `ProcessKit` from `@studnicky/process-kit/node` and `ProcessKitConfigInterface` from `@studnicky/process-kit/interfaces`.
 
 ## `dispatch()` vs. the effect-handler `dispatch` capability
 
@@ -72,6 +72,6 @@ import type { ProcessKitConfigInterface } from '@studnicky/process-kit/interface
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `ProcessKit` | Combines an FSM, effect interpreter, and scheduler for one process. | `@studnicky/process-kit` |
+| `ProcessKit` | Combines an FSM, effect interpreter, and scheduler for one process. | `@studnicky/process-kit/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/process-kit)

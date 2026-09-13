@@ -1,7 +1,7 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, UnsubscribeInterface } from './interfaces/index.js';

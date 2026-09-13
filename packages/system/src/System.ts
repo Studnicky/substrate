@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 
 import type { CpuInfoEntity } from './entities/CpuInfoEntity.js';
 import type { GpuCacheComputedNoneStateEntity } from './entities/GpuCacheComputedNoneStateEntity.js';

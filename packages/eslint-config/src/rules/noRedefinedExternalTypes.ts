@@ -1,8 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { readFileSync } from 'node:fs';
 import {
-  type CompilerOptions,
   createSourceFile,
   getCombinedModifierFlags,
   type InterfaceDeclaration,
@@ -20,19 +18,18 @@ import {
   isTypeLiteralNode,
   isUnionTypeNode,
   ModifierFlags,
-  ModuleKind,
-  ModuleResolutionKind,
   type NamedExports,
   type Node,
-  resolveModuleName,
   ScriptTarget,
   type SourceFile,
   SyntaxKind,
-  sys,
   type TypeAliasDeclaration,
   type TypeNode
 } from 'typescript';
 
+import type { ProjectHostInterface } from '../interfaces/ProjectHostInterface.js';
+
+import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { PackageBoundary } from './shared/PackageBoundary.js';
 
@@ -368,29 +365,31 @@ class EstreeTypeDeclarationShape {
   }
 }
 
-const nodeNextModuleResolutionOptions: CompilerOptions = {
-  'module': ModuleKind.NodeNext,
-  'moduleResolution': ModuleResolutionKind.NodeNext,
-  'target': ScriptTarget.ES2022
-};
-
 class ExternalTypeCatalog {
-  private static readonly catalogsByPackageRoot = new Map<string, TypeCatalogInterface | undefined>();
+  private static readonly catalogsByHost = new WeakMap<ProjectHostInterface, Map<string, TypeCatalogInterface | undefined>>();
 
-  public static create(filename: string): TypeCatalogInterface | undefined {
-    const packageRoot = PackageBoundary.rootForFilename(filename);
+  public static create(filename: string, host: ProjectHostInterface | undefined): TypeCatalogInterface | undefined {
+    if (host === undefined) {
+      return undefined;
+    }
+
+    const packageRoot = PackageBoundary.rootForFilename(filename, host);
 
     if (packageRoot === undefined) {
       return undefined;
     }
-    if (ExternalTypeCatalog.catalogsByPackageRoot.has(packageRoot)) {
-      const result = ExternalTypeCatalog.catalogsByPackageRoot.get(packageRoot);
+
+    const catalogsByPackageRoot = ExternalTypeCatalog.catalogsFor(host);
+
+    if (catalogsByPackageRoot.has(packageRoot)) {
+      const result = catalogsByPackageRoot.get(packageRoot);
 
       return result;
     }
-    const result = ExternalTypeCatalog.createForPackage(filename);
 
-    ExternalTypeCatalog.catalogsByPackageRoot.set(packageRoot, result);
+    const result = ExternalTypeCatalog.createForPackage(filename, host);
+
+    catalogsByPackageRoot.set(packageRoot, result);
     return result;
   }
 
@@ -404,8 +403,8 @@ class ExternalTypeCatalog {
     return result;
   }
 
-  private static createForPackage(filename: string): TypeCatalogInterface | undefined {
-    const dependencies = ExternalTypeCatalog.resolveDependencies(filename);
+  private static createForPackage(filename: string, host: ProjectHostInterface): TypeCatalogInterface | undefined {
+    const dependencies = ExternalTypeCatalog.resolveDependencies(filename, host);
 
     if (dependencies.length === 0) {
       return undefined;
@@ -417,7 +416,7 @@ class ExternalTypeCatalog {
     for (let index = 0; index < dependencyCount; index += 1) {
       const dependency = dependencies[index]!;
 
-      candidates.push(...ExternalTypeCatalog.publicTypesFromEntry(dependency));
+      candidates.push(...ExternalTypeCatalog.publicTypesFromEntry(dependency, host));
     }
 
     const result: TypeCatalogInterface = { 'candidates': candidates };
@@ -425,14 +424,18 @@ class ExternalTypeCatalog {
     return result;
   }
 
-  private static publicTypesFromEntry(dependency: ResolvedDependencyInterface): readonly ExternalTypeCandidateInterface[] {
+  private static publicTypesFromEntry(
+    dependency: ResolvedDependencyInterface,
+    host: ProjectHostInterface
+  ): readonly ExternalTypeCandidateInterface[] {
     const activeFilenames = new Set<string>();
     const result = ExternalTypeCatalog.publicTypesFromModule(
       dependency.filename,
       dependency.dependencyName,
       dependency.packageRoot,
       undefined,
-      activeFilenames
+      activeFilenames,
+      host
     );
 
     return result;
@@ -443,7 +446,8 @@ class ExternalTypeCatalog {
     dependencyName: string,
     dependencyPackageRoot: string,
     publicNames: ReadonlyMap<string, string> | undefined,
-    activeFilenames: Set<string>
+    activeFilenames: Set<string>,
+    host: ProjectHostInterface
   ): readonly ExternalTypeCandidateInterface[] {
     if (activeFilenames.has(filename)) {
       return [];
@@ -451,11 +455,9 @@ class ExternalTypeCatalog {
 
     activeFilenames.add(filename);
 
-    let sourceText: string;
+    const sourceText = host.readTextFile(filename);
 
-    try {
-      sourceText = readFileSync(filename, 'utf8');
-    } catch {
+    if (sourceText === undefined) {
       activeFilenames.delete(filename);
       return [];
     }
@@ -479,7 +481,8 @@ class ExternalTypeCatalog {
       const reexportFilename = ExternalTypeCatalog.resolveRelativeExport(
         statement.moduleSpecifier.text,
         filename,
-        dependencyPackageRoot
+        dependencyPackageRoot,
+        host
       );
 
       if (reexportFilename === undefined) {
@@ -492,7 +495,8 @@ class ExternalTypeCatalog {
             dependencyName,
             dependencyPackageRoot,
             undefined,
-            activeFilenames
+            activeFilenames,
+            host
           ));
         }
         continue;
@@ -509,7 +513,8 @@ class ExternalTypeCatalog {
           dependencyName,
           dependencyPackageRoot,
           reexportedNames,
-          activeFilenames
+          activeFilenames,
+          host
         ));
       }
     }
@@ -623,35 +628,39 @@ class ExternalTypeCatalog {
   private static resolveRelativeExport(
     moduleSpecifier: string,
     filename: string,
-    dependencyPackageRoot: string
+    dependencyPackageRoot: string,
+    host: ProjectHostInterface
   ): string | undefined {
     if (!moduleSpecifier.startsWith('.')) {
       return undefined;
     }
 
-    const resolution = resolveModuleName(moduleSpecifier, filename, nodeNextModuleResolutionOptions, sys).resolvedModule;
+    const resolution = host.resolveModule(moduleSpecifier, filename);
 
-    if (resolution === undefined || PackageBoundary.rootForFilename(resolution.resolvedFileName) !== dependencyPackageRoot) {
+    if (resolution === undefined || PackageBoundary.rootForFilename(resolution, host) !== dependencyPackageRoot) {
       return undefined;
     }
 
-    return resolution.resolvedFileName;
+    return resolution;
   }
 
-  private static resolveDependencies(filename: string): readonly ResolvedDependencyInterface[] {
-    const dependencyNames = PackageBoundary.directDependencyNamesForFilename(filename);
+  private static resolveDependencies(
+    filename: string,
+    host: ProjectHostInterface
+  ): readonly ResolvedDependencyInterface[] {
+    const dependencyNames = PackageBoundary.directDependencyNamesForFilename(filename, host);
     const dependencies: ResolvedDependencyInterface[] = [];
     const dependencyCount = dependencyNames.length;
 
     for (let index = 0; index < dependencyCount; index += 1) {
       const dependencyName = dependencyNames[index]!;
-      const resolution = resolveModuleName(dependencyName, filename, nodeNextModuleResolutionOptions, sys).resolvedModule;
+      const resolution = host.resolveModule(dependencyName, filename);
 
       if (resolution === undefined) {
         continue;
       }
 
-      const packageRoot = PackageBoundary.rootForFilename(resolution.resolvedFileName);
+      const packageRoot = PackageBoundary.rootForFilename(resolution, host);
 
       if (packageRoot === undefined) {
         continue;
@@ -659,18 +668,28 @@ class ExternalTypeCatalog {
 
       dependencies.push({
         'dependencyName': dependencyName,
-        'filename': resolution.resolvedFileName,
+        'filename': resolution,
         'packageRoot': packageRoot
       });
     }
 
     return dependencies;
   }
-}
 
+  private static catalogsFor(host: ProjectHostInterface): Map<string, TypeCatalogInterface | undefined> {
+    let catalogsByPackageRoot = ExternalTypeCatalog.catalogsByHost.get(host);
+
+    if (catalogsByPackageRoot === undefined) {
+      catalogsByPackageRoot = new Map<string, TypeCatalogInterface | undefined>();
+      ExternalTypeCatalog.catalogsByHost.set(host, catalogsByPackageRoot);
+    }
+
+    return catalogsByPackageRoot;
+  }
+}
 class ExternalTypeRedefinition {
   public static create(context: Rule.RuleContext): Rule.RuleListener {
-    const catalog = ExternalTypeCatalog.create(context.filename);
+    const catalog = ExternalTypeCatalog.create(context.filename, ProjectHostRegistry.hostFor(context));
 
     if (catalog === undefined) {
       return {};

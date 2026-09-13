@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { AlphabeticRangeEntity } from '../../entities/AlphabeticRangeEntity.js';
 import type { CidrRangeEntity } from '../../entities/CidrRangeEntity.js';

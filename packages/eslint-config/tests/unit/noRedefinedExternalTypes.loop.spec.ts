@@ -8,15 +8,24 @@ import parser from '@typescript-eslint/parser';
 import { Linter } from 'eslint';
 import ts from 'typescript';
 
+import type { ProjectHostInterface } from '../../src/interfaces/ProjectHostInterface.js';
+
+import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { noRedefinedExternalTypes } from '../../src/rules/noRedefinedExternalTypes.js';
 
-function lint(code: string, entry: string, root: string): readonly import('eslint').Linter.LintMessage[] {
+function lint(
+  code: string,
+  entry: string,
+  root: string,
+  host: ProjectHostInterface = new NodeProjectHost()
+): readonly import('eslint').Linter.LintMessage[] {
   writeFileSync(entry, code);
 
   return new Linter({ cwd: root }).verify(code, [{
     files: ['**/*.ts'],
     languageOptions: { parser, parserOptions: { tsconfigRootDir: root } },
     plugins: { test: { rules: { 'no-redefined-external-types': noRedefinedExternalTypes } } },
+    settings: { '@studnicky/projectHost': host },
     rules: { 'test/no-redefined-external-types': 'error' }
   }], { filename: entry });
 }
@@ -106,11 +115,12 @@ void describe('no-redefined-external-types', () => {
       writeFileSync(firstEntry, code);
       writeFileSync(secondEntry, code);
 
-      const firstMessages = lint(code, firstEntry, root);
+      const host = new NodeProjectHost();
+      const firstMessages = lint(code, firstEntry, root, host);
 
       writeFileSync(join(contractsRoot, "index.d.ts"), "export interface ChangedOptions { readonly changed: string; }");
 
-      const secondMessages = lint(code, secondEntry, root);
+      const secondMessages = lint(code, secondEntry, root, host);
 
       assert.equal(firstMessages.length, 1);
       assert.equal(secondMessages.length, 1);
@@ -149,4 +159,82 @@ void describe('no-redefined-external-types', () => {
     assert.equal(accessesParserServices, false);
     assert.equal(createsContextSourceAst, false);
   });
+  void it('uses a browser project host to detect public direct-dependency type redefinitions', () => {
+    const applicationRoot = '/browser-project';
+    const dependencyRoot = '/browser-project/dependencies/fixture-contracts';
+    const entry = `${applicationRoot}/src/redefinitions.ts`;
+    const dependencyEntry = `${dependencyRoot}/index.d.ts`;
+    const dependencyTypes = `${dependencyRoot}/options.d.ts`;
+    const files = new Map<string, string>([
+      [`${applicationRoot}/package.json`, JSON.stringify({
+        dependencies: { '@fixture/contracts': '1.0.0' },
+        name: 'browser-project'
+      })],
+      [`${dependencyRoot}/package.json`, JSON.stringify({
+        name: '@fixture/contracts',
+        types: './index.d.ts'
+      })],
+      [dependencyEntry, "export { type ExternalOptions } from './options.js';"],
+      [dependencyTypes, 'export interface ExternalOptions { readonly label: string; readonly retries: number; }']
+    ]);
+    const browserHost: ProjectHostInterface = {
+      'findPackageRoot': (filename) => {
+        if (filename.startsWith(`${dependencyRoot}/`)) {
+          return dependencyRoot;
+        }
+        const result = filename.startsWith(`${applicationRoot}/`) ? applicationRoot : undefined;
+
+        return result;
+      },
+      'isBuiltinSpecifier': () => false,
+      'readTextFile': (filename) => {
+        const result = files.get(filename);
+
+        return result;
+      },
+      'realPath': (filename) => {
+        const result = files.has(filename) ? filename : undefined;
+
+        return result;
+      },
+      'resolveModule': (moduleSpecifier, importerFilename) => {
+        if (moduleSpecifier === '@fixture/contracts' && importerFilename === entry) {
+          return dependencyEntry;
+        }
+        if (moduleSpecifier === './options.js' && importerFilename === dependencyEntry) {
+          return dependencyTypes;
+        }
+
+        return undefined;
+      },
+      'resolveRelativePath': (importerFilename, relativeSpecifier) => {
+        const directoryEnd = importerFilename.lastIndexOf('/');
+        const directory = directoryEnd === -1 ? '' : importerFilename.slice(0, directoryEnd);
+        const result = relativeSpecifier.startsWith('./')
+          ? `${directory}/${relativeSpecifier.slice(2)}`
+          : relativeSpecifier;
+
+        return result;
+      }
+    };
+    const messages = new Linter({ cwd: '/' }).verify(
+      'export interface RebuiltOptions { readonly label: string; readonly retries: number; }',
+      [{
+        files: ['**/*.ts'],
+        languageOptions: { parser },
+        plugins: { test: { rules: { 'no-redefined-external-types': noRedefinedExternalTypes } } },
+        rules: { 'test/no-redefined-external-types': 'error' },
+        settings: { '@studnicky/projectHost': browserHost }
+      }],
+      { filename: entry }
+    );
+
+    assert.deepEqual(messages.map((message) => {
+      return {
+        messageId: message.messageId,
+        ruleId: message.ruleId
+      };
+    }), [{ messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' }]);
+  });
+
 });

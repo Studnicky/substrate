@@ -20,15 +20,15 @@ pnpm add @studnicky/fsm
 
 ## Usage
 
-Application state, event, and effect data come from application-owned entities. Runtime, callable, readonly, and generic contracts come from the package interfaces.
+Application state, event, and effect data come from application-owned entities. Runtime classes import from `/fsm/node`; callable, readonly, and generic contracts import from `/fsm/interfaces`.
 
 ```typescript
-import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm';
+import type { EffectHandlerInterface, FsmStepInterface } from '@studnicky/fsm/interfaces';
 import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
 import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
 import type { TrafficStateEntity } from './entities/TrafficStateEntity.js';
 
-import { EffectInterpreter, MachineRegistry, StateMachine } from '@studnicky/fsm';
+import { EffectInterpreter, MachineRegistry, StateMachine } from '@studnicky/fsm/node';
 
 class TrafficLight extends StateMachine<
   TrafficStateEntity.Type,
@@ -97,12 +97,12 @@ The singular `EffectHandlerInterface` receives every effect and can discriminate
 Subclass `StateMachine` and implement `getInitialState` and `reduce`. Both methods are pure: effects remain entity-derived values in `FsmStepInterface.effects`, and the interpreter invokes the configured handler only after the state transition completes.
 
 ```typescript
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/interfaces';
 import type { MyEffectEntity } from './entities/MyEffectEntity.js';
 import type { MyEventEntity } from './entities/MyEventEntity.js';
 import type { MyStateEntity } from './entities/MyStateEntity.js';
 
-import { StateMachine } from '@studnicky/fsm';
+import { StateMachine } from '@studnicky/fsm/node';
 
 class MyMachine extends StateMachine<
   MyStateEntity.Type,
@@ -131,7 +131,7 @@ class MyMachine extends StateMachine<
 `reduce()` is the single source of truth for transition logic. Throw `TransitionRejectedError` from `reduce()` when an event is invalid business logic. `transition()` fires `onTransitionRejected(state, event, reason)` and rethrows that error as-is. Any other reducer throw is wrapped in `ReducerThrewError`.
 
 ```typescript
-import { TransitionRejectedError } from '@studnicky/fsm';
+import { TransitionRejectedError } from '@studnicky/fsm/node';
 
 if (state.variant === 'idle' && event.type === 'withdraw') {
   throw new TransitionRejectedError({
@@ -157,7 +157,7 @@ protected override isTerminated(state: MyStateEntity.Type): boolean {
 The handler’s `dispatch(event)` capability puts a follow-up event at the front of the current mailbox drain. Configure it directly on the interpreter:
 
 ```typescript
-import type { EffectHandlerInterface } from '@studnicky/fsm';
+import type { EffectHandlerInterface } from '@studnicky/fsm/interfaces';
 
 const handler: EffectHandlerInterface<
   MyEffectEntity.Type,
@@ -176,7 +176,7 @@ const interpreter = EffectInterpreter.create({ machine, handler });
 `InterpreterHistory` adds bounded, single-interpreter observability to `EffectInterpreter`. It forwards the same optional singular handler and records each variant-changing `onTransition` event:
 
 ```typescript
-import { InterpreterHistory } from '@studnicky/fsm';
+import { InterpreterHistory } from '@studnicky/fsm/node';
 
 const history = InterpreterHistory.create({
   capacity: 50,
@@ -195,7 +195,7 @@ for (const record of history.history()) {
 
 Each `InterpreterHistoryRecordInterface<TState, TEvent>` contains the event, previous state, next state, and timestamp. `history()` returns a fresh readonly, oldest-first snapshot isolated from later transitions. The internal ring retains at most `capacity` records and evicts the oldest record when full. Successful sends that keep the same state variant are absent because `InterpreterHistory` follows `EffectInterpreter.onTransition` semantics.
 
-`InterpreterHistoryRecordMetadataEntity` owns the schema-derived timestamp field, and `RegisteredInterpreterMetricsEntity` owns the schema-derived hook-error count. FSM interfaces compose those fields while retaining their generic state, event, and callable members. History capacity uses `CircularBufferOptionsEntity.Type['capacity']` directly from `@studnicky/circular-buffer`.
+`InterpreterHistoryRecordMetadataEntity` owns the schema-derived timestamp field, and `RegisteredInterpreterMetricsEntity` owns the schema-derived hook-error count. FSM interfaces compose those fields while retaining their generic state, event, and callable members. History capacity uses `CircularBufferOptionsEntity.Type['capacity']` directly from `@studnicky/circular-buffer/entities`.
 
 ## Documentation
 

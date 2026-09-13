@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import {
   BLOCK_TYPES, MAXIMUM_INT_SWITCH_CASES, MAXIMUM_STRING_SWITCH_CASES, MAXIMUM_SWITCH_CASES_DEFAULT

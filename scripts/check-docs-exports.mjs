@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * check-docs-exports — verifies that package API documentation names only
- * published exports and documents every main entrypoint export.
+ * published exports and documents every canonical consumer import path.
  *
  * Package documentation deliberately demonstrates published @studnicky/*
  * specifiers. This script uses the TypeScript compiler's module symbols, not
@@ -15,18 +15,49 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+const resolveRepoRoot = () => {
+  const [option, root] = process.argv.slice(2);
+
+  if (option === undefined) {
+    return defaultRepoRoot;
+  }
+
+  if (option === '--root' && root !== undefined && process.argv.length === 4) {
+    return path.resolve(root);
+  }
+
+  throw new Error('Usage: check-docs-exports.mjs [--root path]');
+};
+
+const repoRoot = resolveRepoRoot();
 const packagesRoot = path.join(repoRoot, 'packages');
 const docsRoot = path.join(repoRoot, 'docs', 'packages');
 
-const entrypointSource = new Map([
-  ['.', 'src/index.ts'],
-  ['./browser', 'src/browser/index.ts'],
-  ['./node', 'src/node/index.ts'],
-  ['./entities', 'src/entities/index.ts'],
-  ['./interfaces', 'src/interfaces/index.ts'],
-  ['./filters', 'src/filters/index.ts']
-]);
+const getRuntimeArtifact = (descriptor) => {
+  if (typeof descriptor === 'string') {
+    return descriptor;
+  }
+  if (descriptor === null || typeof descriptor !== 'object' || Array.isArray(descriptor)) {
+    return undefined;
+  }
+  for (const condition of ['import', 'default', 'node', 'browser']) {
+    const artifact = getRuntimeArtifact(descriptor[condition]);
+    if (artifact !== undefined) {
+      return artifact;
+    }
+  }
+  return undefined;
+};
+
+const getSourceRelativePath = (runtimeArtifact) => {
+  const artifactPath = runtimeArtifact.replace(/^\.\//u, '');
+  if (!artifactPath.startsWith('dist/') || !artifactPath.endsWith('.js')) {
+    return undefined;
+  }
+  return `src/${artifactPath.slice('dist/'.length, -'.js'.length)}.ts`;
+};
 
 const packageSpecifier = /^(@studnicky\/[^/]+)(\/.*)?$/u;
 
@@ -45,10 +76,10 @@ const parseImportSnippet = (body) => {
   const imports = [];
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-      return undefined;
+      continue;
     }
     if (!packageSpecifier.test(statement.moduleSpecifier.text)) {
-      return undefined;
+      continue;
     }
     imports.push(statement);
   }
@@ -96,10 +127,31 @@ const getPackages = async () => {
 const getExportSurface = (packageInfo, violations) => {
   const exportsMap = packageInfo.manifest.exports;
   const subpaths = new Map();
-  const rootNames = [];
 
-  for (const [subpath, sourceRelativePath] of entrypointSource) {
-    if (exportsMap === undefined || exportsMap[subpath] === undefined) {
+  if (exportsMap === undefined || typeof exportsMap !== 'object' || Array.isArray(exportsMap)) {
+    return new Map();
+  }
+
+  for (const [subpath, descriptor] of Object.entries(exportsMap)) {
+    if (!subpath.startsWith('.')) {
+      continue;
+    }
+    const runtimeArtifact = getRuntimeArtifact(descriptor);
+    if (runtimeArtifact === undefined) {
+      violations.push({
+        file: toRelativePath(packageInfo.packageFile),
+        line: 1,
+        message: `export ${subpath} has no runtime import artifact.`
+      });
+      continue;
+    }
+    const sourceRelativePath = getSourceRelativePath(runtimeArtifact);
+    if (sourceRelativePath === undefined) {
+      violations.push({
+        file: toRelativePath(packageInfo.packageFile),
+        line: 1,
+        message: `export ${subpath} has an unsupported runtime artifact ${runtimeArtifact}.`
+      });
       continue;
     }
     const sourcePath = path.join(packageInfo.directory, sourceRelativePath);
@@ -112,9 +164,9 @@ const getExportSurface = (packageInfo, violations) => {
       continue;
     }
     subpaths.set(subpath, sourcePath);
-    rootNames.push(sourcePath);
   }
 
+  const rootNames = [...new Set(subpaths.values())];
   if (rootNames.length === 0) {
     return new Map();
   }
@@ -211,6 +263,10 @@ const resolveImport = (specifier) => {
   return { packageName: match[1], subpath: match[2] === undefined ? '.' : `.${match[2]}` };
 };
 
+const neutralSubpaths = ['./interfaces', './entities', './types'];
+
+const getNeutralCanonicalSubpath = (surface, symbol) => neutralSubpaths.find((subpath) => surface.get(subpath)?.has(symbol));
+
 for (const doc of docs.values()) {
   const file = toRelativePath(doc.file);
   for (const fence of getTypeScriptFences(doc.content)) {
@@ -243,28 +299,45 @@ for (const doc of docs.values()) {
   for (const row of getExportsTableRows(doc.content)) {
     checked += 1;
     const resolved = resolveImport(row.importPath);
-    const symbols = resolved === undefined ? undefined : packageSurfaces.get(resolved.packageName)?.surface.get(resolved.subpath);
+    const packageSurface = resolved === undefined ? undefined : packageSurfaces.get(resolved.packageName)?.surface;
+    const symbols = resolved === undefined ? undefined : packageSurface?.get(resolved.subpath);
     if (symbols === undefined) {
       violations.push({ file, line: row.line, message: `${row.importPath} is not a published export entrypoint.` });
     } else if (!symbols.has(row.symbol)) {
       violations.push({ file, line: row.line, message: `${row.symbol} is not exported by ${row.importPath}.` });
+    } else if (resolved.subpath === './node') {
+      const canonicalSubpath = getNeutralCanonicalSubpath(packageSurface, row.symbol);
+      if (canonicalSubpath !== undefined) {
+        violations.push({
+          file,
+          line: row.line,
+          message: `${row.symbol} must use ${resolved.packageName}${canonicalSubpath.slice(1)} in the Exports table.`
+        });
+      }
     }
   }
 }
 
 for (const packageInfo of packages) {
   const doc = docs.get(packageInfo.name);
-  const mainExports = packageSurfaces.get(packageInfo.manifest.name)?.surface.get('.') ?? new Set();
-  const documented = new Set((doc === undefined ? [] : getExportsTableRows(doc.content))
-    .filter((row) => row.importPath === packageInfo.manifest.name)
+  const rows = doc === undefined ? [] : getExportsTableRows(doc.content);
+  const packageSurface = packageSurfaces.get(packageInfo.manifest.name)?.surface ?? new Map();
+  const runtimeSpecifier = `${packageInfo.manifest.name}/node`;
+  const documentedNodeExports = new Set(rows
+    .filter((row) => row.importPath === runtimeSpecifier)
     .map((row) => row.symbol));
-  for (const symbol of mainExports) {
+
+  for (const symbol of packageSurface.get('./node') ?? []) {
+    const canonicalSubpath = getNeutralCanonicalSubpath(packageSurface, symbol);
+    if (canonicalSubpath !== undefined) {
+      continue;
+    }
     checked += 1;
-    if (!documented.has(symbol)) {
+    if (!documentedNodeExports.has(symbol)) {
       violations.push({
         file: doc === undefined ? `docs/packages/${packageInfo.name}.md` : toRelativePath(doc.file),
         line: 1,
-        message: `${packageInfo.manifest.name} exports ${symbol}, but its Exports table does not document it.`
+        message: `${packageInfo.manifest.name} exports ${symbol} from ${runtimeSpecifier}, but its Exports table does not document it.`
       });
     }
   }

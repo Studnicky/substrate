@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 class UnderscoreName {
   public static get(node: unknown): string | undefined {

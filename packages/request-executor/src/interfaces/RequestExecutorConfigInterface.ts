@@ -1,7 +1,7 @@
-import type { FetchClientInterface } from '@studnicky/fetch';
-import type { Retry } from '@studnicky/retry';
+import type { FetchClientInterface } from '@studnicky/fetch/node';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import type { Signal } from '@studnicky/signal';
+import type { Retry } from '@studnicky/retry/node';
+import type { Signal } from '@studnicky/signal/node';
 
 import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';
 import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterface.js';

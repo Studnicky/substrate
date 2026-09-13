@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { DateGranularityValueEntity } from '../../entities/DateGranularityValueEntity.js';
 import type { DiscoverValuesOptionsEntity } from '../../entities/DiscoverValuesOptionsEntity.js';

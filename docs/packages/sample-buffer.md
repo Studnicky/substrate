@@ -13,7 +13,7 @@ description: Fixed-capacity numeric sample buffer with percentile calculation.
 pnpm add @studnicky/sample-buffer
 ```
 
-`@studnicky/sample-buffer` exposes runtime operations at its root, schemas at `@studnicky/sample-buffer/entities`, and type contracts at `@studnicky/sample-buffer/interfaces`.
+`@studnicky/sample-buffer/node` exposes runtime operations, schemas at `@studnicky/sample-buffer/entities`, and type contracts at `@studnicky/sample-buffer/interfaces`.
 
 ## Usage
 
@@ -31,7 +31,7 @@ Create a `SampleBuffer` with a fixed capacity, push numeric samples into it, and
 
 ## Public API
 
-The package root exports `SampleBuffer` and `SampleBufferError`. Import schemas from `@studnicky/sample-buffer/entities` and the buffer contract from `@studnicky/sample-buffer/interfaces`. Construct buffers with `SampleBuffer.create({ capacity })`.
+`@studnicky/sample-buffer/node` exports `SampleBuffer` and `SampleBufferError`. Import schemas from `@studnicky/sample-buffer/entities` and the buffer contract from `@studnicky/sample-buffer/interfaces`. Construct buffers with `SampleBuffer.create({ capacity })`.
 
 ## Extending
 
@@ -79,7 +79,7 @@ import type { SampleBufferInterface } from '@studnicky/sample-buffer/interfaces'
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `SampleBuffer` | Stores a fixed window of numeric samples and calculates percentiles. | `@studnicky/sample-buffer` |
-| `SampleBufferError` | Represents sample-buffer failures. | `@studnicky/sample-buffer` |
+| `SampleBuffer` | Stores a fixed window of numeric samples and calculates percentiles. | `@studnicky/sample-buffer/node` |
+| `SampleBufferError` | Represents sample-buffer failures. | `@studnicky/sample-buffer/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/sample-buffer)

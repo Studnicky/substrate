@@ -1,5 +1,6 @@
 import type { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
+import type { ContextRunResultInterface } from './ContextRunResultInterface.js';
 import type { ContextScopeInterface } from './ContextScopeInterface.js';
 
 /**
@@ -35,6 +36,19 @@ export interface ContextInterface extends ContextConfigEntity.Type {
    * Gets all keys in the context.
    */
   keys(): string[];
+
+  /**
+   * Runs an operation in a fresh context scope and returns its result with the final snapshot.
+   */
+  run<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => Promise<TResult>
+  ): Promise<ContextRunResultInterface<TResult>>;
+
+  run<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => TResult
+  ): ContextRunResultInterface<TResult>;
 
   /**
    * Sets a value in the context.

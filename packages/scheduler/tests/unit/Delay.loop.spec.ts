@@ -1,11 +1,11 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import {
   describe, it
 } from 'node:test';
 
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
 import type { ScheduledTaskInterface } from '../../src/interfaces/ScheduledTaskInterface.js';
 import type { SchedulerProviderInterface } from '../../src/interfaces/SchedulerProviderInterface.js';

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-import { Signal } from '@studnicky/signal';
+import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';

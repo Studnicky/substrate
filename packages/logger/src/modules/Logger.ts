@@ -1,6 +1,6 @@
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';

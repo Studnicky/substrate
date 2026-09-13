@@ -80,7 +80,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## API
 
-Import FSM classes, root-level type contracts, and package errors from `@studnicky/fsm`; import schema namespaces from `@studnicky/fsm/entities`.
+Import FSM classes and package errors from `@studnicky/fsm/node`; import type contracts from `@studnicky/fsm/interfaces` and schema namespaces from `@studnicky/fsm/entities`.
 
 | Export | Type | Description |
 |--------|------|-------------|
@@ -124,7 +124,7 @@ Import FSM classes, root-level type contracts, and package errors from `@studnic
 
 Each `InterpreterHistoryRecordInterface<TState, TEvent>` contains `event`, `from`, `to`, and `timestamp`. `history()` returns a fresh oldest-first snapshot. The internal ring retains at most `capacity` records and evicts the oldest when full. Successful sends that retain the current state variant are absent because the recorder follows `EffectInterpreter.onTransition` semantics.
 
-The record timestamp composes from `InterpreterHistoryRecordMetadataEntity`, registered-interpreter metrics compose from `RegisteredInterpreterMetricsEntity`, and history capacity uses `CircularBufferOptionsEntity.Type['capacity']` directly from `@studnicky/circular-buffer`.
+The record timestamp composes from `InterpreterHistoryRecordMetadataEntity`, registered-interpreter metrics compose from `RegisteredInterpreterMetricsEntity`, and history capacity uses `CircularBufferOptionsEntity.Type['capacity']` directly from `@studnicky/circular-buffer/entities`.
 
 ## Try it
 
@@ -149,25 +149,25 @@ import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities'
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `EffectHandlerInterface` | Defines effect execution callbacks. | `@studnicky/fsm` |
-| `EffectInterpreter` | Executes state-machine effects. | `@studnicky/fsm` |
-| `EffectInterpreterConstructorOptionsInterface` | Defines interpreter construction options. | `@studnicky/fsm` |
-| `FsmConfigError` | Represents invalid FSM configuration. | `@studnicky/fsm` |
-| `FsmError` | Base error for FSM failures. | `@studnicky/fsm` |
-| `FsmStepInterface` | Defines a state-machine transition result. | `@studnicky/fsm` |
-| `FsmTransitionInterface` | Defines a state-machine transition. | `@studnicky/fsm` |
-| `InterpreterHistory` | Retains state-machine transition history. | `@studnicky/fsm` |
-| `InterpreterHistoryCreateOptionsInterface` | Defines bounded transition-history construction options. | `@studnicky/fsm` |
-| `InterpreterHistoryRecordInterface` | Defines a recorded transition. | `@studnicky/fsm` |
-| `InterpreterNotRunningError` | Signals work submitted to a stopped interpreter. | `@studnicky/fsm` |
-| `InterpreterNotStartedError` | Signals work submitted before an interpreter starts. | `@studnicky/fsm` |
-| `MachineAlreadyRegisteredError` | Signals duplicate machine registration. | `@studnicky/fsm` |
-| `MachineRegistry` | Manages named state-machine interpreters. | `@studnicky/fsm` |
-| `MachineTerminatedError` | Signals use of a terminated machine. | `@studnicky/fsm` |
-| `MailboxCapacityExceededError` | Signals an interpreter mailbox overflow. | `@studnicky/fsm` |
-| `ReducerThrewError` | Wraps an error thrown by a reducer. | `@studnicky/fsm` |
-| `RegisteredInterpreterInterface` | Defines a registered interpreter entry. | `@studnicky/fsm` |
-| `StateMachine` | Defines typed state transitions and effects. | `@studnicky/fsm` |
-| `TransitionRejectedError` | Signals a rejected state transition. | `@studnicky/fsm` |
+| `EffectHandlerInterface` | Defines effect execution callbacks. | `@studnicky/fsm/interfaces` |
+| `EffectInterpreter` | Executes state-machine effects. | `@studnicky/fsm/node` |
+| `EffectInterpreterConstructorOptionsInterface` | Defines interpreter construction options. | `@studnicky/fsm/interfaces` |
+| `FsmConfigError` | Represents invalid FSM configuration. | `@studnicky/fsm/node` |
+| `FsmError` | Base error for FSM failures. | `@studnicky/fsm/node` |
+| `FsmStepInterface` | Defines a state-machine transition result. | `@studnicky/fsm/interfaces` |
+| `FsmTransitionInterface` | Defines a state-machine transition. | `@studnicky/fsm/interfaces` |
+| `InterpreterHistory` | Retains state-machine transition history. | `@studnicky/fsm/node` |
+| `InterpreterHistoryCreateOptionsInterface` | Defines bounded transition-history construction options. | `@studnicky/fsm/interfaces` |
+| `InterpreterHistoryRecordInterface` | Defines a recorded transition. | `@studnicky/fsm/interfaces` |
+| `InterpreterNotRunningError` | Signals work submitted to a stopped interpreter. | `@studnicky/fsm/node` |
+| `InterpreterNotStartedError` | Signals work submitted before an interpreter starts. | `@studnicky/fsm/node` |
+| `MachineAlreadyRegisteredError` | Signals duplicate machine registration. | `@studnicky/fsm/node` |
+| `MachineRegistry` | Manages named state-machine interpreters. | `@studnicky/fsm/node` |
+| `MachineTerminatedError` | Signals use of a terminated machine. | `@studnicky/fsm/node` |
+| `MailboxCapacityExceededError` | Signals an interpreter mailbox overflow. | `@studnicky/fsm/node` |
+| `ReducerThrewError` | Wraps an error thrown by a reducer. | `@studnicky/fsm/node` |
+| `RegisteredInterpreterInterface` | Defines a registered interpreter entry. | `@studnicky/fsm/interfaces` |
+| `StateMachine` | Defines typed state transitions and effects. | `@studnicky/fsm/node` |
+| `TransitionRejectedError` | Signals a rejected state transition. | `@studnicky/fsm/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fsm)

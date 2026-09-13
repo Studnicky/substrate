@@ -2,7 +2,7 @@ import type { SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
 import type { ValidateFunction } from 'ajv';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { SchemaValidator } from '@studnicky/json/node';
 
 /** Dot-delimited path identifying a discoverable property on a data record. */
 export namespace PropertyPathEntity {

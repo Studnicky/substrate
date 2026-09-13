@@ -33,7 +33,7 @@ The output shows `Predicates.isObject`/`asRecordArray` narrowing, scalar guards,
 
 <!-- inline-ts-ok: conceptual boundary example -->
 ```typescript
-import { JsonObject } from '@studnicky/types';
+import { JsonObject } from '@studnicky/types/node';
 
 const parsed: unknown = JSON.parse(responseText);
 
@@ -53,7 +53,7 @@ Use schema validation when object members also need structural guarantees.
 ```typescript
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue } from '@studnicky/types';
+import { JsonValue } from '@studnicky/types/node';
 
 const candidate: unknown = JSON.parse(responseText);
 
@@ -85,14 +85,14 @@ The output shows direct configuration with required defaults and an optional `cl
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Predicates` | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class. | `@studnicky/types` |
-| `Predicate` | Typed runtime predicate composition for boolean algebra and record, array, and map structure. | `@studnicky/types` |
-| `PredicateFunctionInterface` | Contract for a runtime predicate that narrows `unknown` to its value type. | `@studnicky/types` |
-| `Empty` | Produces fresh empty collection instances. | `@studnicky/types` |
-| `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types` |
-| `JsonValue` | Validates and coerces recursive JSON values. | `@studnicky/types` |
-| `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types` |
-| `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types` |
+| `Predicates` | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class. | `@studnicky/types/node` |
+| `Predicate` | Typed runtime predicate composition for boolean algebra and record, array, and map structure. | `@studnicky/types/node` |
+| `PredicateFunctionInterface` | Contract for a runtime predicate that narrows `unknown` to its value type. | `@studnicky/types/interfaces` |
+| `Empty` | Produces fresh empty collection instances. | `@studnicky/types/node` |
+| `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types/node` |
+| `JsonValue` | Validates and coerces recursive JSON values. | `@studnicky/types/node` |
+| `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types/node` |
+| `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types/node` |
 
 ### Selected `Predicates` static methods
 

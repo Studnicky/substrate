@@ -4,13 +4,10 @@
   "description": "Observable state stores with interchangeable persistence adapters",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
     },
     "./browser": {
       "types": "./dist/browser/index.d.ts",
@@ -19,6 +16,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
     }
   },
   "files": [
@@ -60,6 +61,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/context": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/mutex": "workspace:*"
   },

@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { FilterConfigurationError } from './errors/FilterConfigurationError.js';
 import { ValueCoders } from './registries/ValueCoders.js';

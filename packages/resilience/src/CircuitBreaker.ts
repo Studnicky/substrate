@@ -3,8 +3,8 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import {
   type ErrorClassifierFunctionInterface, type ErrorClassifierInterface, HookInvoker, RuntimeError
-} from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+} from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';

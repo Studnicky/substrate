@@ -35,8 +35,8 @@
  * can never produce an unhandled promise rejection or crash the process.
  */
 
-import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';

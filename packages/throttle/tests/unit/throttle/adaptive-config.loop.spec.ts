@@ -1,11 +1,11 @@
-import { RuntimeError, HookInvocationError } from '@studnicky/errors';
+import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Batch } from '@studnicky/batch';
-import { ConfigurationError } from '@studnicky/config';
+import { Batch } from '@studnicky/batch/node';
+import { ConfigurationError } from '@studnicky/config/node';
 
-import { SchemaIntakeError } from '@studnicky/json';
+import { SchemaIntakeError } from '@studnicky/json/node';
 
 import { Throttle } from '../../../src/index.js';
 import {

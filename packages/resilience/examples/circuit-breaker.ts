@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** circuit-breaker — three-state lifecycle: closed → open → halfOpen → closed. Run: npx tsx examples/circuit-breaker.ts */
 import assert from 'node:assert/strict';
 

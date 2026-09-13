@@ -13,7 +13,7 @@ pnpm add @studnicky/semantic-matching
 ## Usage
 
 ```ts
-import type { VectorIndexInterface, VectorizerInterface } from '@studnicky/semantic-matching';
+import type { VectorIndexInterface, VectorizerInterface } from '@studnicky/semantic-matching/interfaces';
 
 async function findCandidates(
   vectorizer: VectorizerInterface,
