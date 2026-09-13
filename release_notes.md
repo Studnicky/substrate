@@ -2,464 +2,467 @@
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/boundary-kit
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/throttle@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/resilience@13.0.0
+  - @studnicky/retry@13.0.0
+  - @studnicky/throttle@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/bounded-dispatcher
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/event-bus@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/concurrency@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/event-bus@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/scheduler@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/cache
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/circular-buffer
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/clock
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/concurrency
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/config
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/context
 
+### Major Changes
+
+- 67a740c: Require explicit /node or /browser runtime imports and remove package-root runtime exports across the fixed package group.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/drilldown
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/cache@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/entity-store
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
 
 ### @studnicky/errors
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/intake-kit@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/eslint-config
 
 ### Patch Changes
 
-- a0c5bf8: Ensures consumer lint configuration updates publish through a verified release lifecycle.
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- adb3558: Ensures release automation maintains a valid main-to-develop synchronization branch.
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/event-bus
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/fetch
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/file-lock
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/virtual-fs@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/scheduler@13.0.0
+  - @studnicky/types@13.0.0
+  - @studnicky/virtual-fs@13.0.0
 
 ### @studnicky/filters
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/flag-evaluator
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/fsm
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/health-registry
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/idempotency-guard
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/cache@13.0.0
+  - @studnicky/concurrency@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/intake-kit
 
 ### Patch Changes
 
-- 9b93e0f: Clarifies consumer documentation for parser-backed entity intake APIs.
-- @studnicky/types@12.2.1
+- @studnicky/types@13.0.0
 
 ### @studnicky/json
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/intake-kit@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/keyed-rate-limiter
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/cache@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/resilience@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/keyed-work-gate
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/mutex@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/concurrency@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/mutex@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/logger
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/matching
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/cache@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/matching-filters
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/filters@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/filters@13.0.0
+  - @studnicky/matching@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/memoize
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/cache@13.0.0
+  - @studnicky/concurrency@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/mutex
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/config@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/paginator
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/pipeline
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/process-kit
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
+- @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/scheduler@13.0.0
 
 ### @studnicky/request-executor
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fetch@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/fetch@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/retry@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/resilience
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/scheduler@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/retry
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/config@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/sample-buffer
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/scheduler
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/semantic-matching
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/signal
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/sliding-window-limiter
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/store
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/mutex@12.2.1
+- Updated dependencies [67a740c]
+  - @studnicky/context@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/mutex@13.0.0
 
 ### @studnicky/strata-store-kit
 
 ### Patch Changes
 
-- @studnicky/mutex@12.2.1
-  - @studnicky/store@12.2.1
+- @studnicky/store@13.0.0
+  - @studnicky/mutex@13.0.0
 
 ### @studnicky/system
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/throttle
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/sample-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/config@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/sample-buffer@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/timing
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/config@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/topic-router
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/matching@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/topic-router-models
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/topic-router@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/matching@13.0.0
+  - @studnicky/topic-router@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/virtual-fs
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/clock@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/visible-range
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/types@13.0.0
 
 ### @studnicky/worker-pool
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/batch@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/system@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/batch@13.0.0
+  - @studnicky/concurrency@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/system@13.0.0
+  - @studnicky/types@13.0.0

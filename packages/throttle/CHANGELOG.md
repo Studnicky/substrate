@@ -1,5 +1,18 @@
 # Changelog
 
+## 13.0.0
+
+### Patch Changes
+
+- @studnicky/circular-buffer@13.0.0
+  - @studnicky/config@13.0.0
+  - @studnicky/errors@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/sample-buffer@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
+
 ## 12.2.1
 
 ### Patch Changes

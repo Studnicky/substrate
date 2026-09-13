@@ -1,5 +1,12 @@
 # Changelog
 
+## 13.0.0
+
+### Patch Changes
+
+- @studnicky/intake-kit@13.0.0
+  - @studnicky/types@13.0.0
+
 ## 12.2.1
 
 ### Patch Changes
