@@ -417,6 +417,52 @@ class ExportClassifier {
 
     return result;
   }
+
+  public static isTypeOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
+    const result = shape === ExportShape.ConstValue || shape === ExportShape.Type;
+
+    return result;
+  }
+
+  /**
+   * A companion enum shares one exported name between a `Type` declaration and a
+   * `ConstValue` declaration (the type + const satisfies-object pattern that replaces `enum`).
+   */
+  public static findCompanionEnumName(records: readonly ExportRecordInterface[]): string | undefined {
+    const shapesByName = new Map<string, Set<ExportShapeEntity.Type>>();
+
+    for (let recordIndex = 0; recordIndex < records.length; recordIndex += 1) {
+      const record = records.at(recordIndex);
+
+      if (record === undefined) {
+        continue;
+      }
+
+      for (let nameIndex = 0; nameIndex < record.names.length; nameIndex += 1) {
+        const name = record.names.at(nameIndex);
+
+        if (name === undefined || name.length === 0) {
+          continue;
+        }
+
+        const shapes = shapesByName.get(name) ?? new Set<ExportShapeEntity.Type>();
+
+        shapes.add(record.shape);
+        shapesByName.set(name, shapes);
+      }
+    }
+
+    for (const [
+      name,
+      shapes
+    ] of shapesByName) {
+      if (shapes.has(ExportShape.Type) && shapes.has(ExportShape.ConstValue)) {
+        return name;
+      }
+    }
+
+    return undefined;
+  }
 }
 
 class ExportNames {
@@ -722,6 +768,28 @@ export const singleExport: Rule.RuleModule = {
       }
 
       if (exportShapes.includes(ExportShape.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
+        return;
+      }
+
+      const companionEnumName = ExportClassifier.findCompanionEnumName(exportRecords);
+
+      if (companionEnumName !== undefined && exportShapes.every(ExportClassifier.isTypeOrConstValueShape)) {
+        if (!CaseConverter.matchesFilename(companionEnumName, fileName)) {
+          const reportNode = firstExportNode ?? node;
+          const base = CaseConverter.getFileBase(fileName);
+          const candidates = CaseConverter.getFilenameCandidates(companionEnumName, fileName);
+
+          context.report({
+            'data': {
+              'expected': candidates.join(', '),
+              'exportName': companionEnumName,
+              'fileBase': base
+            },
+            'messageId': 'mismatch',
+            'node': reportNode
+          });
+        }
+
         return;
       }
 
