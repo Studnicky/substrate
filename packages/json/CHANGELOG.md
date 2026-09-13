@@ -1,5 +1,14 @@
 # Changelog
 
+## 12.2.1
+
+### Patch Changes
+
+- Updated dependencies [9b93e0f]
+  - @studnicky/intake-kit@12.2.1
+  - @studnicky/errors@12.2.1
+  - @studnicky/types@12.2.1
+
 ## 12.2.0
 
 ### Patch Changes

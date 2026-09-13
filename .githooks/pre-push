@@ -34,6 +34,13 @@ base_ref_for_branch() {
   esac
 }
 
+rebase_ref_for_branch() {
+  case "$1" in
+    chore/sync-main-to-develop) printf '%s\n' "$main_ref" ;;
+    *) base_ref_for_branch "$1" ;;
+  esac
+}
+
 # Git names the refs being pushed on stdin, and they need not include the
 # checked-out branch: `git push origin v1.2.3` pushes a tag and no branch at
 # all. Branch policy therefore reads the refs in the push, not HEAD.
@@ -52,12 +59,13 @@ while read -r local_ref local_sha _; do
         push_range=$(compute_push_range "$local_sha") || true
       fi
       base_ref=$(base_ref_for_branch "$head_branch")
-      if ! git show-ref --verify --quiet "refs/remotes/${base_ref}"; then
-        remote_branch=${base_ref#origin/}
+      rebase_ref=$(rebase_ref_for_branch "$head_branch")
+      if ! git show-ref --verify --quiet "refs/remotes/${rebase_ref}"; then
+        remote_branch=${rebase_ref#origin/}
         git fetch --quiet origin "+refs/heads/${remote_branch}:refs/remotes/origin/${remote_branch}" || true
       fi
       if [ "$local_sha" != "$empty_sha" ]; then
-        check_rebased_onto_base "${base_ref#origin/}" "$local_sha" "$local_ref"
+        check_rebased_onto_base "${rebase_ref#origin/}" "$local_sha" "$local_ref"
       fi
       if [ "$base_ref" = "$develop_ref" ] && [ "$head_branch" != main ] && [ "$head_branch" != develop ] && [ "$local_sha" != "$empty_sha" ]; then
         check_no_leaked_main_commits "$local_sha" "$local_ref" "$head_branch"
