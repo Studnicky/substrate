@@ -29,6 +29,8 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 Import `DrilldownRulesEntity` from `@studnicky/drilldown/entities` when application code constructs reusable grouping rules. Its nested entity types represent each supported matcher branch.
 
+<<< ../../packages/drilldown/examples/basic-drilldown.ts#explicit-rule-types
+
 ## Try it
 
 <RunnableExample src="packages/drilldown/examples/basic-drilldown" title="Multi-level grouping by propertyPriority" />

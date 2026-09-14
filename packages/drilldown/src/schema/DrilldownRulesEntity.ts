@@ -174,7 +174,6 @@ export namespace DrilldownRulesEntity {
   export import StringGroupValueEntity = DrilldownRuleValueEntities.StringGroupValueEntity;
   export import GroupValueEntity = DrilldownRuleValueEntities.GroupValueEntity;
   export import GroupRuleEntity = DrilldownRuleValueEntities.GroupRuleEntity;
-
   export const Schema = {
     '$id': 'urn:studnicky:drilldown:rules',
     'additionalProperties': false,
