@@ -238,6 +238,28 @@ void describe('WebWorkerPool', () => {
     await pool.close();
   });
 
+  void it('rejects an arrow-valued Worker global as unavailable', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'Worker');
+
+    assert.equal(Reflect.defineProperty(globalThis, 'Worker', {
+      'configurable': true,
+      'value': () => {},
+      'writable': true
+    }), true);
+
+    try {
+      const factory = WebWorkerFactory.create({ 'script': 'worker.js' });
+
+      await assert.rejects(factory.create(), WorkerPoolError);
+    } finally {
+      if (descriptor === undefined) {
+        assert.equal(Reflect.deleteProperty(globalThis, 'Worker'), true);
+      } else {
+        assert.equal(Reflect.defineProperty(globalThis, 'Worker', descriptor), true);
+      }
+    }
+  });
+
   void it('rejects factory creation outside a Web Worker runtime', async () => {
     const factory = WebWorkerFactory.create({ 'script': 'worker.js' });
 

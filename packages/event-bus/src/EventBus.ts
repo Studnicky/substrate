@@ -21,16 +21,6 @@ interface EventBusSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class EventBusInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: EventBusSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 // TTopicMap only appears in EventBus's covariant/contravariant members
 // (subscribe/publish), so a bound of `EventBus<TTopicMap>` would force
 // `EventBus<TTopicMap>` (the method's own general TTopicMap) to satisfy
@@ -116,7 +106,7 @@ export class EventBus<TTopicMap extends object> {
     const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [config]);
-    if (!Predicates.isObjectLike(result) || !EventBusInstance.belongsTo(constructor, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
       throw RuntimeError.create('EventBus.create() did not construct the requested subclass.');
     }
     return result;

@@ -16,27 +16,27 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 
 import { StateMachine } from '@studnicky/fsm/node';
 
-import type { RequestRetryEventInterface } from './interfaces/RequestRetryEventInterface.js';
-import type { RetryGuardStateInterface } from './interfaces/RetryGuardStateInterface.js';
+import type { RequestRetryEventEntity } from './entities/RequestRetryEventEntity.js';
+import type { RetryGuardStateEntity } from './entities/RetryGuardStateEntity.js';
 
-export class RetryGuardMachine extends StateMachine<RetryGuardStateInterface, RequestRetryEventInterface, never> {
+export class RetryGuardMachine extends StateMachine<RetryGuardStateEntity.Type, RequestRetryEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): RetryGuardStateInterface {
+  override getInitialState(): RetryGuardStateEntity.Type {
     return { 'variant': 'notRetried' };
   }
 
-  protected override isTerminated(state: RetryGuardStateInterface): boolean {
+  protected override isTerminated(state: RetryGuardStateEntity.Type): boolean {
     const result = state.variant === 'retried';
     return result;
   }
 
   override reduce(
-    _state: RetryGuardStateInterface,
-    _event: RequestRetryEventInterface
-  ): FsmStepInterface<RetryGuardStateInterface, never> {
+    _state: RetryGuardStateEntity.Type,
+    _event: RequestRetryEventEntity.Type
+  ): FsmStepInterface<RetryGuardStateEntity.Type, never> {
     return { 'effects': [], 'state': { 'variant': 'retried' } };
   }
 }

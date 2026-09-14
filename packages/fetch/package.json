@@ -69,10 +69,10 @@
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1",
     "undici": "^8.10.0"
   }

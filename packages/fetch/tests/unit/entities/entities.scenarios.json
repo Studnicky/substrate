@@ -85,6 +85,27 @@
       },
       "shape": "client-config-invalid",
       "name": "client-config-invalid"
+    },
+    {
+      "description": "Client config entity rejects a method outside its declared HTTP method set",
+      "expected": {
+        "validationResults": [
+          false
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "ClientConfigDataEntity",
+            "expected": false,
+            "value": {
+              "options": { "method": "CUSTOM" }
+            }
+          }
+        ]
+      },
+      "shape": "client-config-invalid",
+      "name": "client-config-invalid-http-method"
     }
   ]
 }

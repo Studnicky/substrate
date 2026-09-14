@@ -68,7 +68,7 @@ if (!ThrottleStatsEntity.validate(stats)) {
 
 ## Entities
 
-`@studnicky/throttle/entities` exports every schema namespace in `src/entities`, including configuration, statistics, abort results, and lifecycle state, event, and effect values.
+`@studnicky/throttle/entities` exports every schema namespace in `src/entities`, including configuration, statistics, abort results, lifecycle state, and complete JSON lifecycle event and effect payloads.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript

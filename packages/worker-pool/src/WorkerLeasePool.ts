@@ -1,10 +1,10 @@
 import { Semaphore } from '@studnicky/concurrency/node';
 import { Predicates } from '@studnicky/types/node';
 
+import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
 import type { WorkerFactoryInterface } from './interfaces/WorkerFactoryInterface.js';
 import type { WorkerLeaseInterface } from './interfaces/WorkerLeaseInterface.js';
 import type { WorkerLeasePoolOptionsInterface } from './interfaces/WorkerLeasePoolOptionsInterface.js';
-import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';
 import type { WorkerObservationInterface } from './interfaces/WorkerObservationInterface.js';
 import type { WorkerTransportInterface } from './interfaces/WorkerTransportInterface.js';
 
@@ -12,7 +12,7 @@ import { WorkerPoolError } from './errors/index.js';
 import { WorkerLifecycleMachine } from './WorkerLifecycleMachine.js';
 
 interface WorkerRecordInterface<TWorker> {
-  'lifecycleState': WorkerLifecycleStateInterface;
+  'lifecycleState': WorkerLifecycleStateEntity.Type;
   readonly 'observation': WorkerObservationInterface;
   readonly 'worker': TWorker;
 }

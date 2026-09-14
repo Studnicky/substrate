@@ -2,11 +2,17 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  RequestRetryEventEntity,
+  RetryGuardStateEntity,
+  SettleTaskEventEntity,
+  TaskSettlementStateEntity,
   WorkerErrorEnvelopeEntity,
+  WorkerFailureStateEntity,
+  WorkerLifecycleStateEntity,
   WorkerLogEnvelopeEntity,
   WorkerPoolConfigEntity,
   WorkerProgressEnvelopeEntity,
-  WorkerResultEnvelopeDiscriminantEntity,
+  WorkerResultEnvelopeKindEntity,
   WorkerTaskDispositionEntity,
   WorkerTaskIndexEntity
 } from '../../src/entities/index.js';
@@ -17,7 +23,6 @@ type ValidationName =
   | 'WorkerLogEnvelopeEntity'
   | 'WorkerPoolConfigEntity'
   | 'WorkerProgressEnvelopeEntity'
-  | 'WorkerResultEnvelopeDiscriminantEntity'
   | 'WorkerTaskDispositionEntity'
   | 'WorkerTaskIndexEntity';
 
@@ -31,7 +36,6 @@ const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => b
   'WorkerLogEnvelopeEntity': (value) => WorkerLogEnvelopeEntity.validate(value),
   'WorkerPoolConfigEntity': (value) => WorkerPoolConfigEntity.validate(value),
   'WorkerProgressEnvelopeEntity': (value) => WorkerProgressEnvelopeEntity.validate(value),
-  'WorkerResultEnvelopeDiscriminantEntity': (value) => WorkerResultEnvelopeDiscriminantEntity.validate(value),
   'WorkerTaskDispositionEntity': (value) => WorkerTaskDispositionEntity.validate(value),
   'WorkerTaskIndexEntity': (value) => WorkerTaskIndexEntity.validate(value)
 };
@@ -69,4 +73,17 @@ void describe('worker-pool entities', () => {
       runCase(scenario);
     });
   }
+});
+
+
+void it('validates complete state and transition objects', () => {
+  assert.equal(WorkerLifecycleStateEntity.validate({ 'variant': 'idle' }), true);
+  assert.equal(WorkerLifecycleStateEntity.validate('idle'), false);
+  assert.equal(TaskSettlementStateEntity.validate({ 'variant': 'unsettled' }), true);
+  assert.equal(TaskSettlementStateEntity.validate({ 'variant': 'unsettled', 'unknown': true }), false);
+  assert.equal(WorkerFailureStateEntity.validate({ 'variant': 'operational' }), true);
+  assert.equal(RetryGuardStateEntity.validate({ 'variant': 'notRetried' }), true);
+  assert.equal(RequestRetryEventEntity.validate({ 'type': 'requestRetry' }), true);
+  assert.equal(SettleTaskEventEntity.validate({ 'type': 'settle' }), true);
+  assert.equal(WorkerResultEnvelopeKindEntity.validate('result'), true);
 });

@@ -42,9 +42,16 @@ export class Clone {
     return result;
   }
 
+  /** Clone a RegExp while retaining its source, flags, and current index. */
+  protected static cloneRegExp(value: RegExp): RegExp {
+    const result = new RegExp(value.source, value.flags);
+    result.lastIndex = value.lastIndex;
+    return result;
+  }
+
   /** Clone an object's own enumerable keys. */
-  protected static cloneObject(value: Record<string, PropertyKey | bigint | boolean | object | null | undefined>): Record<string, PropertyKey | bigint | boolean | object | null | undefined> {
-    const cloned: Record<string, PropertyKey | bigint | boolean | object | null | undefined> = {};
+  protected static cloneObject(value: Record<string, unknown>): Record<string, unknown> {
+    const cloned: Record<string, unknown> = {};
 
     const entries = Object.entries(value);
     for (let index = 0; index < entries.length; index += 1) {
@@ -87,12 +94,17 @@ export class Clone {
       return result;
     }
 
-    if (value instanceof Date) {
+    if (Predicates.isDate(value)) {
       const result = this.cloneDate(value);
       return result;
     }
 
-    if (this.isRecord(value)) {
+    if (Predicates.isRegExp(value)) {
+      const result = this.cloneRegExp(value);
+      return result;
+    }
+
+    if (Predicates.isPlainObject(value)) {
       const result = this.cloneObject(value);
       return result;
     }
@@ -106,10 +118,4 @@ export class Clone {
     return result;
   }
 
-  /** Identify the remaining object values whose own enumerable keys are cloned. */
-  protected static isRecord(value: object): value is Record<string, PropertyKey | bigint | boolean | object | null | undefined> {
-    const valueType = typeof value;
-    const result = valueType === 'object';
-    return result;
-  }
 }

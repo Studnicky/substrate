@@ -33,16 +33,6 @@ interface CircuitBreakerSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class CircuitBreakerInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: CircuitBreakerSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 export class CircuitBreaker {
   static readonly #OwnedHookInvoker = class CircuitBreakerHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -78,7 +68,7 @@ export class CircuitBreaker {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;

@@ -3,8 +3,7 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
-import type { RetryCallStateInterface } from '../interfaces/RetryCallStateInterface.js';
-import type { RetryCallTransitionEventInterface } from '../interfaces/RetryCallTransitionEventInterface.js';
+import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
 
 /**
  * Pure lifecycle reducer for a single `Retry.execute()` call. Single source
@@ -25,38 +24,61 @@ import type { RetryCallTransitionEventInterface } from '../interfaces/RetryCallT
  * only judges legality and computes the next state — it does not hold state
  * of its own, matching `@studnicky/fsm`'s reducer contract.
  */
-export class RetryCallMachine extends StateMachine<RetryCallStateInterface, RetryCallTransitionEventInterface, never> {
+export class RetryCallMachine extends StateMachine<RetryCallStateEntity.Type, RetryCallTransitionEventEntity.Type, never> {
+  static readonly #allowedTargetsBySource = new Map<string, Set<string>>([
+    ['attempting', new Set(['failed', 'succeeded', 'waiting'])],
+    ['waiting', new Set(['aborted', 'attempting', 'exhausted'])]
+  ]);
+
+  static readonly #statesByVariant = new Map<string, RetryCallStateEntity.Type>([
+    ['aborted', { 'variant': 'aborted' }],
+    ['attempting', { 'variant': 'attempting' }],
+    ['exhausted', { 'variant': 'exhausted' }],
+    ['failed', { 'variant': 'failed' }],
+    ['succeeded', { 'variant': 'succeeded' }],
+    ['waiting', { 'variant': 'waiting' }]
+  ]);
+
+  static #isLegalEdge(from: RetryCallStateEntity.Type, to: RetryCallTransitionEventEntity.Type): boolean {
+    const allowedTargets = RetryCallMachine.#allowedTargetsBySource.get(from.variant);
+    const result = allowedTargets?.has(to.to) ?? false;
+    return result;
+  }
+
+  static #stateFor(event: RetryCallTransitionEventEntity.Type): RetryCallStateEntity.Type {
+    const state = RetryCallMachine.#statesByVariant.get(event.to);
+    if (state === undefined) {
+      throw new TransitionRejectedError({
+        'eventType': String(event.type),
+        'reason': 'transition event targets an unknown retry state',
+        'stateVariant': 'unknown'
+      });
+    }
+    return { ...state };
+  }
+
+
   constructor() {
     super();
   }
 
-  override getInitialState(): RetryCallStateInterface {
+  override getInitialState(): RetryCallStateEntity.Type {
     return { 'variant': 'attempting' };
   }
 
   override reduce(
-    state: RetryCallStateInterface,
-    event: RetryCallTransitionEventInterface
-  ): FsmStepInterface<RetryCallStateInterface, never> {
-    if (RetryCallMachine.#isLegalEdge(state.variant, event.to)) {
-      return { 'effects': [], 'state': { 'variant': event.to } };
+    state: RetryCallStateEntity.Type,
+    event: RetryCallTransitionEventEntity.Type
+  ): FsmStepInterface<RetryCallStateEntity.Type, never> {
+    if (RetryCallMachine.#isLegalEdge(state, event)) {
+      return { 'effects': [], 'state': RetryCallMachine.#stateFor(event) };
     }
 
     throw new TransitionRejectedError({
-      'eventType': event.type,
+      'eventType': String(event.type),
       'reason': `illegal state transition ${state.variant} → ${event.to}`,
-      'stateVariant': state.variant
+      'stateVariant': String(state.variant)
     });
   }
 
-  static #isLegalEdge(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
-    if (from === 'attempting' && to === 'succeeded') {return true;}
-    if (from === 'attempting' && to === 'waiting') {return true;}
-    if (from === 'attempting' && to === 'failed') {return true;}
-    if (from === 'waiting' && to === 'attempting') {return true;}
-    if (from === 'waiting' && to === 'exhausted') {return true;}
-    if (from === 'waiting' && to === 'aborted') {return true;}
-
-    return false;
-  }
 }

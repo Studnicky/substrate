@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/json",
   "version": "12.2.1",
-  "description": "JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash",
+  "description": "JSON/object value-tools: deep merge, clone, freeze, path access, sort, patch, hash",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -70,8 +70,6 @@
     "@studnicky/entity": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1",
     "json-schema-to-ts": "^3.1.1"
   }
 }

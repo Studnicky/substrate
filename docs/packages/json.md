@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/json'
-description: JSON and object utilities for deep merge, clone, equality, freeze, patch, hash, path access, and sort.
+description: JSON and object utilities for deep merge, clone, freeze, patch, hash, path access, and sort.
 ---
 
 # @studnicky/json
 
-> JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash.
+> JSON/object value-tools: deep merge, clone, freeze, path access, sort, patch, hash.
 
 ## Install
 
@@ -31,11 +31,11 @@ The output shows overlay keys winning on conflict, base keys preserved, arrays r
 
 `Merge.deep` uses generic overloads that preserve the caller's value domain: two object inputs return their intersection, same-type inputs retain that type, and mixed inputs return the input union. Runtime merging remains limited to arrays and plain objects; `Date`, `Map`, `Set`, regular expressions, class instances, and other non-plain objects remain atomic values.
 
-## Patch, DataType, and Frozen
+## Patch, predicates, and Frozen
 
-Apply RFC-6902 JSON Patch operations by passing one operation or an operation array to `Patch.create(operations)`. Read a deeply isolated snapshot through the patch instance's `operations` projection. `DataType` provides deep structural equality and type guards. `Frozen.deepFreeze` freezes all levels safely, including circular structures:
+Apply RFC-6902 JSON Patch operations by passing one operation or an operation array to `Patch.create(operations)`. Read a deeply isolated snapshot through the patch instance's `operations` projection. Import `Predicates` from `@studnicky/types/node` for deep structural equality, cycle detection, and type guards. `Frozen.deepFreeze` freezes all levels safely, including circular structures; Map and Set references remain mutation-guarded wherever they occur in the object graph:
 
-<<< ../../packages/json/examples/patch-datatype.ts#usage
+<<< ../../packages/json/examples/patch-predicates.ts#usage
 
 ### Patch contracts and validation
 
@@ -62,78 +62,9 @@ Convert JSON Pointers to JS access notation, read values via proto-safe dot-path
 
 <<< ../../packages/json/examples/path-sort-hash.ts#usage
 
-## SchemaValidator
+## Schema validation
 
-Compile a JSON Schema 2020-12 document into a reusable type-guard predicate, backed by Ajv (`strict: true`, `allErrors: true`, `ajv-formats` registered). Declare a single schema as the source of truth and derive both the compile-time type and the runtime guard from it, so there is no second, hand-written validator to drift out of sync:
-
-<!-- inline-ts-ok: conceptual usage snippet; no transcludable example file exists for SchemaValidator -->
-```ts
-import type { ValidateFunction } from 'ajv';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-
-import { SchemaValidator } from '@studnicky/json/node';
-
-export namespace RecordEntity {
-  export const Schema = {
-    additionalProperties: false,
-    properties: {
-      count: { type: 'number' },
-      id: { type: 'string' }
-    },
-    required: ['count', 'id'],
-    type: 'object'
-  } as const satisfies JSONSchema;
-
-  export type Type = FromSchema<typeof Schema>;
-
-  // Compile once at module load and reuse — compilation is the expensive step.
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-}
-
-declare const payload: unknown;
-if (RecordEntity.validate(payload)) {
-  payload.count; // narrowed to RecordEntity.Type
-} else {
-  // validate.errors carries Ajv's ErrorObject[] after every call
-  SchemaValidator.formatErrors(RecordEntity.validate.errors);
-  // "(root): must have required property 'count'"
-}
-```
-
-`SchemaValidator.compile` returns Ajv's `ValidateFunction<TValidated>` directly — it already narrows `unknown` to `TValidated` and exposes `.errors`. `SchemaValidator.formatErrors` renders that array into one human-readable line, falling back to `'invalid payload'` when there are no errors. Override the `protected static formatError` step in a subclass to customise per-error wording.
-
-### Intake — the trust boundary
-
-`compile` returns a predicate. A predicate narrows a variable in place and produces no value, so nothing a caller holds proves the check happened, and every downstream site re-checks. `compileIntake` returns a **parser**: a function whose return value's type cannot be obtained without having crossed the boundary.
-
-<!-- inline-ts-ok: conceptual usage snippet; no transcludable example file exists for SchemaValidator -->
-```ts
-export namespace RecordEntity {
-  // Schema and Type as above.
-  export const validate = SchemaValidator.compile<Type>(Schema);
-  export const intake = SchemaValidator.compileIntake<Type>(Schema);
-  export const create = SchemaValidator.compileCreate<Type>(Schema);
-}
-
-// From outside the process — defaults are filled and schema violations are rejected.
-const record = RecordEntity.intake(await request.json());
-
-// Produced in-process — defaults are filled and schema violations are rejected.
-const fixture = RecordEntity.create({ id: 'r-1' });
-```
-
-`intake` rejects cyclic input, deep-clones the value so the caller's value is never mutated, fills schema defaults, and validates the clone. It never coerces scalar values. `additionalProperties: false` rejects undeclared keys; `additionalProperties: true` or an `additionalProperties` schema permits values exactly as the schema declares. Object properties with `undefined` are treated as absent before JSON validation; `undefined` array entries are invalid. Invalid input throws `SchemaIntakeError`, which carries the formatted message, Ajv's raw `errors` array, and the schema's `$id` or `title` so the reader knows which entity rejected the payload.
-
-`create` is for data you produce yourself. It fills schema defaults and validates the cloned value with the same property rules as `intake`; a wrong-typed or undeclared value throws.
-
-`intake` applies to every entity. `create` is constrained at the type level to object-typed entities, because `Partial<'healthy' | 'degraded'>` is not a usable input.
-
-
-Import schema and validator types from their declaring packages and declare those packages directly: `JSONSchema` and `FromSchema` come from `json-schema-to-ts`, while `ValidateFunction` comes from `ajv`. The schema and `FromSchema` derivation may be split across files; each site imports the owner symbol it uses. `SchemaValidator` supplies `@studnicky/json` runtime functionality, not proxy exports for dependency-owned declarations.
-
-## Public API
-
-Import JSON operations, `SchemaValidator`, `FrozenMutationError`, `JsonError`, `PatchError`, and `SchemaIntakeError` from `@studnicky/json/node` in Node.js or `@studnicky/json/browser` in browser bundles. Package-owned schemas use `@studnicky/json/entities` and contracts use `@studnicky/json/interfaces`. Dependency-owned schema declarations remain imported directly from `json-schema-to-ts`, `ajv`, and `json-schema`.
+Schema-backed entities use `EntityCompiler` from [`@studnicky/entity`](./entity.md). Import `EntityCompiler` and `SchemaIntakeError` from its `/node` or `/browser` runtime entry point, and import `EntityCreateFunctionInterface`, `EntityIntakeFunctionInterface`, and `EntityValidateFunctionInterface` from `@studnicky/entity/interfaces`. `@studnicky/json` provides JSON value operations; it does not provide schema validation APIs.
 
 ## Extending
 
@@ -164,7 +95,6 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Clone` | Provides clone functionality. | `@studnicky/json/node` |
-| `DataType` | Provides data type functionality. | `@studnicky/json/node` |
 | `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json/node` |
 | `Frozen` | Provides frozen functionality. | `@studnicky/json/node` |
 | `Hash` | Provides hash functionality. | `@studnicky/json/node` |
@@ -173,8 +103,6 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 | `Path` | Provides path functionality. | `@studnicky/json/node` |
 | `Sort` | Provides sort functionality. | `@studnicky/json/node` |
 | `StructuralHash` | Provides structural hash functionality. | `@studnicky/json/node` |
-| `SchemaValidator` | Provides schema validator functionality. | `@studnicky/json/node` |
 | `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json/node` |
 | `JsonError` | Represents json failures. | `@studnicky/json/node` |
 | `PatchError` | Represents patch failures. | `@studnicky/json/node` |
-| `SchemaIntakeError` | Represents schema intake failures. | `@studnicky/json/node` |

@@ -5,8 +5,9 @@
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Clone, SchemaIntakeError } from '@studnicky/json/node';
+import { Clone } from '@studnicky/json/node';
 import { Signal } from '@studnicky/signal/node';
 import { Predicates } from '@studnicky/types/node';
 
@@ -52,16 +53,6 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class FetchClientInstance {
-  static belongsTo<TInstance>(
-    constructor: FetchClientSubclassInterface<TInstance>,
-    value: TInstance | object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * HTTP client with default configuration and subclass-overridable lifecycle hooks.
  *
@@ -101,7 +92,7 @@ export class FetchClient implements FetchClientInterface {
     config: ClientConfigInterface = {}
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
-    if (!FetchClientInstance.belongsTo(this, result)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
     }
     return result;
@@ -279,7 +270,7 @@ export class FetchClient implements FetchClientInterface {
         throw new ConfigurationError('timeout must be a positive number');
       }
 
-      externalSignal = configuredSignal;
+      externalSignal = configuredSignal ?? undefined;
       if (timeout !== undefined || externalSignal !== undefined) {
         timeoutMs = timeout;
         const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};

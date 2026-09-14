@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { Empty, JsonValue, Predicates } from '../src/index.js';
+import { Empty, JsonValue, Predicates, RuntimeValue } from '../src/index.js';
 import { PredicatesAccessorsFixtures } from './fixtures/PredicatesAccessorsFixtures.js';
 
 // ── Predicates.isObject ──────────────────────────────────────────────────────
@@ -38,6 +38,11 @@ console.log('Predicates.isNumber(NaN):', Predicates.isNumber(Number.NaN));
 console.log('Predicates.isBoolean(true):', Predicates.isBoolean(true));
 console.log('Predicates.isNonNegativeInteger(0):', Predicates.isNonNegativeInteger(0));
 console.log('Predicates.isPositiveInteger(0):', Predicates.isPositiveInteger(0));
+
+// ── Structural equality and cycle detection ────────────────────────────────
+
+console.log('Predicates.areDeeplyEqual(Map, Set):', Predicates.areDeeplyEqual(PredicatesAccessorsFixtures.runtimeValues.left, PredicatesAccessorsFixtures.runtimeValues.right));
+console.log('Predicates.hasCycle(Map):', Predicates.hasCycle(PredicatesAccessorsFixtures.runtimeValues.left));
 
 // ── Static-override subclass ────────────────────────────────────────────────
 
@@ -81,6 +86,8 @@ console.log('Predicates.isEmptySet(new Set()):', Predicates.isEmptySet(new Set()
 const value = PredicatesAccessorsFixtures.value;
 
 console.log('value:', JSON.stringify(value));
+
+console.log('RuntimeValue.is(Date, Map, Set operand):', RuntimeValue.is(PredicatesAccessorsFixtures.runtimeValues.operand));
 // #endregion usage
 
 // Predicates assertions
@@ -116,6 +123,8 @@ assert.equal(Predicates.isNonNegativeInteger(5), true);
 assert.equal(Predicates.isNonNegativeInteger(-1), false);
 assert.equal(Predicates.isPositiveInteger(1), true);
 assert.equal(Predicates.isPositiveInteger(0), false);
+assert.equal(Predicates.areDeeplyEqual(PredicatesAccessorsFixtures.runtimeValues.left, PredicatesAccessorsFixtures.runtimeValues.right), true, 'structurally equal Map and Set values compare equal');
+assert.equal(Predicates.hasCycle(PredicatesAccessorsFixtures.runtimeValues.left), false, 'acyclic Map remains acyclic');
 
 assert.equal(StrictPredicates.isObject({ 'x': 1 }), true, 'StrictPredicates accepts plain objects');
 assert.equal(StrictPredicates.isObject([]), false, 'StrictPredicates rejects arrays');
@@ -139,5 +148,7 @@ assert.equal(Predicates.isEmptySet(new Set()), true);
 
 assert.equal(JsonValue.is(value), true, 'JSON value validation accepts nested JSON');
 assert.deepEqual(value, { 'nested': [1, 'two', null] }, 'canonical JSON value accepts nested JSON');
+assert.equal(RuntimeValue.is(PredicatesAccessorsFixtures.runtimeValues.operand), true, 'runtime value validation accepts Date, Map, Set, and undefined');
+assert.strictEqual(RuntimeValue.intake(PredicatesAccessorsFixtures.runtimeValues.operand), PredicatesAccessorsFixtures.runtimeValues.operand, 'runtime intake preserves native operands');
 
 console.log('predicates-accessors: all assertions passed');

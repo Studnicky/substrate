@@ -28,20 +28,12 @@ export class Batch<TResult = unknown> {
     protected override onHookError(): void {}
   };
 
-  private static isConstructed<TInstance extends object>(
-    value: object,
-    constructor: BatchSubclassInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<TResult = unknown, TInstance extends Batch<TResult> = Batch<TResult>>(
     this: BatchSubclassInterface<TInstance>,
     maximumConcurrent?: number
   ): TInstance {
     const result: unknown = Reflect.construct(this, [maximumConcurrent]);
-    if (!Predicates.isObjectLike(result) || !Batch.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw new BatchError('Batch.create() must construct a Batch instance');
     }
     return result;

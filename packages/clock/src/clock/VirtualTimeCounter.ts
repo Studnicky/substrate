@@ -15,13 +15,6 @@ interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class VirtualTimeCounterInstance {
-  static belongsTo<TInstance extends object>(constructor: VirtualTimeCounterSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * Mutable counter that tracks virtual epoch-ms for test scenarios.
  * Call `advance(ms)` to move time forward; all paired `VirtualClockProvider`
@@ -34,7 +27,7 @@ export class VirtualTimeCounter {
   ): TInstance {
     const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
-    if (!Predicates.isObjectLike(result) || !VirtualTimeCounterInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VirtualTimeCounter.create() did not construct the requested subclass.');
     }
     return result;

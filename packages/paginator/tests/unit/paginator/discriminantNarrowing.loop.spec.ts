@@ -10,6 +10,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import {
+  PaginatorAvailableCursorEntity,
+  PaginatorExhaustedStateEntity,
+  PaginatorHasMoreStateEntity,
+  PaginatorPageReceivedEventEntity
+} from '../../../src/entities/index.js';
+
 import type {
   PaginatorExhaustedCursorEntity,
   PaginatorIdleStateEntity,
@@ -82,6 +89,39 @@ function runCase(scenarioCase: ScenarioCase): void {
 
   runner(scenarioCase);
 }
+
+void describe('Paginator entity contracts', () => {
+  void it('intakes complete cursor, state, and page-received event shapes', () => {
+    assert.deepEqual(
+      PaginatorAvailableCursorEntity.intake({ 'cursor': 2, 'exhausted': false }),
+      { 'cursor': 2, 'exhausted': false }
+    );
+    assert.deepEqual(
+      PaginatorHasMoreStateEntity.intake({ 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }),
+      { 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }
+    );
+    assert.deepEqual(
+      PaginatorExhaustedStateEntity.intake({ 'pages': ['last'], 'variant': 'exhausted' }),
+      { 'pages': ['last'], 'variant': 'exhausted' }
+    );
+    assert.deepEqual(
+      PaginatorPageReceivedEventEntity.intake({
+        'nextCursor': { 'exhausted': true },
+        'page': 'last',
+        'type': 'pageReceived'
+      }),
+      { 'nextCursor': { 'exhausted': true }, 'page': 'last', 'type': 'pageReceived' }
+    );
+  });
+
+  void it('rejects incomplete page-received event data', () => {
+    assert.throws(() => PaginatorPageReceivedEventEntity.intake({
+      'nextCursor': { 'exhausted': false },
+      'page': 'missing cursor',
+      'type': 'pageReceived'
+    }));
+  });
+});
 
 void describe('Paginator discriminant narrowing', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {

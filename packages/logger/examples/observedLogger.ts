@@ -10,7 +10,7 @@ import type {
   LogRecordEntity
 } from '../src/entities/index.js';
 import type { TransportInterface } from '../src/index.js';
-import type { LoggerOptionsInterface, LogMetadataInterface } from '../src/interfaces/index.js';
+import type { LoggerOptionsInterface } from '../src/interfaces/index.js';
 
 import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 
@@ -19,7 +19,7 @@ import { FunctionTransport, LogBody, Logger } from '../src/index.js';
 // ---------------------------------------------------------------------------
 
 interface LogEventInterface {
-  readonly 'bindings'?: LogMetadataInterface;
+  readonly 'bindings'?: LogRecordEntity.Type['metadata'];
   readonly 'error'?: Error;
   readonly 'level'?: LogLevelEntity.Type;
   readonly 'message'?: LogBodyDataEntity.Type['message'];
@@ -46,7 +46,7 @@ class ObservedLogger extends Logger {
     this.#recorder.record({ 'level': level, 'shape': 'dropped' }, `[logger] onDropped level=${level}`);
   }
 
-  protected override onChildCreate(bindings: LogMetadataInterface): void {
+  protected override onChildCreate(bindings: LogRecordEntity.Type['metadata']): void {
     this.#recorder.record(
       { 'bindings': bindings, 'shape': 'childCreate' },
       `[logger] onChildCreate bindings=${JSON.stringify(bindings)}`

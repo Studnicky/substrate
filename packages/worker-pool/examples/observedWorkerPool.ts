@@ -3,13 +3,13 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
-// #region usage
 import type {
-  WorkerErrorEnvelopeInterface,
-  WorkerLogEnvelopeInterface,
-  WorkerProgressEnvelopeInterface,
-  WorkerResultEnvelopeInterface
-} from '../src/interfaces/index.js';
+  WorkerErrorEnvelopeEntity,
+  WorkerLogEnvelopeEntity,
+  WorkerProgressEnvelopeEntity
+} from '../src/entities/index.js';
+// #region usage
+import type { WorkerResultEnvelopeInterface } from '../src/interfaces/index.js';
 import type { ItemEntity } from './entities/ItemEntity.js';
 
 import { WorkerPool } from '../src/node/index.js';
@@ -21,9 +21,9 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
 
   protected override onMessage(
     envelope:
-      | WorkerErrorEnvelopeInterface
-      | WorkerLogEnvelopeInterface
-      | WorkerProgressEnvelopeInterface
+      | WorkerErrorEnvelopeEntity.Type
+      | WorkerLogEnvelopeEntity.Type
+      | WorkerProgressEnvelopeEntity.Type
       | WorkerResultEnvelopeInterface<number>,
     index: number
   ): void {

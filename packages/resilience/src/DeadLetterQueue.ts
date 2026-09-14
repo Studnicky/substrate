@@ -23,16 +23,6 @@ interface DeadLetterQueueSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class DeadLetterQueueInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: DeadLetterQueueSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 export class DeadLetterQueue<T> {
   static readonly #OwnedHookInvoker = class DeadLetterQueueHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -68,7 +58,7 @@ export class DeadLetterQueue<T> {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('DeadLetterQueue.create() did not construct the requested subclass.');
     }
     return result;

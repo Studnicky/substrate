@@ -4,7 +4,7 @@ import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
 import { Hash } from '@studnicky/json/node';
 import { Predicates } from '@studnicky/types/node';
 
-import type { FlagContextInterface } from './interfaces/FlagContextInterface.js';
+import type { FlagContextEntity } from './entities/FlagContextEntity.js';
 
 import { FlagDefinitionEntity } from './entities/FlagDefinitionEntity.js';
 import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidationError.js';
@@ -62,13 +62,6 @@ export class FlagEvaluator {
 
   // `TInstance` is supplied explicitly at the call site and flows into BOTH the constructor
   // parameter and the type predicate, so it is load-bearing rather than a phantom generic.
-  private static isConstructed<TInstance extends FlagEvaluator>(
-    value: object,
-    constructor: FlagEvaluatorConstructorInterface<TInstance> & Function
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   private static isConstructor(value: object): value is Function {
     const result = Predicates.isFunction(value);
@@ -82,7 +75,7 @@ export class FlagEvaluator {
       throw RuntimeError.create('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !FlagEvaluator.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;
@@ -133,7 +126,7 @@ export class FlagEvaluator {
    *
    * `onEvaluate(name, context, result)` always fires last, on every path, before returning.
    */
-  evaluate(name: string, context: FlagContextInterface): boolean {
+  evaluate(name: string, context: FlagContextEntity.Type): boolean {
     const definition = this.#registry.get(name);
 
     if (definition === undefined) {
@@ -197,11 +190,11 @@ export class FlagEvaluator {
   // ---------------------------------------------------------------------------
 
   /** Fires after every resolution, on every path, with the final boolean result. */
-  protected onEvaluate(_flag: string, _context: Record<string, unknown>, _result: boolean): void {}
+  protected onEvaluate(_flag: string, _context: FlagContextEntity.Type, _result: boolean): void {}
 
   /** Fires when `evaluate()` is called for a flag name that was never registered. */
   protected onDefault(_flag: string): void {}
 
   /** Fires when an enabled flag's rollout bucket falls outside the enabled range. */
-  protected onRuleMismatch(_flag: string, _context: Record<string, unknown>): void {}
+  protected onRuleMismatch(_flag: string, _context: FlagContextEntity.Type): void {}
 }

@@ -58,6 +58,9 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@types/json-schema": "^7.0.15",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
   }
 }

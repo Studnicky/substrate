@@ -2,6 +2,7 @@
  * Comparator functions with direct function access
  */
 
+import { Frozen } from '@studnicky/json/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { ComparatorFunctionInterface } from '../interfaces.js';
@@ -16,9 +17,8 @@ import { DoesValueMatchPattern } from '../comparators/composite/doesValueMatchPa
 import { IsEmpty } from '../comparators/composite/isEmpty.js';
 import { IsInRange } from '../comparators/composite/isInRange.js';
 import { IsOutsideRange } from '../comparators/composite/isOutsideRange.js';
-import { DeepFreeze } from '../utils/deepFreeze.js';
 
-export const Comparator = DeepFreeze.deepFreeze({
+export const Comparator = Frozen.deepFreeze({
   'CORE': {
     'deepEquals': AreDeeplyEqual.areDeeplyEqual,
     'isDateLike': Predicates.isDateLike,

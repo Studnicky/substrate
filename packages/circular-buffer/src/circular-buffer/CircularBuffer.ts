@@ -57,16 +57,6 @@ interface CircularBufferSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class CircularBufferInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: CircularBufferSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Create a new CircularBuffer instance.
@@ -98,7 +88,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       );
     }
     if (
-      !CircularBufferInstance.belongsTo(resolveSubclassConstructor(), constructed)
+      !Predicates.isInstanceOf<TInstance>(constructed, resolveSubclassConstructor())
     ) {
       throw RuntimeError.create(
         'CircularBuffer.create() did not construct the requested subclass.'

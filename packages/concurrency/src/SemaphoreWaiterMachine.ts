@@ -2,8 +2,8 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
-import type { SemaphoreWaiterStateInterface } from './interfaces/SemaphoreWaiterStateInterface.js';
-import type { SemaphoreWaiterTransitionEventInterface } from './interfaces/SemaphoreWaiterTransitionEventInterface.js';
+import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
+import type { SemaphoreWaiterTransitionEventEntity } from './entities/SemaphoreWaiterTransitionEventEntity.js';
 
 /**
  * Stateless per-waiter lifecycle reducer for `Semaphore`. Single source of
@@ -24,19 +24,19 @@ import type { SemaphoreWaiterTransitionEventInterface } from './interfaces/Semap
  * waiter object itself and calls `transition()` once per change, mirroring
  * `@studnicky/mutex`'s `MutexKeyMachine`.
  */
-export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateInterface, SemaphoreWaiterTransitionEventInterface, never> {
+export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateEntity.Type, SemaphoreWaiterTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): SemaphoreWaiterStateInterface {
+  override getInitialState(): SemaphoreWaiterStateEntity.Type {
     return { 'variant': 'queued' };
   }
 
   override reduce(
-    state: SemaphoreWaiterStateInterface,
-    event: SemaphoreWaiterTransitionEventInterface
-  ): FsmStepInterface<SemaphoreWaiterStateInterface, never> {
+    state: SemaphoreWaiterStateEntity.Type,
+    event: SemaphoreWaiterTransitionEventEntity.Type
+  ): FsmStepInterface<SemaphoreWaiterStateEntity.Type, never> {
     if (state.variant === 'queued' && event.type === 'markReady') {
       return { 'effects': [], 'state': { 'variant': 'ready' } };
     }
@@ -54,7 +54,7 @@ export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateInt
     });
   }
 
-  protected override isTerminated(state: SemaphoreWaiterStateInterface): boolean {
+  protected override isTerminated(state: SemaphoreWaiterStateEntity.Type): boolean {
     const result = state.variant === 'cancelled';
     return result;
   }

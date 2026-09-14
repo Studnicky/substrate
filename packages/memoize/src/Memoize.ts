@@ -41,16 +41,6 @@ interface MemoizeSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class MemoizeInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: MemoizeSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 // TArgumentList/TResult only appear in Memoize's covariant/contravariant members
 // (call()'s args/return, invalidate()'s args), so a bound of
 // `Memoize<TArgumentList, TResult>` would force `Memoize<TArgumentList, TResult>` (the
@@ -172,7 +162,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     };
     const result: unknown = Reflect.construct(this, [deps]);
 
-    if (!Predicates.isObjectLike(result) || !MemoizeInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('Memoize.create() did not construct the requested subclass.');
     }
 

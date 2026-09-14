@@ -19,16 +19,6 @@ interface ContextSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class ContextInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: ContextSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * Isolated async context for Node and browser consumers.
  *
@@ -82,7 +72,7 @@ export class Context implements ContextInterface {
     storage?: ContextStorageInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, storage ?? ContextRuntime.defaultStorageFactory?.()]);
-    if (!Predicates.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Context.create() did not construct the requested subclass.');
     }
     return result;

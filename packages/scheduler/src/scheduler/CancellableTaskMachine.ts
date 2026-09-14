@@ -4,7 +4,6 @@ import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
 import type { CancellableTaskTransitionEventEntity } from '../entities/CancellableTaskTransitionEventEntity.js';
-import type { CancellableTaskStateInterface } from '../interfaces/CancellableTaskStateInterface.js';
 
 /**
  * Pure lifecycle reducer for `CancellableTask`. Single source of truth for
@@ -26,19 +25,19 @@ import type { CancellableTaskStateInterface } from '../interfaces/CancellableTas
  * machine only judges legality and computes the next state — it does not
  * hold state of its own, matching `@studnicky/fsm`'s reducer contract.
  */
-export class CancellableTaskMachine extends StateMachine<CancellableTaskStateInterface, CancellableTaskTransitionEventEntity.Type, never> {
+export class CancellableTaskMachine extends StateMachine<CancellableTaskStateEntity.Type, CancellableTaskTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): CancellableTaskStateInterface {
+  override getInitialState(): CancellableTaskStateEntity.Type {
     return { 'variant': 'pending' };
   }
 
   override reduce(
-    state: CancellableTaskStateInterface,
+    state: CancellableTaskStateEntity.Type,
     event: CancellableTaskTransitionEventEntity.Type
-  ): FsmStepInterface<CancellableTaskStateInterface, never> {
+  ): FsmStepInterface<CancellableTaskStateEntity.Type, never> {
     if (CancellableTaskMachine.#isLegalEdge(state.variant, event.to)) {
       return { 'effects': [], 'state': { 'variant': event.to } };
     }
@@ -50,7 +49,7 @@ export class CancellableTaskMachine extends StateMachine<CancellableTaskStateInt
     });
   }
 
-  static #isLegalEdge(from: CancellableTaskStateEntity.Type, to: CancellableTaskStateEntity.Type): boolean {
+  static #isLegalEdge(from: CancellableTaskStateEntity.Type['variant'], to: CancellableTaskStateEntity.Type['variant']): boolean {
     if (to === 'completed') {return true;}
     if (from === 'pending' && to === 'cancelled') {return true;}
 

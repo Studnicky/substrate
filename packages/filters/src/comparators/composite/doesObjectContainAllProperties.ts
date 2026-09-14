@@ -4,10 +4,9 @@
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { FilterValueEntity } from '../../FilterValueEntity.js';
 
 export class DoesObjectContainAllProperties {
-  static doesObjectContainAllProperties(value: FilterValueEntity.Type, propertyNames: string[]): boolean {
+  static doesObjectContainAllProperties(value: unknown, propertyNames: string[]): boolean {
     if (typeof value !== 'object' || value === null || !Array.isArray(propertyNames)) {
       return false;
     }

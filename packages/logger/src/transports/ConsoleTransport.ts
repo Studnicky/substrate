@@ -57,17 +57,6 @@ interface ConsoleTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class ConsoleTransportInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: ConsoleTransportSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
-}
-
 /**
  * Transport that writes records to the console using the level-appropriate method.
  *
@@ -95,7 +84,7 @@ export class ConsoleTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!Predicates.isObjectLike(result) || !ConsoleTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('ConsoleTransport.create() did not construct the requested subclass.');
     }
 

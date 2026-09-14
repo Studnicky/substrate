@@ -12,17 +12,6 @@ interface MemoryTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class MemoryTransportInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: MemoryTransportSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
-}
-
 /**
  * Transport that captures log records into an internal array for test assertions.
  *
@@ -54,7 +43,7 @@ export class MemoryTransport implements TransportInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
-    if (!Predicates.isObjectLike(result) || !MemoryTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('MemoryTransport.create() did not construct the requested subclass.');
     }
 

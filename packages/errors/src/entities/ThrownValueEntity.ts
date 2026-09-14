@@ -1,9 +1,7 @@
-import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
 import {
@@ -40,6 +38,7 @@ export namespace ThrownValueEntity {
         'type': 'array'
       },
       'detail': {
+        'default': '',
         'description': "Human-readable explanation specific to this occurrence — the caught value's message.",
         'type': 'string'
       },
@@ -52,10 +51,12 @@ export namespace ThrownValueEntity {
         'type': 'string'
       },
       'title': {
+        'default': PROBLEM_TITLE_THROWN_NULLISH,
         'description': 'Stable human-readable name of the problem type.',
         'type': 'string'
       },
       'type': {
+        'default': PROBLEM_TYPE_THROWN_NULLISH,
         'description': 'URI reference identifying the problem type. The discriminant.',
         'type': 'string'
       }
@@ -67,58 +68,7 @@ export namespace ThrownValueEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    if (!Predicates.isString(candidate.type)) { return false; }
-    if (!Predicates.isString(candidate.title)) { return false; }
-    if (!Predicates.isString(candidate.detail)) { return false; }
-    if (candidate.name !== undefined && !Predicates.isString(candidate.name)) { return false; }
-    if (candidate.stack !== undefined && !Predicates.isString(candidate.stack)) { return false; }
-    if (candidate.causes === undefined) { return true; }
-    if (!Predicates.isArray(candidate.causes)) { return false; }
-
-    const result = candidate.causes.every((item) => {
-      const itemResult = CauseNodeEntity.validate(item);
-
-      return itemResult;
-    });
-
-    return result;
-  };
-
-  class Boundary {
-    /**
-     * Total intake: never throws, regardless of `input`. Walks the `cause` chain of an
-     * `Error`/`AggregateError` iteratively (never recursively) up to `CAUSE_CHAIN_DEPTH_LIMIT`
-     * hops, tracking visited objects in a `WeakSet` so a cyclic `cause` chain terminates
-     * immediately rather than looping until the depth limit.
-     */
-    /** Delegates to the leaf projection; see `validation/thrownValueProjection.ts`. */
-    public static intake(input: unknown): Type {
-      const projected = ThrownValueProjection.project(input);
-      const causes = projected.causes ?? [];
-      let result: Type = { 'detail': projected.detail, 'title': projected.title, 'type': projected.type };
-
-      if (projected.name !== undefined) { result = { ...result, 'name': projected.name }; }
-      if (projected.stack !== undefined) { result = { ...result, 'stack': projected.stack }; }
-      if (causes.length > 0) { result = { ...result, 'causes': [...causes] }; }
-
-      return result;
-    }
-
-    /** Locally-produced data: defaults merged, no coercion or transforms. */
-    public static create(partial: Partial<Type> = {}): Type {
-      const type = partial.type ?? PROBLEM_TYPE_THROWN_NULLISH;
-      const title = partial.title ?? PROBLEM_TITLE_THROWN_NULLISH;
-      const detail = partial.detail ?? '';
-      let result: Type = { 'detail': detail, 'title': title, 'type': type };
-      if (partial.name !== undefined) { result = { ...result, 'name': partial.name }; }
-      if (partial.stack !== undefined) { result = { ...result, 'stack': partial.stack }; }
-      if (partial.causes !== undefined) { result = { ...result, 'causes': partial.causes }; }
-      return result;
-    }
-  }
-
-  export const intake: EntityIntakeFunctionInterface<Type> = Boundary.intake;
-  export const create: EntityCreateFunctionInterface<Type> = Boundary.create;
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = ThrownValueProjection.project;
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

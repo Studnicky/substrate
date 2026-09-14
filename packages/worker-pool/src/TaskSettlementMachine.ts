@@ -18,27 +18,27 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 
 import { StateMachine } from '@studnicky/fsm/node';
 
-import type { SettleTaskEventInterface } from './interfaces/SettleTaskEventInterface.js';
-import type { TaskSettlementStateInterface } from './interfaces/TaskSettlementStateInterface.js';
+import type { SettleTaskEventEntity } from './entities/SettleTaskEventEntity.js';
+import type { TaskSettlementStateEntity } from './entities/TaskSettlementStateEntity.js';
 
-export class TaskSettlementMachine extends StateMachine<TaskSettlementStateInterface, SettleTaskEventInterface, never> {
+export class TaskSettlementMachine extends StateMachine<TaskSettlementStateEntity.Type, SettleTaskEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): TaskSettlementStateInterface {
+  override getInitialState(): TaskSettlementStateEntity.Type {
     return { 'variant': 'unsettled' };
   }
 
-  protected override isTerminated(state: TaskSettlementStateInterface): boolean {
+  protected override isTerminated(state: TaskSettlementStateEntity.Type): boolean {
     const result = state.variant === 'settled';
     return result;
   }
 
   override reduce(
-    _state: TaskSettlementStateInterface,
-    _event: SettleTaskEventInterface
-  ): FsmStepInterface<TaskSettlementStateInterface, never> {
+    _state: TaskSettlementStateEntity.Type,
+    _event: SettleTaskEventEntity.Type
+  ): FsmStepInterface<TaskSettlementStateEntity.Type, never> {
     return { 'effects': [], 'state': { 'variant': 'settled' } };
   }
 }

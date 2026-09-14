@@ -21,7 +21,7 @@
           { "entity": "AsyncIterValueDiscriminantEntity", "expected": true, "value": { "variant": "value" } },
           { "entity": "ChannelEntryStateEntity", "expected": true, "value": { "cancelled": false } },
           { "entity": "ChannelStateEntity", "expected": true, "value": { "closed": false, "subscriber": true } },
-          { "entity": "SemaphoreWaiterStateEntity", "expected": true, "value": { "cancelled": false, "ready": true } },
+          { "entity": "SemaphoreWaiterFlagsEntity", "expected": true, "value": { "cancelled": false, "ready": true } },
           { "entity": "DispatchStartedEventEntity", "expected": true, "value": { "key": "task-1" } },
           { "entity": "DispatchCompletedEventEntity", "expected": true, "value": { "key": "task-1", "result": "done" } }
         ]

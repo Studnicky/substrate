@@ -66,11 +66,11 @@ export class DispatcherAgent {
       'maximumResponseSize': config.maximumResponseSize ?? DEFAULT_DISPATCHER_CONFIG.maximumResponseSize,
       'pipelining': config.pipelining ?? DEFAULT_DISPATCHER_CONFIG.pipelining,
       'strictContentLength': config.strictContentLength ?? DEFAULT_DISPATCHER_CONFIG.strictContentLength,
-      ...(config.clientTtl !== undefined && { 'clientTtl': config.clientTtl }),
+      ...(config.clientTtl !== undefined && config.clientTtl !== null && { 'clientTtl': config.clientTtl }),
       ...(config.enabled !== undefined && { 'enabled': config.enabled }),
-      ...(config.localAddress !== undefined && { 'localAddress': config.localAddress }),
-      ...(config.maximumOrigins !== undefined && { 'maximumOrigins': config.maximumOrigins }),
-      ...(config.maximumRequestsPerClient !== undefined && { 'maximumRequestsPerClient': config.maximumRequestsPerClient })
+      ...(config.localAddress !== undefined && config.localAddress !== null && { 'localAddress': config.localAddress }),
+      ...(config.maximumOrigins !== undefined && config.maximumOrigins !== null && { 'maximumOrigins': config.maximumOrigins }),
+      ...(config.maximumRequestsPerClient !== undefined && config.maximumRequestsPerClient !== null && { 'maximumRequestsPerClient': config.maximumRequestsPerClient })
     };
   }
 
@@ -78,8 +78,8 @@ export class DispatcherAgent {
     if (value !== undefined && value !== 0) { Reflect.set(options, key, value); }
   }
 
-  static #setIfDefined(options: Record<string, unknown>, key: string, value: number | string | undefined): void {
-    if (value !== undefined) { Reflect.set(options, key, value); }
+  static #setIfDefined(options: Record<string, unknown>, key: string, value: number | string | null | undefined): void {
+    if (value !== undefined && value !== null) { Reflect.set(options, key, value); }
   }
 
   static #setIfNotNull(options: Record<string, unknown>, key: string, value: number | null): void {

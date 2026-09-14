@@ -6,6 +6,7 @@
 
 import { RuntimeError } from '@studnicky/errors/node';
 import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 import { Agent } from 'undici';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
@@ -24,16 +25,6 @@ import { TestDispatcher } from '../testing/TestDispatcher.js';
 
 interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class UndiciDispatcherInstance {
-  static belongsTo<TInstance>(
-    constructor: UndiciDispatcherSubclassInterface<TInstance>,
-    value: TInstance | object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -83,7 +74,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     agent: Agent | TestDispatcher
   ): TInstance {
     const result = Reflect.construct(this, [agent]) as object;
-    if (!UndiciDispatcherInstance.belongsTo(this, result)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

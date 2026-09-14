@@ -19,7 +19,9 @@ import {
 import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
 
 void describe('ThrownValueEntity', () => {
-  void it('is total: never throws, for every shape a caught value can take', () => {
+  void it('is total: never throws for cyclic objects, functions, symbols, and caught-value shapes', () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
     const inputs: readonly unknown[] = [
       undefined,
       null,
@@ -27,6 +29,8 @@ void describe('ThrownValueEntity', () => {
       42,
       true,
       Symbol('boom'),
+      () => undefined,
+      cyclic,
       10n,
       RuntimeError.create('base'),
       RuntimeError.create('typed'),
@@ -36,7 +40,8 @@ void describe('ThrownValueEntity', () => {
     ];
 
     for (const input of inputs) {
-      assert.doesNotThrow(() => ThrownValueEntity.intake(input));
+      const result = ThrownValueEntity.intake(input);
+      assert.equal(ThrownValueEntity.validate(result), true);
     }
   });
 

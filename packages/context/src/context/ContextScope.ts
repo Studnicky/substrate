@@ -7,7 +7,7 @@ import { TransitionRejectedError } from '@studnicky/fsm/browser';
  * Returned from `Context.initialize()`. Manages the execute/terminate lifecycle
  * with an explicit FSM: created → active → terminated.
  */
-import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntity.js';
+import type { ContextScopeVariantEntity } from '../entities/ContextScopeVariantEntity.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
 import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 
@@ -91,7 +91,7 @@ export class ContextScope implements ContextScopeInterface {
   readonly #storage: ContextStorageInterface;
   readonly #store: Map<string, unknown>;
   readonly #machine: ContextScopeMachine = new ContextScopeMachine();
-  #state: ContextScopeStateEntity.Type = 'created';
+  #state: ContextScopeVariantEntity.Type = 'created';
 
   /**
    * The name of this scope, used in error messages.
@@ -118,7 +118,7 @@ export class ContextScope implements ContextScopeInterface {
    * Transition the FSM to a new state.
    * Subclasses can override onExit() and onEnter() to react to transitions.
    */
-  protected transition(to: ContextScopeStateEntity.Type): void {
+  protected transition(to: ContextScopeVariantEntity.Type): void {
     const from = this.#state;
 
     if (!this.guard(from, to)) {
@@ -145,7 +145,7 @@ export class ContextScope implements ContextScopeInterface {
    * `TransitionRejectedError` as an illegal edge. Any other thrown value (a
    * reducer defect) propagates rather than being swallowed as `false`.
    */
-  protected guard(from: ContextScopeStateEntity.Type, to: ContextScopeStateEntity.Type): boolean {
+  protected guard(from: ContextScopeVariantEntity.Type, to: ContextScopeVariantEntity.Type): boolean {
     try {
       this.#machine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
       return true;
@@ -166,18 +166,18 @@ export class ContextScope implements ContextScopeInterface {
    * @param _from - The state being left
    * @param _to - The state being entered
    */
-  protected onExit(_from: ContextScopeStateEntity.Type, _to: ContextScopeStateEntity.Type): void {}
+  protected onExit(_from: ContextScopeVariantEntity.Type, _to: ContextScopeVariantEntity.Type): void {}
 
   /**
    * Hook called when the FSM enters a new state.
    * Subclasses override to react to state changes.
    */
-  protected onEnter(_to: ContextScopeStateEntity.Type, _from: ContextScopeStateEntity.Type): void {}
+  protected onEnter(_to: ContextScopeVariantEntity.Type, _from: ContextScopeVariantEntity.Type): void {}
 
   /**
    * The current FSM state.
    */
-  protected get state(): ContextScopeStateEntity.Type {
+  protected get state(): ContextScopeVariantEntity.Type {
     const result = this.#state;
     return result;
   }

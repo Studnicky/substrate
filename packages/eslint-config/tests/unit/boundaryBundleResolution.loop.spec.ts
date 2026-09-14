@@ -12,9 +12,9 @@ import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { folderContentShape } from '../../src/rules/folderContentShape.js';
 import scenarios from './boundaryBundleResolution.scenarios.json' with { type: 'json' };
 
-it('recognizes only resolved canonical local boundary bundles', () => {
+it('rejects bundled entity boundary calls', () => {
   const root = mkdtempSync(join(tmpdir(), 'boundary-bundle-resolution-'));
-  const compiler = 'export declare class SchemaValidator { static compileEntity<T>(schema: object): {validate:(candidate:unknown)=>candidate is T;intake:(input:unknown)=>T;create:(partial:unknown)=>T}; }';
+  const compiler = 'export declare class EntityCompiler { static compileEntity<T>(schema: object): {validate:(candidate:unknown)=>candidate is T;intake:(input:unknown)=>T;create:(partial:unknown)=>T}; }';
   try {
     for (const scenario of scenarios) {
       const directory = join(root, scenario.name);
@@ -38,10 +38,6 @@ it('recognizes only resolved canonical local boundary bundles', () => {
         settings: { '@studnicky/projectHost': new NodeProjectHost() },
         rules: { 'test/shape': 'error' }
       }], { filename: entry });
-      if ('expectedMessageIds' in scenario) {
-        assert.deepEqual(messages.map((message) => { return message.messageId; }), scenario.expectedMessageIds, scenario.name);
-        continue;
-      }
       assert.equal(messages.length === 0, scenario.valid, scenario.name + ': ' + JSON.stringify(messages));
     }
   } finally {

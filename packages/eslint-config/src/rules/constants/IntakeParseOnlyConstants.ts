@@ -12,7 +12,7 @@
  *   - `@studnicky/eslint-config`: Operates on foreign ESLint and TypeScript AST nodes.
  *   - `@studnicky/entity`: The generic `{create, intake}` compile orchestration and cycle-safe
  *     clone primitives every entity's `intake` is built from (see `EntityCompiler`,
- *     `BoundaryCycleGuard`). An engine cannot be required to go through the boundary it exists to
+ *     `Predicates.hasCycle`). An engine cannot be required to go through the boundary it exists to
  *     implement, for the same reason `@studnicky/types` is exempt.
  */
 

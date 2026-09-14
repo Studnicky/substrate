@@ -21,7 +21,7 @@ Composes `@studnicky/batch/node`, `@studnicky/system/node`, and `@studnicky/sign
 
 <<< ../../packages/worker-pool/examples/observedWorkerPool.ts#usage
 
-The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+The worker entry script (`examples/observedWorkerPoolWorker.mjs` above) receives each item via a single `postMessage` and responds with `WorkerLogEnvelopeEntity.Type`, `WorkerProgressEnvelopeEntity.Type`, or `WorkerErrorEnvelopeEntity.Type` from `@studnicky/worker-pool/entities`, plus the generic `WorkerResultEnvelopeInterface<TResult>` from `@studnicky/worker-pool/interfaces`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
 ## Try it in a browser
 
@@ -95,7 +95,7 @@ import { WorkerPoolConfigEntity } from '@studnicky/worker-pool/entities';
 
 ## Interfaces
 
-`@studnicky/worker-pool/interfaces` exports every TypeScript interface in `src/interfaces`, including the envelope contracts used by worker entry scripts.
+`@studnicky/worker-pool/interfaces` exports runtime-only TypeScript contracts, including `WorkerResultEnvelopeInterface<TResult>` for an arbitrary worker result payload.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript

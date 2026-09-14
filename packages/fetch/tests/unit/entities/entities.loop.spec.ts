@@ -33,6 +33,22 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('fetch data entities', () => {
+  void it('intakes client configuration through its schema boundary', () => {
+    const input = {
+      'dispatcher': { 'connections': 4 },
+      'options': { 'method': 'GET' },
+      'parameters': { 'page': 1 }
+    };
+
+    const result = ClientConfigDataEntity.intake(input);
+
+    assert.deepStrictEqual(result, input);
+    assert.notStrictEqual(result, input);
+    assert.notStrictEqual(result.dispatcher, input.dispatcher);
+    assert.throws(() => {
+      ClientConfigDataEntity.intake({ 'unexpected': true });
+    }, /must NOT have additional properties/);
+  });
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);

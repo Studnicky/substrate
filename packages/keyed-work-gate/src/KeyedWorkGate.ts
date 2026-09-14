@@ -55,13 +55,6 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
    * @param config - Composition configuration
    * @returns New KeyedWorkGate instance
    */
-  private static isConstructed<TInstance extends object>(
-    value: object,
-    constructor: KeyedWorkGateConstructorInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   static create<
     K extends PropertyKey = string,
@@ -77,7 +70,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
-    if (!KeyedWorkGate.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     return result;

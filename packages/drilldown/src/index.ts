@@ -44,16 +44,6 @@ export {
   PropertyType
 } from './enums.js';
 export type {
-  AlphabeticGroupValueInterface,
-  CidrGroupValueInterface,
-  DateGroupValueInterface,
-  GroupRuleInterface,
-  RangeGroupValueInterface,
-  SemverGroupValueInterface,
-  SequentialGroupValueInterface,
-  StringGroupValueInterface
-} from './interfaces/GroupValueInterface.js';
-export type {
   DataAnalyzerInterface,
   DrillDownInterface,
   MatcherHandlerInterface
@@ -62,7 +52,6 @@ export type {
   AlphabeticMatcherInterface,
   AnalysisResultInterface,
   CidrMatcherInterface,
-  DataRecordInterface,
   DateMatcherInterface,
   DrillDownAnalysisInterface,
   GroupNodeInterface,
@@ -89,6 +78,5 @@ export { DrilldownRulesEntity } from './schema/DrilldownRulesEntity.js';
 export type {
   FacetAccessorMapType,
   FacetFilterStateType,
-  GroupValueUnionType,
   MatcherUnionType
 } from './types/index.js';

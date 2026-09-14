@@ -1,5 +1,5 @@
+import type { BoundedDispatcherStartEventEntity } from '../entities/BoundedDispatcherStartEventEntity.js';
 import type { BoundedDispatcherErrorEventInterface } from './BoundedDispatcherErrorEventInterface.js';
-import type { BoundedDispatcherStartEventInterface } from './BoundedDispatcherStartEventInterface.js';
 import type { BoundedDispatcherSuccessEventInterface } from './BoundedDispatcherSuccessEventInterface.js';
 
 /**
@@ -9,6 +9,6 @@ import type { BoundedDispatcherSuccessEventInterface } from './BoundedDispatcher
 export interface BoundedDispatcherTopicMapInterface {
   readonly 'dispatch':
     | BoundedDispatcherErrorEventInterface
-    | BoundedDispatcherStartEventInterface
+    | BoundedDispatcherStartEventEntity.Type
     | BoundedDispatcherSuccessEventInterface;
 }

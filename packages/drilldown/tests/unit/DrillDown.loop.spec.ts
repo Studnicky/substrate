@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { DataRecordInterface, DrillDownConfigEntity, GroupNodeInterface } from '../../src/index.js';
+import type { DrillDownConfigEntity, GroupNodeInterface } from '../../src/index.js';
 
 import { DrillDown } from '../../src/index.js';
 import scenarioGroups from './DrillDown.scenarios.json' with { type: 'json' };
@@ -18,7 +18,7 @@ type ScenarioCase =
 interface ScenarioGroups {
   readonly cases: readonly ScenarioCase[];
   readonly configs: ReadonlyMap<string, DrillDownConfigEntity.Type>;
-  readonly fixtures: ReadonlyMap<string, readonly DataRecordInterface[]>;
+  readonly fixtures: ReadonlyMap<string, readonly Record<string, unknown>[]>;
 }
 
 function requireRecord(value: unknown): JsonRecord {
@@ -126,7 +126,7 @@ function parseScenario(value: unknown): ScenarioCase {
 
 function parseScenarioGroups(value: unknown): ScenarioGroups {
   const root = requireRecord(value);
-  const fixtures = new Map<string, readonly DataRecordInterface[]>();
+  const fixtures = new Map<string, readonly Record<string, unknown>[]>();
   for (const [name, values] of Object.entries(requireRecord(requireValue(root, 'fixtures')))) {
     fixtures.set(name, requireArray(values).map(requireRecord));
   }
@@ -137,7 +137,7 @@ function parseScenarioGroups(value: unknown): ScenarioGroups {
   return { 'cases': requireArray(requireValue(root, 'cases')).map(parseScenario), 'configs': configs, 'fixtures': fixtures };
 }
 
-function recordsFor(fixtures: ReadonlyMap<string, readonly DataRecordInterface[]>, name: string): readonly DataRecordInterface[] {
+function recordsFor(fixtures: ReadonlyMap<string, readonly Record<string, unknown>[]>, name: string): readonly Record<string, unknown>[] {
   const records = fixtures.get(name);
   assert.ok(records !== undefined, `No fixture named '${name}'`);
   return records;

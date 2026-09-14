@@ -6,11 +6,12 @@ import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenCons
 /**
  * Frozen — cycle-safe recursive deep freeze.
  *
- * Recursively freezes objects and their nested values, using a WeakSet to handle
- * circular references safely.
+ * Recursively freezes objects and their nested values, tracking references in a
+ * WeakMap so circular structures are handled safely and nested Map/Set proxies
+ * are retained by their parents.
  *
- * Subclass `Frozen` and override `protected static freezeValue` or
- * `shouldFreeze` to customise freeze behaviour.
+ * Subclass `Frozen` and override `protected static shouldFreeze` to customise
+ * freeze behaviour.
  */
 
 export class Frozen {
@@ -44,59 +45,102 @@ export class Frozen {
   }
 
   /**
-   * Recurse into and freeze a single value.
-   * Delegates object-freeze decision to `this.shouldFreeze`.
+   * Recurse into a value and replace reachable Map and Set references with
+   * mutation-guarded proxies before freezing their parent container.
    */
-  protected static freezeValue<T>(value: T, seen: WeakSet<object>): T {
+  protected static freezeValue(value: unknown, frozenValues: WeakMap<object, object>): unknown {
     if (!Predicates.isObjectLike(value)) {
       return value;
     }
 
-    if (seen.has(value)) {
-      return value;
+    const existingValue = frozenValues.get(value);
+    if (existingValue !== undefined) {
+      return existingValue;
     }
-
-    seen.add(value);
-
     if (value instanceof Map) {
-      Object.freeze(value);
-      for (const v of value.values()) {
-        this.freezeValue(v, seen);
-      }
-
-      const result = this.guardMutations(value, FROZEN_MAP_MUTATORS);
+      const result = this.freezeMap(value, frozenValues);
+      return result;
+    }
+    if (value instanceof Set) {
+      const result = this.freezeSet(value, frozenValues);
       return result;
     }
 
-    if (value instanceof Set) {
-      Object.freeze(value);
-      for (const v of value.values()) {
-        this.freezeValue(v, seen);
+    frozenValues.set(value, value);
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index += 1) {
+        const item: unknown = value[index];
+        const frozenItem = this.freezeValue(item, frozenValues);
+        if (!Object.is(item, frozenItem)) {
+          Reflect.set(value, index, frozenItem);
+        }
       }
-
-      const result = this.guardMutations(value, FROZEN_SET_MUTATORS);
-      return result;
+    } else {
+      const keys = Object.keys(value);
+      for (let index = 0; index < keys.length; index += 1) {
+        const key = keys[index];
+        if (key === undefined) {
+          continue;
+        }
+        const child: unknown = Reflect.get(value, key);
+        const frozenChild = this.freezeValue(child, frozenValues);
+        if (!Object.is(child, frozenChild)) {
+          Reflect.set(value, key, frozenChild);
+        }
+      }
     }
 
     if (this.shouldFreeze(value)) {
       Object.freeze(value);
     }
 
-    if (Array.isArray(value)) {
-      const items = Array.from<unknown>(value);
-      const length = items.length;
-      for (let index = 0; index < length; index += 1) {
-        this.freezeValue(items[index], seen);
+    return value;
+  }
+
+  protected static freezeMap<T extends Map<unknown, unknown>>(value: T, frozenValues: WeakMap<object, object>): T {
+    const guardedValue = this.guardMutations(value, FROZEN_MAP_MUTATORS);
+    frozenValues.set(value, guardedValue);
+    const entries: [unknown, unknown][] = Array.from(value.entries());
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      if (entry === undefined) {
+        continue;
       }
-    } else {
-      const children = Object.values(value);
-      const length = children.length;
-      for (let index = 0; index < length; index += 1) {
-        this.freezeValue(children[index], seen);
+      const frozenKey = this.freezeValue(entry[0], frozenValues);
+      const frozenItem = this.freezeValue(entry[1], frozenValues);
+      if (!Object.is(entry[0], frozenKey) || !Object.is(entry[1], frozenItem)) {
+        value.delete(entry[0]);
+        value.set(frozenKey, frozenItem);
       }
     }
 
-    return value;
+    Object.freeze(value);
+    return guardedValue;
+  }
+
+  protected static freezeSet<T extends Set<unknown>>(value: T, frozenValues: WeakMap<object, object>): T {
+    const guardedValue = this.guardMutations(value, FROZEN_SET_MUTATORS);
+    frozenValues.set(value, guardedValue);
+    const entries: unknown[] = Array.from(value.values());
+    const frozenEntries: unknown[] = [];
+    let requiresReplacement = false;
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      const frozenEntry = this.freezeValue(entry, frozenValues);
+      frozenEntries.push(frozenEntry);
+      if (!Object.is(entry, frozenEntry)) {
+        requiresReplacement = true;
+      }
+    }
+    if (requiresReplacement) {
+      value.clear();
+      for (let index = 0; index < frozenEntries.length; index += 1) {
+        value.add(frozenEntries[index]);
+      }
+    }
+
+    Object.freeze(value);
+    return guardedValue;
   }
 
   /**
@@ -117,11 +161,21 @@ export class Frozen {
   /**
    * Recursively freeze `value` and every object reachable from it.
    *
-   * Safe against circular references (via WeakSet tracking).
-   * Returns the same reference, frozen in place.
+   * Safe against circular references via WeakMap tracking. Objects and arrays retain
+   * their identity; Map and Set references are mutation-guarded proxies.
    */
   public static deepFreeze<T>(value: T): T {
-    const result = this.freezeValue(value, new WeakSet());
-    return result;
+    const frozenValues = new WeakMap<object, object>();
+    if (value instanceof Map) {
+      const result = this.freezeMap(value, frozenValues);
+      return result;
+    }
+    if (value instanceof Set) {
+      const result = this.freezeSet(value, frozenValues);
+      return result;
+    }
+
+    this.freezeValue(value, frozenValues);
+    return value;
   }
 }

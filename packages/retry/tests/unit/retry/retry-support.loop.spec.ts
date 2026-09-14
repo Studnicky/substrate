@@ -9,7 +9,7 @@ import {
   BackoffStrategy,
   Retry
 } from '../../../src/index.js';
-import { BackoffConfigEntity, RetryContextDataEntity } from '../../../src/entities/index.js';
+import { BackoffConfigEntity, RetryCallStateEntity, RetryCallTransitionEventEntity, RetryConfigEntity, RetryContextDataEntity } from '../../../src/entities/index.js';
 import type {
   RetryConfigInterface,
   RetryContextInterface
@@ -253,10 +253,33 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+void it('intakes only the serializable retry configuration', () => {
+  const parsed = RetryConfigEntity.intake({
+    'hookTimeoutMs': 50,
+    'maximumElapsedMs': 500,
+    'maximumRetries': 3
+  });
+
+  assert.deepEqual(parsed, {
+    'hookTimeoutMs': 50,
+    'maximumElapsedMs': 500,
+    'maximumRetries': 3
+  });
+  assert.throws(() => RetryConfigEntity.intake({ 'unknown': true }));
+});
+
 void describe('Retry support', () => {
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
   }
+});
+
+
+void it('validates complete retry call state and transition objects', () => {
+  assert.equal(RetryCallStateEntity.validate({ 'variant': 'attempting' }), true);
+  assert.equal(RetryCallStateEntity.validate('attempting'), false);
+  assert.equal(RetryCallTransitionEventEntity.validate({ 'to': 'succeeded', 'type': 'transitionTo' }), true);
+  assert.equal(RetryCallTransitionEventEntity.validate({ 'type': 'transitionTo' }), false);
 });

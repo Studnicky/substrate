@@ -35,7 +35,7 @@ The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice 
 
 ## Public API
 
-Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry/node`. Configuration is parsed at the boundary through `RetryConfigEntity.intake`, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
+Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry/node`. `Retry.create` validates the JSON configuration fields through `RetryConfigEntity` and checks runtime collaborators such as classifiers, backoff strategies, and clocks at construction, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
 
 ## Custom error classification
 

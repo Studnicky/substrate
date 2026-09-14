@@ -1,15 +1,16 @@
 /** Immer-style copy-on-write drafting for arbitrary in-memory values. */
 
+import { Predicates } from '@studnicky/types/node';
+
 import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
 
-import { DataType } from './DataType.js';
 import { Patch } from './Patch.js';
 
 export class Draft {
   /** Return whether a value should be wrapped in a nested draft proxy. */
   protected static isDraftable<T>(value: T): value is object & T {
-    const result = Array.isArray(value) || DataType.isPlainObject(value);
+    const result = Array.isArray(value) || Predicates.isPlainObject(value);
     return result;
   }
 

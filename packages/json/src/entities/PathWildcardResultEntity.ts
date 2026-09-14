@@ -1,6 +1,7 @@
+import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '../schema/SchemaValidator.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /** Schema-derived wildcard metadata returned during path traversal. */
 export namespace PathWildcardResultEntity {
@@ -16,7 +17,7 @@ export namespace PathWildcardResultEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
-  export const intake = SchemaValidator.compileIntake<Type>(Schema);
-  export const create = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

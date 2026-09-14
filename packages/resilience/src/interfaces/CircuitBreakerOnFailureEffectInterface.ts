@@ -1,7 +1,6 @@
-import type { CircuitBreakerOnFailureEffectDiscriminantEntity } from '../entities/CircuitBreakerOnFailureEffectDiscriminantEntity.js';
+import type { CircuitBreakerOnFailureEffectEntity } from '../entities/CircuitBreakerOnFailureEffectEntity.js';
 
 /** CircuitBreakerMachine effect: reduce() decided CircuitBreaker.onFailure(error) must fire. */
-export interface CircuitBreakerOnFailureEffectInterface extends CircuitBreakerOnFailureEffectDiscriminantEntity.Type {
+export interface CircuitBreakerOnFailureEffectInterface extends CircuitBreakerOnFailureEffectEntity.Type {
   readonly 'error': Error;
-  readonly 'variant': CircuitBreakerOnFailureEffectDiscriminantEntity.Type['variant'];
 }

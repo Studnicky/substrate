@@ -48,21 +48,13 @@ interface VisibleRangeConstructorInterface<TInstance> {
  *   range differs from the previously computed range.
  */
 export class VisibleRange {
-  private static isConstructed<TInstance extends VisibleRange>(
-    value: object,
-    constructor: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface
-  ): value is TInstance {
-    const isInstance = value instanceof constructor;
-    return isInstance;
-  }
-
   static create<TInstance extends VisibleRange = VisibleRange>(
     this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
     config: VisibleRangeConfigInterface
   ): TInstance {
     const resolved = VisibleRange.#resolve(config);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!Predicates.isObjectLike(result) || !VisibleRange.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;

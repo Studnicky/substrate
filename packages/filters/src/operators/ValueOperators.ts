@@ -17,7 +17,7 @@ export class ValueOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is undefined
    */
-  static handleAbsent(value: FilterValueEntity.Type) {
+  static handleAbsent(value: unknown) {
     const result = value === undefined;
 
     return result;
@@ -28,7 +28,7 @@ export class ValueOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is not undefined
    */
-  static handleDefined(value: FilterValueEntity.Type) {
+  static handleDefined(value: unknown) {
     const result = value !== undefined;
 
     return result;
@@ -41,7 +41,7 @@ export class ValueOperators {
    * @param {Object} condition - Compiled condition
    * @returns {boolean} True if values are equal
    */
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleEquals(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonCondition = options?.condition ?? {};
     const result = AreValuesStrictEqual.areValuesStrictEqual(value, filterValue, comparisonCondition);
 
@@ -53,7 +53,7 @@ export class ValueOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is not undefined
    */
-  static handleExists(value: FilterValueEntity.Type) {
+  static handleExists(value: unknown) {
     const result = value !== undefined;
 
     return result;
@@ -66,7 +66,7 @@ export class ValueOperators {
    * @param {Object} condition - Compiled condition
    * @returns {boolean} True if values are deeply identical
    */
-  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleIdentical(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonCondition = options?.condition ?? {};
     const result = AreDeeplyEqual.areDeeplyEqual(value, filterValue, comparisonCondition);
 
@@ -79,7 +79,7 @@ export class ValueOperators {
    * @param {Array} filterValue - Array to search in
    * @returns {boolean} True if value is in array
    */
-  static handleIn(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleIn(value: unknown, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(filterValue)) {
       return false;
     }
@@ -96,7 +96,7 @@ export class ValueOperators {
    * @param {Object} condition - Compiled condition
    * @returns {boolean} True if values are not equal
    */
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleNotEquals(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const result = !AreValuesStrictEqual.areValuesStrictEqual(value, filterValue, options?.condition);
 
     return result;
@@ -109,7 +109,7 @@ export class ValueOperators {
    * @param {Object} condition - Compiled condition
    * @returns {boolean} True if values are not deeply identical
    */
-  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleNotIdentical(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const result = !AreDeeplyEqual.areDeeplyEqual(value, filterValue, options?.condition);
 
     return result;
@@ -121,7 +121,7 @@ export class ValueOperators {
    * @param {Array} filterValue - Array to search in
    * @returns {boolean} True if value is not in array
    */
-  static handleNotIn(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotIn(value: unknown, filterValue: FilterValueEntity.Type) {
     if (!Array.isArray(filterValue)) {
       return false;
     }
@@ -136,7 +136,7 @@ export class ValueOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is not null
    */
-  static handleNotNull(value: FilterValueEntity.Type) {
+  static handleNotNull(value: unknown) {
     const result = value !== null;
 
     return result;
@@ -147,7 +147,7 @@ export class ValueOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is null
    */
-  static handleNull(value: FilterValueEntity.Type) {
+  static handleNull(value: unknown) {
     const result = value === null;
 
     return result;
@@ -159,7 +159,7 @@ export class ValueOperators {
    * @param {*} filterValue - Type name to match
    * @returns {boolean} True if types match
    */
-  static handleType(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleType(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof filterValue !== 'string') {
       return false;
     }
@@ -188,7 +188,7 @@ export class ValueOperators {
    * @param {*} filterValue - typeof result to match
    * @returns {boolean} True if typeof results match
    */
-  static handleTypeof(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleTypeof(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof filterValue !== 'string') {
       return false;
     }

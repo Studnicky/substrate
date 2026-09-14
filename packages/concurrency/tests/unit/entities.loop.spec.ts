@@ -11,7 +11,7 @@ import {
   ChannelStateEntity,
   DispatchCompletedEventEntity,
   DispatchStartedEventEntity,
-  SemaphoreWaiterStateEntity
+  SemaphoreWaiterFlagsEntity
 } from '../../src/entities/index.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
@@ -23,7 +23,7 @@ type ValidationName =
   | 'ChannelStateEntity'
   | 'DispatchCompletedEventEntity'
   | 'DispatchStartedEventEntity'
-  | 'SemaphoreWaiterStateEntity';
+  | 'SemaphoreWaiterFlagsEntity';
 
 type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
 
@@ -43,7 +43,7 @@ const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => b
   'ChannelStateEntity': (value) => ChannelStateEntity.validate(value),
   'DispatchCompletedEventEntity': (value) => DispatchCompletedEventEntity.validate(value),
   'DispatchStartedEventEntity': (value) => DispatchStartedEventEntity.validate(value),
-  'SemaphoreWaiterStateEntity': (value) => SemaphoreWaiterStateEntity.validate(value)
+  'SemaphoreWaiterFlagsEntity': (value) => SemaphoreWaiterFlagsEntity.validate(value)
 };
 
 function runCase(scenarioCase: ScenarioCase): void {

@@ -6,10 +6,6 @@ import type { WebWorkerInterface } from './WebWorkerInterface.js';
 
 import { WorkerPoolError } from '../errors/index.js';
 
-interface WebWorkerConstructorInterface {
-  new (script: string | URL, options?: WebWorkerFactoryOptionsInterface['options']): WebWorkerInterface;
-}
-
 class WebWorkerObservation implements WorkerObservationInterface {
   readonly #onError: () => void;
   readonly #worker: WebWorkerInterface;
@@ -55,9 +51,17 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
     return new WebWorkerFactory(options);
   }
 
-  static #isWorkerConstructor(value: unknown): value is WebWorkerConstructorInterface {
-    const result = Predicates.isFunction(value);
-    return result;
+  static #isWorkerConstructor(value: unknown): value is typeof Worker {
+    if (!Predicates.isFunction(value)) {
+      return false;
+    }
+
+    try {
+      Reflect.construct(Function, [], value);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   public create(): Promise<WebWorkerInterface> {

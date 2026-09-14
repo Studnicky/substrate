@@ -52,7 +52,7 @@ export class EntityIntake {
 
     // An entity may express `intake` as a class method rather than a function or a const —
     // `@studnicky/errors` hand-writes its boundary that way, because it cannot depend on
-    // `@studnicky/json`'s compiled parser without creating a dependency cycle. A method named
+    // `@studnicky/entity`'s compiled parser without creating a dependency cycle. A method named
     // `intake` inside an entity namespace is the same sanctioned boundary as
     // `export const intake = ...`, and refusing to recognise it would report the very
     // trust boundary this rule exists to require.

@@ -1,4 +1,4 @@
-import { SchemaIntakeError } from '@studnicky/json/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 
 import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 

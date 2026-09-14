@@ -49,18 +49,6 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     this.#transport = deps.transport;
   }
 
-  private static isConstructed<
-    TInput,
-    TOutput,
-    TInstance extends WebWorkerPool<TInput, TOutput>
-  >(
-    value: object,
-    constructor: WebWorkerPoolConstructorInterface<TInput, TOutput, TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   public static create<
     TInput,
     TOutput,
@@ -83,7 +71,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
       'timeoutMs': options.timeoutMs,
       'transport': options.transport
     }]);
-    if (!Predicates.isObjectLike(result) || !WebWorkerPool.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw new WorkerPoolError({
         'code': 'workerPool.invalidConstruction',
         'message': 'WebWorkerPool.create() must construct a WebWorkerPool instance'

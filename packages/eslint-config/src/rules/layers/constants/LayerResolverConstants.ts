@@ -64,7 +64,7 @@ export const PATH_SEPARATOR_PATTERN = /[\\/]+/u;
 // LRU entry. This is a rule-internal cache (not a public API), so a bespoke
 // bound is simpler and lighter than pulling in @studnicky/cache's LruCache —
 // that package layers TTL/staleness/lifecycle-hook features (and its own
-// dependency on @studnicky/json's schema validation) that this cache, which
+// dependency on @studnicky/entity's schema validation) that this cache, which
 // never expires entries and just needs a capacity ceiling, has no use for.
 export const NORMALIZE_CACHE_CAPACITY = 5000;
 

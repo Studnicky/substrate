@@ -17,13 +17,17 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Overview
 
-`DrillDown.group` builds a hierarchical grouping tree from an array of records, either from explicit `GroupRuleInterface` rules (alphabetic, range, date, semver, CIDR, sequential, or string matchers) or from `DataAnalyzer`-recommended properties. `FacetedDiscovery` narrows a record set by concurrently-selectable facet dimensions. `DrilldownRulesEntity` and `DrillDownConfigEntity` are self-referential, schema-validated rule trees that can nest per-value grouping rules to unbounded depth.
+`DrillDown.group` builds a hierarchical grouping tree from an array of records, either from explicit `DrilldownRulesEntity.GroupRuleEntity.Type` rules (alphabetic, range, date, semver, CIDR, sequential, or string matchers) or from `DataAnalyzer`-recommended properties. `FacetedDiscovery` narrows a record set by concurrently-selectable facet dimensions. `DrilldownRulesEntity` and `DrillDownConfigEntity` are self-referential, schema-validated rule trees that can nest per-value grouping rules to unbounded depth.
 
 ## Usage
 
 `propertyPriority` fixes the drilldown order explicitly — each entry adds one level to the tree:
 
 <<< ../../packages/drilldown/examples/basic-drilldown.ts#usage
+
+## Explicit rule types
+
+Import `DrilldownRulesEntity` from `@studnicky/drilldown/entities` when application code constructs reusable grouping rules. Its nested entity types represent each supported matcher branch.
 
 ## Try it
 
@@ -44,7 +48,7 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 | `FacetedDiscovery` | Narrows a record set by concurrently-selectable, mutually-consistent facet dimensions. | `@studnicky/drilldown/node` |
 | `ruleValidator` | Validates a `DrilldownRulesEntity.Type` tree, reporting structural errors by path. | `@studnicky/drilldown/node` |
 | `DrillDownConfigEntity` | Top-level schema-derived entity binding filter, group, and sort rules for one `DrillDown.group` call. | `@studnicky/drilldown/entities` |
-| `DrilldownRulesEntity` | Self-referential, schema-validated rule tree (filter/group/sort), nestable per group value to unbounded depth. | `@studnicky/drilldown/entities` |
+| `DrilldownRulesEntity` | Self-referential, schema-validated rule tree (filter/group/sort), nestable per group value to unbounded depth. Its named group-value and group-rule entities define the accepted configuration variants. | `@studnicky/drilldown/entities` |
 | `AlphabeticRangeEntity` | Schema-derived alphabetic (lexicographic) range for string grouping. | `@studnicky/drilldown/entities` |
 | `AutoGroupingConfigEntity` | Configuration for automatic rule generation from discovered property values. | `@studnicky/drilldown/entities` |
 | `CidrRangeEntity` | Schema-derived IPv4 CIDR block range for IP address grouping. | `@studnicky/drilldown/entities` |
@@ -81,18 +85,9 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 | `DataAnalyzerInterface` | Contract for discovering groupable properties and recommending a grouping order. | `@studnicky/drilldown/interfaces` |
 | `DrillDownInterface` | Contract for building a grouping tree from records and rules. | `@studnicky/drilldown/interfaces` |
 | `MatcherHandlerInterface` | Contract implemented by each matcher type: create, validate, compare, and match group values. | `@studnicky/drilldown/interfaces` |
-| `AlphabeticGroupValueInterface` | Alphabetic-range group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `CidrGroupValueInterface` | CIDR-range group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `DateGroupValueInterface` | Date-range group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `GroupRuleInterface` | Explicit grouping rule: a property and its ordered list of group value variants. | `@studnicky/drilldown/interfaces` |
-| `RangeGroupValueInterface` | Numeric-range group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `SemverGroupValueInterface` | Semver-range group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `SequentialGroupValueInterface` | Sequential-pattern group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
-| `StringGroupValueInterface` | Exact-match string group value, with an optional nested rules tree for per-value grouping. | `@studnicky/drilldown/interfaces` |
 | `AlphabeticMatcherInterface` | Matcher for alphabetic range membership. | `@studnicky/drilldown/interfaces` |
 | `AnalysisResultInterface` | Complete analysis output for a dataset: discovered properties and a recommended grouping order. | `@studnicky/drilldown/interfaces` |
 | `CidrMatcherInterface` | Matcher for IP address CIDR block membership. | `@studnicky/drilldown/interfaces` |
-| `DataRecordInterface` | Arbitrary record shape `DrillDown`/`DataAnalyzer` operate on. | `@studnicky/drilldown/interfaces` |
 | `DateMatcherInterface` | Matcher for date/time range membership. | `@studnicky/drilldown/interfaces` |
 | `DrillDownAnalysisInterface` | Analysis the `DrillDown` engine uses to choose an automatic grouping order. | `@studnicky/drilldown/interfaces` |
 | `GroupNodeInterface` | Tree node in the hierarchical grouping structure. | `@studnicky/drilldown/interfaces` |
@@ -106,5 +101,4 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 | `StringMatcherInterface` | Matcher for exact string equality. | `@studnicky/drilldown/interfaces` |
 | `FacetAccessorMapType` | Accessor map reading one filterable string value per facet dimension from an arbitrary row shape. | `@studnicky/drilldown/types` |
 | `FacetFilterStateType` | Current faceted-drilldown selection per dimension. | `@studnicky/drilldown/types` |
-| `GroupValueUnionType` | Union of all group-value shapes usable in a `GroupRuleInterface`. | `@studnicky/drilldown/types` |
 | `MatcherUnionType` | Union of all matcher shapes produced by `matcherRegistry`. | `@studnicky/drilldown/types` |

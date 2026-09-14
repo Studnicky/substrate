@@ -61,13 +61,13 @@
   },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@studnicky/virtual-fs": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }
 }

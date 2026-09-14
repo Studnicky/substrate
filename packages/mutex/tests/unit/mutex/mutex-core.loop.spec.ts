@@ -819,6 +819,28 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Mutex core', () => {
+  void it('rejects a non-callable Symbol.asyncDispose member without retaining the lock', async () => {
+    const mutex = Mutex.create();
+    const descriptor = Object.getOwnPropertyDescriptor(Object.prototype, Symbol.asyncDispose);
+
+    assert.equal(Reflect.defineProperty(Object.prototype, Symbol.asyncDispose, {
+      'configurable': true,
+      'value': 'not-callable',
+      'writable': false
+    }), true);
+
+    try {
+      await assert.rejects(mutex.acquireDisposable('non-callable-dispose'), RuntimeError);
+      assert.equal(mutex.isLocked('non-callable-dispose'), false);
+    } finally {
+      if (descriptor === undefined) {
+        assert.equal(Reflect.deleteProperty(Object.prototype, Symbol.asyncDispose), true);
+      } else {
+        assert.equal(Reflect.defineProperty(Object.prototype, Symbol.asyncDispose, descriptor), true);
+      }
+    }
+  });
+
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);

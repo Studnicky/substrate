@@ -3,9 +3,9 @@
  */
 
 
-import { DeepFreeze } from '../utils/deepFreeze.js';
+import { Frozen } from '@studnicky/json/node';
 
-export const ErrorCollectionMode = DeepFreeze.deepFreeze({
+export const ErrorCollectionMode = Frozen.deepFreeze({
   'FIRST': 'FIRST',
   'FULL': 'FULL',
   'NONE': 'NONE'

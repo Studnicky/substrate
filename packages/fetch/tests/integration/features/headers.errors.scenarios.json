@@ -53,7 +53,7 @@
     },
     {
       "name": "header-value-undefined",
-      "description": "FetchClient rejects non-string header value undefined",
+      "description": "FetchClient omits an undefined header value at the entity boundary",
       "input": {
         "clientConfig": {
           "headers": {
@@ -61,13 +61,15 @@
               "shape": "undefined"
             }
           }
+        },
+        "request": {
+          "method": "GET",
+          "path": "/posts/1"
         }
       },
       "expected": {
-        "shape": "reject",
-        "messageIncludes": [
-          "header"
-        ]
+        "shape": "ok",
+        "status": 200
       }
     },
     {

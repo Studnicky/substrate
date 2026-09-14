@@ -1,9 +1,8 @@
 import type { AutoGroupingConfigEntity } from '../../entities/AutoGroupingConfigEntity.js';
 import type { GroupingOptionsEntity } from '../../entities/GroupingOptionsEntity.js';
 import type { ScoredPropertyEntity } from '../../entities/ScoredPropertyEntity.js';
-import type { DataRecordInterface, PropertyInfoInterface } from '../../interfaces/index.js';
+import type { PropertyInfoInterface } from '../../interfaces/index.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
-import type { GroupValueUnionType } from '../../types/index.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import { DataAnalyzer } from '../DataAnalyzer.js';
@@ -11,7 +10,7 @@ import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import { valueDiscoveryEngine } from './valueDiscoveryEngine.js';
 
 class LinearNodeTree {
-  static build(property: string, values: GroupValueUnionType[]): DrilldownRulesEntity.Type {
+  static build(property: string, values: DrilldownRulesEntity.GroupValueEntity.Type[]): DrilldownRulesEntity.Type {
     return {
       'group': [{
         'property': property,
@@ -101,7 +100,7 @@ export const ruleGenerator = {
    * @param config - Auto-grouping configuration specifying target counts
    * @returns Generated drilldown rules with type-aware value buckets
    */
-  'generateRules': function (data: DataRecordInterface[], config: AutoGroupingConfigEntity.Type): DrilldownRulesEntity.Type {
+  'generateRules': function (data: Record<string, unknown>[], config: AutoGroupingConfigEntity.Type): DrilldownRulesEntity.Type {
     const analysis = DataAnalyzer.analyze(data);
     const properties = OptimalProperties.calculate(analysis, config);
     const firstProperty = properties[0];
@@ -125,7 +124,7 @@ export const ruleGenerator = {
    * @returns Ordered list of property names for progressive grouping
    */
   'orderProperties': function (
-    data: DataRecordInterface[],
+    data: Record<string, unknown>[],
     config: AutoGroupingConfigEntity.Type,
     excludeProperties?: string[]
   ): string[] {

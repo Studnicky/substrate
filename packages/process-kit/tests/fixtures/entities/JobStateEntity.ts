@@ -1,7 +1,7 @@
-import type { ValidateFunction } from 'ajv';
+import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 export namespace JobStateEntity {
   export const Schema = {
@@ -15,5 +15,5 @@ export namespace JobStateEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
 }

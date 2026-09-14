@@ -1,7 +1,7 @@
 /** Wraps a DeadLetterQueue and re-yields entries at a configurable interval. */
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { HookInvoker } from '@studnicky/errors/node';
-import { SchemaValidator } from '@studnicky/json/node';
 import { Delay } from '@studnicky/scheduler/node';
 
 import type { DeadLetterQueue } from './DeadLetterQueue.js';
@@ -36,7 +36,7 @@ export class DeadLetterQueueRetryGenerator<T> {
       'intervalMs': options.intervalMs
     };
     if (!DeadLetterQueueRetryGeneratorOptionsEntity.validate(schemaOptions)) {
-      const messages = SchemaValidator.formatErrors(DeadLetterQueueRetryGeneratorOptionsEntity.validate.errors);
+      const messages = EntityCompiler.formatErrors(DeadLetterQueueRetryGeneratorOptionsEntity.validate.errors);
       throw new ResilienceConfigError(messages);
     }
     this.#deadLetterQueue = options.deadLetterQueue;

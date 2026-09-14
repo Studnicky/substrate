@@ -60,14 +60,6 @@ interface BoundaryKitSubclassInterface<TInstance> extends Function {
  * ```
  */
 export class BoundaryKit {
-  private static isConstructed<TInstance extends BoundaryKit>(
-    value: object,
-    constructor: BoundaryKitSubclassInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   /**
    * Creates a new BoundaryKit, defaulting any omitted primitive.
    *
@@ -86,7 +78,7 @@ export class BoundaryKit {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
-    if (!BoundaryKit.isConstructed(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
     return result;

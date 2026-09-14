@@ -8,15 +8,6 @@ import type { RangeEntity } from '../../entities/RangeEntity.js';
 import type { SemverRangeEntity } from '../../entities/SemverRangeEntity.js';
 import type { SequentialRangeEntity } from '../../entities/SequentialRangeEntity.js';
 import type {
-  AlphabeticGroupValueInterface,
-  CidrGroupValueInterface,
-  DateGroupValueInterface,
-  RangeGroupValueInterface,
-  SemverGroupValueInterface,
-  SequentialGroupValueInterface,
-  StringGroupValueInterface
-} from '../../interfaces/GroupValueInterface.js';
-import type {
   AlphabeticMatcherInterface,
   CidrMatcherInterface,
   DateMatcherInterface,
@@ -28,29 +19,29 @@ import type {
   SequentialMatcherInterface,
   StringMatcherInterface
 } from '../../interfaces/index.js';
-import type { GroupValueUnionType } from '../../types/index.js';
+import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import { TypeGuards } from '../../typeguards/index.js';
 
-const stringHandler: MatcherHandlerInterface<StringGroupValueInterface, StringMatcherInterface, string> = {
+const stringHandler: MatcherHandlerInterface<DrilldownRulesEntity.StringGroupValueEntity.Type, StringMatcherInterface, string> = {
   'compare': function (first: string, second: string): number {
     const result = first.localeCompare(second);
     return result;
   },
-  'createMatcher': function (valueDef: StringGroupValueInterface, group: PartitionGroupInterface): StringMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, group: PartitionGroupInterface): StringMatcherInterface {
     return {
       'group': group,
       'match': valueDef.match
     };
   },
 
-  'createNodeValue': function (valueDef: StringGroupValueInterface): string {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type): string {
     const result = valueDef.match;
     return result;
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is StringGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.StringGroupValueEntity.Type {
     const result = 'match' in value;
     return result;
   },
@@ -69,7 +60,7 @@ const stringHandler: MatcherHandlerInterface<StringGroupValueInterface, StringMa
 
   'type': 'string',
 
-  'validate': function (valueDef: StringGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.match === '') {
@@ -80,12 +71,12 @@ const stringHandler: MatcherHandlerInterface<StringGroupValueInterface, StringMa
   }
 };
 
-const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatcherInterface, RangeEntity.Type> = {
+const rangeHandler: MatcherHandlerInterface<DrilldownRulesEntity.RangeGroupValueEntity.Type, RangeMatcherInterface, RangeEntity.Type> = {
   'compare': function (first: RangeEntity.Type, second: RangeEntity.Type): number {
     const result = first.minimum !== second.minimum ? first.minimum - second.minimum : first.maximum - second.maximum;
     return result;
   },
-  'createMatcher': function (valueDef: RangeGroupValueInterface, group: PartitionGroupInterface): RangeMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, group: PartitionGroupInterface): RangeMatcherInterface {
     return {
       'group': group,
       'maximum': valueDef.maximum,
@@ -93,7 +84,7 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
     };
   },
 
-  'createNodeValue': function (valueDef: RangeGroupValueInterface): RangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type): RangeEntity.Type {
     return {
       'maximum': valueDef.maximum,
       'minimum': valueDef.minimum
@@ -105,7 +96,7 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
     return result;
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is RangeGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.RangeGroupValueEntity.Type {
     const result = 'minimum' in value && 'maximum' in value && !('sequential' in value);
     return result;
   },
@@ -127,7 +118,7 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
 
   'type': 'range',
 
-  'validate': function (valueDef: RangeGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (!Predicates.isNumberType(valueDef.minimum)) {
@@ -144,7 +135,7 @@ const rangeHandler: MatcherHandlerInterface<RangeGroupValueInterface, RangeMatch
   }
 };
 
-const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherInterface, CidrRangeEntity.Type> = {
+const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEntity.Type, CidrMatcherInterface, CidrRangeEntity.Type> = {
   'compare': function (first: CidrRangeEntity.Type, second: CidrRangeEntity.Type): number {
     const rangeFirst = Predicates.parseCidrRange(first.cidr);
     const rangeSecond = Predicates.parseCidrRange(second.cidr);
@@ -163,7 +154,7 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
     const result = rangeFirst.start !== rangeSecond.start ? rangeFirst.start - rangeSecond.start : rangeFirst.end - rangeSecond.end;
     return result;
   },
-  'createMatcher': function (valueDef: CidrGroupValueInterface, group: PartitionGroupInterface): CidrMatcherInterface | null {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, group: PartitionGroupInterface): CidrMatcherInterface | null {
     const range = Predicates.parseCidrRange(valueDef.cidr);
 
     if (range === undefined) {
@@ -177,11 +168,11 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
     };
   },
 
-  'createNodeValue': function (valueDef: CidrGroupValueInterface): CidrRangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type): CidrRangeEntity.Type {
     return { 'cidr': valueDef.cidr };
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is CidrGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.CidrGroupValueEntity.Type {
     const result = 'cidr' in value;
     return result;
   },
@@ -203,7 +194,7 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
 
   'type': 'cidr',
 
-  'validate': function (valueDef: CidrGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.cidr === '') {
@@ -217,7 +208,7 @@ const cidrHandler: MatcherHandlerInterface<CidrGroupValueInterface, CidrMatcherI
   }
 };
 
-const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMatcherInterface, SemverRangeEntity.Type> = {
+const semverHandler: MatcherHandlerInterface<DrilldownRulesEntity.SemverGroupValueEntity.Type, SemverMatcherInterface, SemverRangeEntity.Type> = {
   'compare': function (first: SemverRangeEntity.Type, second: SemverRangeEntity.Type): number {
     const firstVersion = first.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
     const secondVersion = second.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
@@ -225,18 +216,18 @@ const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMa
     const result = Predicates.compareSemverVersions(firstVersion, secondVersion);
     return result;
   },
-  'createMatcher': function (valueDef: SemverGroupValueInterface, group: PartitionGroupInterface): SemverMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, group: PartitionGroupInterface): SemverMatcherInterface {
     return {
       'group': group,
       'range': valueDef.semver
     };
   },
 
-  'createNodeValue': function (valueDef: SemverGroupValueInterface): SemverRangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type): SemverRangeEntity.Type {
     return { 'semver': valueDef.semver };
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is SemverGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SemverGroupValueEntity.Type {
     const result = 'semver' in value;
     return result;
   },
@@ -252,7 +243,7 @@ const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMa
 
   'type': 'semver',
 
-  'validate': function (valueDef: SemverGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.semver === '') {
@@ -263,7 +254,7 @@ const semverHandler: MatcherHandlerInterface<SemverGroupValueInterface, SemverMa
   }
 };
 
-const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherInterface, DateRangeEntity.Type> = {
+const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEntity.Type, DateMatcherInterface, DateRangeEntity.Type> = {
   'compare': function (first: DateRangeEntity.Type, second: DateRangeEntity.Type): number {
     const afterDiff = first.after - second.after;
 
@@ -274,7 +265,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
     const result = first.before - second.before;
     return result;
   },
-  'createMatcher': function (valueDef: DateGroupValueInterface, group: PartitionGroupInterface): DateMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, group: PartitionGroupInterface): DateMatcherInterface {
     return {
       'afterTs': valueDef.after,
       'beforeTs': valueDef.before,
@@ -282,7 +273,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
     };
   },
 
-  'createNodeValue': function (valueDef: DateGroupValueInterface): DateRangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type): DateRangeEntity.Type {
     return {
       'after': valueDef.after,
       'before': valueDef.before
@@ -294,7 +285,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
     return result;
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is DateGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.DateGroupValueEntity.Type {
     const result = 'after' in value && 'before' in value;
     return result;
   },
@@ -316,7 +307,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
 
   'type': 'date',
 
-  'validate': function (valueDef: DateGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (!Number.isFinite(valueDef.after)) {
@@ -330,7 +321,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueInterface, DateMatcherI
   }
 };
 
-const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
+const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
   'compare': function (first: SequentialRangeEntity.Type, second: SequentialRangeEntity.Type): number {
     const prefixCmp = first.prefix.localeCompare(second.prefix);
 
@@ -341,7 +332,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
     const result = first.minimum !== second.minimum ? first.minimum - second.minimum : first.maximum - second.maximum;
     return result;
   },
-  'createMatcher': function (valueDef: SequentialGroupValueInterface, group: PartitionGroupInterface): SequentialMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, group: PartitionGroupInterface): SequentialMatcherInterface {
     return {
       'group': group,
       'maximum': valueDef.sequential.maximum,
@@ -351,7 +342,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
     };
   },
 
-  'createNodeValue': function (valueDef: SequentialGroupValueInterface): SequentialRangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type): SequentialRangeEntity.Type {
     return {
       'maximum': valueDef.sequential.maximum,
       'minimum': valueDef.sequential.minimum,
@@ -361,7 +352,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
     };
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is SequentialGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SequentialGroupValueEntity.Type {
     const result = 'sequential' in value;
     return result;
   },
@@ -382,7 +373,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
     return result;
   },
 
-  'mergeIfOverlapping': function (first: SequentialGroupValueInterface, second: SequentialGroupValueInterface): null | SequentialGroupValueInterface {
+  'mergeIfOverlapping': function (first: DrilldownRulesEntity.SequentialGroupValueEntity.Type, second: DrilldownRulesEntity.SequentialGroupValueEntity.Type): null | DrilldownRulesEntity.SequentialGroupValueEntity.Type {
     if (second.sequential.minimum > first.sequential.maximum + 1) {
       return null;
     }
@@ -403,7 +394,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
 
   'type': 'sequential',
 
-  'validate': function (valueDef: SequentialGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.sequential.prefix === '') {
@@ -426,14 +417,14 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueInterface, 
   }
 };
 
-const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueInterface, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
+const alphabeticHandler: MatcherHandlerInterface<DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
   'compare': function (first: AlphabeticRangeEntity.Type, second: AlphabeticRangeEntity.Type): number {
     const startCmp = first.start.localeCompare(second.start);
 
     const result = startCmp !== 0 ? startCmp : first.end.localeCompare(second.end);
     return result;
   },
-  'createMatcher': function (valueDef: AlphabeticGroupValueInterface, group: PartitionGroupInterface): AlphabeticMatcherInterface {
+  'createMatcher': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, group: PartitionGroupInterface): AlphabeticMatcherInterface {
     return {
       'end': valueDef.end,
       'group': group,
@@ -441,14 +432,14 @@ const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueInterface, 
     };
   },
 
-  'createNodeValue': function (valueDef: AlphabeticGroupValueInterface): AlphabeticRangeEntity.Type {
+  'createNodeValue': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): AlphabeticRangeEntity.Type {
     return {
       'end': valueDef.end,
       'start': valueDef.start
     };
   },
 
-  'isGroupValue': function (value: GroupValueUnionType): value is AlphabeticGroupValueInterface {
+  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.AlphabeticGroupValueEntity.Type {
     const result = 'start' in value && 'end' in value;
     return result;
   },
@@ -461,7 +452,7 @@ const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueInterface, 
     return isInRange;
   },
 
-  'mergeIfOverlapping': function (first: AlphabeticGroupValueInterface, second: AlphabeticGroupValueInterface): AlphabeticGroupValueInterface | null {
+  'mergeIfOverlapping': function (first: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, second: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): DrilldownRulesEntity.AlphabeticGroupValueEntity.Type | null {
     if (second.start.localeCompare(first.end) > 0) {
       return null;
     }
@@ -477,7 +468,7 @@ const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueInterface, 
 
   'type': 'alphabetic',
 
-  'validate': function (valueDef: AlphabeticGroupValueInterface, path: string): string[] {
+  'validate': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.start === '') {
@@ -524,11 +515,11 @@ export const matcherRegistry = {
  */
 export class MatcherHandlerLookup {
   /**
-   * Finds the appropriate matcher handler for a GroupValueUnionType based on its structure.
+   * Finds the appropriate matcher handler for a DrilldownRulesEntity.GroupValueEntity.Type based on its structure.
    * @param value - The group value definition to find a handler for
    * @returns The matching handler, or null if no handler supports this value type
    */
-  static findMatcherHandler(value: GroupValueUnionType): MatcherHandlerInterface | null {
+  static findMatcherHandler(value: DrilldownRulesEntity.GroupValueEntity.Type): MatcherHandlerInterface | null {
     for (let index = 0; index < matcherRegistry.ordered.length; index++) {
       const handler = matcherRegistry.ordered[index]!;
 
@@ -563,7 +554,7 @@ export class MatcherHandlerLookup {
    * @param handler - The matcher handler for the value type (must implement mergeIfOverlapping)
    * @returns Array of merged values with overlapping ranges combined
    */
-  static mergeOverlappingValues<T extends GroupValueUnionType>(values: T[], handler: MatcherHandlerInterface<T>): T[] {
+  static mergeOverlappingValues<T extends DrilldownRulesEntity.GroupValueEntity.Type>(values: T[], handler: MatcherHandlerInterface<T>): T[] {
     if (values.length === 0 || handler.mergeIfOverlapping === undefined) {
       return values;
     }

@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/entity'
-description: Parser-backed entity intake APIs and cycle checks for application values.
+description: Schema-backed entity validation and cloning for application values.
 ---
 
 # @studnicky/entity
 
-> Parser-backed entity intake APIs and cycle checks for application values.
+> Schema-backed entity validation and cloning for application values.
 
 ## Install
 
@@ -21,50 +21,47 @@ Use `@studnicky/entity/node` in Node.js and `@studnicky/entity/browser` in brows
 
 ## Usage
 
-Use `EntityCompiler` to expose two entity entry points from one record parser:
+`EntityCompiler` is the one boundary compiler for JSON entities. Define the schema once, then compile its validation, intake, and creation operations. Use `@studnicky/entity/node` in Node.js or `@studnicky/entity/browser` in browser bundles.
 
-- `intake(input)` accepts values crossing into your application.
-- `create(partial)` builds a value your application owns.
+### Schema entities
 
-Both functions clone their input before parsing, so parser-side normalization cannot mutate the caller's value. The compiler sets `rejectUnknownProperties: true` for both entry points. Your parser must reject undeclared keys when that option is set; it may apply its own defaults or normalization to the private clone.
+Define the schema once, derive its Type, and compile the three entity operations at module load:
 
-### Compile an entity intake API
+<!-- inline-ts-ok: conceptual schema entity; import paths are verified by check-docs-exports. -->
+```ts
+import { EntityCompiler } from "@studnicky/entity/node";
+import type {
+  EntityCreateFunctionInterface,
+  EntityIntakeFunctionInterface,
+  EntityValidateFunctionInterface
+} from "@studnicky/entity/interfaces";
+import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 
-Provide a parser that returns the entity or `undefined`, an entity name for diagnostics, and a clone/error configuration that fits your application:
+export namespace UserEntity {
+  export const Schema = {
+    additionalProperties: false,
+    properties: {
+      id: { type: "string" },
+      name: { default: "Anonymous", type: "string" }
+    },
+    required: ["id"],
+    type: "object"
+  } as const satisfies JSONSchema;
 
-<!-- inline-ts-ok: illustrates the generic parser/config shape, not a runnable example against a concrete entity. -->
-```typescript
-import { EntityCompiler } from '@studnicky/entity/node';
+  export type Type = FromSchema<typeof Schema>;
 
-const parser: EntityCompiler.ParserInterface<MyEntity> = (candidate, options) => {
-  // Return an entity when `candidate` is valid and contains only declared keys.
-  // Return undefined when it is not.
-};
-
-const { create, intake } = EntityCompiler.compile(parser, 'MyEntity', {
-  clone: (value, entityName) => myCloneStrategy(value, entityName),
-  onInvalidCandidate: (entityName, reason) => { throw new MyDomainError(entityName, reason); }
-});
-```
-
-Call `intake` at an input boundary and `create` when producing an entity in your own code. Your `clone` function controls how values are copied, and `onInvalidCandidate` defines the error your application receives for a non-object or parser rejection.
-
-### Reject cyclic values
-
-Use `BoundaryCycleGuard.hasCycle(value)` before cloning, serializing, or otherwise processing a value that must be acyclic. It traverses arrays, `Map` entries, `Set` members, and object properties.
-
-<!-- inline-ts-ok: conceptual cycle-detection example; no package example fixture exists. -->
-```typescript
-import { BoundaryCycleGuard } from '@studnicky/entity/node';
-
-const payload: { parent?: unknown } = {};
-payload.parent = payload;
-
-if (BoundaryCycleGuard.hasCycle(payload)) {
-  throw new TypeError('payload must not contain a cycle');
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
+
+const user = UserEntity.intake({ id: "user-1" });
+const fixture = UserEntity.create({ id: "fixture-1" });
 ```
 
+`validate` narrows an unknown value in place. `intake` is the boundary for untrusted input: it rejects cycles and non-JSON values, clones before applying schema defaults, and throws `SchemaIntakeError` on invalid input. `create` produces validated object entities from local partial data. Import `SchemaIntakeError` from the same entity runtime entry point when a boundary needs to handle that error.
+
+`EntityClone.clone(value, onCycle)` produces a deep independent copy and lets the caller define the cycle error.
 
 ## Try it
 
@@ -78,9 +75,13 @@ Run strict entity intake and creation, then check an acyclic and cyclic value gr
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/entity/node` |
-| `BoundaryCycleGuard` | Detects cycles in an arbitrary value graph. | `@studnicky/entity/browser` |
-| `EntityCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/entity/node` |
-| `EntityCompiler` | Compiles a parser into a `{create, intake}` pair. | `@studnicky/entity/browser` |
+| `EntityCompiler` | Compiles JSON Schema into validation, intake, and creation functions. | `@studnicky/entity/node` |
+| `EntityCompiler` | Compiles JSON Schema into validation, intake, and creation functions. | `@studnicky/entity/browser` |
+| `EntityClone` | Deeply clones a boundary value and rejects cycles through its callback. | `@studnicky/entity/node` |
+| `EntityClone` | Deeply clones a boundary value and rejects cycles through its callback. | `@studnicky/entity/browser` |
 | `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/entity/interfaces` |
 | `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/entity/interfaces` |
+| `EntityValidateFunctionInterface` | Contract for a compiled `validate` function. | `@studnicky/entity/interfaces` |
+| `EntityValidationErrorInterface` | Contract for validation diagnostics. | `@studnicky/entity/interfaces` |
+| `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/node` |
+| `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/browser` |

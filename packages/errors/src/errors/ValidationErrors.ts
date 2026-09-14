@@ -23,16 +23,6 @@ interface ValidationErrorsSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class ValidationErrorsInstance {
-  static belongsTo<TInstance>(
-    constructor: ValidationErrorsSubclassInterface<TInstance>,
-    value: unknown
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * Ordered, iterable collection of `ValidationViolationEntity.Type` items.
  *
@@ -47,7 +37,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     items: readonly ValidationViolationEntity.Type[]
   ): TInstance {
     const result: unknown = Reflect.construct(this, [items]);
-    if (!ValidationErrorsInstance.belongsTo(this, result)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('ValidationErrors.create() did not construct the requested subclass.');
     }
     return result;

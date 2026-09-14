@@ -36,7 +36,7 @@ const results = await pool.run([1, 2, 3, 4, 5]);
 
 For each dispatched task, the pool awaits `signal.compose({ deadlineMs: timeoutMs, signal: abortSignal })` before posting the item to its worker. `signal` is the portable `Signal` primitive; `abortSignal` is an optional caller cancellation source. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
 
-The worker entry script receives each item via a single `postMessage` and responds with one of four interfaces from `@studnicky/worker-pool/interfaces`: `WorkerLogEnvelopeInterface`, `WorkerProgressEnvelopeInterface`, `WorkerResultEnvelopeInterface<TResult>`, or `WorkerErrorEnvelopeInterface`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+The worker entry script receives each item via a single `postMessage` and responds with one of three entities from `@studnicky/worker-pool/entities` — `WorkerLogEnvelopeEntity.Type`, `WorkerProgressEnvelopeEntity.Type`, and `WorkerErrorEnvelopeEntity.Type` — plus the generic `WorkerResultEnvelopeInterface<TResult>` from `@studnicky/worker-pool/interfaces`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
 
 Schema-backed configuration, envelope, lifecycle, and task values are available from `@studnicky/worker-pool/entities`. Type-only worker contracts are available from `@studnicky/worker-pool/interfaces`.
 
@@ -76,20 +76,20 @@ A hook override that throws or rejects does not abort a worker's task settlement
 
 ```typescript
 import type {
-  WorkerErrorEnvelopeInterface,
-  WorkerLogEnvelopeInterface,
-  WorkerProgressEnvelopeInterface,
-  WorkerResultEnvelopeInterface
-} from '@studnicky/worker-pool/interfaces';
+  WorkerErrorEnvelopeEntity,
+  WorkerLogEnvelopeEntity,
+  WorkerProgressEnvelopeEntity
+} from '@studnicky/worker-pool/entities';
+import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/interfaces';
 
 import { WorkerPool } from '@studnicky/worker-pool/node';
 
 class TelemetryWorkerPool extends WorkerPool<{ n: number }, number> {
   protected override onMessage(
     envelope:
-      | WorkerErrorEnvelopeInterface
-      | WorkerLogEnvelopeInterface
-      | WorkerProgressEnvelopeInterface
+      | WorkerErrorEnvelopeEntity.Type
+      | WorkerLogEnvelopeEntity.Type
+      | WorkerProgressEnvelopeEntity.Type
       | WorkerResultEnvelopeInterface<number>,
     index: number
   ): void {

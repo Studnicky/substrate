@@ -90,14 +90,6 @@ export class IdempotencyGuard<TResult = unknown> {
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
    */
-  private static isConstructed<TInstance>(
-    value: object,
-    constructor: Function & { readonly 'prototype': TInstance }
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
 
   static create<
     TResult = unknown,
@@ -112,7 +104,7 @@ export class IdempotencyGuard<TResult = unknown> {
       throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 
-    if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 

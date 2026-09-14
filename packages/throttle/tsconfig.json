@@ -20,13 +20,13 @@
       "path": "../config"
     },
     {
+      "path": "../entity"
+    },
+    {
       "path": "../errors"
     },
     {
       "path": "../fsm"
-    },
-    {
-      "path": "../json"
     },
     {
       "path": "../sample-buffer"

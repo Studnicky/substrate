@@ -49,14 +49,6 @@ interface HealthCheckEntryInterface {
  * ```
  */
 export class HealthRegistry {
-  private static isConstructed<TInstance extends HealthRegistry>(
-    value: object,
-    constructor: Function & { readonly 'prototype': TInstance }
-  ): value is TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
 
   static readonly #OwnedHookInvoker = class HealthRegistryHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
@@ -68,7 +60,7 @@ export class HealthRegistry {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
     }
-    if (!HealthRegistry.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
     }
 

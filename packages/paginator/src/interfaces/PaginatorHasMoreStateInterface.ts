@@ -1,8 +1,7 @@
-import type { PaginatorHasMoreStateDiscriminantEntity } from '../entities/PaginatorHasMoreStateDiscriminantEntity.js';
+import type { PaginatorHasMoreStateEntity } from '../entities/PaginatorHasMoreStateEntity.js';
 
-/** Readonly state that retains received pages and the cursor for another page. */
-export interface PaginatorHasMoreStateInterface<TPage, TCursor> extends PaginatorHasMoreStateDiscriminantEntity.Type {
+/** Typed paginator-state composition for application-specific page and cursor values. */
+export interface PaginatorHasMoreStateInterface<TPage, TCursor> extends PaginatorHasMoreStateEntity.Type {
   readonly 'cursor': TCursor;
   readonly 'pages': TPage[];
-  readonly 'variant': PaginatorHasMoreStateDiscriminantEntity.Type['variant'];
 }

@@ -1,7 +1,8 @@
 /** FNV-1a structural hashing for arbitrary in-memory values. */
 
+import { Predicates } from '@studnicky/types/node';
+
 import { FNV_OFFSET_BASIS, FNV_PRIME, UINT32_MASK } from '../constants/HashConstants.js';
-import { DataType } from './DataType.js';
 
 export class Hash {
   protected static fnv1a32(input: string): number {
@@ -63,7 +64,7 @@ export class Hash {
       const result = `[${parts.join(',')}]`;
       return result;
     }
-    if (DataType.isRecord(value)) {
+    if (Predicates.isRecord(value)) {
       const keys = Object.keys(value).toSorted();
       const parts = keys.map((key) => {
         const item: unknown = Reflect.get(value, key);

@@ -3,7 +3,7 @@ export { AcquireWaitEventEntity } from './AcquireWaitEventEntity.js';
 export { LockMetricsEntity } from './LockMetricsEntity.js';
 export { MutexConfigEntity } from './MutexConfigEntity.js';
 export { MutexKeyStateEntity } from './MutexKeyStateEntity.js';
-export { MutexKeyTransitionEventDiscriminantEntity } from './MutexKeyTransitionEventDiscriminantEntity.js';
+export { MutexKeyTransitionEventEntity } from './MutexKeyTransitionEventEntity.js';
 export { MutexQueueEntryEntity } from './MutexQueueEntryEntity.js';
 export { MutexStatsEntity } from './MutexStatsEntity.js';
 export { QueueDrainEventEntity } from './QueueDrainEventEntity.js';

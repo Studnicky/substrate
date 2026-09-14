@@ -2,8 +2,8 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
-import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
-import type { SemaphoreGrantTransitionEventInterface } from './interfaces/SemaphoreGrantTransitionEventInterface.js';
+import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
+import type { SemaphoreGrantTransitionEventEntity } from './entities/SemaphoreGrantTransitionEventEntity.js';
 
 /**
  * Stateless reducer for the single reentrancy guard `Semaphore#grantReadyWaiters`
@@ -22,19 +22,19 @@ import type { SemaphoreGrantTransitionEventInterface } from './interfaces/Semaph
  * `start` is never requested while already `granting` and this reducer never
  * has to reject a call in practice.
  */
-export class SemaphoreGrantMachine extends StateMachine<SemaphoreGrantStateInterface, SemaphoreGrantTransitionEventInterface, never> {
+export class SemaphoreGrantMachine extends StateMachine<SemaphoreGrantStateEntity.Type, SemaphoreGrantTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): SemaphoreGrantStateInterface {
+  override getInitialState(): SemaphoreGrantStateEntity.Type {
     return { 'variant': 'idle' };
   }
 
   override reduce(
-    state: SemaphoreGrantStateInterface,
-    event: SemaphoreGrantTransitionEventInterface
-  ): FsmStepInterface<SemaphoreGrantStateInterface, never> {
+    state: SemaphoreGrantStateEntity.Type,
+    event: SemaphoreGrantTransitionEventEntity.Type
+  ): FsmStepInterface<SemaphoreGrantStateEntity.Type, never> {
     if (state.variant === 'idle' && event.type === 'start') {
       return { 'effects': [], 'state': { 'variant': 'granting' } };
     }

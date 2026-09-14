@@ -61,6 +61,8 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/entity": "workspace:*",
+    "@studnicky/json": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",

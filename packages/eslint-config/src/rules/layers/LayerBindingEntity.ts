@@ -1,10 +1,9 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 // ONE RULE, FIVE UNITS, ONE ORDERED LIST.
 //
@@ -95,7 +94,7 @@ export namespace LayerBindingEntity {
   // compiles `Schema` itself (`additionalProperties: false` and all) rather than a lenient
   // variant. An unrecognized property on a binding entry is a config mistake, not a
   // legitimate superset to tolerate.
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

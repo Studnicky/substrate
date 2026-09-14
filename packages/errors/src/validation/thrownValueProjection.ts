@@ -1,7 +1,6 @@
 import { Predicates } from '@studnicky/types/node';
 
-import type { ProjectedNodeInterface } from '../interfaces/ProjectedNodeInterface.js';
-import type { ProjectedValueInterface } from '../interfaces/ProjectedValueInterface.js';
+import type { ThrownValueEntity } from '../entities/ThrownValueEntity.js';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
 import {
@@ -35,16 +34,16 @@ import {
  */
 
 class Classifier {
-  public static ofNullish(): ProjectedNodeInterface {
+  public static ofNullish(): ThrownValueEntity.Type {
     return { 'detail': '', 'title': PROBLEM_TITLE_THROWN_NULLISH, 'type': PROBLEM_TYPE_THROWN_NULLISH };
   }
 
-  public static ofString(value: string): ProjectedNodeInterface {
+  public static ofString(value: string): ThrownValueEntity.Type {
     return { 'detail': value, 'title': PROBLEM_TITLE_THROWN_STRING, 'type': PROBLEM_TYPE_THROWN_STRING };
   }
 
-  public static ofError(error: Error): ProjectedNodeInterface {
-    const node: ProjectedNodeInterface = {
+  public static ofError(error: Error): ThrownValueEntity.Type {
+    const node: ThrownValueEntity.Type = {
       'detail': error.message,
       'name': error.name,
       'title': PROBLEM_TITLE_ERROR,
@@ -54,9 +53,9 @@ class Classifier {
     return result;
   }
 
-  public static ofAggregate(error: AggregateError): ProjectedNodeInterface {
+  public static ofAggregate(error: AggregateError): ThrownValueEntity.Type {
     const asError = Classifier.ofError(error);
-    const result: ProjectedNodeInterface = {
+    const result: ThrownValueEntity.Type = {
       ...asError,
       'title': PROBLEM_TITLE_AGGREGATE_ERROR,
       'type': PROBLEM_TYPE_AGGREGATE_ERROR
@@ -65,7 +64,7 @@ class Classifier {
   }
 
   /** Reads `message`/`name` defensively — a thrown object may carry a throwing getter for either. */
-  public static ofObject(value: object): ProjectedNodeInterface {
+  public static ofObject(value: object): ThrownValueEntity.Type {
     let detail = '';
     try {
       const candidate: unknown = Reflect.get(value, 'message');
@@ -80,17 +79,17 @@ class Classifier {
     } catch {
       name = undefined;
     }
-    const node: ProjectedNodeInterface = {
+    const node: ThrownValueEntity.Type = {
       'detail': detail,
       'title': PROBLEM_TITLE_THROWN_OBJECT,
       'type': PROBLEM_TYPE_THROWN_OBJECT
     };
-    const result: ProjectedNodeInterface = name === undefined ? node : { ...node, 'name': name };
+    const result: ThrownValueEntity.Type = name === undefined ? node : { ...node, 'name': name };
     return result;
   }
 
   /** `String()` never throws for these types, unlike template-literal coercion. */
-  public static ofPrimitive(value: bigint | boolean | number | symbol): ProjectedNodeInterface {
+  public static ofPrimitive(value: bigint | boolean | number | symbol): ThrownValueEntity.Type {
     return { 'detail': String(value), 'title': PROBLEM_TITLE_THROWN_PRIMITIVE, 'type': PROBLEM_TYPE_THROWN_PRIMITIVE };
   }
 }
@@ -103,8 +102,8 @@ class Classifier {
  * immediately rather than looping until the depth limit.
  */
 export class ThrownValueProjection {
-  public static project(input: unknown): ProjectedValueInterface {
-    const nodes: ProjectedNodeInterface[] = [];
+  public static project(input: unknown): ThrownValueEntity.Type {
+    const nodes: ThrownValueEntity.Type[] = [];
     const visited = new WeakSet<object>();
     let current: unknown = input;
     let hopCount = 0;
@@ -142,11 +141,11 @@ export class ThrownValueProjection {
     // Only the head keeps its stack: a cause node is a summary, and CauseNodeEntity
     // declares no `stack` member, so carrying one would emit an off-schema node.
     const causes = nodes.slice(1).map((node) => {
-      const { 'stack': _stack, ...rest } = node;
+      const { 'causes': _causes, 'stack': _stack, ...rest } = node;
 
       return rest;
     });
-    const result: ProjectedValueInterface = causes.length === 0 ? head : { ...head, 'causes': causes };
+    const result: ThrownValueEntity.Type = causes.length === 0 ? head : { ...head, 'causes': causes };
 
     return result;
   }

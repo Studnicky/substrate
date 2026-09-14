@@ -35,7 +35,7 @@ const stats = throttle.getStats();
 console.log(`Executed: ${stats.totalExecuted}, active: ${stats.activeCount}`);
 ```
 
-Schema-backed configuration, statistics, and lifecycle types are exported from `@studnicky/throttle/entities`.
+Schema-backed configuration, statistics, and complete JSON lifecycle event and effect payloads are exported from `@studnicky/throttle/entities`.
 
 ```typescript
 import { ThrottleStatsEntity } from '@studnicky/throttle/entities';

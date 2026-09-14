@@ -1,16 +1,12 @@
-import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 import {
   PROBLEM_STATUS_MAXIMUM,
   PROBLEM_STATUS_MINIMUM,
   PROBLEM_TYPE_BLANK
 } from '../constants/ProblemConstants.js';
-import { RuntimeError } from '../errors/RuntimeError.js';
 import { CauseNodeEntity } from './CauseNodeEntity.js';
 import { ValidationViolationEntity } from './ValidationViolationEntity.js';
 
@@ -98,82 +94,7 @@ export namespace ProblemDetailsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /** Validates present Problem Details members while allowing extension members. */
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-
-    const strings = ['code', 'correlationId', 'detail', 'instance', 'stack', 'title', 'type'];
-    for (let index = 0; index < strings.length; index += 1) {
-      const key = strings[index] ?? '';
-      const value: unknown = Reflect.get(candidate, key);
-      if (value !== undefined && !Predicates.isString(value)) { return false; }
-    }
-
-    const status: unknown = candidate.status;
-    if (status !== undefined) {
-      if (!Predicates.isNumber(status)) { return false; }
-      if (status < PROBLEM_STATUS_MINIMUM || status > PROBLEM_STATUS_MAXIMUM) { return false; }
-    }
-
-    const timestamp: unknown = candidate.timestamp;
-    if (timestamp !== undefined && !Predicates.isNumber(timestamp)) { return false; }
-
-    const retryable: unknown = candidate.retryable;
-    if (retryable !== undefined && !Predicates.isBoolean(retryable)) { return false; }
-
-    const context: unknown = candidate.context;
-    if (context !== undefined && !Predicates.isObject(context)) { return false; }
-
-    const causes: unknown = candidate.causes;
-    if (causes !== undefined) {
-      if (!Predicates.isArray(causes)) { return false; }
-      const causesValid = causes.every((item) => {
-        const itemResult = CauseNodeEntity.validate(item);
-        return itemResult;
-      });
-      if (!causesValid) { return false; }
-    }
-
-    const errors: unknown = candidate.errors;
-    if (errors === undefined) { return true; }
-    if (!Predicates.isArray(errors)) { return false; }
-
-    const result = errors.every((item) => {
-      const itemResult = ValidationViolationEntity.validate(item);
-      return itemResult;
-    });
-    return result;
-  };
-
-  class Boundary {
-    /**
-     * Copies the candidate through rather than rebuilding it from known members: RFC 9457 3.2
-     * requires extension members to survive, so rebuilding from the declared set would silently
-     * drop exactly the data a problem type definition adds.
-     */
-    public static intake(input: unknown): Type {
-      if (!Boundary.isValid(input)) {
-        throw RuntimeError.create('ProblemDetailsEntity.intake: candidate does not match the declared schema');
-      }
-      const result = { ...input };
-
-      return result;
-    }
-
-    /** Locally-produced data: every member optional, so an empty problem is a valid problem. */
-    public static create(partial: Partial<Type> = {}): Type {
-      const result = { ...partial };
-
-      return result;
-    }
-
-    private static isValid(candidate: unknown): candidate is Type {
-      const result = validate(candidate);
-
-      return result;
-    }
-  }
-
-  export const intake: EntityIntakeFunctionInterface<Type> = Boundary.intake;
-  export const create: EntityCreateFunctionInterface<Type> = Boundary.create;
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

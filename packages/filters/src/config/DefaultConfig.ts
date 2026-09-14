@@ -3,16 +3,17 @@
  * @description Default configuration values for FilterEngine
  */
 
+import { Frozen } from '@studnicky/json/node';
+
 import { ErrorCollectionMode } from '../enums/ErrorCollectionMode.js';
 import { FilterMode } from '../enums/FilterMode.js';
-import { DeepFreeze } from '../utils/deepFreeze.js';
 
 /**
  * Default configuration for FilterEngine instances
  * @readonly
  * @type {Object}
  */
-const DefaultConfig = DeepFreeze.deepFreeze({
+const DefaultConfig = Frozen.deepFreeze({
   // Performance options
   'cacheCompiled': true,
   'conditions': null,

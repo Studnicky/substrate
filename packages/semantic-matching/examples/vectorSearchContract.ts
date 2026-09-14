@@ -1,16 +1,16 @@
 /** vectorSearchContract — implement and use the vector contracts locally. Run: npx tsx examples/vectorSearchContract.ts */
 
+import type { VectorizationInputEntity, VectorMatchEntity, VectorSearchOptionsEntity } from '@studnicky/semantic-matching/entities';
 import type {
   VectorEntryInterface,
   VectorIndexInterface,
-  VectorizationInputInterface,
   VectorizerInterface
 } from '@studnicky/semantic-matching/node';
 
 import assert from 'node:assert/strict';
 
 class StaticVectorizer implements VectorizerInterface {
-  public embed(input: VectorizationInputInterface): Promise<Float32Array> {
+  public embed(input: VectorizationInputEntity.Type): Promise<Float32Array> {
     const vector = input.content.includes('refund') ? new Float32Array([1, 0]) : new Float32Array([0, 1]);
     const result = Promise.resolve(vector);
     return result;
@@ -34,7 +34,7 @@ class MemoryVectorIndex implements VectorIndexInterface {
     return result;
   }
 
-  public search(vector: Float32Array, options: { readonly 'limit': number; readonly 'namespace': string }): Promise<readonly { readonly 'id': string; readonly 'score': number }[]> {
+  public search(vector: Float32Array, options: VectorSearchOptionsEntity.Type): Promise<readonly VectorMatchEntity.Type[]> {
     const matches: { 'id': string; 'score': number }[] = [];
     for (const entry of this.#entries.values()) {
       if (entry.namespace !== options.namespace) {

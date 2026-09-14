@@ -24,7 +24,7 @@ pnpm add @studnicky/bounded-dispatcher
 
 Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`; configuration, topic-map, and dispatch-event contracts use `@studnicky/bounded-dispatcher/interfaces`, while dispatch-event entities use `@studnicky/bounded-dispatcher/entities`. Import `Semaphore` from `@studnicky/concurrency/node`, `EventBus` from `@studnicky/event-bus/node`, and scheduler contracts from `@studnicky/scheduler/interfaces`.
 
-`BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity` own the schema-derived phase discriminants; the event interfaces compose those fields with their runtime result and error values.
+`BoundedDispatcherStartEventEntity` is the complete JSON start event. `BoundedDispatcherSuccessEventEntity` and `BoundedDispatcherErrorEventEntity` own the JSON phase fields composed by runtime event interfaces, which retain arbitrary callback result and error values.
 
 `BoundedDispatcher` introduces no hook of its own — every observable stage is either already covered by a composed primitive's own hooks, or surfaced as the `'dispatch'` topic on the composed `EventBus`:
 

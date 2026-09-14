@@ -60,7 +60,7 @@ export interface ClientConfigInterface {
   /**
    * Default headers for all requests
    */
-  'headers'?: Record<string, string>;
+  'headers'?: ClientConfigDataEntity.Type['headers'];
 
   /**
    * Timeout in milliseconds for lifecycle hook invocations (onRequestStart,
@@ -89,7 +89,7 @@ export interface ClientConfigInterface {
    * }
    * ```
    */
-  'metadata'?: Record<string, unknown>;
+  'metadata'?: ClientConfigDataEntity.Type['metadata'];
 
   /**
    * Additional fetch options applied to all requests

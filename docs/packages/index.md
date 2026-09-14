@@ -66,7 +66,7 @@ platform-parity status.
 | [@studnicky/cache](/packages/cache) | LRU cache with optional TTL and capacity bounds |
 | [@studnicky/entity-store](/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
-| [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate helpers |
+| [@studnicky/types](/packages/types) | Shared runtime type guards, predicate composition, JSON boundaries, and Date/Map/Set operand validation |
 | [@studnicky/drilldown](/packages/drilldown) | Deterministic multi-level grouping, faceting, and sorting over arbitrary record data |
 | [@studnicky/filters](/packages/filters) | Composable declarative filtering primitives |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |

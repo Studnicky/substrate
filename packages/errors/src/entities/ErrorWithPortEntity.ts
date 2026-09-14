@@ -1,17 +1,13 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
-
-import { EntityIntake } from '../validation/EntityIntake.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /** Error with port information. */
 export namespace ErrorWithPortEntity {
   export const Schema = {
     '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithPort',
     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-    'additionalProperties': false,
+    'additionalProperties': true,
     'properties': {
       'port': { 'type': 'number' }
     },
@@ -22,20 +18,7 @@ export namespace ErrorWithPortEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    const result = Predicates.isNumber(candidate.port);
-    return result;
-  };
-
-  const boundary = EntityIntake.compile<Type>((candidate, options) => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['port'])) { return undefined; }
-    const port = EntityIntake.number(candidate.port);
-    if (port === undefined) { return undefined; }
-    const result = { 'port': port };
-    return result;
-  }, 'ErrorWithPort');
-
-  export const intake = boundary.intake;
-  export const create = boundary.create;
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

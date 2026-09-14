@@ -1,7 +1,8 @@
-
+import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '../schema/SchemaValidator.js';
+import { EntityCompiler } from '@studnicky/entity/node';
+
 import { PatchOperationEntity } from './PatchOperationEntity.js';
 
 /** Ordered RFC-6902 operation sequence accepted by `Patch.create`. */
@@ -17,6 +18,6 @@ export namespace PatchOperationsEntity {
     { 'deserialize': [{ 'output': readonly PatchOperationEntity.Type[]; 'pattern': { 'title': 'PatchOperations' } }] }
   >;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
-  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
 }

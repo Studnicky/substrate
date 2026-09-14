@@ -315,6 +315,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'flag-context-entity-accepts': () => {
+    const dynamicContext: FlagContextEntity.Type = { 'cohort': 'beta', 'nested': { 'enabled': true } };
+    assert.equal(FlagContextEntity.validate(dynamicContext), true);
     for (const value of input.values as Record<string, unknown>[]) {
       assert.equal(FlagContextEntity.validate(value), expected.result);
     }

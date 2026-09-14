@@ -1,8 +1,8 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { Rule, Scope } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 import { Predicates } from '@studnicky/types/node';
 
 import { ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
@@ -33,8 +33,8 @@ namespace PreferCollectionTypesOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
 namespace PreferCollectionTypesInternalEntity {
