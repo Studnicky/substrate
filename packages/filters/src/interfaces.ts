@@ -6,6 +6,54 @@ import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from './FilterValueEntity.js';
 import type { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
+
+/** A native Date accepted as a runtime filter operand. */
+export interface FilterRuntimeDateInterface extends Date {}
+
+/** A runtime array whose members are JSON values or other supported runtime operands. */
+export interface FilterRuntimeArrayInterface extends ReadonlyArray<
+  | FilterRuntimeArrayInterface
+  | FilterRuntimeDateInterface
+  | FilterRuntimeMapInterface
+  | FilterRuntimeRecordInterface
+  | FilterRuntimeSetInterface
+  | FilterValueEntity.Type
+  | undefined
+> {}
+
+/** A native Map whose string-keyed entries are JSON values or supported runtime operands. */
+export interface FilterRuntimeMapInterface extends ReadonlyMap<string,
+  | FilterRuntimeArrayInterface
+  | FilterRuntimeDateInterface
+  | FilterRuntimeMapInterface
+  | FilterRuntimeRecordInterface
+  | FilterRuntimeSetInterface
+  | FilterValueEntity.Type
+  | undefined
+> {}
+
+/** A runtime record whose members are JSON values or supported runtime operands. */
+export interface FilterRuntimeRecordInterface extends Readonly<Record<string,
+  | FilterRuntimeArrayInterface
+  | FilterRuntimeDateInterface
+  | FilterRuntimeMapInterface
+  | FilterRuntimeRecordInterface
+  | FilterRuntimeSetInterface
+  | FilterValueEntity.Type
+  | undefined
+>> {}
+
+/** A native Set whose members are JSON values or supported runtime operands. */
+export interface FilterRuntimeSetInterface extends ReadonlySet<
+  | FilterRuntimeArrayInterface
+  | FilterRuntimeDateInterface
+  | FilterRuntimeMapInterface
+  | FilterRuntimeRecordInterface
+  | FilterRuntimeSetInterface
+  | FilterValueEntity.Type
+  | undefined
+> {}
+
 // Operator function signature - options carries the compiled condition and evaluation data
 export interface OperatorFunctionInterface {
   (
@@ -47,8 +95,8 @@ export interface NumericRangeInterface {
 
 export interface DateRangeInterface {
   readonly 'inclusive'?: boolean;
-  readonly 'maximum': string | Date | number;
-  readonly 'minimum': string | Date | number;
+  readonly 'maximum': string | number;
+  readonly 'minimum': string | number;
 }
 
 export interface TimeRangeInterface {
@@ -58,7 +106,7 @@ export interface TimeRangeInterface {
 }
 
 // Generic range interface
-export interface RangeInterface<T = number | string | Date> {
+export interface RangeInterface<T = number | string> {
   readonly 'inclusive'?: boolean;
   readonly 'maximum': T;
   readonly 'minimum': T;

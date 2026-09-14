@@ -1,37 +1,27 @@
 /**
- * Registry of value coders for runtime types FilterValueEntity.Type excludes from its
- * static union (Date/Set/Map). Mirrors the Registry<T> pattern used for
- * gates/operators/arrayLogic in Plugins.ts.
+ * Registry of runtime operand coders for native values outside FilterValueEntity.Type.
  */
 
 import type { ValueCoderInterface } from './ValueCoderInterface.js';
 
 import { Registry } from './Registry.js';
 
-const CORE = {
+const CORE: Record<string, ValueCoderInterface<
+  Date | ReadonlyMap<unknown, unknown> | ReadonlySet<unknown>
+>> = {
   'date': {
-    'guard': (value: unknown): boolean => {
-      const result = value instanceof Date;
-
-      return result;
-    }
+    'guard': (value: unknown): value is Date => value instanceof Date
   },
   'map': {
-    'guard': (value: unknown): boolean => {
-      const result = value instanceof Map;
-
-      return result;
-    }
+    'guard': (value: unknown): value is ReadonlyMap<unknown, unknown> => value instanceof Map
   },
   'set': {
-    'guard': (value: unknown): boolean => {
-      const result = value instanceof Set;
-
-      return result;
-    }
+    'guard': (value: unknown): value is ReadonlySet<unknown> => value instanceof Set
   }
 };
 
 export class ValueCoders {
-  public readonly coders: Registry<ValueCoderInterface> = new Registry('valueCoder', { 'CORE': CORE });
+  public readonly coders: Registry<ValueCoderInterface<
+    Date | ReadonlyMap<unknown, unknown> | ReadonlySet<unknown>
+  >> = new Registry('valueCoder', { 'CORE': CORE });
 }

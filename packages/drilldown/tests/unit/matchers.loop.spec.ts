@@ -4,14 +4,13 @@ import { describe, it } from 'node:test';
 import { Predicates } from '@studnicky/types/node';
 
 import type {
-  GroupValueUnionType,
   MatchContextInterface,
   MatcherHandlerInterface,
   MatcherUnionType,
   PartitionGroupInterface
 } from '../../src/index.js';
 
-import { GroupValueDiscriminantEntity } from '../../src/index.js';
+import { DrilldownRulesEntity, GroupValueDiscriminantEntity } from '../../src/index.js';
 import { matcherRegistry } from '../../src/modules/matchers/index.js';
 import scenarioCases from './matchers.scenarios.json' with { type: 'json' };
 
@@ -36,7 +35,7 @@ type MatchScenarioCase = {
 type CreateAndMatchScenarioCase = {
   readonly 'description': string;
   readonly 'expected': { readonly 'matches': boolean };
-  readonly 'input': ScenarioInput & { readonly 'definition': GroupValueUnionType };
+  readonly 'input': ScenarioInput & { readonly 'definition': DrilldownRulesEntity.GroupValueEntity.Type };
   readonly 'name': string;
   readonly 'shape': 'create-and-match';
 };
@@ -144,7 +143,7 @@ function parseMatcher(value: unknown, type: MatcherType): MatcherUnionType {
   return { 'group': group, 'match': requireString(record['match'], 'scenario matcher match') };
 }
 
-function parseDefinition(value: unknown, type: MatcherType): GroupValueUnionType {
+function parseDefinition(value: unknown, type: MatcherType): DrilldownRulesEntity.GroupValueEntity.Type {
   const record = requireRecord(value, 'scenario definition');
   const definitionType = requireMatcherType(record['type'], 'scenario definition type');
   assert.equal(definitionType, type, 'scenario definition type must match scenario input type');

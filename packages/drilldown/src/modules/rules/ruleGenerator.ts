@@ -3,7 +3,6 @@ import type { GroupingOptionsEntity } from '../../entities/GroupingOptionsEntity
 import type { ScoredPropertyEntity } from '../../entities/ScoredPropertyEntity.js';
 import type { DataRecordInterface, PropertyInfoInterface } from '../../interfaces/index.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
-import type { GroupValueUnionType } from '../../types/index.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import { DataAnalyzer } from '../DataAnalyzer.js';
@@ -11,7 +10,7 @@ import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import { valueDiscoveryEngine } from './valueDiscoveryEngine.js';
 
 class LinearNodeTree {
-  static build(property: string, values: GroupValueUnionType[]): DrilldownRulesEntity.Type {
+  static build(property: string, values: DrilldownRulesEntity.GroupValueEntity.Type[]): DrilldownRulesEntity.Type {
     return {
       'group': [{
         'property': property,

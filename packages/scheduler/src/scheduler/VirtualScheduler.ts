@@ -142,7 +142,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     try {
       fireResult = task.fire();
     } catch (error) {
-      const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
+      const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
       this.hooks.invoke('onFireError', () => {
         const result = this.onFireError(task.id, taskError);
         return result;
@@ -152,7 +152,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
 
     if (fireResult instanceof Promise) {
       fireResult.catch((error) => {
-        const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
+        const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
         this.hooks.invoke('onFireError', () => {
           const result = this.onFireError(task.id, taskError);
           return result;

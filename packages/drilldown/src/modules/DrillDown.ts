@@ -2,7 +2,7 @@ import type { DiscoverValuesOptionsEntity } from '../entities/DiscoverValuesOpti
 import type { EngineContextEntity } from '../entities/EngineContextEntity.js';
 import type { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
 import type { SortRuleEntity } from '../entities/SortRuleEntity.js';
-import type { GroupRuleInterface } from '../interfaces/GroupValueInterface.js';
+import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
 import type { DataRecordInterface, DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface } from '../interfaces/index.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
 import type { FacetAccessorMapType, FacetFilterStateType } from '../types/index.js';
@@ -142,7 +142,7 @@ export class DrillDown implements DrillDownInterface {
     propertyOrder: string[],
     depth: number,
     context: EngineContextEntity.Type,
-    options?: { 'explicitGroupRules'?: GroupRuleInterface[] | undefined, 'sort'?: SortRuleEntity.Type[] | undefined }
+    options?: { 'explicitGroupRules'?: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined, 'sort'?: SortRuleEntity.Type[] | undefined }
   ): GroupNodeInterface {
     const sort = options?.sort;
     const explicitGroupRules = options?.explicitGroupRules;
@@ -203,7 +203,7 @@ export class DrillDown implements DrillDownInterface {
 
       const perValueRules = group.groupValue.rules;
 
-      let childExplicit: GroupRuleInterface[] | undefined;
+      let childExplicit: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined;
       let childDepth: number;
       let childPropertyOrder: string[];
       let childFilter: FilterRuleEntity.Type[];
@@ -280,9 +280,9 @@ export class DrillDown implements DrillDownInterface {
     data: DataRecordInterface[],
     propertyOrder: string[],
     depth: number,
-    explicitGroupRules: GroupRuleInterface[] | undefined,
+    explicitGroupRules: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined,
     context: EngineContextEntity.Type
-  ): { 'rule': GroupRuleInterface, 'wasExplicit': boolean } | null {
+  ): { 'rule': DrilldownRulesEntity.GroupRuleEntity.Type, 'wasExplicit': boolean } | null {
     // EXPLICIT path: explicit rule at this depth takes priority.
     if (explicitGroupRules !== undefined) {
       const rule = explicitGroupRules[depth];

@@ -1,3 +1,3 @@
-export interface ValueCoderInterface {
-  guard(value: unknown): boolean;
+export interface ValueCoderInterface<TValue> {
+  guard(value: unknown): value is TValue;
 }

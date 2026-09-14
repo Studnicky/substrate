@@ -32,7 +32,7 @@ export interface FetchOptionsInterface {
   /**
    * Request headers
    */
-  'headers'?: Record<string, string>;
+  'headers'?: FetchRequestOptionsEntity.Type['headers'];
 
   /**
    * Subresource integrity value
@@ -66,7 +66,7 @@ export interface FetchOptionsInterface {
    * });
    * ```
    */
-  'metadata'?: Record<string, unknown>;
+  'metadata'?: FetchRequestOptionsEntity.Type['metadata'];
 
   /**
    * HTTP method

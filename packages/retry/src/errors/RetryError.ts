@@ -10,7 +10,7 @@ class RetryDiagnosticSnapshot {
   static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
     const snapshot = this.object(error, seen);
 
-    if (!(snapshot instanceof Error)) {
+    if (!(Predicates.isError(snapshot))) {
       throw RuntimeError.create('Retry diagnostic snapshot must preserve Error values.');
     }
 
@@ -27,7 +27,7 @@ class RetryDiagnosticSnapshot {
       return result;
     }
 
-    if (value instanceof Error) {
+    if (Predicates.isError(value)) {
       const snapshot = RuntimeError.create(value.message, { 'cause': undefined });
 
       seen.set(value, snapshot);
@@ -39,7 +39,7 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
           Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
           Reflect.set(snapshot, key, propertyValue);
@@ -49,7 +49,7 @@ class RetryDiagnosticSnapshot {
       return snapshot;
     }
 
-    if (Array.isArray(value)) {
+    if (Predicates.isArray(value)) {
       const snapshot: unknown[] = [];
 
       seen.set(value, snapshot);
@@ -58,7 +58,7 @@ class RetryDiagnosticSnapshot {
       for (let index = 0; index < length; index += 1) {
         const entry: unknown = value[index];
 
-        if (entry !== null && (typeof entry === 'object' || typeof entry === 'function')) {
+        if (Predicates.isObjectLikeOrFunction(entry)) {
           snapshot.push(RetryDiagnosticSnapshot.object(entry, seen));
         } else {
           snapshot.push(entry);
@@ -68,7 +68,7 @@ class RetryDiagnosticSnapshot {
       return snapshot;
     }
 
-    if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
+    if (Predicates.isPlainObject(value)) {
       const snapshot: Record<string, unknown> = {};
 
       seen.set(value, snapshot);
@@ -79,7 +79,7 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
           Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
           Reflect.set(snapshot, key, propertyValue);
@@ -106,7 +106,7 @@ class RetryDiagnosticSnapshot {
         const key = propertyKeys[propertyKeyIndex]!;
         const propertyValue: unknown = Reflect.get(value, key);
 
-        if (propertyValue !== null && (typeof propertyValue === 'object' || typeof propertyValue === 'function')) {
+        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
           Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
           Reflect.set(snapshot, key, propertyValue);

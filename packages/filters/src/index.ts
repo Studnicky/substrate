@@ -27,6 +27,11 @@ export { FilterValueGuard } from './FilterValueGuard.js';
 export { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
 export type {
   DateRangeInterface,
+  FilterRuntimeArrayInterface,
+  FilterRuntimeDateInterface,
+  FilterRuntimeMapInterface,
+  FilterRuntimeRecordInterface,
+  FilterRuntimeSetInterface,
   NumericRangeInterface,
   RangeInterface,
   TimeRangeInterface

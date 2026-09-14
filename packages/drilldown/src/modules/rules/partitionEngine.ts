@@ -1,7 +1,7 @@
 import { Predicates } from '@studnicky/types/node';
 
 import type { GroupValueDiscriminantEntity } from '../../entities/GroupValueDiscriminantEntity.js';
-import type { GroupRuleInterface } from '../../interfaces/GroupValueInterface.js';
+import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 import type {
   DataRecordInterface,
   MatchContextInterface,
@@ -68,7 +68,7 @@ export const partitionEngine = {
    */
   'partitionByProperty': function (
     data: DataRecordInterface[],
-    groupConfig: GroupRuleInterface
+    groupConfig: DrilldownRulesEntity.GroupRuleEntity.Type
   ): { 'matched': PartitionGroupInterface[]
     'ungroupable': DataRecordInterface[] } {
     const matched: PartitionGroupInterface[] = [];

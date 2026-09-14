@@ -44,16 +44,6 @@ export {
   PropertyType
 } from './enums.js';
 export type {
-  AlphabeticGroupValueInterface,
-  CidrGroupValueInterface,
-  DateGroupValueInterface,
-  GroupRuleInterface,
-  RangeGroupValueInterface,
-  SemverGroupValueInterface,
-  SequentialGroupValueInterface,
-  StringGroupValueInterface
-} from './interfaces/GroupValueInterface.js';
-export type {
   DataAnalyzerInterface,
   DrillDownInterface,
   MatcherHandlerInterface

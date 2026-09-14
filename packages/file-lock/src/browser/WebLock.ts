@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types/browser';
+
 import type { LockInterface } from '../interfaces/LockInterface.js';
 import type { WebLockCreateOptionsInterface } from './WebLockCreateOptionsInterface.js';
 import type { WebLockManagerInterface } from './WebLockManagerInterface.js';
@@ -6,8 +8,8 @@ import { WebLockOptionsEntity } from '../entities/WebLockOptionsEntity.js';
 import { FileLockConfigError } from '../errors/FileLockConfigError.js';
 
 class WebLockManager {
-  static isLockManager(value: object): value is WebLockManagerInterface {
-    const result = Reflect.has(value, 'request') && typeof Reflect.get(value, 'request') === 'function';
+  static isLockManager(value: unknown): value is WebLockManagerInterface {
+    const result = Predicates.isObject(value) && Predicates.isFunction(Reflect.get(value, 'request'));
 
     return result;
   }
@@ -15,10 +17,10 @@ class WebLockManager {
   static get(): WebLockManagerInterface {
     const navigator: unknown = Reflect.get(globalThis, 'navigator');
 
-    if (typeof navigator === 'object' && navigator !== null) {
+    if (Predicates.isObject(navigator)) {
       const locks: unknown = Reflect.get(navigator, 'locks');
 
-      if (typeof locks === 'object' && locks !== null && WebLockManager.isLockManager(locks)) {
+      if (Predicates.isObject(locks) && WebLockManager.isLockManager(locks)) {
         return locks;
       }
     }

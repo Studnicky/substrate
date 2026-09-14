@@ -9,8 +9,7 @@
  *
  * `compileIntake` parses data from outside the codebase; `compileCreate` builds
  * object entities from trusted data. Running transforms over your own fixture is
- * wrong; skipping them on a request body is worse. Intake therefore fills defaults
- * and strips unknown properties, while create only fills defaults — neither coerces
+ * wrong; skipping them on a request body is worse. Intake therefore fills defaults according to the schema, while create only fills defaults — neither coerces
  * a scalar's type; a mismatch is rejected, not silently converted. Intake applies to
  * every entity, including scalar schemas; create is restricted to object entities
  * because a partial scalar is not meaningful.

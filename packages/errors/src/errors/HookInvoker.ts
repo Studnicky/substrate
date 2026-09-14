@@ -25,7 +25,7 @@ namespace HookDiagnosticSnapshotEntity {
         return existing;
       }
 
-      if (value instanceof Error) {
+      if (Predicates.isError(value)) {
         let snapshot: Error;
         if (value instanceof HookInvocationError) {
           snapshot = new HookInvocationError(value.hookName, undefined);
@@ -50,7 +50,7 @@ namespace HookDiagnosticSnapshotEntity {
         return snapshot;
       }
 
-      if (Array.isArray(value)) {
+      if (Predicates.isArray(value)) {
         const snapshot: unknown[] = [];
         seen.set(value, snapshot);
         const keys = Reflect.ownKeys(value);
@@ -69,7 +69,7 @@ namespace HookDiagnosticSnapshotEntity {
         return snapshot;
       }
 
-      if (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) {
+      if (Predicates.isPlainObject(value)) {
         const snapshot: Record<string, unknown> = {};
         seen.set(value, snapshot);
         const keys = Reflect.ownKeys(value);
