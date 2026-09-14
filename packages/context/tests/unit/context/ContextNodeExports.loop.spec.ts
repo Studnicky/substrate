@@ -70,6 +70,16 @@ describe('Context runtime entrypoints', () => {
     assert.deepStrictEqual(Object.keys(browserExports).toSorted(), Object.keys(nodeExports).toSorted());
   });
 
+  it('keeps browser contexts explicit after the Node entrypoint loads', async () => {
+    const context = browserExports.Context.create({ 'name': 'browser-first' });
+    const scope = context.initialize({ 'value': 'browser' });
+
+    await scope.execute(async () => {
+      await Promise.resolve();
+      assert.throws(() => context.get('value'), browserExports.ContextError);
+    });
+  });
+
   it('uses an injected storage host ahead of the Node default', () => {
     const context = Context.create({ 'name': 'override' }, new OverrideStorage());
     const scope = context.initialize({ 'value': 'injected' });

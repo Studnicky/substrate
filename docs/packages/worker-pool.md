@@ -31,6 +31,19 @@ normalizes the response at the message boundary, so `WebWorkerPool` keeps the sa
 
 <RunnableExample src="packages/worker-pool/examples/browserWorkerPool" title="WebWorkerPool — native browser worker messages" />
 
+### Entity message intake
+
+Bind a JSON worker response directly to its entity intake. The transport applies it to `MessageEvent.data` before resolving the request.
+
+<!-- inline-ts-ok: Consumer message-boundary entity intake through the browser runtime entry point. -->
+```typescript
+import { WebWorkerMessageTransport } from "@studnicky/worker-pool/browser";
+
+import { ResultEntity } from "./ResultEntity.js";
+
+const transport = WebWorkerMessageTransport.fromEntity<ResultEntity.Type, ResultEntity.Type>(ResultEntity.intake);
+```
+
 ## Lease lifecycle
 
 `WorkerLeasePool.close()` is terminal. It rejects every acquisition that is waiting for capacity,
@@ -120,7 +133,7 @@ import type { WorkerResultEnvelopeInterface } from '@studnicky/worker-pool/inter
 | `WebWorkerFactory` | Creates and observes native browser Workers. | `@studnicky/worker-pool/browser` |
 | `WebWorkerFactoryOptionsInterface` | Defines the native Worker script and options. | `@studnicky/worker-pool/browser` |
 | `WebWorkerInterface` | Defines the browser Worker lifecycle surface. | `@studnicky/worker-pool/browser` |
-| `WebWorkerMessageTransport<TRequest, TResponse>` | Sends one request and decodes one Worker response. | `@studnicky/worker-pool/browser` |
+| `WebWorkerMessageTransport<TRequest, TResponse>` | Sends one request and decodes one Worker response, directly through an entity intake when applicable. | `@studnicky/worker-pool/browser` |
 | `WebWorkerMessageTransportOptionsInterface<TResponse>` | Defines the response decoder for worker messages. | `@studnicky/worker-pool/browser` |
 | `WebWorkerPoolOptionsInterface<TInput, TOutput>` | Defines the Web Worker factory, worker limit, `Signal`, caller abort source, timeout, and request transport. | `@studnicky/worker-pool/browser` |
 

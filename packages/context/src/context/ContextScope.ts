@@ -249,8 +249,8 @@ export class ContextScope implements ContextScopeInterface {
     const boundCallback = this.#storage.bind(this.#store, callback);
     const result = (...argumentList: TArguments): TResult => {
       const callbackResult = this.execute(() => {
-        const callbackValue = boundCallback(...argumentList);
-        return callbackValue;
+        const invocationResult = boundCallback(...argumentList);
+        return invocationResult;
       });
       return callbackResult;
     };

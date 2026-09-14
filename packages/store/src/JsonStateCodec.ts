@@ -1,3 +1,5 @@
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+
 import type { JsonStateCodecOptionsInterface } from './interfaces/JsonStateCodecOptionsInterface.js';
 import type { StateCodecInterface } from './interfaces/StateCodecInterface.js';
 
@@ -8,6 +10,12 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
 
   public static create<TState>(options: JsonStateCodecOptionsInterface<TState>): JsonStateCodec<TState> {
     const result = new JsonStateCodec(options);
+
+    return result;
+  }
+
+  public static fromEntity<TState>(intake: EntityIntakeFunctionInterface<TState>): JsonStateCodec<TState> {
+    const result = new JsonStateCodec({ 'decode': intake });
 
     return result;
   }

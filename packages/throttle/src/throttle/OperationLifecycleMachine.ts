@@ -46,13 +46,12 @@ import type { FireOnDrainCompleteEffectEntity } from '../entities/FireOnDrainCom
 import type { FireOnDrainStartEffectEntity } from '../entities/FireOnDrainStartEffectEntity.js';
 import type { FireOnReleaseEffectEntity } from '../entities/FireOnReleaseEffectEntity.js';
 import type { FireOnWindowSlideEffectEntity } from '../entities/FireOnWindowSlideEffectEntity.js';
+import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 import type { QueuedEventEntity } from '../entities/QueuedEventEntity.js';
 import type { SlotReleasedEventEntity } from '../entities/SlotReleasedEventEntity.js';
 import type { WindowSlidEventEntity } from '../entities/WindowSlidEventEntity.js';
 import type { FireOnRejectEffectInterface } from '../interfaces/FireOnRejectEffectInterface.js';
 import type { OperationRejectedEventInterface } from '../interfaces/OperationRejectedEventInterface.js';
-
-import { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 
 interface OperationLifecycleEventReducerInterface {
   (
@@ -126,12 +125,7 @@ export class OperationLifecycleMachine extends StateMachine<
   }
 
   getInitialState(): OperationLifecycleStateEntity.Type {
-    const initialState: OperationLifecycleStateEntity.Type = { 'variant': 'operational' };
-    const result: OperationLifecycleStateEntity.Type = Object.assign({}, initialState);
-    if (!OperationLifecycleStateEntity.validate(result)) {
-      throw RuntimeError.create('OperationLifecycleMachine initial state is invalid');
-    }
-    return result;
+    return { 'variant': 'operational' };
   }
 
   reduce(

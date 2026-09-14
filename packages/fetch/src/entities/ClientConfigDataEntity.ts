@@ -5,6 +5,7 @@ import { EntityCompiler } from '@studnicky/entity/node';
 
 import { DispatcherConfigEntity } from './DispatcherConfigEntity.js';
 import { FetchRequestOptionsEntity } from './FetchRequestOptionsEntity.js';
+import { QueryParametersEntity } from './QueryParametersEntity.js';
 
 export namespace ClientConfigDataEntity {
   export const Schema = {
@@ -33,21 +34,7 @@ export namespace ClientConfigDataEntity {
           }
         ]
       },
-      'parameters': {
-        'additionalProperties': false,
-        'patternProperties': {
-          '^.*$': {
-            'anyOf': [
-              { 'type': ['boolean', 'null', 'number', 'string'] },
-              {
-                'items': { 'type': ['boolean', 'null', 'number', 'string'] },
-                'type': 'array'
-              }
-            ]
-          }
-        },
-        'type': 'object'
-      },
+      'parameters': QueryParametersEntity.Schema,
       'timeout': { 'exclusiveMinimum': 0, 'type': 'number' }
     },
     'title': 'ClientConfigData',

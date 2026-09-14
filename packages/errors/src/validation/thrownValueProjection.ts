@@ -121,8 +121,8 @@ export class ThrownValueProjection {
         nodes.push(Classifier.ofString(current));
       } else if (typeof current === 'object' || typeof current === 'function') {
         nodes.push(Classifier.ofObject(current));
-      } else {
-        nodes.push(Classifier.ofPrimitive(current as bigint | boolean | number | symbol));
+      } else if (typeof current === 'bigint' || typeof current === 'boolean' || typeof current === 'number' || typeof current === 'symbol') {
+        nodes.push(Classifier.ofPrimitive(current));
       }
 
       if (!Predicates.isError(current)) { break; }

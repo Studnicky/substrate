@@ -5,16 +5,11 @@ export class ContextAsyncRuntime {
     const runInContext = AsyncLocalStorage.snapshot();
     const result = Promise.resolve(value).then(
       (resolvedValue) => {
-        const restoredResult = runInContext(() => {
-          const restoredValue = resolvedValue;
-          return restoredValue;
-        });
+        const restoredResult = runInContext(() => { return resolvedValue; });
         return restoredResult;
       },
       (error: unknown) => {
-        const rejectedResult = runInContext(() => {
-          throw error;
-        });
+        const rejectedResult = runInContext(() => { throw error; });
         return rejectedResult;
       }
     );

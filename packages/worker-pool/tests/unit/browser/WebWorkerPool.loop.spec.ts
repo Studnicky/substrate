@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { Signal } from '@studnicky/signal/node';
 
 import type {
@@ -15,6 +16,7 @@ import type {
 } from '../../../src/browser/index.js';
 import {
   WebWorkerFactory,
+  WebWorkerMessageTransport,
   WebWorkerPool,
   WorkerPoolError,
   WorkerLeasePool
@@ -54,6 +56,55 @@ class WorkerFixture implements WebWorkerInterface {
   public terminate(): void {
     this.terminated = true;
   }
+}
+
+interface WorkerResponseInterface {
+  readonly 'value': number;
+}
+
+const WORKER_RESPONSE_INTAKE = EntityCompiler.compileIntake<WorkerResponseInterface>({
+  'additionalProperties': false,
+  'properties': {
+    'value': { 'type': 'number' }
+  },
+  'required': ['value'],
+  'type': 'object'
+});
+
+class MessageWorkerFixture implements WebWorkerInterface {
+  #messageListener: ((event: WebWorkerMessageEventInterface) => void) | undefined;
+
+  public addEventListener(...arguments_: readonly [
+    'error',
+    (event: WebWorkerErrorEventInterface) => void
+  ] | readonly [
+    'message',
+    (event: WebWorkerMessageEventInterface) => void
+  ]): void {
+    const [type, listener] = arguments_;
+
+    if (type === 'message') {
+      this.#messageListener = listener;
+    }
+  }
+
+  public postMessage(_message: unknown): void {
+    const listener = this.#messageListener;
+
+    if (listener !== undefined) {
+      listener({ 'data': { 'value': 'invalid' } });
+    }
+  }
+
+  public removeEventListener(..._arguments: readonly [
+    'error',
+    (event: WebWorkerErrorEventInterface) => void
+  ] | readonly [
+    'message',
+    (event: WebWorkerMessageEventInterface) => void
+  ]): void {}
+
+  public terminate(): void {}
 }
 
 class WorkerFactory implements WorkerFactoryInterface<WebWorkerInterface> {
@@ -153,6 +204,12 @@ class ObservedWebWorkerPool extends WebWorkerPool<ContractItemInterface, string>
 }
 
 void describe('WebWorkerPool', () => {
+  void it('rejects malformed worker messages through the entity intake boundary', async () => {
+    const worker = new MessageWorkerFixture();
+    const transport = WebWorkerMessageTransport.fromEntity<number, WorkerResponseInterface>(WORKER_RESPONSE_INTAKE);
+
+    await assert.rejects(transport.request(worker, 1), /must be number/u);
+  });
   void it('satisfies the shared pool contract with bounded, ordered runs', async () => {
     const factory = new WorkerFactory();
     const pool: WorkerPoolInterface<number, string> = WebWorkerPool.create({

@@ -87,7 +87,33 @@
       "name": "client-config-invalid"
     },
     {
-      "description": "Client config entity rejects a method outside its declared HTTP method set",
+      "description": "Query parameters entity accepts scalar values and scalar arrays",
+      "expected": {
+        "validationResults": [
+          true
+        ]
+      },
+      "input": {
+        "validations": [
+          {
+            "entity": "QueryParametersEntity",
+            "expected": true,
+            "value": {
+              "archived": false,
+              "page": 1,
+              "tags": [
+                "typescript",
+                null
+              ]
+            }
+          }
+        ]
+      },
+      "shape": "query-parameters-valid",
+      "name": "query-parameters-valid"
+    },
+    {
+      "description": "Query parameters entity rejects nested object values",
       "expected": {
         "validationResults": [
           false
@@ -96,16 +122,18 @@
       "input": {
         "validations": [
           {
-            "entity": "ClientConfigDataEntity",
+            "entity": "QueryParametersEntity",
             "expected": false,
             "value": {
-              "options": { "method": "CUSTOM" }
+              "filter": {
+                "status": "active"
+              }
             }
           }
         ]
       },
-      "shape": "client-config-invalid",
-      "name": "client-config-invalid-http-method"
+      "shape": "query-parameters-invalid",
+      "name": "query-parameters-invalid"
     }
   ]
 }

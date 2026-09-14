@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
+
+import { EntityCompiler } from '@studnicky/entity/node';
 import 'fake-indexeddb/auto';
 
 import {
@@ -35,6 +37,19 @@ interface BrowserPersistenceScenarioInterface {
   readonly 'createPersistence': () => StatePersistenceInterface<number>;
   readonly 'name': string;
 }
+
+interface CounterStateInterface {
+  readonly 'count': number;
+}
+
+const COUNTER_STATE_INTAKE = EntityCompiler.compileIntake<CounterStateInterface>({
+  'additionalProperties': false,
+  'properties': {
+    'count': { 'type': 'number' }
+  },
+  'required': ['count'],
+  'type': 'object'
+});
 
 const NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown): number => {
   if (typeof value !== 'number') {
@@ -81,6 +96,18 @@ void describe('Store', () => {
 
     assert.deepEqual(notifications, [1]);
     assert.equal(hydrated.getSnapshot(), 1);
+  });
+
+  void it('rejects malformed persisted state through the entity intake boundary', async () => {
+    const storage = new BrowserStorage();
+    storage.setItem('counter', JSON.stringify({ 'count': 'invalid' }));
+    const persistence = BrowserPersistence.create({
+      'codec': JsonStateCodec.fromEntity(COUNTER_STATE_INTAKE),
+      storage,
+      'storageTarget': StorageTarget.LocalStorage
+    });
+
+    await assert.rejects(persistence.load('counter'), /must be number/u);
   });
 
   void it('uses browser memory persistence through the same store interface', async () => {

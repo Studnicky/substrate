@@ -19,6 +19,24 @@ pnpm add @studnicky/store
 
 <<< ../../packages/store/examples/memory-store.ts#usage
 
+## Entity-backed persistence
+
+Bind JSON storage directly to the entity that owns the persisted shape. `JsonStateCodec.fromEntity` parses the storage string and passes the resulting unknown value to the entity intake exactly once.
+
+<!-- inline-ts-ok: Consumer persistence composition through the browser runtime entry point. -->
+```typescript
+import { BrowserPersistence, JsonStateCodec, StorageTarget } from "@studnicky/store/browser";
+
+import { CartEntity } from "./CartEntity.js";
+
+const persistence = BrowserPersistence.create({
+  codec: JsonStateCodec.fromEntity(CartEntity.intake),
+  storageTarget: StorageTarget.LocalStorage,
+});
+```
+
+Use `JsonStateCodec.create({ decode })` only when the state is not a JSON entity and its domain supplies a different typed decoder.
+
 ## Context-scoped state (Node)
 
 `ContextStore` resolves one backing `Store` while a `Context` scope is active. It delegates every operation to that store, so serialized writes, persistence, and listener protections remain the standard Store behavior. It implements `StoreInterface<TState>`, so it can be a layer in `@studnicky/strata-store-kit/node`.
@@ -81,7 +99,7 @@ The runnable sample writes, hydrates, reports, and clears one counter for every 
 |---|---|---|
 | `Store` | Observable state container with serialized writes. | `@studnicky/store/node` |
 | `MemoryPersistence` | In-memory persistence adapter. | `@studnicky/store/node` |
-| `JsonStateCodec` | JSON serialization and caller-provided decoded-value validation. | `@studnicky/store/node` |
+| `JsonStateCodec` | JSON serialization with direct entity intake or a caller-provided typed decoder. | `@studnicky/store/node` |
 | `ContextStore` | Resolves one backing store per active Context scope. | `@studnicky/store/node` |
 | `StoreInterface` | Store contract for consumer dependencies and composition. | `@studnicky/store/interfaces` |
 | `StoreListenerInterface` | Subscriber callback contract for store state updates. | `@studnicky/store/interfaces` |
