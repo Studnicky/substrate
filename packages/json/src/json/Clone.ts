@@ -44,7 +44,7 @@ export class Clone {
 
   /** Clone a RegExp while retaining its source, flags, and current index. */
   protected static cloneRegExp(value: RegExp): RegExp {
-    const result = new RegExp(value.source, value.flags);
+    const result = structuredClone(value);
     result.lastIndex = value.lastIndex;
     return result;
   }

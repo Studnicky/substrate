@@ -32,6 +32,7 @@ interface SchemaRegistryInterface {
 }
 
 export class EntityCompiler {
+  private static readonly patternPropertyValidators = new WeakMap<object, Map<string, EntityValidateFunctionInterface<Record<string, null>>>>();
   /**
    * Compiles `schema` into a type-guard predicate. The returned function
    * narrows `unknown` to `TValidated` and carries Ajv's `.errors` array after
@@ -364,6 +365,9 @@ export class EntityCompiler {
     if (patternProperties === undefined) {
       return undefined;
     }
+    const validators = EntityCompiler.patternPropertyValidators.get(patternProperties)
+      ?? new Map<string, EntityValidateFunctionInterface<Record<string, null>>>();
+    EntityCompiler.patternPropertyValidators.set(patternProperties, validators);
     const patterns = Object.keys(patternProperties);
     for (let index = 0; index < patterns.length; index += 1) {
       const pattern = patterns[index]!;
@@ -371,8 +375,20 @@ export class EntityCompiler {
       if (patternSchema === undefined) {
         continue;
       }
-      const expression = new RegExp(pattern, 'u');
-      if (expression.test(propertyName)) {
+      let validator = validators.get(pattern);
+      if (validator === undefined) {
+        const patternMatchSchema: Record<string, boolean> = {};
+        Reflect.set(patternMatchSchema, pattern, true);
+        validator = EntityAjvInstance.assert.compile<Record<string, null>>({
+          'additionalProperties': false,
+          'patternProperties': patternMatchSchema,
+          'type': 'object'
+        });
+        validators.set(pattern, validator);
+      }
+      const candidate: Record<string, null> = {};
+      Reflect.set(candidate, propertyName, null);
+      if (validator(candidate)) {
         return patternSchema;
       }
     }
