@@ -1,5 +1,20 @@
 # Changelog
 
+## 13.0.0
+
+### Patch Changes
+
+- Updated dependencies [95c7c69]
+- Updated dependencies [95c7c69]
+  - @studnicky/errors@13.0.0
+  - @studnicky/entity@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/clock@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/scheduler@13.0.0
+  - @studnicky/virtual-fs@13.0.0
+  - @studnicky/types@13.0.0
+
 ## 12.2.0
 
 ### Patch Changes
