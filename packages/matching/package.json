@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/matching",
-  "version": "13.0.0",
+  "version": "13.0.1",
   "description": "Deterministic matching, scoring, encoding, and candidate-source primitives",
   "type": "module",
   "sideEffects": false,
@@ -77,7 +77,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "double-metaphone": "2.0.1",
-    "picomatch": "4.0.5"
+    "picomatch": "4.0.7"
   },
   "devDependencies": {
     "@types/picomatch": "4.0.3"

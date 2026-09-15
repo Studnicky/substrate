@@ -20,6 +20,14 @@ assert_not_contains() {
   fi
 }
 
+assert_before() {
+  local label="$1" first="$2" second="$3" value="$4" first_line second_line
+
+  first_line=$(printf '%s\n' "$value" | grep -n -F -- "$first" | head -n 1 | cut -d: -f1)
+  second_line=$(printf '%s\n' "$value" | grep -n -F -- "$second" | head -n 1 | cut -d: -f1)
+  [ -n "$first_line" ] && [ -n "$second_line" ] && [ "$first_line" -lt "$second_line" ] || fail "$label" "expected '$first' before '$second'"
+}
+
 assert_resolve_pull_request_head_action() {
   local label="$1" workflow="$2"
 

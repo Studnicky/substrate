@@ -1,5 +1,15 @@
 # Changelog
 
+## 13.0.1
+
+### Patch Changes
+
+- Updated dependencies [4d4555f]
+  - @studnicky/types@13.0.1
+  - @studnicky/entity@13.0.1
+  - @studnicky/errors@13.0.1
+  - @studnicky/json@13.0.1
+
 ## 13.0.0
 
 ### Patch Changes

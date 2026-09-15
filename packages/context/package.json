@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/context",
-  "version": "13.0.0",
+  "version": "13.0.1",
   "description": "Async context isolation for Node and browser code",
   "type": "module",
   "sideEffects": false,
@@ -76,7 +76,7 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
     "json-schema-to-ts": "^3.1.1",
-    "rollup": "^4.62.2",
+    "rollup": "^4.63.1",
     "typescript": "^6.0.3"
   }
 }
