@@ -6,6 +6,7 @@ import { Predicates } from '@studnicky/types/node';
 import type { DrillDownConfigEntity, GroupNodeInterface } from '../../src/index.js';
 
 import { DrillDown } from '../../src/index.js';
+import { valueDiscoveryEngine } from '../../src/modules/rules/valueDiscoveryEngine.js';
 import scenarioGroups from './DrillDown.scenarios.json' with { type: 'json' };
 
 type JsonRecord = Record<string, unknown>;
@@ -194,4 +195,30 @@ void describe('DrillDown', () => {
       runScenario(parsedScenarioGroups, scenarioCase);
     });
   }
+
+  void it('discovers prefixed and zero-padded sequential values', () => {
+    const prefixed = valueDiscoveryEngine.discoverValues([
+      { 'identifier': 'item-001' },
+      { 'identifier': 'item-002' },
+      { 'identifier': 'item-003' },
+      { 'identifier': 'item-004' },
+      { 'identifier': 'item-005' }
+    ], 'identifier', { 'granularity': { 'count': 1 }, 'type': 'string' });
+    const zeroPadded = valueDiscoveryEngine.discoverValues([
+      { 'identifier': '001' },
+      { 'identifier': '002' },
+      { 'identifier': '003' },
+      { 'identifier': '004' },
+      { 'identifier': '005' }
+    ], 'identifier', { 'granularity': { 'count': 1 }, 'type': 'string' });
+
+    assert.deepEqual(prefixed, [{
+      'sequential': { 'maximum': 5, 'minimum': 1, 'padding': 3, 'prefix': 'item-' },
+      'type': 'sequential'
+    }]);
+    assert.deepEqual(zeroPadded, [{
+      'sequential': { 'maximum': 5, 'minimum': 1, 'padding': 3, 'prefix': '' },
+      'type': 'sequential'
+    }]);
+  });
 });

@@ -343,6 +343,42 @@ class SemverValues {
 }
 
 class SequentialPattern {
+  static parse(value: string): null | readonly [prefix: string, number: string, suffix: string] {
+    let numberStart = 0;
+
+    while (numberStart < value.length) {
+      const characterCode = value.charCodeAt(numberStart);
+
+      if (characterCode >= 48 && characterCode <= 57) {
+        break;
+      }
+
+      numberStart++;
+    }
+
+    if (numberStart === value.length) {
+      return null;
+    }
+
+    let numberEnd = numberStart;
+
+    while (numberEnd < value.length) {
+      const characterCode = value.charCodeAt(numberEnd);
+
+      if (characterCode < 48 || characterCode > 57) {
+        break;
+      }
+
+      numberEnd++;
+    }
+
+    return [
+      value.slice(0, numberStart),
+      value.slice(numberStart, numberEnd),
+      value.slice(numberEnd)
+    ];
+  }
+
   static detect(values: unknown[]): null | SequentialPatternResultEntity.Type {
     if (values.length < DRILLDOWN_DEFAULTS.minimumSequentialValues) {
       return null;
@@ -355,15 +391,13 @@ class SequentialPattern {
 
     for (let index = 0; index < values.length; index++) {
       const string = String(values[index]);
-      const match = DRILLDOWN_DEFAULTS.sequentialPattern.exec(string);
+      const segments = SequentialPattern.parse(string);
 
-      if (match === null) {
+      if (segments === null) {
         return null;
       }
 
-      const prefix = match[1] ?? '';
-      const numberString = match[2] ?? '0';
-      const suffix = match[3] ?? '';
+      const [prefix, numberString, suffix] = segments;
 
       parsed.push({
         'number': parseInt(numberString, 10),
