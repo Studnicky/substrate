@@ -1,5 +1,12 @@
 # @studnicky/entity
 
+## 13.0.0
+
+### Patch Changes
+
+- 9b93e0f: Clarifies consumer documentation for parser-backed entity intake APIs.
+- @studnicky/types@13.0.0
+
 ## 12.2.1
 
 ### Patch Changes

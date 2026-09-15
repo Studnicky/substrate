@@ -1,11 +1,11 @@
 # @studnicky/strata-store-kit
 
-## 12.2.1
+## 13.0.0
 
 ### Patch Changes
 
-- @studnicky/mutex@12.2.1
-  - @studnicky/store@12.2.1
+- @studnicky/store@13.0.0
+  - @studnicky/mutex@13.0.0
 
 ## 12.2.0
 

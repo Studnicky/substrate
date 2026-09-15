@@ -1,13 +1,17 @@
 # Changelog
 
-## 12.2.1
+## 13.0.0
+
+### Major Changes
+
+- 67a740c: Require explicit /node or /browser runtime imports and remove package-root runtime exports across the fixed package group.
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- @studnicky/errors@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/fsm@13.0.0
+  - @studnicky/types@13.0.0
 
 ## 12.2.0
 

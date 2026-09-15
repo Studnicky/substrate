@@ -1,5 +1,3 @@
-import { Predicates } from '@studnicky/types/browser';
-
 import type { LockInterface } from '../interfaces/LockInterface.js';
 import type { WebLockCreateOptionsInterface } from './WebLockCreateOptionsInterface.js';
 import type { WebLockManagerInterface } from './WebLockManagerInterface.js';
@@ -8,21 +6,11 @@ import { WebLockOptionsEntity } from '../entities/WebLockOptionsEntity.js';
 import { FileLockConfigError } from '../errors/FileLockConfigError.js';
 
 class WebLockManager {
-  static isLockManager(value: object): value is WebLockManagerInterface {
-    const result = Predicates.isFunction(Reflect.get(value, 'request'));
-
-    return result;
-  }
-
   static get(): WebLockManagerInterface {
-    const navigator: unknown = Reflect.get(globalThis, 'navigator');
+    const lockManager = globalThis.navigator?.locks;
 
-    if (Predicates.isObject(navigator)) {
-      const locks: unknown = Reflect.get(navigator, 'locks');
-
-      if (Predicates.isObject(locks) && WebLockManager.isLockManager(locks)) {
-        return locks;
-      }
+    if (lockManager !== undefined) {
+      return lockManager;
     }
 
     throw new FileLockConfigError('Web Locks API is unavailable in this browser context.');

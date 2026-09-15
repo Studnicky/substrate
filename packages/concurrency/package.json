@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/concurrency",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
   "type": "module",
   "sideEffects": false,
