@@ -33,6 +33,24 @@ import {
  * @module
  */
 
+interface MemberReadResultInterface {
+  readonly 'readable': boolean;
+  readonly 'value': unknown;
+}
+
+/** Reads arbitrary object members without allowing hostile accessors to escape the projection boundary. */
+class MemberReader {
+  public static read(source: object, key: string): MemberReadResultInterface {
+    try {
+      const value: unknown = Reflect.get(source, key);
+      const result = { 'readable': true, 'value': value };
+      return result;
+    } catch {
+      return { 'readable': false, 'value': undefined };
+    }
+  }
+}
+
 class Classifier {
   public static ofNullish(): ThrownValueEntity.Type {
     return { 'detail': '', 'title': PROBLEM_TITLE_THROWN_NULLISH, 'type': PROBLEM_TYPE_THROWN_NULLISH };
@@ -43,13 +61,16 @@ class Classifier {
   }
 
   public static ofError(error: Error): ThrownValueEntity.Type {
+    const message = MemberReader.read(error, 'message').value;
+    const name = MemberReader.read(error, 'name').value;
+    const stack = MemberReader.read(error, 'stack').value;
     const node: ThrownValueEntity.Type = {
-      'detail': error.message,
-      'name': error.name,
+      'detail': Predicates.isString(message) ? message : '',
       'title': PROBLEM_TITLE_ERROR,
       'type': PROBLEM_TYPE_ERROR
     };
-    const result = Predicates.isString(error.stack) ? { ...node, 'stack': error.stack } : node;
+    const namedNode = Predicates.isString(name) ? { ...node, 'name': name } : node;
+    const result = Predicates.isString(stack) ? { ...namedNode, 'stack': stack } : namedNode;
     return result;
   }
 
@@ -63,28 +84,16 @@ class Classifier {
     return result;
   }
 
-  /** Reads `message`/`name` defensively — a thrown object may carry a throwing getter for either. */
+  /** Classifies non-Error objects using the same defensive member reader as native errors. */
   public static ofObject(value: object): ThrownValueEntity.Type {
-    let detail = '';
-    try {
-      const candidate: unknown = Reflect.get(value, 'message');
-      if (Predicates.isString(candidate)) { detail = candidate; }
-    } catch {
-      detail = '';
-    }
-    let name: string | undefined;
-    try {
-      const candidate: unknown = Reflect.get(value, 'name');
-      if (Predicates.isString(candidate)) { name = candidate; }
-    } catch {
-      name = undefined;
-    }
+    const message = MemberReader.read(value, 'message').value;
+    const name = MemberReader.read(value, 'name').value;
     const node: ThrownValueEntity.Type = {
-      'detail': detail,
+      'detail': Predicates.isString(message) ? message : '',
       'title': PROBLEM_TITLE_THROWN_OBJECT,
       'type': PROBLEM_TYPE_THROWN_OBJECT
     };
-    const result: ThrownValueEntity.Type = name === undefined ? node : { ...node, 'name': name };
+    const result: ThrownValueEntity.Type = Predicates.isString(name) ? { ...node, 'name': name } : node;
     return result;
   }
 
@@ -103,6 +112,16 @@ class Classifier {
  */
 export class ThrownValueProjection {
   public static project(input: unknown): ThrownValueEntity.Type {
+    try {
+      const result = ThrownValueProjection.projectKnown(input);
+      return result;
+    } catch {
+      const result = Classifier.ofNullish();
+      return result;
+    }
+  }
+
+  private static projectKnown(input: unknown): ThrownValueEntity.Type {
     const nodes: ThrownValueEntity.Type[] = [];
     const visited = new WeakSet<object>();
     let current: unknown = input;
@@ -129,7 +148,9 @@ export class ThrownValueProjection {
       if (visited.has(current)) { break; }
       visited.add(current);
 
-      const nextCause: unknown = current.cause;
+      const causeRead = MemberReader.read(current, 'cause');
+      if (!causeRead.readable) { break; }
+      const nextCause = causeRead.value;
       if (nextCause === undefined || nextCause === null) { break; }
       if (typeof nextCause === 'object' && visited.has(nextCause)) { break; }
 

@@ -59,6 +59,14 @@ const NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown):
   return value;
 } });
 
+const UNKNOWN_CODEC = JsonStateCodec.create<unknown>({ 'decode': (value: unknown): unknown => value });
+
+const UNSUPPORTED_ROOT_STATE_VALUES: readonly unknown[] = [
+  undefined,
+  (): void => undefined,
+  Symbol('state')
+];
+
 const BROWSER_PERSISTENCE_SCENARIOS: readonly BrowserPersistenceScenarioInterface[] = [
   {
     'createPersistence': (): StatePersistenceInterface<number> => BrowserPersistence.create({ 'codec': NUMBER_CODEC, 'storageTarget': StorageTarget.Memory }),
@@ -108,6 +116,30 @@ void describe('Store', () => {
     });
 
     await assert.rejects(persistence.load('counter'), /must be number/u);
+  });
+
+  void it('rejects unsupported root state serialization without creating persisted state', async () => {
+    const persistence = BrowserPersistence.create({ 'codec': UNKNOWN_CODEC, 'storageTarget': StorageTarget.Memory });
+
+    for (const state of UNSUPPORTED_ROOT_STATE_VALUES) {
+      await assert.rejects(persistence.save('unsupported-root', state), /JSON state serialization must produce a string/u);
+    }
+
+    assert.equal(await persistence.load('unsupported-root'), undefined);
+  });
+
+  void it('rejects invalid entity state before persistence', async () => {
+    const storage = new BrowserStorage();
+    const persistence = BrowserPersistence.create({
+      'codec': JsonStateCodec.fromEntity(COUNTER_STATE_INTAKE),
+      storage,
+      'storageTarget': StorageTarget.LocalStorage
+    });
+    const invalidState: unknown = { 'count': 'invalid' };
+
+    await assert.rejects(Reflect.apply(persistence.save, persistence, ['counter', invalidState]), /must be number/u);
+    assert.equal(storage.getItem('counter'), null);
+    assert.equal(await persistence.load('counter'), undefined);
   });
 
   void it('uses browser memory persistence through the same store interface', async () => {

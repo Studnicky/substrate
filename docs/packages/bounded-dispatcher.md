@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/bounded-dispatcher'
-description: Bounded work dispatch pattern composing concurrency's Semaphore, event-bus, and scheduler.
+description: Bound concurrent asynchronous work and publish its outcomes.
 ---
 
 # @studnicky/bounded-dispatcher
 
-> Bounded work dispatch pattern composing `@studnicky/concurrency`'s `Semaphore`, `@studnicky/event-bus`, and `@studnicky/scheduler`.
+> Run asynchronous work with a configurable concurrency limit, outcome events, and delayed dispatch.
 
 ## Install
 
@@ -15,65 +15,38 @@ pnpm add @studnicky/bounded-dispatcher
 
 ## Usage
 
-`BoundedDispatcher#dispatch(fn)` acquires a permit from the composed `Semaphore`, initiates a non-blocking `{ phase: 'start' }` publication on the `'dispatch'` topic, runs `fn`, initiates `{ phase: 'success', result }` or `{ phase: 'error', error }`, and releases the permit when `fn` settles. `scheduleDispatch(atMs, fn)` layers a scheduler-driven delayed dispatch on top, returning the scheduler's own cancellable task handle:
+Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`. Use `dispatch(fn)` to run a task within the configured limit. Subscribe to the `dispatch` topic for `start`, `success`, and `error` events. `scheduleDispatch(atMs, fn)` returns a cancellable task for delayed work.
 
 <<< ../../packages/bounded-dispatcher/examples/observedBoundedDispatcher.ts#usage
 
-
-## Transparency contract
-
-Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`; configuration, topic-map, and dispatch-event contracts use `@studnicky/bounded-dispatcher/interfaces`, while dispatch-event entities use `@studnicky/bounded-dispatcher/entities`. Import `Semaphore` from `@studnicky/concurrency/node`, `EventBus` from `@studnicky/event-bus/node`, and scheduler contracts from `@studnicky/scheduler/interfaces`.
-
-`BoundedDispatcherStartEventEntity` is the complete JSON start event. `BoundedDispatcherSuccessEventEntity` and `BoundedDispatcherErrorEventEntity` own the JSON phase fields composed by runtime event interfaces, which retain arbitrary callback result and error values.
-
-`BoundedDispatcher` introduces no hook of its own — every observable stage is either already covered by a composed primitive's own hooks, or surfaced as the `'dispatch'` topic on the composed `EventBus`:
+## Configure
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
-| `permits` | `number`, shorthand for `Semaphore.create({ permits })` | `1` |
-| `bus` | `EventBus` instance or `BusQueueOptionsEntity.Type` (e.g. `{ highWaterMark }`) | `EventBus.create({})` |
-| `scheduler` | `SchedulerProviderInterface` (`RealTimeScheduler` or `VirtualScheduler`) | `RealTimeScheduler.create()` |
+| `permits` | Maximum number of active tasks | `1` |
+| `bus` | An `EventBus` or bus options | A new event bus |
+| `scheduler` | A scheduler provider | A real-time scheduler |
 
-`getBus()` is the functional access path for subscribing to and draining the dispatcher-owned bus. `hookErrorCount` reports rejected lifecycle publications, and `getHookErrors()` returns their `HookInvocationError` records. The scheduler remains caller-owned when supplied; the dispatcher creates its semaphore internally from `permits` and exposes no scheduler or semaphore getter.
-
-`BoundedDispatcher` never re-exposes a stage a wrapped primitive's hook already covers. Permit-level observability stays on `Semaphore#onAcquire`/`onAcquireWait`/`onContended`/`onRelease`/`onReleaseDelegated`; dispatch-level observability is the `'dispatch'` topic reached through `getBus()`. Publication completion remains outside the permit hold. Rejections do not replace the work result or error.
-
-Passing a `VirtualScheduler` gives deterministic test fixtures for free — `scheduleDispatch()` only fires once the virtual clock is advanced past `atMs`, with no kit-side test-mode flag.
+Use `getBus()` to subscribe to events and `getHookErrors()` to inspect event-publication failures. Supply a `VirtualScheduler` when your application controls time.
 
 ## Try it
 
-Run bounded tasks, observe the completion events, and schedule a later task through the same dispatcher.
-
 <RunnableExample src="packages/bounded-dispatcher/examples/observedBoundedDispatcher" title="Bounded dispatch and scheduled work" />
-
-## Composition order
-
-`dispatch()`: acquire `Semaphore` permit (`Semaphore#withPermit`) → initiate `'dispatch'` `start` publication → run `fn` → initiate `'dispatch'` `success`/`error` publication → release the permit. Publication promises complete independently through the guarded hook invoker, so event-bus backpressure cannot throttle work concurrency. `scheduleDispatch()`: `scheduler.scheduleAt(atMs, () => dispatch(fn))` — the scheduler's own error containment applies to a rejecting `fn` the same way it does to any other scheduled callback.
-
-## When this composition tips into orchestration
-
-`BoundedDispatcher` bounds how many `fn` calls run concurrently and republishes their outcome on one bus. It has no concept of a node, a graph, or a dependency between multiple dispatches. Once a workflow needs to coordinate the *outcome* of one dispatch to decide whether or how to run another — branching, fan-out across dependent work, checkpoint/resume, or cross-dispatch retry budgets — that is workflow orchestration, not a loop of `BoundedDispatcher#dispatch()` calls glued together by hand.
-
-## Documentation
-
-Full reference: https://studnicky.github.io/substrate/packages/bounded-dispatcher
-
-[Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/bounded-dispatcher)
 
 ## Entities
 
-`@studnicky/bounded-dispatcher/entities` exports every schema namespace in `src/entities`.
+Use `@studnicky/bounded-dispatcher/entities` for JSON dispatch-event data.
 
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import { BoundedDispatcherStartEventEntity } from '@studnicky/bounded-dispatcher/entities';
 ```
 
 ## Interfaces
 
-`@studnicky/bounded-dispatcher/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+Use `@studnicky/bounded-dispatcher/interfaces` for configuration and event contracts.
 
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import type { BoundedDispatcherConfigInterface } from '@studnicky/bounded-dispatcher/interfaces';
 ```
@@ -82,4 +55,4 @@ import type { BoundedDispatcherConfigInterface } from '@studnicky/bounded-dispat
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundedDispatcher` | Provides bounded dispatcher functionality. | `@studnicky/bounded-dispatcher/node` |
+| `BoundedDispatcher` | Runs bounded asynchronous work. | `@studnicky/bounded-dispatcher/node` |

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/flag-evaluator)
 
-Registers named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolves each `evaluate()` call deterministically via `@studnicky/json/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket, so the same caller always gets the same answer. `FlagEvaluator` is **local evaluation only**: no remote fetch, no polling, no SDK/vendor coupling. This is the exact "local flag evaluation" core that OpenFeature's spec separates from its remote `Provider` — a consuming application wires its own remote-fetch/polling layer on top of this if it needs one; that boundary is deliberate, not a missing feature.
+Register boolean flags and evaluate deterministic percentage rollouts for a targeting key.
 
 ## Install
 
@@ -61,7 +61,7 @@ These are two distinct outcomes, both returning a boolean, for different reasons
 
 ## Hooks
 
-`FlagEvaluator` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Hooks should stay fast and non-blocking; observer-hook failures are contained so flag resolution still returns its canonical decision.
+Subclass `FlagEvaluator` to collect evaluation, default, and rollout-mismatch events.
 
 | Hook | Fires |
 |------|-------|
@@ -85,9 +85,6 @@ class TelemetryFlagEvaluator extends FlagEvaluator {
 
 See `examples/observedFlagEvaluator.ts` for the full runnable version, including `onDefault`.
 
-## Scope
-
-`FlagEvaluator` owns only local, in-process flag resolution — no HTTP client, no background polling, no vendor SDK. Fetching flag definitions from a remote source (LaunchDarkly, Split, a config service, an internal API) and calling `register()` with the results is entirely a consuming application's concern, matching the boundary OpenFeature's spec draws between its local evaluation core and its remote `Provider` interface.
 
 ## Documentation
 

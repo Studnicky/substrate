@@ -4,11 +4,13 @@ import type { FromSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/node';
 
+import { JsonValueSchema } from '../schema/JsonValueSchema.js';
+
 /** Canonical plain JSON object produced within the package or parsed at a boundary. */
 export namespace JsonObjectEntity {
   export const Schema = {
-    'additionalProperties': {},
-    'plainJsonValue': true,
+    ...JsonValueSchema,
+    'additionalProperties': { '$ref': '#/$defs/JsonValue' },
     'title': 'JsonObject',
     'type': 'object'
   } as const;

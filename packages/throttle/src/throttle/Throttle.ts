@@ -1,6 +1,6 @@
 import { CircularBuffer } from '@studnicky/circular-buffer/node';
 import { ConfigurationError } from '@studnicky/config/node';
-import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
 import { SampleBuffer } from '@studnicky/sample-buffer/node';
 import { Predicates } from '@studnicky/types/node';
@@ -1277,13 +1277,19 @@ export class Throttle implements ThrottleInterface {
   private static validateConfig(
     config?: Partial<ThrottleConfigEntity.Type>
   ): ValidatedThrottleConfigEntity.Type {
-    const configuration = config ?? {};
-
-    if (!ThrottleConfigEntity.validate(configuration)) {
-      throw ConfigurationError.create(EntityCompiler.formatErrors(ThrottleConfigEntity.validate.errors));
+    let configuration: Partial<ThrottleConfigEntity.Type> = {};
+    if (config !== undefined) {
+      configuration = config;
     }
-
-    const parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+    let parsedConfiguration: ThrottleConfigEntity.Type;
+    try {
+      parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw ConfigurationError.create(error.message);
+      }
+      throw error;
+    }
     const adaptive = Throttle.validateAdaptiveConfig(parsedConfiguration.adaptive);
     const concurrencyLimit = parsedConfiguration.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
 

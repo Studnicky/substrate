@@ -97,8 +97,9 @@ export class Frozen {
     return value;
   }
 
-  protected static freezeMap<T extends Map<unknown, unknown>>(value: T, frozenValues: WeakMap<object, object>): T {
-    const guardedValue = this.guardMutations(value, FROZEN_MAP_MUTATORS);
+  protected static freezeMap(value: Map<unknown, unknown>, frozenValues: WeakMap<object, object>): Map<unknown, unknown> {
+    const detachedValue = new Map<unknown, unknown>();
+    const guardedValue = this.guardMutations(detachedValue, FROZEN_MAP_MUTATORS);
     frozenValues.set(value, guardedValue);
     const entries: [unknown, unknown][] = Array.from(value.entries());
     for (let index = 0; index < entries.length; index += 1) {
@@ -108,38 +109,25 @@ export class Frozen {
       }
       const frozenKey = this.freezeValue(entry[0], frozenValues);
       const frozenItem = this.freezeValue(entry[1], frozenValues);
-      if (!Object.is(entry[0], frozenKey) || !Object.is(entry[1], frozenItem)) {
-        value.delete(entry[0]);
-        value.set(frozenKey, frozenItem);
-      }
+      detachedValue.set(frozenKey, frozenItem);
     }
 
-    Object.freeze(value);
+    Object.freeze(detachedValue);
     return guardedValue;
   }
 
-  protected static freezeSet<T extends Set<unknown>>(value: T, frozenValues: WeakMap<object, object>): T {
-    const guardedValue = this.guardMutations(value, FROZEN_SET_MUTATORS);
+  protected static freezeSet(value: Set<unknown>, frozenValues: WeakMap<object, object>): Set<unknown> {
+    const detachedValue = new Set<unknown>();
+    const guardedValue = this.guardMutations(detachedValue, FROZEN_SET_MUTATORS);
     frozenValues.set(value, guardedValue);
     const entries: unknown[] = Array.from(value.values());
-    const frozenEntries: unknown[] = [];
-    let requiresReplacement = false;
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];
       const frozenEntry = this.freezeValue(entry, frozenValues);
-      frozenEntries.push(frozenEntry);
-      if (!Object.is(entry, frozenEntry)) {
-        requiresReplacement = true;
-      }
-    }
-    if (requiresReplacement) {
-      value.clear();
-      for (let index = 0; index < frozenEntries.length; index += 1) {
-        value.add(frozenEntries[index]);
-      }
+      detachedValue.add(frozenEntry);
     }
 
-    Object.freeze(value);
+    Object.freeze(detachedValue);
     return guardedValue;
   }
 
@@ -162,9 +150,10 @@ export class Frozen {
    * Recursively freeze `value` and every object reachable from it.
    *
    * Safe against circular references via WeakMap tracking. Objects and arrays retain
-   * their identity; Map and Set references are mutation-guarded proxies.
+   * their identity; Map and Set references are detached, mutation-guarded proxies.
    */
-  public static deepFreeze<T>(value: T): T {
+  public static deepFreeze<T>(value: T): T;
+  public static deepFreeze(value: unknown): unknown {
     const frozenValues = new WeakMap<object, object>();
     if (value instanceof Map) {
       const result = this.freezeMap(value, frozenValues);

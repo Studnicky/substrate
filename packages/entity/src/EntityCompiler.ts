@@ -195,17 +195,25 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Omits explicit undefined values only for properties the schema declares. */
-  private static omitUndefinedDeclaredProperties(value: unknown, schema: object): unknown {
+  /** Omits explicit undefined values only for optional properties the schema declares. */
+  private static omitUndefinedDeclaredProperties(
+    value: unknown,
+    schema: object,
+    rootSchema: object = schema
+  ): unknown {
     if (Predicates.isArray(value)) {
-      const itemSchema = EntityCompiler.getSchemaObjectMember(schema, 'items');
-      if (itemSchema === undefined) {
+      const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
+      if (itemSchemas.length === 0) {
         const result = value;
         return result;
       }
       const result = value.map((item) => {
-        const itemResult = EntityCompiler.omitUndefinedDeclaredProperties(item, itemSchema);
-        return itemResult;
+        let normalized = item;
+        const schemaCount = itemSchemas.length;
+        for (let index = 0; index < schemaCount; index += 1) {
+          normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, itemSchemas[index]!, rootSchema);
+        }
+        return normalized;
       });
       return result;
     }
@@ -213,29 +221,137 @@ export class EntityCompiler {
       const result = value;
       return result;
     }
-    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
-    const patternProperties = EntityCompiler.getSchemaObjectMember(schema, 'patternProperties');
-    if (properties === undefined && patternProperties === undefined) {
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
       const result = value;
       return result;
     }
     const result: Record<string, unknown> = {};
-    const keys = Object.keys(value);
     for (let index = 0; index < keys.length; index += 1) {
       const key = keys[index]!;
       const item = Reflect.get(value, key);
-      const directPropertySchema = properties === undefined
-        ? undefined
-        : EntityCompiler.getSchemaObjectMember(properties, key);
-      const propertySchema = directPropertySchema ?? EntityCompiler.getPatternPropertySchema(patternProperties, key);
-      if (propertySchema === undefined) {
+      const propertySchemas = EntityCompiler.propertySchemas(schema, rootSchema, key, new Set<string>());
+      if (item === undefined) {
+        if (EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
+          continue;
+        }
         Reflect.set(result, key, item);
         continue;
       }
-      if (item === undefined) {
+      if (propertySchemas.length === 0) {
+        Reflect.set(result, key, item);
         continue;
       }
-      Reflect.set(result, key, EntityCompiler.omitUndefinedDeclaredProperties(item, propertySchema));
+      let normalized: unknown = item;
+      const schemaCount = propertySchemas.length;
+      for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
+        normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
+      }
+      Reflect.set(result, key, normalized);
+    }
+    return result;
+  }
+
+  /** Returns every object schema that declares a property through local references and composition. */
+  private static propertySchemas(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): readonly Record<string, unknown>[] {
+    const result: Record<string, unknown>[] = [];
+    const referencedSchema = EntityCompiler.referencedSchema(schema, rootSchema, references);
+    if (referencedSchema !== undefined) {
+      result.push(...EntityCompiler.propertySchemas(referencedSchema.schema, rootSchema, propertyName, referencedSchema.references));
+    }
+    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
+    const directPropertySchema = properties === undefined
+      ? undefined
+      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
+    const patternPropertySchema = directPropertySchema === undefined
+      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
+      : undefined;
+    const directSchema = directPropertySchema ?? patternPropertySchema;
+    if (directSchema !== undefined) {
+      result.push(directSchema);
+    }
+    EntityCompiler.addAllOfPropertySchemas(result, schema, rootSchema, propertyName, references);
+    const conditionalPropertySchemas = EntityCompiler.conditionalPropertySchemas(schema, rootSchema, propertyName, references);
+    if (conditionalPropertySchemas === undefined) {
+      return [];
+    }
+    result.push(...conditionalPropertySchemas);
+    return result;
+  }
+
+  /** Determines whether a declared property can be omitted in every applicable composition branch. */
+  private static isOptionalDeclaredProperty(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): boolean {
+    const referencedSchema = EntityCompiler.referencedSchema(schema, rootSchema, references);
+    const referenceOptional = referencedSchema === undefined
+      ? false
+      : EntityCompiler.isOptionalDeclaredProperty(referencedSchema.schema, rootSchema, propertyName, referencedSchema.references);
+    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
+    const directPropertySchema = properties === undefined
+      ? undefined
+      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
+    const patternPropertySchema = directPropertySchema === undefined
+      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
+      : undefined;
+    const directOptional = (directPropertySchema ?? patternPropertySchema) !== undefined
+      && !EntityCompiler.isRequiredProperty(schema, propertyName);
+    const allOfOptional = EntityCompiler.hasOptionalAllOfProperty(schema, rootSchema, propertyName, references);
+    const conditionalOptional = EntityCompiler.hasOptionalConditionalProperty(schema, rootSchema, propertyName, references);
+    const declared = referenceOptional || directOptional || allOfOptional || conditionalOptional === true;
+    if (!declared || EntityCompiler.hasRequiredDeclaredProperty(schema, rootSchema, propertyName, references)) {
+      return false;
+    }
+    const result = conditionalOptional !== false;
+    return result;
+  }
+
+  /** Adds property schemas declared by allOf branches. */
+  private static addAllOfPropertySchemas(
+    target: Record<string, unknown>[],
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): void {
+    const allOf = EntityCompiler.getSchemaArrayMember(schema, 'allOf');
+    const count = allOf.length;
+    for (let index = 0; index < count; index += 1) {
+      target.push(...EntityCompiler.propertySchemas(allOf[index]!, rootSchema, propertyName, references));
+    }
+  }
+
+  /** Requires every anyOf and oneOf branch to declare the property before it is normalized. */
+  private static conditionalPropertySchemas(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): readonly Record<string, unknown>[] | undefined {
+    const result: Record<string, unknown>[] = [];
+    const keywords = ['anyOf', 'oneOf'];
+    const keywordCount = keywords.length;
+    for (let keywordIndex = 0; keywordIndex < keywordCount; keywordIndex += 1) {
+      const branches = EntityCompiler.getSchemaArrayMember(schema, keywords[keywordIndex]!);
+      if (branches.length === 0) {
+        continue;
+      }
+      const branchCount = branches.length;
+      for (let branchIndex = 0; branchIndex < branchCount; branchIndex += 1) {
+        const branchSchemas = EntityCompiler.propertySchemas(branches[branchIndex]!, rootSchema, propertyName, references);
+        if (branchSchemas.length === 0) {
+          return undefined;
+        }
+        result.push(...branchSchemas);
+      }
     }
     return result;
   }
@@ -263,13 +379,181 @@ export class EntityCompiler {
     return undefined;
   }
 
+  /** Finds whether an allOf branch declares an optional property. */
+  private static hasOptionalAllOfProperty(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): boolean {
+    const allOf = EntityCompiler.getSchemaArrayMember(schema, 'allOf');
+    const count = allOf.length;
+    for (let index = 0; index < count; index += 1) {
+      if (EntityCompiler.isOptionalDeclaredProperty(allOf[index]!, rootSchema, propertyName, references)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Determines branch-safe optionality for anyOf and oneOf composition. */
+  private static hasOptionalConditionalProperty(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): boolean | undefined {
+    const keywords = ['anyOf', 'oneOf'];
+    const keywordCount = keywords.length;
+    let hasConditional = false;
+    for (let keywordIndex = 0; keywordIndex < keywordCount; keywordIndex += 1) {
+      const branches = EntityCompiler.getSchemaArrayMember(schema, keywords[keywordIndex]!);
+      if (branches.length === 0) {
+        continue;
+      }
+      hasConditional = true;
+      const branchCount = branches.length;
+      for (let branchIndex = 0; branchIndex < branchCount; branchIndex += 1) {
+        if (!EntityCompiler.isOptionalDeclaredProperty(branches[branchIndex]!, rootSchema, propertyName, references)) {
+          return false;
+        }
+      }
+    }
+    const result = hasConditional ? true : undefined;
+    return result;
+  }
+
+  /** Returns item schemas declared through local references and composition. */
+  private static itemSchemas(
+    schema: object,
+    rootSchema: object,
+    references: ReadonlySet<string>
+  ): readonly Record<string, unknown>[] {
+    const result: Record<string, unknown>[] = [];
+    const referencedSchema = EntityCompiler.referencedSchema(schema, rootSchema, references);
+    if (referencedSchema !== undefined) {
+      result.push(...EntityCompiler.itemSchemas(referencedSchema.schema, rootSchema, referencedSchema.references));
+    }
+    const itemSchema = EntityCompiler.getSchemaObjectMember(schema, 'items');
+    if (itemSchema !== undefined) {
+      result.push(itemSchema);
+    }
+    const allOf = EntityCompiler.getSchemaArrayMember(schema, 'allOf');
+    const allOfCount = allOf.length;
+    for (let index = 0; index < allOfCount; index += 1) {
+      result.push(...EntityCompiler.itemSchemas(allOf[index]!, rootSchema, references));
+    }
+    return result;
+  }
+
+  /** Resolves a local schema reference while preventing recursive reference loops. */
+  private static referencedSchema(
+    schema: object,
+    rootSchema: object,
+    references: ReadonlySet<string>
+  ): { readonly 'references': ReadonlySet<string>; readonly 'schema': Record<string, unknown> } | undefined {
+    const unknownReference: unknown = Reflect.get(schema, '$ref');
+    if (!Predicates.isString(unknownReference)) {
+      return undefined;
+    }
+    const reference = unknownReference;
+    if (!reference.startsWith('#') || references.has(reference)) {
+      return undefined;
+    }
+    const target = EntityCompiler.localReferenceTarget(reference, rootSchema);
+    if (target === undefined) {
+      return undefined;
+    }
+    const nextReferences = new Set(references);
+    nextReferences.add(reference);
+    const result = { 'references': nextReferences, 'schema': target };
+    return result;
+  }
+
+  /** Resolves a local JSON Pointer reference from the schema root. */
+  private static localReferenceTarget(reference: string, rootSchema: object): Record<string, unknown> | undefined {
+    if (reference === '#') {
+      const result = Predicates.isRecord(rootSchema) ? rootSchema : undefined;
+      return result;
+    }
+    if (!reference.startsWith('#/')) {
+      return undefined;
+    }
+    const segments = reference.slice(2).split('/');
+    let target: unknown = rootSchema;
+    const count = segments.length;
+    for (let index = 0; index < count; index += 1) {
+      const segment = segments[index]!.replaceAll('~1', '/').replaceAll('~0', '~');
+      if (!Predicates.isRecord(target)) {
+        return undefined;
+      }
+      target = Reflect.get(target, segment);
+    }
+    const result = Predicates.isRecord(target) ? target : undefined;
+    return result;
+  }
+
+  /** Finds whether the schema requires a property. */
+  private static isRequiredProperty(schema: object, propertyName: string): boolean {
+    const unknownRequired: unknown = Reflect.get(schema, 'required');
+    if (!Predicates.isArray(unknownRequired)) {
+      return false;
+    }
+    const result = unknownRequired.some((item) => {
+      const matchesProperty = item === propertyName;
+      return matchesProperty;
+    });
+    return result;
+  }
+
+  /** Finds whether any applicable schema branch requires a property. */
+  private static hasRequiredDeclaredProperty(
+    schema: object,
+    rootSchema: object,
+    propertyName: string,
+    references: ReadonlySet<string>
+  ): boolean {
+    if (EntityCompiler.isRequiredProperty(schema, propertyName)) {
+      return true;
+    }
+    const referencedSchema = EntityCompiler.referencedSchema(schema, rootSchema, references);
+    if (referencedSchema !== undefined
+      && EntityCompiler.hasRequiredDeclaredProperty(referencedSchema.schema, rootSchema, propertyName, referencedSchema.references)) {
+      return true;
+    }
+    const keywords = ['allOf', 'anyOf', 'oneOf'];
+    const keywordCount = keywords.length;
+    for (let keywordIndex = 0; keywordIndex < keywordCount; keywordIndex += 1) {
+      const branches = EntityCompiler.getSchemaArrayMember(schema, keywords[keywordIndex]!);
+      const branchCount = branches.length;
+      for (let branchIndex = 0; branchIndex < branchCount; branchIndex += 1) {
+        if (EntityCompiler.hasRequiredDeclaredProperty(branches[branchIndex]!, rootSchema, propertyName, references)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Returns an array of object-valued schemas from a composition member. */
+  private static getSchemaArrayMember(schema: object, key: string): readonly Record<string, unknown>[] {
+    const member: unknown = Reflect.get(schema, key);
+    if (!Predicates.isArray(member)) {
+      return [];
+    }
+    const result = member.filter((item): item is Record<string, unknown> => {
+      const isObjectSchema = Predicates.isRecord(item);
+      return isObjectSchema;
+    });
+    return result;
+  }
+
   /** Returns an object-valued schema member when it is present. */
   private static getSchemaObjectMember(schema: object, key: string): Record<string, unknown> | undefined {
     const member: unknown = Reflect.get(schema, key);
     const result = Predicates.isRecord(member) ? member : undefined;
     return result;
   }
-
   private static schemaValidator<TValidated>(
     registry: SchemaRegistryInterface,
     schema: object

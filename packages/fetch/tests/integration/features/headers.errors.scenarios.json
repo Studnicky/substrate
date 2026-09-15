@@ -152,20 +152,18 @@
       }
     },
     {
-      "name": "headers-null-accepted",
-      "description": "FetchClient accepts null headers",
+      "name": "headers-null",
+      "description": "FetchClient rejects null headers through entity intake",
       "input": {
         "clientConfig": {
           "headers": null
-        },
-        "request": {
-          "method": "GET",
-          "path": "/posts/1"
         }
       },
       "expected": {
-        "shape": "ok",
-        "status": 200
+        "shape": "reject",
+        "messageIncludes": [
+          "headers"
+        ]
       }
     },
     {

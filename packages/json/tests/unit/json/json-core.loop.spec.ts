@@ -734,6 +734,25 @@ void describe('Frozen nested collection protection', () => {
     assert.throws(() => nestedSet.add({ 'id': 2 }), FrozenMutationError);
   });
 
+  void it('detaches Map and Set snapshots from caller-held collection aliases', () => {
+    const sourceMap = new Map<string, unknown>([['member', { 'id': 1 }]]);
+    const sourceSet = new Set<unknown>(['member']);
+    const frozenMap = Frozen.deepFreeze(sourceMap);
+    const frozenSet = Frozen.deepFreeze(sourceSet);
+
+    sourceMap.set('late', { 'id': 2 });
+    sourceMap.delete('member');
+    sourceSet.add('late');
+    sourceSet.delete('member');
+
+    assert.equal(frozenMap.size, 1);
+    assert.ok(frozenMap.has('member'));
+    assert.equal(frozenSet.size, 1);
+    assert.ok(frozenSet.has('member'));
+    assert.throws(() => frozenMap.set('other', 3), FrozenMutationError);
+    assert.throws(() => frozenSet.add('other'), FrozenMutationError);
+  });
+
   void it('preserves guarded collection references through a cyclic object graph', () => {
     const collection = new Map<unknown, unknown>();
     const source: Record<string, unknown> = { 'collection': collection };

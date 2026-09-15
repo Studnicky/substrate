@@ -13,13 +13,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$repo/docs/packages" "$repo/packages/alpha/examples" "$repo/packages/beta/examples" "$repo/packages/context/examples"
+mkdir -p "$repo/docs/packages" "$repo/docs/.vitepress/theme/utils" "$repo/packages/alpha/examples" "$repo/packages/beta/examples" "$repo/packages/context/examples"
 printf "%s\n" "{\"name\":\"@test/alpha\"}" > "$repo/packages/alpha/package.json"
 printf "%s\n" "{\"name\":\"@test/beta\"}" > "$repo/packages/beta/package.json"
 printf "%s\n" "{\"name\":\"@test/context\"}" > "$repo/packages/context/package.json"
 printf "%s\n" "export {};" > "$repo/packages/alpha/examples/basic.ts"
 printf "%s\n" "export {};" > "$repo/packages/beta/examples/basic.ts"
 printf "%s\n" "export {};" > "$repo/packages/context/examples/browser.ts"
+printf "%s\n" "[\"packages/alpha/examples/basic\",\"packages/beta/examples/basic\",\"packages/context/examples/browser\"]" > "$repo/docs/.vitepress/theme/utils/ExampleSourcePaths.json"
 printf "%s\n" "<RunnableExample src=\"packages/alpha/examples/basic\" />" > "$repo/docs/packages/alpha.md"
 printf "%s\n" "<RunnableExample src=\"packages/beta/examples/basic\" />" > "$repo/docs/packages/beta.md"
 printf "%s\n" "<RunnableExample src=\"packages/context/examples/browser\" />" > "$repo/docs/packages/context.md"

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { isBuiltin } from 'node:module';
+import { findPackageJSON, isBuiltin } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   type CompilerOptions,
   ModuleKind,
@@ -57,6 +58,16 @@ export class NodeProjectHost implements ProjectHostInterface {
   public realPath(path: string): string | undefined {
     try {
       const result = realpathSync(path);
+
+      return result;
+    } catch {
+      return undefined;
+    }
+  }
+
+  public resolvePackageManifest(packageName: string, importerFilename: string): string | undefined {
+    try {
+      const result = findPackageJSON(packageName, pathToFileURL(importerFilename));
 
       return result;
     } catch {

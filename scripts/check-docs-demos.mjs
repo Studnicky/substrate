@@ -43,19 +43,71 @@ function getRunnableSources(content) {
   return sources;
 }
 
-function sourceExists(repoRoot, source) {
-  return existsSync(path.join(repoRoot, `${source}.ts`)) || existsSync(path.join(repoRoot, source, 'index.ts'));
+function resolveSourceCanonical(repoRoot, source) {
+  if (existsSync(path.join(repoRoot, `${source}.ts`))) {
+    return source;
+  }
+
+  const indexCanonical = `${source}/index`;
+  return existsSync(path.join(repoRoot, `${indexCanonical}.ts`)) ? indexCanonical : undefined;
+}
+
+function sourceHasRegisteredLoader(repoRoot, source, registeredSourcePaths) {
+  const canonical = resolveSourceCanonical(repoRoot, source);
+  return canonical !== undefined && registeredSourcePaths.has(canonical);
+}
+
+async function findExampleSourcePaths(repoRoot, directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const result = [];
+
+  for (const entry of entries) {
+    const filePath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      result.push(...await findExampleSourcePaths(repoRoot, filePath));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith('.ts')) {
+      result.push(path.relative(repoRoot, filePath).replace(/\.ts$/, '').split(path.sep).join('/'));
+    }
+  }
+
+  return result;
 }
 
 const repoRoot = resolveRepoRoot();
 const packagesRoot = path.join(repoRoot, 'packages');
 const docsPackagesRoot = path.join(repoRoot, 'docs', 'packages');
+const sourceRegistryPath = path.join(repoRoot, 'docs', '.vitepress', 'theme', 'utils', 'ExampleSourcePaths.json');
+const registeredSourcePaths = new Set(JSON.parse(await readFile(sourceRegistryPath, 'utf8')));
 const entries = await readdir(packagesRoot, { withFileTypes: true });
 const packageNames = entries
   .filter((entry) => entry.isDirectory() && existsSync(path.join(packagesRoot, entry.name, 'package.json')))
   .map((entry) => entry.name)
   .toSorted((left, right) => left.localeCompare(right));
 const violations = [];
+
+for (const source of registeredSourcePaths) {
+  if (typeof source !== 'string' || resolveSourceCanonical(repoRoot, source) === undefined) {
+    violations.push(`ExampleSources registry references missing source ${String(source)}.`);
+  }
+}
+
+for (const packageName of packageNames) {
+  const examplesDirectory = path.join(packagesRoot, packageName, 'examples');
+
+  if (!existsSync(examplesDirectory)) {
+    continue;
+  }
+
+  const exampleSources = await findExampleSourcePaths(repoRoot, examplesDirectory);
+  for (const source of exampleSources) {
+    if (!registeredSourcePaths.has(source)) {
+      violations.push(`ExampleSources registry is missing loader source ${source}.`);
+    }
+  }
+}
 
 for (const packageName of packageNames) {
   const docPath = path.join(docsPackagesRoot, `${packageName}.md`);
@@ -74,15 +126,19 @@ for (const packageName of packageNames) {
   }
 
   const packageExamplePrefix = `packages/${packageName}/examples/`;
-  const validSource = sources.find((source) => source.startsWith(packageExamplePrefix) && sourceExists(repoRoot, source));
+  const validSource = sources.find((source) => source.startsWith(packageExamplePrefix) && sourceHasRegisteredLoader(repoRoot, source, registeredSourcePaths));
 
   if (validSource === undefined) {
     violations.push(`docs/packages/${packageName}.md must reference an existing ${packageExamplePrefix}*.ts source from <RunnableExample>.`);
   }
 
   for (const source of sources) {
-    if (!source.startsWith(packageExamplePrefix) || !sourceExists(repoRoot, source)) {
+    const canonical = resolveSourceCanonical(repoRoot, source);
+
+    if (!source.startsWith(packageExamplePrefix) || canonical === undefined) {
       violations.push(`docs/packages/${packageName}.md references invalid runnable demo source ${source}.`);
+    } else if (!registeredSourcePaths.has(canonical)) {
+      violations.push(`docs/packages/${packageName}.md declares runnable demo source ${source} without an ExampleSources loader.`);
     }
   }
 }

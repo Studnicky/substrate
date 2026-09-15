@@ -4,10 +4,13 @@ import type { FromSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/node';
 
+import { JsonValueSchema } from '../schema/JsonValueSchema.js';
+
 /** One fully specified RFC-6902 operation with the operands its opcode requires. */
 export namespace PatchOperationEntity {
   // The shared schema declares the allowed operation fields once; `allOf` expresses opcode-specific constraints.
   export const Schema = {
+    ...JsonValueSchema,
     'additionalProperties': false,
     'allOf': [
       { 'anyOf': [{ 'not': { 'properties': { 'op': { 'const': 'add' } } } }, { 'not': { 'properties': { 'from': {} }, 'required': ['from'] }, 'properties': { 'value': {} }, 'required': ['value'] }] },
@@ -33,12 +36,7 @@ export namespace PatchOperationEntity {
       'from': { 'type': 'string' },
       'op': { 'enum': ['add', 'copy', 'move', 'remove', 'replace', 'test'] },
       'path': { 'type': 'string' },
-      'value': {
-        'additionalProperties': {},
-        'items': {},
-        'plainJsonValue': true,
-        'type': ['array', 'boolean', 'null', 'number', 'object', 'string']
-      }
+      'value': { '$ref': '#/$defs/JsonValue' }
     },
     'required': ['op', 'path'],
     'title': 'PatchOperation',

@@ -90,10 +90,13 @@ void describe('no-redefined-external-types', () => {
         type: 'module'
       }));
       writeFileSync(join(contractsRoot, 'package.json'), JSON.stringify({
-        name: '@fixture/contracts',
-        types: './index.d.ts'
+        exports: {
+          './interfaces': { import: './interfaces.js', types: './interfaces.d.ts' },
+          './runtime': { import: './runtime.js' }
+        },
+        name: '@fixture/contracts'
       }));
-      writeFileSync(join(contractsRoot, 'index.d.ts'), [
+      writeFileSync(join(contractsRoot, 'interfaces.d.ts'), [
         "export * from './options.js';",
         "export { type ExternalResult } from './result.js';",
         'interface InternalExternalStatus { readonly status: string; }',
@@ -108,6 +111,7 @@ void describe('no-redefined-external-types', () => {
       writeFileSync(join(transitiveRoot, 'index.d.ts'), 'export interface TransitiveOptions { readonly code: string; }');
 
       const redefinitions = lint([
+        'import type { ExternalOptions } from "@fixture/contracts/interfaces";',
         'export interface RebuiltOptions { readonly label: string; readonly retries: number; }',
         'export type RebuiltResult = { readonly value: string; };',
         'export interface RebuiltStatus { readonly status: string; }',
@@ -115,7 +119,7 @@ void describe('no-redefined-external-types', () => {
         'export interface TransitiveOptions { readonly code: string; }'
       ].join('\n'), join(root, 'src', 'redefinitions.ts'), root);
       const composition = lint([
-        'import type { ExternalOptions } from "@fixture/contracts";',
+        'import type { ExternalOptions } from "@fixture/contracts/interfaces";',
         'export interface ComposedOptions extends ExternalOptions { readonly auditLabel: string; }'
       ].join('\n'), join(root, 'src', 'composition.ts'), root);
 
@@ -126,9 +130,9 @@ void describe('no-redefined-external-types', () => {
           ruleId: message.ruleId
         };
       }), [
-        { line: 1, messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' },
         { line: 2, messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' },
-        { line: 3, messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' }
+        { line: 3, messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' },
+        { line: 4, messageId: 'redefined-external-type', ruleId: 'test/no-redefined-external-types' }
       ]);
       assert.deepEqual(composition, []);
     } finally {
@@ -329,7 +333,7 @@ void describe('no-redefined-external-types', () => {
     const applicationRoot = '/browser-project';
     const dependencyRoot = '/browser-project/dependencies/fixture-contracts';
     const entry = `${applicationRoot}/src/redefinitions.ts`;
-    const dependencyEntry = `${dependencyRoot}/index.d.ts`;
+    const dependencyEntry = `${dependencyRoot}/interfaces.d.ts`;
     const dependencyTypes = `${dependencyRoot}/options.d.ts`;
     const files = new Map<string, string>([
       [`${applicationRoot}/package.json`, JSON.stringify({
@@ -337,8 +341,11 @@ void describe('no-redefined-external-types', () => {
         name: 'browser-project'
       })],
       [`${dependencyRoot}/package.json`, JSON.stringify({
-        name: '@fixture/contracts',
-        types: './index.d.ts'
+        exports: {
+          './interfaces': { import: './interfaces.js', types: './interfaces.d.ts' },
+          './runtime': { import: './runtime.js' }
+        },
+        name: '@fixture/contracts'
       })],
       [dependencyEntry, "export { type ExternalOptions } from './options.js';"],
       [dependencyTypes, 'export interface ExternalOptions { readonly label: string; readonly retries: number; }']
@@ -363,8 +370,15 @@ void describe('no-redefined-external-types', () => {
 
         return result;
       },
+      'resolvePackageManifest': (packageName) => {
+        const result = packageName === '@fixture/contracts'
+          ? dependencyRoot + '/package.json'
+          : undefined;
+
+        return result;
+      },
       'resolveModule': (moduleSpecifier, importerFilename) => {
-        if (moduleSpecifier === '@fixture/contracts' && importerFilename === entry) {
+        if (moduleSpecifier === '@fixture/contracts/interfaces' && importerFilename === entry) {
           return dependencyEntry;
         }
         if (moduleSpecifier === './options.js' && importerFilename === dependencyEntry) {

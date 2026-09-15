@@ -4,14 +4,14 @@ import type { FromSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/node';
 
+import { JsonValueSchema } from '../schema/JsonValueSchema.js';
+
 /** Canonical finite, acyclic JSON data from an external boundary. */
 export namespace JsonValueEntity {
   export const Schema = {
-    'additionalProperties': {},
-    'items': {},
-    'plainJsonValue': true,
-    'title': 'JsonValue',
-    'type': ['array', 'boolean', 'null', 'number', 'object', 'string']
+    ...JsonValueSchema,
+    '$ref': '#/$defs/JsonValue',
+    'title': 'JsonValue'
   } as const;
 
   export type Type = FromSchema<

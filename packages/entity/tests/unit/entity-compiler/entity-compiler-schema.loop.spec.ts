@@ -156,6 +156,56 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.deepEqual(intake(input), input);
     assert.deepEqual(input, { 'ok': true, 'result': { 'id': 'result-1' } });
   });
+  void it('omits optional undefined properties through nested allOf and local references', () => {
+    const intake = EntityCompiler.compileIntake<Record<string, unknown>>({
+      '$defs': {
+        'baseOptions': {
+          'properties': { 'method': { 'type': 'string' } },
+          'type': 'object'
+        },
+        'extendedOptions': {
+          'allOf': [
+            { '$ref': '#/$defs/baseOptions' },
+            {
+              'properties': { 'retries': { 'type': 'integer' } },
+              'type': 'object'
+            }
+          ],
+          'type': 'object'
+        }
+      },
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-composed-undefined',
+      'additionalProperties': false,
+      'properties': { 'options': { '$ref': '#/$defs/extendedOptions' } },
+      'type': 'object'
+    });
+
+    assert.deepEqual(intake({ 'options': { 'method': undefined } }), { 'options': {} });
+    assert.throws(() => intake({ 'options': { 'method': undefined, 'retries': 'many' } }), /\/options\/retries: must be integer/u);
+  });
+
+  void it('omits undefined properties only when every conditional branch declares them optional', () => {
+    const safeIntake = EntityCompiler.compileIntake<Record<string, unknown>>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-safe-conditional-undefined',
+      'anyOf': [
+        { 'properties': { 'option': { 'type': 'string' } }, 'type': 'object' },
+        { 'properties': { 'option': { 'maxLength': 10, 'type': 'string' } }, 'type': 'object' }
+      ],
+      'type': 'object'
+    });
+    const unsafeIntake = EntityCompiler.compileIntake<Record<string, unknown>>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-unsafe-conditional-undefined',
+      'anyOf': [
+        { 'properties': { 'option': { 'type': 'string' } }, 'type': 'object' },
+        { 'properties': { 'other': { 'type': 'string' } }, 'type': 'object' }
+      ],
+      'type': 'object'
+    });
+
+    assert.deepEqual(safeIntake({ 'option': undefined }), {});
+    assert.throws(() => unsafeIntake({ 'option': undefined }), /\/option: undefined is not valid JSON data/u);
+  });
+
 
   void it('omits declared undefined properties while rejecting undeclared properties and undefined array values', () => {
     const objectIntake = EntityCompiler.compileIntake<{ optional?: string }>({

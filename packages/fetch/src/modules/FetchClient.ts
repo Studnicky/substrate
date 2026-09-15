@@ -767,19 +767,7 @@ export class FetchClient implements FetchClientInterface {
       'signal': signalComposer,
       ...configData
     } = config;
-    const intakeData: object = {};
-    const configKeys = Object.keys(configData);
-    const configKeyLength = configKeys.length;
-    for (let index = 0; index < configKeyLength; index += 1) {
-      const key = configKeys[index];
-      if (key === undefined) {
-        continue;
-      }
-      const value: unknown = Reflect.get(configData, key);
-      if (value !== null) {
-        Reflect.set(intakeData, key, value);
-      }
-    }
+    const intakeData = configData;
     if (!Predicates.isNullish(configData.hookTimeoutMs) && !Predicates.isNumberType(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be a number');
     }

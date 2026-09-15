@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/worker-pool)
 
-Composes `@studnicky/batch`, `@studnicky/system`, and `@studnicky/signal` into a bounded `node:worker_threads` pool. `run()` fans a list of work items across at most `concurrency` concurrently-running workers, admits up to `batchConcurrency` items into each `Batch#process()` scheduling window, reuses each worker for later items in that run, terminates the live workers after dispatched work settles, and resolves an ordered results array. Every envelope a worker posts back (`log`, `progress`, `result`, `error`) fires `onMessage()`; a `'result'` envelope resolves that item, while an `'error'` envelope, an uncaught worker error, a repeated unexpected mid-task exit, or exceeding `timeoutMs` rejects it.
+Run work concurrently through Node worker threads or browser Web Workers. Configure a worker path and concurrency, then call `run(items)` for ordered results.
 
 ## Install
 
@@ -32,26 +32,26 @@ const pool = WorkerPool.create({
 const results = await pool.run([1, 2, 3, 4, 5]);
 ```
 
-`concurrency` defaults to `System.optimalWorkerCount` (logical CPU count minus one) when omitted. `batchConcurrency` defaults to `concurrency`; set it higher only when callers intentionally want a wider admission window than the worker count. `timeoutMs` is optional — omit it for no per-task timeout.
+`concurrency` limits active workers. `batchConcurrency` controls queued-work admission, and `timeoutMs` limits each task.
 
-For each dispatched task, the pool awaits `signal.compose({ deadlineMs: timeoutMs, signal: abortSignal })` before posting the item to its worker. `signal` is the portable `Signal` primitive; `abortSignal` is an optional caller cancellation source. Signal hooks and composition failures therefore settle before task execution begins, while queued time remains outside the per-task deadline.
+Pass `abortSignal` to cancel a task. Pass `signal` when your application supplies a `Signal` implementation.
 
-The worker entry script receives each item via a single `postMessage` and responds with one of three entities from `@studnicky/worker-pool/entities` — `WorkerLogEnvelopeEntity.Type`, `WorkerProgressEnvelopeEntity.Type`, and `WorkerErrorEnvelopeEntity.Type` — plus the generic `WorkerResultEnvelopeInterface<TResult>` from `@studnicky/worker-pool/interfaces`. Their `type` discriminants are `log`, `progress`, `result`, and `error`, respectively.
+Workers post `log`, `progress`, `result`, and `error` envelopes. Import message entities from `@studnicky/worker-pool/entities` and generic message contracts from `@studnicky/worker-pool/interfaces`.
 
-Schema-backed configuration, envelope, lifecycle, and task values are available from `@studnicky/worker-pool/entities`. Type-only worker contracts are available from `@studnicky/worker-pool/interfaces`.
+Use the entity and interfaces subpaths for worker configuration, envelopes, and shared contracts.
 
 ## Ordering and failure semantics
 
-`run()` delegates its scheduling loop directly to `Batch#process()`, so it inherits that method's semantics:
+`run()` preserves input order and rejects if an item fails. An unexpected worker exit receives one replacement attempt.
 
 - **Order preserved.** Results resolve in the same order as the input `items`, regardless of which worker finishes first.
-- **Fail-fast.** The first item to reject makes the whole `run()` call reject — `Promise.all`-like, matching `Batch`'s own default (`process()`, not `processSettled()`). Items already in flight in the same concurrency batch are not aborted when a sibling rejects; only items in batches that have not started yet never spawn. A caller that needs every item's outcome regardless of individual failures should drive `WorkerPool` per-item itself rather than through `run()`.
+- **Fail-fast.** The first item error rejects `run()`. Items already running continue to settle.
 
-An unexpected worker exit during a task retries that item once on a freshly spawned replacement worker. A second unexpected mid-task exit rejects the item.
+Each `run()` call uses up to `concurrency` workers and closes them after the call settles.
 
 ## Per-run worker reuse and teardown
 
-Each call to `run()` creates its own pool of at most `concurrency` workers. An idle worker receives the next queued item in that run; workers are not retained across separate `run()` calls. After the dispatched task promises settle, `run()` terminates every live worker and waits for those termination attempts before it resolves or rejects.
+Each `run()` call uses up to `concurrency` workers and closes them after the call settles.
 
 ## API reference
 
@@ -64,7 +64,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 
 ## Hooks
 
-`WorkerPool` has no observability of its own by default — override these protected hooks in a subclass to add logging/tracing/metrics. Hooks should stay fast and non-blocking; observer-hook failures are contained so worker execution still resolves or rejects through the canonical task outcome.
+Override these protected hooks to collect logging, tracing, or metrics.
 
 | Hook | Fires |
 |------|-------|
@@ -72,7 +72,7 @@ Each call to `run()` creates its own pool of at most `concurrency` workers. An i
 | `onWorkerTimeout(index)` | When a task exceeds its configured `timeoutMs`, immediately before the worker is terminated |
 | `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, or termination fails |
 
-A hook override that throws or rejects does not abort a worker's task settlement — the failure is recorded instead of propagating, backed internally by `@studnicky/errors`'s `HookInvoker`. Inspect recorded failures via `getHookErrorCount()`/`getHookErrors()`.
+Use `getHookErrorCount()` and `getHookErrors()` to inspect hook failures.
 
 ```typescript
 import type {
@@ -113,16 +113,6 @@ const results = await pool.run([{ n: 5 }, { n: 10 }, { n: 15 }]);
 
 See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWorkerPoolWorker.mjs` for the full runnable version.
 
-## Scope
-
-`WorkerPool` is the generic worker-thread fan-out/collect kernel underneath two independently hand-rolled implementations found elsewhere in the wider project family — it owns only worker lifecycle, typed dispatch, bounded concurrency, and per-task timeout. It has no DAG/RPC request-routing semantics, no persistence, and no workflow-DSL; a consumer building a request/response protocol on top of the envelope contract (routing, correlation IDs, retries per message type) layers that on top of `WorkerPool`, not inside it.
-
-## Runtime entrypoints
-
-`WorkerPool` is available from `@studnicky/worker-pool/node` and uses `node:worker_threads`.
-`WebWorkerPool` is available from `@studnicky/worker-pool/browser` and uses native Web Workers.
-Both implement `WorkerPoolInterface` and use the same `Signal`, `abortSignal`, `timeoutMs`, `run()`,
-and `close()` semantics.
 
 ## Documentation
 

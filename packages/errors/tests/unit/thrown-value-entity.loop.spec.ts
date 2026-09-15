@@ -1,4 +1,3 @@
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -16,8 +15,9 @@ import {
   PROBLEM_TYPE_THROWN_PRIMITIVE,
   PROBLEM_TYPE_THROWN_STRING
 } from '../../src/constants/ProblemConstants.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
-
+import { ThrownValueProjection } from '../../src/validation/thrownValueProjection.js';
 void describe('ThrownValueEntity', () => {
   void it('is total: never throws for cyclic objects, functions, symbols, and caught-value shapes', () => {
     const cyclic: Record<string, unknown> = {};
@@ -99,6 +99,24 @@ void describe('ThrownValueEntity', () => {
     const result = ThrownValueEntity.intake(hostile);
     assert.deepEqual(result, { 'detail': '' , 'title': PROBLEM_TITLE_THROWN_OBJECT, 'type': PROBLEM_TYPE_THROWN_OBJECT });
   });
+  void it('projects hostile Error accessors without throwing and stops at an unreadable cause', () => {
+    const hostile = new Error('ignored');
+    Object.defineProperties(hostile, {
+      'cause': { 'configurable': true, 'get': () => { throw RuntimeError.create('cause getter'); } },
+      'message': { 'configurable': true, 'get': () => { throw RuntimeError.create('message getter'); } },
+      'name': { 'configurable': true, 'get': () => { throw RuntimeError.create('name getter'); } },
+      'stack': { 'configurable': true, 'get': () => { throw RuntimeError.create('stack getter'); } }
+    });
+
+    assert.doesNotThrow(() => ThrownValueProjection.project(hostile));
+    assert.doesNotThrow(() => ThrownValueEntity.intake(hostile));
+    assert.deepEqual(ThrownValueEntity.intake(hostile), {
+      'detail': '',
+      'title': PROBLEM_TITLE_ERROR,
+      'type': PROBLEM_TYPE_ERROR
+    });
+  });
+
 
   void it('does not fabricate a message for an object with no message property', () => {
     const result = ThrownValueEntity.intake({ 'other': true });

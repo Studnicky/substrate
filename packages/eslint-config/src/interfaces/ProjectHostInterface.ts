@@ -10,5 +10,7 @@ export interface ProjectHostInterface {
 
   resolveModule(moduleSpecifier: string, importerFilename: string): string | undefined;
 
+  resolvePackageManifest?(packageName: string, importerFilename: string): string | undefined;
+
   resolveRelativePath(importerFilename: string, relativeSpecifier: string): string;
 }

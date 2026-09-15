@@ -10,7 +10,6 @@
 import * as addFormatsModule from 'ajv-formats';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 
-import { PLAIN_JSON_VALUE_KEYWORD } from './PlainJsonValueKeyword.js';
 
 /** Assert validation stays non-mutating so `compile` remains a pure predicate. */
 const ajvInstance = new Ajv2020({
@@ -39,9 +38,6 @@ addFormatsModule.default.default(ajvInstance);
 addFormatsModule.default.default(ajvIntakeInstance);
 addFormatsModule.default.default(ajvCreateInstance);
 
-ajvInstance.addKeyword(PLAIN_JSON_VALUE_KEYWORD);
-ajvIntakeInstance.addKeyword(PLAIN_JSON_VALUE_KEYWORD);
-ajvCreateInstance.addKeyword(PLAIN_JSON_VALUE_KEYWORD);
 
 /** The isolated Ajv instances that back assertion, intake, and creation. */
 export const EntityAjvInstance = {

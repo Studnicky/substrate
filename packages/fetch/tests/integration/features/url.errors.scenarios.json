@@ -98,14 +98,17 @@
     },
     {
       "name": "baseurl-null",
-      "description": "FetchClient accepts a null baseURL",
+      "description": "FetchClient rejects a null baseURL through entity intake",
       "input": {
         "clientConfig": {
           "baseURL": null
         }
       },
       "expected": {
-        "shape": "create-ok"
+        "shape": "create-throws",
+        "messageIncludes": [
+          "baseURL"
+        ]
       }
     },
     {

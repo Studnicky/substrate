@@ -6,7 +6,7 @@ import type { StateCodecInterface } from './interfaces/StateCodecInterface.js';
 export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   readonly #decodeValue: (value: unknown) => TState;
 
-  readonly #encodeValue: (state: TState) => string = JSON.stringify;
+  readonly #entityIntake: EntityIntakeFunctionInterface<TState> | undefined;
 
   public static create<TState>(options: JsonStateCodecOptionsInterface<TState>): JsonStateCodec<TState> {
     const result = new JsonStateCodec(options);
@@ -15,13 +15,17 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   }
 
   public static fromEntity<TState>(intake: EntityIntakeFunctionInterface<TState>): JsonStateCodec<TState> {
-    const result = new JsonStateCodec({ 'decode': intake });
+    const result = new JsonStateCodec({ 'decode': intake }, intake);
 
     return result;
   }
 
-  protected constructor(options: JsonStateCodecOptionsInterface<TState>) {
+  protected constructor(
+    options: JsonStateCodecOptionsInterface<TState>,
+    entityIntake: EntityIntakeFunctionInterface<TState> | undefined = undefined
+  ) {
     this.#decodeValue = options.decode;
+    this.#entityIntake = entityIntake;
   }
 
   public decode(serialized: string): TState {
@@ -33,7 +37,12 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   }
 
   public encode(state: TState): string {
-    const result = this.#encodeValue(state);
+    const normalized = this.#entityIntake === undefined ? state : this.#entityIntake(state);
+    const result = JSON.stringify(normalized);
+
+    if (typeof result !== 'string') {
+      throw new TypeError('JSON state serialization must produce a string');
+    }
 
     return result;
   }

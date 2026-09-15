@@ -66,10 +66,13 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
   }
 }

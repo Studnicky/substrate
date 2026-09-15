@@ -49,6 +49,13 @@ void describe('fetch data entities', () => {
     assert.throws(() => {
       ClientConfigDataEntity.intake({ 'unexpected': true });
     }, /must NOT have additional properties/);
+  void it('omits an undefined composed request method while retaining nested validation', () => {
+    assert.deepStrictEqual(ClientConfigDataEntity.intake({ 'options': { 'method': undefined } }), { 'options': {} });
+    assert.throws(() => {
+      ClientConfigDataEntity.intake({ 'options': { 'headers': { 'authorization': 3 }, 'method': undefined } });
+    }, /\/options\/headers\/authorization: must be string/u);
+  });
+
   });
   void it('intakes query parameters as JSON-safe data', () => {
     const input = { 'active': true, 'tags': ['typescript', null] };

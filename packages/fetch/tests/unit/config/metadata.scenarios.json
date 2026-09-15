@@ -14,9 +14,12 @@
     },
     {
       "name": "metadata-null",
-      "description": "ValidateMetadata accepts null",
+      "description": "FetchClient rejects null metadata through entity intake",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "metadata"
+        ]
       },
       "input": {
         "metadata": null

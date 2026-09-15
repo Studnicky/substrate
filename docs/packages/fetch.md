@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/fetch'
-description: Portable fetch contracts with Node Undici and browser-native adapters.
+description: HTTP clients for Node.js and browsers with shared request contracts.
 ---
 
 # @studnicky/fetch
 
-> Portable HTTP client contracts with Node Undici and browser-native adapters.
+> Make HTTP requests with Node and browser clients that share configuration and request contracts.
 
 ## Install
 
@@ -13,68 +13,42 @@ description: Portable fetch contracts with Node Undici and browser-native adapte
 pnpm add @studnicky/fetch
 ```
 
-Import Node runtime APIs from `@studnicky/fetch/node` and browser runtime APIs from `@studnicky/fetch/browser`. Package-owned interfaces and entities retain their canonical `@studnicky/fetch/interfaces` and `@studnicky/fetch/entities` subpaths. `BrowserFetchClient` delegates directly to native `fetch`.
+## Choose a runtime
 
-`FetchClient` owns an enabled connection-pool Agent internally. Direct `UndiciDispatcher` use accepts a caller-owned `undici` `Agent`; retain that Agent for request dispatch and use `UndiciDispatcher` for health checks and lifecycle management.
-
-## Try it
-
-A real `GET` over native `fetch`, with override hooks and a timeout — press Run to watch it fetch live:
-
-<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET over native browser fetch" />
+Import Node APIs from `@studnicky/fetch/node` and browser APIs from `@studnicky/fetch/browser`. Import shared types and JSON entities from `@studnicky/fetch/interfaces` and `@studnicky/fetch/entities`.
 
 ## Usage
 
 <<< ../../packages/fetch/examples/01-client-config.ts#usage
 
-### Request methods
+`get`, `head`, `options`, and `delete` accept `FetchOptionsInterface`. `post`, `put`, and `patch` also accept a request body.
 
-`FetchClient.create(config?)` accepts shared `baseURL`, headers, query parameters, timeout, metadata, request-ID, fetch-option, hook-timeout, dispatcher settings, an optional `Signal` composer, and an optional clock provider for Node request durations. Requests execute through the canonical verb methods:
+## Browser demo
 
-| Methods | Options |
-|---------|---------|
-| `get`, `head`, `options`, `delete` | `FetchOptionsInterface` |
-| `post`, `put`, `patch` | `BodyRequestOptionsInterface` with optional body serialization |
+<RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET with browser fetch" />
 
-### Override hooks
+## Customize requests
 
-`FetchClient` exposes two protected lifecycle hooks that subclasses override to transform the outgoing request or incoming response. These two hooks are in-band behavioral seams: they can mutate the request/response flow directly, and if they throw, the request fails through the normal error path.
-
-| Hook | Signature | Purpose |
-|------|-----------|---------|
-| `onRequest` | `(context: RequestContextInterface): Promise<RequestContextInterface>` | Mutate `context.url`, `context.options`, or `context.metadata` before the request is sent |
-| `onResponse` | `(context: ResponseContextInterface): Promise<ResponseContextInterface>` | Inspect or replace `context.response` after the raw response arrives |
-
-`RequestContextInterface` carries `url`, `options`, and `metadata`. `ResponseContextInterface` carries `response` and `request`. The base implementations return the context unchanged; un-subclassed instances behave as if the hooks are absent.
+Subclass `FetchClient` and override `onRequest` to update the outgoing request context or `onResponse` to inspect or replace the response context.
 
 <<< ../../packages/fetch/examples/02-override-hooks.ts#usage
 
-### URL utilities
+## Configure and observe
 
-| Export | Purpose |
-|--------|---------|
-| `UrlQueryString` | Static helpers for building and parsing URLs |
+Configure shared `baseURL`, headers, query parameters, timeouts, metadata, request IDs, and dispatcher settings with `FetchClient.create`. Use `UrlQueryString` to build and parse query strings. Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
+
+<<< ../../packages/fetch/examples/observedFetch.ts#usage
 
 ## Entities
 
-`ClientConfigDataEntity.intake` accepts JSON-shaped client configuration fields (`autoGenerateRequestId`, `baseURL`, pool `dispatcher` settings, headers, hook timeout, metadata, default options, and timeout), clones and normalizes them, and rejects invalid data. `FetchClient` translates a failed intake to `ConfigurationError`; query parameters use `QueryParametersEntity` at their own runtime boundary.
-
-`requestIdGenerator` remains an injected `RequestIdGeneratorInterface` collaborator. `signal` accepts an injected `@studnicky/signal/node` `Signal` composer, which combines each request timeout and caller `AbortSignal` identically in Node and browser clients. `clock` accepts a `ClockProviderInterface` and measures Node request lifecycle durations. Default fetch options can also carry runtime values such as request bodies, abort signals, and a per-request dispatcher; those retain their typed runtime contracts and are not represented as JSON schema data.
-
-`QueryParametersEntity.intake` accepts JSON-safe query scalars and scalar arrays. `UrlQueryString` accepts `QueryParametersInterface`; `undefined` values are omitted while JSON values, including `null`, are serialized. `FetchClient.create({ parameters })` intakes configured parameters once and retains only their canonical JSON-safe representation.
-
-`@studnicky/fetch/entities` exports every schema namespace in `src/entities`, including client and dispatcher configuration, query parameters, request and response metadata, events, and dispatcher health data.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import { ClientConfigDataEntity, QueryParametersEntity } from '@studnicky/fetch/entities';
 ```
 
 ## Interfaces
 
-`@studnicky/fetch/interfaces` exports every TypeScript contract in `src/interfaces`, including request, client, dispatcher, lifecycle-context, and request-ID-generator contracts.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 ```
@@ -111,21 +85,17 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 | `FetchTransport` | Routes browser requests to native fetch. | `@studnicky/fetch/browser` |
 
 ## Observability hooks
+## Observability hooks
 
-Override any protected observer hook to add logging, metrics, or tracing without modifying core behavior. These hooks are observational; they do not replace the request result or the canonical request error path.
+Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
 
-| Hook | When it fires | Args |
-|------|--------------|------|
-| `onRequestStart` | Before the request is sent | `method, path, requestId, url` |
-| `onResponseSuccess` | HTTP 2xx response received | `method, requestId, statusCode, durationMs` |
-| `onResponseError` | HTTP non-2xx response received | `method, requestId, statusCode, durationMs` |
-| `onRequestError` | Network-level error (connect fail, etc.) | `error, method, requestId, url, durationMs` |
-| `onTimeout` | Request aborted by timeout | `method, requestId, url, timeoutMs` |
-| `onAbort` | Request aborted by caller | `method, requestId, url` |
-| `onDispatcherDestroy` | Dispatcher is about to be destroyed | _(none)_ |
+| Hook | When it fires |
+|------|---------------|
+| `onRequestStart` | Before sending a request |
+| `onResponseSuccess` | After a successful response |
+| `onResponseError` | After a non-success response |
+| `onRequestError` | After a request failure |
+| `onTimeout` | After a timeout |
+| `onAbort` | After a caller abort |
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage
-
-The base class never calls any logger or metrics library. Observer hooks are no-ops by default; `onRequest` and `onResponse` are the in-band transform seams.
-
-[Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/fetch)

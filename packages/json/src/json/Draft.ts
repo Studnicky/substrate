@@ -145,7 +145,7 @@ export class Draft {
   /** Produce the next value and the JSON Patch which recreates it. */
   public static producePatch<T>(base: T, recipe: (draft: T) => void): { 'next': T; 'patch': PatchOperationEntity.Type[] } {
     const next = this.produce(base, recipe);
-    const patch = [...Patch.diff(base, next).operations];
+    const patch: PatchOperationEntity.Type[] = Array.from(Patch.diff(base, next).operations);
     return { 'next': next, 'patch': patch };
   }
 }

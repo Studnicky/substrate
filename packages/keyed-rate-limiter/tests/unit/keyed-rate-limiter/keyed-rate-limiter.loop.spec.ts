@@ -104,16 +104,13 @@ function rateLimitRequestInput(input: ScenarioInput): Record<string, unknown> {
 
 function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): KeyedRateLimiterCreateConfigInterface {
   const raw = keyedRateLimiterInput(input);
-  const config: KeyedRateLimiterCreateConfigInterface = {
+  return {
     burstSize: Number(raw.burstSize),
-    requestsPerSecond: Number(raw.requestsPerSecond)
+    requestsPerSecond: Number(raw.requestsPerSecond),
+    ...(raw.maximumKeys === undefined ? {} : { maximumKeys: Number(raw.maximumKeys) }),
+    ...(raw.keyIdleTtlMs === undefined ? {} : { keyIdleTtlMs: Number(raw.keyIdleTtlMs) }),
+    ...(clock === undefined ? {} : { clock })
   };
-
-  if (raw.maximumKeys !== undefined) { config.maximumKeys = Number(raw.maximumKeys); }
-  if (raw.keyIdleTtlMs !== undefined) { config.keyIdleTtlMs = Number(raw.keyIdleTtlMs); }
-  if (clock !== undefined) { config.clock = clock; }
-
-  return config;
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
