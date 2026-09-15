@@ -1,15 +1,5 @@
 # Changelog
 
-## 13.0.0
-
-### Patch Changes
-
-- @studnicky/errors@13.0.0
-  - @studnicky/resilience@13.0.0
-  - @studnicky/retry@13.0.0
-  - @studnicky/throttle@13.0.0
-  - @studnicky/types@13.0.0
-
 ## 12.2.0
 
 ### Patch Changes

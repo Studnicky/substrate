@@ -1,13 +1,5 @@
 # Changelog
 
-## 13.0.0
-
-### Patch Changes
-
-- Updated dependencies [9b93e0f]
-  - @studnicky/entity@13.0.0
-  - @studnicky/types@13.0.0
-
 ## 12.2.0
 
 ### Patch Changes
