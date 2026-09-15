@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import parser from '@typescript-eslint/parser';
@@ -41,15 +41,12 @@ function lintWorkspaceSource(filename: string): readonly import('eslint').Linter
   return result;
 }
 
-function lint(
-  code: string,
-  entry: string,
-  root: string,
-  host: ProjectHostInterface = new NodeProjectHost()
-): readonly import('eslint').Linter.LintMessage[] {
-  const projectFilename = 'tsconfig.' + basename(entry, '.ts') + '.json';
-  writeFileSync(entry, code);
-  writeFileSync(join(root, projectFilename), JSON.stringify({
+function prepareFixtureProject(root: string, sources: ReadonlyMap<string, string>): void {
+  for (const [entry, source] of sources) {
+    writeFileSync(entry, source);
+  }
+
+  writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({
     compilerOptions: {
       lib: ['ES2022', 'DOM'],
       module: 'NodeNext',
@@ -59,13 +56,20 @@ function lint(
     },
     include: ['src/**/*.ts']
   }));
+}
 
+function lint(
+  code: string,
+  entry: string,
+  root: string,
+  host: ProjectHostInterface = new NodeProjectHost()
+): readonly import('eslint').Linter.LintMessage[] {
   return new Linter({ cwd: root }).verify(code, [{
     files: ['**/*.ts'],
     languageOptions: {
       parser,
       parserOptions: {
-        project: './' + projectFilename,
+        project: './tsconfig.json',
         tsconfigRootDir: root
       }
     },
@@ -111,18 +115,27 @@ void describe('no-redefined-external-types', () => {
       }));
       writeFileSync(join(transitiveRoot, 'index.d.ts'), 'export interface TransitiveOptions { readonly code: string; }');
 
-      const redefinitions = lint([
+      const redefinitionsEntry = join(root, 'src', 'redefinitions.ts');
+      const compositionEntry = join(root, 'src', 'composition.ts');
+      const redefinitionsSource = [
         'import type { ExternalOptions } from "@fixture/contracts/interfaces";',
         'export interface RebuiltOptions { readonly label: string; readonly retries: number; }',
         'export type RebuiltResult = { readonly value: string; };',
         'export interface RebuiltStatus { readonly status: string; }',
         'interface PrivateOptions { readonly label: string; readonly retries: number; }',
         'export interface TransitiveOptions { readonly code: string; }'
-      ].join('\n'), join(root, 'src', 'redefinitions.ts'), root);
-      const composition = lint([
+      ].join('\n');
+      const compositionSource = [
         'import type { ExternalOptions } from "@fixture/contracts/interfaces";',
         'export interface ComposedOptions extends ExternalOptions { readonly auditLabel: string; }'
-      ].join('\n'), join(root, 'src', 'composition.ts'), root);
+      ].join('\n');
+      prepareFixtureProject(root, new Map([
+        [redefinitionsEntry, redefinitionsSource],
+        [compositionEntry, compositionSource]
+      ]));
+
+      const redefinitions = lint(redefinitionsSource, redefinitionsEntry, root);
+      const composition = lint(compositionSource, compositionEntry, root);
 
       assert.deepEqual(redefinitions.map((message) => {
         return {
@@ -153,7 +166,7 @@ void describe('no-redefined-external-types', () => {
         type: 'module'
       }));
 
-      const redefinitions = lint([
+      const redefinitionsSource = [
         'export type RebuiltStorage = {',
         '  readonly length: number;',
         '  clear: () => void;',
@@ -187,11 +200,19 @@ void describe('no-redefined-external-types', () => {
         '  export type Type = { readonly id: string; };',
         '}',
         'export interface RebuiltAccount { readonly id: string; }'
-      ].join('\n'), entry, root);
-      const allowed = lint([
+      ].join('\n');
+      const allowedEntry = join(root, 'src', 'allowed.ts');
+      const allowedSource = [
         "export type RequestWithMethod = Omit<RequestInit, 'method'> & { readonly method: 'GET'; };",
         'export interface ParserServicePort { readonly parse: (input: string) => unknown; }'
-      ].join('\n'), join(root, 'src', 'allowed.ts'), root);
+      ].join('\n');
+      prepareFixtureProject(root, new Map([
+        [entry, redefinitionsSource],
+        [allowedEntry, allowedSource]
+      ]));
+
+      const redefinitions = lint(redefinitionsSource, entry, root);
+      const allowed = lint(allowedSource, allowedEntry, root);
 
       assert.deepEqual(redefinitions.map((message) => {
         return {
@@ -239,7 +260,7 @@ void describe('no-redefined-external-types', () => {
       }));
       writeFileSync(join(schemaRoot, "index.d.ts"), "export type FromSchema<T> = { readonly id: string; };");
 
-      const messages = lint([
+      const source = [
         "import type { ExternalRecord } from '@fixture/contracts';",
         "import type { FromSchema } from 'json-schema-to-ts';",
         "export namespace AccountEntity {",
@@ -253,7 +274,10 @@ void describe('no-redefined-external-types', () => {
         "export interface RebuiltRecord { readonly id: string; }",
         "export interface ErrorDetailPort { readonly cause?: Error; readonly id?: string; }",
         "export interface UnrelatedOptionalShape { readonly id?: string; }"
-      ].join("\n"), entry, root);
+      ].join("\n");
+      prepareFixtureProject(root, new Map([[entry, source]]));
+
+      const messages = lint(source, entry, root);
 
       assert.deepEqual(messages.map((message) => {
         return { line: message.line, messageId: message.messageId };
@@ -283,8 +307,10 @@ void describe('no-redefined-external-types', () => {
         types: "./index.d.ts"
       }));
       writeFileSync(join(contractsRoot, "index.d.ts"), "export interface ExternalOptions { readonly label: string; }");
-      writeFileSync(firstEntry, code);
-      writeFileSync(secondEntry, code);
+      prepareFixtureProject(root, new Map([
+        [firstEntry, code],
+        [secondEntry, code]
+      ]));
 
       const host = new NodeProjectHost();
       const firstMessages = lint(code, firstEntry, root, host);
