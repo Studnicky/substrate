@@ -1,27 +1,17 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
+import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
-import type { CoalesceKeyStateInterface } from './interfaces/CoalesceKeyStateInterface.js';
 
 import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
 interface CoalesceSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class CoalesceInstance {
-  static belongsTo<TInstance>(
-    constructor: CoalesceSubclassInterface<TInstance>,
-    value: object
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 // T only appears in Coalesce's covariant/contravariant members (run()'s factory
@@ -43,7 +33,7 @@ export class Coalesce<T> {
     options?: CoalesceOptionsEntity.Type
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !CoalesceInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Coalesce.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
@@ -53,7 +43,7 @@ export class Coalesce<T> {
   protected readonly hooks: HookInvoker = new HookInvoker();
   readonly #inFlight = new Map<string, Promise<T>>();
   readonly #keyMachine = new CoalesceKeyMachine();
-  readonly #keyStates = new Map<string, CoalesceKeyStateInterface>();
+  readonly #keyStates = new Map<string, CoalesceKeyStateEntity.Type>();
   readonly #timeout: number | undefined;
 
   protected constructor(options?: CoalesceOptionsEntity.Type) {

@@ -1,4 +1,4 @@
-import { RuntimeError, HookInvoker } from '@studnicky/errors';
+import { RuntimeError, HookInvoker } from '@studnicky/errors/node';
 /**
  * Unit tests for `RealTimeScheduler`.
  */

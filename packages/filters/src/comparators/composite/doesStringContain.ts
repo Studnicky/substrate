@@ -15,7 +15,7 @@
  * DoesStringContain.doesStringContain('JavaScript', 'script', { caseSensitive: false }); // true
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type {
   FilterConditionInterface

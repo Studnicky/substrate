@@ -1,8 +1,7 @@
-import type { ClockProviderInterface } from '@studnicky/clock';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
 
 import type { LoggerOptionsEntity } from '../entities/LoggerOptionsEntity.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
-import type { LogMetadataInterface } from './LogMetadataInterface.js';
 
 /**
  * Runtime contract for Logger construction options.
@@ -10,9 +9,8 @@ import type { LogMetadataInterface } from './LogMetadataInterface.js';
  * Extends the JSON Schema-derived level and metadata data with runtime
  * transport instances and readonly construction access.
  */
-export interface LoggerOptionsInterface extends Omit<LoggerOptionsEntity.Type, 'metadata' | 'transports'> {
+export interface LoggerOptionsInterface extends LoggerOptionsEntity.Type {
   /** Clock that timestamps log records. Default: `RealTimeClockProvider`. */
   readonly 'clock'?: ClockProviderInterface;
-  readonly 'metadata'?: LogMetadataInterface;
   readonly 'transports'?: readonly TransportInterface[];
 }

@@ -1,34 +1,28 @@
 /** Static utilities for async iterables: merge, filter, enrich. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
 
 import type { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
 import type { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';
 import type { AsyncIterValueDiscriminantEntity } from './entities/AsyncIterValueDiscriminantEntity.js';
 
-interface QueueDoneEntryInterface {
-  readonly 'variant': AsyncIterDoneDiscriminantEntity.Type['variant'];
-}
-
-interface QueueErrorEntryInterface {
+interface QueueErrorEntryInterface extends AsyncIterErrorDiscriminantEntity.Type {
   readonly 'error': unknown;
-  readonly 'variant': AsyncIterErrorDiscriminantEntity.Type['variant'];
 }
 
-interface QueueValueEntryInterface<T> {
+interface QueueValueEntryInterface<T> extends AsyncIterValueDiscriminantEntity.Type {
   readonly 'value': T;
-  readonly 'variant': AsyncIterValueDiscriminantEntity.Type['variant'];
 }
 
 interface MergeQueueSinkInterface<T> {
   'notify': (() => void) | null;
-  readonly 'queue': CircularBuffer<QueueDoneEntryInterface | QueueErrorEntryInterface | QueueValueEntryInterface<T>>;
+  readonly 'queue': CircularBuffer<AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T>>;
 }
 
 class MergeQueue {
   static enqueue<T>(
     sink: MergeQueueSinkInterface<T>,
-    entry: QueueDoneEntryInterface | QueueErrorEntryInterface | QueueValueEntryInterface<T>
+    entry: AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T>
   ): void {
     sink.queue.push(entry);
     if (sink.notify !== null) {
@@ -59,7 +53,7 @@ export class AsyncIter {
 
     const sink: MergeQueueSinkInterface<T> = {
       'notify': null,
-      'queue': CircularBuffer.create<QueueDoneEntryInterface | QueueErrorEntryInterface | QueueValueEntryInterface<T>>({ 'overflow': 'grow' })
+      'queue': CircularBuffer.create<AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T>>({ 'overflow': 'grow' })
     };
 
     let active = sources.length;

@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
 
 /** Abstract base for all cache errors. */
 export abstract class CacheError extends BaseError {

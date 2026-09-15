@@ -1,5 +1,5 @@
-import type { ClockProviderInterface } from '@studnicky/clock';
-import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/node';
 
 import type { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
 import type { RetryConfigEntity } from '../entities/RetryConfigEntity.js';

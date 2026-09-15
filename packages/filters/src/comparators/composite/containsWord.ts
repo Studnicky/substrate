@@ -14,7 +14,7 @@
  * ContainsWord.containsWord('testing', 'test'); // false (part of larger word)
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { ESCAPE_REGEX_CHARACTERS_PATTERN } from './constants/EscapeRegexCharactersPattern.js';
 

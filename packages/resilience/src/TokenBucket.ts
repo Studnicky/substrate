@@ -1,7 +1,7 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
@@ -10,16 +10,6 @@ import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
 interface TokenBucketSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class TokenBucketInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: TokenBucketSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class TokenBucket {
@@ -45,7 +35,7 @@ export class TokenBucket {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !TokenBucketInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('TokenBucket.create() did not construct the requested subclass.');
     }
     return result;

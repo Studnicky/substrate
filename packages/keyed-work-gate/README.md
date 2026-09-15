@@ -21,7 +21,7 @@ pnpm add @studnicky/keyed-work-gate
 ## Usage
 
 ```typescript
-import { KeyedWorkGate } from '@studnicky/keyed-work-gate';
+import { KeyedWorkGate } from '@studnicky/keyed-work-gate/node';
 
 const gate = KeyedWorkGate.create<string>();
 const acceptsUndefined = (value: unknown): value is undefined => value === undefined;
@@ -63,8 +63,8 @@ Callers who supply subclassed `Mutex` or `Coalesce` instances retain those insta
 Subclass the composed primitives (`Mutex`, `Coalesce`) to observe lock/coalesce stages; those hooks fire exactly as they would standalone. Retain each supplied instance when constructing the gate.
 
 ```typescript
-import { Mutex } from '@studnicky/mutex';
-import { KeyedWorkGate } from '@studnicky/keyed-work-gate';
+import { Mutex } from '@studnicky/mutex/node';
+import { KeyedWorkGate } from '@studnicky/keyed-work-gate/node';
 
 class TelemetryMutex extends Mutex<string> {
   readonly acquisitions: string[] = [];

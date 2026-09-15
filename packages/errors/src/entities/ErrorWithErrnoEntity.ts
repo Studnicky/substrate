@@ -1,17 +1,13 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
-
-import { EntityIntake } from '../validation/EntityIntake.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /** Error with system errno. */
 export namespace ErrorWithErrnoEntity {
   export const Schema = {
     '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithErrno',
     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-    'additionalProperties': false,
+    'additionalProperties': true,
     'properties': {
       'errno': { 'type': 'number' }
     },
@@ -22,25 +18,7 @@ export namespace ErrorWithErrnoEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    const result = Predicates.isNumber(candidate.errno);
-    return result;
-  };
-
-  const boundary = EntityIntake.compile<Type>((candidate, options) => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['errno'])) { return undefined; }
-    const errno = EntityIntake.number(candidate.errno);
-    if (errno === undefined) { return undefined; }
-    const result = { 'errno': errno };
-    return result;
-  }, 'ErrorWithErrno');
-
-  export const intake = boundary.intake;
-  export const create = boundary.create;
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

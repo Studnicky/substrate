@@ -15,7 +15,7 @@
  * - String comparisons respect case sensitivity settings from FilterConditionInterface
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type {
   FilterConditionInterface
@@ -56,13 +56,10 @@ export class AreDeeplyEqual {
       return result;
     }
 
-    // Handle arrays and objects with deep equality
+    // Delegate structural runtime values to the shared predicate contract.
     if ((Predicates.isTypeOf(value, 'object') && !Predicates.isNull(value)) || (Predicates.isTypeOf(filterValue, 'object') && !Predicates.isNull(filterValue))) {
-      const objectResult = AreDeeplyEqual.compareObjectTypes(value, filterValue);
-
-      if (objectResult !== null) {
-        return objectResult;
-      }
+      const result = Predicates.areDeeplyEqual(value, filterValue);
+      return result;
     }
 
     // Strict type checking - no automatic coercion
@@ -78,81 +75,6 @@ export class AreDeeplyEqual {
 
     // For numbers, booleans, etc., use strict equality
     const result = value === filterValue;
-    return result;
-  }
-
-  /**
-   * Handles object type comparisons with proper type checking
-   */
-  private static compareObjectTypes<Value>(value: Value, filterValue: Value): boolean | null {
-    // Both must be objects/arrays for comparison
-    if (!Predicates.isTypeOf(value, 'object') || !Predicates.isTypeOf(filterValue, 'object') || Predicates.isNull(value) || Predicates.isNull(filterValue)) {
-      return false;
-    }
-
-    // Arrays
-    if (Predicates.isArray(value) && Predicates.isArray(filterValue)) {
-      const result = Predicates.areArraysEqual([...value], [...filterValue]);
-      return result;
-    }
-    if (Predicates.isArray(value) || Predicates.isArray(filterValue)) {
-      // One is array, the other is not
-      return false;
-    }
-
-    // Date objects
-    if (Predicates.isDate(value) && Predicates.isDate(filterValue)) {
-      const result = value.getTime() === filterValue.getTime();
-      return result;
-    }
-    if (Predicates.isDate(value) || Predicates.isDate(filterValue)) {
-      // One is Date, the other is not
-      return false;
-    }
-
-    // RegExp objects
-    if (Predicates.isRegExp(value) && Predicates.isRegExp(filterValue)) {
-      const result = value.toString() === filterValue.toString();
-      return result;
-    }
-    if (Predicates.isRegExp(value) || Predicates.isRegExp(filterValue)) {
-      // One is RegExp, the other is not
-      return false;
-    }
-
-    // Set objects
-    if (Predicates.isSet(value) && Predicates.isSet(filterValue)) {
-      if (value.size !== filterValue.size) {
-        return false;
-      }
-      for (const item of value) {
-        if (!filterValue.has(item)) {
-          return false;
-        }
-      }
-
-      return true;
-    }
-    if (Predicates.isSet(value) || Predicates.isSet(filterValue)) {
-      // One is Set, the other is not
-      return false;
-    }
-
-    // Map objects
-    if (Predicates.isMap(value) && Predicates.isMap(filterValue)) {
-      const result = Predicates.areMapsEqual(value, filterValue);
-      return result;
-    }
-    if (Predicates.isMap(value) || Predicates.isMap(filterValue)) {
-      // One is Map, the other is not
-      return false;
-    }
-
-    // Plain objects
-    if (!Predicates.isRecord(value) || !Predicates.isRecord(filterValue)) {
-      return false;
-    }
-    const result = Predicates.areObjectsEqual(value, filterValue);
     return result;
   }
 }

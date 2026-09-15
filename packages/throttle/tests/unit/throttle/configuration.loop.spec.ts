@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ConfigurationError } from '@studnicky/config';
+import { ConfigurationError } from '@studnicky/config/node';
 
 import { Throttle } from '../../../src/throttle/index.js';
 
@@ -114,6 +114,12 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('Throttle configuration', () => {
+  void it('defaults only undefined configuration and rejects null through entity intake', () => {
+    assert.doesNotThrow(() => { Throttle.create(undefined); });
+    assert.throws(() => {
+      Reflect.apply(Throttle.create, Throttle, [null]);
+    }, ConfigurationError);
+  });
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);

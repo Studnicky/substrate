@@ -65,9 +65,8 @@ void describe('rule option intake', () => {
     });
   }
 
-  void it('keeps derived options out of the base intake and inside the derived rule intake', () => {
-    const baseOptions = LayerOptionsEntity.intake({ ...layerOptions, 'adapterLayerName': 'domain' });
-    assert.deepEqual(baseOptions, layerOptions);
+  void it('rejects derived options at the base intake and accepts them at the derived rule intake', () => {
+    assert.throws(() => LayerOptionsEntity.intake({ ...layerOptions, 'adapterLayerName': 'domain' }));
 
     const linter = new Linter();
     const messages = linter.verify(

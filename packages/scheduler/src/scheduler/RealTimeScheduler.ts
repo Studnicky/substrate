@@ -1,4 +1,4 @@
-import type { HookInvoker } from '@studnicky/errors';
+import type { HookInvoker } from '@studnicky/errors/node';
 /**
  * `SchedulerProvider` backed by `setTimeout` / `setInterval`.
  * Each scheduled task returns a `ScheduledTask` whose `cancel()` clears the timer.
@@ -7,8 +7,8 @@ import type { HookInvoker } from '@studnicky/errors';
  * @module
  */
 
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
 import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';
@@ -27,13 +27,6 @@ interface ActiveTimerInterface {
 
 interface RealTimeSchedulerSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class RealTimeSchedulerInstance {
-  static belongsTo<TInstance extends object>(constructor: RealTimeSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -67,7 +60,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;

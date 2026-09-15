@@ -32,7 +32,7 @@ portable contract suite is required before an adapter is considered parity-compl
 | fsm | primitive | Root, entities, interfaces | No browser entrypoint declared | Unit suite; parity pending |
 | health-registry | server runtime | Root and interfaces | No browser equivalent planned | Unit suite; not applicable |
 | idempotency-guard | kit | Root, entities, interfaces | No browser entrypoint declared | Unit suite; parity pending |
-| intake-kit | kit | Root and interfaces | No browser entrypoint declared | Unit suite; parity pending |
+| entity | primitive | Node, browser, interfaces | Browser entrypoint declared; parity pending | Unit suite; parity pending |
 | json | foundation | Root, entities, interfaces | No browser entrypoint declared | Unit suite; parity pending |
 | keyed-rate-limiter | primitive | Root, entities, interfaces | No browser entrypoint declared | Unit suite; parity pending |
 | keyed-work-gate | kit | Root and interfaces | No browser entrypoint declared | Unit suite; parity pending |

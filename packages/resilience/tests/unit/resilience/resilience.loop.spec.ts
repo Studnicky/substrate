@@ -1,8 +1,8 @@
-import { BaseError, RuntimeError } from '@studnicky/errors';
+import { BaseError, RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { HookInvocationError } from '@studnicky/errors';
+import type { HookInvocationError } from '@studnicky/errors/node';
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import {

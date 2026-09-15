@@ -4,8 +4,7 @@ import type {
 } from 'json-schema-to-ts';
 import type * as ts from 'typescript';
 
-import { Predicates } from '@studnicky/types';
-import path from 'node:path';
+import { Predicates } from '@studnicky/types/node';
 import {
   type Program, type Symbol, SymbolFlags
 } from 'typescript';
@@ -25,6 +24,27 @@ import {
 const NAME_COLLATOR = new Intl.Collator();
 
 class CaseConverter {
+  public static basename(value: string): string {
+    const normalized = CaseConverter.normalizePath(value);
+    const lastSeparator = normalized.lastIndexOf('/');
+    const result = normalized.slice(lastSeparator + 1);
+
+    return result;
+  }
+
+  private static extension(value: string): string {
+    const lastDot = value.lastIndexOf('.');
+    const result = lastDot <= 0 ? '' : value.slice(lastDot).toLowerCase();
+
+    return result;
+  }
+
+  public static normalizePath(value: string): string {
+    const result = value.replaceAll('\\', '/');
+
+    return result;
+  }
+
   public static toWords(value: string): string[] {
     const words: string[] = [];
 
@@ -126,8 +146,8 @@ class CaseConverter {
   }
 
   public static getFileBase(fileName: string): string {
-    const baseName = path.basename(fileName);
-    const extension = path.extname(baseName).toLowerCase();
+    const baseName = CaseConverter.basename(fileName);
+    const extension = CaseConverter.extension(baseName);
     const stripExtensions = new Set([
       '.cjs',
       '.cts',
@@ -155,7 +175,7 @@ class CaseConverter {
 
   public static matchesFilename(exportName: string, fileName: string): boolean {
     const base = CaseConverter.getFileBase(fileName);
-    const normalized = fileName.split(path.sep).join('/');
+    const normalized = CaseConverter.normalizePath(fileName);
 
     if (normalized.includes('/constants/')) {
       const result = base === CaseConverter.toScreamingSnakeCase(exportName);
@@ -181,7 +201,7 @@ class CaseConverter {
 
   public static getFilenameCandidates(exportName: string, fileName: string): string[] {
     const base = CaseConverter.getFileBase(fileName);
-    const normalized = fileName.split(path.sep).join('/');
+    const normalized = CaseConverter.normalizePath(fileName);
 
     if (normalized.includes('/constants/')) {
       const constant = CaseConverter.toScreamingSnakeCase(exportName);
@@ -397,6 +417,52 @@ class ExportClassifier {
 
     return result;
   }
+
+  public static isTypeOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
+    const result = shape === ExportShape.ConstValue || shape === ExportShape.Type;
+
+    return result;
+  }
+
+  /**
+   * A companion enum shares one exported name between a `Type` declaration and a
+   * `ConstValue` declaration (the type + const satisfies-object pattern that replaces `enum`).
+   */
+  public static findCompanionEnumName(records: readonly ExportRecordInterface[]): string | undefined {
+    const shapesByName = new Map<string, Set<ExportShapeEntity.Type>>();
+
+    for (let recordIndex = 0; recordIndex < records.length; recordIndex += 1) {
+      const record = records.at(recordIndex);
+
+      if (record === undefined) {
+        continue;
+      }
+
+      for (let nameIndex = 0; nameIndex < record.names.length; nameIndex += 1) {
+        const name = record.names.at(nameIndex);
+
+        if (name === undefined || name.length === 0) {
+          continue;
+        }
+
+        const shapes = shapesByName.get(name) ?? new Set<ExportShapeEntity.Type>();
+
+        shapes.add(record.shape);
+        shapesByName.set(name, shapes);
+      }
+    }
+
+    for (const [
+      name,
+      shapes
+    ] of shapesByName) {
+      if (shapes.has(ExportShape.Type) && shapes.has(ExportShape.ConstValue)) {
+        return name;
+      }
+    }
+
+    return undefined;
+  }
 }
 
 class ExportNames {
@@ -472,7 +538,7 @@ class ExportNames {
 
 class RestrictedTopology {
   public static get(fileName: string): (typeof RESTRICTED_TOPOLOGY_NAMES)[number] | undefined {
-    const normalized = fileName.split(path.sep).join('/');
+    const normalized = CaseConverter.normalizePath(fileName);
     const base = CaseConverter.getFileBase(fileName);
 
     const namesLength = RESTRICTED_TOPOLOGY_NAMES.length;
@@ -589,7 +655,7 @@ export const singleExport: Rule.RuleModule = {
       return {};
     }
 
-    const baseName = path.basename(fileName);
+    const baseName = CaseConverter.basename(fileName);
     const restrictedTopology = RestrictedTopology.get(fileName);
 
     if (INDEX_FILES.has(baseName)) {
@@ -702,6 +768,28 @@ export const singleExport: Rule.RuleModule = {
       }
 
       if (exportShapes.includes(ExportShape.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
+        return;
+      }
+
+      const companionEnumName = ExportClassifier.findCompanionEnumName(exportRecords);
+
+      if (companionEnumName !== undefined && exportShapes.every(ExportClassifier.isTypeOrConstValueShape)) {
+        if (!CaseConverter.matchesFilename(companionEnumName, fileName)) {
+          const reportNode = firstExportNode ?? node;
+          const base = CaseConverter.getFileBase(fileName);
+          const candidates = CaseConverter.getFilenameCandidates(companionEnumName, fileName);
+
+          context.report({
+            'data': {
+              'expected': candidates.join(', '),
+              'exportName': companionEnumName,
+              'fileBase': base
+            },
+            'messageId': 'mismatch',
+            'node': reportNode
+          });
+        }
+
         return;
       }
 

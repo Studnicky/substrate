@@ -13,12 +13,7 @@ All packages are published under the `@studnicky` scope to the GitHub Package Re
 
 ## Public path contract
 
-Each package root exports its portable API. A package publishes `./interfaces` for public
-substitution contracts, `./entities` for canonical structured data, and platform entrypoints such
-as `./browser` only when the runtime implementation differs. Construct stateful primitives through
-`Class.create(config)` and invoke their direct operation methods. Composition packages do not
-proxy dependency functionality; import dependency-owned contracts from that dependency's public
-entrypoint.
+Each package publishes `./node` and `./browser` runtime entrypoints, `./interfaces` for public substitution contracts, and `./entities` for canonical structured data. Runtime entrypoints contain executable code; neutral contracts retain their own import paths. Construct stateful primitives through `Class.create(config)` and invoke their direct operation methods. Composition packages do not proxy dependency functionality; import dependency-owned contracts from that dependency's canonical public entrypoint.
 
 See the [Composition Contract](/concepts/composition-contract) and
 [Package Registry](/concepts/package-registry) for the workspace-wide rules and current
@@ -71,7 +66,7 @@ platform-parity status.
 | [@studnicky/cache](/packages/cache) | LRU cache with optional TTL and capacity bounds |
 | [@studnicky/entity-store](/packages/entity-store) | Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup |
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
-| [@studnicky/types](/packages/types) | Shared zero-runtime utility types, type guards, and predicate helpers |
+| [@studnicky/types](/packages/types) | Shared runtime type guards, predicate composition, JSON boundaries, and Date/Map/Set operand validation |
 | [@studnicky/drilldown](/packages/drilldown) | Deterministic multi-level grouping, faceting, and sorting over arbitrary record data |
 | [@studnicky/filters](/packages/filters) | Composable declarative filtering primitives |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
@@ -114,4 +109,4 @@ platform-parity status.
 | Package | Description |
 |---------|-------------|
 | [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
-| [@studnicky/intake-kit](/packages/intake-kit) | Generic boundary-crossing primitives shared by every schema-backed entity engine |
+| [@studnicky/entity](/packages/entity) | Strict entity input compilation and cycle detection |

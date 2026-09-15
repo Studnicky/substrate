@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
-import type { DataRecordInterface, DrillDownConfigEntity } from '../../src/index.js';
+import type { DrillDownConfigEntity } from '../../src/index.js';
 
 import { DrilldownRulesEntity, DrillDown } from '../../src/index.js';
+import { TypeGuards } from '../../src/typeguards/index.js';
 import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
@@ -120,13 +121,13 @@ function buildNestedRules(depth: number): DrilldownRulesEntity.Type {
 }
 
 /** Builds the cartesian product of `values` as flat records keyed by `properties`. */
-function buildRecords(properties: readonly string[], values: readonly string[][]): DataRecordInterface[] {
-  let records: DataRecordInterface[] = [{}];
+function buildRecords(properties: readonly string[], values: readonly string[][]): Record<string, unknown>[] {
+  let records: Record<string, unknown>[] = [{}];
 
   for (let index = 0; index < properties.length; index += 1) {
     const property = properties[index] ?? '';
     const column = values[index] ?? [];
-    const next: DataRecordInterface[] = [];
+    const next: Record<string, unknown>[] = [];
 
     for (const record of records) {
       for (const value of column) {
@@ -216,4 +217,57 @@ void describe('DrilldownRulesEntity', () => {
       runScenarioCase(scenarioCase);
     });
   }
+});
+
+void describe('schema-owned group values', () => {
+  void it('accepts every schema-defined group-value branch', () => {
+    const rules: unknown = {
+      'group': [{
+        'property': 'category',
+        'values': [
+          { 'end': 'm', 'start': 'a', 'type': 'alphabetic' },
+          { 'cidr': '10.0.0.0/24', 'type': 'cidr' },
+          { 'after': 0, 'before': 1, 'type': 'date' },
+          { 'maximum': 10, 'minimum': 0, 'type': 'range' },
+          { 'semver': '^1.0.0', 'type': 'semver' },
+          { 'sequential': { 'maximum': 10, 'minimum': 0, 'padding': 2, 'prefix': 'item-' }, 'type': 'sequential' },
+          { 'match': 'active', 'type': 'string' }
+        ]
+      }]
+    };
+
+    assert.equal(DrilldownRulesEntity.validate(rules), true);
+  });
+
+  void it('rejects malformed discriminator-shaped group values', () => {
+    const malformedRules: unknown[] = [
+      { 'group': [{ 'property': 'category', 'values': [{ 'end': 'm', 'start': 1, 'type': 'alphabetic' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'cidr': 24, 'type': 'cidr' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'after': '0', 'before': 1, 'type': 'date' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'maximum': 10, 'minimum': '0', 'type': 'range' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'semver': 1, 'type': 'semver' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'sequential': { 'maximum': 10, 'minimum': 0, 'padding': 2, 'prefix': 1 }, 'type': 'sequential' }] }] },
+      { 'group': [{ 'property': 'category', 'values': [{ 'match': 1, 'type': 'string' }] }] }
+    ];
+
+    for (const rules of malformedRules) {
+      assert.equal(DrilldownRulesEntity.validate(rules), false);
+    }
+  });
+
+  void it('uses canonical range entities as the only node-value proof', () => {
+    const candidates: Array<{ 'guard': (value: unknown) => boolean, 'invalid': unknown, 'valid': unknown }> = [
+      { 'guard': TypeGuards.isAlphabeticRange, 'invalid': { 'end': 'm', 'start': 1 }, 'valid': { 'end': 'm', 'start': 'a' } },
+      { 'guard': TypeGuards.isCidrRange, 'invalid': { 'cidr': 24 }, 'valid': { 'cidr': '10.0.0.0/24' } },
+      { 'guard': TypeGuards.isDateRange, 'invalid': { 'after': '0', 'before': 1 }, 'valid': { 'after': 0, 'before': 1 } },
+      { 'guard': TypeGuards.isRange, 'invalid': { 'maximum': 1, 'minimum': '0' }, 'valid': { 'maximum': 1, 'minimum': 0 } },
+      { 'guard': TypeGuards.isSemverRange, 'invalid': { 'semver': 1 }, 'valid': { 'semver': '^1.0.0' } },
+      { 'guard': TypeGuards.isSequentialRange, 'invalid': { 'maximum': 1, 'minimum': 0, 'padding': 2, 'prefix': 1 }, 'valid': { 'maximum': 1, 'minimum': 0, 'padding': 2, 'prefix': 'item-' } }
+    ];
+
+    for (const candidate of candidates) {
+      assert.equal(candidate.guard(candidate.invalid), false);
+      assert.equal(candidate.guard(candidate.valid), true);
+    }
+  });
 });

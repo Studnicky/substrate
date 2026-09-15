@@ -1,14 +1,15 @@
 {
   "name": "@studnicky/mutex",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Key-based async mutex for preventing race conditions in concurrent operations",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
@@ -66,11 +67,10 @@
     "@studnicky/clock": "workspace:*",
     "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/fsm": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {

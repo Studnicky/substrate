@@ -4,9 +4,9 @@
  * Exposed for testing and advanced use — not part of the public package surface.
  */
 
-import { ConfigurationError } from '@studnicky/config';
-import { SchemaIntakeError } from '@studnicky/json';
-import { Predicates } from '@studnicky/types';
+import { ConfigurationError } from '@studnicky/config/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
+import { Predicates } from '@studnicky/types/node';
 
 import { DEFAULT_TIMEOUT, UNLIMITED_QUEUE_SIZE } from '../constants/index.js';
 import { MutexConfigEntity } from '../entities/MutexConfigEntity.js';

@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedBatch — trace batch progress by subclassing Batch and overriding lifecycle hooks. Run: npx tsx examples/observedBatch.ts */
 import assert from 'node:assert/strict';
 

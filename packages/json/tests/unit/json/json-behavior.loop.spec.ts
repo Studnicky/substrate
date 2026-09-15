@@ -1,8 +1,9 @@
-import { RuntimeError } from '@studnicky/errors';
+import { SchemaIntakeError } from '@studnicky/entity/node';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Draft, Patch, Path, PatchError, SchemaIntakeError } from '../../../src/index.js';
+import { Draft, Patch, Path, PatchError } from '../../../src/index.js';
 import { JsonValueEntity, PatchOperationsEntity } from '../../../src/entities/index.js';
 
 import scenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };

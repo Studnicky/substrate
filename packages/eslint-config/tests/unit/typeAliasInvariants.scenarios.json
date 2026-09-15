@@ -51,6 +51,11 @@
         "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst VariantKindSchema = { enum: ['alpha', 'beta'], type: 'string' } as const satisfies JSONSchema;\ntype VariantKindType = FromSchema<typeof VariantKindSchema>;\nexport interface AlphaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'alpha'>;\n  readonly 'value': string;\n}\nexport interface BetaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'beta'>;\n  readonly 'value': number;\n}\nexport type VariantUnionType = AlphaVariantInterface | BetaVariantInterface;",
         "filename": "packages/eslint-config/Canonical.ts",
         "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface) — each member is schema-anchored via its discriminant"
+      },
+      {
+        "code": "import type { FromSchema, JSONSchema } from \"json-schema-to-ts\";\nexport namespace AccountEntity {\n  export const Schema = { type: \"string\" } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
+        "filename": "packages/eslint-config/CanonicalEntity.ts",
+        "name": "an entity namespace Type resolves the canonical json-schema-to-ts FromSchema import against its own Schema"
       }
     ],
     "invalid": [
@@ -290,6 +295,16 @@
         ],
         "name": "a separate re-export renaming to a non-Type-suffixed exported name is checked against the exported name",
         "filename": "packages/eslint-config/RenamedReexportName.ts"
+      },
+      {
+        "code": "type FromSchema<T> = T extends { type: string } ? { value: string } : never;\nexport namespace ImitationEntity {\n  export const Schema = { type: \"string\" } as const;\n  export type Type = FromSchema<typeof Schema>;\n}",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/ImitationEntity.ts",
+        "name": "a local type named FromSchema cannot validate a canonical entity alias"
       }
     ]
   },

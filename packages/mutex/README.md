@@ -6,7 +6,7 @@
 
 A fine-grained async mutex where operations on different keys run concurrently, while operations sharing the same key are serialized via an internal queue. Designed for entity resolution, cache population, and any scenario where concurrent writes to the same logical resource must be prevented.
 
-`MutexQueueEntryEntity` is the package-root schema contract for queued acquisition timestamps. The internal queue interface indexes that serializable field from the entity while retaining its callback and timer contracts directly.
+`MutexQueueEntryEntity` is the schema contract exported from `@studnicky/mutex/entities` for queued acquisition timestamps. The internal queue interface indexes that serializable field from the entity while retaining its callback and timer contracts directly.
 
 ## Install
 
@@ -23,7 +23,7 @@ pnpm add @studnicky/mutex
 ## Usage
 
 ```typescript
-import { Mutex } from '@studnicky/mutex';
+import { Mutex } from '@studnicky/mutex/node';
 
 const mutex = Mutex.create<string>({ maximumQueueSize: 100, timeout: 5000 });
 
@@ -64,7 +64,7 @@ Acquisitions for a given key are granted in the order they were requested. Waite
 Subclass `Mutex` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library. The hooks fire around every acquire and release cycle.
 
 ```typescript
-import { Mutex } from '@studnicky/mutex';
+import { Mutex } from '@studnicky/mutex/node';
 
 class InstrumentedMutex extends Mutex<string> {
   protected override afterAcquire(key: string, waitTimeMs: number): void {

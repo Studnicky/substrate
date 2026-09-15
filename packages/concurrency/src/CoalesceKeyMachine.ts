@@ -1,9 +1,9 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
-import type { CoalesceKeyStateInterface } from './interfaces/CoalesceKeyStateInterface.js';
-import type { CoalesceKeyTransitionEventInterface } from './interfaces/CoalesceKeyTransitionEventInterface.js';
+import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
+import type { CoalesceKeyTransitionEventEntity } from './entities/CoalesceKeyTransitionEventEntity.js';
 
 /**
  * Stateless per-key lifecycle reducer for `Coalesce`. Formalizes the
@@ -17,23 +17,23 @@ import type { CoalesceKeyTransitionEventInterface } from './interfaces/CoalesceK
  * - `inflight -> idle` (the shared in-flight promise settles, success or failure)
  *
  * Stateless and shared: `Coalesce` keeps the actual per-key state in its own
- * `Map<string, CoalesceKeyStateInterface>` (a key absent from that map is
+ * `Map<string, CoalesceKeyStateEntity.Type>` (a key absent from that map is
  * treated as `'idle'`, exactly as `MutexKeyMachine` treats an absent key as
  * `'unlocked'`) and calls `transition()` once per change.
  */
-export class CoalesceKeyMachine extends StateMachine<CoalesceKeyStateInterface, CoalesceKeyTransitionEventInterface, never> {
+export class CoalesceKeyMachine extends StateMachine<CoalesceKeyStateEntity.Type, CoalesceKeyTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): CoalesceKeyStateInterface {
+  override getInitialState(): CoalesceKeyStateEntity.Type {
     return { 'variant': 'idle' };
   }
 
   override reduce(
-    state: CoalesceKeyStateInterface,
-    event: CoalesceKeyTransitionEventInterface
-  ): FsmStepInterface<CoalesceKeyStateInterface, never> {
+    state: CoalesceKeyStateEntity.Type,
+    event: CoalesceKeyTransitionEventEntity.Type
+  ): FsmStepInterface<CoalesceKeyStateEntity.Type, never> {
     if (state.variant === 'idle' && event.type === 'start') {
       return { 'effects': [], 'state': { 'variant': 'inflight' } };
     }

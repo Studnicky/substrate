@@ -1,12 +1,13 @@
 /** Deep merging for arbitrary in-memory values. */
 
+import { Predicates } from '@studnicky/types/node';
+
 import { Clone } from './Clone.js';
-import { DataType } from './DataType.js';
 
 export class Merge {
   /** Return whether a value is a mergeable plain object. */
   protected static isMergeable<T>(value: T): value is Readonly<Record<string, unknown>> & T {
-    const result = DataType.isPlainObject(value);
+    const result = Predicates.isPlainObject(value);
     return result;
   }
 
@@ -45,7 +46,7 @@ export class Merge {
       const result = Clone.deep(value);
       return result;
     }
-    if (!DataType.isPlainObject(value)) {
+    if (!Predicates.isPlainObject(value)) {
       const result = value;
       return result;
     }

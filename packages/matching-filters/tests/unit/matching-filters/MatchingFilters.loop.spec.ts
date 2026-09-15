@@ -1,8 +1,9 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types';
+import { FilterEngine, FilterMode } from '@studnicky/filters/node';
+import { Predicates } from '@studnicky/types/node';
 
 import {
   CosineAtLeastPlugin,
@@ -46,6 +47,14 @@ function runScenario(scenarioCase: ScenarioCase): void {
       assert.equal(new JaccardAtLeastPlugin().operators.JACCARD_AT_LEAST(requireStringArray(requireValue(token, 'value')), { 'threshold': requireNumber(requireValue(token, 'threshold')), 'value': requireStringArray(requireValue(token, 'comparison')) }), requireBoolean(requireValue(expected, 'jaccard')));
       assert.equal(new SorensenDiceAtLeastPlugin().operators.SORENSEN_DICE_AT_LEAST(requireStringArray(requireValue(token, 'value')), { 'threshold': requireNumber(requireValue(token, 'threshold')), 'value': requireStringArray(requireValue(token, 'comparison')) }), requireBoolean(requireValue(expected, 'sorensenDice')));
       assert.equal(new CosineAtLeastPlugin().operators.COSINE_AT_LEAST(new Map([[requireString(requireValue(cosine, 'key')), requireNumber(requireValue(cosine, 'value'))]]), { 'threshold': requireNumber(requireValue(cosine, 'threshold')), 'value': new Map([[requireString(requireValue(cosine, 'key')), requireNumber(requireValue(cosine, 'comparison'))]]) }), requireBoolean(requireValue(expected, 'cosine')));
+      const engine = new FilterEngine({
+        'conditions': [{ 'operator': 'LevenshteinAtLeastPlugin:LEVENSHTEIN_AT_LEAST', 'path': 'title', 'value': { 'threshold': 0.8, 'value': 'refund request' } }],
+        'gate': 'CORE.AND',
+        'mode': FilterMode.CORE.WHITELIST,
+        'plugins': [new LevenshteinAtLeastPlugin()]
+      });
+      assert.equal(engine.evaluate({ 'title': 'refund requst' }).valid, true);
+      assert.equal(engine.evaluate({ 'title': 'shipping update' }).valid, false);
       return;
     }
     case 'malformed-inputs': {

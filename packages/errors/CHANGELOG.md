@@ -1,12 +1,14 @@
 # Changelog
 
-## 12.2.1
+## 13.0.0
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/types@12.2.1
+- 95c7c69: Schema intake preserves schema-defined additional-property rules and keeps caller input unchanged. `@studnicky/entity` replaces `@studnicky/intake-kit`; update runtime imports to `@studnicky/entity/node` or `@studnicky/entity/browser`, and rename `IntakeCompiler` to `EntityCompiler`. The entity package provides strict create and intake compilation that rejects undeclared properties at both entry points.
+- Updated dependencies [95c7c69]
+- Updated dependencies [95c7c69]
+  - @studnicky/entity@13.0.0
+  - @studnicky/types@13.0.0
 
 ## 12.2.0
 

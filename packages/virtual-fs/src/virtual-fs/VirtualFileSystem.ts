@@ -1,6 +1,6 @@
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
@@ -42,14 +42,6 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  private static isConstructed<TInstance extends VirtualFileSystem>(
-    value: object,
-    constructor: VirtualFileSystemConstructorInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
     this: VirtualFileSystemConstructorInterface<TInstance>,
     options?: VirtualFileSystemOptionsInterface
@@ -60,7 +52,7 @@ export class VirtualFileSystem implements FileSystemInterface {
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );
     }
-    if (!VirtualFileSystem.isConstructed(constructed, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
       throw RuntimeError.create(
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );

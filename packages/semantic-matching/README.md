@@ -1,8 +1,8 @@
 # @studnicky/semantic-matching
 
-> Contracts for model-backed matching primitives.
+> Provider-neutral contracts and validated JSON models for vectorization, search, reranking, classification, and adjudication.
 
-`@studnicky/semantic-matching` defines the smallest boundaries required to compose vectorization, vector search, reranking, classification, and adjudication. It does not choose a provider, require a database, persist vectors, set thresholds, or select topics.
+Use this package to connect a model provider and vector index without coupling application code to a provider SDK. Import behavior contracts from "/interfaces" and validate JSON inputs and results with the matching namespace from "/entities".
 
 ## Install
 
@@ -10,10 +10,11 @@
 pnpm add @studnicky/semantic-matching
 ```
 
-## Usage
+## Use a vectorizer and index
 
 ```ts
-import type { VectorIndexInterface, VectorizerInterface } from '@studnicky/semantic-matching';
+import { VectorSearchOptionsEntity } from "@studnicky/semantic-matching/entities";
+import type { VectorIndexInterface, VectorizerInterface } from "@studnicky/semantic-matching/interfaces";
 
 async function findCandidates(
   vectorizer: VectorizerInterface,
@@ -21,11 +22,31 @@ async function findCandidates(
   content: string
 ) {
   const vector = await vectorizer.embed({ content });
-  return index.search(vector, { limit: 20, namespace: 'topics' });
+  const options = VectorSearchOptionsEntity.intake({
+    limit: 20,
+    namespace: "topics"
+  });
+
+  return index.search(vector, options);
 }
 ```
 
-The result can feed a deterministic scorer, a consumer-defined evidence mapper, or a router selection call. Each adapter stays independently replaceable.
+## Validate provider data
+
+Each JSON model has `Schema`, `validate`, `intake`, and `create`. Use `intake` at an external boundary; it rejects malformed and undeclared properties before the value reaches your adapter.
+
+```ts
+import { ClassificationEntity } from "@studnicky/semantic-matching/entities";
+
+const classification = ClassificationEntity.intake({
+  confidence: 0.94,
+  label: "billing"
+});
+```
+
+The entity namespaces expose their canonical `Type` for adapter method signatures. `VectorEntryInterface` composes `VectorEntryDataEntity.Type` with its `Float32Array` runtime vector.
+
+For runnable examples and the complete API reference, see the [semantic-matching guide](https://studnicky.github.io/substrate/packages/semantic-matching).
 
 ## License
 

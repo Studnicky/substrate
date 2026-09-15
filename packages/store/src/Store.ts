@@ -1,4 +1,4 @@
-import { Mutex } from '@studnicky/mutex';
+import { Mutex } from '@studnicky/mutex/node';
 
 import type { StatePersistenceInterface } from './interfaces/StatePersistenceInterface.js';
 import type { StoreInterface } from './interfaces/StoreInterface.js';

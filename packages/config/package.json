@@ -1,14 +1,15 @@
 {
   "name": "@studnicky/config",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Configuration validation utilities and type guards",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
@@ -31,10 +32,10 @@
     "test": "node ../../scripts/test-suite.mjs all --package ."
   },
   "dependencies": {
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "license": "MIT",

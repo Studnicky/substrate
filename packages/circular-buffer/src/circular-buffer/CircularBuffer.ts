@@ -35,8 +35,8 @@
  * can never produce an unhandled promise rejection or crash the process.
  */
 
-import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
@@ -55,16 +55,6 @@ import { CircularBufferError } from '../errors/index.js';
 
 interface CircularBufferSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class CircularBufferInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: CircularBufferSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class CircularBuffer<T> implements CircularBufferInterface<T> {
@@ -98,7 +88,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       );
     }
     if (
-      !CircularBufferInstance.belongsTo(resolveSubclassConstructor(), constructed)
+      !Predicates.isInstanceOf<TInstance>(constructed, resolveSubclassConstructor())
     ) {
       throw RuntimeError.create(
         'CircularBuffer.create() did not construct the requested subclass.'

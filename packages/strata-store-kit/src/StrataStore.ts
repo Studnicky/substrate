@@ -2,7 +2,7 @@ import type {
   StoreInterface, StoreListenerInterface
 } from '@studnicky/store/interfaces';
 
-import { Mutex } from '@studnicky/mutex';
+import { Mutex } from '@studnicky/mutex/node';
 
 import type { StrataStoreOptionsInterface } from './interfaces/StrataStoreOptionsInterface.js';
 

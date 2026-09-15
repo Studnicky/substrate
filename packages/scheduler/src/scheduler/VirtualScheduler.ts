@@ -1,7 +1,7 @@
-import type { VirtualTimeCounter } from '@studnicky/clock';
-import type { HookInvoker } from '@studnicky/errors';
+import type { VirtualTimeCounter } from '@studnicky/clock/node';
+import type { HookInvoker } from '@studnicky/errors/node';
 
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -13,7 +13,7 @@ import { RuntimeError } from '@studnicky/errors';
  *
  * @module
  */
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -26,13 +26,6 @@ import { SchedulerHookInvoker } from './SchedulerHookInvoker.js';
 
 interface VirtualSchedulerSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class VirtualSchedulerInstance {
-  static belongsTo<TInstance extends object>(constructor: VirtualSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -83,7 +76,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     options: { readonly 'counter': Readonly<VirtualTimeCounter> }
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options.counter]);
-    if (!Predicates.isObjectLike(result) || !VirtualSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VirtualScheduler.create() did not construct the requested subclass.');
     }
     return result;
@@ -142,7 +135,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     try {
       fireResult = task.fire();
     } catch (error) {
-      const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
+      const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
       this.hooks.invoke('onFireError', () => {
         const result = this.onFireError(task.id, taskError);
         return result;
@@ -151,8 +144,8 @@ export class VirtualScheduler implements SchedulerProviderInterface {
     }
 
     if (fireResult instanceof Promise) {
-      fireResult.catch((error) => {
-        const taskError = error instanceof Error ? error : RuntimeError.create(String(error));
+      fireResult.catch((error: unknown) => {
+        const taskError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
         this.hooks.invoke('onFireError', () => {
           const result = this.onFireError(task.id, taskError);
           return result;

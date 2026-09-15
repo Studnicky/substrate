@@ -2,7 +2,7 @@ import type { WebWorkerErrorEventInterface } from './WebWorkerErrorEventInterfac
 import type { WebWorkerMessageEventInterface } from './WebWorkerMessageEventInterface.js';
 
 /** Browser Worker lifecycle surface required by WebWorkerPool. */
-export interface WebWorkerInterface {
+export interface WebWorkerInterface extends Pick<Worker, 'postMessage' | 'terminate'> {
   readonly 'addEventListener': {
     (type: 'error', listener: (event: WebWorkerErrorEventInterface) => void): void;
     (type: 'message', listener: (event: WebWorkerMessageEventInterface) => void): void;

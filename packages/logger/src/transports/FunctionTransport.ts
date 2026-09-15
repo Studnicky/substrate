@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FunctionTransportOptionsEntity } from '../entities/FunctionTransportOptionsEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
@@ -10,17 +10,6 @@ import { ResolveMinimumLevel } from '../modules/ResolveMinimumLevel.js';
 
 interface FunctionTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class FunctionTransportInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: FunctionTransportSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
 }
 
 /**
@@ -60,7 +49,7 @@ export class FunctionTransport implements TransportInterface {
       options
     ]);
 
-    if (!Predicates.isObjectLike(result) || !FunctionTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FunctionTransport.create() did not construct the requested subclass.');
     }
 

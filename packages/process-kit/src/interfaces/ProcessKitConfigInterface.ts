@@ -2,8 +2,8 @@
  * ProcessKit configuration contract
  */
 
-import type { EffectHandlerInterface, StateMachine } from '@studnicky/fsm';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { EffectHandlerInterface, StateMachine } from '@studnicky/fsm/node';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
 /**
  * Configuration accepted by `ProcessKit.create()`.

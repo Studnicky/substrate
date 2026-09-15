@@ -1,4 +1,4 @@
-import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors';
+import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -270,6 +270,22 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 async function runCase(scenario: ScenarioCase): Promise<void> {
   await runnerMap[scenario.shape](scenario);
 }
+
+void it('forwards canonical error context through RetryError options', () => {
+  const retryError = new RetryError('retry context', 1, {
+    'code': 'retry.context',
+    'correlationId': 'retry-correlation',
+    'instance': 'urn:retry:context',
+    'metadata': { 'attempt': 1 },
+    'status': 503
+  });
+
+  assert.equal(retryError.correlationId, 'retry-correlation');
+  assert.equal(retryError.instance, 'urn:retry:context');
+  assert.deepEqual(retryError.metadata, { 'attempt': 1 });
+  assert.equal(retryError.retryable, false);
+  assert.equal(retryError.status, 503);
+});
 
 void describe('Retry instantiation', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {

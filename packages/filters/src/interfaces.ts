@@ -2,19 +2,21 @@
  * Core type definitions for the FilterEngine
  */
 
-import { Predicates } from '@studnicky/types';
+import type { RuntimeValue } from '@studnicky/types/node';
 
-import type { FilterValueEntity } from './FilterValueEntity.js';
-import type { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
+import { JsonValue, Predicates } from '@studnicky/types/node';
 
+import { FILTER_CONDITION_MEMBER_NAMES } from './constants/FILTER_CONDITION_MEMBER_NAMES.js';
+import { FilterValueEntity } from './FilterValueEntity.js';
+import { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
 // Operator function signature - options carries the compiled condition and evaluation data
 export interface OperatorFunctionInterface {
   (
-    value: FilterValueEntity.Type,
+    value: ReturnType<typeof RuntimeValue.intake>,
     filterValue: FilterValueEntity.Type,
     options?: {
       'condition'?: FilterConditionInterface;
-      'data'?: FilterValueEntity.Type;
+      'data'?: unknown;
     }
   ): boolean;
 }
@@ -36,33 +38,7 @@ export interface ArrayLogicFunctionInterface {
 
 // Comparator function signature
 export interface ComparatorFunctionInterface {
-  (value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, condition?: FilterConditionInterface): boolean;
-}
-
-// Range interfaces for BETWEEN/OUTSIDE operators
-export interface NumericRangeInterface {
-  readonly 'inclusive'?: boolean;
-  readonly 'maximum': number;
-  readonly 'minimum': number;
-}
-
-export interface DateRangeInterface {
-  readonly 'inclusive'?: boolean;
-  readonly 'maximum': string | Date | number;
-  readonly 'minimum': string | Date | number;
-}
-
-export interface TimeRangeInterface {
-  readonly 'inclusive'?: boolean;
-  readonly 'maximum': string;
-  readonly 'minimum': string;
-}
-
-// Generic range interface
-export interface RangeInterface<T = number | string | Date> {
-  readonly 'inclusive'?: boolean;
-  readonly 'maximum': T;
-  readonly 'minimum': T;
+  (value: ReturnType<typeof RuntimeValue.intake>, filterValue: FilterValueEntity.Type, condition?: FilterConditionInterface): boolean;
 }
 
 // Filter condition interface
@@ -190,59 +166,265 @@ export interface ArrayWildcardValueInterface {
 // Type guards
 export class FilterTypeGuards {
   static isArrayWildcardValue<T>(value: T): value is ArrayWildcardValueInterface & T {
-    const result = Predicates.isRecord(value) && value.arrayWildcard === true;
+    if (!Predicates.isPlainObject(value) || value.arrayWildcard !== true) {
+      return false;
+    }
+
+    const result = Predicates.isArray(value.array)
+      && Predicates.isString(value.fullPath)
+      && FilterTypeGuards.isStringArray(value.remainingPath);
 
     return result;
   }
 
   static isFilterCondition<T>(value: T): value is FilterConditionInterface & T {
-    const result = Predicates.isRecord(value)
-      && ('path' in value || 'field' in value || 'conditions' in value || 'gate' in value);
+    const result = FilterTypeGuards.isFilterConditionRecord(value, new Set<object>());
 
     return result;
   }
 
   static isFilterConditionArray(value: unknown): value is FilterConditionInterface[] {
-    const result = Array.isArray(value) && value.every((item) => {
-      const itemResult = FilterTypeGuards.isFilterCondition(item);
+    if (!Predicates.isArray(value)) {
+      return false;
+    }
 
-      return itemResult;
-    });
+    const ancestors = new Set<object>();
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = value[index];
+      if (!FilterTypeGuards.isFilterConditionRecord(item, ancestors)) {
+        return false;
+      }
+    }
 
-    return result;
+    return true;
   }
 
   static isFilterModeFunction(value: unknown): value is FilterModeFunctionInterface {
-    const result = typeof value === 'function' && value.length === 1;
+    const result = Predicates.isFunction(value);
 
     return result;
   }
 
   static isValidFilterConfig<T>(config: T): config is FilterConfigInterface & T {
-    if (!Predicates.isRecord(config) || Array.isArray(config)) {
+    if (!Predicates.isPlainObject(config)
+      || !Object.hasOwn(config, 'conditions')
+      || !Object.hasOwn(config, 'gate')
+      || !Object.hasOwn(config, 'mode')) {
       return false;
     }
 
-    const filterConfigRecord = config;
-
-    // Check required fields exist
-    if (!('conditions' in filterConfigRecord) || !('gate' in filterConfigRecord) || !('mode' in filterConfigRecord)) {
+    const conditions = Reflect.get(config, 'conditions');
+    const gate = Reflect.get(config, 'gate');
+    const mode = Reflect.get(config, 'mode');
+    if (!FilterTypeGuards.isFilterConditionArray(conditions)
+      || !Predicates.isString(gate)
+      || !FilterTypeGuards.isFilterModeFunction(mode)) {
       return false;
     }
 
-    // Validate conditions
-    if (!FilterTypeGuards.isFilterConditionArray(filterConfigRecord.conditions)) {
+    const result = FilterTypeGuards.hasOptionalBooleanMembers(config, [
+      'cacheCompiled',
+      'detailedErrors',
+      'enablePlugins',
+      'strict'
+    ])
+      && FilterTypeGuards.hasOptionalStringMembers(config, ['includeErrors', 'name'])
+      && FilterTypeGuards.hasOptionalNumberMembers(config, ['maximumDepth', 'maximumPathDepth'])
+      && FilterTypeGuards.hasOptionalPlugins(config);
+
+    return result;
+  }
+
+  private static hasOptionalBooleanMembers(record: Record<string, unknown>, memberNames: readonly string[]): boolean {
+    const memberCount = memberNames.length;
+    for (let index = 0; index < memberCount; index += 1) {
+      const memberName = memberNames[index];
+      if (memberName !== undefined && Object.hasOwn(record, memberName) && !Predicates.isBoolean(Reflect.get(record, memberName))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static hasOptionalNumberMembers(record: Record<string, unknown>, memberNames: readonly string[]): boolean {
+    const memberCount = memberNames.length;
+    for (let index = 0; index < memberCount; index += 1) {
+      const memberName = memberNames[index];
+      if (memberName !== undefined && Object.hasOwn(record, memberName) && !Predicates.isNumber(Reflect.get(record, memberName))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static hasOptionalStringMembers(record: Record<string, unknown>, memberNames: readonly string[]): boolean {
+    const memberCount = memberNames.length;
+    for (let index = 0; index < memberCount; index += 1) {
+      const memberName = memberNames[index];
+      if (memberName !== undefined && Object.hasOwn(record, memberName) && !Predicates.isString(Reflect.get(record, memberName))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static hasOptionalPlugins(record: Record<string, unknown>): boolean {
+    if (!Object.hasOwn(record, 'plugins')) {
+      return true;
+    }
+
+    const plugins = Reflect.get(record, 'plugins');
+    if (!Predicates.isArray(plugins)) {
       return false;
     }
 
-    // Validate gate - registry-key string reference
-    if (typeof filterConfigRecord.gate !== 'string') {
+    const length = plugins.length;
+    for (let index = 0; index < length; index += 1) {
+      const plugin = plugins[index];
+      if (!Predicates.isObject(plugin) || !FilterTypeGuards.isPluginInstance(plugin)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static isFilterConditionRecord(value: unknown, ancestors: Set<object>): boolean {
+    if (!Predicates.isPlainObject(value) || ancestors.has(value)) {
       return false;
     }
 
-    // Validate mode
-    if (!FilterTypeGuards.isFilterModeFunction(filterConfigRecord.mode)) {
+    ancestors.add(value);
+    const result = FilterTypeGuards.hasFilterConditionSelector(value)
+      && FilterTypeGuards.hasOptionalStringMembers(value, FILTER_CONDITION_MEMBER_NAMES.string)
+      && FilterTypeGuards.hasOptionalBooleanMembers(value, FILTER_CONDITION_MEMBER_NAMES.boolean)
+      && FilterTypeGuards.hasOptionalNumberMembers(value, FILTER_CONDITION_MEMBER_NAMES.number)
+      && FilterTypeGuards.hasOptionalFilterConditionMembers(value, ancestors);
+    ancestors.delete(value);
+
+    return result;
+  }
+
+  private static hasFilterConditionSelector(record: Record<string, unknown>): boolean {
+    const result = Object.hasOwn(record, 'path')
+      || Object.hasOwn(record, 'field')
+      || Object.hasOwn(record, 'conditions')
+      || Object.hasOwn(record, 'gate');
+
+    return result;
+  }
+
+  private static hasOptionalFilterConditionMembers(record: Record<string, unknown>, ancestors: Set<object>): boolean {
+    if (Object.hasOwn(record, 'compiledPath') && !FilterTypeGuards.isStringArray(Reflect.get(record, 'compiledPath'))) {
       return false;
+    }
+    if (Object.hasOwn(record, 'conditions') && !FilterTypeGuards.isFilterConditionArrayWithAncestors(Reflect.get(record, 'conditions'), ancestors)) {
+      return false;
+    }
+    if (Object.hasOwn(record, 'filterValue') && !FilterTypeGuards.isFilterValue(Reflect.get(record, 'filterValue'))) {
+      return false;
+    }
+    if (Object.hasOwn(record, 'groupGates') && !FilterTypeGuards.isGroupGateNames(Reflect.get(record, 'groupGates'))) {
+      return false;
+    }
+    if (Object.hasOwn(record, 'numericValue') && !FilterTypeGuards.isNumericValue(Reflect.get(record, 'numericValue'))) {
+      return false;
+    }
+    if (Object.hasOwn(record, 'options') && !Predicates.isPlainObject(Reflect.get(record, 'options'))) {
+      return false;
+    }
+    if (Object.hasOwn(record, 'value') && !FilterTypeGuards.isFilterValue(Reflect.get(record, 'value'))) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private static isFilterConditionArrayWithAncestors(value: unknown, ancestors: Set<object>): boolean {
+    if (!Predicates.isArray(value)) {
+      return false;
+    }
+
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item = value[index];
+      if (!FilterTypeGuards.isFilterConditionRecord(item, ancestors)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static isFilterValue(value: unknown): boolean {
+    const result = JsonValue.is(value) && FilterValueEntity.validate(value);
+
+    return result;
+  }
+
+  private static isGroupGateNames(value: unknown): boolean {
+    const result = JsonValue.is(value) && GroupGateNamesEntity.validate(value);
+
+    return result;
+  }
+
+  private static isNumericValue(value: unknown): boolean {
+    const result = Predicates.isNumber(value) || typeof value === 'bigint';
+
+    return result;
+  }
+
+  private static isPluginInstance(value: Record<string, unknown>): boolean {
+    if (!Predicates.isFunction(Reflect.get(value, 'getNamespace'))) {
+      return false;
+    }
+
+    const result = FilterTypeGuards.hasOptionalFunctionMap(value, 'arrayLogic')
+      && FilterTypeGuards.hasOptionalFunctionMap(value, 'comparators')
+      && FilterTypeGuards.hasOptionalFunctionMap(value, 'gates')
+      && FilterTypeGuards.hasOptionalFunctionMap(value, 'operators');
+
+    return result;
+  }
+
+  private static hasOptionalFunctionMap(record: Record<string, unknown>, memberName: string): boolean {
+    if (!Object.hasOwn(record, memberName)) {
+      return true;
+    }
+
+    const functionMap = Reflect.get(record, memberName);
+    if (functionMap === undefined) {
+      return true;
+    }
+    if (!Predicates.isPlainObject(functionMap)) {
+      return false;
+    }
+
+    const functions = Object.values(functionMap);
+    const length = functions.length;
+    for (let index = 0; index < length; index += 1) {
+      if (!Predicates.isFunction(functions[index])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static isStringArray(value: unknown): value is readonly string[] {
+    if (!Predicates.isArray(value)) {
+      return false;
+    }
+
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      if (!Predicates.isString(value[index])) {
+        return false;
+      }
     }
 
     return true;

@@ -3,7 +3,7 @@
 // #region usage
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { BaseError } from '@studnicky/errors';
+import { BaseError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 import type { RetryConfigInterface } from '../src/interfaces/index.js';

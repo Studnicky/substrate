@@ -60,7 +60,7 @@
     },
     {
       "name": "buildQueryString-skip-null-undefined",
-      "description": "buildQueryString skips null and undefined values",
+      "description": "buildQueryString omits undefined values and serializes JSON null",
       "shape": "buildQueryString-skip-null-undefined",
       "input": {
         "params": {
@@ -72,12 +72,12 @@
         }
       },
       "expected": {
-        "output": "page=1"
+        "output": "filter=null&page=1"
       }
     },
     {
       "name": "buildQueryString-skip-null-array-items",
-      "description": "buildQueryString skips nullish array items",
+      "description": "buildQueryString omits undefined array items and serializes JSON null",
       "shape": "buildQueryString-skip-null-array-items",
       "input": {
         "params": {
@@ -92,7 +92,7 @@
         }
       },
       "expected": {
-        "output": "tags=js&tags=ts"
+        "output": "tags=js&tags=null&tags=ts"
       }
     },
     {
@@ -136,7 +136,7 @@
     },
     {
       "name": "buildQueryString-mixed-bool-null-array",
-      "description": "buildQueryString skips nullish items in mixed arrays",
+      "description": "buildQueryString omits undefined items and serializes JSON null",
       "shape": "buildQueryString-skip-null-array-items",
       "input": {
         "params": {
@@ -151,7 +151,7 @@
         }
       },
       "expected": {
-        "output": "tags=true&tags=false"
+        "output": "tags=true&tags=null&tags=false"
       }
     },
     {
@@ -222,7 +222,7 @@
     },
     {
       "name": "buildUrl-nullish-only",
-      "description": "buildUrl ignores nullish-only params",
+      "description": "buildUrl serializes JSON null while omitting undefined params",
       "shape": "buildUrl-nullish-only",
       "input": {
         "baseUrl": "/api/users",
@@ -234,7 +234,7 @@
         }
       },
       "expected": {
-        "output": "/api/users"
+        "output": "/api/users?filter=null"
       }
     },
     {

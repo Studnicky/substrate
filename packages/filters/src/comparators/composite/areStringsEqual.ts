@@ -15,7 +15,7 @@
  * AreStringsEqual.areStringsEqual('JavaScript', 'JAVASCRIPT', { caseSensitive: false }); // true
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { FilterConditionInterface } from '../../interfaces.js';
 

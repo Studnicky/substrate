@@ -51,9 +51,16 @@ repo=$(make_repo feature/holding)
   git branch -q main "$base_sha"
   git update-ref refs/remotes/origin/develop "$base_sha"
 
-  git switch -q main
-  printf "release only\n" >> README.md
+  git switch -q -c feature/develop-only "$base_sha"
+  printf "develop only\n" >> README.md
   git add README.md
+  git commit -q -m "feat: develop only"
+  develop_sha=$(git rev-parse HEAD)
+  git update-ref refs/remotes/origin/develop "$develop_sha"
+
+  git switch -q main
+  printf "%s\n" "{}" > packages/example/package.json
+  git add packages/example/package.json
   git commit -q -m "chore(release): prepare vX.Y.Z"
   main_sha=$(git rev-parse HEAD)
   git update-ref refs/remotes/origin/main "$main_sha"
@@ -64,13 +71,14 @@ repo=$(make_repo feature/holding)
   if ! printf "refs/heads/chore/sync-main-to-develop %s refs/heads/chore/sync-main-to-develop %s\n" "$main_sha" "$base_sha" | .githooks/pre-push >/tmp/pre-push-sync-branch.out 2>&1; then
     fail "pre-push canonical sync branch" "$(cat /tmp/pre-push-sync-branch.out)"
   fi
+  assert_contains "pre-push canonical sync base" "release-gates origin/develop refs/heads/chore/sync-main-to-develop chore/sync-main-to-develop" "$(cat hook-suite.calls)"
 
   git switch -q -c feature/from-main "$main_sha"
   if printf "refs/heads/feature/from-main %s refs/heads/feature/from-main %s\n" "$main_sha" "$base_sha" | .githooks/pre-push >/tmp/pre-push-feature-from-main.out 2>&1; then
     fail "pre-push feature branch from main" "pre-push accepted main-only commits on a feature branch"
   fi
 
-  assert_contains "pre-push feature branch from main rejection" "hasn't absorbed yet" "$(cat /tmp/pre-push-feature-from-main.out)"
+  assert_contains "pre-push feature branch from main rejection" "behind origin/develop" "$(cat /tmp/pre-push-feature-from-main.out)"
 )
 rm -rf "$repo"
 

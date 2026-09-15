@@ -1,16 +1,15 @@
+import exampleSourcePaths from './ExampleSourcePaths.json';
+
 interface RawSourceLoaderInterface {
   (): Promise<string>;
 }
 
 const RAW_SOURCE_LOADERS = import.meta.glob<string>(
-  [
-    '../../../../packages/*/examples/**/*.ts',
-    '!../../../../packages/context/examples/**/*.ts',
-    '!../../../../packages/eslint-config/examples/**/*.ts',
-    '!../../../../packages/worker-pool/examples/**/*.ts'
-  ],
+  '../../../../packages/*/examples/**/*.ts',
   { query: '?raw', import: 'default' }
 );
+
+const REGISTERED_SOURCE_PATHS = new Set(exampleSourcePaths);
 
 const LOADERS_BY_CANONICAL: Record<string, RawSourceLoaderInterface> = {};
 const LOADED_SOURCES = new Map<string, string>();
@@ -18,7 +17,9 @@ const PENDING_SOURCES = new Map<string, Promise<string>>();
 
 for (const [key, loader] of Object.entries(RAW_SOURCE_LOADERS)) {
   const canonical = key.replace(/^(\.\.\/)+/, '').replace(/\.ts$/, '');
-  LOADERS_BY_CANONICAL[canonical] = loader;
+  if (REGISTERED_SOURCE_PATHS.has(canonical)) {
+    LOADERS_BY_CANONICAL[canonical] = loader;
+  }
 }
 
 function resolveCanonical(canonical: string): string | undefined {

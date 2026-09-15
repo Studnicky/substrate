@@ -2,7 +2,7 @@
  * Checks if an object contains all properties from a partial object (Jest objectContaining style)
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { DoesObjectContainPropertyValue } from './doesObjectContainPropertyValue.js';
 

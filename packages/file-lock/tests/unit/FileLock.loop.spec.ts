@@ -1,14 +1,14 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, afterEach, describe, it } from 'node:test';
 
-import type { FileSystemInterface } from '@studnicky/virtual-fs';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
-import { FileLock, FileLockTimeoutError } from '../../src/node/index.js';
+import { FileLock, FileLockConfigError, FileLockTimeoutError } from '../../src/node/index.js';
 import scenarioGroups from './FileLock.scenarios.json' with { type: 'json' };
 
 type ScenarioCaseBase = {
@@ -426,6 +426,21 @@ function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase
 }
 
 void describe('FileLock', () => {
+  void it('rejects a non-callable Symbol.dispose member', async () => {
+    class NonDisposableFileLock extends FileLock {}
+
+    assert.equal(Reflect.defineProperty(NonDisposableFileLock.prototype, Symbol.dispose, {
+      'configurable': true,
+      'value': 'not-callable',
+      'writable': false
+    }), true);
+
+    await assert.rejects(
+      NonDisposableFileLock.create({ 'path': FileLockTestHelpers.makePath('non-callable-dispose') }),
+      FileLockConfigError
+    );
+  });
+
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);

@@ -1,11 +1,10 @@
 /** observedContext — trace Context lifecycle hooks while scopes remain factory-owned. Run: npx tsx examples/observedContext.ts */
 
-import assert from 'node:assert/strict';
-
 // #region usage
-import type { ContextScopeInterface } from '../src/interfaces/index.js';
+import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 
-import { Context } from '../src/index.js';
+import { Context } from '@studnicky/context/node';
+import assert from 'node:assert/strict';
 
 class ObservedContext extends Context {
   readonly deleteEvents: { 'existed': boolean; 'key': string }[] = [];

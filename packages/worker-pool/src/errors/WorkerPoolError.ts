@@ -1,18 +1,11 @@
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors';
+import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
 
-interface WorkerPoolErrorOptionsInterface {
-  readonly 'cause'?: unknown;
-  readonly 'code': string;
-  readonly 'message': string;
-}
+import { BaseError } from '@studnicky/errors/node';
+
+export interface WorkerPoolErrorOptionsInterface extends Omit<BaseErrorArgumentsInterface, 'retryable'> {}
 
 export class WorkerPoolError extends BaseError {
   public constructor(options: WorkerPoolErrorOptionsInterface) {
-    super(DomainErrorArgumentList.build({ 'message': options.message }, {
-      'cause': options.cause,
-      'code': options.code,
-      'message': (fields: Readonly<{ readonly 'message': string }>): string => { return fields.message; },
-      'retryable': false
-    }));
+    super({ ...options, 'retryable': false });
   }
 }

@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { DomainErrorArgumentList } from '@studnicky/errors';
+import { DomainErrorArgumentList } from '@studnicky/errors/node';
 
 import { ConcurrencyError } from './ConcurrencyError.js';
 

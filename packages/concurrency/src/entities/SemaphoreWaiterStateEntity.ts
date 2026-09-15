@@ -1,24 +1,24 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
-/** Serializable lifecycle flags retained for a queued semaphore waiter. */
+import { SemaphoreWaiterVariantEntity } from './SemaphoreWaiterVariantEntity.js';
+
+/** Canonical lifecycle state for a queued Semaphore waiter. */
 export namespace SemaphoreWaiterStateEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'cancelled': { 'type': 'boolean' },
-      'ready': { 'type': 'boolean' }
+      'variant': SemaphoreWaiterVariantEntity.Schema
     },
-    'required': ['cancelled', 'ready'],
+    'required': ['variant'],
     'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

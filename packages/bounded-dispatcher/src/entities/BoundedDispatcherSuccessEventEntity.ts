@@ -1,6 +1,7 @@
+import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 export namespace BoundedDispatcherSuccessEventEntity {
   export const Schema = {
@@ -15,7 +16,7 @@ export namespace BoundedDispatcherSuccessEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: (candidate: unknown) => candidate is Type = SchemaValidator.compile<Type>(Schema);
-  export const intake = SchemaValidator.compileIntake<Type>(Schema);
-  export const create = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

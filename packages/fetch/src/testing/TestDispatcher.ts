@@ -1,6 +1,6 @@
-import { RuntimeError } from '@studnicky/errors';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -82,16 +82,6 @@ interface TestDispatcherSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class TestDispatcherInstance {
-  static belongsTo<TInstance>(
-    constructor: TestDispatcherSubclassInterface<TInstance>,
-    value: TInstance | object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 const TEST_TRANSPORT_MARKER = '__substrateFetchTransport';
 
 export class TestDispatcher {
@@ -111,7 +101,7 @@ export class TestDispatcher {
     config: Partial<DispatcherConfigEntity.Type> = {}
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
-    if (!TestDispatcherInstance.belongsTo(this, result)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('TestDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

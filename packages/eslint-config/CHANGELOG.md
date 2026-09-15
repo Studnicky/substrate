@@ -1,13 +1,17 @@
 # Changelog
 
-## 12.2.1
+## 13.0.0
 
 ### Patch Changes
 
-- a0c5bf8: Ensures consumer lint configuration updates publish through a verified release lifecycle.
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- 3eace02: The single-export rule accepts a TypeScript enum declared as the companion of the module primary export.
+- 95c7c69: Ensures consumer lint configuration updates publish through a verified release lifecycle.
+- adb3558: Ensures release automation maintains a valid main-to-develop synchronization branch.
+- Updated dependencies [95c7c69]
+- Updated dependencies [95c7c69]
+  - @studnicky/errors@13.0.0
+  - @studnicky/entity@13.0.0
+  - @studnicky/types@13.0.0
 
 ## 12.2.0
 

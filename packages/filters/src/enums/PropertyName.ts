@@ -2,9 +2,9 @@
  * Standard property names used in filter configurations
  */
 
-import { DeepFreeze } from '../utils/deepFreeze.js';
+import { Frozen } from '@studnicky/json/node';
 
-export const PropertyName = DeepFreeze.deepFreeze({
+export const PropertyName = Frozen.deepFreeze({
   'CORE': {
     'CONDITIONS': 'conditions',
     'CONFIG': 'config',

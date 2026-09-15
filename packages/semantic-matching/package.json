@@ -1,23 +1,33 @@
 {
   "name": "@studnicky/semantic-matching",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Composable contracts for vectorization, vector indexes, reranking, classification, and adjudication",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
@@ -31,8 +41,21 @@
     "url": "git+https://github.com/Studnicky/substrate.git",
     "directory": "packages/semantic-matching"
   },
-  "bugs": { "url": "https://github.com/Studnicky/substrate/issues" },
-  "publishConfig": { "registry": "https://npm.pkg.github.com", "access": "public" },
-  "engines": { "node": ">=24.0.0", "npm": ">=11.0.0" },
-  "dependencies": { "@studnicky/errors": "workspace:*", "@studnicky/types": "workspace:*" }
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*",
+    "json-schema-to-ts": "^3.1.1"
+  }
 }

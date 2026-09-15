@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { faker } from '@faker-js/faker';
-import { DrillDown } from '@studnicky/drilldown';
-import type { GroupNodeInterface } from '@studnicky/drilldown';
+import { DrillDown } from '@studnicky/drilldown/browser';
+import type { GroupNodeInterface } from '@studnicky/drilldown/interfaces';
 import DrilldownTreeNode from './DrilldownTreeNode.vue';
 
 const RECORD_COUNT = 320;

@@ -1,17 +1,10 @@
 {
   "name": "@studnicky/virtual-fs",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "In-memory synchronous filesystem primitive with injectable clock and zero node: imports",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./browser": {
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js"
@@ -70,11 +63,11 @@
   },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }
 }

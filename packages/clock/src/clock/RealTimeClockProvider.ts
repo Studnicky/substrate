@@ -5,8 +5,8 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
@@ -16,13 +16,6 @@ const NS_PER_MS = 1_000_000n;
 
 interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class RealTimeClockProviderInstance {
-  static belongsTo<TInstance extends object>(constructor: RealTimeClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -36,7 +29,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
   ): TInstance {
     const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
-    if (!Predicates.isObjectLike(result) || !RealTimeClockProviderInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('RealTimeClockProvider.create() did not construct the requested subclass.');
     }
     return result;

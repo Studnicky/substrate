@@ -47,9 +47,9 @@ Subclass `Batch` and override its protected lifecycle hooks to observe each stag
 
 ## Public API
 
-Import `Batch` and `BatchError` from `@studnicky/batch`; import `BatchStatsEntity` from `@studnicky/batch/entities`. Batching constants are implementation details.
+Import `Batch` and `BatchError` from `@studnicky/batch/node`; import `BatchStatsEntity` from `@studnicky/batch/entities`. Batching constants are implementation details.
 
-`BatchError.retryable` uses the canonical `ErrorClassificationEntity.Type['retryable']` field. Import `ErrorClassificationEntity` directly from `@studnicky/errors`; `@studnicky/batch` does not proxy-export dependency functionality.
+`BatchError.retryable` uses the canonical `ErrorClassificationEntity.Type['retryable']` field. Import `ErrorClassificationEntity` directly from `@studnicky/errors/entities`; `@studnicky/batch` does not proxy-export dependency functionality.
 
 ## Try it
 
@@ -80,7 +80,7 @@ import { BatchStatsEntity } from '@studnicky/batch/entities';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Batch` | Processes items in bounded concurrent batches. | `@studnicky/batch` |
-| `BatchError` | Represents batch processing failures. | `@studnicky/batch` |
+| `Batch` | Processes items in bounded concurrent batches. | `@studnicky/batch/node` |
+| `BatchError` | Represents batch processing failures. | `@studnicky/batch/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/batch)

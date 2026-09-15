@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import {

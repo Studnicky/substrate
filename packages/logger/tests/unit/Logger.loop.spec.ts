@@ -1,5 +1,5 @@
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
-import { RuntimeError, HookInvocationError } from '@studnicky/errors';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
+import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -11,7 +11,6 @@ import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
 import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
-import type { LogMetadataInterface } from '../../src/interfaces/LogMetadataInterface.js';
 import { Logger } from '../../src/modules/Logger.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
@@ -25,7 +24,7 @@ type ScenarioCase =
   | { description: string; shape: 'create-default'; name: string }
   | { description: string; shape: 'create-string-level'; level: 'debug'; name: string }
   | { description: string; shape: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
-  | { description: string; shape: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogMetadataInterface; name: string }
+  | { description: string; shape: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogRecordEntity.Type['metadata']; name: string }
   | { description: string; shape: 'create-invalid-metadata'; name: string }
   | { description: string; expectedMessage: string; shape: 'create-invalid-transports'; name: string }
   | { description: string; shape: 'snapshot-metadata-and-transports'; name: string }
@@ -548,10 +547,10 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onChildCreate-hooks': (_scenarioCase) => {
-    const capturedBindings: LogMetadataInterface[] = [];
+    const capturedBindings: LogRecordEntity.Type['metadata'][] = [];
     class ObservedLogger extends Logger {
       constructor() { super({}); }
-      protected override onChildCreate(bindings: LogMetadataInterface): void {
+      protected override onChildCreate(bindings: LogRecordEntity.Type['metadata']): void {
         capturedBindings.push(bindings);
       }
     }
@@ -563,10 +562,10 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'onChildCreate-bindings': (_scenarioCase) => {
-    const capturedBindings: LogMetadataInterface[] = [];
+    const capturedBindings: LogRecordEntity.Type['metadata'][] = [];
     class ObservedLogger extends Logger {
       constructor() { super({ 'metadata': { 'service': 'api' } }); }
-      protected override onChildCreate(bindings: LogMetadataInterface): void {
+      protected override onChildCreate(bindings: LogRecordEntity.Type['metadata']): void {
         capturedBindings.push(bindings);
       }
     }

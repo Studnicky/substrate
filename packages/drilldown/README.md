@@ -31,7 +31,7 @@ Deterministic multi-level grouping, faceting, and sorting engine for arbitrary r
 Without explicit rules, `DrillDown` analyzes the data and picks a property order automatically:
 
 ```ts
-import { DrillDown } from '@studnicky/drilldown';
+import { DrillDown } from '@studnicky/drilldown/node';
 
 const orders = [
   { category: 'alpha', region: 'east' },
@@ -65,7 +65,7 @@ const tree = drilldown.group(orders, {
 });
 ```
 
-`tree` is a `GroupNodeType`: each node has `value` (the group's key), `property` (which property produced it), `grouped` (child nodes, or `null` at a leaf), and `ungrouped` (leaf records).
+`tree` is a group node: each node has `value` (the group's key), `property` (which property produced it), `grouped` (child nodes, or `null` at a leaf), and `ungrouped` (leaf records).
 
 ### Inspecting groupable properties
 
@@ -82,7 +82,7 @@ analysis.selectedGrouping;    // the order DrillDown would actually use
 `facetOptions` and `resolveFilterState` support building a faceted-search UI — narrowing each dimension's available options based on the others' active selections:
 
 ```ts
-import { FacetedDiscovery } from '@studnicky/drilldown';
+import { FacetedDiscovery } from '@studnicky/drilldown/node';
 
 const rows = [
   { color: 'red', size: 'S' },
@@ -104,14 +104,20 @@ FacetedDiscovery.apply(rows, dimensions, { color: new Set(['blue']), size: new S
 
 ### Validating a config from an external source
 
-`DrillDownConfig.Schema` is a JSON Schema, and `ruleValidator` gives readable error paths for a config assembled from user input, an API payload, or an LLM:
+`DrillDownConfigEntity.Schema` is a JSON Schema, and `ruleValidator` gives readable error paths for a config assembled from user input, an API payload, or an LLM:
 
 ```ts
-import { DrillDownConfig, ruleValidator } from '@studnicky/drilldown';
+import { ruleValidator } from '@studnicky/drilldown/node';
+import { DrillDownConfigEntity } from '@studnicky/drilldown/entities';
 
-const errors = ruleValidator.validate(config.rules);
-if (errors.length > 0) {
-  // errors are `path: message` strings
+const candidate: unknown = configFromApi;
+if (!DrillDownConfigEntity.validate(candidate)) {
+  throw new TypeError("Invalid drilldown configuration");
+}
+
+const validation = ruleValidator.validate(candidate.rules ?? {});
+if (!validation.valid) {
+  // validation.errors contains `path: message` strings
 }
 ```
 
@@ -120,8 +126,9 @@ if (errors.length > 0) {
 - **`DrillDown`** — the grouping engine. `group(data, config?)` builds the tree; `analyze(data, config?)` reports discoverable/recommended properties; `facetOptions` / `resolveFilterState` delegate to `FacetedDiscovery`.
 - **`DataAnalyzer`** — static analysis of a record set's groupable properties (type, cardinality, coverage, bounds).
 - **`FacetedDiscovery`** — static faceted-filtering primitives (`facetOptions`, `apply`, `resolveFilterState`).
-- **`DrillDownConfig`** — namespace exporting the JSON Schema (`Schema`) and derived TypeScript type for `DrillDownConfigType`.
-- **`ruleValidator`** — validates a `DrilldownRulesType` tree and returns human-readable error strings.
+- **`DrillDownConfigEntity`** — entity namespace exporting the JSON Schema (`Schema`) and derived TypeScript type (`Type`).
+- **`DrilldownRulesEntity`** — schema-derived explicit rule tree. Use `DrilldownRulesEntity.Type` for a complete tree and its nested `GroupRuleEntity.Type` / group-value types when a typed rule branch is needed.
+- **`ruleValidator`** — validates a `DrilldownRulesEntity.Type` tree and returns human-readable error strings.
 
 Grouping config supports: explicit per-depth rules, auto-grouping (`count`- or `size`-targeted), value matchers (string, range, date, semver, CIDR, sequential, alphabetic), top-level and per-value filters, sort rules, `minimumGroupSize`/`maximumDepth`/`maximumNodes` bounds, and an outlier bucket (`groupOutliers`) for values that don't match any declared rule.
 

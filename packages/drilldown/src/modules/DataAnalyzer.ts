@@ -1,10 +1,10 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BoundsAccumulatorEntity } from '../entities/BoundsAccumulatorEntity.js';
 import type { GroupingOptionsEntity } from '../entities/GroupingOptionsEntity.js';
 import type { JsonPropertyTypeEntity } from '../entities/JsonPropertyTypeEntity.js';
 import type { PropertyBoundsEntity } from '../entities/PropertyBoundsEntity.js';
-import type { AnalysisResultInterface, DataRecordInterface, PropertyInfoInterface } from '../interfaces/index.js';
+import type { AnalysisResultInterface, PropertyInfoInterface } from '../interfaces/index.js';
 
 import { DrilldownUtilities } from './DrilldownUtilities.js';
 
@@ -87,7 +87,7 @@ export class DataAnalyzer {
    * const result = DataAnalyzer.analyze(records, { excludeProperties: ['id'] });
    * console.log(result.recommendedGrouping); // ['status', 'category', 'type']
    */
-  static analyze(data: DataRecordInterface[], options: GroupingOptionsEntity.Type = {}): AnalysisResultInterface {
+  static analyze(data: Record<string, unknown>[], options: GroupingOptionsEntity.Type = {}): AnalysisResultInterface {
     const properties = new Map<string, PropertyInfoInterface>();
     const propertyPaths = DataAnalyzer.discoverProperties(data);
 
@@ -108,7 +108,7 @@ export class DataAnalyzer {
     };
   }
 
-  private static analyzeProperty(data: DataRecordInterface[], path: string): PropertyInfoInterface {
+  private static analyzeProperty(data: Record<string, unknown>[], path: string): PropertyInfoInterface {
     const distribution = new Map<string, number>();
     const bounds: BoundsAccumulatorEntity.Type = { 'dateMaximum': null, 'dateMinimum': null, 'numberMaximum': null, 'numberMinimum': null };
     let nullCount = 0;
@@ -175,7 +175,7 @@ export class DataAnalyzer {
     }
   }
 
-  private static discoverProperties(data: DataRecordInterface[]): Set<string> {
+  private static discoverProperties(data: Record<string, unknown>[]): Set<string> {
     const paths = new Set<string>();
 
     if (data.length === 0) {

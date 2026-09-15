@@ -2,9 +2,9 @@
  * Condition types for compiled conditions
  */
 
-import { DeepFreeze } from '../utils/deepFreeze.js';
+import { Frozen } from '@studnicky/json/node';
 
-export const ConditionType = DeepFreeze.deepFreeze({
+export const ConditionType = Frozen.deepFreeze({
   'CORE': {
     'FIELD': 'CORE.FIELD',
     'LOGICAL': 'CORE.LOGICAL'

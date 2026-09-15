@@ -1,12 +1,12 @@
 # @studnicky/context
 
-> Per-request async context isolation using AsyncLocalStorage
+> Async context isolation for Node and browser code
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/context)
 
-Scoped key-value stores that propagate automatically through async boundaries — promises, timers, and callbacks — without passing values down the call stack.
+Scoped key-value stores propagate through async boundaries without passing values down the call stack. `@studnicky/context/node` uses AsyncLocalStorage; `@studnicky/context/browser` uses the supplied transform for ordinary `await`. Without the transform, browser code uses `scope.await(value)` across an await boundary and `scope.bind(callback)` for opaque callbacks.
 
-`@studnicky/context` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
+Both runtime entrypoints expose the same Context API. Shared contracts remain available from `@studnicky/context/interfaces`, and schemas remain available from `@studnicky/context/entities`.
 
 ## Install
 
@@ -20,10 +20,12 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/context
 ```
 
-## Usage
+## Node usage
+
+On Node, ordinary `await` preserves the active Context. Use `context.run(initial, operation)` for a one-shot scope that returns `{ value, snapshot }` after automatic cleanup.
 
 ```typescript
-import { Context } from '@studnicky/context';
+import { Context } from '@studnicky/context/node';
 
 const requestContext = Context.create({ name: 'request' });
 
@@ -50,6 +52,26 @@ const snapshot = scope.terminate();
 // { requestId: 'req-001', statusCode: 200 }
 ```
 
+## Browser usage
+
+Import from `@studnicky/context/browser` and register the supplied `transform()` from `@studnicky/context/browser/transform` in Vite. The transform preserves Context across native `await` calls. Without it, use `scope.await(value)`; wrap callbacks passed to opaque browser APIs with `scope.bind(callback)`. Callbacks that outlive the immediate operation use a scope from `context.initialize(...)`; remove the callback and call `scope.terminate()` when the subscription ends.
+
+```typescript
+import { Context } from "@studnicky/context/browser";
+
+const requestContext = Context.create({ name: "request" });
+const scope = requestContext.initialize({ requestId: "req-001" });
+
+await scope.execute(async () => {
+  const response = await fetch("/api/profile");
+  requestContext.set("statusCode", response.status);
+});
+
+scope.terminate();
+```
+
+See the [browser configuration and runnable demo](https://studnicky.github.io/substrate/packages/context) for the Vite plugin setup.
+
 ## Extending
 
 Context is designed for subclassing. Two commonly overridden extension points:
@@ -57,7 +79,7 @@ Context is designed for subclassing. Two commonly overridden extension points:
 **1. Seed default values with `onInitialize`**
 
 ```typescript
-import { Context } from '@studnicky/context';
+import { Context } from '@studnicky/context/node';
 import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 
 class RequestContext extends Context {
@@ -87,7 +109,7 @@ stored `undefined` remains distinguishable from a missing key.
 
 ## Documentation
 
-Full reference: https://studnicky.github.io/substrate/packages/context
+Node and browser usage reference: https://studnicky.github.io/substrate/packages/context
 
 ## License
 

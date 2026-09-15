@@ -10,8 +10,8 @@
  * default hook is a no-op.
  */
 
-import { HookInvoker } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';

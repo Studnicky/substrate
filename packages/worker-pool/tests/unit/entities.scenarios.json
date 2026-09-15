@@ -10,7 +10,6 @@
           true,
           true,
           true,
-          true,
           true
         ]
       },
@@ -22,8 +21,7 @@
           { "entity": "WorkerTaskDispositionEntity", "expected": true, "value": { "retried": false, "settled": false } },
           { "entity": "WorkerErrorEnvelopeEntity", "expected": true, "value": { "error": "failed", "type": "error" } },
           { "entity": "WorkerLogEnvelopeEntity", "expected": true, "value": { "message": "working", "type": "log" } },
-          { "entity": "WorkerProgressEnvelopeEntity", "expected": true, "value": { "percent": 50, "type": "progress" } },
-          { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": true, "value": { "type": "result", "value": 42 } }
+          { "entity": "WorkerProgressEnvelopeEntity", "expected": true, "value": { "percent": 50, "type": "progress" } }
         ]
       },
       "shape": "validates-everything",
@@ -35,7 +33,6 @@
         "validationResults": [
           false,
           false,
-          false,
           false
         ]
       },
@@ -43,8 +40,7 @@
         "validations": [
           { "entity": "WorkerPoolConfigEntity", "expected": false, "value": { "batchConcurrency": 0, "workerPath": "/tmp/worker.mjs" } },
           { "entity": "WorkerTaskIndexEntity", "expected": false, "value": { "index": -1 } },
-          { "entity": "WorkerProgressEnvelopeEntity", "expected": false, "value": { "percent": 101, "type": "progress" } },
-          { "entity": "WorkerResultEnvelopeDiscriminantEntity", "expected": false, "value": { "type": "error" } }
+          { "entity": "WorkerProgressEnvelopeEntity", "expected": false, "value": { "percent": 101, "type": "progress" } }
         ]
       },
       "shape": "rejects-invalid",

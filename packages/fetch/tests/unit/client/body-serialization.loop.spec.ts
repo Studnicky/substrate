@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, it } from 'node:test';

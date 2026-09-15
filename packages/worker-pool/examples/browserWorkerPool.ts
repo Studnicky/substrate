@@ -1,20 +1,14 @@
 import { WebWorkerFactory, WebWorkerMessageTransport, WebWorkerPool } from '../src/browser/index.js';
+import { ItemEntity } from './entities/ItemEntity.js';
 
 class BrowserWorkerPoolExample {
   static async run(): Promise<void> {
-    const workerSource = 'self.onmessage = (event) => { self.postMessage(event.data * 2); };';
+    const workerSource = 'self.onmessage = (event) => { self.postMessage({ n: event.data.n * 2 }); };';
     const factory = WebWorkerFactory.create({
       'options': { 'type': 'module' },
       'script': `data:application/javascript,${encodeURIComponent(workerSource)}`
     });
-    const transport = WebWorkerMessageTransport.create<number, number>({
-      'decode': (value: unknown): number => {
-        if (typeof value !== 'number') {
-          throw new Error('Worker response must be a number');
-        }
-        return value;
-      }
-    });
+    const transport = WebWorkerMessageTransport.fromEntity<ItemEntity.Type, ItemEntity.Type>(ItemEntity.intake);
     const pool = WebWorkerPool.create({
       'factory': factory,
       'maximumWorkers': 2,
@@ -22,7 +16,7 @@ class BrowserWorkerPoolExample {
     });
 
     try {
-      const result = await pool.run([1, 2, 3]);
+      const result = await pool.run([{ 'n': 1 }, { 'n': 2 }, { 'n': 3 }]);
 
       console.log(result);
     } finally {

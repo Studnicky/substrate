@@ -2,8 +2,8 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '@studnicky/errors';
-import { Signal } from '@studnicky/signal';
+import { BaseError } from '@studnicky/errors/node';
+import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
@@ -174,5 +174,24 @@ void describe('WorkerPool.create', () => {
       'concurrency': 0,
       'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
     }), /WorkerPool configuration is invalid/u);
+  });
+});
+
+void describe('WorkerPoolError canonical options', () => {
+  void it('forwards the shared error arguments while remaining non-retryable', () => {
+    const error = new WorkerPoolError({
+      'code': 'workerPool.context',
+      'correlationId': 'worker-correlation',
+      'instance': 'urn:worker-pool:context',
+      'message': 'worker context',
+      'metadata': { 'workerId': 1 },
+      'status': 503
+    });
+
+    assert.equal(error.correlationId, 'worker-correlation');
+    assert.equal(error.instance, 'urn:worker-pool:context');
+    assert.deepEqual(error.metadata, { 'workerId': 1 });
+    assert.equal(error.retryable, false);
+    assert.equal(error.status, 503);
   });
 });

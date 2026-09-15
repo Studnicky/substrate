@@ -1,66 +1,66 @@
 [
   {
     "name": "canonical",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
-    "valid": true
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
+    "valid": false
   },
   {
     "name": "wrong-package",
     "packageName": "other-package",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
     "valid": false
   },
   {
     "name": "wrong-file",
-    "packageName": "@enginseer/entities",
+    "packageName": "@studnicky/entity",
     "file": "Other.ts",
-    "code": "import { SchemaValidator } from './Other.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+    "code": "import { EntityCompiler } from './Other.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
     "valid": false
   },
   {
     "name": "shadow",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { const SchemaValidator = {compileEntity(){return {}}}; export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { const EntityCompiler = {compileEntity(){return {}}}; export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
     "valid": false
   },
   {
     "name": "alias",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator as Renamed } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = Renamed.compileEntity<Type>(Schema); }",
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler as Renamed } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = Renamed.compileEntity<Type>(Schema); }",
     "valid": false
   },
   {
     "name": "fake-factory",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.anything<Type>(Schema); }",
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.anything<Type>(Schema); }",
     "valid": false
   },
   {
     "name": "pair",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'string',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake} = SchemaValidator.compileEntity<Type>(Schema); }",
-    "valid": true
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'string',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake} = EntityCompiler.compileEntity<Type>(Schema); }",
+    "valid": false
   },
   {
     "name": "missing-validate",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './SchemaValidator.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './EntityCompiler.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
     "valid": false,
     "expectedMessageIds": ["missingValidate"]
   },
   {
     "name": "unresolved-import",
-    "packageName": "@enginseer/entities",
-    "file": "SchemaValidator.ts",
-    "code": "import { SchemaValidator } from './Unresolved.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = SchemaValidator.compileEntity<Type>(Schema); }",
+    "packageName": "@studnicky/entity",
+    "file": "EntityCompiler.ts",
+    "code": "import { EntityCompiler } from './Unresolved.js'; import type {FromSchema} from 'json-schema-to-ts'; export namespace ExampleEntity { export const Schema = {type:'object',properties:{name:{type:'string'}},required:['name'],additionalProperties:false} as const; export type Type = FromSchema<typeof Schema>; export const {validate,intake,create} = EntityCompiler.compileEntity<Type>(Schema); }",
     "valid": false
   }
 ]

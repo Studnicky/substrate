@@ -1,7 +1,7 @@
 /** vfsLock — inject VirtualFileSystem as the lock backend. Run: npx tsx examples/vfsLock.ts */
 
 // #region usage
-import { VirtualFileSystem } from '@studnicky/virtual-fs';
+import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 import assert from 'node:assert/strict';
 
 import { FileLock } from '../src/node/index.js';

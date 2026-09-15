@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';

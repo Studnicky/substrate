@@ -1,7 +1,5 @@
-import type { AsyncLocalStorage } from 'node:async_hooks';
-
-import { HookInvoker } from '@studnicky/errors';
-import { TransitionRejectedError } from '@studnicky/fsm';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -9,8 +7,9 @@ import { TransitionRejectedError } from '@studnicky/fsm';
  * Returned from `Context.initialize()`. Manages the execute/terminate lifecycle
  * with an explicit FSM: created → active → terminated.
  */
-import type { ContextScopeStateEntity } from '../entities/ContextScopeStateEntity.js';
+import type { ContextScopeVariantEntity } from '../entities/ContextScopeVariantEntity.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
+import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 
 import { ContextError } from '../errors/ContextError.js';
 import { ContextScopeMachine } from './ContextScopeMachine.js';
@@ -19,8 +18,11 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * An initialized context scope returned from Context.initialize().
  *
  * Represents a prepared execution context with optional initial values.
- * Use execute() to run code within the context, then terminate() to
- * extract final state and clean up.
+ * Use execute() to run code within the context, then terminate() to extract final
+ * state and clean up. Node retains Context through ordinary await. Browser code
+ * uses the transform for ordinary await, or await(value) and bind(callback) when
+ * the transform is unavailable. For an opaque callback external code invokes later,
+ * use a scope from Context.initialize(), remove the callback, then terminate it.
  *
  * ## Lifecycle FSM
  *
@@ -43,13 +45,17 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  *
  * ## Async Propagation
  *
- * Context automatically propagates through async boundaries. Values remain
- * accessible through promises, timers, and callbacks:
+ * Node retains Context through ordinary await. Browser code retains Context
+ * through the transform. Without the transform, call await(value) for a promise
+ * and bind(callback) before handing a callback to an opaque API. Context.run()
+ * owns only callbacks that settle within its operation. A callback invoked later
+ * uses Context.initialize(); remove it, then call terminate() when it is no
+ * longer needed:
  *
  * ```typescript
  * await scope.execute(async () => {
- *   await setTimeout(100);
- *   context.get('key'); // Still works
+ *   await scope.await(delay(100));
+ *   context.get('key');
  * });
  * ```
  *
@@ -82,10 +88,10 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * ```
  */
 export class ContextScope implements ContextScopeInterface {
-  readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
+  readonly #storage: ContextStorageInterface;
   readonly #store: Map<string, unknown>;
   readonly #machine: ContextScopeMachine = new ContextScopeMachine();
-  #state: ContextScopeStateEntity.Type = 'created';
+  #state: ContextScopeVariantEntity.Type = 'created';
 
   /**
    * The name of this scope, used in error messages.
@@ -96,7 +102,7 @@ export class ContextScope implements ContextScopeInterface {
 
   constructor(
     name: string,
-    storage: AsyncLocalStorage<Map<string, unknown>>,
+    storage: ContextStorageInterface,
     initial?: Record<string, unknown>
   ) {
     this.name = name;
@@ -112,7 +118,7 @@ export class ContextScope implements ContextScopeInterface {
    * Transition the FSM to a new state.
    * Subclasses can override onExit() and onEnter() to react to transitions.
    */
-  protected transition(to: ContextScopeStateEntity.Type): void {
+  protected transition(to: ContextScopeVariantEntity.Type): void {
     const from = this.#state;
 
     if (!this.guard(from, to)) {
@@ -139,7 +145,7 @@ export class ContextScope implements ContextScopeInterface {
    * `TransitionRejectedError` as an illegal edge. Any other thrown value (a
    * reducer defect) propagates rather than being swallowed as `false`.
    */
-  protected guard(from: ContextScopeStateEntity.Type, to: ContextScopeStateEntity.Type): boolean {
+  protected guard(from: ContextScopeVariantEntity.Type, to: ContextScopeVariantEntity.Type): boolean {
     try {
       this.#machine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
       return true;
@@ -160,18 +166,18 @@ export class ContextScope implements ContextScopeInterface {
    * @param _from - The state being left
    * @param _to - The state being entered
    */
-  protected onExit(_from: ContextScopeStateEntity.Type, _to: ContextScopeStateEntity.Type): void {}
+  protected onExit(_from: ContextScopeVariantEntity.Type, _to: ContextScopeVariantEntity.Type): void {}
 
   /**
    * Hook called when the FSM enters a new state.
    * Subclasses override to react to state changes.
    */
-  protected onEnter(_to: ContextScopeStateEntity.Type, _from: ContextScopeStateEntity.Type): void {}
+  protected onEnter(_to: ContextScopeVariantEntity.Type, _from: ContextScopeVariantEntity.Type): void {}
 
   /**
    * The current FSM state.
    */
-  protected get state(): ContextScopeStateEntity.Type {
+  protected get state(): ContextScopeVariantEntity.Type {
     const result = this.#state;
     return result;
   }
@@ -220,6 +226,38 @@ export class ContextScope implements ContextScopeInterface {
   protected onTerminatedAccess(): void {}
 
   /**
+   * Awaits a value while restoring this scope storage before continuation.
+   * Use this in browser code that does not run the Context transform.
+   */
+  await<TResult>(value: TResult | PromiseLike<TResult>): Promise<Awaited<TResult>> {
+    const result = this.execute(() => {
+      const awaitedValue = this.#storage.await(this.#store, value);
+      return awaitedValue;
+    });
+    return result;
+  }
+
+  /**
+   * Binds a callback to this scope storage. Use this before passing a callback
+   * to a browser API that invokes it outside the current call stack. A callback
+   * invoked later needs a scope from Context.initialize(); remove the callback and
+   * terminate the scope when its registration ends.
+   */
+  bind<TArguments extends readonly unknown[], TResult>(
+    callback: (...argumentList: TArguments) => TResult
+  ): (...argumentList: TArguments) => TResult {
+    const boundCallback = this.#storage.bind(this.#store, callback);
+    const result = (...argumentList: TArguments): TResult => {
+      const callbackResult = this.execute(() => {
+        const invocationResult = boundCallback(...argumentList);
+        return invocationResult;
+      });
+      return callbackResult;
+    };
+    return result;
+  }
+
+  /**
    * Execute a function within this context scope.
    *
    * The context is active only during execution. Multiple calls to execute()
@@ -231,6 +269,9 @@ export class ContextScope implements ContextScopeInterface {
    * @throws {ContextError} If scope has been terminated
    *
    * @remarks
+   * On Node, ordinary await retains Context. Browser code requires the transform
+   * for ordinary await, or await(value) and bind(callback) at explicit boundaries.
+   *
    * When `callback` is async (returns a Promise), `onAfterExecute()` fires only
    * after the returned promise resolves, and `onError()` fires if it
    * rejects instead. The returned promise still resolves/rejects exactly

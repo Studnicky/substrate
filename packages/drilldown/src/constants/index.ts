@@ -12,7 +12,6 @@ export const DRILLDOWN_DEFAULTS = {
   'minimumSequentialValues': 5,
   'semverDigitPattern': new RegExp('^\\d+\\.\\d+'),
   'semverPrefixPattern': new RegExp('^[\\^~>=<]+'),
-  'sequentialPattern': new RegExp('^(.+?)(\\d+)(.*)$'),
   'targetGroupMultiplier': 0.8,
   'typeDetectionSampleSize': 100,
   'typeDetectionThreshold': 0.8

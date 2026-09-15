@@ -5,8 +5,12 @@
  */
 
 import { ThrownValueEntity } from '@studnicky/errors/entities';
-import { Predicates } from '@studnicky/types';
+import {
+  Predicates,
+  RuntimeValue
+} from '@studnicky/types/node';
 
+import type { FilterValueEntity } from './FilterValueEntity.js';
 import type {
   ArrayWildcardValueInterface,
   FilterConditionInterface,
@@ -30,8 +34,6 @@ import { PropertyName } from './enums/PropertyName.js';
 import { FilterConfigurationError } from './errors/FilterConfigurationError.js';
 import { FilterGateError } from './errors/FilterGateError.js';
 import { FilterOperatorError } from './errors/FilterOperatorError.js';
-import { FilterValueEntity } from './FilterValueEntity.js';
-import { FilterValueGuard } from './FilterValueGuard.js';
 import { FilterTypeGuards } from './interfaces.js';
 import { ArrayLogicOperations } from './logic/ArrayLogicOperations.js';
 import { NumericOperators } from './operators/NumericOperators.js';
@@ -80,7 +82,7 @@ class FilterEngineHelpers {
     return result;
   }
 
-  static readRangeBound(value: FilterValueEntity.Type, key: 'max' | 'min'): unknown {
+  static readRangeBound(value: unknown, key: 'max' | 'min'): unknown {
     const result = Predicates.isRecord(value) ? value[key] : undefined;
 
     return result;
@@ -107,8 +109,6 @@ class FilterEngine {
   constructor(config: FilterConfigInterface) {
     // Strict runtime validation of configuration
     if (!FilterTypeGuards.isValidFilterConfig(config)) {
-      const filterConfigRecord = config as Record<string, unknown>;
-
       // Check for missing required fields
       if (config === null || config === undefined || typeof config !== 'object' || Array.isArray(config)) {
         throw new FilterConfigurationError(
@@ -120,7 +120,9 @@ class FilterEngine {
         );
       }
 
-      if (!('conditions' in filterConfigRecord)) {
+      const filterConfigValues = new Map<string, unknown>(Object.entries(config));
+
+      if (!filterConfigValues.has('conditions')) {
         throw new FilterConfigurationError(
           'Missing required field: conditions. Must be an array of FilterConditionInterface objects.',
           {
@@ -130,7 +132,7 @@ class FilterEngine {
         );
       }
 
-      if (!('gate' in filterConfigRecord)) {
+      if (!filterConfigValues.has('gate')) {
         throw new FilterConfigurationError(
           'Missing required field: gate. Must be a registry-key string reference (e.g., "CORE.AND").',
           {
@@ -140,7 +142,7 @@ class FilterEngine {
         );
       }
 
-      if (!('mode' in filterConfigRecord)) {
+      if (!filterConfigValues.has('mode')) {
         throw new FilterConfigurationError(
           'Missing required field: mode. Must be a FilterModeFunctionInterface (e.g., Types.FilterMode.CORE.WHITELIST).',
           {
@@ -151,32 +153,32 @@ class FilterEngine {
       }
 
       // Check for invalid field types
-      if (!Array.isArray(filterConfigRecord.conditions)) {
+      if (!Array.isArray(filterConfigValues.get('conditions'))) {
         throw new FilterConfigurationError(
           'Invalid field type: conditions must be an array of FilterConditionInterface objects.',
           {
             'property': 'conditions',
-            'value': filterConfigRecord.conditions
+            'value': filterConfigValues.get('conditions')
           }
         );
       }
 
-      if (typeof filterConfigRecord.gate !== 'string') {
+      if (typeof filterConfigValues.get('gate') !== 'string') {
         throw new FilterConfigurationError(
           'Invalid field type: gate must be a registry-key string reference (e.g., "CORE.AND" or "plugin:gateName").',
           {
             'property': 'gate',
-            'value': filterConfigRecord.gate
+            'value': filterConfigValues.get('gate')
           }
         );
       }
 
-      if (typeof filterConfigRecord.mode !== 'function') {
+      if (typeof filterConfigValues.get('mode') !== 'function') {
         throw new FilterConfigurationError(
           'Invalid field type: mode must be a FilterModeFunctionInterface (e.g., Types.FilterMode.CORE.WHITELIST).',
           {
             'property': 'mode',
-            'value': filterConfigRecord.mode
+            'value': filterConfigValues.get('mode')
           }
         );
       }
@@ -378,7 +380,7 @@ class FilterEngine {
 
       for (let i = 0; i < arrayLength; i++) {
         results.push(this.#evaluateConditions(
-          FilterValueGuard.intake(array[i]),
+          RuntimeValue.intake(array[i]),
           nestedConditions,
           { 'gate': condition.rowGate ?? DEFAULT_GATE_NAME }
         ));
@@ -400,8 +402,8 @@ class FilterEngine {
     for (let i = 0; i < arrayLength; i++) {
       const rawItem = array[i];
       const value = remainingPathValue !== null
-        ? GetPathValue.getPathValue(FilterValueGuard.intake(rawItem), remainingPathValue, this.maximumPathDepth)
-        : FilterValueGuard.intake(rawItem);
+        ? GetPathValue.getPathValue(RuntimeValue.intake(rawItem), remainingPathValue, this.maximumPathDepth)
+        : RuntimeValue.intake(rawItem);
 
       // Pass the wildcard level to nested evaluations
       results.push(this.#applyOperatorWithLevel(value, operator, filterValue, condition, wildcardLevel, data));
@@ -437,9 +439,9 @@ class FilterEngine {
 
     // Options object seen by operator functions — data omitted when not supplied,
     // matching the pre-redesign behavior of never fabricating a fallback value.
-    const options: { 'condition': FilterConditionInterface; 'data'?: FilterValueEntity.Type } = {
+    const options: { 'condition': FilterConditionInterface; 'data'?: unknown } = {
       'condition': condition,
-      ...(data !== null && { 'data': data as FilterValueEntity.Type })
+      ...(data !== null && { 'data': data })
     };
 
     // Get operator handler - colon notation for plugins (PluginName:OPERATOR)
@@ -458,10 +460,7 @@ class FilterEngine {
       );
     }
 
-    // Operators declare FilterValueEntity.Type params for the common JSON-safe case; Date/Set/Map
-    // instances still flow through correctly here since operators self-validate via
-    // instanceof/typeof, but the static type at this traversal boundary is unknown.
-    const result = handler(FilterValueEntity.intake(value), filterValue, options);
+    const result = handler(RuntimeValue.intake(value), filterValue, options);
 
     return result;
   }
@@ -1342,9 +1341,16 @@ class FilterEngine {
       return true;
     }
 
+    if (this.compiledConditions.length !== 1) {
+      return false;
+    }
+
     const onlyCondition = this.compiledConditions[0];
-    const result = this.compiledConditions.length === 1
-        && onlyCondition?.type === ConditionType.CORE.LOGICAL
+    if (onlyCondition === undefined) {
+      return false;
+    }
+
+    const result = onlyCondition.type === ConditionType.CORE.LOGICAL
         && (onlyCondition.conditions?.length ?? 0) === 0;
 
     return result;

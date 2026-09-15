@@ -1,6 +1,6 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
@@ -21,16 +21,6 @@ interface DeadLetterQueueShapeInterface {
 
 interface DeadLetterQueueSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class DeadLetterQueueInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: DeadLetterQueueSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class DeadLetterQueue<T> {
@@ -68,7 +58,7 @@ export class DeadLetterQueue<T> {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !DeadLetterQueueInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('DeadLetterQueue.create() did not construct the requested subclass.');
     }
     return result;

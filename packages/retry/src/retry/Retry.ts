@@ -1,19 +1,20 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
-import { ConfigurationError } from '@studnicky/config';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { ConfigurationError } from '@studnicky/config/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker,
   RuntimeError
-} from '@studnicky/errors';
-import { TransitionRejectedError } from '@studnicky/fsm';
-import { SchemaIntakeError } from '@studnicky/json';
-import { RaceTimeout } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+} from '@studnicky/errors/node';
+import { TransitionRejectedError } from '@studnicky/fsm/node';
+import { RaceTimeout } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
+import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
 import type { RetryConfigInterface, RetryContextInterface, RetryInterface } from '../interfaces/index.js';
 
 import {
@@ -22,6 +23,7 @@ import {
   INITIAL_COUNTER,
   NO_DELAY_MS
 } from '../constants/index.js';
+import { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
 import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import {
   MaximumRetriesExceededError,
@@ -96,9 +98,26 @@ class RetryHookInvoker extends HookInvoker {
  *
  */
 export class Retry implements RetryInterface {
+  static readonly #transitionEventsByVariant = new Map<string, RetryCallTransitionEventEntity.Type>([
+    ['aborted', { 'to': 'aborted', 'type': 'transitionTo' }],
+    ['attempting', { 'to': 'attempting', 'type': 'transitionTo' }],
+    ['exhausted', { 'to': 'exhausted', 'type': 'transitionTo' }],
+    ['failed', { 'to': 'failed', 'type': 'transitionTo' }],
+    ['succeeded', { 'to': 'succeeded', 'type': 'transitionTo' }],
+    ['waiting', { 'to': 'waiting', 'type': 'transitionTo' }]
+  ]);
+
+  static #transitionEventFor(state: RetryCallStateEntity.Type): RetryCallTransitionEventEntity.Type {
+    const event = Retry.#transitionEventsByVariant.get(state.variant);
+    if (event === undefined) {
+      throw RuntimeError.create('Retry call state has no transition event');
+    }
+    return event;
+  }
+
   static readonly #OwnedCallFsm = class RetryCallFsm implements RetryCallFsmInterface {
     readonly #owner: Retry;
-    #state: RetryCallStateEntity.Type = 'attempting';
+    #state: RetryCallStateEntity.Type = { 'variant': 'attempting' };
 
     constructor(owner: Retry) {
       this.#owner = owner;
@@ -113,7 +132,7 @@ export class Retry implements RetryInterface {
       const from = this.#state;
 
       if (!this.#owner.guardCall(from, to)) {
-        throw RuntimeError.create(`Illegal state transition: ${from} → ${to}`);
+        throw RuntimeError.create(`Illegal state transition: ${from.variant} → ${to.variant}`);
       }
 
       this.#state = to;
@@ -123,14 +142,6 @@ export class Retry implements RetryInterface {
       });
     }
   };
-
-  private static isConstructed<TInstance extends Retry>(
-    value: object,
-    constructor: typeof Retry & { readonly 'prototype': TInstance }
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   /**
    * Create a new Retry instance with the specified configuration.
@@ -143,7 +154,7 @@ export class Retry implements RetryInterface {
     config?: RetryConfigInterface
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(constructed) || !Retry.isConstructed(constructed, this)) {
+    if (!Predicates.isObjectLike(constructed) || !Predicates.isInstanceOf<TInstance>(constructed, this)) {
       throw RuntimeError.create('Retry.create() must construct a Retry instance');
     }
     const result = constructed;
@@ -193,20 +204,55 @@ export class Retry implements RetryInterface {
     this.classifierCallback = classifierCallback;
   }
 
-  /** Converts entity intake failures into Retry's established public config error. */
+  /** Validates retry configuration at the construction boundary. */
   private static validateConfig(config: RetryConfigInterface): RetryConfigInterface {
     try {
-      const { 'clock': clockProvider, ...configData } = config;
+      if (!Predicates.isObject(config)) {
+        throw ConfigurationError.create('config must be an object');
+      }
+
+      const {
+        backoffStrategy,
+        'clock': clockProvider,
+        errorClassifier,
+        ...configData
+      } = config;
+
       if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
         throw ConfigurationError.create('clock must implement ClockProviderInterface');
+      }
+
+      if (backoffStrategy !== undefined) {
+        if (!Predicates.isObject(backoffStrategy)) {
+          throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
+        }
+
+        const strategy: unknown = Reflect.get(backoffStrategy, 'strategy');
+        if (!Predicates.isFunction(strategy)) {
+          throw ConfigurationError.create('backoffStrategy.strategy must be a function');
+        }
+
+        const baseDelayMs: unknown = Reflect.get(backoffStrategy, 'baseDelayMs');
+        BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
+      }
+
+      if (errorClassifier !== undefined && !Predicates.isFunction(errorClassifier)) {
+        if (!Predicates.isObject(errorClassifier)) {
+          throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
+        }
+
+        const classify: unknown = Reflect.get(errorClassifier, 'classify');
+        if (!Predicates.isFunction(classify)) {
+          throw ConfigurationError.create('errorClassifier.classify must be a function');
+        }
       }
 
       const parsed = RetryConfigEntity.intake(configData);
       const result: RetryConfigInterface = {
         ...parsed,
-        ...(config.backoffStrategy === undefined ? {} : { 'backoffStrategy': config.backoffStrategy }),
+        ...(backoffStrategy === undefined ? {} : { 'backoffStrategy': backoffStrategy }),
         ...(clockProvider === undefined ? {} : { 'clock': clockProvider }),
-        ...(config.errorClassifier === undefined ? {} : { 'errorClassifier': config.errorClassifier })
+        ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier })
       };
       return result;
     } catch (error) {
@@ -297,7 +343,7 @@ export class Retry implements RetryInterface {
    */
   protected guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
     try {
-      this.#callMachine.transition({ 'variant': from }, { 'to': to, 'type': 'transitionTo' });
+      this.#callMachine.transition(from, Retry.#transitionEventFor(to));
       return true;
     } catch (error) {
       if (error instanceof TransitionRejectedError) {
@@ -413,7 +459,7 @@ export class Retry implements RetryInterface {
   private async handleAbort(callFsm: RetryCallFsmInterface, attempt: number, error: Error): Promise<never> {
     this.stats.failedRequests++;
 
-    callFsm.transition('aborted');
+    callFsm.transition({ 'variant': 'aborted' });
     await this.hooks.invokeAsync('onGiveUp', () => {
       const result = this.onGiveUp(error, attempt, 'aborted');
       return result;
@@ -438,7 +484,7 @@ export class Retry implements RetryInterface {
   ): Promise<never> {
     this.stats.failedRequests++;
 
-    callFsm.transition('exhausted');
+    callFsm.transition({ 'variant': 'exhausted' });
     await this.hooks.invokeAsync('onGiveUp', () => {
       const result = this.onGiveUp(error, attempt, 'exhausted');
       return result;
@@ -463,7 +509,7 @@ export class Retry implements RetryInterface {
   ): Promise<never> {
     this.stats.failedRequests++;
 
-    callFsm.transition('failed');
+    callFsm.transition({ 'variant': 'failed' });
     await this.hooks.invokeAsync('onGiveUp', () => {
       const result = this.onGiveUp(error, attempt, 'nonRetryable');
       return result;
@@ -483,7 +529,7 @@ export class Retry implements RetryInterface {
   private async handleSuccess(callFsm: RetryCallFsmInterface, attempt: number, startTime: number): Promise<void> {
     this.stats.successfulRequests++;
 
-    callFsm.transition('succeeded');
+    callFsm.transition({ 'variant': 'succeeded' });
     await this.hooks.invokeAsync('onSuccess', () => {
       const result = this.onSuccess(attempt, this.clock.now() - startTime);
       return result;
@@ -508,7 +554,7 @@ export class Retry implements RetryInterface {
   ): Promise<void> {
     // Enter waiting state before any budget or abort checks so that terminal
     // transitions (exhausted, aborted) always come from 'waiting'.
-    callFsm.transition('waiting');
+    callFsm.transition({ 'variant': 'waiting' });
 
     if (attempt === this.maximumRetries) {
       await this.handleMaximumRetriesExceeded(callFsm, attempt, error, errors);
@@ -546,7 +592,7 @@ export class Retry implements RetryInterface {
 
     await RaceTimeout.wait(context.delayMs, undefined);
 
-    callFsm.transition('attempting');
+    callFsm.transition({ 'variant': 'attempting' });
   }
 
   /**

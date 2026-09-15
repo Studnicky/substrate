@@ -1,0 +1,66 @@
+{
+  "name": "@studnicky/entity",
+  "version": "13.0.0",
+  "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "node ../../scripts/test-suite.mjs all --package ."
+  },
+  "keywords": [
+    "intake",
+    "boundary",
+    "schema",
+    "entity",
+    "validation"
+  ],
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/entity"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/entity",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "dependencies": {
+    "@studnicky/types": "workspace:*",
+    "@types/json-schema": "^7.0.15",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

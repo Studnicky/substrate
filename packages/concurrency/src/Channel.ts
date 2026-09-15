@@ -1,12 +1,12 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
+import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
 import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
-import type { ChannelKeyStateInterface } from './interfaces/ChannelKeyStateInterface.js';
 
 import { ChannelKeyMachine } from './ChannelKeyMachine.js';
 import { ChannelError } from './errors/ChannelError.js';
@@ -21,16 +21,16 @@ interface ChannelEntryInterface<T> {
 interface ChannelStateInterface<T> {
   readonly 'buffer': CircularBuffer<ChannelEntryInterface<T>>;
   'notify': (() => void) | null;
-  'state': ChannelKeyStateInterface;
+  'state': ChannelKeyStateEntity.Type;
 }
 
 class ChannelVariantGuards {
-  public static isClosedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
+  public static isClosedVariant(variant: ChannelKeyStateEntity.Type['variant']): boolean {
     const result = variant === 'closed-idle' || variant === 'closed-subscribed';
     return result;
   }
 
-  public static isSubscribedVariant(variant: ChannelKeyStateInterface['variant']): boolean {
+  public static isSubscribedVariant(variant: ChannelKeyStateEntity.Type['variant']): boolean {
     const result = variant === 'open-subscribed' || variant === 'closed-subscribed';
     return result;
   }
@@ -38,16 +38,6 @@ class ChannelVariantGuards {
 
 interface ChannelSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class ChannelInstance {
-  static belongsTo<TInstance>(
-    constructor: ChannelSubclassInterface<TInstance>,
-    value: object
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 // T only appears in Channel's covariant/contravariant members (publish/subscribe),
@@ -72,7 +62,7 @@ export class Channel<T> {
     const currentConstructor = getCurrentConstructor();
 
     const result: unknown = Reflect.construct(currentConstructor, [options]);
-    if (!Predicates.isObjectLike(result) || !ChannelInstance.belongsTo(currentConstructor, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, currentConstructor)) {
       throw RuntimeError.create('Channel.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;

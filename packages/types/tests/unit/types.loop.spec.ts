@@ -403,19 +403,131 @@ void describe('Predicates.areNaNStrict', () => {
   });
 });
 
-void describe('Predicates.areSetsEqual', () => {
-  void it('compares by membership, ignoring insertion order', () => {
-    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([3, 2, 1])), true);
-    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2])), false);
-    assert.equal(Predicates.areSetsEqual(new Set([1, 2, 3]), new Set([1, 2, 4])), false);
-    assert.equal(Predicates.areSetsEqual(new Set(), new Set()), true);
+void describe('Predicates.areDeeplyEqual and hasCycle', () => {
+  void it('compares primitives and each supported runtime value structurally', () => {
+    assert.equal(Predicates.areDeeplyEqual(Number.NaN, Number.NaN), true);
+    assert.equal(Predicates.areDeeplyEqual(-0, 0), false);
+    assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
+    assert.equal(Predicates.areDeeplyEqual(/value/giu, /value/giu), true);
+    assert.equal(Predicates.areDeeplyEqual(/value/gu, /other/gu), false);
+    assert.equal(
+      Predicates.areDeeplyEqual(
+        new Map<unknown, unknown>([[{ id: 1 }, new Set<unknown>([{ value: [1, 2] }])]]),
+        new Map<unknown, unknown>([[{ id: 1 }, new Set<unknown>([{ value: [1, 2] }])]])
+      ),
+      true
+    );
+  });
+
+  void it('compares cyclic Maps and Sets without losing graph topology', () => {
+    const leftMap = new Map<unknown, unknown>();
+    leftMap.set('self', leftMap);
+    const rightMap = new Map<unknown, unknown>();
+    rightMap.set('self', rightMap);
+    assert.equal(Predicates.areDeeplyEqual(leftMap, rightMap), true);
+
+    const leftSet = new Set<unknown>();
+    leftSet.add(leftSet);
+    const rightSet = new Set<unknown>();
+    rightSet.add(rightSet);
+    assert.equal(Predicates.areDeeplyEqual(leftSet, rightSet), true);
+
+    const twoNodeCycle: Record<string, unknown> = {};
+    const secondNode: Record<string, unknown> = { next: twoNodeCycle };
+    twoNodeCycle.next = secondNode;
+    const selfCycle: Record<string, unknown> = {};
+    selfCycle.next = selfCycle;
+    assert.equal(Predicates.areDeeplyEqual(selfCycle, twoNodeCycle), false);
+  });
+
+  void it('detects cycles through Map keys, Map values, and Set members', () => {
+    const mapKeyCycle = new Map<unknown, unknown>();
+    mapKeyCycle.set(mapKeyCycle, 1);
+    assert.equal(Predicates.hasCycle(mapKeyCycle), true);
+
+    const mapValueCycle = new Map<unknown, unknown>();
+    mapValueCycle.set('self', mapValueCycle);
+    assert.equal(Predicates.hasCycle(mapValueCycle), true);
+
+    const setCycle = new Set<unknown>();
+    setCycle.add(setCycle);
+    assert.equal(Predicates.hasCycle(setCycle), true);
+
+    const shared = { value: 1 };
+    assert.equal(Predicates.hasCycle({ first: shared, second: shared }), false);
+  });
+
+  void it('detects cycles through Date and RegExp enumerable properties', () => {
+    const date = new Date();
+    Object.assign(date, { self: date });
+    assert.equal(Predicates.hasCycle(date), true);
+
+    const expression = /cycle/u;
+    Object.assign(expression, { self: expression });
+    assert.equal(Predicates.hasCycle(expression), true);
   });
 });
 
-void describe('Predicates.areObjectsEqual with nested Sets', () => {
-  void it('does not silently treat two different Sets as equal via the zero-own-keys fallback', () => {
-    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([4, 5, 6]) }), false);
-    assert.equal(Predicates.areObjectsEqual({ 'tags': new Set([1, 2, 3]) }, { 'tags': new Set([1, 2, 3]) }), true);
+void describe('Predicates.isInstanceOf', () => {
+  class Base {
+    public kind(): string {
+      return 'base';
+    }
+  }
+
+  class Derived extends Base {}
+
+  class ProtectedConstructed {
+    public readonly label: string;
+
+    protected constructor(label: string) {
+      this.label = label;
+    }
+
+    public static create(label: string): ProtectedConstructed {
+      return new ProtectedConstructed(label);
+    }
+  }
+
+  class Unrelated {}
+
+  class ThrowingInstanceCheck {
+    public static [Symbol.hasInstance](): boolean {
+      throw new Error('Instance check failed.');
+    }
+  }
+
+  void it('narrows a subtype instance to the constructor instance type', () => {
+    const candidate: unknown = new Derived();
+
+    if (Predicates.isInstanceOf(candidate, Base)) {
+      const base: Base = candidate;
+      assert.equal(base.kind(), 'base');
+      assert.equal(candidate instanceof Derived, true);
+      return;
+    }
+
+    assert.fail('Expected a Base instance.');
+  });
+
+  void it('narrows an instance from a protected-constructor static factory', () => {
+    const candidate: unknown = ProtectedConstructed.create('factory');
+
+    if (Predicates.isInstanceOf(candidate, ProtectedConstructed)) {
+      const protectedConstructed: ProtectedConstructed = candidate;
+      assert.equal(protectedConstructed.label, 'factory');
+      return;
+    }
+
+    assert.fail('Expected a ProtectedConstructed instance.');
+  });
+
+  void it('returns false for an unrelated instance', () => {
+    assert.equal(Predicates.isInstanceOf(new Unrelated(), Derived), false);
+  });
+
+  void it('returns false when the instance check throws', () => {
+    assert.equal(Predicates.isInstanceOf(new Base(), ThrowingInstanceCheck), false);
   });
 });
 

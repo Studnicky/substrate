@@ -1,21 +1,11 @@
-import { RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
 interface NoOpTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class NoOpTransportInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: NoOpTransportSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -42,7 +32,7 @@ export class NoOpTransport implements TransportInterface {
     this: NoOpTransportSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !NoOpTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('NoOpTransport.create() did not construct the requested subclass.');
     }
     return result;

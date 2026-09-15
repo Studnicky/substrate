@@ -24,8 +24,8 @@
 
 import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler/interfaces';
 
-import { EffectInterpreter } from '@studnicky/fsm';
-import { RealTimeScheduler } from '@studnicky/scheduler';
+import { EffectInterpreter } from '@studnicky/fsm/node';
+import { RealTimeScheduler } from '@studnicky/scheduler/node';
 
 import type { ProcessKitConfigInterface } from './interfaces/ProcessKitConfigInterface.js';
 

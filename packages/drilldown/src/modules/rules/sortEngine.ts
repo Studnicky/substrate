@@ -1,7 +1,7 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SortRuleEntity } from '../../entities/SortRuleEntity.js';
-import type { DataRecordInterface, GroupNodeInterface } from '../../interfaces/index.js';
+import type { GroupNodeInterface } from '../../interfaces/index.js';
 
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import { MatcherHandlerLookup } from '../matchers/index.js';
@@ -123,7 +123,7 @@ export const sortEngine = {
    * @param nodes - Array of data records to sort
    * @param sorts - Sort rules to apply
    */
-  'sortNodes': function (nodes: DataRecordInterface[], sorts: SortRuleEntity.Type[] | undefined): void {
+  'sortNodes': function (nodes: Record<string, unknown>[], sorts: SortRuleEntity.Type[] | undefined): void {
     const nodeSorts = sorts?.filter((sortRule) => { const result = !sortRule.property.startsWith('$');
       return result; }) ?? [];
 

@@ -3,15 +3,14 @@ import type { GroupNodeValueEntity } from '../entities/GroupNodeValueEntity.js';
 import type { GroupValueDiscriminantEntity } from '../entities/GroupValueDiscriminantEntity.js';
 import type { PathSegmentEntity } from '../entities/PathSegmentEntity.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
-import type { FacetAccessorMapType, FacetFilterStateType, GroupValueUnionType, MatcherUnionType } from '../types/index.js';
+import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
+import type { FacetAccessorMapType, FacetFilterStateType, MatcherUnionType } from '../types/index.js';
 import type { AnalysisResultInterface } from './AnalysisResultInterface.js';
-import type { DataRecordInterface } from './DataRecordInterface.js';
 import type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
 import type { GroupNodeInterface } from './GroupNodeInterface.js';
 import type { PartitionGroupInterface } from './PartitionGroupInterface.js';
 
 export type { AnalysisResultInterface } from './AnalysisResultInterface.js';
-export type { DataRecordInterface } from './DataRecordInterface.js';
 export type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
 export type { GroupNodeInterface } from './GroupNodeInterface.js';
 export type { AlphabeticMatcherInterface, CidrMatcherInterface, DateMatcherInterface, RangeMatcherInterface, SemverMatcherInterface, SequentialMatcherInterface, StringMatcherInterface } from './MatcherInterface.js';
@@ -39,14 +38,14 @@ export interface NodePathIndexInterface {
  * Contract for data analyzers that inspect record characteristics before grouping.
  */
 export interface DataAnalyzerInterface {
-  analyze(data: DataRecordInterface[], options?: GroupingOptionsEntity.Type): AnalysisResultInterface
+  analyze(data: Record<string, unknown>[], options?: GroupingOptionsEntity.Type): AnalysisResultInterface
 }
 
 /**
  * Unified recursive multi-level grouping engine combining explicit rules and auto property ordering.
  */
 export interface DrillDownInterface {
-  analyze(data: DataRecordInterface[], config?: DrillDownConfigEntity.Type): DrillDownAnalysisInterface
+  analyze(data: Record<string, unknown>[], config?: DrillDownConfigEntity.Type): DrillDownAnalysisInterface
   facetOptions<TRecord, TDimension extends string>(
     rows: readonly TRecord[],
     dimensions: readonly TDimension[],
@@ -54,7 +53,7 @@ export interface DrillDownInterface {
     accessors: FacetAccessorMapType<TRecord, TDimension>,
     dimension: TDimension
   ): ReadonlySet<string>
-  group(data: DataRecordInterface[], config?: DrillDownConfigEntity.Type): GroupNodeInterface
+  group(data: Record<string, unknown>[], config?: DrillDownConfigEntity.Type): GroupNodeInterface
   resolveFilterState<TRecord, TDimension extends string>(
     rows: readonly TRecord[],
     dimensions: readonly TDimension[],
@@ -69,7 +68,7 @@ export interface DrillDownInterface {
  * Core extension point for the matching system.
  */
 export interface MatcherHandlerInterface<
-  TGroupValue extends GroupValueUnionType = GroupValueUnionType,
+  TGroupValue extends DrilldownRulesEntity.GroupValueEntity.Type = DrilldownRulesEntity.GroupValueEntity.Type,
   TMatcher extends MatcherUnionType = MatcherUnionType,
   TNodeValue extends GroupNodeValueEntity.Type = GroupNodeValueEntity.Type
 > {
@@ -77,7 +76,7 @@ export interface MatcherHandlerInterface<
   createMatcher(valueDef: TGroupValue, group: PartitionGroupInterface): null | TMatcher
   createNodeValue(valueDef: TGroupValue): TNodeValue
   getSortKey?(matcher: TMatcher): number
-  isGroupValue(value: GroupValueUnionType): value is TGroupValue
+  isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is TGroupValue
   isNodeValue(value: unknown): value is TNodeValue
   match(matcher: TMatcher, value: unknown, stringValue: string, context: MatchContextInterface): boolean
   mergeIfOverlapping?(first: TGroupValue, second: TGroupValue): null | TGroupValue

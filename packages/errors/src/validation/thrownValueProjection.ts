@@ -1,7 +1,6 @@
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
-import type { ProjectedNodeInterface } from '../interfaces/ProjectedNodeInterface.js';
-import type { ProjectedValueInterface } from '../interfaces/ProjectedValueInterface.js';
+import type { ThrownValueEntity } from '../entities/ThrownValueEntity.js';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
 import {
@@ -34,29 +33,50 @@ import {
  * @module
  */
 
+interface MemberReadResultInterface {
+  readonly 'readable': boolean;
+  readonly 'value': unknown;
+}
+
+/** Reads arbitrary object members without allowing hostile accessors to escape the projection boundary. */
+class MemberReader {
+  public static read(source: object, key: string): MemberReadResultInterface {
+    try {
+      const value: unknown = Reflect.get(source, key);
+      const result = { 'readable': true, 'value': value };
+      return result;
+    } catch {
+      return { 'readable': false, 'value': undefined };
+    }
+  }
+}
+
 class Classifier {
-  public static ofNullish(): ProjectedNodeInterface {
+  public static ofNullish(): ThrownValueEntity.Type {
     return { 'detail': '', 'title': PROBLEM_TITLE_THROWN_NULLISH, 'type': PROBLEM_TYPE_THROWN_NULLISH };
   }
 
-  public static ofString(value: string): ProjectedNodeInterface {
+  public static ofString(value: string): ThrownValueEntity.Type {
     return { 'detail': value, 'title': PROBLEM_TITLE_THROWN_STRING, 'type': PROBLEM_TYPE_THROWN_STRING };
   }
 
-  public static ofError(error: Error): ProjectedNodeInterface {
-    const node: ProjectedNodeInterface = {
-      'detail': error.message,
-      'name': error.name,
+  public static ofError(error: Error): ThrownValueEntity.Type {
+    const message = MemberReader.read(error, 'message').value;
+    const name = MemberReader.read(error, 'name').value;
+    const stack = MemberReader.read(error, 'stack').value;
+    const node: ThrownValueEntity.Type = {
+      'detail': Predicates.isString(message) ? message : '',
       'title': PROBLEM_TITLE_ERROR,
       'type': PROBLEM_TYPE_ERROR
     };
-    const result = Predicates.isString(error.stack) ? { ...node, 'stack': error.stack } : node;
+    const namedNode = Predicates.isString(name) ? { ...node, 'name': name } : node;
+    const result = Predicates.isString(stack) ? { ...namedNode, 'stack': stack } : namedNode;
     return result;
   }
 
-  public static ofAggregate(error: AggregateError): ProjectedNodeInterface {
+  public static ofAggregate(error: AggregateError): ThrownValueEntity.Type {
     const asError = Classifier.ofError(error);
-    const result: ProjectedNodeInterface = {
+    const result: ThrownValueEntity.Type = {
       ...asError,
       'title': PROBLEM_TITLE_AGGREGATE_ERROR,
       'type': PROBLEM_TYPE_AGGREGATE_ERROR
@@ -64,33 +84,21 @@ class Classifier {
     return result;
   }
 
-  /** Reads `message`/`name` defensively — a thrown object may carry a throwing getter for either. */
-  public static ofObject(value: object): ProjectedNodeInterface {
-    let detail = '';
-    try {
-      const candidate: unknown = Reflect.get(value, 'message');
-      if (Predicates.isString(candidate)) { detail = candidate; }
-    } catch {
-      detail = '';
-    }
-    let name: string | undefined;
-    try {
-      const candidate: unknown = Reflect.get(value, 'name');
-      if (Predicates.isString(candidate)) { name = candidate; }
-    } catch {
-      name = undefined;
-    }
-    const node: ProjectedNodeInterface = {
-      'detail': detail,
+  /** Classifies non-Error objects using the same defensive member reader as native errors. */
+  public static ofObject(value: object): ThrownValueEntity.Type {
+    const message = MemberReader.read(value, 'message').value;
+    const name = MemberReader.read(value, 'name').value;
+    const node: ThrownValueEntity.Type = {
+      'detail': Predicates.isString(message) ? message : '',
       'title': PROBLEM_TITLE_THROWN_OBJECT,
       'type': PROBLEM_TYPE_THROWN_OBJECT
     };
-    const result: ProjectedNodeInterface = name === undefined ? node : { ...node, 'name': name };
+    const result: ThrownValueEntity.Type = Predicates.isString(name) ? { ...node, 'name': name } : node;
     return result;
   }
 
   /** `String()` never throws for these types, unlike template-literal coercion. */
-  public static ofPrimitive(value: bigint | boolean | number | symbol): ProjectedNodeInterface {
+  public static ofPrimitive(value: bigint | boolean | number | symbol): ThrownValueEntity.Type {
     return { 'detail': String(value), 'title': PROBLEM_TITLE_THROWN_PRIMITIVE, 'type': PROBLEM_TYPE_THROWN_PRIMITIVE };
   }
 }
@@ -103,8 +111,18 @@ class Classifier {
  * immediately rather than looping until the depth limit.
  */
 export class ThrownValueProjection {
-  public static project(input: unknown): ProjectedValueInterface {
-    const nodes: ProjectedNodeInterface[] = [];
+  public static project(input: unknown): ThrownValueEntity.Type {
+    try {
+      const result = ThrownValueProjection.projectKnown(input);
+      return result;
+    } catch {
+      const result = Classifier.ofNullish();
+      return result;
+    }
+  }
+
+  private static projectKnown(input: unknown): ThrownValueEntity.Type {
+    const nodes: ThrownValueEntity.Type[] = [];
     const visited = new WeakSet<object>();
     let current: unknown = input;
     let hopCount = 0;
@@ -122,15 +140,17 @@ export class ThrownValueProjection {
         nodes.push(Classifier.ofString(current));
       } else if (typeof current === 'object' || typeof current === 'function') {
         nodes.push(Classifier.ofObject(current));
-      } else {
-        nodes.push(Classifier.ofPrimitive(current as bigint | boolean | number | symbol));
+      } else if (typeof current === 'bigint' || typeof current === 'boolean' || typeof current === 'number' || typeof current === 'symbol') {
+        nodes.push(Classifier.ofPrimitive(current));
       }
 
       if (!Predicates.isError(current)) { break; }
       if (visited.has(current)) { break; }
       visited.add(current);
 
-      const nextCause: unknown = current.cause;
+      const causeRead = MemberReader.read(current, 'cause');
+      if (!causeRead.readable) { break; }
+      const nextCause = causeRead.value;
       if (nextCause === undefined || nextCause === null) { break; }
       if (typeof nextCause === 'object' && visited.has(nextCause)) { break; }
 
@@ -142,11 +162,11 @@ export class ThrownValueProjection {
     // Only the head keeps its stack: a cause node is a summary, and CauseNodeEntity
     // declares no `stack` member, so carrying one would emit an off-schema node.
     const causes = nodes.slice(1).map((node) => {
-      const { 'stack': _stack, ...rest } = node;
+      const { 'causes': _causes, 'stack': _stack, ...rest } = node;
 
       return rest;
     });
-    const result: ProjectedValueInterface = causes.length === 0 ? head : { ...head, 'causes': causes };
+    const result: ThrownValueEntity.Type = causes.length === 0 ? head : { ...head, 'causes': causes };
 
     return result;
   }

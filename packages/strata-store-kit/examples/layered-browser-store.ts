@@ -1,9 +1,9 @@
 import {
-  JsonStateCodec, MemoryPersistence, Store
-} from '@studnicky/store';
-import {
   BrowserPersistence, StorageTarget
 } from '@studnicky/store/browser';
+import {
+  JsonStateCodec, MemoryPersistence, Store
+} from '@studnicky/store/node';
 
 import { StrataStore } from '../src/index.js';
 

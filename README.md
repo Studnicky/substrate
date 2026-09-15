@@ -34,6 +34,18 @@ Install the package you need:
 pnpm add @studnicky/retry
 ```
 
+## Choose an import path
+
+Runtime APIs use an explicit platform entry point. Import executable code from `/node` in Node.js applications or `/browser` in browser applications. Every package publishes both runtime entrypoints; the public contract remains isomorphic when behavior is shared. Import shared contracts from their neutral feature path; those declarations are identical across runtimes.
+
+```typescript
+import { Store } from '@studnicky/store/node';
+import { BrowserPersistence } from '@studnicky/store/browser';
+import type { StoreInterface } from '@studnicky/store/interfaces';
+```
+
+`/interfaces`, `/entities`, and `/types` are portable contract paths; do not put them under `/node` or `/browser`.
+
 ## Find a package
 
 ### Concurrency
@@ -297,9 +309,9 @@ Use it for common object operations such as merging, cloning, comparing, freezin
 </details>
 
 <details>
-<summary><strong>@studnicky/types</strong> — use zero-runtime TypeScript helpers</summary>
+<summary><strong>@studnicky/types</strong> — validate runtime values and compose type guards</summary>
 
-Use it for reusable utility types, type guards, and predicate helpers.
+Use it for reusable type guards, predicate composition, JSON boundaries, and runtime operands that retain Date, Map, and Set values.
 
 [Read the types guide →](https://studnicky.github.io/substrate/packages/types)
 
@@ -512,11 +524,11 @@ Use it to apply the shared flat ESLint configuration to your project.
 </details>
 
 <details>
-<summary><strong>@studnicky/intake-kit</strong> — build schema-backed data boundaries</summary>
+<summary><strong>@studnicky/entity</strong> — build schema-backed data boundaries</summary>
 
-Use it to define common boundary primitives for schema-backed entity handling.
+Use it to define schema-backed data boundaries with validated intake and creation, boundary cloning, and cycle checks.
 
-[Read the intake-kit guide →](https://studnicky.github.io/substrate/packages/intake-kit)
+[Read the entity guide →](https://studnicky.github.io/substrate/packages/entity)
 
 </details>
 

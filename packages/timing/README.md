@@ -6,7 +6,7 @@
 
 Collects `process.hrtime.bigint()` timestamps for named `component.operation[.status]` events and returns them as a flat record of elapsed milliseconds. Designed for low-overhead instrumentation of async pipelines, adapters, and services.
 
-`@studnicky/timing` exposes a root usage API plus declared `./entities` and `./interfaces` subpaths.
+Runtime values import from `@studnicky/timing/node`; schema data imports from `@studnicky/timing/entities`, and type-only contracts import from `@studnicky/timing/interfaces`.
 
 ## Install
 
@@ -25,7 +25,7 @@ pnpm add @studnicky/timing
 ### Basic timing
 
 ```typescript
-import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing';
+import { Timing, TimingEvent, TIMING_STATUS } from '@studnicky/timing/node';
 
 const timing = Timing.create({ 'maximumEvents': 100 });
 
@@ -56,7 +56,7 @@ console.log(events);
 Use `NoOpTiming` when timing collection should be silenced — in test helpers or disabled production paths:
 
 ```typescript
-import { NoOpTiming } from '@studnicky/timing';
+import { NoOpTiming, TimingEvent } from '@studnicky/timing/node';
 
 const timing = NoOpTiming.create();
 timing.event(TimingEvent.create({ 'component': 'Cache', 'operation': 'get' }));
@@ -80,7 +80,7 @@ Override the protected `onEvent` hook to instrument or export timing data withou
 ```typescript
 import type { TimingEventDataEntity } from '@studnicky/timing/entities';
 
-import { Timing } from '@studnicky/timing';
+import { Timing } from '@studnicky/timing/node';
 
 class InstrumentedTiming extends Timing {
   readonly fired: string[] = [];

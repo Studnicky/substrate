@@ -1,14 +1,15 @@
 {
   "name": "@studnicky/bounded-dispatcher",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
@@ -65,6 +66,7 @@
   },
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/event-bus": "workspace:*",
     "@studnicky/json": "workspace:*",

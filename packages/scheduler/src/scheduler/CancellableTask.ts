@@ -3,10 +3,9 @@
  *
  * @module
  */
-import { TransitionRejectedError } from '@studnicky/fsm';
+import { TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
-import type { CancellableTaskStateInterface } from '../interfaces/CancellableTaskStateInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
 
 import { CancellableTaskMachine } from './CancellableTaskMachine.js';
@@ -25,7 +24,7 @@ export class CancellableTask implements ScheduledTaskInterface {
   public readonly atMs: number;
   public readonly id: string;
   readonly #machine: CancellableTaskMachine;
-  #state: CancellableTaskStateInterface;
+  #state: CancellableTaskStateEntity.Type;
   readonly #onCancelCallback: (id: string) => void;
 
   /**
@@ -62,7 +61,7 @@ export class CancellableTask implements ScheduledTaskInterface {
    * confirmed legality via `#guard` where a silent no-op (rather than a
    * throw) is required.
    */
-  #transition(to: CancellableTaskStateEntity.Type): void {
+  #transition(to: CancellableTaskStateEntity.Type['variant']): void {
     this.#state = this.#machine.transition(this.#state, { 'to': to, 'type': 'transitionTo' }).state;
   }
 
@@ -74,7 +73,7 @@ export class CancellableTask implements ScheduledTaskInterface {
    * thrown value (a reducer defect) propagates rather than being swallowed
    * as `false`.
    */
-  #guard(to: CancellableTaskStateEntity.Type): boolean {
+  #guard(to: CancellableTaskStateEntity.Type['variant']): boolean {
     try {
       this.#machine.transition(this.#state, { 'to': to, 'type': 'transitionTo' });
       return true;

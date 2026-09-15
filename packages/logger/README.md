@@ -21,7 +21,7 @@ pnpm add @studnicky/logger
 ## Usage
 
 ```typescript
-import { Logger, ConsoleTransport, LogBody, LogFault } from '@studnicky/logger';
+import { Logger, ConsoleTransport, LogBody, LogFault } from '@studnicky/logger/node';
 
 const logger = Logger.create({
   level: 'info',
@@ -79,9 +79,9 @@ import {
   MemoryTransport,
   FunctionTransport,
   ParseLogLevel
-} from '@studnicky/logger';
+} from '@studnicky/logger/node';
 import type { LogRecordEntity } from '@studnicky/logger/entities';
-import type { TransportInterface } from '@studnicky/logger';
+import type { TransportInterface } from '@studnicky/logger/interfaces';
 
 // Fan-out: console (warn+) and memory capture for tests
 const memory = MemoryTransport.create();

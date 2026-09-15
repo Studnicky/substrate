@@ -3,6 +3,8 @@
  * @description Error thrown when filter configuration is invalid
  */
 
+import { Predicates } from '@studnicky/types/node';
+
 import { ErrorCodes } from '../enums/ErrorCodes.js';
 import { FilterError } from './FilterError.js';
 
@@ -41,7 +43,7 @@ export class FilterConfigurationError extends FilterError {
    */
   constructor(message: string, details: FilterConfigurationErrorDetailsInterface = {}) {
     const code = ErrorCodes.CORE.INVALID_FILTER_CONFIG;
-    const cause = details.cause instanceof Error ? details.cause : undefined;
+    const cause = Predicates.isError(details.cause) ? details.cause : undefined;
 
     super(message, { 'cause': cause, 'code': code });
 

@@ -1,12 +1,12 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** boundaryKitComposition — hand-composes retry, resilience's CircuitBreaker, and throttle into
  * the Boundary Kit's documentation-only pattern (no `@studnicky/boundary-kit` package exists;
  * this composition order IS the deliverable). Composition order: throttle (bounds concurrency)
  * -> circuitBreaker (fast-fail) -> retry (attempt+backoff) -> fn. Run:
  * npx tsx examples/boundaryKitComposition.ts */
 // #region usage
-import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience';
-import { Retry } from '@studnicky/retry';
+import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience/node';
+import { Retry } from '@studnicky/retry/node';
 import assert from 'node:assert/strict';
 
 import { Throttle } from '../src/index.js';

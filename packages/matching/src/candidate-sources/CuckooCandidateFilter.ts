@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 
 export class CuckooCandidateFilter {
   readonly #buckets: (string | undefined)[][];

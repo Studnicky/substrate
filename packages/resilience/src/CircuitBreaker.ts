@@ -3,8 +3,8 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import {
   type ErrorClassifierFunctionInterface, type ErrorClassifierInterface, HookInvoker, RuntimeError
-} from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+} from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
@@ -31,16 +31,6 @@ import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
 interface CircuitBreakerSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class CircuitBreakerInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: CircuitBreakerSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class CircuitBreaker {
@@ -78,7 +68,7 @@ export class CircuitBreaker {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !CircuitBreakerInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;

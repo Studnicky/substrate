@@ -1,7 +1,7 @@
-import type { AdjudicationInputInterface } from './AdjudicationInputInterface.js';
-import type { AdjudicationInterface } from './AdjudicationInterface.js';
+import type { AdjudicationEntity } from '../entities/AdjudicationEntity.js';
+import type { AdjudicationInputEntity } from '../entities/AdjudicationInputEntity.js';
 
 export interface AdjudicatorInterface {
-  adjudicate(input: AdjudicationInputInterface): Promise<AdjudicationInterface>;
+  adjudicate(input: AdjudicationInputEntity.Type): Promise<AdjudicationEntity.Type>;
   getModelIdentity(): string;
 }

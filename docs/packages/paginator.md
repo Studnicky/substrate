@@ -44,7 +44,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Exported contracts
 
-Pure discriminants and fixed pure-data variants are entity-derived: `PaginatorAvailableCursorDiscriminantEntity.Type`, `PaginatorExhaustedCursorEntity.Type`, `PaginatorExhaustedStateDiscriminantEntity.Type`, `PaginatorHasMoreStateDiscriminantEntity.Type`, `PaginatorIdleStateEntity.Type`, `PaginatorPageReceivedEventDiscriminantEntity.Type`, and `PaginatorResetEventEntity.Type`. Generic composite variants are `PaginatorAvailableCursorInterface<TCursor>`, `PaginatorHasMoreStateInterface<TPage, TCursor>`, `PaginatorExhaustedStateInterface<TPage>`, and `PaginatorPageReceivedEventInterface<TPage, TCursor>`.
+Complete cursor, state, and event shapes are entity-derived: `PaginatorAvailableCursorEntity.Type`, `PaginatorExhaustedCursorEntity.Type`, `PaginatorExhaustedStateEntity.Type`, `PaginatorHasMoreStateEntity.Type`, `PaginatorIdleStateEntity.Type`, `PaginatorPageReceivedEventEntity.Type`, and `PaginatorResetEventEntity.Type`. Generic composite variants are `PaginatorAvailableCursorInterface<TCursor>`, `PaginatorHasMoreStateInterface<TPage, TCursor>`, `PaginatorExhaustedStateInterface<TPage>`, and `PaginatorPageReceivedEventInterface<TPage, TCursor>`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/paginator)
 
@@ -70,4 +70,4 @@ import type { PaginatorAvailableCursorInterface } from '@studnicky/paginator/int
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `Paginator` | Provides paginator functionality. | `@studnicky/paginator` |
+| `Paginator` | Provides paginator functionality. | `@studnicky/paginator/node` |

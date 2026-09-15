@@ -1,17 +1,10 @@
 {
   "name": "@studnicky/fetch",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./browser": {
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js"
@@ -76,10 +69,10 @@
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1",
     "undici": "^8.10.0"
   }

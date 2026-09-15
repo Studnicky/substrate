@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   afterEach, beforeEach, describe, it
@@ -379,6 +379,11 @@ void describe('fetch wrapper', () => {
   });
 
   void describe('Signal handling', () => {
+    void it('accepts a null native Fetch signal', async () => {
+      const response = await client.get('https://example.test/instant', { 'signal': null });
+      assert.equal(response.status, 200);
+    });
+
     for (const scenario of (scenarioGroups.cases as ScenarioCase[]).filter((item) => {
       return item.name.startsWith('signal-handling-');
     })) {

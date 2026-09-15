@@ -1,21 +1,16 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 import { CancellableTaskStateEntity } from './CancellableTaskStateEntity.js';
 
-/**
- * Requests a transition of a task's lifecycle state to `to`. Mirrors the
- * target-state argument style `MutexKeyMachine`/`ContextScopeMachine` use —
- * the reducer decides whether `to` is reachable from the current state.
- */
+/** Serializable event that requests a cancellable task lifecycle transition. */
 export namespace CancellableTaskTransitionEventEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'to': CancellableTaskStateEntity.Schema,
+      'to': CancellableTaskStateEntity.Schema.properties.variant,
       'type': { 'const': 'transitionTo', 'type': 'string' }
     },
     'required': ['to', 'type'],
@@ -24,7 +19,7 @@ export namespace CancellableTaskTransitionEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

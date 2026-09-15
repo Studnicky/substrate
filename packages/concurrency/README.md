@@ -25,7 +25,7 @@ pnpm add @studnicky/concurrency
 ## Usage
 
 ```typescript
-import { AsyncIter, Channel, Coalesce, Semaphore } from '@studnicky/concurrency';
+import { AsyncIter, Channel, Coalesce, Semaphore } from '@studnicky/concurrency/node';
 
 // Channel — keyed producer / consumer
 const channel = Channel.create<string>();

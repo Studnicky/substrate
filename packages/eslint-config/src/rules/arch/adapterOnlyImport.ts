@@ -1,10 +1,10 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
@@ -31,8 +31,8 @@ namespace AdapterOnlyImportOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
 class AdapterOnlyMatch {

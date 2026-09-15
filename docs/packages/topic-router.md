@@ -13,20 +13,26 @@ description: Composable pattern-based fan-out routing for topic subscriptions.
 pnpm add @studnicky/topic-router
 ```
 
+## Try it
+
+Register two subscription patterns and publish an order-created event. Every matching handler receives the same immutable envelope.
+
+<RunnableExample src="packages/topic-router/examples/routeTopics" title="Route one topic to matching subscriptions" />
+
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `TopicRouter` | Registers subscriptions, resolves selected IDs, and fans out an event envelope. | `@studnicky/topic-router` |
-| `TopicCandidateSourceInterface` | Contract for materializing candidate subscription identifiers. | `@studnicky/topic-router` |
-| `TopicEnvelopeInterface` | Immutable delivery envelope contract. | `@studnicky/topic-router` |
-| `TopicHandlerInterface` | Contract for a subscription delivery handler. | `@studnicky/topic-router` |
-| `TopicMatcherInterface` | Contract for structural topic-to-pattern matching. | `@studnicky/topic-router` |
-| `TopicPublishOptionsInterface` | Optional metadata attached to every envelope from one publish operation. | `@studnicky/topic-router` |
-| `TopicRegistrationOptionsInterface` | Optional registration identifier and subscription attributes. | `@studnicky/topic-router` |
-| `TopicRouterOptionsInterface` | Router construction options. | `@studnicky/topic-router` |
-| `TopicSelectionInterface` | Selected subscription identifier and evidence contract. | `@studnicky/topic-router` |
-| `TopicSubscriptionInterface` | Registered subscription contract. | `@studnicky/topic-router` |
+| `TopicRouter` | Registers subscriptions, resolves selected IDs, and fans out an event envelope. | `@studnicky/topic-router/node` |
+| `TopicCandidateSourceInterface` | Contract for materializing candidate subscription identifiers. | `@studnicky/topic-router/interfaces` |
+| `TopicEnvelopeInterface` | Immutable delivery envelope contract. | `@studnicky/topic-router/interfaces` |
+| `TopicHandlerInterface` | Contract for a subscription delivery handler. | `@studnicky/topic-router/interfaces` |
+| `TopicMatcherInterface` | Contract for structural topic-to-pattern matching. | `@studnicky/topic-router/interfaces` |
+| `TopicPublishOptionsInterface` | Optional metadata attached to every envelope from one publish operation. | `@studnicky/topic-router/interfaces` |
+| `TopicRegistrationOptionsInterface` | Optional registration identifier and subscription attributes. | `@studnicky/topic-router/interfaces` |
+| `TopicRouterOptionsInterface` | Router construction options. | `@studnicky/topic-router/interfaces` |
+| `TopicSelectionInterface` | Selected subscription identifier and evidence contract. | `@studnicky/topic-router/interfaces` |
+| `TopicSubscriptionInterface` | Registered subscription contract. | `@studnicky/topic-router/interfaces` |
 
 The interface contracts are also available from `@studnicky/topic-router/interfaces`.
 

@@ -1,17 +1,10 @@
 {
   "name": "@studnicky/worker-pool",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Bounded node:worker_threads pool that fans work items across workers with a typed message envelope and per-task timeout",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./lease": {
       "types": "./dist/lease/index.d.ts",
       "import": "./dist/lease/index.js"
@@ -77,12 +70,11 @@
     "@studnicky/batch": "workspace:*",
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/fsm": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/system": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }
 }

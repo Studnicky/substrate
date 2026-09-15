@@ -1,4 +1,4 @@
-export { CircuitBreakerCallFailedEventDiscriminantEntity } from './CircuitBreakerCallFailedEventDiscriminantEntity.js';
+export { CircuitBreakerCallFailedEventEntity } from './CircuitBreakerCallFailedEventEntity.js';
 export { CircuitBreakerCallRejectedEventEntity } from './CircuitBreakerCallRejectedEventEntity.js';
 export { CircuitBreakerCallSucceededEventEntity } from './CircuitBreakerCallSucceededEventEntity.js';
 export { CircuitBreakerClosedStateEntity } from './CircuitBreakerClosedStateEntity.js';
@@ -7,7 +7,7 @@ export { CircuitBreakerMachineOptionsEntity } from './CircuitBreakerMachineOptio
 export { CircuitBreakerManualOpenEventEntity } from './CircuitBreakerManualOpenEventEntity.js';
 export { CircuitBreakerManualResetEventEntity } from './CircuitBreakerManualResetEventEntity.js';
 export { CircuitBreakerOnCloseEffectEntity } from './CircuitBreakerOnCloseEffectEntity.js';
-export { CircuitBreakerOnFailureEffectDiscriminantEntity } from './CircuitBreakerOnFailureEffectDiscriminantEntity.js';
+export { CircuitBreakerOnFailureEffectEntity } from './CircuitBreakerOnFailureEffectEntity.js';
 export { CircuitBreakerOnHalfOpenEffectEntity } from './CircuitBreakerOnHalfOpenEffectEntity.js';
 export { CircuitBreakerOnOpenEffectEntity } from './CircuitBreakerOnOpenEffectEntity.js';
 export { CircuitBreakerOnRejectEffectEntity } from './CircuitBreakerOnRejectEffectEntity.js';

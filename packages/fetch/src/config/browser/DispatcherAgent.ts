@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/browser';
 
 import type { DispatcherConfigEntity } from '../../entities/DispatcherConfigEntity.js';
 

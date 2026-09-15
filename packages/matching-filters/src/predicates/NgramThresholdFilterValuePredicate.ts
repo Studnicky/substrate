@@ -1,4 +1,4 @@
-import { Predicate, Predicates } from '@studnicky/types';
+import { Predicate, Predicates } from '@studnicky/types/node';
 
 import { TextThresholdFilterValuePredicate } from './TextThresholdFilterValuePredicate.js';
 

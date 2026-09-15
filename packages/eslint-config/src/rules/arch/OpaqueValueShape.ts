@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import { REFLECT_KEYED_METHODS } from '../constants/OpaqueValueShapeConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';
@@ -20,7 +20,7 @@ import { AstHelpers } from '../shared/astHelpers.js';
 // through a VARIABLE key (`Reflect.get(x, key)` where `key` came from `Object.keys(x)`) all stay
 // legal — none of those trust a NAMED field.
 //
-// `instanceof` deliberately isn't a trust signal by itself: `BoundaryCycleGuard.hasCycle` checks
+// `instanceof` deliberately isn't a trust signal by itself: `Predicates.hasCycle` checks
 // `value instanceof Map` / `value instanceof Set` purely to pick a traversal strategy, the same
 // role `Array.isArray(value)` already plays without tripping this. A predicate that narrows a
 // NAMED field still trips this rule through that field access — `isErrorWithStatus` checks
@@ -31,9 +31,9 @@ import { AstHelpers } from '../shared/astHelpers.js';
 // A member access that's immediately CALLED (`value.map(...)`, `value.entries()`, `value.at(i)`)
 // isn't a trust signal either, unlike one that's READ as a data value (`value.status`). `intake`
 // validates DATA SHAPE — the fields a schema declares — never behavior, so a schema-backed
-// boundary has nothing to say about whether `value` exposes a callable `.map`. This is what lets
-// `SchemaValidator.stripUndefinedProperties` call `value.map(...)`/`DataType.walkForCycle` call
-// `value.at(index)` and stay opaque without hand-listing every `Array`/`Map`/`Set` method name.
+// boundary has nothing to say about whether `value` exposes a callable `.map`. This lets
+// `EntityCompiler.stripUndefinedProperties`'s `value.map(...)` and `Predicates.hasCycle`'s
+// `value.entries()` calls stay opaque without hand-listing every `Array`/`Map`/`Set` method name.
 //
 // NON-CALLED structural reads (`.length`, `.size`, `.buffer`) can't be told apart from a domain
 // field by name alone — `length` is exactly as plausible a schema property as `status` is. What

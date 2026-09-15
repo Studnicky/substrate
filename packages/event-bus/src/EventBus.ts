@@ -1,7 +1,7 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, UnsubscribeInterface } from './interfaces/index.js';
@@ -19,16 +19,6 @@ interface DrainableQueueInterface {
 
 interface EventBusSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class EventBusInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: EventBusSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 // TTopicMap only appears in EventBus's covariant/contravariant members
@@ -116,7 +106,7 @@ export class EventBus<TTopicMap extends object> {
     const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [config]);
-    if (!Predicates.isObjectLike(result) || !EventBusInstance.belongsTo(constructor, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
       throw RuntimeError.create('EventBus.create() did not construct the requested subclass.');
     }
     return result;

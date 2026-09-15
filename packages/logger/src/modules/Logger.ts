@@ -1,13 +1,12 @@
-import { Clock, RealTimeClockProvider } from '@studnicky/clock';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { LoggerInterface } from '../interfaces/LoggerInterface.js';
 import type { LoggerOptionsInterface } from '../interfaces/LoggerOptionsInterface.js';
-import type { LogMetadataInterface } from '../interfaces/LogMetadataInterface.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
@@ -24,13 +23,6 @@ interface LoggerSubclassInterface<TInstance> extends Function {
 }
 
 class LoggerInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: LoggerSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   static isTransport(value: object): value is TransportInterface {
     const write: unknown = Reflect.get(value, 'write');
@@ -76,7 +68,7 @@ export class Logger implements LoggerInterface {
     options: LoggerOptionsInterface = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !LoggerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('Logger.create() did not construct the requested subclass.');
     }
     return result;
@@ -84,7 +76,7 @@ export class Logger implements LoggerInterface {
 
   readonly #clock: Clock;
   readonly #level: LogLevelEntity.Type;
-  readonly #metadata: LogMetadataInterface;
+  readonly #metadata: LogRecordEntity.Type['metadata'];
   readonly #transports: readonly TransportInterface[];
   readonly #transportErrorHooks = new TransportErrorHookInvoker();
   protected readonly hooks: HookInvoker = new HookInvoker();
@@ -126,7 +118,7 @@ export class Logger implements LoggerInterface {
    * @param metadata - Additional metadata to include in all child log records
    * @returns A new Logger with merged metadata
    */
-  child(metadata: LogMetadataInterface): Logger {
+  child(metadata: LogRecordEntity.Type['metadata']): Logger {
     const result = Logger.create({
       'clock': this.#clock,
       'level': this.#level,
@@ -265,7 +257,7 @@ export class Logger implements LoggerInterface {
    * Override in subclasses to observe child logger creation.
    * Default implementation is a no-op.
    */
-  protected onChildCreate(_bindings: LogMetadataInterface): void {}
+  protected onChildCreate(_bindings: LogRecordEntity.Type['metadata']): void {}
 
   /**
    * Hook called when a transport's `write()` throws.

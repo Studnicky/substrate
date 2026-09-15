@@ -9,11 +9,10 @@
  * @module
  */
 
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 import { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
 import { DrilldownRulesEntity } from './DrilldownRulesEntity.js';
@@ -146,9 +145,9 @@ export namespace DrillDownConfigEntity {
   >;
 
   /** Type-guard — returns true when `value` is a valid `DrillDownConfigEntity.Type`. */
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 
   /**
    * The single canonical default drilldown configuration. Used by callers that

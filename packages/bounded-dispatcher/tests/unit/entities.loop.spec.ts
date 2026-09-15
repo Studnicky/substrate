@@ -47,14 +47,14 @@ void describe('bounded dispatcher event entities', () => {
     });
   }
 
-  void it('intakes event entities without mutating caller input', () => {
+  void it('rejects undeclared event properties without mutating caller input', () => {
     const startInput: Record<string, unknown> = { 'ignored': true, 'phase': 'start' };
     const successInput: Record<string, unknown> = { 'ignored': true, 'phase': 'success' };
     const errorInput: Record<string, unknown> = { 'ignored': true, 'phase': 'error' };
 
-    assert.deepEqual(BoundedDispatcherStartEventEntity.intake(startInput), { 'phase': 'start' });
-    assert.deepEqual(BoundedDispatcherSuccessEventEntity.intake(successInput), { 'phase': 'success' });
-    assert.deepEqual(BoundedDispatcherErrorEventEntity.intake(errorInput), { 'phase': 'error' });
+    assert.throws(() => BoundedDispatcherStartEventEntity.intake(startInput));
+    assert.throws(() => BoundedDispatcherSuccessEventEntity.intake(successInput));
+    assert.throws(() => BoundedDispatcherErrorEventEntity.intake(errorInput));
     assert.deepEqual(startInput, { 'ignored': true, 'phase': 'start' });
     assert.deepEqual(successInput, { 'ignored': true, 'phase': 'success' });
     assert.deepEqual(errorInput, { 'ignored': true, 'phase': 'error' });

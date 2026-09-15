@@ -1,4 +1,5 @@
 /** Node asynchronous filesystem adapter. */
 
-export type { AsyncFileSystemInterface } from '../interfaces/AsyncFileSystemInterface.js';
+export * from '../index.js';
+
 export { NodeFileSystem } from './NodeFileSystem.js';

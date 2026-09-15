@@ -23,15 +23,15 @@
       "name": "json-smoke-merge-clone"
     },
     {
-      "description": "imports the patch-datatype example without throwing",
+      "description": "imports the patch-predicates example without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/patch-datatype.ts"
+        "entrypoint": "../../examples/patch-predicates.ts"
       },
-      "shape": "patch-datatype",
-      "name": "json-smoke-patch-datatype"
+      "shape": "patch-predicates",
+      "name": "json-smoke-patch-predicates"
     },
     {
       "description": "imports the path-sort-hash example without throwing",

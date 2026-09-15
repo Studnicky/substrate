@@ -21,10 +21,10 @@
       "path": "../errors"
     },
     {
-      "path": "../fsm"
+      "path": "../entity"
     },
     {
-      "path": "../json"
+      "path": "../fsm"
     },
     {
       "path": "../types"

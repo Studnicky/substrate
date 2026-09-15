@@ -2,9 +2,10 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 /** observedRetry — override onRetryScheduled and onGiveUp to collect telemetry. Run: npx tsx examples/observedRetry.ts */
 
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
+import type { RetryCallStateEntity } from '../src/entities/RetryCallStateEntity.js';
 import type { RetryConfigInterface, RetryContextInterface } from '../src/interfaces/index.js';
 
 import { MaximumRetriesExceededError, Retry } from '../src/index.js';
@@ -47,8 +48,8 @@ class TelemetryRetry extends Retry {
     this.giveUpEvents.push({ 'attemptNumber': attemptNumber, 'reason': reason });
   }
 
-  protected override enterCall(to: string, from: string): void {
-    console.log(`[retry] call FSM ${from} → ${to}`);
+  protected override enterCall(to: RetryCallStateEntity.Type, from: RetryCallStateEntity.Type): void {
+    console.log(`[retry] call FSM ${from.variant} → ${to.variant}`);
   }
 }
 

@@ -24,7 +24,7 @@
       "path": "../fsm"
     },
     {
-      "path": "../json"
+      "path": "../entity"
     },
     {
       "path": "../scheduler"

@@ -24,21 +24,18 @@ import { ValidationReportOptionsEntity } from '../../src/entities/ValidationRepo
 import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
 import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
 import {
-  PROBLEM_TITLE_ERROR, PROBLEM_TYPE_ERROR
+  PROBLEM_TITLE_ERROR, PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TYPE_ERROR, PROBLEM_TYPE_THROWN_NULLISH
 } from '../../src/constants/ProblemConstants.js';
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ValidationError } from '../../src/errors/ValidationError.js';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 
 void describe('errors entity intake boundaries', () => {
-  void it('strips a private clone without mutating the caller value, without coercing types', () => {
+  void it('rejects undeclared properties without mutating the caller value', () => {
     const input = {
       'ignored': { 'nested': true },
       'retryable': true
     };
 
-    const result = ErrorClassificationEntity.intake(input);
-
-    assert.deepEqual(result, { 'retryable': true });
+    assert.throws(() => ErrorClassificationEntity.intake(input), SchemaIntakeError);
     assert.deepEqual(input, {
       'ignored': { 'nested': true },
       'retryable': true
@@ -49,30 +46,130 @@ void describe('errors entity intake boundaries', () => {
     const cyclic: { retryable: boolean; self?: unknown } = { 'retryable': true };
     cyclic.self = cyclic;
 
-    assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'not-a-boolean' }), ValidationError);
-    assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'true' }), ValidationError, 'a numeric-looking or boolean-looking string is rejected, not coerced');
-    assert.throws(() => ErrorClassificationEntity.intake(cyclic), ValidationError);
+    assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'not-a-boolean' }), SchemaIntakeError);
+    assert.throws(() => ErrorClassificationEntity.intake({ 'retryable': 'true' }), SchemaIntakeError, 'a numeric-looking or boolean-looking string is rejected, not coerced');
+    for (const value of ['not an object', null, ['array']]) {
+      assert.throws(() => ErrorClassificationEntity.intake(value), SchemaIntakeError);
+    }
+    assert.throws(() => ErrorClassificationEntity.intake(cyclic), SchemaIntakeError);
   });
 
   void it('keeps create strict and non-transforming', () => {
     const partial: Partial<ErrorWithStatusEntity.Type> = {};
     Reflect.set(partial, 'unexpected', true);
 
-    assert.throws(() => ErrorWithStatusEntity.create(partial), ValidationError);
-    assert.throws(() => ErrorWithStatusEntity.create({ 'status': Number.NaN }), ValidationError);
+    assert.throws(() => ErrorWithStatusEntity.create(partial), SchemaIntakeError);
+    assert.throws(() => ErrorWithStatusEntity.create({ 'status': Number.NaN }), SchemaIntakeError);
   });
 
-  void it('rejects an invalid cause node with RuntimeError', () => {
+  void it('rejects an invalid cause node with SchemaIntakeError', () => {
     assert.throws(
-      () => CauseNodeEntity.intake({ 'detail': 'failure', 'title': 'Error' }),
+      () => CauseNodeEntity.intake({ 'detail': 1, 'title': 'Error', 'type': 'https://example.test/problem' }),
       (error) => {
-        assert.ok(error instanceof RuntimeError);
-        assert.strictEqual(error.code, 'errors.runtime');
+        assert.ok(error instanceof SchemaIntakeError);
+        assert.strictEqual(error.code, 'entity.schemaIntakeFailed');
         return true;
       }
     );
   });
 
+  void it('rejects unknown cause-node members and isolates nested input', () => {
+    const input = {
+      'context': { 'nested': { 'retained': true } },
+      'detail': 'failure',
+      'title': 'Error',
+      'type': 'https://example.test/problem'
+    };
+    const result = CauseNodeEntity.intake(input);
+    input.context.nested.retained = false;
+
+    assert.deepEqual(result, {
+      'context': { 'nested': { 'retained': true } },
+      'detail': 'failure',
+      'title': 'Error',
+      'type': 'https://example.test/problem'
+    });
+    assert.throws(() => CauseNodeEntity.intake({ ...input, 'unexpected': true }), SchemaIntakeError);
+  });
+
+  void it('preserves and isolates open Problem Details extensions', () => {
+    const input = {
+      'context': { 'nested': { 'retained': true } },
+      'vendorExtension': { 'nested': { 'retained': true } }
+    };
+    const result = ProblemDetailsEntity.intake(input);
+    input.context.nested.retained = false;
+    input.vendorExtension.nested.retained = false;
+
+    assert.deepEqual(result, {
+      'context': { 'nested': { 'retained': true } },
+      'vendorExtension': { 'nested': { 'retained': true } }
+    });
+
+    const cyclic: { self?: unknown } = {};
+    cyclic.self = cyclic;
+    assert.throws(() => ProblemDetailsEntity.intake(cyclic), SchemaIntakeError);
+  });
+  void it('defaults, validates, and isolates CauseNode create input', () => {
+    const input = {
+      'context': { 'nested': { 'retained': true } },
+      'detail': 'failure',
+      'title': 'Error',
+      'type': 'https://example.test/problem'
+    };
+    const result = CauseNodeEntity.create(input);
+    input.context.nested.retained = false;
+
+    assert.deepEqual(result, {
+      'context': { 'nested': { 'retained': true } },
+      'detail': 'failure',
+      'title': 'Error',
+      'type': 'https://example.test/problem'
+    });
+    assert.deepEqual(CauseNodeEntity.create(), {
+      'detail': '',
+      'title': PROBLEM_TITLE_THROWN_NULLISH,
+      'type': PROBLEM_TYPE_THROWN_NULLISH
+    });
+
+    const malformed: Partial<CauseNodeEntity.Type> = {};
+    Reflect.set(malformed, 'detail', 1);
+    assert.throws(() => CauseNodeEntity.create(malformed), SchemaIntakeError);
+    Reflect.set(malformed, 'detail', 'failure');
+    Reflect.set(malformed, 'unexpected', true);
+    assert.throws(() => CauseNodeEntity.create(malformed), SchemaIntakeError);
+
+    const cyclic: Partial<CauseNodeEntity.Type> = {};
+    Reflect.set(cyclic, 'context', cyclic);
+    const cyclicResult = CauseNodeEntity.create(cyclic);
+    assert.notStrictEqual(cyclicResult, cyclic);
+    assert.strictEqual(cyclicResult.context, cyclicResult);
+  });
+
+  void it('validates, preserves extensions, and isolates Problem Details create input', () => {
+    const input = {
+      'context': { 'nested': { 'retained': true } },
+      'vendorExtension': { 'nested': { 'retained': true } }
+    };
+    const result = ProblemDetailsEntity.create(input);
+    input.context.nested.retained = false;
+    input.vendorExtension.nested.retained = false;
+
+    assert.deepEqual(result, {
+      'context': { 'nested': { 'retained': true } },
+      'vendorExtension': { 'nested': { 'retained': true } }
+    });
+
+    const malformed: Partial<ProblemDetailsEntity.Type> = {};
+    Reflect.set(malformed, 'status', 99);
+    assert.throws(() => ProblemDetailsEntity.create(malformed), SchemaIntakeError);
+
+    const cyclic: Partial<ProblemDetailsEntity.Type> = {};
+    Reflect.set(cyclic, 'vendorExtension', cyclic);
+    const cyclicResult = ProblemDetailsEntity.create(cyclic);
+    assert.notStrictEqual(cyclicResult, cyclic);
+    assert.strictEqual(cyclicResult.vendorExtension, cyclicResult);
+  });
   void it('provides intake and create for every object entity', () => {
     const contracts: readonly (() => void)[] = [
       () => {

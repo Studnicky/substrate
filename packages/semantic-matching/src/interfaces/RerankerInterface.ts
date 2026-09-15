@@ -1,7 +1,7 @@
-import type { RerankInputInterface } from './RerankInputInterface.js';
-import type { RerankMatchInterface } from './RerankMatchInterface.js';
+import type { RerankInputEntity } from '../entities/RerankInputEntity.js';
+import type { RerankMatchEntity } from '../entities/RerankMatchEntity.js';
 
 export interface RerankerInterface {
   getModelIdentity(): string;
-  rerank(input: RerankInputInterface): Promise<readonly RerankMatchInterface[]>;
+  rerank(input: RerankInputEntity.Type): Promise<readonly RerankMatchEntity.Type[]>;
 }

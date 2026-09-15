@@ -1,4 +1,2 @@
 /** Message data delivered by a browser Worker. */
-export interface WebWorkerMessageEventInterface {
-  readonly 'data': unknown;
-}
+export interface WebWorkerMessageEventInterface extends Pick<MessageEvent<unknown>, 'data'> {}

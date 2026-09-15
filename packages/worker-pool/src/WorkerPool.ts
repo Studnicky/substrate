@@ -1,22 +1,22 @@
-import { Batch } from '@studnicky/batch';
+import { Batch } from '@studnicky/batch/node';
 /** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { MachineTerminatedError } from '@studnicky/fsm';
-import { Signal } from '@studnicky/signal';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { MachineTerminatedError } from '@studnicky/fsm/node';
+import { Signal } from '@studnicky/signal/node';
 import { System } from '@studnicky/system/node';
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 import { Worker } from 'node:worker_threads';
 
+import type { RetryGuardStateEntity } from './entities/RetryGuardStateEntity.js';
+import type { TaskSettlementStateEntity } from './entities/TaskSettlementStateEntity.js';
+import type { WorkerErrorEnvelopeEntity } from './entities/WorkerErrorEnvelopeEntity.js';
+import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
+import type { WorkerLogEnvelopeEntity } from './entities/WorkerLogEnvelopeEntity.js';
+import type { WorkerProgressEnvelopeEntity } from './entities/WorkerProgressEnvelopeEntity.js';
 import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
 import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
-import type { RetryGuardStateInterface } from './interfaces/RetryGuardStateInterface.js';
-import type { TaskSettlementStateInterface } from './interfaces/TaskSettlementStateInterface.js';
-import type { WorkerErrorEnvelopeInterface } from './interfaces/WorkerErrorEnvelopeInterface.js';
-import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';
-import type { WorkerLogEnvelopeInterface } from './interfaces/WorkerLogEnvelopeInterface.js';
 import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInterface.js';
 import type { WorkerPoolInterface } from './interfaces/WorkerPoolInterface.js';
-import type { WorkerProgressEnvelopeInterface } from './interfaces/WorkerProgressEnvelopeInterface.js';
 import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
 
 import { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
@@ -45,22 +45,22 @@ interface IndexedItemInterface<TMessage> extends WorkerTaskIndexEntity.Type {
 /** One worker's `@studnicky/fsm`-driven lifecycle state plus the index of the task it last ran. */
 interface WorkerRecordInterface {
   'lastIndex': WorkerTaskIndexEntity.Type['index'];
-  'lifecycleState': WorkerLifecycleStateInterface;
+  'lifecycleState': WorkerLifecycleStateEntity.Type;
 }
 
 interface PendingEntryInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
   'item': TMessage;
   'reject': (error: Error) => void;
   'resolve': (value: TResult) => void;
-  'retryState'?: RetryGuardStateInterface;
+  'retryState'?: RetryGuardStateEntity.Type;
 }
 
 interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
   'item': TMessage;
   'reject': (error: Error) => void;
   'resolve': (value: TResult) => void;
-  'retryState': RetryGuardStateInterface;
-  'settlementState': TaskSettlementStateInterface;
+  'retryState': RetryGuardStateEntity.Type;
+  'settlementState': TaskSettlementStateEntity.Type;
   'unregisterTimeout': () => void;
 }
 
@@ -139,18 +139,6 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
    * @param config - `workerPath` is required; every other field defaults
    * @returns New WorkerPool instance
    */
-  private static isConstructed<
-    TMessage,
-    TResult,
-    TInstance extends WorkerPool<TMessage, TResult>
-  >(
-    value: object,
-    constructor: WorkerPoolConstructorInterface<TMessage, TResult, TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<
     TMessage = unknown,
     TResult = unknown,
@@ -184,7 +172,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       'timeoutMs': parsedConfig.timeoutMs,
       'workerPath': parsedConfig.workerPath
     }]);
-    if (!Predicates.isObjectLike(result) || !WorkerPool.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw new WorkerPoolError({
         'code': 'workerPool.invalidConstruction',
         'message': 'WorkerPool.create() must construct a WorkerPool instance'
@@ -470,9 +458,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       });
 
       worker.on('message', (envelope:
-        | WorkerErrorEnvelopeInterface
-        | WorkerLogEnvelopeInterface
-        | WorkerProgressEnvelopeInterface
+        | WorkerErrorEnvelopeEntity.Type
+        | WorkerLogEnvelopeEntity.Type
+        | WorkerProgressEnvelopeEntity.Type
         | WorkerResultEnvelopeInterface<TResult>) => {
         const context = currentTaskByWorker.get(worker);
         if (context === undefined) {
@@ -544,7 +532,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
         // after the retry surfaces as a genuine rejection. RetryGuardMachine makes "retry once"
         // structural: a second unexpected exit for the same task lands on isTerminated() and
         // throws MachineTerminatedError instead of re-checking a mutable flag.
-        let retriedState: RetryGuardStateInterface | undefined;
+        let retriedState: RetryGuardStateEntity.Type | undefined;
         if (!shuttingDown) {
           try {
             const step = retryGuardMachine.transition(context.retryState, { 'type': 'requestRetry' });
@@ -679,9 +667,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   /** Fires for every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike. */
   protected onMessage(
     _envelope:
-      | WorkerErrorEnvelopeInterface
-      | WorkerLogEnvelopeInterface
-      | WorkerProgressEnvelopeInterface
+      | WorkerErrorEnvelopeEntity.Type
+      | WorkerLogEnvelopeEntity.Type
+      | WorkerProgressEnvelopeEntity.Type
       | WorkerResultEnvelopeInterface<TResult>,
     _index: number
   ): void {}

@@ -1,10 +1,10 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
+import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
+import type { ChannelKeyTransitionEventEntity } from './entities/ChannelKeyTransitionEventEntity.js';
 import type { ChannelKeyVariantEntity } from './entities/ChannelKeyVariantEntity.js';
-import type { ChannelKeyStateInterface } from './interfaces/ChannelKeyStateInterface.js';
-import type { ChannelKeyTransitionEventInterface } from './interfaces/ChannelKeyTransitionEventInterface.js';
 
 /**
  * Stateless per-key lifecycle reducer for `Channel`. Single source of truth
@@ -27,19 +27,19 @@ import type { ChannelKeyTransitionEventInterface } from './interfaces/ChannelKey
  * per-key entry and calls `transition()` once per change, mirroring
  * `@studnicky/mutex`'s `MutexKeyMachine`.
  */
-export class ChannelKeyMachine extends StateMachine<ChannelKeyStateInterface, ChannelKeyTransitionEventInterface, never> {
+export class ChannelKeyMachine extends StateMachine<ChannelKeyStateEntity.Type, ChannelKeyTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
 
-  override getInitialState(): ChannelKeyStateInterface {
+  override getInitialState(): ChannelKeyStateEntity.Type {
     return { 'variant': 'open-idle' };
   }
 
   override reduce(
-    state: ChannelKeyStateInterface,
-    event: ChannelKeyTransitionEventInterface
-  ): FsmStepInterface<ChannelKeyStateInterface, never> {
+    state: ChannelKeyStateEntity.Type,
+    event: ChannelKeyTransitionEventEntity.Type
+  ): FsmStepInterface<ChannelKeyStateEntity.Type, never> {
     const next = ChannelKeyMachine.#nextVariant(state.variant, event.type);
     if (next !== undefined) {
       return { 'effects': [], 'state': { 'variant': next } };
@@ -54,7 +54,7 @@ export class ChannelKeyMachine extends StateMachine<ChannelKeyStateInterface, Ch
 
   static #nextVariant(
     from: ChannelKeyVariantEntity.Type,
-    type: ChannelKeyTransitionEventInterface['type']
+    type: ChannelKeyTransitionEventEntity.Type['type']
   ): ChannelKeyVariantEntity.Type | undefined {
     if (type === 'subscribe') {
       if (from === 'open-idle') {return 'open-subscribed';}

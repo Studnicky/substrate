@@ -1,3 +1,4 @@
+import { EntityCompiler } from '@studnicky/entity/node';
 /**
  * Sliding-window rate limiter; `consume()` throws when admitting the request
  * would exceed the configured limit, `waitForToken()` blocks until admission
@@ -26,10 +27,9 @@
  * `tokens` value is accepted but ignored: every `consume()` call, regardless
  * of what is passed, is treated as exactly one admitted request.
  */
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { SchemaValidator } from '@studnicky/json';
-import { RaceTimeout, Signal } from '@studnicky/signal';
-import { Predicates } from '@studnicky/types';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { RaceTimeout, Signal } from '@studnicky/signal/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
@@ -68,20 +68,12 @@ export class SlidingWindowLimiter {
    */
   protected readonly hooks = new SlidingWindowHookInvoker();
 
-  private static isConstructed<TInstance extends SlidingWindowLimiter>(
-    value: object,
-    constructor: SlidingWindowLimiterSubclassInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<TInstance extends SlidingWindowLimiter = SlidingWindowLimiter>(
     this: SlidingWindowLimiterSubclassInterface<TInstance>,
     options: SlidingWindowLimiterOptionsInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !SlidingWindowLimiter.isConstructed(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
     }
     return result;
@@ -94,7 +86,7 @@ export class SlidingWindowLimiter {
       'windowMs': options.windowMs
     };
     if (!SlidingWindowLimiterOptionsEntity.validate(schemaOptions)) {
-      const messages = SchemaValidator.formatErrors(SlidingWindowLimiterOptionsEntity.validate.errors);
+      const messages = EntityCompiler.formatErrors(SlidingWindowLimiterOptionsEntity.validate.errors);
       throw new SlidingWindowLimiterConfigError(messages);
     }
 

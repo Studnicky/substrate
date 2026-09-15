@@ -1,6 +1,6 @@
-import { ConfigurationError } from '@studnicky/config';
-import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { ConfigurationError } from '@studnicky/config/node';
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
@@ -18,12 +18,6 @@ class TimingInstance {
     return result;
   }
 
-  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
-  // from the constructor rather than being a phantom generic supplied only at the call site.
-  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -81,7 +75,7 @@ export class Timing implements TimingInterface {
     options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
   ): TInstance {
     const result = TimingInstance.construct(this, [options]);
-    if (!TimingInstance.belongsTo<TInstance>(this, result)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Timing.create() did not construct the requested subclass.');
     }
     return result;

@@ -9,9 +9,16 @@
 
 import assert from 'node:assert/strict';
 
-import { DrillDown } from '../src/index.js';
+import { DrillDown, DrilldownRulesEntity } from '../src/index.js';
 // #region usage
 import { OrdersFixture } from './fixtures/OrdersFixture.js';
+
+// #region explicit-rule-types
+const reusableRules: DrilldownRulesEntity.Type = {
+  'group': [{ 'property': 'category', 'values': [{ 'match': 'alpha', 'type': 'string' }] }]
+};
+const typedRules = DrilldownRulesEntity.intake(reusableRules);
+// #endregion explicit-rule-types
 
 class DrilldownDemo {
   static run(): { 'categoryGroupCount': number; 'regionGroupCount': number; 'statusGroupCount': number } {
@@ -42,6 +49,7 @@ class DrilldownDemo {
 const results = DrilldownDemo.run();
 // #endregion usage
 
+assert.equal(typedRules.group?.[0]?.property, 'category', 'expected a typed reusable group rule');
 assert.equal(results.regionGroupCount, 2, 'expected 2 region groups (east, west)');
 assert.ok(results.categoryGroupCount > 0, 'expected region to split into category groups');
 assert.ok(results.statusGroupCount > 0, 'expected category to split into status groups');

@@ -2,11 +2,11 @@
  * Boundary Kit — composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern
  */
 
-import { RuntimeError } from '@studnicky/errors';
-import { CircuitBreaker } from '@studnicky/resilience';
-import { Retry } from '@studnicky/retry';
-import { Throttle } from '@studnicky/throttle';
-import { Predicates } from '@studnicky/types';
+import { RuntimeError } from '@studnicky/errors/node';
+import { CircuitBreaker } from '@studnicky/resilience/node';
+import { Retry } from '@studnicky/retry/node';
+import { Throttle } from '@studnicky/throttle/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
 import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';
@@ -60,14 +60,6 @@ interface BoundaryKitSubclassInterface<TInstance> extends Function {
  * ```
  */
 export class BoundaryKit {
-  private static isConstructed<TInstance extends BoundaryKit>(
-    value: object,
-    constructor: BoundaryKitSubclassInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   /**
    * Creates a new BoundaryKit, defaulting any omitted primitive.
    *
@@ -86,7 +78,7 @@ export class BoundaryKit {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
-    if (!BoundaryKit.isConstructed(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
     }
     return result;

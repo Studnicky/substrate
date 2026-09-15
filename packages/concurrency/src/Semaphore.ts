@@ -1,12 +1,12 @@
 /** Counting permit gate. acquire() returns a release function. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
+import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
+import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
 import type { SemaphoreAcquireOptionsInterface } from './interfaces/SemaphoreAcquireOptionsInterface.js';
-import type { SemaphoreGrantStateInterface } from './interfaces/SemaphoreGrantStateInterface.js';
-import type { SemaphoreWaiterStateInterface } from './interfaces/SemaphoreWaiterStateInterface.js';
 
 import { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
 import { SemaphoreError } from './errors/SemaphoreError.js';
@@ -16,22 +16,12 @@ import { SemaphoreWaiterMachine } from './SemaphoreWaiterMachine.js';
 interface SemaphoreWaiterInterface {
   readonly 'reject': (reason?: unknown) => void;
   readonly 'resolve': (release: () => Promise<void>) => void;
-  'state': SemaphoreWaiterStateInterface;
+  'state': SemaphoreWaiterStateEntity.Type;
   readonly 'unregisterAbort': () => void;
 }
 
 interface SemaphoreSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class SemaphoreInstance {
-  static belongsTo<TInstance>(
-    constructor: SemaphoreSubclassInterface<TInstance>,
-    value: object
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class Semaphore {
@@ -44,7 +34,7 @@ export class Semaphore {
     };
 
     const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !SemaphoreInstance.belongsTo(resolveSubclassConstructor(), result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('Semaphore.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
@@ -59,7 +49,7 @@ export class Semaphore {
 
   protected readonly hooks: HookInvoker = new HookInvoker();
   #available: number;
-  #grantState: SemaphoreGrantStateInterface;
+  #grantState: SemaphoreGrantStateEntity.Type;
   readonly #grantMachine = new SemaphoreGrantMachine();
   #headWaiter: SemaphoreWaiterInterface | undefined;
   readonly #permits: number;

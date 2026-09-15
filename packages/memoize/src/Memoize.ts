@@ -2,10 +2,10 @@
  * Pure function memoization composing cache and concurrency
  */
 
-import { LruCache } from '@studnicky/cache';
-import { Coalesce } from '@studnicky/concurrency';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { LruCache } from '@studnicky/cache/node';
+import { Coalesce } from '@studnicky/concurrency/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
 import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
@@ -39,16 +39,6 @@ interface MemoizeDepsInterface<TArgumentList extends unknown[], TResult> {
 
 interface MemoizeSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-class MemoizeInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: MemoizeSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 // TArgumentList/TResult only appear in Memoize's covariant/contravariant members
@@ -172,7 +162,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     };
     const result: unknown = Reflect.construct(this, [deps]);
 
-    if (!Predicates.isObjectLike(result) || !MemoizeInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('Memoize.create() did not construct the requested subclass.');
     }
 

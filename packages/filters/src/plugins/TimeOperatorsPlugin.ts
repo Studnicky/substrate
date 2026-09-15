@@ -15,7 +15,7 @@
 import {
   Predicates,
   TIME_ONLY_PATTERN
-} from '@studnicky/types';
+} from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { ContextualOperatorFunctionInterface } from './ContextualOperatorFunctionInterface.js';
@@ -29,7 +29,7 @@ export class TimeOperatorsPlugin extends Plugin {
    * TIME_AFTER operator - checks if a time/datetime is after another
    */
   private timeAfter: ContextualOperatorFunctionInterface = (
-    value: FilterValueEntity.Type,
+    value: unknown,
     filterValue: FilterValueEntity.Type,
     _context?: PluginContextInterface
   ): boolean => {
@@ -52,7 +52,7 @@ export class TimeOperatorsPlugin extends Plugin {
    * TIME_BEFORE operator - checks if a time/datetime is before another
    */
   private timeBefore: ContextualOperatorFunctionInterface = (
-    value: FilterValueEntity.Type,
+    value: unknown,
     filterValue: FilterValueEntity.Type,
     _context?: PluginContextInterface
   ): boolean => {
@@ -75,7 +75,7 @@ export class TimeOperatorsPlugin extends Plugin {
    * TIME_BETWEEN operator - checks if a time/datetime is within a range
    */
   private timeBetween: ContextualOperatorFunctionInterface = (
-    value: FilterValueEntity.Type,
+    value: unknown,
     filterValue: FilterValueEntity.Type,
     context?: PluginContextInterface
   ): boolean => {
@@ -128,7 +128,7 @@ export class TimeOperatorsPlugin extends Plugin {
    * TIME_OUTSIDE operator - checks if a time/datetime is outside a range
    */
   private timeOutside: ContextualOperatorFunctionInterface = (
-    value: FilterValueEntity.Type,
+    value: unknown,
     filterValue: FilterValueEntity.Type,
     context?: PluginContextInterface
   ): boolean => {

@@ -1,10 +1,10 @@
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
+import type { MutexKeyTransitionEventEntity } from '../entities/MutexKeyTransitionEventEntity.js';
 import type { MutexKeyStateInterface } from '../interfaces/MutexKeyStateInterface.js';
-import type { MutexKeyTransitionEventInterface } from '../interfaces/MutexKeyTransitionEventInterface.js';
 
 /**
  * Pure per-key lifecycle reducer for `Mutex`. Single source of truth for
@@ -25,7 +25,7 @@ import type { MutexKeyTransitionEventInterface } from '../interfaces/MutexKeyTra
  * only judges legality and computes the next state — it does not hold state
  * of its own, matching `@studnicky/fsm`'s reducer contract.
  */
-export class MutexKeyMachine extends StateMachine<MutexKeyStateInterface, MutexKeyTransitionEventInterface, never> {
+export class MutexKeyMachine extends StateMachine<MutexKeyStateInterface, MutexKeyTransitionEventEntity.Type, never> {
   constructor() {
     super();
   }
@@ -36,7 +36,7 @@ export class MutexKeyMachine extends StateMachine<MutexKeyStateInterface, MutexK
 
   override reduce(
     state: MutexKeyStateInterface,
-    event: MutexKeyTransitionEventInterface
+    event: MutexKeyTransitionEventEntity.Type
   ): FsmStepInterface<MutexKeyStateInterface, never> {
     if (MutexKeyMachine.#isLegalEdge(state.variant, event.to)) {
       return { 'effects': [], 'state': { 'variant': event.to } };

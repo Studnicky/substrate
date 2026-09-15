@@ -1,14 +1,17 @@
 # Changelog
 
-## 12.2.1
+## 13.0.0
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [95c7c69]
+- Updated dependencies [95c7c69]
+  - @studnicky/errors@13.0.0
+  - @studnicky/entity@13.0.0
+  - @studnicky/json@13.0.0
+  - @studnicky/circular-buffer@13.0.0
+  - @studnicky/signal@13.0.0
+  - @studnicky/types@13.0.0
 
 ## 12.2.0
 

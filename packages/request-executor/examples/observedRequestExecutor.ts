@@ -2,13 +2,9 @@
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
 /** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
-import { RuntimeError } from '@studnicky/errors';
-import {
-  type RequestContextInterface,
-  type ResponseContextInterface
-} from '@studnicky/fetch';
-import { FetchClient } from '@studnicky/fetch/node';
-import { Retry } from '@studnicky/retry';
+import { RuntimeError } from '@studnicky/errors/node';
+import { FetchClient, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch/node';
+import { Retry } from '@studnicky/retry/node';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 

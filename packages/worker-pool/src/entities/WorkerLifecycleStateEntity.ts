@@ -1,19 +1,22 @@
-import type { SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
-/** Canonical `WorkerLifecycleMachine` state variant — see `WorkerLifecycleMachine.ts` for the state graph. */
+/** Canonical WorkerLifecycleMachine state. */
 export namespace WorkerLifecycleStateEntity {
   export const Schema = {
-    '$schema': 'https://json-schema.org/draft/2020-12/schema',
-    'enum': ['busy', 'dead', 'idle'],
-    'type': 'string'
+    'additionalProperties': false,
+    'properties': {
+      'variant': { 'enum': ['busy', 'dead', 'idle'], 'type': 'string' }
+    },
+    'required': ['variant'],
+    'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

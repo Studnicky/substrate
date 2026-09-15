@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
-import type { DataRecordInterface } from '../../src/index.js';
 
 import { DataAnalyzer } from '../../src/index.js';
 import scenarioGroups from './DataAnalyzer.scenarios.json' with { type: 'json' };
@@ -19,7 +18,7 @@ type ScenarioCase =
 
 interface ScenarioGroups {
   readonly cases: readonly ScenarioCase[];
-  readonly fixtures: ReadonlyMap<string, readonly DataRecordInterface[]>;
+  readonly fixtures: ReadonlyMap<string, readonly Record<string, unknown>[]>;
 }
 
 function requireRecord(value: unknown): JsonRecord {
@@ -89,14 +88,14 @@ function parseScenario(value: unknown): ScenarioCase {
 
 function parseScenarioGroups(value: unknown): ScenarioGroups {
   const root = requireRecord(value);
-  const fixtures = new Map<string, readonly DataRecordInterface[]>();
+  const fixtures = new Map<string, readonly Record<string, unknown>[]>();
   for (const [name, values] of Object.entries(requireRecord(requireValue(root, 'fixtures')))) {
     fixtures.set(name, requireArray(values).map(requireRecord));
   }
   return { 'cases': requireArray(requireValue(root, 'cases')).map(parseScenario), 'fixtures': fixtures };
 }
 
-function recordsFor(fixtures: ReadonlyMap<string, readonly DataRecordInterface[]>, name: string): readonly DataRecordInterface[] {
+function recordsFor(fixtures: ReadonlyMap<string, readonly Record<string, unknown>[]>, name: string): readonly Record<string, unknown>[] {
   const records = fixtures.get(name);
   assert.ok(records !== undefined, `No fixture named '${name}'`);
   return records;

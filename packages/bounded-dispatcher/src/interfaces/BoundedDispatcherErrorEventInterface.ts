@@ -1,7 +1,6 @@
 import type { BoundedDispatcherErrorEventEntity } from '../entities/BoundedDispatcherErrorEventEntity.js';
 
 /** Lifecycle event published when dispatched work rejects. */
-export interface BoundedDispatcherErrorEventInterface {
+export interface BoundedDispatcherErrorEventInterface extends BoundedDispatcherErrorEventEntity.Type {
   readonly 'error': unknown;
-  readonly 'phase': BoundedDispatcherErrorEventEntity.Type['phase'];
 }

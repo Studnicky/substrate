@@ -2,7 +2,7 @@
  * Universal length checker for strings, arrays, and objects with length property
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 /**
  * Supported types:

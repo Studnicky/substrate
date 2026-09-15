@@ -1,16 +1,21 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "12.2.1",
+  "version": "13.0.0",
   "description": "Shared ESLint flat config for @studnicky packages",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
     }
   },
   "files": [
@@ -54,9 +59,8 @@
   },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
-    "@studnicky/json": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "peerDependencies": {

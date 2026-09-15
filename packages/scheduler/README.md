@@ -23,8 +23,8 @@ pnpm add @studnicky/scheduler
 ### Virtual scheduler (testing)
 
 ```ts
-import { VirtualScheduler } from '@studnicky/scheduler';
-import { VirtualTimeCounter } from '@studnicky/clock';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
 
 const counter = VirtualTimeCounter.create({ startMs: 0 });
 const scheduler = VirtualScheduler.create({ counter });
@@ -46,7 +46,7 @@ Pass the same `VirtualTimeCounter` instance to `VirtualClockProvider` when you n
 ### Real-time scheduler (production)
 
 ```ts
-import { RealTimeScheduler } from '@studnicky/scheduler';
+import { RealTimeScheduler } from '@studnicky/scheduler/node';
 
 const scheduler = RealTimeScheduler.create();
 
@@ -66,7 +66,7 @@ scheduler.cancelAll();
 `Delay.sleep(ms, { clock?, scheduler?, signal? })` is the scheduler-aware sleep API. `clock` and `scheduler` default to real-time providers; tests can inject a `VirtualScheduler` + `VirtualClockProvider` pair sharing a `VirtualTimeCounter` to resolve deterministically as virtual time advances. A native `AbortSignal` makes a pre-aborted call reject with its exact `signal.reason` without scheduling, or cancels a pending scheduled task and rejects with that same reason.
 
 ```ts
-import { Delay } from '@studnicky/scheduler';
+import { Delay } from '@studnicky/scheduler/node';
 
 // Real time — resolves after ~1s of wall-clock time.
 await Delay.sleep(1000);
@@ -76,7 +76,7 @@ await Delay.sleep(1000);
 ```
 
 ```ts
-import { Delay } from '@studnicky/scheduler';
+import { Delay } from '@studnicky/scheduler/node';
 
 const controller = new AbortController();
 const reason = new Error('request cancelled');
@@ -92,8 +92,8 @@ try {
 ```
 
 ```ts
-import { Delay, VirtualScheduler } from '@studnicky/scheduler';
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock';
+import { Delay, VirtualScheduler } from '@studnicky/scheduler/node';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
 const counter = VirtualTimeCounter.create({ startMs: 0 });
 const scheduler = VirtualScheduler.create({ counter });
@@ -112,7 +112,7 @@ Passing `signal` in the same options object keeps cancellation deterministic too
 Inject either implementation via `SchedulerProviderInterface` so production and test code share the same call site:
 
 ```ts
-import type { SchedulerProviderInterface } from '@studnicky/scheduler';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/interfaces';
 
 class TaskRunner {
   readonly #scheduler: SchedulerProviderInterface;
@@ -127,9 +127,9 @@ class TaskRunner {
 }
 ```
 
-`PendingTaskInterface` is the root-exported task record accepted and returned by the public `MinimumHeap` primitive.
+`PendingTaskInterface` is an exported task-record contract from `@studnicky/scheduler/interfaces`.
 
-`SchedulerTaskDataEntity` owns the serializable due time, interval, and timer variant fields composed by scheduler contracts. `SchedulerLogEntryEntity` owns the task identifier and lifecycle event fields used by logging schedulers.
+`SchedulerTaskDataEntity` owns the serializable due time, interval, and timer variant fields composed by scheduler contracts. `SchedulerLogEntryEntity` owns the task identifier and lifecycle event fields used by logging schedulers. `CancellableTaskStateEntity` and `CancellableTaskTransitionEventEntity` provide complete lifecycle records from `@studnicky/scheduler/entities` for integrations that record task state.
 
 Both classes expose protected extension seams for subclassing:
 

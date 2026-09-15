@@ -17,7 +17,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are exactly equal
    * @throws {Error} If either value is not a boolean
    */
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.EQUALS requires value to be a boolean, got ${typeof value}`, { 'operator': 'BOOLEAN.EQUALS' });
     }
@@ -35,7 +35,7 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is boolean false
    */
-  static handleFalse(value: FilterValueEntity.Type) {
+  static handleFalse(value: unknown) {
     const result = value === false;
 
     return result;
@@ -46,7 +46,7 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is falsy
    */
-  static handleFalsy(value: FilterValueEntity.Type) {
+  static handleFalsy(value: unknown) {
     const result = Boolean(value) === false;
 
     return result;
@@ -59,7 +59,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are identical
    * @throws {Error} If either value is not a boolean
    */
-  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.IDENTICAL requires value to be a boolean, got ${typeof value}`, { 'operator': 'BOOLEAN.IDENTICAL' });
     }
@@ -79,7 +79,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are not equal
    * @throws {Error} If either value is not a boolean
    */
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.NOT_EQUALS requires value to be a boolean, got ${typeof value}`, { 'operator': 'BOOLEAN.NOT_EQUALS' });
     }
@@ -99,7 +99,7 @@ export class BooleanOperators {
    * @returns {boolean} True if booleans are not identical
    * @throws {Error} If either value is not a boolean
    */
-  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.NOT_IDENTICAL requires value to be a boolean, got ${typeof value}`, { 'operator': 'BOOLEAN.NOT_IDENTICAL' });
     }
@@ -117,7 +117,7 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is boolean true
    */
-  static handleTrue(value: FilterValueEntity.Type) {
+  static handleTrue(value: unknown) {
     const result = value === true;
 
     return result;
@@ -128,7 +128,7 @@ export class BooleanOperators {
    * @param {*} value - Value to check
    * @returns {boolean} True if value is truthy
    */
-  static handleTruthy(value: FilterValueEntity.Type) {
+  static handleTruthy(value: unknown) {
     const result = Boolean(value) === true;
 
     return result;

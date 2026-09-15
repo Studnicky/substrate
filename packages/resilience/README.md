@@ -8,7 +8,7 @@ Three standalone resilience primitives for async TypeScript services: a three-st
 
 Each primitive is independently usable and composes naturally — wrap a rate-limited call with a circuit breaker, or pipe circuit breaker rejections into a DLQ for reprocessing.
 
-Use the package root for runtime primitives, `@studnicky/resilience/entities` for schema-backed data declarations, and `@studnicky/resilience/interfaces` for type-only contracts.
+Use `@studnicky/resilience/node` for runtime primitives, `@studnicky/resilience/entities` for schema-backed data declarations, and `@studnicky/resilience/interfaces` for type-only contracts.
 
 ## Install
 
@@ -29,7 +29,7 @@ pnpm add @studnicky/resilience
 Tracks failures and opens the circuit after a threshold, then probes with a limited number of calls after a timeout.
 
 ```typescript
-import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience';
+import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience/node';
 
 const breaker = CircuitBreaker.create({
   failureThreshold: 5,    // open after 5 consecutive failures
@@ -51,10 +51,10 @@ breaker.reset();     // restore the closed state
 breaker.forceOpen(); // force-open for testing
 ```
 
-By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/retry` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
+By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors/interfaces`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/retry/node` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
 
 ```typescript
-import { DefaultHttpErrorClassifier } from '@studnicky/errors';
+import { DefaultHttpErrorClassifier } from '@studnicky/errors/node';
 
 const breaker = CircuitBreaker.create({
   failureThreshold: 5,
@@ -68,7 +68,7 @@ For classification logic that can't be expressed as config, extend `CircuitBreak
 ```typescript
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { CircuitBreaker } from '@studnicky/resilience';
+import { CircuitBreaker } from '@studnicky/resilience/node';
 
 class MyBreaker extends CircuitBreaker {
   protected override classifyError(error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
@@ -82,7 +82,7 @@ class MyBreaker extends CircuitBreaker {
 Token bucket rate limiter. `consume` throws immediately when exhausted; `waitForToken` blocks until tokens refill.
 
 ```typescript
-import { TokenBucket, TokenBucketExhaustedError } from '@studnicky/resilience';
+import { TokenBucket, TokenBucketExhaustedError } from '@studnicky/resilience/node';
 
 const bucket = TokenBucket.create({
   requestsPerSecond: 10,
@@ -112,7 +112,7 @@ bucket.available; // current token count
 Bounded FIFO queue for items that failed processing. Drain via async generator.
 
 ```typescript
-import { DeadLetterQueue } from '@studnicky/resilience';
+import { DeadLetterQueue } from '@studnicky/resilience/node';
 
 const dlq = DeadLetterQueue.create<JobPayload>({ capacity: 1000 });
 
@@ -135,7 +135,7 @@ dlq.close(); // drain loop stops after current entries are consumed
 ### DeadLetterQueueRetryGenerator — timed re-delivery
 
 ```typescript
-import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '@studnicky/resilience';
+import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '@studnicky/resilience/node';
 
 const dlq = DeadLetterQueue.create<JobPayload>();
 const retryGen = DeadLetterQueueRetryGenerator.create({ deadLetterQueue: dlq, intervalMs: 5_000 });
@@ -147,7 +147,7 @@ for await (const entry of retryGen.generate()) {
 
 ## Hook failure disposition
 
-`CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` each compose an instance-local `HookInvoker` from `@studnicky/errors`. The invoker is the sole owner of hook-failure diagnostics and exposes detached `HookInvocationError` snapshots through its count and projection APIs. The primitives retain their swallow disposition so hook failures do not replace canonical operation results or errors, and they add no public diagnostic facade.
+`CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` each compose an instance-local `HookInvoker` from `@studnicky/errors/node`. The invoker is the sole owner of hook-failure diagnostics and exposes detached `HookInvocationError` snapshots through its count and projection APIs. The primitives retain their swallow disposition so hook failures do not replace canonical operation results or errors, and they add no public diagnostic facade.
 
 ## Declaration boundaries
 

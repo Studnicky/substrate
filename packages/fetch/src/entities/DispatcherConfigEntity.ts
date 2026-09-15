@@ -1,8 +1,7 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /**
  * HTTP Dispatcher configuration
@@ -39,11 +38,7 @@ export namespace DispatcherConfigEntity {
         'minimum': 0,
         'type': 'number'
       },
-      'clientTtl': {
-        'description': 'Time-to-live for pooled clients in milliseconds',
-        'minimum': 0,
-        'type': 'number'
-      },
+      'clientTtl': { 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': ['number', 'null'] },
       'connections': {
         'description': 'Number of connections in the pool (per origin). null means no limit',
         'maximum': 1000,
@@ -79,11 +74,7 @@ export namespace DispatcherConfigEntity {
         'minimum': 0,
         'type': 'number'
       },
-      'localAddress': {
-        'description': 'Local network address to bind connections to',
-        'minLength': 1,
-        'type': 'string'
-      },
+      'localAddress': { 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': ['string', 'null'] },
       'maximumConcurrentStreams': {
         'description': 'Maximum concurrent H2 streams per connection',
         'minimum': 1,
@@ -94,16 +85,8 @@ export namespace DispatcherConfigEntity {
         'minimum': 1,
         'type': 'integer'
       },
-      'maximumOrigins': {
-        'description': 'Maximum number of origins (hosts) the Agent can manage',
-        'minimum': 1,
-        'type': 'integer'
-      },
-      'maximumRequestsPerClient': {
-        'description': 'Maximum number of requests per client connection before rotation',
-        'minimum': 1,
-        'type': 'integer'
-      },
+      'maximumOrigins': { 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': ['integer', 'null'] },
+      'maximumRequestsPerClient': { 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': ['integer', 'null'] },
       'maximumResponseSize': {
         'description': 'Maximum response body size in bytes (-1 = unlimited)',
         'minimum': -1,
@@ -126,7 +109,7 @@ export namespace DispatcherConfigEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

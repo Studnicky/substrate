@@ -3,7 +3,6 @@
  * @description Error thrown when filter evaluation fails
  */
 
-import type { FilterValueEntity } from '../FilterValueEntity.js';
 
 import { ErrorCodes } from '../enums/ErrorCodes.js';
 import { FilterError } from './FilterError.js';
@@ -15,7 +14,7 @@ export interface FilterEvaluationErrorDetailsInterface {
   'cause'?: Error | undefined;
   'operator'?: string;
   'path'?: string;
-  'value'?: FilterValueEntity.Type;
+  'value'?: unknown;
 }
 
 /**
@@ -26,7 +25,7 @@ export class FilterEvaluationError extends FilterError {
   public readonly details: FilterEvaluationErrorDetailsInterface;
   public readonly operator: string | null;
   public readonly path: string | null;
-  public readonly value: FilterValueEntity.Type | null;
+  public readonly value: unknown;
 
   /**
    * Creates a FilterEvaluationError

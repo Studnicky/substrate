@@ -2,8 +2,8 @@
  * FetchClient configuration types
  */
 
-import type { ClockProviderInterface } from '@studnicky/clock';
-import type { Signal } from '@studnicky/signal';
+import type { ClockProviderInterface } from '@studnicky/clock/node';
+import type { Signal } from '@studnicky/signal/node';
 
 import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -60,7 +60,7 @@ export interface ClientConfigInterface {
   /**
    * Default headers for all requests
    */
-  'headers'?: Record<string, string>;
+  'headers'?: ClientConfigDataEntity.Type['headers'];
 
   /**
    * Timeout in milliseconds for lifecycle hook invocations (onRequestStart,
@@ -89,7 +89,7 @@ export interface ClientConfigInterface {
    * }
    * ```
    */
-  'metadata'?: Record<string, unknown>;
+  'metadata'?: ClientConfigDataEntity.Type['metadata'];
 
   /**
    * Additional fetch options applied to all requests

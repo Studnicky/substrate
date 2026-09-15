@@ -1,37 +1,29 @@
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 /**
- * Context implementation using AsyncLocalStorage.
+ * Context implementation using ContextStorageInterface.
  */
 import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
+import type { ContextConstructorInterface } from '../interfaces/ContextConstructorInterface.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
+import type { ContextRunResultInterface } from '../interfaces/ContextRunResultInterface.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
+import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 
 import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
 import { ContextScope } from './ContextScope.js';
 
-interface ContextSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-class ContextInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: ContextSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
- * Isolated per-request async context using AsyncLocalStorage.
+ * Isolated async context for Node and browser consumers.
  *
- * Use initialize() to create a scope, execute() to run code within it,
- * and terminate() to extract final state.
+ * The Node entrypoint uses AsyncLocalStorage, so ordinary await retains the active
+ * scope. Browser code retains Context through the transform; without the transform,
+ * use scope.await(value) for awaited values and scope.bind(callback) for opaque
+ * callbacks that settle within the operation. Use run() for automatic scope
+ * termination. For a callback external code invokes later, use initialize() and
+ * terminate the scope after removing that callback.
  *
  * @example Complete lifecycle
  * ```typescript
@@ -71,11 +63,12 @@ export class Context implements ContextInterface {
    * ```
    */
   static create<TInstance extends Context = Context>(
-    this: ContextSubclassInterface<TInstance>,
-    config: ContextConfigEntity.Type
+    this: ContextConstructorInterface<TInstance>,
+    config: ContextConfigEntity.Type,
+    storage: ContextStorageInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
+    const result: unknown = Reflect.construct(this, [config, storage]);
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Context.create() did not construct the requested subclass.');
     }
     return result;
@@ -93,7 +86,7 @@ export class Context implements ContextInterface {
    */
   static readonly #EMPTY_STORE: Map<string, unknown> = new Map();
 
-  readonly #storage: AsyncLocalStorage<Map<string, unknown>>;
+  readonly #storage: ContextStorageInterface;
 
   /**
    * The name of this context (from config).
@@ -102,17 +95,23 @@ export class Context implements ContextInterface {
 
   protected readonly hooks: HookInvoker = new HookInvoker();
 
-  protected constructor(config: ContextConfigEntity.Type) {
+  protected constructor(
+    config: ContextConfigEntity.Type,
+    storage: ContextStorageInterface | undefined
+  ) {
     if (!ContextConfigEntity.validate(config)) {
       throw new ContextConfigError('invalid Context config');
     }
 
     this.name = config.name;
-    this.#storage = new AsyncLocalStorage<Map<string, unknown>>();
+    if (storage === undefined) {
+      throw new ContextError(`No context storage is configured for ${this.name}. Import @studnicky/context/node or provide a ContextStorageInterface to Context.create().`);
+    }
+    this.#storage = storage;
   }
 
   /**
-   * Retrieves the current context store from AsyncLocalStorage for read-only access.
+   * Retrieves the current context store from ContextStorageInterface for read-only access.
    *
    * If the store is absent, calls onMissingContext(). If that hook returns true,
    * the throw is suppressed and a shared, empty Map is returned. Otherwise throws.
@@ -136,7 +135,7 @@ export class Context implements ContextInterface {
   }
 
   /**
-   * Retrieves the current context store from AsyncLocalStorage for a mutating operation.
+   * Retrieves the current context store from ContextStorageInterface for a mutating operation.
    *
    * Identical fallback semantics to the read accessors, except the lenient-mode fallback
    * allocates a fresh, isolated Map so that writes made outside an active context
@@ -269,8 +268,9 @@ export class Context implements ContextInterface {
   /**
    * Initialize a new context scope with optional initial values.
    *
-   * Returns a context scope that can be used to execute code within
-   * the context and terminate when done.
+   * Returns a context scope that can execute work within the context and terminate
+   * when done. Use it for an opaque callback that external code invokes later;
+   * remove that callback before terminating the scope.
    *
    * @param initial - Optional initial key-value pairs
    * @returns A new context scope ready for execution
@@ -291,6 +291,59 @@ export class Context implements ContextInterface {
     });
 
     return scope;
+  }
+
+  /**
+   * Runs work that settles within an operation in a fresh scope, then terminates
+   * the scope and returns the operation value with the final snapshot. In browser
+   * code without the transform, use scope.await(value) and scope.bind(callback)
+   * inside that operation. For an opaque callback external code invokes later, use
+   * initialize(), remove the callback when it is no longer needed, then terminate
+   * the scope.
+   */
+  run<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => Promise<TResult>
+  ): Promise<ContextRunResultInterface<TResult>>;
+
+  run<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => TResult
+  ): ContextRunResultInterface<TResult>;
+
+  run<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => TResult | Promise<TResult>
+  ): ContextRunResultInterface<TResult> | Promise<ContextRunResultInterface<TResult>> {
+    const scope = this.initialize(initial);
+    let value: TResult | Promise<TResult>;
+
+    try {
+      value = scope.execute(() => {
+        const result = operation(scope);
+        return result;
+      });
+    } catch (error) {
+      scope.terminate();
+      throw error;
+    }
+
+    if (value instanceof Promise) {
+      const result = value.then(
+        (resolvedValue) => {
+          const snapshot = scope.terminate();
+          return { 'snapshot': snapshot, 'value': resolvedValue };
+        },
+        (error: unknown) => {
+          scope.terminate();
+          throw error;
+        }
+      );
+      return result;
+    }
+
+    const snapshot = scope.terminate();
+    return { 'snapshot': snapshot, 'value': value };
   }
 
   /**

@@ -15,7 +15,7 @@ pnpm add @studnicky/flag-evaluator
 
 ## Usage
 
-Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/json`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
+Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/json/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
 
 <<< ../../packages/flag-evaluator/examples/observedFlagEvaluator.ts#usage
 
@@ -40,7 +40,7 @@ The output shows `onEvaluate` firing for each `evaluate()` call, `onDefault` fir
 | `list()` | The names of every currently registered flag |
 | `evaluate(name, context)` | Resolves a boolean decision for `name` given `context: { targetingKey?, ...arbitrary }` |
 
-`FlagContextEntity` owns the optional schema-derived `targetingKey` field. `FlagContextInterface` composes that field and remains open to application-specific context values.
+`FlagContextEntity` supplies the schema-derived context shape. `targetingKey` is optional, and applications can include additional context values.
 
 ## Hooks
 
@@ -67,20 +67,11 @@ Full reference: https://studnicky.github.io/substrate/packages/flag-evaluator
 import { FlagDefinitionEntity } from '@studnicky/flag-evaluator/entities';
 ```
 
-## Interfaces
-
-`@studnicky/flag-evaluator/interfaces` exports the evaluation-context contract.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
-```typescript
-import type { FlagContextInterface } from '@studnicky/flag-evaluator/interfaces';
-```
-
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator` |
-| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator` |
+| `FlagEvaluator` | Registers and deterministically evaluates local boolean flags. | `@studnicky/flag-evaluator/node` |
+| `FlagDefinitionValidationError` | Represents invalid flag definitions. | `@studnicky/flag-evaluator/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/flag-evaluator)

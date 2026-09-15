@@ -36,16 +36,12 @@ not gain factories merely to resemble stateful modules.
 
 | Entrypoint | Contract |
 |---|---|
-| `@studnicky/package` | Portable API, or the sole API for an explicitly single-runtime package. |
 | `@studnicky/package/interfaces` | Consumer substitution contracts. |
 | `@studnicky/package/entities` | Canonical structured data and validation boundaries. |
 | `@studnicky/package/browser` | Browser-native implementation of a portable contract. |
 | `@studnicky/package/node` | Node-native implementation of a portable contract. |
 
-A package that declares browser support keeps Node built-ins out of its root and browser
-entrypoints. A browser adapter implements the same portable interface as its Node peer. Platform
-capabilities without an equivalent semantic remain on the platform entrypoint rather than leaking
-into the portable interface.
+Every package provides `/node` and `/browser` runtime entrypoints. Node-only capabilities stay in `/node`; browser entrypoints never import Node built-ins. Neutral entities, interfaces, and types keep their dedicated cross-runtime paths. Package API tables show `/node` paths; browser consumers import the same runtime symbol from the corresponding `/browser` path.
 
 ## Composition rules
 

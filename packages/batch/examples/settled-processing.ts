@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** settled-processing — processSettled with partial-failure: one of four items rejects, others fulfill. Run: npx tsx examples/settled-processing.ts */
 import assert from 'node:assert/strict';
 

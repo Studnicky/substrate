@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Coalesce } from '@studnicky/concurrency';
+import { Coalesce } from '@studnicky/concurrency/node';
 import { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
-import { Mutex } from '@studnicky/mutex';
+import { Mutex } from '@studnicky/mutex/node';
 import { MutexKeyStateEntity } from '@studnicky/mutex/entities';
 
 import { KeyedWorkGate } from '../../../src/index.js';

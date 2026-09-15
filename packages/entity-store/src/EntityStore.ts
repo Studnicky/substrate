@@ -1,6 +1,11 @@
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
+
+interface EntityStoreConstructorInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
+}
 
 /**
  * Normalized, ID-indexed entity collection — the RTK `createEntityAdapter` shape
@@ -42,28 +47,16 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   protected readonly hooks: HookInvoker;
   #cachedSorted: TEntity[] | undefined;
 
-  private static hasConstructedInstance(instance: object, constructor: Function): boolean {
-    const result = instance instanceof constructor;
-    return result;
-  }
-
   static create<
     TEntity,
     TId extends PropertyKey = string,
     TInstance extends EntityStore<TEntity, TId> = EntityStore<TEntity, TId>
   >(
-    this: { readonly 'prototype': TInstance },
+    this: EntityStoreConstructorInterface<TInstance>,
     options: EntityStoreOptionsInterface<TEntity, TId>
-  ): TInstance;
-  static create<
-    TEntity,
-    TId extends PropertyKey = string
-  >(
-    this: typeof EntityStore<TEntity, TId>,
-    options: EntityStoreOptionsInterface<TEntity, TId>
-  ): EntityStore<TEntity, TId> {
-    const result = new this(options);
-    if (!EntityStore.hasConstructedInstance(result, this)) {
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [options]);
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('EntityStore.create() must construct an EntityStore instance');
     }
     return result;

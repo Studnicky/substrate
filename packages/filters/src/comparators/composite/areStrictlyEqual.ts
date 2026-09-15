@@ -3,7 +3,7 @@
  * Checks object keys, undefined properties, and array sparseness
  */
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
 import type {
   FilterConditionInterface

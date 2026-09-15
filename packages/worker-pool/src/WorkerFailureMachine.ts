@@ -20,18 +20,18 @@
  * `WorkerFailureMachine` is instantiated fresh inside each `run()` call, alongside every other
  * piece of that call's per-run bookkeeping — never hoisted to an instance field.
  */
-import type { FsmStepInterface } from '@studnicky/fsm';
+import type { FsmStepInterface } from '@studnicky/fsm/node';
 
-import { StateMachine } from '@studnicky/fsm';
+import { StateMachine } from '@studnicky/fsm/node';
 
+import type { WorkerFailureStateEntity } from './entities/WorkerFailureStateEntity.js';
 import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
 import type { WorkerFailureEventInterface } from './interfaces/WorkerFailureEventInterface.js';
-import type { WorkerFailureStateInterface } from './interfaces/WorkerFailureStateInterface.js';
 
-const OPERATIONAL_STATE: WorkerFailureStateInterface = { 'variant': 'operational' };
+const OPERATIONAL_STATE: WorkerFailureStateEntity.Type = { 'variant': 'operational' };
 
 export class WorkerFailureMachine extends StateMachine<
-  WorkerFailureStateInterface,
+  WorkerFailureStateEntity.Type,
   WorkerFailureEventInterface,
   FireOnWorkerErrorEffectInterface
 > {
@@ -39,16 +39,16 @@ export class WorkerFailureMachine extends StateMachine<
     super();
   }
 
-  override getInitialState(): WorkerFailureStateInterface {
+  override getInitialState(): WorkerFailureStateEntity.Type {
     const result = OPERATIONAL_STATE;
     return result;
   }
 
   override reduce(
-    state: WorkerFailureStateInterface,
+    state: WorkerFailureStateEntity.Type,
     event: WorkerFailureEventInterface
-  ): FsmStepInterface<WorkerFailureStateInterface, FireOnWorkerErrorEffectInterface> {
-    const result: FsmStepInterface<WorkerFailureStateInterface, FireOnWorkerErrorEffectInterface> = {
+  ): FsmStepInterface<WorkerFailureStateEntity.Type, FireOnWorkerErrorEffectInterface> {
+    const result: FsmStepInterface<WorkerFailureStateEntity.Type, FireOnWorkerErrorEffectInterface> = {
       'effects': [{ 'error': event.error, 'index': event.index, 'variant': 'FireOnWorkerError' }],
       'state': state
     };

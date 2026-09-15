@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-// Published at the package root: import { EventRecorder } from '@studnicky/errors';
+// Published from the Node entrypoint: import { EventRecorder } from '@studnicky/errors/node';
 import { EventRecorder } from '../src/index.js';
 import { CacheEventEntity } from './entities/CacheEventEntity.js';
 

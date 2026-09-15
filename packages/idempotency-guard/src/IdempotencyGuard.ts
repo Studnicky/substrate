@@ -2,10 +2,10 @@
  * Idempotency key guard composing cache, concurrency, and json
  */
 
-import { LruCache } from '@studnicky/cache';
-import { Coalesce } from '@studnicky/concurrency';
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { LruCache } from '@studnicky/cache/node';
+import { Coalesce } from '@studnicky/concurrency/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
@@ -90,14 +90,6 @@ export class IdempotencyGuard<TResult = unknown> {
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
    */
-  private static isConstructed<TInstance>(
-    value: object,
-    constructor: Function & { readonly 'prototype': TInstance }
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
 
   static create<
     TResult = unknown,
@@ -112,7 +104,7 @@ export class IdempotencyGuard<TResult = unknown> {
       throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 
-    if (!IdempotencyGuard.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
     }
 

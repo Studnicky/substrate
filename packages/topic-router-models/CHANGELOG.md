@@ -1,13 +1,14 @@
 # Changelog
 
-## 12.2.1
+## 13.0.0
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/topic-router@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [95c7c69]
+  - @studnicky/errors@13.0.0
+  - @studnicky/matching@13.0.0
+  - @studnicky/topic-router@13.0.0
+  - @studnicky/types@13.0.0
 
 ## 12.2.0
 

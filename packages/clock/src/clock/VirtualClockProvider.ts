@@ -5,8 +5,8 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors';
-import { Predicates } from '@studnicky/types';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
@@ -20,13 +20,6 @@ interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class VirtualClockProviderInstance {
-  static belongsTo<TInstance extends object>(constructor: VirtualClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * `ClockProvider` backed by a `VirtualTimeCounter`.
  * `now()` returns the counter's current epoch-ms.
@@ -38,7 +31,7 @@ export class VirtualClockProvider implements ClockProviderInterface {
     counter: Readonly<VirtualTimeCounter>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [counter]);
-    if (!Predicates.isObjectLike(result) || !VirtualClockProviderInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VirtualClockProvider.create() did not construct the requested subclass.');
     }
     return result;

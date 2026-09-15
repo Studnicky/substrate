@@ -1,16 +1,25 @@
 {
   "name": "@studnicky/context",
-  "version": "12.2.1",
-  "description": "Per-request async context isolation using AsyncLocalStorage",
+  "version": "13.0.0",
+  "description": "Async context isolation for Node and browser code",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./node/transform": {
+      "types": "./dist/node/transform.d.ts",
+      "import": "./dist/node/transform.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./browser/transform": {
+      "types": "./dist/browser/transform.d.ts",
+      "import": "./dist/browser/transform.js"
     },
     "./entities": {
       "types": "./dist/entities/index.d.ts",
@@ -61,11 +70,13 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
-    "json-schema-to-ts": "^3.1.1"
+    "json-schema-to-ts": "^3.1.1",
+    "rollup": "^4.62.2",
+    "typescript": "^6.0.3"
   }
 }

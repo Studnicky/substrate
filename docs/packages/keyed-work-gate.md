@@ -13,7 +13,7 @@ description: Keyed single-flight and serialized work gate composing mutex and co
 pnpm add @studnicky/keyed-work-gate
 ```
 
-`@studnicky/keyed-work-gate` exposes `KeyedWorkGate` at its root and configuration contracts at `@studnicky/keyed-work-gate/interfaces`.
+`@studnicky/keyed-work-gate/node` exports `KeyedWorkGate`; configuration contracts remain available from `@studnicky/keyed-work-gate/interfaces`.
 
 ## Usage
 
@@ -70,6 +70,6 @@ import type { KeyedWorkGateConfigInterface } from '@studnicky/keyed-work-gate/in
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `KeyedWorkGate` | Serializes and coalesces work independently for each key. | `@studnicky/keyed-work-gate` |
+| `KeyedWorkGate` | Serializes and coalesces work independently for each key. | `@studnicky/keyed-work-gate/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/keyed-work-gate)

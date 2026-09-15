@@ -23,7 +23,7 @@ Parse external configuration through an entity's `intake` function. Intake suppl
 
 ## Public API
 
-Import `ClampedConfig` and `ConfigurationError` from `@studnicky/config`; import clamping schemas from `@studnicky/config/entities`.
+Import `ClampedConfig` and `ConfigurationError` from `@studnicky/config/node`; import clamping schemas from `@studnicky/config/entities`.
 
 ## Try it
 
@@ -43,7 +43,7 @@ Build a `ConfigurationError` with an `Error` cause when an already-parsed config
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config/node';
 import { ClampRuleEntity } from '@studnicky/config/entities';
 
 interface WorkerConfig {
@@ -65,7 +65,7 @@ Override the protected `onClamp` static method to observe clamp events — loggi
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 ```ts
-import { ClampedConfig } from '@studnicky/config';
+import { ClampedConfig } from '@studnicky/config/node';
 import { ClampEventEntity } from '@studnicky/config/entities';
 
 class LoggingClampedConfig extends ClampedConfig {
@@ -90,7 +90,7 @@ import { ClampRuleEntity } from '@studnicky/config/entities';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `ClampedConfig` | Applies declarative numeric clamping rules. | `@studnicky/config` |
-| `ConfigurationError` | Represents invalid configuration values. | `@studnicky/config` |
+| `ClampedConfig` | Applies declarative numeric clamping rules. | `@studnicky/config/node` |
+| `ConfigurationError` | Represents invalid configuration values. | `@studnicky/config/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/config)

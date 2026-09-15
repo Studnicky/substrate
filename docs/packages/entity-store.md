@@ -40,7 +40,7 @@ default.
 | `onRemove(id)` | `removeOne`/`removeMany` removes an entity that actually existed — not called for absent ids | `id: TId` |
 | `onReplaceAll(count)` | Once from `setAll`, with the count of entities in the new collection | `count: number` |
 
-A hook override that throws or rejects does not abort the mutation that triggered it — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors`'s `HookInvoker`.
+A hook override that throws or rejects does not abort the mutation that triggered it — the failure is recorded instead of propagating; inspect it via `hookErrorCount` (a running total) and `getHookErrors()` (a defensive copy of every recorded `{ hookName, cause }` entry), backed internally by `@studnicky/errors/node`'s `HookInvoker`.
 
 <!-- inline-ts-ok: three-line failure-recording snippet; no existing transcluded example demonstrates a throwing hook override -->
 ```typescript
@@ -50,7 +50,7 @@ store.getHookErrors(); // [{ hookName: 'onUpsert', cause: Error }]
 
 ## No eviction or TTL
 
-Unlike `@studnicky/cache`'s `LruCache`, `EntityStore` is deliberately unbounded and non-evicting: no capacity limit, no TTL, no lazy expiry. It is the in-memory mirror of a normalized collection your application already owns, not a cache of derived or externally-sourced values. Reach for `@studnicky/cache` when eviction or staleness semantics are needed instead.
+Unlike `@studnicky/cache/node`'s `LruCache`, `EntityStore` is deliberately unbounded and non-evicting: no capacity limit, no TTL, no lazy expiry. It is the in-memory mirror of a normalized collection your application already owns, not a cache of derived or externally-sourced values. Reach for `@studnicky/cache/node` when eviction or staleness semantics are needed instead.
 
 ## API
 
@@ -90,6 +90,6 @@ import type { EntityStoreOptionsInterface } from '@studnicky/entity-store/interf
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `EntityStore` | Maintains an ID-indexed entity collection. | `@studnicky/entity-store` |
+| `EntityStore` | Maintains an ID-indexed entity collection. | `@studnicky/entity-store/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/entity-store)

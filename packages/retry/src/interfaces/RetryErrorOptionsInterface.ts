@@ -1,8 +1,11 @@
 /** Runtime options for RetryError construction. */
-import type { ErrorWithCodeEntity } from '@studnicky/errors/entities';
+import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
 
-export interface RetryErrorOptionsInterface {
+export interface RetryErrorOptionsInterface extends Omit<
+  BaseErrorArgumentsInterface,
+  'cause' | 'code' | 'message' | 'retryable'
+> {
   readonly 'cause'?: Error;
-  readonly 'code'?: ErrorWithCodeEntity.Type['code'];
+  readonly 'code'?: BaseErrorArgumentsInterface['code'];
   readonly 'errors'?: readonly Error[];
 }

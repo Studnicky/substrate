@@ -1,7 +1,7 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 /** observedKeyedRateLimiter — override onKeyCreated/onKeyEvicted/onLimitExceeded/onTokenAcquired to collect telemetry. Run: npx tsx examples/observedKeyedRateLimiter.ts */
 // #region usage
-import { TokenBucketExhaustedError } from '@studnicky/resilience';
+import { TokenBucketExhaustedError } from '@studnicky/resilience/node';
 import assert from 'node:assert/strict';
 
 import type { RateLimiterStrategyInterface } from '../src/index.js';

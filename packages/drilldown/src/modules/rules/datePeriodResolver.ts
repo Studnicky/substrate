@@ -1,5 +1,5 @@
 import type { DateGranularityValueEntity } from '../../entities/DateGranularityValueEntity.js';
-import type { DateGroupValueInterface } from '../../interfaces/GroupValueInterface.js';
+import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 
@@ -8,7 +8,7 @@ interface DatePeriodKeyFunctionInterface {
 }
 
 interface DatePeriodRangeFunctionInterface {
-  (key: string, yearString: string, monthString: string, dayString: string): DateGroupValueInterface
+  (key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type
 }
 
 const DAY_MS = 86_400_000;
@@ -116,9 +116,9 @@ export const datePeriodResolver = {
    * Converts a period key back to a date range group value.
    * @param key - Period key string
    * @param granularity - The date granularity level
-   * @returns DateGroupValueInterface with after/before range
+   * @returns DrilldownRulesEntity.DateGroupValueEntity.Type with after/before range
    */
-  'datePeriodToRange': function (key: string, granularity: DateGranularityValueEntity.Type): DateGroupValueInterface {
+  'datePeriodToRange': function (key: string, granularity: DateGranularityValueEntity.Type): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const parts = key.split('-');
     const yearString = parts[0] ?? '1970';
     const monthString = parts[1] ?? '01';

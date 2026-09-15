@@ -1,3 +1,5 @@
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+
 import type { WorkerTransportInterface } from '../interfaces/index.js';
 import type { WebWorkerErrorEventInterface } from './WebWorkerErrorEventInterface.js';
 import type { WebWorkerInterface } from './WebWorkerInterface.js';
@@ -18,6 +20,12 @@ export class WebWorkerMessageTransport<TRequest, TResponse> implements WorkerTra
     options: WebWorkerMessageTransportOptionsInterface<TResponse>
   ): WebWorkerMessageTransport<TRequest, TResponse> {
     return new WebWorkerMessageTransport(options);
+  }
+
+  public static fromEntity<TRequest, TResponse>(
+    intake: EntityIntakeFunctionInterface<TResponse>
+  ): WebWorkerMessageTransport<TRequest, TResponse> {
+    return new WebWorkerMessageTransport({ 'decode': intake });
   }
 
   public async request(worker: WebWorkerInterface, request: TRequest): Promise<TResponse> {

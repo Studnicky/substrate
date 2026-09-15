@@ -21,7 +21,7 @@ pnpm add @studnicky/throttle
 ## Usage
 
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 
 const throttle = Throttle.create({ concurrencyLimit: 5 });
 
@@ -35,7 +35,7 @@ const stats = throttle.getStats();
 console.log(`Executed: ${stats.totalExecuted}, active: ${stats.activeCount}`);
 ```
 
-Schema-backed configuration, statistics, and lifecycle types are exported from `@studnicky/throttle/entities`.
+Schema-backed configuration, statistics, and complete JSON lifecycle event and effect payloads are exported from `@studnicky/throttle/entities`.
 
 ```typescript
 import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
@@ -46,7 +46,7 @@ import { ThrottleStatsEntity } from '@studnicky/throttle/entities';
 Subclass `Throttle` and override any of the protected lifecycle hooks to add telemetry, logging, or custom behaviour without touching the core scheduling logic.
 
 ```typescript
-import { Throttle } from '@studnicky/throttle';
+import { Throttle } from '@studnicky/throttle/node';
 
 class InstrumentedThrottle extends Throttle {
   readonly acquireLog: Array<{ activeCount: number; queuedCount: number }> = [];

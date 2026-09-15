@@ -1,10 +1,22 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types';
+import { Predicates } from '@studnicky/types/node';
 
-import type { VectorEntryInterface, VectorIndexInterface, VectorSearchOptionsInterface, VectorizerInterface, VectorizationInputInterface } from '../../../src/index.js';
+import {
+  AdjudicationEntity,
+  AdjudicationInputEntity,
+  ClassificationEntity,
+  ClassificationInputEntity,
+  RerankInputEntity,
+  RerankMatchEntity,
+  VectorEntryDataEntity,
+  VectorMatchEntity,
+  VectorizationInputEntity,
+  VectorSearchOptionsEntity
+} from "../../../src/entities/index.js";
+import type { VectorEntryInterface, VectorIndexInterface, VectorizerInterface } from "../../../src/index.js";
 import scenarioGroups from './SemanticMatching.scenarios.json' with { type: 'json' };
 
 interface ScenarioCase {
@@ -15,7 +27,7 @@ interface ScenarioCase {
 }
 
 class StaticVectorizer implements VectorizerInterface {
-  public embed(_input: VectorizationInputInterface): Promise<Float32Array> { return Promise.resolve(Float32Array.of(1, 0)); }
+  public embed(_input: VectorizationInputEntity.Type): Promise<Float32Array> { return Promise.resolve(Float32Array.of(1, 0)); }
   public getModelIdentity(): string { return 'test-vectorizer'; }
   public getVectorDimension(): number { return 2; }
 }
@@ -28,7 +40,7 @@ class SingleEntryVectorIndex implements VectorIndexInterface {
     return Promise.resolve();
   }
 
-  public search(_vector: Float32Array, options: VectorSearchOptionsInterface): Promise<readonly { readonly 'id': string; readonly 'score': number }[]> {
+  public search(_vector: Float32Array, options: VectorSearchOptionsEntity.Type): Promise<readonly VectorMatchEntity.Type[]> {
     if (this.#entry === undefined || this.#entry.namespace !== options.namespace || options.limit === 0) { return Promise.resolve([]); }
     return Promise.resolve([{ 'id': this.#entry.id, 'score': 1 }]);
   }
@@ -82,4 +94,33 @@ void describe('semantic matching contracts', () => {
       assert.equal(matches.at(0)?.id, scenarioCase.expected.resultId);
     });
   }
+});
+
+
+void describe("semantic-matching entity contracts", () => {
+  void it("rejects undeclared properties and preserves every declared JSON model", () => {
+    assert.deepEqual(AdjudicationEntity.intake({ "confidence": 0.9, "id": "candidate-a" }), { "confidence": 0.9, "id": "candidate-a" });
+    assert.deepEqual(AdjudicationInputEntity.intake({ "candidateIds": ["candidate-a"], "content": "query", "maximumCandidates": 3 }), { "candidateIds": ["candidate-a"], "content": "query", "maximumCandidates": 3 });
+    assert.deepEqual(ClassificationEntity.intake({ "confidence": 0.9, "label": "help" }), { "confidence": 0.9, "label": "help" });
+    assert.deepEqual(ClassificationInputEntity.intake({ "content": "query", "labels": ["help"] }), { "content": "query", "labels": ["help"] });
+    assert.deepEqual(RerankInputEntity.intake({ "candidateIds": ["candidate-a"], "content": "query" }), { "candidateIds": ["candidate-a"], "content": "query" });
+    assert.deepEqual(RerankMatchEntity.intake({ "id": "candidate-a", "score": 0.9 }), { "id": "candidate-a", "score": 0.9 });
+    assert.deepEqual(VectorMatchEntity.intake({ "id": "candidate-a", "score": 0.9 }), { "id": "candidate-a", "score": 0.9 });
+    assert.deepEqual(VectorSearchOptionsEntity.intake({ "limit": 3, "namespace": "help" }), { "limit": 3, "namespace": "help" });
+    assert.deepEqual(VectorizationInputEntity.intake({ "content": "query", "metadata": { "source": "test" } }), { "content": "query", "metadata": { "source": "test" } });
+    assert.deepEqual(VectorEntryDataEntity.create({ "id": "candidate-a", "namespace": "help" }), { "id": "candidate-a", "namespace": "help" });
+
+    assert.equal(AdjudicationEntity.validate({ "confidence": 0.9 }), true);
+    assert.equal(VectorSearchOptionsEntity.validate({ "limit": 3, "namespace": "help" }), true);
+    assert.throws(() => AdjudicationEntity.intake({ "confidence": 0.9, "unexpected": true }));
+    assert.throws(() => AdjudicationInputEntity.intake({ "candidateIds": ["candidate-a"], "content": "query", "maximumCandidates": 3, "unexpected": true }));
+    assert.throws(() => ClassificationEntity.intake({ "confidence": 0.9, "label": "help", "unexpected": true }));
+    assert.throws(() => ClassificationInputEntity.intake({ "content": "query", "unexpected": true }));
+    assert.throws(() => RerankInputEntity.intake({ "candidateIds": ["candidate-a"], "content": "query", "unexpected": true }));
+    assert.throws(() => RerankMatchEntity.intake({ "id": "candidate-a", "score": 0.9, "unexpected": true }));
+    assert.throws(() => VectorMatchEntity.intake({ "id": "candidate-a", "score": 0.9, "unexpected": true }));
+    assert.throws(() => VectorSearchOptionsEntity.intake({ "limit": 3, "namespace": "help", "unexpected": true }));
+    assert.throws(() => VectorizationInputEntity.intake({ "content": "query", "unexpected": true }));
+    assert.throws(() => VectorEntryDataEntity.intake({ "id": "candidate-a", "namespace": "help", "vector": Float32Array.of(1) }));
+  });
 });

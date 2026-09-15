@@ -1,10 +1,10 @@
-import { RuntimeError } from '@studnicky/errors';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { VirtualTimeCounter } from '@studnicky/clock';
-import { EventBus } from '@studnicky/event-bus';
-import { VirtualScheduler } from '@studnicky/scheduler';
+import { VirtualTimeCounter } from '@studnicky/clock/node';
+import { EventBus } from '@studnicky/event-bus/node';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
 
 import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';

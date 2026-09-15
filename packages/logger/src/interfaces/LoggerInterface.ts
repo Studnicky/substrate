@@ -1,5 +1,5 @@
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
-import type { LogMetadataInterface } from './LogMetadataInterface.js';
+import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 
 /**
  * Logger interface with standard log levels
@@ -63,7 +63,7 @@ export interface LoggerInterface {
    * operationLogger.info(body); // record includes requestId, userId, and operation
    * ```
    */
-  child(metadata: LogMetadataInterface): LoggerInterface;
+  child(metadata: LogRecordEntity.Type['metadata']): LoggerInterface;
 
   /**
    * Log debug messages (verbose)
