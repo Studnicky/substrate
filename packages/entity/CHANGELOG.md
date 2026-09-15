@@ -1,5 +1,12 @@
 # @studnicky/entity
 
+## 13.0.1
+
+### Patch Changes
+
+- Updated dependencies [4d4555f]
+  - @studnicky/types@13.0.1
+
 ## 13.0.0
 
 ### Major Changes

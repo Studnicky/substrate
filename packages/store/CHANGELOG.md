@@ -1,5 +1,14 @@
 # @studnicky/store
 
+## 13.0.1
+
+### Patch Changes
+
+- @studnicky/context@13.0.1
+  - @studnicky/entity@13.0.1
+  - @studnicky/json@13.0.1
+  - @studnicky/mutex@13.0.1
+
 ## 13.0.0
 
 ### Patch Changes
