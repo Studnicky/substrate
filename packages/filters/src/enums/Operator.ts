@@ -2,6 +2,7 @@
  * Comparison operators with direct function access for declarative configuration
  */
 
+import { Frozen } from '@studnicky/json/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
@@ -11,174 +12,33 @@ import { DateParser } from '../converters/DateParser.js';
 import { FilterOperatorError } from '../errors/FilterOperatorError.js';
 import { BinaryOperators } from '../operators/BinaryOperators.js';
 import { ObjectOperators } from '../operators/ObjectOperators.js';
-import { DeepFreeze } from '../utils/deepFreeze.js';
 import { WHITESPACE_PATTERN } from './constants/WhitespacePattern.js';
-
-/**
- * Shared deep-equality comparison used by IDENTICAL-style operators
- */
-class ComparisonOperators {
-  static deepEqual<T>(leftValue: T, rightValue: T, options?: { 'visited'?: WeakSet<object> }): boolean {
-    if (leftValue === rightValue) {
-      return true;
-    }
-
-    // Handle null/undefined
-    if (leftValue === null || leftValue === undefined || rightValue === null || rightValue === undefined) {
-      const result = leftValue === rightValue;
-
-      return result;
-    }
-
-    // Handle different types
-    if (typeof leftValue !== typeof rightValue) {
-      return false;
-    }
-
-    // Handle primitives
-    if (typeof leftValue !== 'object' || typeof rightValue !== 'object') {
-      const result = leftValue === rightValue;
-
-      return result;
-    }
-
-    // Initialize visited set for circular reference detection
-    const visitedSet = options?.visited ?? new WeakSet();
-
-    // Check for circular references
-    if (visitedSet.has(leftValue) || visitedSet.has(rightValue)) {
-      // For circular references, consider them equal if they're the same reference
-      const result = leftValue === rightValue;
-
-      return result;
-    }
-
-    // Add objects to visited set
-    visitedSet.add(leftValue);
-    visitedSet.add(rightValue);
-
-    try {
-      // Handle Dates
-      if (leftValue instanceof Date && rightValue instanceof Date) {
-        const result = leftValue.getTime() === rightValue.getTime();
-
-        return result;
-      }
-
-      // Handle RegExp
-      if (leftValue instanceof RegExp && rightValue instanceof RegExp) {
-        const result = leftValue.source === rightValue.source && leftValue.flags === rightValue.flags;
-
-        return result;
-      }
-
-      // Handle Arrays
-      if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
-        if (leftValue.length !== rightValue.length) {
-          return false;
-        }
-        const length = leftValue.length;
-        for (let index = 0; index < length; index += 1) {
-          if (!ComparisonOperators.deepEqual(leftValue[index], rightValue[index], { 'visited': visitedSet })) {
-            return false;
-          }
-        }
-
-        return true;
-      }
-
-      // Handle Sets
-      if (leftValue instanceof Set && rightValue instanceof Set) {
-        if (leftValue.size !== rightValue.size) {
-          return false;
-        }
-        for (const item of leftValue) {
-          if (!rightValue.has(item)) {
-            return false;
-          }
-        }
-
-        return true;
-      }
-
-      // Handle Maps
-      if (leftValue instanceof Map && rightValue instanceof Map) {
-        if (leftValue.size !== rightValue.size) {
-          return false;
-        }
-        for (const [
-          key,
-          value
-        ] of leftValue) {
-          if (!rightValue.has(key) || !ComparisonOperators.deepEqual(value, rightValue.get(key), { 'visited': visitedSet })) {
-            return false;
-          }
-        }
-
-        return true;
-      }
-
-      // Handle plain objects
-      if (!Predicates.isRecord(leftValue) || !Predicates.isRecord(rightValue)) {
-        return false;
-      }
-      const keysA = Object.keys(leftValue);
-      const keysB = Object.keys(rightValue);
-
-      if (keysA.length !== keysB.length) {
-        return false;
-      }
-
-      const keysBSet = new Set(keysB);
-
-      const keysALength = keysA.length;
-      for (let index = 0; index < keysALength; index += 1) {
-        const key = keysA[index];
-        if (key === undefined) {
-          continue;
-        }
-        if (!keysBSet.has(key)) {
-          return false;
-        }
-        if (!ComparisonOperators.deepEqual(leftValue[key], rightValue[key], { 'visited': visitedSet })) {
-          return false;
-        }
-      }
-
-      return true;
-    } finally {
-      // Clean up visited set (objects will be automatically removed when out of scope)
-      visitedSet.delete(leftValue);
-      visitedSet.delete(rightValue);
-    }
-  }
-}
 
 /**
  * Array-typed operator implementations
  */
 class ArrayOperators {
-  static arrayIncludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayIncludes(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.INCLUDES requires value to be an array, got ${typeof value}`, {});
     }
 
-    const result = (value as unknown[]).includes(filterValue);
+    const result = value.includes(filterValue);
 
     return result;
   }
 
-  static arrayExcludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayExcludes(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.EXCLUDES requires value to be an array, got ${typeof value}`, {});
     }
 
-    const result = !(value as unknown[]).includes(filterValue);
+    const result = !value.includes(filterValue);
 
     return result;
   }
 
-  static arrayLength(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayLength(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.LENGTH requires value to be an array, got ${typeof value}`, {});
     }
@@ -191,7 +51,7 @@ class ArrayOperators {
     return result;
   }
 
-  static arrayEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static arrayEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.EMPTY requires value to be an array, got ${typeof value}`, {});
     }
@@ -201,7 +61,7 @@ class ArrayOperators {
     return result;
   }
 
-  static arrayIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.IDENTICAL requires value to be an array, got ${typeof value}`, {});
     }
@@ -209,12 +69,12 @@ class ArrayOperators {
       throw new FilterOperatorError(`ARRAY.IDENTICAL requires filter value to be an array, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static arrayNotEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static arrayNotEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.NOT_EMPTY requires value to be an array, got ${typeof value}`, {});
     }
@@ -224,7 +84,7 @@ class ArrayOperators {
     return result;
   }
 
-  static arrayEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.EQUALS requires value to be an array, got ${typeof value}`, {});
     }
@@ -232,12 +92,12 @@ class ArrayOperators {
       throw new FilterOperatorError(`ARRAY.EQUALS requires filter value to be an array, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static arrayNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.NOT_EQUALS requires value to be an array, got ${typeof value}`, {});
     }
@@ -245,12 +105,12 @@ class ArrayOperators {
       throw new FilterOperatorError(`ARRAY.NOT_EQUALS requires filter value to be an array, got ${typeof filterValue}`, {});
     }
 
-    const result = !ComparisonOperators.deepEqual(value, filterValue);
+    const result = !Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static arrayNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static arrayNotIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.NOT_IDENTICAL requires value to be an array, got ${typeof value}`, {});
     }
@@ -258,7 +118,7 @@ class ArrayOperators {
       throw new FilterOperatorError(`ARRAY.NOT_IDENTICAL requires filter value to be an array, got ${typeof filterValue}`, {});
     }
 
-    const result = !ComparisonOperators.deepEqual(value, filterValue);
+    const result = !Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
@@ -299,7 +159,7 @@ class ArrayOperators {
     return similarity;
   }
 
-  static arraySimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static arraySimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!Array.isArray(value)) {
       throw new FilterOperatorError(`ARRAY.SIMILARITY requires value to be an array, got ${typeof value}`, {});
     }
@@ -332,7 +192,7 @@ class ArrayOperators {
  * String-typed operator implementations
  */
 class StringOperators {
-  static stringContains(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringContains(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.CONTAINS requires value to be a string, got ${typeof value}`, {});
     }
@@ -351,7 +211,7 @@ class StringOperators {
     return result;
   }
 
-  static stringExcludes(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringExcludes(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.EXCLUDES requires value to be a string, got ${typeof value}`, {});
     }
@@ -370,7 +230,7 @@ class StringOperators {
     return result;
   }
 
-  static stringStartsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringStartsWith(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.STARTS_WITH requires value to be a string, got ${typeof value}`, {});
     }
@@ -389,7 +249,7 @@ class StringOperators {
     return result;
   }
 
-  static stringEndsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringEndsWith(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.ENDS_WITH requires value to be a string, got ${typeof value}`, {});
     }
@@ -408,7 +268,7 @@ class StringOperators {
     return result;
   }
 
-  static stringRegex(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static stringRegex(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.REGEX requires value to be a string, got ${typeof value}`, {});
     }
@@ -423,7 +283,7 @@ class StringOperators {
     return result;
   }
 
-  static stringLength(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static stringLength(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.LENGTH requires value to be a string, got ${typeof value}`, {});
     }
@@ -436,7 +296,7 @@ class StringOperators {
     return result;
   }
 
-  static stringEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.EMPTY requires value to be a string, got ${typeof value}`, {});
     }
@@ -446,7 +306,7 @@ class StringOperators {
     return result;
   }
 
-  static stringNotEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringNotEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.NOT_EMPTY requires value to be a string, got ${typeof value}`, {});
     }
@@ -456,7 +316,7 @@ class StringOperators {
     return result;
   }
 
-  static stringWordCount(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static stringWordCount(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.WORD_COUNT requires value to be a string, got ${typeof value}`, {});
     }
@@ -477,7 +337,7 @@ class StringOperators {
     return result;
   }
 
-  static stringEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static stringEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.EQUALS requires value to be a string, got ${typeof value}`, {});
     }
@@ -490,7 +350,7 @@ class StringOperators {
     return result;
   }
 
-  static stringNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static stringNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.NOT_EQUALS requires value to be a string, got ${typeof value}`, {});
     }
@@ -549,7 +409,7 @@ class StringOperators {
   }
 
   // String similarity using Levenshtein distance
-  static stringSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static stringSimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'string') {
       throw new FilterOperatorError(`STRING.SIMILARITY requires value to be a string, got ${typeof value}`, {});
     }
@@ -580,7 +440,7 @@ class StringOperators {
  * Number-typed operator implementations
  */
 class NumberOperators {
-  static numberGreater(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberGreater(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.GREATER requires value to be a number, got ${typeof value}`, {});
     }
@@ -593,7 +453,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberGreaterEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberGreaterEqual(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.GREATER_EQUAL requires value to be a number, got ${typeof value}`, {});
     }
@@ -606,7 +466,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberLess(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberLess(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.LESS requires value to be a number, got ${typeof value}`, {});
     }
@@ -619,7 +479,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberLessEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberLessEqual(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.LESS_EQUAL requires value to be a number, got ${typeof value}`, {});
     }
@@ -632,7 +492,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberBetween(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static numberBetween(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     // NUMBER.BETWEEN should only handle numeric values
     // Time/date comparisons should use DATE.BETWEEN or TimeOperatorsPlugin
 
@@ -675,7 +535,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberOutside(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static numberOutside(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     // NUMBER.OUTSIDE should only handle numeric values
     // Time/date comparisons should use DATE.OUTSIDE or TimeOperatorsPlugin
 
@@ -718,7 +578,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberModulo(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberModulo(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     // Only work with numbers - no type coercion
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.MODULO requires value to be a number, got ${typeof value}`, {});
@@ -757,7 +617,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.EQUALS requires value to be a number, got ${typeof value}`, {});
     }
@@ -770,7 +630,7 @@ class NumberOperators {
     return result;
   }
 
-  static numberNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static numberNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.NOT_EQUALS requires value to be a number, got ${typeof value}`, {});
     }
@@ -813,7 +673,7 @@ class NumberOperators {
   }
 
   // Number similarity using relative difference
-  static numberSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static numberSimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.SIMILARITY requires value to be a number, got ${typeof value}`, {});
     }
@@ -837,7 +697,7 @@ class NumberOperators {
  * Date-typed operator implementations
  */
 class DateOperators {
-  static dateBetween(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static dateBetween(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     // Convert value to Date using parseDate converter (handles Unix/epoch timestamps)
     const dateValue = DateParser.parseDate(value);
 
@@ -884,7 +744,7 @@ class DateOperators {
     return result;
   }
 
-  static dateOutside(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static dateOutside(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     // Convert value to Date using parseDate converter (handles Unix/epoch timestamps)
     const dateValue = DateParser.parseDate(value);
 
@@ -931,7 +791,7 @@ class DateOperators {
     return result;
   }
 
-  static dateEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static dateEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const date1 = DateParser.parseDate(value);
     const date2 = DateParser.parseDate(filterValue);
 
@@ -944,7 +804,7 @@ class DateOperators {
     return result;
   }
 
-  static dateNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static dateNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !DateOperators.dateEquals(value, filterValue);
 
     return result;
@@ -955,13 +815,13 @@ class DateOperators {
  * Boolean-typed operator implementations
  */
 class BooleanOperators {
-  static booleanTrue(value: FilterValueEntity.Type): boolean {
+  static booleanTrue(value: unknown): boolean {
     const result = value === true;
 
     return result;
   }
 
-  static booleanFalse(value: FilterValueEntity.Type): boolean {
+  static booleanFalse(value: unknown): boolean {
     const result = value === false;
 
     return result;
@@ -987,7 +847,7 @@ class BooleanOperators {
     return result;
   }
 
-  static booleanEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static booleanEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.EQUALS requires value to be a boolean, got ${typeof value}`, {});
     }
@@ -1000,7 +860,7 @@ class BooleanOperators {
     return result;
   }
 
-  static booleanNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static booleanNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.NOT_EQUALS requires value to be a boolean, got ${typeof value}`, {});
     }
@@ -1014,7 +874,7 @@ class BooleanOperators {
   }
 
   // Boolean similarity (exact match only)
-  static booleanSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static booleanSimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (typeof value !== 'boolean') {
       throw new FilterOperatorError(`BOOLEAN.SIMILARITY requires value to be a boolean, got ${typeof value}`, {});
     }
@@ -1038,27 +898,27 @@ class BooleanOperators {
  * Set-typed operator implementations
  */
 class SetOperators {
-  static setHas(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setHas(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.HAS requires value to be a Set, got ${typeof value}`, {});
     }
 
-    const result = Predicates.isString(filterValue) && value.has(filterValue);
+    const result = value.has(filterValue);
 
     return result;
   }
 
-  static setMissing(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setMissing(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.MISSING requires value to be a Set, got ${typeof value}`, {});
     }
 
-    const result = !Predicates.isString(filterValue) || !value.has(filterValue);
+    const result = !value.has(filterValue);
 
     return result;
   }
 
-  static setSize(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setSize(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.SIZE requires value to be a Set, got ${typeof value}`, {});
     }
@@ -1071,7 +931,7 @@ class SetOperators {
     return result;
   }
 
-  static setEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static setEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.EMPTY requires value to be a Set, got ${typeof value}`, {});
     }
@@ -1081,7 +941,7 @@ class SetOperators {
     return result;
   }
 
-  static setNotEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static setNotEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.NOT_EMPTY requires value to be a Set, got ${typeof value}`, {});
     }
@@ -1091,7 +951,7 @@ class SetOperators {
     return result;
   }
 
-  static setEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.EQUALS requires value to be a Set, got ${typeof value}`, {});
     }
@@ -1099,18 +959,18 @@ class SetOperators {
       throw new FilterOperatorError(`SET.EQUALS requires filter value to be a Set, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static setNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !SetOperators.setEquals(value, filterValue);
 
     return result;
   }
 
-  static setIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Set)) {
       throw new FilterOperatorError(`SET.IDENTICAL requires value to be a Set, got ${typeof value}`, {});
     }
@@ -1118,12 +978,12 @@ class SetOperators {
       throw new FilterOperatorError(`SET.IDENTICAL requires filter value to be a Set, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static setNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static setNotIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !SetOperators.setIdentical(value, filterValue);
 
     return result;
@@ -1134,7 +994,7 @@ class SetOperators {
  * Map-typed operator implementations
  */
 class MapOperators {
-  static mapEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static mapEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.EMPTY requires value to be a Map, got ${typeof value}`, {});
     }
@@ -1144,7 +1004,7 @@ class MapOperators {
     return result;
   }
 
-  static mapNotEmpty(value: FilterValueEntity.Type, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static mapNotEmpty(value: unknown, _filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.NOT_EMPTY requires value to be a Map, got ${typeof value}`, {});
     }
@@ -1154,27 +1014,27 @@ class MapOperators {
     return result;
   }
 
-  static mapHas(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapHas(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.HAS requires value to be a Map, got ${typeof value}`, {});
     }
 
-    const result = Predicates.isString(filterValue) && value.has(filterValue);
+    const result = value.has(filterValue);
 
     return result;
   }
 
-  static mapMissing(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapMissing(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.MISSING requires value to be a Map, got ${typeof value}`, {});
     }
 
-    const result = !Predicates.isString(filterValue) || !value.has(filterValue);
+    const result = !value.has(filterValue);
 
     return result;
   }
 
-  static mapSize(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapSize(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.SIZE requires value to be a Map, got ${typeof value}`, {});
     }
@@ -1187,7 +1047,7 @@ class MapOperators {
     return result;
   }
 
-  static mapEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.EQUALS requires value to be a Map, got ${typeof value}`, {});
     }
@@ -1195,18 +1055,18 @@ class MapOperators {
       throw new FilterOperatorError(`MAP.EQUALS requires filter value to be a Map, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static mapNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !MapOperators.mapEquals(value, filterValue);
 
     return result;
   }
 
-  static mapIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     if (!(value instanceof Map)) {
       throw new FilterOperatorError(`MAP.IDENTICAL requires value to be a Map, got ${typeof value}`, {});
     }
@@ -1214,12 +1074,12 @@ class MapOperators {
       throw new FilterOperatorError(`MAP.IDENTICAL requires filter value to be a Map, got ${typeof filterValue}`, {});
     }
 
-    const result = ComparisonOperators.deepEqual(value, filterValue);
+    const result = Predicates.areDeeplyEqual(value, filterValue);
 
     return result;
   }
 
-  static mapNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static mapNotIdentical(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !MapOperators.mapIdentical(value, filterValue);
 
     return result;
@@ -1287,47 +1147,47 @@ class MapOperators {
  * - caseSensitive: boolean (default: true) - For string comparisons
  */
 class CrossOperators {
-  static valueExists(value: FilterValueEntity.Type): boolean {
+  static valueExists(value: unknown): boolean {
     const result = value !== null && value !== undefined;
     return result;
   }
 
-  static valueAbsent(value: FilterValueEntity.Type): boolean {
+  static valueAbsent(value: unknown): boolean {
     const result = value === null || value === undefined;
     return result;
   }
 
-  static valueDefined(value: FilterValueEntity.Type): boolean {
+  static valueDefined(value: unknown): boolean {
     const result = value !== undefined;
     return result;
   }
 
-  static valueUndefined(value: FilterValueEntity.Type): boolean {
+  static valueUndefined(value: unknown): boolean {
     const result = value === undefined;
     return result;
   }
 
-  static valueNull(value: FilterValueEntity.Type): boolean {
+  static valueNull(value: unknown): boolean {
     const result = value === null;
     return result;
   }
 
-  static valueNotNull(value: FilterValueEntity.Type): boolean {
+  static valueNotNull(value: unknown): boolean {
     const result = value !== null;
     return result;
   }
 
-  static crossEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static crossEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = value === filterValue;
     return result;
   }
 
-  static crossNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static crossNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = value !== filterValue;
     return result;
   }
 
-  static valueType(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static valueType(value: object | string | number | boolean | null | undefined, filterValue: FilterValueEntity.Type): boolean {
     if (typeof filterValue !== 'string') {
       throw new FilterOperatorError(`CROSS.TYPE requires filter value to be a string, got ${typeof filterValue}`, {});
     }
@@ -1367,7 +1227,7 @@ class CrossOperators {
   }
 
   // Get normalized type names for cross-type comparisons
-  static getValueType(value: FilterValueEntity.Type): string {
+  static getValueType(value: unknown): string {
     if (value === null) {
       const result = 'null';
       return result;
@@ -1460,7 +1320,7 @@ class CrossOperators {
     return similarity;
   }
 
-  static serializeComparableValue(value: FilterValueEntity.Type | undefined): string {
+  static serializeComparableValue(value: unknown): string {
     if (typeof value !== 'object' || value === null) {
       const result = String(value);
 
@@ -1478,7 +1338,7 @@ class CrossOperators {
     }
   }
 
-  static compareSameType(leftValue: FilterValueEntity.Type, rightValue: FilterValueEntity.Type, caseSensitive: boolean): number {
+  static compareSameType(leftValue: unknown, rightValue: unknown, caseSensitive: boolean): number {
     if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
       const result = ArrayOperators.calculateArraySimilarity(leftValue, rightValue);
 
@@ -1506,7 +1366,7 @@ class CrossOperators {
   }
 
   // Cross-type similarity calculations (values of different types)
-  static calculateCrossTypeSimilarityMixed(left: FilterValueEntity.Type, right: FilterValueEntity.Type, caseSensitive: boolean): number {
+  static calculateCrossTypeSimilarityMixed(left: unknown, right: unknown, caseSensitive: boolean): number {
     if (typeof left === 'string' && typeof right === 'number') {
       const result = CrossOperators.calculateStringSimilarityScore(left, String(right), caseSensitive);
 
@@ -1522,7 +1382,7 @@ class CrossOperators {
       const rightLength = right.length;
 
       for (let index = 0; index < rightLength; index += 1) {
-        const item = right[index];
+        const item: unknown = right[index];
         const similarity = CrossOperators.calculateStringSimilarityScore(left, CrossOperators.serializeComparableValue(item), caseSensitive);
 
         bestSimilarity = Math.max(bestSimilarity, similarity);
@@ -1535,7 +1395,7 @@ class CrossOperators {
       const leftLength = left.length;
 
       for (let index = 0; index < leftLength; index += 1) {
-        const item = left[index];
+        const item: unknown = left[index];
         const similarity = CrossOperators.calculateStringSimilarityScore(right, CrossOperators.serializeComparableValue(item), caseSensitive);
 
         bestSimilarity = Math.max(bestSimilarity, similarity);
@@ -1548,7 +1408,7 @@ class CrossOperators {
       const leftLength = left.length;
 
       for (let index = 0; index < leftLength; index += 1) {
-        const item = left[index];
+        const item: unknown = left[index];
         const itemNumber = typeof item === 'number' ? item : Number(item);
 
         if (!Number.isNaN(itemNumber)) {
@@ -1577,7 +1437,7 @@ class CrossOperators {
   }
 
   // Main cross-type similarity calculation
-  static calculateCrossTypeSimilarity(left: FilterValueEntity.Type, right: FilterValueEntity.Type, caseSensitive: boolean): number {
+  static calculateCrossTypeSimilarity(left: unknown, right: unknown, caseSensitive: boolean): number {
     const leftType = CrossOperators.getValueType(left);
     const rightType = CrossOperators.getValueType(right);
 
@@ -1594,7 +1454,7 @@ class CrossOperators {
     return result;
   }
 
-  static valueSimilarity(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }): boolean {
+  static valueSimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
     const condition = options?.condition;
 
     // Threshold is required for SIMILARITY operator - no defaults allowed
@@ -1648,7 +1508,7 @@ class CrossOperators {
   }
 }
 
-export const Operator = DeepFreeze.deepFreeze({
+export const Operator = Frozen.deepFreeze({
   'ARRAY': {
     'EMPTY': ArrayOperators.arrayEmpty,
     'EQUALS': ArrayOperators.arrayEquals,

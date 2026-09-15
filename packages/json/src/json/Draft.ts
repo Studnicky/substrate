@@ -1,15 +1,16 @@
 /** Immer-style copy-on-write drafting for arbitrary in-memory values. */
 
+import { Predicates } from '@studnicky/types/node';
+
 import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
 
-import { DataType } from './DataType.js';
 import { Patch } from './Patch.js';
 
 export class Draft {
   /** Return whether a value should be wrapped in a nested draft proxy. */
   protected static isDraftable<T>(value: T): value is object & T {
-    const result = Array.isArray(value) || DataType.isPlainObject(value);
+    const result = Array.isArray(value) || Predicates.isPlainObject(value);
     return result;
   }
 
@@ -144,7 +145,7 @@ export class Draft {
   /** Produce the next value and the JSON Patch which recreates it. */
   public static producePatch<T>(base: T, recipe: (draft: T) => void): { 'next': T; 'patch': PatchOperationEntity.Type[] } {
     const next = this.produce(base, recipe);
-    const patch = [...Patch.diff(base, next).operations];
+    const patch: PatchOperationEntity.Type[] = Array.from(Patch.diff(base, next).operations);
     return { 'next': next, 'patch': patch };
   }
 }

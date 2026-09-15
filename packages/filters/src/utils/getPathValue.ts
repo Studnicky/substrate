@@ -3,9 +3,11 @@
  * @description Extracts values from objects using dot notation paths with security protections
  */
 
-import { Predicates } from '@studnicky/types/node';
+import {
+  Predicates,
+  RuntimeValue
+} from '@studnicky/types/node';
 
-import { FilterValueGuard } from '../FilterValueGuard.js';
 import { FilterTypeGuards } from '../interfaces.js';
 import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';
 
@@ -147,7 +149,7 @@ export class GetPathValue {
           current = GetPathValue.readField(current, key);
         }
 
-        const bracketResult = FilterValueGuard.intake(current);
+        const bracketResult = RuntimeValue.intake(current);
 
         return bracketResult;
       }
@@ -178,7 +180,7 @@ export class GetPathValue {
         const result = GetPathValue.processArrayIndexing(part, current, path, parts, i);
 
         if (result.isWildcard) {
-          const wildcardResult = FilterTypeGuards.isArrayWildcardValue(result.value) ? result.value : FilterValueGuard.intake(result.value);
+          const wildcardResult = FilterTypeGuards.isArrayWildcardValue(result.value) ? result.value : RuntimeValue.intake(result.value);
 
           return wildcardResult;
         }
@@ -192,7 +194,7 @@ export class GetPathValue {
       }
     }
 
-    const finalResult = FilterValueGuard.intake(current);
+    const finalResult = RuntimeValue.intake(current);
 
     return finalResult;
   }

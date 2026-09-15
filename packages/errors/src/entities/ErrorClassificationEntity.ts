@@ -1,10 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
-
-import { EntityIntake } from '../validation/EntityIntake.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /**
  * Error classification result.
@@ -34,31 +30,7 @@ export namespace ErrorClassificationEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    if (!Predicates.isBoolean(candidate.retryable)) { return false; }
-    if (candidate.reason !== undefined && !Predicates.isString(candidate.reason)) { return false; }
-    return true;
-  };
-
-  class Parser {
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
-      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['reason', 'retryable'])) { return undefined; }
-      const retryable = EntityIntake.boolean(candidate.retryable);
-      if (retryable === undefined) { return undefined; }
-      if (candidate.reason === undefined) { return { 'retryable': retryable }; }
-      const reason = EntityIntake.string(candidate.reason);
-      if (reason === undefined) { return undefined; }
-      const result = { 'reason': reason, 'retryable': retryable };
-      return result;
-    }
-  }
-
-  export const intake = EntityIntake.compileIntake(Parser.parse, 'ErrorClassification');
-  export const create = EntityIntake.compileCreate(Parser.parse, 'ErrorClassification');
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

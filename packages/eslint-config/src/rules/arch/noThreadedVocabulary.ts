@@ -1,9 +1,9 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type * as TypeScript from 'typescript';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 import { Predicates } from '@studnicky/types/node';
 import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
 
@@ -38,8 +38,8 @@ namespace NoThreadedVocabularyOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
 const RESOLUTION_SITE_LAYER = 'resolutionSite';

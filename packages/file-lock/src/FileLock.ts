@@ -48,16 +48,9 @@ interface FileLockDisposableInterface {
 }
 
 class FileLockInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: FileLockSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   static hasDispose(value: object): value is FileLockDisposableInterface {
-    const result = Symbol.dispose in value;
+    const result = Predicates.isFunction(Reflect.get(value, Symbol.dispose));
     return result;
   }
 }
@@ -117,7 +110,7 @@ export class FileLock implements LockInterface {
     const constructed: unknown = Reflect.construct(resolveSubclassConstructor(), [
       { 'clock': clock, 'fs': fs, 'lockPath': lockPath, 'originalPath': path, 'renameLock': renameLock, 'scheduler': scheduler }
     ]);
-    if (!Predicates.isObjectLike(constructed) || !FileLockInstance.belongsTo(resolveSubclassConstructor(), constructed)) {
+    if (!Predicates.isObjectLike(constructed) || !Predicates.isInstanceOf(constructed, resolveSubclassConstructor())) {
       throw new FileLockConfigError('FileLock.create() did not construct the requested subclass.');
     }
 

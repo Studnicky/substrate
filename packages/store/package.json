@@ -62,11 +62,11 @@
   },
   "dependencies": {
     "@studnicky/context": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/mutex": "workspace:*"
   },
   "devDependencies": {
-    "ajv": "^8.20.0",
     "fake-indexeddb": "^6.2.5",
     "json-schema-to-ts": "^3.1.1"
   }

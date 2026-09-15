@@ -29,13 +29,6 @@ interface RealTimeSchedulerSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class RealTimeSchedulerInstance {
-  static belongsTo<TInstance extends object>(constructor: RealTimeSchedulerSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * Real-time `SchedulerProvider` using `setTimeout` and `setInterval`.
  * Instantiate once per scheduler context; inject as a `SchedulerProviderInterface`.
@@ -67,7 +60,7 @@ export class RealTimeScheduler implements SchedulerProviderInterface {
     this: RealTimeSchedulerSubclassInterface<TInstance>
   ): TInstance {
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !RealTimeSchedulerInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('RealTimeScheduler.create() did not construct the requested subclass.');
     }
     return result;

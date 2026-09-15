@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 /**
  * `Throttle` subclass whose `now()` reads a virtual clock instead of the wall
  * clock, so adaptive-concurrency tests can drive operation latency
@@ -29,15 +30,6 @@ interface VirtualClockThrottleSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class VirtualClockThrottleInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: VirtualClockThrottleSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    return value instanceof constructor;
-  }
-}
-
 /**
  * `Throttle` subclass backed by a `VirtualTimeCounter`. `now()` reads the
  * counter's current epoch-ms rather than `Date.now()`. Subclasses that need
@@ -51,7 +43,7 @@ export class VirtualClockThrottle extends Throttle {
     config?: Partial<ThrottleConfigEntity.Type>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, input]);
-    if (typeof result !== 'object' || result === null || !VirtualClockThrottleInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VirtualClockThrottle.createWithClock() did not construct the requested subclass.');
     }
     return result;

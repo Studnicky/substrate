@@ -18,8 +18,10 @@ import {
   isConstructorTypeNode,
   isConstructSignatureDeclaration,
   isConstTypeReference,
+  isExportDeclaration,
   isFunctionTypeNode,
   isIdentifier,
+  isImportDeclaration,
   isIndexedAccessTypeNode,
   isIndexSignatureDeclaration,
   isInferTypeNode,
@@ -282,13 +284,19 @@ export class TypeContractClassification {
   ]);
 
   private readonly aliasCache: WeakMap<TypeAliasDeclaration, AliasClassificationResultInterface>;
+  private readonly canonicalFromSchemaSymbols: Set<Symbol>;
+  private canonicalFromSchemaSymbolsCollected: boolean;
   private readonly checker: TypeChecker;
+  private readonly program: Program;
   private readonly interfaceCache: WeakMap<InterfaceDeclaration, InterfaceClassificationResultInterface>;
   private readonly readonlyCache: WeakMap<TypeAliasDeclaration, readonly ReadonlyOutputEvidenceInterface[]>;
 
   private constructor(program: Program) {
     this.aliasCache = new WeakMap();
+    this.canonicalFromSchemaSymbols = new Set();
+    this.canonicalFromSchemaSymbolsCollected = false;
     this.checker = program.getTypeChecker();
+    this.program = program;
     this.interfaceCache = new WeakMap();
     this.readonlyCache = new WeakMap();
   }
@@ -305,6 +313,78 @@ export class TypeContractClassification {
     TypeContractClassification.programs.set(program, classification);
 
     return classification;
+  }
+
+  /**
+   * Identifies the sole entity namespace alias that owns a schema-derived public data type.
+   * The alias must resolve to the canonical `json-schema-to-ts` `FromSchema` export with
+   * `typeof Schema`, and the queried value must be declared by the same entity namespace.
+   */
+  public isCanonicalEntityTypeAlias(declaration: TypeAliasDeclaration): boolean {
+    if (
+      declaration.name.text !== 'Type'
+      || (getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0
+      || !isTypeReferenceNode(declaration.type)
+    ) {
+      return false;
+    }
+
+    if (!this.isCanonicalFromSchemaReference(declaration.type.typeName)) {
+      return false;
+    }
+
+    const schemaArgument = declaration.type.typeArguments?.at(0);
+
+    if (schemaArgument === undefined || !isTypeQueryNode(schemaArgument) || !isIdentifier(schemaArgument.exprName)) {
+      return false;
+    }
+
+    const schemaSymbol = this.checker.getSymbolAtLocation(schemaArgument.exprName);
+    const namespaceBlock = declaration.parent;
+
+    if (schemaSymbol === undefined || !isModuleBlock(namespaceBlock)) {
+      return false;
+    }
+
+    let ownsSchema = false;
+    const statements = namespaceBlock.statements;
+    const statementCount = statements.length;
+
+    for (let statementIndex = 0; statementIndex < statementCount; statementIndex += 1) {
+      const statement = statements.at(statementIndex);
+
+      if (statement === undefined || !isVariableStatement(statement)) {
+        continue;
+      }
+
+      const declarations = statement.declarationList.declarations;
+      const declarationCount = declarations.length;
+
+      for (let declarationIndex = 0; declarationIndex < declarationCount; declarationIndex += 1) {
+        const candidate = declarations.at(declarationIndex);
+
+        if (candidate === undefined || !isIdentifier(candidate.name)) {
+          continue;
+        }
+
+        if (this.checker.getSymbolAtLocation(candidate.name) === schemaSymbol) {
+          ownsSchema = true;
+          break;
+        }
+      }
+
+      if (ownsSchema) {
+        break;
+      }
+    }
+
+    const namespaceDeclaration = namespaceBlock.parent;
+    const result = ownsSchema
+      && isModuleDeclaration(namespaceDeclaration)
+      && isIdentifier(namespaceDeclaration.name)
+      && namespaceDeclaration.name.text.endsWith('Entity');
+
+    return result;
   }
 
   public analyzeAlias(declaration: TypeAliasDeclaration): AliasClassificationResultInterface {
@@ -814,6 +894,15 @@ export class TypeContractClassification {
     }
 
     const nextVisiting = new Set(visiting);
+
+    if (this.isCanonicalEntityTypeAlias(declaration)) {
+      return {
+        'classification': 'pureDataCanonical',
+        'evidence': declaration.type,
+        'readonlyOutput': readonlyOutput,
+        'reason': 'fromSchema'
+      };
+    }
 
     if (symbol !== undefined) {
       nextVisiting.add(symbol);
@@ -3237,7 +3326,21 @@ export class TypeContractClassification {
     }
     const [extendedType] = extendsClause.types;
 
-    if (extendedType === undefined || !this.isSchemaDerivedHeritageType(extendedType)) {
+    const schemaArgument = extendedType?.typeArguments?.at(0);
+
+    if (
+      extendedType === undefined
+      || schemaArgument === undefined
+      || !isTypeQueryNode(schemaArgument)
+      || !isIdentifier(schemaArgument.exprName)
+      || !this.isCanonicalFromSchemaReference(extendedType.expression)
+    ) {
+      return false;
+    }
+
+    const schemaSymbol = this.checker.getSymbolAtLocation(schemaArgument.exprName);
+
+    if (schemaSymbol === undefined) {
       return false;
     }
 
@@ -3275,7 +3378,10 @@ export class TypeContractClassification {
       for (let declarationIndex = 0; declarationIndex < declarationCount; declarationIndex += 1) {
         const schemaDeclaration = declarations.at(declarationIndex);
 
-        if (schemaDeclaration !== undefined && isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema') {
+        if (schemaDeclaration !== undefined
+          && isIdentifier(schemaDeclaration.name)
+          && schemaDeclaration.name.text === 'Schema'
+          && this.checker.getSymbolAtLocation(schemaDeclaration.name) === schemaSymbol) {
           ownsExportedSchema = true;
           break;
         }
@@ -3430,11 +3536,79 @@ export class TypeContractClassification {
     return result;
   }
 
+  private isCanonicalFromSchemaReference(derivingNameNode: Node): boolean {
+    const resolvedSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(derivingNameNode));
+
+    if (resolvedSymbol?.getName() !== 'FromSchema') {
+      return false;
+    }
+
+    this.collectCanonicalFromSchemaSymbols();
+
+    const result = this.canonicalFromSchemaSymbols.has(resolvedSymbol);
+
+    return result;
+  }
+
+  private collectCanonicalFromSchemaSymbols(): void {
+    if (this.canonicalFromSchemaSymbolsCollected) {
+      return;
+    }
+
+    this.canonicalFromSchemaSymbolsCollected = true;
+    const sourceFiles = this.program.getSourceFiles();
+    const sourceFileCount = sourceFiles.length;
+
+    for (let sourceIndex = 0; sourceIndex < sourceFileCount; sourceIndex += 1) {
+      const statements = sourceFiles[sourceIndex]!.statements;
+      const statementCount = statements.length;
+
+      for (let statementIndex = 0; statementIndex < statementCount; statementIndex += 1) {
+        const statement = statements[statementIndex]!;
+
+        if (!isImportDeclaration(statement) && !isExportDeclaration(statement)) {
+          continue;
+        }
+
+        const moduleSpecifier = statement.moduleSpecifier;
+
+        if (moduleSpecifier === undefined || !isStringLiteral(moduleSpecifier)
+          || moduleSpecifier.text !== 'json-schema-to-ts') {
+          continue;
+        }
+
+        const moduleSymbol = this.checker.getSymbolAtLocation(moduleSpecifier);
+
+        if (moduleSymbol === undefined) {
+          continue;
+        }
+
+        const exportedSymbols = this.checker.getExportsOfModule(moduleSymbol);
+        const exportedFromSchema = exportedSymbols.find((symbol) => {
+          const result = symbol.getName() === 'FromSchema';
+
+          return result;
+        });
+        const resolvedSymbol = this.resolveSymbol(exportedFromSchema);
+
+        if (resolvedSymbol !== undefined) {
+          this.canonicalFromSchemaSymbols.add(resolvedSymbol);
+        }
+      }
+    }
+  }
+
   private isSchemaDerivingFunction(derivingNameNode: Node, builderCallee: Symbol | undefined): boolean {
     const derivingSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(derivingNameNode));
 
     if (derivingSymbol === undefined) {
       return false;
+    }
+
+    if (derivingSymbol.getName() === 'FromSchema') {
+      const result = this.isCanonicalFromSchemaReference(derivingNameNode);
+
+      return result;
     }
 
     if (derivingSymbol.getJsDocTags().some((tag) => {

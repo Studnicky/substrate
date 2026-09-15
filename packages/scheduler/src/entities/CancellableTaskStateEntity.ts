@@ -1,19 +1,23 @@
-import type { SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
-import type { ValidateFunction } from 'ajv';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 
-/** Canonical lifecycle state for a single `CancellableTask`. */
+/** Serializable lifecycle state for a single cancellable task. */
 export namespace CancellableTaskStateEntity {
   export const Schema = {
     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-    'enum': ['pending', 'cancelled', 'completed'],
-    'type': 'string'
+    'additionalProperties': false,
+    'properties': {
+      'variant': { 'enum': ['pending', 'cancelled', 'completed'], 'type': 'string' }
+    },
+    'required': ['variant'],
+    'type': 'object'
   } as const satisfies JSONSchema;
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

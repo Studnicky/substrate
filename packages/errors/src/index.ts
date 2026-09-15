@@ -44,6 +44,7 @@ export type {
   DomainErrorOptionsInterface,
   ErrorClassifierFunctionInterface,
   ErrorClassifierInterface,
+  ErrorConstructorOptionsInterface,
   ModuleErrorCreateOptionsInterface,
   ModuleErrorOptionsInterface
 } from './interfaces/index.js';

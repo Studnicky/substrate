@@ -5,7 +5,7 @@
  */
 
 import { ConfigurationError } from '@studnicky/config/node';
-import { SchemaIntakeError } from '@studnicky/json/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { Predicates } from '@studnicky/types/node';
 
 import { DEFAULT_TIMEOUT, UNLIMITED_QUEUE_SIZE } from '../constants/index.js';

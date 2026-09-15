@@ -134,13 +134,6 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     }
   };
 
-  private static isConstructed<TInstance>(
-    value: object,
-    constructor: KeyedRateLimiterSubclassInterface<TInstance>
-  ): value is object & TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   /**
    * Creates a `KeyedRateLimiter` whose default factory constructs one
@@ -179,7 +172,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         'factory': config.factory,
         'tokenBucketOptions': undefined
       }]);
-      if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+      if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
         throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
       }
       return result;
@@ -194,7 +187,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
         ...(config.clock !== undefined ? { 'clock': config.clock } : {})
       }
     }]);
-    if (!Predicates.isObjectLike(result) || !KeyedRateLimiter.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
     }
     return result;

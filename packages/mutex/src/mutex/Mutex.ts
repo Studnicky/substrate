@@ -200,11 +200,10 @@ class LinkedAcquisitionQueue {
  * Concrete `MutexLockInterface` handle returned by `acquireDisposable`.
  *
  * A dedicated class (rather than an object literal built up property by
- * property) gives every instance the same hidden class from construction —
- * including `Symbol.asyncDispose`, declared as a real method definition
- * instead of a computed object-literal property — and gives the
- * double-release guard a single implementation instead of duplicating it
- * between a release closure and a disposer closure.
+ * property) gives every instance the same hidden class from construction.
+ * `acquireDisposable` attaches `Symbol.asyncDispose` after construction and
+ * delegates to `release`, so manual release and disposal share one idempotent
+ * path.
  */
 class MutexLock<K extends PropertyKey> {
   readonly 'key': K;
@@ -275,13 +274,6 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * });
    * ```
    */
-  private static isConstructed<TInstance extends object>(
-    value: object,
-    constructor: MutexConstructorInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 
   /**
    * Narrows `value` to `MutexLockInterface` after `acquireDisposable` has
@@ -290,7 +282,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * `MutexLock` above — so it is not statically present on the class type).
    */
   private static hasAsyncDispose(value: object): value is MutexLockInterface {
-    const result = Symbol.asyncDispose in value;
+    const result = Predicates.isFunction(Reflect.get(value, Symbol.asyncDispose));
     return result;
   }
 
@@ -302,7 +294,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     config?: MutexCreateOptionsInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(result) || !Mutex.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Mutex.create() must construct a Mutex instance');
     }
     return result;
@@ -469,6 +461,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     Reflect.set(lock, Symbol.asyncDispose, asyncDispose);
 
     if (!Mutex.hasAsyncDispose(lock)) {
+      lock.release();
       throw RuntimeError.create('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
     }
 

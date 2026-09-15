@@ -10,16 +10,16 @@
  *     `Predicates.isObject`, `Predicates.coerceValue`) that parsing depends on; requiring intake
  *     here is circular.
  *   - `@studnicky/eslint-config`: Operates on foreign ESLint and TypeScript AST nodes.
- *   - `@studnicky/intake-kit`: The generic `{create, intake}` compile orchestration and cycle-safe
- *     clone primitives every entity's `intake` is built from (see `IntakeCompiler`,
- *     `BoundaryCycleGuard`). An engine cannot be required to go through the boundary it exists to
+ *   - `@studnicky/entity`: The generic `{create, intake}` compile orchestration and cycle-safe
+ *     clone primitives every entity's `intake` is built from (see `EntityCompiler`,
+ *     `Predicates.hasCycle`). An engine cannot be required to go through the boundary it exists to
  *     implement, for the same reason `@studnicky/types` is exempt.
  */
 
 export const DEFAULT_EXEMPT_PACKAGES = [
   '@studnicky/types',
   '@studnicky/eslint-config',
-  '@studnicky/intake-kit'
+  '@studnicky/entity'
 ];
 
 export const INTAKE_MEMBER = 'intake';

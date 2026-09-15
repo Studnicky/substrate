@@ -6,21 +6,11 @@ import { WebLockOptionsEntity } from '../entities/WebLockOptionsEntity.js';
 import { FileLockConfigError } from '../errors/FileLockConfigError.js';
 
 class WebLockManager {
-  static isLockManager(value: object): value is WebLockManagerInterface {
-    const result = Reflect.has(value, 'request') && typeof Reflect.get(value, 'request') === 'function';
-
-    return result;
-  }
-
   static get(): WebLockManagerInterface {
-    const navigator: unknown = Reflect.get(globalThis, 'navigator');
+    const lockManager = globalThis.navigator?.locks;
 
-    if (typeof navigator === 'object' && navigator !== null) {
-      const locks: unknown = Reflect.get(navigator, 'locks');
-
-      if (typeof locks === 'object' && locks !== null && WebLockManager.isLockManager(locks)) {
-        return locks;
-      }
+    if (lockManager !== undefined) {
+      return lockManager;
     }
 
     throw new FileLockConfigError('Web Locks API is unavailable in this browser context.');

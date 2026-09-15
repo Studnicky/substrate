@@ -1,6 +1,6 @@
 # @studnicky/json
 
-> JSON/object value-tools: deep merge, clone, equal, freeze, path access, sort, patch, hash
+> JSON/object value-tools: deep merge, clone, freeze, path access, sort, patch, hash
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/json)
 
@@ -18,10 +18,16 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/json
 ```
 
+## Runtime imports
+
+Use `@studnicky/json/node` in Node.js and `@studnicky/json/browser` in browser bundles. Both runtime entry points expose the same API. Types, interfaces, and entities use their shared subpaths.
+
 ## Usage
 
 ```ts
-import { Clone, DataType, Draft, Frozen, FrozenMutationError, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json/node';
+import { Predicates } from '@studnicky/types/node';
+
+import { Clone, Draft, Frozen, FrozenMutationError, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json/node';
 
 // --- Merge ---
 const base = { a: 1, b: { x: 10, y: 20 } };
@@ -62,16 +68,16 @@ const h = Hash.value({ b: 2, a: 1 });
 const schemaHash = StructuralHash.of({ type: 'string', title: 'ignored', description: 'also ignored' });
 // Same hash as StructuralHash.of({ type: 'string' })
 
-// --- DataType ---
-DataType.deepEqual({ a: [1, 2] }, { a: [1, 2] }); // true
-DataType.isPlainObject({});                          // true
-DataType.isRecord([]);                               // false
-DataType.hasCycle({});                               // false
+// --- Predicates ---
+Predicates.areDeeplyEqual({ a: [1, 2] }, { a: [1, 2] }); // true
+Predicates.isPlainObject({});                          // true
+Predicates.isRecord([]);                               // false
+Predicates.hasCycle({});                               // false
 
 // --- Frozen ---
 const frozen = Frozen.deepFreeze({ nested: { value: 42 } });
 // Object.isFrozen(frozen) === true
-// Frozen Map/Set mutation methods throw FrozenMutationError.
+// Nested Map/Set references remain mutation-guarded and throw FrozenMutationError.
 
 // --- Patch (instance-based, RFC-6902) ---
 const doc = { status: 'draft', count: 0 };
@@ -114,50 +120,11 @@ Patch.diff(
 Draft.produce(base, () => {}) === base; // true
 ```
 
-## SchemaValidator
+## Entity boundaries
 
-Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate, backed by Ajv (`strict: true`, `allErrors: true`, `ajv-formats` registered). Entities declare a single schema and derive both their compile-time type and runtime guard from it, so there is no second, hand-written data declaration to drift out of sync.
+`@studnicky/json/entities` exports JSON package data contracts. Each entity exposes `Schema`, `Type`, and validation boundary functions.
 
-```ts
-import type { ValidateFunction } from 'ajv';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
-
-import { SchemaValidator } from '@studnicky/json/node';
-
-export namespace RecordEntity {
-  export const Schema = {
-    additionalProperties: false,
-    properties: {
-      count: { type: 'number' },
-      id: { type: 'string' }
-    },
-    required: ['count', 'id'],
-    type: 'object'
-  } as const satisfies JSONSchema;
-
-  export type Type = FromSchema<typeof Schema>;
-
-  // Compile once at module load and reuse — compilation is the expensive step.
-  export const validate: ValidateFunction<Type> = SchemaValidator.compile<Type>(Schema);
-}
-
-function handle(payload: unknown): void {
-  if (RecordEntity.validate(payload)) {
-    payload.count; // narrowed to RecordEntity.Type
-    return;
-  }
-
-  // validate.errors carries Ajv's ErrorObject[] after every call
-  console.error(SchemaValidator.formatErrors(RecordEntity.validate.errors));
-  // "(root): must have required property 'count'"
-}
-```
-
-`SchemaValidator.compile` returns Ajv's `ValidateFunction<TValidated>` directly — it already narrows `unknown` to `TValidated` and exposes `.errors`. `SchemaValidator.formatErrors` renders that array into one human-readable line (falling back to `'invalid payload'` when there are no errors); override the `protected static formatError` step in a subclass to customise per-error wording.
-
-Import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts`, and import `ValidateFunction` directly from `ajv`; a consuming package declares both owners as direct dependencies. The schema and derivation may be split across files, with each site importing the owner symbol it uses. Public `JSONSchema7Type` annotations come from `json-schema`, with declarations supplied by the package's direct `@types/json-schema` dependency. `@studnicky/json` does not proxy-export these dependency-owned types.
-
-`DraftNodeStateEntity`, `PatchApplyResultStatusEntity`, and `PathWildcardResultEntity` own the schema-expressible fields composed by the package's draft, patch-result, and wildcard-result interfaces. Runtime object graphs and `unknown` values remain on interfaces because they are not pure JSON Schema data contracts.
+Compile consumer-defined schemas with `EntityCompiler` from `@studnicky/entity/node` or `@studnicky/entity/browser`; schema intake failures use `SchemaIntakeError` from that same package.
 
 ## Extending
 

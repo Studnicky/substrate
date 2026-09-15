@@ -11,6 +11,7 @@
   "references": [
     { "path": "../context" },
     { "path": "../json" },
-    { "path": "../mutex" }
+    { "path": "../mutex" },
+    { "path": "../entity" }
   ]
 }

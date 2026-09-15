@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { WorkerErrorEnvelopeInterface } from '../../src/interfaces/WorkerErrorEnvelopeInterface.js';
-import type { WorkerLogEnvelopeInterface } from '../../src/interfaces/WorkerLogEnvelopeInterface.js';
+import type { WorkerErrorEnvelopeEntity } from '../../src/entities/WorkerErrorEnvelopeEntity.js';
+import type { WorkerLogEnvelopeEntity } from '../../src/entities/WorkerLogEnvelopeEntity.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import type { WorkerProgressEnvelopeInterface } from '../../src/interfaces/WorkerProgressEnvelopeInterface.js';
+import type { WorkerProgressEnvelopeEntity } from '../../src/entities/WorkerProgressEnvelopeEntity.js';
 import type { WorkerResultEnvelopeInterface } from '../../src/interfaces/WorkerResultEnvelopeInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
@@ -101,9 +101,9 @@ const runnerMap: RunnerMap = {
 
     class ObservingPool extends WorkerPool<ItemInterface, string> {
       protected override onMessage(envelope:
-        | WorkerErrorEnvelopeInterface
-        | WorkerLogEnvelopeInterface
-        | WorkerProgressEnvelopeInterface
+        | WorkerErrorEnvelopeEntity.Type
+        | WorkerLogEnvelopeEntity.Type
+        | WorkerProgressEnvelopeEntity.Type
         | WorkerResultEnvelopeInterface<string>): void {
         seenTypes.push(envelope.type);
       }
@@ -120,9 +120,9 @@ const runnerMap: RunnerMap = {
 
     class ObservingPool extends WorkerPool<ItemInterface, string> {
       protected override onMessage(envelope:
-        | WorkerErrorEnvelopeInterface
-        | WorkerLogEnvelopeInterface
-        | WorkerProgressEnvelopeInterface
+        | WorkerErrorEnvelopeEntity.Type
+        | WorkerLogEnvelopeEntity.Type
+        | WorkerProgressEnvelopeEntity.Type
         | WorkerResultEnvelopeInterface<string>): void {
         seenTypes.push(envelope.type);
       }

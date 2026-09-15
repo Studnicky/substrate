@@ -20,6 +20,9 @@
       "path": "../errors"
     },
     {
+      "path": "../entity"
+    },
+    {
       "path": "../json"
     },
     {

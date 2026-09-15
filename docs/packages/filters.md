@@ -5,7 +5,7 @@ description: Composable declarative filtering primitives.
 
 # @studnicky/filters
 
-`@studnicky/filters` composes declarative conditions from independently reusable comparators, operators, logic gates, modes, value contracts, and plugins. It depends on `@studnicky/types` only for generic narrowing primitives and emits structured `BaseError` children for package-owned failures.
+`@studnicky/filters` composes declarative conditions from independently reusable comparators, operators, logic gates, modes, value contracts, and plugins. Configuration values use JSON-safe entity contracts. Evaluation operands may retain native `Date`, `Map`, or `Set` values after validation with `RuntimeValue` from `@studnicky/types/node`. It depends on `@studnicky/types` for reusable runtime narrowing and emits structured `BaseError` children for package-owned failures.
 
 ## Install
 
@@ -25,7 +25,8 @@ Build an `AND` filter for active products with inventory, then evaluate a matchi
 |---|---|---|
 | `FilterEngine` | Evaluates a declarative condition tree against a value. | `@studnicky/filters/node` |
 | `FilterValueEntity` | Defines the JSON-safe filter value contract. | `@studnicky/filters/entities` |
-| `FilterValueGuard` | Normalizes an unknown value at the filter-value boundary. | `@studnicky/filters/node` |
+| `DateRangeBoundEntity` | Defines a JSON-safe date range bound. | `@studnicky/filters/entities` |
+| `RuntimeValue` | Validates runtime operands without converting native `Date`, `Map`, or `Set` values. | `@studnicky/types/node` |
 | `Plugin` | Adds one independently scoped filter capability. | `@studnicky/filters/node` |
 | `FilterError` | Base error for filter-owned failures. | `@studnicky/filters/node` |
 | `FilterConfigurationError` | Reports invalid filter configuration. | `@studnicky/filters/node` |
@@ -46,10 +47,9 @@ Build an `AND` filter for active products with inventory, then evaluate a matchi
 | `PluginError` | Reports plugin registration and execution failures. | `@studnicky/filters/node` |
 | `RegexError` | Reports regular-expression validation and execution failures. | `@studnicky/filters/node` |
 | `GroupGateNamesEntity` | Defines valid named group gates. | `@studnicky/filters/entities` |
-| `DateRangeInterface` | Defines declarative date range boundaries. | `@studnicky/filters/interfaces` |
-| `NumericRangeInterface` | Defines declarative numeric range boundaries. | `@studnicky/filters/interfaces` |
-| `RangeInterface` | Defines a generic range boundary pair. | `@studnicky/filters/interfaces` |
-| `TimeRangeInterface` | Defines declarative time range boundaries. | `@studnicky/filters/interfaces` |
+| `DateRangeEntity` | Defines declarative JSON-safe date range boundaries. | `@studnicky/filters/entities` |
+| `NumericRangeEntity` | Defines declarative numeric range boundaries. | `@studnicky/filters/entities` |
+| `TimeRangeEntity` | Defines declarative string-based time range boundaries. | `@studnicky/filters/entities` |
 | `BasePluginInterface` | Defines the base plugin contract. | `@studnicky/filters/interfaces` |
 | `PluginContextInterface` | Defines the context passed to one plugin operation. | `@studnicky/filters/interfaces` |
 | `TimeOperatorsPlugin` | Supplies time-aware filter operators. | `@studnicky/filters/node` |

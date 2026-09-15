@@ -2,7 +2,7 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { type QueryParametersInterface, UrlQueryString } from '../../../src/node/index.js';
+import { FetchClient, type QueryParametersInterface, UrlQueryString } from '../../../src/node/index.js';
 import scenarioGroups from './query.scenarios.json' with { type: 'json' };
 
 type RuntimeTag = { shape: 'undefined' };
@@ -106,8 +106,33 @@ function requireParams(value: { [key: string]: RuntimeValue } | undefined): { [k
   return value;
 }
 
+function isQueryParameterValue(value: unknown): boolean {
+  if (value === undefined || value === null || typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
+    return true;
+  }
+
+  const result = Array.isArray(value) && value.every((item) => {
+    return item === undefined || item === null || typeof item === 'boolean' || typeof item === 'number' || typeof item === 'string';
+  });
+  return result;
+}
+
+function isQueryParameters(value: unknown): value is QueryParametersInterface {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const result = Object.values(value).every(isQueryParameterValue);
+  return result;
+}
+
 function materializeParams(params: { [key: string]: RuntimeValue }): QueryParametersInterface {
-  return materializeValue(params) as QueryParametersInterface;
+  const materialized = materializeValue(params);
+  if (!isQueryParameters(materialized)) {
+    throw RuntimeError.create('query parameters must contain scalar values or scalar arrays');
+  }
+
+  return materialized;
 }
 
 function runBuildQueryString(scenarioCase: ScenarioCase): void {
@@ -170,6 +195,43 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('fetch query utils', () => {
+  void it('omits runtime undefined values before intaking JSON-safe parameters', () => {
+    const parameters: QueryParametersInterface = {
+      'filter': undefined,
+      'nullValue': null,
+      'tags': ['typescript', undefined, null]
+    };
+
+    assert.strictEqual(buildQueryString(parameters), 'nullValue=null&tags=typescript&tags=null');
+
+    const invalidParameters: QueryParametersInterface = {};
+    Reflect.set(invalidParameters, 'filter', { 'status': 'active' });
+
+    assert.throws(() => {
+      buildQueryString(invalidParameters);
+    });
+  });
+  void it('intakes configured parameters after omitting runtime undefined values', () => {
+    const client = FetchClient.create({
+      'parameters': {
+        'filter': undefined,
+        'nullValue': null,
+        'tags': ['typescript', undefined, null]
+      }
+    });
+
+    assert.deepStrictEqual(Reflect.get(client, 'queryParameters'), {
+      'nullValue': null,
+      'tags': ['typescript', null]
+    });
+
+    const invalidParameters: QueryParametersInterface = {};
+    Reflect.set(invalidParameters, 'filter', { 'status': 'active' });
+
+    assert.throws(() => {
+      FetchClient.create({ 'parameters': invalidParameters });
+    });
+  });
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, async () => {
       await runCase(scenario);

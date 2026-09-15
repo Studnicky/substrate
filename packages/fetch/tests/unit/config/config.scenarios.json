@@ -17,6 +17,22 @@
       }
     },
     {
+      "name": "baseURL-null",
+      "description": "FetchClient rejects null baseURL through entity intake",
+      "shape": "baseURL-null",
+      "input": {
+        "fetchClient": {
+          "baseURL": null
+        }
+      },
+      "expected": {
+        "shape": "throws",
+        "messageIncludes": [
+          "baseURL"
+        ]
+      }
+    },
+    {
       "name": "baseURL-empty",
       "description": "FetchClient rejects empty baseURL",
       "shape": "baseURL-empty",
@@ -74,6 +90,22 @@
         "shape": "throws",
         "messageIncludes": [
           "headers must be an object"
+        ]
+      }
+    },
+    {
+      "name": "headers-null",
+      "description": "FetchClient rejects null headers through entity intake",
+      "shape": "headers-null",
+      "input": {
+        "fetchClient": {
+          "headers": null
+        }
+      },
+      "expected": {
+        "shape": "throws",
+        "messageIncludes": [
+          "headers"
         ]
       }
     },
@@ -431,6 +463,22 @@
         "shape": "throws",
         "messageIncludes": [
           "timeout must be a number"
+        ]
+      }
+    },
+    {
+      "name": "timeout-null",
+      "description": "FetchClient rejects null timeout through entity intake",
+      "shape": "timeout-null",
+      "input": {
+        "fetchClient": {
+          "timeout": null
+        }
+      },
+      "expected": {
+        "shape": "throws",
+        "messageIncludes": [
+          "timeout"
         ]
       }
     },

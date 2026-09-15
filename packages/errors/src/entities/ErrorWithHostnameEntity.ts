@@ -1,17 +1,13 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
-
-import { EntityIntake } from '../validation/EntityIntake.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /** Error with hostname information. */
 export namespace ErrorWithHostnameEntity {
   export const Schema = {
     '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithHostname',
     '$schema': 'https://json-schema.org/draft/2020-12/schema',
-    'additionalProperties': false,
+    'additionalProperties': true,
     'properties': {
       'hostname': { 'type': 'string' }
     },
@@ -22,25 +18,7 @@ export namespace ErrorWithHostnameEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  /**
-   * Structural validator. Hand-written (not `SchemaValidator.compile`) because this
-   * package is a dependency of `@studnicky/json`; depending on it here would form a
-   * circular workspace reference.
-   */
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    const result = Predicates.isString(candidate.hostname);
-    return result;
-  };
-
-  const boundary = EntityIntake.compile<Type>((candidate, options) => {
-    if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['hostname'])) { return undefined; }
-    const hostname = EntityIntake.string(candidate.hostname);
-    if (hostname === undefined) { return undefined; }
-    const result = { 'hostname': hostname };
-    return result;
-  }, 'ErrorWithHostname');
-
-  export const intake = boundary.intake;
-  export const create = boundary.create;
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

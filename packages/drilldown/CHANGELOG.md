@@ -1,13 +1,5 @@
 # @studnicky/drilldown
 
-## 12.2.1
-
-### Patch Changes
-
-- @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
-
 ## 12.2.0
 
 ### Patch Changes

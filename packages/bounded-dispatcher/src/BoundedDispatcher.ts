@@ -60,14 +60,6 @@ export class BoundedDispatcher<
    * @param config - Composition configuration
    * @returns New BoundedDispatcher instance
    */
-  private static isConstructed<TInstance extends object>(
-    value: object,
-    constructor: BoundedDispatcherSubclassInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<
     TTopicMap extends BoundedDispatcherTopicMapInterface = BoundedDispatcherTopicMapInterface,
     TInstance extends BoundedDispatcher<TTopicMap> = BoundedDispatcher<TTopicMap>
@@ -83,7 +75,7 @@ export class BoundedDispatcher<
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
       'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
     }]);
-    if (!Predicates.isObjectLike(result) || !BoundedDispatcher.isConstructed<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;

@@ -176,3 +176,22 @@ void describe('WorkerPool.create', () => {
     }), /WorkerPool configuration is invalid/u);
   });
 });
+
+void describe('WorkerPoolError canonical options', () => {
+  void it('forwards the shared error arguments while remaining non-retryable', () => {
+    const error = new WorkerPoolError({
+      'code': 'workerPool.context',
+      'correlationId': 'worker-correlation',
+      'instance': 'urn:worker-pool:context',
+      'message': 'worker context',
+      'metadata': { 'workerId': 1 },
+      'status': 503
+    });
+
+    assert.equal(error.correlationId, 'worker-correlation');
+    assert.equal(error.instance, 'urn:worker-pool:context');
+    assert.deepEqual(error.metadata, { 'workerId': 1 });
+    assert.equal(error.retryable, false);
+    assert.equal(error.status, 503);
+  });
+});

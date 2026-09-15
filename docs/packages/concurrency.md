@@ -126,16 +126,16 @@ The async-iter demo uses native `async function*` generators as sources — no N
 
 <!-- inline-ts-ok: Documents the entities subpath import. -->
 ```typescript
-import { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
+import { ChannelKeyStateEntity, SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
 ```
 
 ## Interfaces
 
-`@studnicky/concurrency/interfaces` exports the type-only state and transition contracts used by the coordination state machines.
+`@studnicky/concurrency/interfaces` exports runtime-only contracts that compose platform values rather than serializable schema fields.
 
 <!-- inline-ts-ok: Documents the interfaces subpath import. -->
 ```typescript
-import type { ChannelKeyStateInterface } from '@studnicky/concurrency/interfaces';
+import type { SemaphoreAcquireOptionsInterface } from '@studnicky/concurrency/interfaces';
 ```
 
 ### `Channel<T>`

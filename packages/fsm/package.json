@@ -62,10 +62,10 @@
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   }
 }

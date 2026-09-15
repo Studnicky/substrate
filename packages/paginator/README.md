@@ -76,7 +76,7 @@ const paginator = InstrumentedPaginator.tracked<string, number>();
 
 Available hooks: `onTransition`, `onEnterState`, `onExitState`, `onTransitionRejected`.
 
-Pure discriminant-only shapes are exported as entity-derived types. Generic shapes that compose page or cursor values are exported as interfaces, preserving discriminant narrowing without broad optional fields.
+Cursor, state, and event base shapes are complete entity schemas exported from `@studnicky/paginator/entities`. The generic interfaces in `@studnicky/paginator/interfaces` compose those entity types with your page and cursor types, preserving discriminant narrowing without broad optional fields.
 
 ## Documentation
 

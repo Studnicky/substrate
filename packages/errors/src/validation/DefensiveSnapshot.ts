@@ -1,6 +1,6 @@
-import { Predicates } from '@studnicky/types/node';
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
-import type { EntityIntakeFunctionInterface } from '../interfaces/EntityIntakeFunctionInterface.js';
+import { Predicates } from '@studnicky/types/node';
 
 /** Builds detached projections of arrays and plain records without cloning collaborator instances. */
 export class DefensiveSnapshot {

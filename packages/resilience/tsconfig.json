@@ -14,13 +14,13 @@
   ],
   "references": [
     {
+      "path": "../entity"
+    },
+    {
       "path": "../errors"
     },
     {
       "path": "../fsm"
-    },
-    {
-      "path": "../json"
     },
     {
       "path": "../scheduler"

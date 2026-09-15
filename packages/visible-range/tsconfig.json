@@ -14,6 +14,9 @@
   ],
   "references": [
     {
+      "path": "../entity"
+    },
+    {
       "path": "../errors"
     }
   ]

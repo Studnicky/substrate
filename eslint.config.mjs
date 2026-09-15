@@ -47,7 +47,7 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'fsm' },
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'health-registry' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'idempotency-guard' },
-        { 'unit': 'package', 'layer': 'foundation', 'pattern': 'intake-kit' },
+        { 'unit': 'package', 'layer': 'foundation', 'pattern': 'entity' },
         { 'unit': 'package', 'layer': 'primitive', 'pattern': 'json' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-rate-limiter' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-work-gate' },
@@ -97,7 +97,7 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/fsm' },
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/health-registry' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/idempotency-guard' },
-        { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/intake-kit' },
+        { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/entity' },
         { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/json' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-rate-limiter' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-work-gate' },
@@ -211,7 +211,7 @@ export default [
         '@studnicky/hash-private-fields': 'error',
         '@studnicky/inline-trivial-logic': 'error',
         '@studnicky/intake-parse-only': ['error', {
-          'exemptPackages': ['@studnicky/types', '@studnicky/eslint-config', '@studnicky/intake-kit', '@studnicky/drilldown']
+          'exemptPackages': ['@studnicky/types', '@studnicky/eslint-config', '@studnicky/entity', '@studnicky/drilldown']
         }],
         '@typescript-eslint/no-unnecessary-type-parameters': 'error',
         '@studnicky/interface-must-be-contract': 'error',

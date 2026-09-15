@@ -12,17 +12,6 @@ interface FunctionTransportSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class FunctionTransportInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: FunctionTransportSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-
-    return result;
-  }
-}
-
 /**
  * Transport that delegates record delivery to a user-supplied function.
  *
@@ -60,7 +49,7 @@ export class FunctionTransport implements TransportInterface {
       options
     ]);
 
-    if (!Predicates.isObjectLike(result) || !FunctionTransportInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FunctionTransport.create() did not construct the requested subclass.');
     }
 

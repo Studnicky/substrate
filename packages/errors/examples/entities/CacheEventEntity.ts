@@ -1,10 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
-
-import type { EntityValidateFunctionInterface } from '../../src/interfaces/EntityValidateFunctionInterface.js';
-
-import { EntityIntake } from '../../src/validation/EntityIntake.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
 /** Cache-access event recorded by the EventRecorder example. */
 export namespace CacheEventEntity {
@@ -20,22 +16,7 @@ export namespace CacheEventEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const validate: EntityValidateFunctionInterface<Type> = (candidate): candidate is Type => {
-    if (!Predicates.isObject(candidate)) { return false; }
-    const result = (candidate.event === 'hit' || candidate.event === 'miss') && typeof candidate.key === 'string';
-    return result;
-  };
-
-  class Parser {
-    public static parse(candidate: Record<string, unknown>, options: EntityIntake.ParseOptionsInterface): Type | undefined {
-      if (options.rejectUnknownProperties && !EntityIntake.hasOnlyKeys(candidate, ['event', 'key'])) { return undefined; }
-      const event = EntityIntake.string(candidate.event);
-      const key = EntityIntake.string(candidate.key);
-      if ((event !== 'hit' && event !== 'miss') || key === undefined) { return undefined; }
-      return { 'event': event, 'key': key };
-    }
-  }
-
-  export const intake = EntityIntake.compileIntake(Parser.parse, 'CacheEvent');
-  export const create = EntityIntake.compileCreate(Parser.parse, 'CacheEvent');
+  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type>(Schema);
 }

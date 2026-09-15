@@ -66,13 +66,12 @@
   "dependencies": {
     "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/config": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/sample-buffer": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {

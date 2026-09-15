@@ -17,7 +17,7 @@
       "path": "../errors"
     },
     {
-      "path": "../intake-kit"
+      "path": "../entity"
     },
     {
       "path": "../types"

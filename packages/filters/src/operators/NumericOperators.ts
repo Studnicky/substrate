@@ -35,7 +35,7 @@ export class NumericOperators {
    * @param {*} data - FilterEngine instance
    * @returns {boolean} True if value is within range
    */
-  static handleBetween(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleBetween(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const inclusive = InclusiveFlagResolver.getInclusiveFlag(options?.condition);
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 
@@ -87,7 +87,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are exactly equal
    * @throws {Error} If either value is not a number
    */
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.EQUALS requires value to be a number, got ${typeof value}`, { 'operator': 'NUMBER.EQUALS' });
     }
@@ -112,7 +112,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is greater
    */
-  static handleGreater(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleGreater(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
@@ -144,7 +144,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is greater or equal
    */
-  static handleGreaterEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleGreaterEqual(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
@@ -176,7 +176,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are identical
    * @throws {Error} If either value is not a number
    */
-  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.IDENTICAL requires value to be a number, got ${typeof value}`, { 'operator': 'NUMBER.IDENTICAL' });
     }
@@ -197,7 +197,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is less
    */
-  static handleLess(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleLess(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
@@ -229,7 +229,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition with numeric value
    * @returns {boolean} True if value is less or equal
    */
-  static handleLessEqual(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleLessEqual(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const comparisonValue = options?.condition?.numericValue ?? filterValue;
 
     // Only work with actual numbers - no type coercion
@@ -261,7 +261,7 @@ export class NumericOperators {
    * @param {Object} condition - Compiled condition (unused)
    * @returns {boolean} True if value % divisor equals remainder
    */
-  static handleModulo(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleModulo(value: unknown, filterValue: FilterValueEntity.Type, _options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     // Only work with numbers - no type coercion
     if (typeof value !== 'number') {
       return false;
@@ -304,7 +304,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are not equal
    * @throws {Error} If either value is not a number
    */
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.NOT_EQUALS requires value to be a number, got ${typeof value}`, { 'operator': 'NUMBER.NOT_EQUALS' });
     }
@@ -329,7 +329,7 @@ export class NumericOperators {
    * @returns {boolean} True if numbers are not identical
    * @throws {Error} If either value is not a number
    */
-  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     if (typeof value !== 'number') {
       throw new FilterOperatorError(`NUMBER.NOT_IDENTICAL requires value to be a number, got ${typeof value}`, { 'operator': 'NUMBER.NOT_IDENTICAL' });
     }
@@ -350,7 +350,7 @@ export class NumericOperators {
    * @param {*} data - FilterEngine instance
    * @returns {boolean} True if value is outside range
    */
-  static handleOutside(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: FilterValueEntity.Type }) {
+  static handleOutside(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }) {
     const inclusive = InclusiveFlagResolver.getInclusiveFlag(options?.condition);
     const firstFilterValue = Array.isArray(filterValue) ? filterValue[0] : undefined;
 

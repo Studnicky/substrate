@@ -18,13 +18,6 @@ interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class RealTimeClockProviderInstance {
-  static belongsTo<TInstance extends object>(constructor: RealTimeClockProviderSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 /**
  * Concrete `ClockProvider` backed by `Date.now()` and `performance.now()`.
  * Supports an optional epoch offset for clock-skew correction.
@@ -36,7 +29,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
   ): TInstance {
     const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
-    if (!Predicates.isObjectLike(result) || !RealTimeClockProviderInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('RealTimeClockProvider.create() did not construct the requested subclass.');
     }
     return result;

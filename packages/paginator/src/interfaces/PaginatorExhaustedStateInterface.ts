@@ -1,7 +1,6 @@
-import type { PaginatorExhaustedStateDiscriminantEntity } from '../entities/PaginatorExhaustedStateDiscriminantEntity.js';
+import type { PaginatorExhaustedStateEntity } from '../entities/PaginatorExhaustedStateEntity.js';
 
-/** Readonly state after the source reports that no further pages are available. */
-export interface PaginatorExhaustedStateInterface<TPage> extends PaginatorExhaustedStateDiscriminantEntity.Type {
+/** Typed paginator-state composition for application-specific page values. */
+export interface PaginatorExhaustedStateInterface<TPage> extends PaginatorExhaustedStateEntity.Type {
   readonly 'pages': TPage[];
-  readonly 'variant': PaginatorExhaustedStateDiscriminantEntity.Type['variant'];
 }

@@ -138,13 +138,14 @@ export class BrowserFetchClient implements FetchClientInterface {
     const init: Record<string, unknown> = { ...requestInit };
     let requestSignal: AbortSignal | undefined;
 
-    if (timeout !== undefined || externalSignal !== undefined) {
+    const normalizedSignal = externalSignal ?? undefined;
+    if (timeout !== undefined || normalizedSignal !== undefined) {
       const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
       if (timeout !== undefined) {
         composeOptions.deadlineMs = timeout;
       }
-      if (externalSignal !== undefined) {
-        composeOptions.signal = externalSignal;
+      if (normalizedSignal !== undefined) {
+        composeOptions.signal = normalizedSignal;
       }
       requestSignal = await this.#signal.compose(composeOptions);
       init.signal = requestSignal;

@@ -12,7 +12,7 @@ import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
-type TransitionRecord = { from: RetryCallStateEntity.Type; to: RetryCallStateEntity.Type };
+type TransitionRecord = { from: RetryCallStateEntity.Type['variant']; to: RetryCallStateEntity.Type['variant'] };
 
 type ScenarioShape =
   | 'aborted-by-hook'
@@ -54,7 +54,7 @@ class TrackingRetry extends Retry {
   }
 
   override enterCall(to: RetryCallStateEntity.Type, from: RetryCallStateEntity.Type): void {
-    this.transitions.push({ from, to });
+    this.transitions.push({ 'from': from.variant, 'to': to.variant });
   }
 }
 
@@ -140,7 +140,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
       }
 
       override guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
-        const rejected = from === rejectedTransition.from && to === rejectedTransition.to;
+        const rejected = from.variant === rejectedTransition.from && to.variant === rejectedTransition.to;
         return !rejected && super.guardCall(from, to);
       }
     }

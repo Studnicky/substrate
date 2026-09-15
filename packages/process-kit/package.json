@@ -60,10 +60,9 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
+    "@studnicky/entity": "workspace:*",
     "@studnicky/fsm": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
-    "ajv": "^8.20.0",
     "json-schema-to-ts": "^3.1.1"
   },
   "devDependencies": {

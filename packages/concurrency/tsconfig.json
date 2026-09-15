@@ -20,13 +20,13 @@
       "path": "../errors"
     },
     {
+      "path": "../entity"
+    },
+    {
       "path": "../event-bus"
     },
     {
       "path": "../fsm"
-    },
-    {
-      "path": "../json"
     },
     {
       "path": "../scheduler"

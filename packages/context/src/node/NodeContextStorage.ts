@@ -25,16 +25,11 @@ export class NodeContextStorage implements ContextStorageInterface {
     });
     const result = Promise.resolve(value).then(
       (resolvedValue) => {
-        const restoredResult = runInScope(() => {
-          const restoredValue = resolvedValue;
-          return restoredValue;
-        });
+        const restoredResult = runInScope(() => { return resolvedValue; });
         return restoredResult;
       },
       (error: unknown) => {
-        const rejectedResult = runInScope(() => {
-          throw error;
-        });
+        const rejectedResult = runInScope(() => { throw error; });
         return rejectedResult;
       }
     );
@@ -51,8 +46,8 @@ export class NodeContextStorage implements ContextStorageInterface {
     });
     const result = (...argumentList: TArguments): TResult => {
       const callbackResult = runInScope(() => {
-        const callbackValue = callback(...argumentList);
-        return callbackValue;
+        const invocationResult = callback(...argumentList);
+        return invocationResult;
       });
       return callbackResult;
     };

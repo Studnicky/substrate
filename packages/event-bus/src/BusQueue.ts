@@ -57,16 +57,6 @@ interface BusQueueSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class BusQueueInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: BusQueueSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
-
 // T only appears in BusQueue's covariant/contravariant members (enqueue()'s item,
 // the handler passed to create()), so a bound of `BusQueue<T>` would force
 // `BusQueue<T>` (the method's own general T) to satisfy `BusQueue<never>`/
@@ -112,7 +102,7 @@ export class BusQueue<T> {
     const getConstructor = (): BusQueueSubclassInterface<TInstance> => { return this; };
     const constructor = getConstructor();
     const result: unknown = Reflect.construct(constructor, [options]);
-    if (!Predicates.isObjectLike(result) || !BusQueueInstance.belongsTo(constructor, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
       throw RuntimeError.create('BusQueue.create() did not construct the requested subclass.');
     }
     return result;

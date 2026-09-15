@@ -1,7 +1,7 @@
-import type { ClassificationInputInterface } from './ClassificationInputInterface.js';
-import type { ClassificationInterface } from './ClassificationInterface.js';
+import type { ClassificationEntity } from '../entities/ClassificationEntity.js';
+import type { ClassificationInputEntity } from '../entities/ClassificationInputEntity.js';
 
 export interface ClassifierInterface {
-  classify(input: ClassificationInputInterface): Promise<readonly ClassificationInterface[]>;
+  classify(input: ClassificationInputEntity.Type): Promise<readonly ClassificationEntity.Type[]>;
   getModelIdentity(): string;
 }

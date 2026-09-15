@@ -1,5 +1,7 @@
 /** Composable declarative filtering primitives. */
 export { DefaultConfig } from './config/index.js';
+export { DateRangeBoundEntity } from './DateRangeBoundEntity.js';
+export { DateRangeEntity } from './DateRangeEntity.js';
 export {
   ArrayLogic,
   Comparator,
@@ -23,16 +25,11 @@ export {
 } from './errors/index.js';
 export { FilterEngine } from './FilterEngine.js';
 export { FilterValueEntity } from './FilterValueEntity.js';
-export { FilterValueGuard } from './FilterValueGuard.js';
 export { GroupGateNamesEntity } from './GroupGateNamesEntity.js';
-export type {
-  DateRangeInterface,
-  NumericRangeInterface,
-  RangeInterface,
-  TimeRangeInterface
-} from './interfaces.js';
+export { NumericRangeEntity } from './NumericRangeEntity.js';
 export type { BasePluginInterface } from './plugins/BasePluginInterface.js';
 export {
   Plugin, TimeOperatorsPlugin
 } from './plugins/index.js';
 export type { PluginContextInterface } from './plugins/PluginContextInterface.js';
+export { TimeRangeEntity } from './TimeRangeEntity.js';

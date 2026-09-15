@@ -247,7 +247,7 @@
     },
     {
       "name": "json-data-deepequal-true",
-      "description": "DataType.deepEqual accepts identical primitives and structurally-equal compound values",
+      "description": "Predicates.areDeeplyEqual accepts identical primitives and structurally-equal compound values",
       "shape": "data-deepequal-true",
       "input": {
         "json": {
@@ -325,7 +325,7 @@
     },
     {
       "name": "json-data-deepequal-false",
-      "description": "DataType.deepEqual rejects different primitives",
+      "description": "Predicates.areDeeplyEqual rejects different primitives",
       "shape": "data-deepequal-false",
       "input": {
         "json": {
@@ -345,7 +345,7 @@
     },
     {
       "name": "json-data-deepequal-special",
-      "description": "DataType.deepEqual handles arrays, objects, dates, regexps, sets, maps, and mixed types",
+      "description": "Predicates.areDeeplyEqual handles arrays, objects, dates, regexps, sets, maps, and mixed types",
       "shape": "data-deepequal-special",
       "input": {
         "json": {
@@ -419,7 +419,7 @@
     },
     {
       "name": "json-data-plain-object",
-      "description": "DataType.isPlainObject recognizes plain objects and rejects non-plain values",
+      "description": "Predicates.isPlainObject recognizes plain objects and rejects non-plain values",
       "shape": "data-plain-object",
       "input": {
         "json": {
@@ -438,7 +438,7 @@
     },
     {
       "name": "json-data-record",
-      "description": "DataType.isRecord recognizes objects and maps while rejecting non-records",
+      "description": "Predicates.isRecord recognizes objects and maps while rejecting non-records",
       "shape": "data-record",
       "input": {
         "json": {
@@ -459,7 +459,7 @@
     },
     {
       "name": "json-data-cycle",
-      "description": "DataType.hasCycle detects cyclic and acyclic structures",
+      "description": "Predicates.hasCycle detects cyclic and acyclic structures",
       "shape": "data-cycle",
       "input": {
         "json": {
@@ -478,7 +478,7 @@
     },
     {
       "name": "json-data-deepequal-negative-branches",
-      "description": "DataType.deepEqual rejects unequal JSON arrays and objects",
+      "description": "Predicates.areDeeplyEqual rejects unequal JSON arrays and objects",
       "shape": "data-deepequal-negative-branches",
       "input": {
         "json": {
@@ -999,42 +999,6 @@
           "a",
           "b"
         ]
-      }
-    },
-    {
-      "name": "json-schema-validator",
-      "description": "SchemaValidator compiles idempotently and formats Ajv validation errors",
-      "shape": "schema-validator",
-      "input": {
-        "json": {
-          "schema": {
-            "$id": "https://studnicky.dev/schemas/json-loop-user",
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "name"
-            ],
-            "type": "object"
-          },
-          "valid": {
-            "name": "Ada"
-          },
-          "invalid": {
-            "name": 42
-          }
-        }
-      },
-      "expected": {
-        "fallback": "invalid payload",
-        "formattedIncludes": [
-          "/name",
-          "string"
-        ],
-        "idempotent": true
       }
     }
   ]

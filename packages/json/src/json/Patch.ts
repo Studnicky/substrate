@@ -8,18 +8,10 @@ import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import { PatchError } from '../errors/PatchError.js';
 import { ARRAY_INDEX_PATTERN } from './constants/PatchConstants.js';
-import { DataType } from './DataType.js';
 
 interface PatchSubclassInterface<TInstance extends Patch> extends Function {
   create(operations?: unknown): TInstance;
   readonly 'prototype': TInstance;
-}
-
-class PatchInstance {
-  static belongsTo<TInstance extends Patch>(constructor: PatchSubclassInterface<TInstance>, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class Patch {
@@ -29,7 +21,7 @@ export class Patch {
   public static create<TInstance extends Patch = Patch>(this: PatchSubclassInterface<TInstance>, operations?: unknown): TInstance {
     const argumentsList = operations === undefined ? [] : [operations];
     const result: unknown = Reflect.construct(this, argumentsList);
-    if (!Predicates.isObjectLike(result) || !PatchInstance.belongsTo(this, result)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('Patch.create() did not construct the requested subclass.');
     }
     return result;
@@ -97,7 +89,7 @@ export class Patch {
       Patch.diffArray(base, next, path, operations);
       return;
     }
-    if (DataType.isPlainObject(base) && DataType.isPlainObject(next)) {
+    if (Predicates.isPlainObject(base) && Predicates.isPlainObject(next)) {
       Patch.diffObject(base, next, path, operations);
       return;
     }
@@ -277,7 +269,7 @@ export class Patch {
   private applyTest(target: Record<string, unknown>, operation: PatchOperationEntity.Type): void {
     const actual = this.getValue(target, operation.path);
     const expected = this.requireValue(operation);
-    if (!DataType.deepEqual(actual, expected)) {
+    if (!Predicates.areDeeplyEqual(actual, expected)) {
       throw new PatchError(`Test failed at ${operation.path}: expected ${String(expected)}, got ${String(actual)}`, operation.op, operation.path);
     }
   }

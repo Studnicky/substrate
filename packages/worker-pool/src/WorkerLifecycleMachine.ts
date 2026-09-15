@@ -26,10 +26,10 @@ import type { FsmStepInterface } from '@studnicky/fsm/node';
 import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
 
 import type { WorkerLifecycleEventEntity } from './entities/WorkerLifecycleEventEntity.js';
-import type { WorkerLifecycleStateInterface } from './interfaces/WorkerLifecycleStateInterface.js';
+import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
 
 export class WorkerLifecycleMachine extends StateMachine<
-  WorkerLifecycleStateInterface,
+  WorkerLifecycleStateEntity.Type,
   WorkerLifecycleEventEntity.Type,
   never
 > {
@@ -37,19 +37,19 @@ export class WorkerLifecycleMachine extends StateMachine<
     super();
   }
 
-  override getInitialState(): WorkerLifecycleStateInterface {
+  override getInitialState(): WorkerLifecycleStateEntity.Type {
     return { 'variant': 'idle' };
   }
 
-  protected override isTerminated(state: WorkerLifecycleStateInterface): boolean {
+  protected override isTerminated(state: WorkerLifecycleStateEntity.Type): boolean {
     const result = state.variant === 'dead';
     return result;
   }
 
   override reduce(
-    state: WorkerLifecycleStateInterface,
+    state: WorkerLifecycleStateEntity.Type,
     event: WorkerLifecycleEventEntity.Type
-  ): FsmStepInterface<WorkerLifecycleStateInterface, never> {
+  ): FsmStepInterface<WorkerLifecycleStateEntity.Type, never> {
     if (event.type === 'assign' && state.variant === 'idle') {
       return { 'effects': [], 'state': { 'variant': 'busy' } };
     }
@@ -61,9 +61,9 @@ export class WorkerLifecycleMachine extends StateMachine<
     }
 
     throw new TransitionRejectedError({
-      'eventType': event.type,
+      'eventType': String(event.type),
       'reason': `illegal worker edge ${state.variant} -> ${event.type}`,
-      'stateVariant': state.variant
+      'stateVariant': String(state.variant)
     });
   }
 }

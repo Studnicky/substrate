@@ -17,7 +17,7 @@
       "path": "../errors"
     },
     {
-      "path": "../json"
+      "path": "../entity"
     }
   ]
 }

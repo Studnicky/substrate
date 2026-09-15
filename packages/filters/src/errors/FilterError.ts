@@ -3,16 +3,14 @@
  * @description Base class for all FilterEngine errors
  */
 
+import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
+
 import { BaseError } from '@studnicky/errors/node';
 
 /**
  * Options for constructing a FilterError
  */
-export interface FilterErrorOptionsInterface {
-  'cause'?: unknown;
-  'code': string;
-  'retryable'?: boolean;
-}
+export interface FilterErrorOptionsInterface extends Omit<BaseErrorArgumentsInterface, 'message'> {}
 
 /**
  * Base class for all FilterEngine errors
@@ -21,11 +19,6 @@ export interface FilterErrorOptionsInterface {
 export class FilterError extends BaseError {
   /** Creates a FilterError. */
   public constructor(message: string, options: FilterErrorOptionsInterface) {
-    super({
-      'cause': options.cause,
-      'code': options.code,
-      'message': message,
-      'retryable': options.retryable ?? false
-    });
+    super({ ...options, 'message': message });
   }
 }

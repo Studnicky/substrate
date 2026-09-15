@@ -14,9 +14,12 @@
     },
     {
       "name": "dispatcher-null",
-      "description": "validateDispatcher accepts null",
+      "description": "FetchClient rejects null dispatcher through entity intake",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "dispatcher"
+        ]
       },
       "input": {
         "dispatcher": null

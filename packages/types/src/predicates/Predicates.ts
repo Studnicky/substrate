@@ -37,6 +37,11 @@ interface Uint32RangeInterface {
   readonly 'start': number
 }
 
+interface DeepEqualityStateInterface {
+  readonly 'leftToRight': Map<object, object>
+  readonly 'rightToLeft': Map<object, object>
+}
+
 export class Predicates {
   private static readonly typeMatchers = new Map<string, (value: unknown) => boolean>([
     [
@@ -422,54 +427,29 @@ export class Predicates {
     return result;
   }
 
-  /** Deep-equality comparison of two arrays. */
-  public static areArraysEqual(value: unknown[], filterValue: unknown[]): boolean {
-    if (value.length !== filterValue.length) {
-      return false;
-    }
-
-    const valueLength = value.length;
-
-    for (let index = 0; index < valueLength; index++) {
-      if (!Predicates.compareDeep(value[index], filterValue[index])) {
-        return false;
-      }
-    }
-
-    return true;
+  /**
+   * Returns true when two supported runtime values have the same structure.
+   *
+   * Primitive values use Object.is semantics, so NaN equals NaN and -0 differs
+   * from +0. Dates compare their timestamps, regular expressions compare source
+   * and flags, arrays preserve order, and Map and Set entries compare
+   * structurally without depending on insertion order. Object graphs retain
+   * reference topology: a self-reference does not equal a two-node cycle.
+   */
+  public static areDeeplyEqual(value: unknown, filterValue: unknown): boolean {
+    const state: DeepEqualityStateInterface = { 'leftToRight': new Map(), 'rightToLeft': new Map() };
+    const result = Predicates.compareRuntimeValues(value, filterValue, state);
+    return result;
   }
 
-  /** Deep-equality comparison of two `Map` instances. */
-  public static areMapsEqual(value: Map<unknown, unknown>, filterValue: Map<unknown, unknown>): boolean {
-    if (value.size !== filterValue.size) {
-      return false;
-    }
-
-    for (const [
-      key,
-      entryValue
-    ] of value) {
-      if (!filterValue.has(key) || !Predicates.compareDeep(entryValue, filterValue.get(key))) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /** Equality comparison of two `Set` instances — shallow membership, not per-element deep recursion. */
-  public static areSetsEqual(value: ReadonlySet<unknown>, filterValue: ReadonlySet<unknown>): boolean {
-    if (value.size !== filterValue.size) {
-      return false;
-    }
-
-    for (const item of value) {
-      if (!filterValue.has(item)) {
-        return false;
-      }
-    }
-
-    return true;
+  /**
+   * Returns true when an object graph contains a reference cycle.
+   * Arrays, Maps (keys and values), Sets, and the enumerable own properties of every other
+   * object-like value are traversed recursively.
+   */
+  public static hasCycle(value: unknown): boolean {
+    const result = Predicates.valueHasCycle(value, new Set());
+    return result;
   }
 
   /** `NaN` comparison for deep equality — `NaN` is considered equal to `NaN`. */
@@ -508,29 +488,6 @@ export class Predicates {
     }
 
     return false;
-  }
-
-  /** Deep-equality comparison of two plain objects. */
-  public static areObjectsEqual(value: Record<string, unknown>, filterValue: Record<string, unknown>): boolean {
-    const keys1 = Object.keys(value);
-    const keys2 = Object.keys(filterValue);
-
-    if (keys1.length !== keys2.length) {
-      return false;
-    }
-
-    for (let index = 0; index < keys1.length; index++) {
-      const key = keys1[index];
-      if (key === undefined || !Object.hasOwn(filterValue, key)) {
-        return false;
-      }
-
-      if (!Predicates.compareDeep(value[key], filterValue[key])) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   /** Object comparison using reference equality — `Date`/`RegExp`/array instances included. */
@@ -814,7 +771,7 @@ export class Predicates {
   }
 
   /** Checks whether a value is an instance of the given constructor. */
-  public static isInstanceOf(value: unknown, constructor: new (...argumentList: unknown[]) => unknown): boolean {
+  public static isInstanceOf<Instance>(value: unknown, constructor: Function & { readonly 'prototype': Instance }): value is Instance {
     try {
       const result = value instanceof constructor;
       return result;
@@ -1116,7 +1073,7 @@ export class Predicates {
     const enumValueCount = enumValues.length;
     for (let index = 0; index < enumValueCount; index += 1) {
       const enumValue = enumValues[index];
-      if (Predicates.compareDeep(value, enumValue)) {
+      if (Predicates.areDeeplyEqual(value, enumValue)) {
         return true;
       }
     }
@@ -1366,7 +1323,7 @@ export class Predicates {
 
     for (let index = 0; index < valueLength; index++) {
       for (let other = index + 1; other < valueLength; other++) {
-        if (Predicates.compareDeep(value[index], value[other])) {
+        if (Predicates.areDeeplyEqual(value[index], value[other])) {
           return false;
         }
       }
@@ -1409,45 +1366,232 @@ export class Predicates {
     return result;
   }
 
-  /**
-   * Runtime-type dispatcher for nested value comparison: on an array/`Map`/`Set`/object
-   * container it delegates to `areArraysEqual`/`areMapsEqual`/`areSetsEqual`/`areObjectsEqual`
-   * for the top-level comparison, which recurse back into `compareDeep` for each element —
-   * this method owns dispatch, the `areXEqual` methods own the per-container-shape walk.
-   * Backs `satisfiesEnum` and `satisfiesUniqueItems` too.
-   */
-  private static compareDeep(value: unknown, filterValue: unknown): boolean {
-    if (value === filterValue) {
+  private static compareArray(value: readonly unknown[], filterValue: readonly unknown[], state: DeepEqualityStateInterface): boolean {
+    if (value.length !== filterValue.length) {
+      return false;
+    }
+
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Predicates.compareRuntimeValues(value[index], filterValue[index], state)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static compareMap(value: Map<unknown, unknown>, filterValue: Map<unknown, unknown>, state: DeepEqualityStateInterface): boolean {
+    if (value.size !== filterValue.size) {
+      return false;
+    }
+
+    const filterEntries: [unknown, unknown][] = Array.from(filterValue.entries());
+    const matchedIndexes = new Set<number>();
+    for (const [valueKey, valueEntry] of value.entries()) {
+      let matched = false;
+      for (let index = 0; index < filterEntries.length; index += 1) {
+        if (matchedIndexes.has(index)) {
+          continue;
+        }
+        const filterEntry = filterEntries[index];
+        if (filterEntry === undefined) {
+          continue;
+        }
+        const candidateState = Predicates.copyDeepEqualityState(state);
+        if (Predicates.compareRuntimeValues(valueKey, filterEntry[0], candidateState)
+          && Predicates.compareRuntimeValues(valueEntry, filterEntry[1], candidateState)) {
+          Predicates.replaceDeepEqualityState(state, candidateState);
+          matchedIndexes.add(index);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static compareRecord(value: Record<string, unknown>, filterValue: Record<string, unknown>, state: DeepEqualityStateInterface): boolean {
+    const valueKeys = Object.keys(value);
+    if (valueKeys.length !== Object.keys(filterValue).length) {
+      return false;
+    }
+
+    for (let index = 0; index < valueKeys.length; index += 1) {
+      const key = valueKeys[index];
+      if (key === undefined || !Object.hasOwn(filterValue, key) || !Predicates.compareRuntimeValues(value[key], filterValue[key], state)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static compareRuntimeValues(value: unknown, filterValue: unknown, state: DeepEqualityStateInterface): boolean {
+    if (Object.is(value, filterValue)) {
+      return true;
+    }
+    if (!Predicates.isObjectLike(value) || !Predicates.isObjectLike(filterValue)) {
+      return false;
+    }
+
+    if (value instanceof Date || filterValue instanceof Date) {
+      const result = value instanceof Date && filterValue instanceof Date && Object.is(value.getTime(), filterValue.getTime());
+      return result;
+    }
+    if (value instanceof RegExp || filterValue instanceof RegExp) {
+      const result = value instanceof RegExp && filterValue instanceof RegExp && value.source === filterValue.source && value.flags === filterValue.flags;
+      return result;
+    }
+
+    const existingPair = Predicates.existingDeepEqualityPair(value, filterValue, state);
+    if (existingPair !== undefined) {
+      return existingPair;
+    }
+    if (Array.isArray(value) || Array.isArray(filterValue)) {
+      if (!Array.isArray(value) || !Array.isArray(filterValue) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
+        return false;
+      }
+      const result = Predicates.compareArray(value, filterValue, state);
+      return result;
+    }
+    if (value instanceof Map || filterValue instanceof Map) {
+      if (!(value instanceof Map) || !(filterValue instanceof Map) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
+        return false;
+      }
+      const result = Predicates.compareMap(value, filterValue, state);
+      return result;
+    }
+    if (value instanceof Set || filterValue instanceof Set) {
+      if (!(value instanceof Set) || !(filterValue instanceof Set) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
+        return false;
+      }
+      const result = Predicates.compareSet(value, filterValue, state);
+      return result;
+    }
+    if (!Predicates.isRecord(value) || !Predicates.isRecord(filterValue) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
+      return false;
+    }
+
+    const result = Predicates.compareRecord(value, filterValue, state);
+    return result;
+  }
+
+  private static compareSet(value: ReadonlySet<unknown>, filterValue: ReadonlySet<unknown>, state: DeepEqualityStateInterface): boolean {
+    if (value.size !== filterValue.size) {
+      return false;
+    }
+
+    const filterValues: unknown[] = Array.from(filterValue.values());
+    const matchedIndexes = new Set<number>();
+    for (const valueItem of value.values()) {
+      let matched = false;
+      for (let index = 0; index < filterValues.length; index += 1) {
+        if (matchedIndexes.has(index)) {
+          continue;
+        }
+        const candidateState = Predicates.copyDeepEqualityState(state);
+        if (Predicates.compareRuntimeValues(valueItem, filterValues[index], candidateState)) {
+          Predicates.replaceDeepEqualityState(state, candidateState);
+          matchedIndexes.add(index);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static copyDeepEqualityState(state: DeepEqualityStateInterface): DeepEqualityStateInterface {
+    const result: DeepEqualityStateInterface = {
+      'leftToRight': new Map(state.leftToRight),
+      'rightToLeft': new Map(state.rightToLeft)
+    };
+    return result;
+  }
+
+  private static existingDeepEqualityPair(value: object, filterValue: object, state: DeepEqualityStateInterface): boolean | undefined {
+    const mappedFilterValue = state.leftToRight.get(value);
+    if (mappedFilterValue !== undefined) {
+      const result = mappedFilterValue === filterValue;
+      return result;
+    }
+    const mappedValue = state.rightToLeft.get(filterValue);
+    if (mappedValue !== undefined) {
+      const result = mappedValue === value;
+      return result;
+    }
+
+    return undefined;
+  }
+
+  private static linkDeepEqualityPair(value: object, filterValue: object, state: DeepEqualityStateInterface): boolean {
+    state.leftToRight.set(value, filterValue);
+    state.rightToLeft.set(filterValue, value);
+    return true;
+  }
+
+  private static replaceDeepEqualityState(target: DeepEqualityStateInterface, source: DeepEqualityStateInterface): void {
+    target.leftToRight.clear();
+    target.rightToLeft.clear();
+    for (const [value, filterValue] of source.leftToRight.entries()) {
+      target.leftToRight.set(value, filterValue);
+    }
+    for (const [filterValue, value] of source.rightToLeft.entries()) {
+      target.rightToLeft.set(filterValue, value);
+    }
+  }
+
+  private static valueHasCycle(value: unknown, ancestors: Set<object>): boolean {
+    if (!Predicates.isObjectLike(value)) {
+      return false;
+    }
+    if (ancestors.has(value)) {
       return true;
     }
 
-    if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      const result = value === filterValue;
-      return result;
+    ancestors.add(value);
+    let hasCycle = false;
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index += 1) {
+        if (Predicates.valueHasCycle(value[index], ancestors)) {
+          hasCycle = true;
+          break;
+        }
+      }
+    } else if (value instanceof Map) {
+      for (const [key, item] of value.entries()) {
+        if (Predicates.valueHasCycle(key, ancestors) || Predicates.valueHasCycle(item, ancestors)) {
+          hasCycle = true;
+          break;
+        }
+      }
+    } else if (value instanceof Set) {
+      for (const item of value.values()) {
+        if (Predicates.valueHasCycle(item, ancestors)) {
+          hasCycle = true;
+          break;
+        }
+      }
+    } else if (Predicates.isRecord(value)) {
+      const values = Object.values(value);
+      for (let index = 0; index < values.length; index += 1) {
+        if (Predicates.valueHasCycle(values[index], ancestors)) {
+          hasCycle = true;
+          break;
+        }
+      }
     }
 
-    if (Array.isArray(value) && Array.isArray(filterValue)) {
-      const result = Predicates.areArraysEqual(value, filterValue);
-      return result;
-    }
-
-    if (value instanceof Map && filterValue instanceof Map) {
-      const result = Predicates.areMapsEqual(value, filterValue);
-      return result;
-    }
-
-    if (value instanceof Set && filterValue instanceof Set) {
-      const result = Predicates.areSetsEqual(value, filterValue);
-      return result;
-    }
-
-    if (typeof value === 'object' && typeof filterValue === 'object') {
-      const result = Predicates.areObjectsEqual(value as Record<string, unknown>, filterValue as Record<string, unknown>);
-      return result;
-    }
-
-    const result = value === filterValue;
-    return result;
+    ancestors.delete(value);
+    return hasCycle;
   }
 
   /** Checks if all values are numbers and performs numeric range comparison. */

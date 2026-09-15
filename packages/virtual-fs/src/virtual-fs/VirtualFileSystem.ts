@@ -42,14 +42,6 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  private static isConstructed<TInstance extends VirtualFileSystem>(
-    value: object,
-    constructor: VirtualFileSystemConstructorInterface<TInstance>
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-
   static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
     this: VirtualFileSystemConstructorInterface<TInstance>,
     options?: VirtualFileSystemOptionsInterface
@@ -60,7 +52,7 @@ export class VirtualFileSystem implements FileSystemInterface {
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );
     }
-    if (!VirtualFileSystem.isConstructed(constructed, this)) {
+    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
       throw RuntimeError.create(
         'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
       );

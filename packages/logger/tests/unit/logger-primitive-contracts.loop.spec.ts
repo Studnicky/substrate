@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { FrozenMutationError } from '@studnicky/json/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -24,6 +25,7 @@ import {
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
+import { ImmutableSnapshot } from '../../src/modules/ImmutableSnapshot.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'trace' | 'warn';
@@ -575,4 +577,17 @@ void describe('logger primitive contracts', () => {
       runCase(scenario);
     });
   }
+});
+
+void describe('ImmutableSnapshot', () => {
+  it('clones nested Map and Set values into mutation-guarded references', () => {
+    const source = { 'collection': new Map<string, Set<string>>([[ 'members', new Set([ 'ada' ]) ]]) };
+    const snapshot = ImmutableSnapshot.from(source);
+    const members = snapshot.collection.get('members');
+
+    assert.notStrictEqual(snapshot, source);
+    assert.ok(members instanceof Set);
+    assert.throws(() => snapshot.collection.set('other', new Set()), FrozenMutationError);
+    assert.throws(() => members.add('lin'), FrozenMutationError);
+  });
 });

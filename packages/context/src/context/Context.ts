@@ -5,6 +5,7 @@ import { Predicates } from '@studnicky/types/browser';
  * Context implementation using ContextStorageInterface.
  */
 import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
+import type { ContextConstructorInterface } from '../interfaces/ContextConstructorInterface.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
 import type { ContextRunResultInterface } from '../interfaces/ContextRunResultInterface.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
@@ -12,22 +13,7 @@ import type { ContextStorageInterface } from '../interfaces/ContextStorageInterf
 
 import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
-import { ContextRuntime } from '../runtime/ContextRuntime.js';
 import { ContextScope } from './ContextScope.js';
-
-interface ContextSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-class ContextInstance {
-  static belongsTo<TInstance extends object>(
-    constructor: ContextSubclassInterface<TInstance>,
-    value: object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
-}
 
 /**
  * Isolated async context for Node and browser consumers.
@@ -77,12 +63,12 @@ export class Context implements ContextInterface {
    * ```
    */
   static create<TInstance extends Context = Context>(
-    this: ContextSubclassInterface<TInstance>,
+    this: ContextConstructorInterface<TInstance>,
     config: ContextConfigEntity.Type,
-    storage?: ContextStorageInterface
+    storage: ContextStorageInterface
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [config, storage ?? ContextRuntime.defaultStorageFactory?.()]);
-    if (!Predicates.isObjectLike(result) || !ContextInstance.belongsTo(this, result)) {
+    const result: unknown = Reflect.construct(this, [config, storage]);
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Context.create() did not construct the requested subclass.');
     }
     return result;

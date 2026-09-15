@@ -107,14 +107,17 @@
     },
     {
       "name": "null-timeout",
-      "description": "FetchClient accepts a null timeout",
+      "description": "FetchClient rejects a null timeout through entity intake",
       "input": {
         "clientConfig": {
           "timeout": null
         }
       },
       "expected": {
-        "shape": "create-ok"
+        "shape": "create-throws",
+        "messageIncludes": [
+          "timeout"
+        ]
       }
     },
     {

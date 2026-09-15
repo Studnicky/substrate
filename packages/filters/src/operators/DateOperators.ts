@@ -20,7 +20,7 @@ export class DateOperators {
    * @returns {boolean} True if date is within range
    * @throws {Error} If filterValue is not an object with min/max
    */
-  static handleBetween(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleBetween(value: unknown, filterValue: FilterValueEntity.Type) {
     const dateValue = DateParser.parseDate(value);
 
     if (dateValue === null) {
@@ -53,7 +53,7 @@ export class DateOperators {
    * @returns {boolean} True if dates are exactly equal
    * @throws {Error} If either value cannot be parsed as a date
    */
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     const date1 = DateParser.parseDate(value);
     const date2 = DateParser.parseDate(filterValue);
 
@@ -76,7 +76,7 @@ export class DateOperators {
    * @returns {boolean} True if dates are identical
    * @throws {Error} If either value cannot be parsed as a date
    */
-  static handleIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     const areEqual = this.handleEquals(value, filterValue);
 
     return areEqual;
@@ -89,7 +89,7 @@ export class DateOperators {
    * @returns {boolean} True if dates are not equal
    * @throws {Error} If either value cannot be parsed as a date
    */
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotEquals(value: unknown, filterValue: FilterValueEntity.Type) {
     const areEqual = this.handleEquals(value, filterValue);
     const result = !areEqual;
 
@@ -103,7 +103,7 @@ export class DateOperators {
    * @returns {boolean} True if dates are not identical
    * @throws {Error} If either value cannot be parsed as a date
    */
-  static handleNotIdentical(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleNotIdentical(value: unknown, filterValue: FilterValueEntity.Type) {
     const areEqual = this.handleEquals(value, filterValue);
     const result = !areEqual;
 
@@ -117,7 +117,7 @@ export class DateOperators {
    * @returns {boolean} True if date is outside range
    * @throws {Error} If filterValue is not an object with min/max
    */
-  static handleOutside(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type) {
+  static handleOutside(value: unknown, filterValue: FilterValueEntity.Type) {
     const dateValue = DateParser.parseDate(value);
 
     if (dateValue === null) {

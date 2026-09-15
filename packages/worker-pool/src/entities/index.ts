@@ -18,6 +18,6 @@ export { WorkerLifecycleStateEntity } from './WorkerLifecycleStateEntity.js';
 export { WorkerLogEnvelopeEntity } from './WorkerLogEnvelopeEntity.js';
 export { WorkerPoolConfigEntity } from './WorkerPoolConfigEntity.js';
 export { WorkerProgressEnvelopeEntity } from './WorkerProgressEnvelopeEntity.js';
-export { WorkerResultEnvelopeDiscriminantEntity } from './WorkerResultEnvelopeDiscriminantEntity.js';
+export { WorkerResultEnvelopeKindEntity } from './WorkerResultEnvelopeKindEntity.js';
 export { WorkerTaskDispositionEntity } from './WorkerTaskDispositionEntity.js';
 export { WorkerTaskIndexEntity } from './WorkerTaskIndexEntity.js';

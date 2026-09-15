@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/event-bus": "workspace:*",
     "@studnicky/json": "workspace:*",

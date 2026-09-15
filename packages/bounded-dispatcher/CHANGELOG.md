@@ -1,16 +1,5 @@
 # Changelog
 
-## 12.2.1
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/event-bus@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/types@12.2.1
-
 ## 12.2.0
 
 ### Patch Changes
@@ -218,7 +207,7 @@
 - d5be000: ### Added
 
   - `BoundedDispatcher` class composing `@studnicky/concurrency`'s `Semaphore`, `@studnicky/event-bus`, and `@studnicky/scheduler` into the "bounded work dispatch" pattern: `dispatch(fn)` acquires a semaphore permit, runs `fn`, and publishes `'dispatch'` lifecycle events (`start` / `success` / `error`) onto the composed `EventBus`; `scheduleDispatch(atMs, fn)` layers a scheduler-driven delayed dispatch on top, returning the scheduler's own cancellable task handle.
-  - `BoundedDispatcherConfigInterface`, `BoundedDispatcherTopicMapInterface`, `BoundedDispatcherStartEventInterface`, `BoundedDispatcherSuccessEventInterface`, and `BoundedDispatcherErrorEventInterface` are public runtime contracts. The dispatch interfaces compose their phase discriminants from `BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity`.
+  - `BoundedDispatcherConfigInterface`, `BoundedDispatcherTopicMapInterface`, `BoundedDispatcherSuccessEventInterface`, and `BoundedDispatcherErrorEventInterface` are public runtime contracts. `BoundedDispatcherStartEventEntity` is the complete JSON start event; success and error runtime interfaces compose their JSON phase fields from the corresponding entities.
   - `getBus()` exposes the typed dispatch event bus for subscriptions and domain-specific bus behavior.
   - `hookErrorCount` and `getHookErrors()` expose rejected non-blocking lifecycle publications as deeply defensive `HookInvocationError` snapshots without changing the dispatched work's result or error.
 
@@ -268,7 +257,7 @@
 - 837480d: ### Added
 
   - `BoundedDispatcher` class composing `@studnicky/concurrency`'s `Semaphore`, `@studnicky/event-bus`, and `@studnicky/scheduler` into the "bounded work dispatch" pattern: `dispatch(fn)` acquires a semaphore permit, runs `fn`, and publishes `'dispatch'` lifecycle events (`start` / `success` / `error`) onto the composed `EventBus`; `scheduleDispatch(atMs, fn)` layers a scheduler-driven delayed dispatch on top, returning the scheduler's own cancellable task handle.
-  - `BoundedDispatcherConfigInterface`, `BoundedDispatcherTopicMapInterface`, `BoundedDispatcherStartEventInterface`, `BoundedDispatcherSuccessEventInterface`, and `BoundedDispatcherErrorEventInterface` are public runtime contracts. The dispatch interfaces compose their phase discriminants from `BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity`.
+  - `BoundedDispatcherConfigInterface`, `BoundedDispatcherTopicMapInterface`, `BoundedDispatcherSuccessEventInterface`, and `BoundedDispatcherErrorEventInterface` are public runtime contracts. `BoundedDispatcherStartEventEntity` is the complete JSON start event; success and error runtime interfaces compose their JSON phase fields from the corresponding entities.
   - `getBus()` exposes the typed dispatch event bus for subscriptions and domain-specific bus behavior.
   - `hookErrorCount` and `getHookErrors()` expose rejected non-blocking lifecycle publications as deeply defensive `HookInvocationError` snapshots without changing the dispatched work's result or error.
 

@@ -1,10 +1,11 @@
 import * as TypeScript from 'typescript';
 
+import type { ContextAsyncTransformPluginInterface } from '../interfaces/ContextAsyncTransformPluginInterface.js';
 
 export class ContextAsyncTransform {
   static readonly #supportedExtensions = new Set(['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx']);
 
-  static bind(contextRuntimeModule: string): () => ReturnType<typeof ContextAsyncTransform.create> {
+  static bind(contextRuntimeModule: string): () => ContextAsyncTransformPluginInterface {
     const result = () => {
       const transform = ContextAsyncTransform.create(contextRuntimeModule);
       return transform;
@@ -12,16 +13,8 @@ export class ContextAsyncTransform {
     return result;
   }
 
-  static create(contextRuntimeModule: string): {
-    'enforce': 'pre';
-    'name': string;
-    'transform': (code: string, id: string) => { 'code': string; 'map': null } | null;
-  } {
-    const result: {
-      'enforce': 'pre';
-      'name': string;
-      'transform': (code: string, id: string) => { 'code': string; 'map': null } | null;
-    } = {
+  static create(contextRuntimeModule: string): ContextAsyncTransformPluginInterface {
+    const result: ContextAsyncTransformPluginInterface = {
       'enforce': 'pre',
       'name': 'studnicky-context-async',
       'transform': (code: string, id: string) => {

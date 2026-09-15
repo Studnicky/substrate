@@ -5,12 +5,14 @@
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Clone, SchemaIntakeError } from '@studnicky/json/node';
+import { Clone } from '@studnicky/json/node';
 import { Signal } from '@studnicky/signal/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
+import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { RequestMetadataEntity } from '../entities/RequestMetadataEntity.js';
 import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';
@@ -52,14 +54,9 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-class FetchClientInstance {
-  static belongsTo<TInstance>(
-    constructor: FetchClientSubclassInterface<TInstance>,
-    value: TInstance | object
-  ): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
+interface ValidatedClientConfigInterface {
+  readonly 'config': ClientConfigInterface;
+  readonly 'queryParameters': QueryParametersEntity.Type | undefined;
 }
 
 /**
@@ -101,7 +98,7 @@ export class FetchClient implements FetchClientInterface {
     config: ClientConfigInterface = {}
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
-    if (!FetchClientInstance.belongsTo(this, result)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
     }
     return result;
@@ -110,6 +107,7 @@ export class FetchClient implements FetchClientInterface {
   protected readonly hooks: HookInvoker;
 
   private readonly config: ClientConfigInterface;
+  private readonly queryParameters: QueryParametersEntity.Type | undefined;
   private readonly clock: Clock;
   private readonly dispatcher: undefined | UndiciDispatcher;
   private readonly dispatcherAgent: Agent | TestDispatcher | undefined;
@@ -118,15 +116,16 @@ export class FetchClient implements FetchClientInterface {
   protected constructor(config: ClientConfigInterface = {}) {
     const validated = FetchClient.validateConfig(config);
 
-    this.config = validated;
-    this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
-    this.signal = validated.signal ?? Signal.create();
-    this.hooks = validated.hookTimeoutMs === undefined
+    this.config = validated.config;
+    this.queryParameters = validated.queryParameters;
+    this.clock = Clock.create(validated.config.clock ?? RealTimeClockProvider.create());
+    this.signal = validated.config.signal ?? Signal.create();
+    this.hooks = validated.config.hookTimeoutMs === undefined
       ? new HookInvoker()
-      : new HookInvoker({ 'timeoutMs': validated.hookTimeoutMs });
+      : new HookInvoker({ 'timeoutMs': validated.config.hookTimeoutMs });
 
-    const dispatcherAgent = validated.dispatcher?.enabled === true
-      ? DispatcherAgent.create(validated.dispatcher)
+    const dispatcherAgent = validated.config.dispatcher?.enabled === true
+      ? DispatcherAgent.create(validated.config.dispatcher)
       : undefined;
     this.dispatcherAgent = dispatcherAgent;
     this.dispatcher = dispatcherAgent === undefined
@@ -139,7 +138,7 @@ export class FetchClient implements FetchClientInterface {
    */
   private buildFullUrl(path: string): string {
     if (this.config.baseURL === undefined) {
-      const result: string = this.config.parameters === undefined ? path : UrlQueryString.buildUrl(path, this.config.parameters);
+      const result: string = this.queryParameters === undefined ? path : UrlQueryString.buildUrlFromEntity(path, this.queryParameters);
       return result;
     }
 
@@ -155,8 +154,8 @@ export class FetchClient implements FetchClientInterface {
 
     let url = `${base}${pathPart}`;
 
-    if (this.config.parameters !== undefined) {
-      url = UrlQueryString.buildUrl(url, this.config.parameters);
+    if (this.queryParameters !== undefined) {
+      url = UrlQueryString.buildUrlFromEntity(url, this.queryParameters);
     }
 
     return url;
@@ -279,7 +278,7 @@ export class FetchClient implements FetchClientInterface {
         throw new ConfigurationError('timeout must be a positive number');
       }
 
-      externalSignal = configuredSignal;
+      externalSignal = configuredSignal ?? undefined;
       if (timeout !== undefined || externalSignal !== undefined) {
         timeoutMs = timeout;
         const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
@@ -755,7 +754,7 @@ export class FetchClient implements FetchClientInterface {
     return new BodyTimeoutError(url, error);
   }
 
-  private static validateConfig(config: ClientConfigInterface): ClientConfigInterface {
+  private static validateConfig(config: ClientConfigInterface): ValidatedClientConfigInterface {
     if (!Predicates.isRecord(config)) {
       throw new ConfigurationError('config must be an object');
     }
@@ -763,23 +762,12 @@ export class FetchClient implements FetchClientInterface {
     const {
       'clock': clockProvider,
       'options': configuredOptions,
+      'parameters': runtimeParameters,
       requestIdGenerator,
       'signal': signalComposer,
       ...configData
     } = config;
-    const intakeData: object = {};
-    const configKeys = Object.keys(configData);
-    const configKeyLength = configKeys.length;
-    for (let index = 0; index < configKeyLength; index += 1) {
-      const key = configKeys[index];
-      if (key === undefined) {
-        continue;
-      }
-      const value: unknown = Reflect.get(configData, key);
-      if (value !== null) {
-        Reflect.set(intakeData, key, value);
-      }
-    }
+    const intakeData = configData;
     if (!Predicates.isNullish(configData.hookTimeoutMs) && !Predicates.isNumberType(configData.hookTimeoutMs)) {
       throw new ConfigurationError('hookTimeoutMs must be a number');
     }
@@ -797,6 +785,17 @@ export class FetchClient implements FetchClientInterface {
     }
     if (Predicates.isNumberType(configData.timeout) && !Number.isFinite(configData.timeout)) {
       throw new ConfigurationError('timeout must be finite');
+    }
+    let queryParameters: QueryParametersEntity.Type | undefined;
+    if (runtimeParameters !== undefined) {
+      try {
+        queryParameters = UrlQueryString.intakeParameters(runtimeParameters);
+      } catch (error) {
+        if (error instanceof SchemaIntakeError) {
+          throw new ConfigurationError(RuntimeError.toMessage(error));
+        }
+        throw error;
+      }
     }
     if (!Predicates.isNullish(configuredOptions) && !Predicates.isRecord(configuredOptions)) {
       throw new ConfigurationError('options must be an object');
@@ -866,7 +865,7 @@ export class FetchClient implements FetchClientInterface {
       ...(Predicates.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator }),
       ...(Predicates.isNullish(signalComposer) ? {} : { 'signal': signalComposer })
     };
-    return result;
+    return { 'config': result, 'queryParameters': queryParameters };
   }
 
   /** Verifies the injected request-ID collaborator's runtime contract once at construction. */

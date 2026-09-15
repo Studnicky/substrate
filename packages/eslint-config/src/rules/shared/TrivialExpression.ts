@@ -291,16 +291,16 @@ class InaccessibleReceiverGuard {
 // The boundary that keeps this from swallowing every `receiver.method()` forward: the
 // RECEIVER'S OWN DECLARATION must be locally scoped — nested inside some enclosing function,
 // rather than declared at module top level or resolved from a standard-library `lib.*.d.ts`
-// file. `Math.abs(v)` and `DataType.deepEqual(value, constantValue)` (see
+// file. `Math.abs(v)` and `Predicates.areDeeplyEqual(value, constantValue)` (see
 // `CallArgumentForwarding`'s own comment, and `inline-trivial-logic`'s pinned "static method
 // exact ticket shape" test) both reduce to the identical AST shape — `receiver.method(args)` —
-// and both MUST stay reported: `Math` resolves to a `lib.es5.d.ts` global, `DataType` resolves
+// and both MUST stay reported: `Math` resolves to a `lib.es5.d.ts` global, `Predicates` resolves
 // to a module-level `import` declared at this file's top level. Neither is runtime-injected;
 // both are statically known machinery any caller could reference directly, so there is
 // nothing to detach and no `.bind()`-equivalent lost by inlining. Verified directly against
 // this repo's own checker: `classifier`'s declaration crosses a function boundary before
 // reaching its `SourceFile` (it is a `const` inside the constructor body); `Math`'s and
-// `DataType`'s declarations do not (a global and a top-level import, respectively).
+// `Predicates`' declarations do not (a global and a top-level import, respectively).
 class ReceiverBindingAdapterGuard {
   /**
    * True when `node` is a `CallExpression` whose callee is `<receiver>.<method>`, `<receiver>`
@@ -392,7 +392,7 @@ class ReceiverBindingAdapterGuard {
 // A genuine forward passes its OWN parameters straight through, unmodified, possibly
 // alongside literals:
 //
-//   satisfiesConstant(value, constantValue) { return DataType.deepEqual(value, constantValue); }
+//   satisfiesConstant(value, constantValue) { return Predicates.areDeeplyEqual(value, constantValue); }
 //
 // Both arguments are bare references to the method's own parameters — that call stays
 // reported. The boundary: every argument must be either a literal or a bare `Identifier`

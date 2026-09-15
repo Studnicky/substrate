@@ -4,10 +4,6 @@ import type { OpfsStorageInterface } from './OpfsStorageInterface.js';
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 
-interface OpfsNavigatorInterface extends Navigator {
-  readonly 'storage'?: OpfsStorageInterface;
-}
-
 /** Async filesystem backed by the browser Origin Private File System. */
 export class OpfsFileSystem implements AsyncFileSystemInterface {
   readonly #storage: OpfsStorageInterface;
@@ -96,8 +92,7 @@ export class OpfsFileSystem implements AsyncFileSystemInterface {
   }
 
   static #getNativeStorage(): OpfsStorageInterface {
-    const navigator: OpfsNavigatorInterface | undefined = globalThis.navigator;
-    const storage = navigator?.storage;
+    const storage = globalThis.navigator?.storage;
 
     if (storage === undefined || typeof storage.getDirectory !== 'function') {
       throw new VirtualFileSystemError('Origin Private File System is unavailable in this browser context.');

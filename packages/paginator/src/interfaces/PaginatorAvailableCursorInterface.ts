@@ -1,7 +1,6 @@
-import type { PaginatorAvailableCursorDiscriminantEntity } from '../entities/PaginatorAvailableCursorDiscriminantEntity.js';
+import type { PaginatorAvailableCursorEntity } from '../entities/PaginatorAvailableCursorEntity.js';
 
-/** Readonly cursor input that carries the cursor for another page. */
-export interface PaginatorAvailableCursorInterface<TCursor> extends PaginatorAvailableCursorDiscriminantEntity.Type {
+/** Typed cursor composition for a paginator with an application-specific cursor type. */
+export interface PaginatorAvailableCursorInterface<TCursor> extends PaginatorAvailableCursorEntity.Type {
   readonly 'cursor': TCursor;
-  readonly 'exhausted': PaginatorAvailableCursorDiscriminantEntity.Type['exhausted'];
 }

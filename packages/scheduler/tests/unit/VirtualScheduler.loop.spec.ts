@@ -5,6 +5,7 @@ import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/error
  */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
@@ -963,4 +964,25 @@ void describe('VirtualScheduler', () => {
       await runCase(scenario);
     });
   }
+
+  void it('forwards cross-realm task errors to onFireError', () => {
+    class CrossRealmErrorScheduler extends VirtualScheduler {
+      public readonly errors: Error[] = [];
+
+      public constructor(counter: Readonly<VirtualTimeCounter>) {
+        super(counter);
+      }
+
+      protected override onFireError(_id: string, error: Error): void {
+        this.errors.push(error);
+      }
+    }
+
+    const error = runInNewContext('new Error("foreign worker failure")');
+    const scheduler = new CrossRealmErrorScheduler(createCounter(0));
+    scheduler.scheduleAt(0, (): void => { throw error; });
+    scheduler.runAll();
+
+    assert.strictEqual(scheduler.errors[0], error);
+  });
 });

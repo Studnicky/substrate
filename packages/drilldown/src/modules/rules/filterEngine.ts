@@ -4,13 +4,12 @@ import type { DateRangeFilterRuleEntity } from '../../entities/DateRangeFilterRu
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';
 import type { NumericRangeFilterRuleEntity } from '../../entities/NumericRangeFilterRuleEntity.js';
 import type { ValueFilterRuleEntity } from '../../entities/ValueFilterRuleEntity.js';
-import type { DataRecordInterface } from '../../interfaces/index.js';
 
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import { valueConverter } from './valueConverter.js';
 
 class FilterPredicates {
-  static passesDateFilter(item: DataRecordInterface, filter: DateRangeFilterRuleEntity.Type): boolean {
+  static passesDateFilter(item: Record<string, unknown>, filter: DateRangeFilterRuleEntity.Type): boolean {
     const value = DrilldownUtilities.getPropertyValue(item, filter.property);
     const dateValue = Predicates.isNumberType(value) && Predicates.isFiniteNumber(value) ? Math.trunc(value) : null;
 
@@ -29,14 +28,14 @@ class FilterPredicates {
     return true;
   }
 
-  static passesFilter(item: DataRecordInterface, filter: FilterRuleEntity.Type): boolean {
+  static passesFilter(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
     const handler = filterDispatch[filter.type];
 
     const result = handler !== undefined ? handler(item, filter) : true;
     return result;
   }
 
-  static passesNumericFilter(item: DataRecordInterface, filter: NumericRangeFilterRuleEntity.Type): boolean {
+  static passesNumericFilter(item: Record<string, unknown>, filter: NumericRangeFilterRuleEntity.Type): boolean {
     const value = DrilldownUtilities.getPropertyValue(item, filter.property);
     const numberValue = valueConverter.toStrictNumber(value);
 
@@ -55,7 +54,7 @@ class FilterPredicates {
     return true;
   }
 
-  static passesValueFilter(item: DataRecordInterface, filter: ValueFilterRuleEntity.Type): boolean {
+  static passesValueFilter(item: Record<string, unknown>, filter: ValueFilterRuleEntity.Type): boolean {
     const value = DrilldownUtilities.getPropertyValue(item, filter.property);
 
     if (Predicates.isNullish(value)) {
@@ -70,7 +69,7 @@ class FilterPredicates {
   }
 }
 
-const filterDispatch: Record<string, (item: DataRecordInterface, filter: FilterRuleEntity.Type) => boolean> = {
+const filterDispatch: Record<string, (item: Record<string, unknown>, filter: FilterRuleEntity.Type) => boolean> = {
   'date': (item, filter) => { const result = FilterPredicates.passesDateFilter(item, filter as DateRangeFilterRuleEntity.Type); return result; },
   'numeric': (item, filter) => { const result = FilterPredicates.passesNumericFilter(item, filter as NumericRangeFilterRuleEntity.Type); return result; },
   'value': (item, filter) => { const result = FilterPredicates.passesValueFilter(item, filter as ValueFilterRuleEntity.Type); return result; }
@@ -86,7 +85,7 @@ export const filterEngine = {
    * @param filters - Array of filter rules to apply
    * @returns Filtered array of records that pass all filter rules
    */
-  'applyFilters': function (data: DataRecordInterface[], filters: FilterRuleEntity.Type[]): DataRecordInterface[] {
+  'applyFilters': function (data: Record<string, unknown>[], filters: FilterRuleEntity.Type[]): Record<string, unknown>[] {
     if (filters.length === 0) {
       return data;
     }

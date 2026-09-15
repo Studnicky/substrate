@@ -584,7 +584,7 @@
     },
     {
       "name": "flag-context-entity-accepts",
-      "description": "FlagContextEntity accepts optional string targeting keys",
+      "description": "FlagContextEntity accepts optional targeting keys and dynamic context data",
       "shape": "flag-context-entity-accepts",
       "input": {
         "flagEvaluator": {
@@ -592,6 +592,12 @@
             {},
             {
               "targetingKey": "user-42"
+            },
+            {
+              "cohort": "beta",
+              "nested": {
+                "enabled": true
+              }
             }
           ]
         }

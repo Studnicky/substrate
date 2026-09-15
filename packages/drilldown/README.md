@@ -127,7 +127,8 @@ if (!validation.valid) {
 - **`DataAnalyzer`** — static analysis of a record set's groupable properties (type, cardinality, coverage, bounds).
 - **`FacetedDiscovery`** — static faceted-filtering primitives (`facetOptions`, `apply`, `resolveFilterState`).
 - **`DrillDownConfigEntity`** — entity namespace exporting the JSON Schema (`Schema`) and derived TypeScript type (`Type`).
-- **`ruleValidator`** — validates a `DrilldownRulesType` tree and returns human-readable error strings.
+- **`DrilldownRulesEntity`** — schema-derived explicit rule tree. Use `DrilldownRulesEntity.Type` for a complete tree and its nested `GroupRuleEntity.Type` / group-value types when a typed rule branch is needed.
+- **`ruleValidator`** — validates a `DrilldownRulesEntity.Type` tree and returns human-readable error strings.
 
 Grouping config supports: explicit per-depth rules, auto-grouping (`count`- or `size`-targeted), value matchers (string, range, date, semver, CIDR, sequential, alphabetic), top-level and per-value filters, sort rules, `minimumGroupSize`/`maximumDepth`/`maximumNodes` bounds, and an outlier bucket (`groupOutliers`) for values that don't match any declared rule.
 

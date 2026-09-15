@@ -7,7 +7,7 @@ import type { FilterValueEntity } from '../FilterValueEntity.js';
 import { FilterOperatorError } from '../errors/FilterOperatorError.js';
 
 export class BinaryOperators {
-  static toBinary(value: FilterValueEntity.Type): Uint8Array | null {
+  static toBinary(value: unknown): Uint8Array | null {
     if (value instanceof Uint8Array) {
       return value;
     }
@@ -37,7 +37,7 @@ export class BinaryOperators {
     return true;
   }
 
-  static handleEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
     const binaryFilterValue = BinaryOperators.toBinary(filterValue);
 
@@ -53,13 +53,13 @@ export class BinaryOperators {
     return result;
   }
 
-  static handleNotEquals(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleNotEquals(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const result = !BinaryOperators.handleEquals(value, filterValue);
 
     return result;
   }
 
-  static handleLength(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleLength(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
 
     if (binaryValue === null) {
@@ -74,7 +74,7 @@ export class BinaryOperators {
     return result;
   }
 
-  static handleEmpty(value: FilterValueEntity.Type): boolean {
+  static handleEmpty(value: unknown): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
 
     if (binaryValue === null) {
@@ -86,13 +86,13 @@ export class BinaryOperators {
     return result;
   }
 
-  static handleNotEmpty(value: FilterValueEntity.Type): boolean {
+  static handleNotEmpty(value: unknown): boolean {
     const result = !BinaryOperators.handleEmpty(value);
 
     return result;
   }
 
-  static handleContains(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleContains(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
     const binaryFilterValue = BinaryOperators.toBinary(filterValue);
 
@@ -132,7 +132,7 @@ export class BinaryOperators {
     return false;
   }
 
-  static handleStartsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleStartsWith(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
     const binaryFilterValue = BinaryOperators.toBinary(filterValue);
 
@@ -158,7 +158,7 @@ export class BinaryOperators {
     return true;
   }
 
-  static handleEndsWith(value: FilterValueEntity.Type, filterValue: FilterValueEntity.Type): boolean {
+  static handleEndsWith(value: unknown, filterValue: FilterValueEntity.Type): boolean {
     const binaryValue = BinaryOperators.toBinary(value);
     const binaryFilterValue = BinaryOperators.toBinary(filterValue);
 

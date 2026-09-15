@@ -2,9 +2,9 @@ import type { DiscoverValuesOptionsEntity } from '../entities/DiscoverValuesOpti
 import type { EngineContextEntity } from '../entities/EngineContextEntity.js';
 import type { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
 import type { SortRuleEntity } from '../entities/SortRuleEntity.js';
-import type { GroupRuleInterface } from '../interfaces/GroupValueInterface.js';
-import type { DataRecordInterface, DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface } from '../interfaces/index.js';
+import type { DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface } from '../interfaces/index.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
+import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
 import type { FacetAccessorMapType, FacetFilterStateType } from '../types/index.js';
 
 import { DataAnalyzer } from './DataAnalyzer.js';
@@ -39,7 +39,7 @@ export class DrillDown implements DrillDownInterface {
    * Consumers can present the selected grouping and candidate fields without
    * duplicating the engine's discovery logic.
    */
-  analyze(data: DataRecordInterface[], config: DrillDownConfigEntity.Type = {}): DrillDownAnalysisInterface {
+  analyze(data: Record<string, unknown>[], config: DrillDownConfigEntity.Type = {}): DrillDownAnalysisInterface {
     const analysis = DataAnalyzer.analyze(data, config.excludeProperties !== undefined
       ? { 'excludeProperties': config.excludeProperties }
       : {});
@@ -66,7 +66,7 @@ export class DrillDown implements DrillDownInterface {
    * @param config - Grouping configuration (rules, property order, limits, filters, sort)
    * @returns Root group node containing the hierarchical data structure
    */
-  group(data: DataRecordInterface[], config: DrillDownConfigEntity.Type = {}): GroupNodeInterface {
+  group(data: Record<string, unknown>[], config: DrillDownConfigEntity.Type = {}): GroupNodeInterface {
     if (data.length === 0) {
       const result = this.makeLeaf([], undefined);
       return result;
@@ -120,7 +120,7 @@ export class DrillDown implements DrillDownInterface {
     return result;
   }
 
-  private resolvePropertyOrder(data: DataRecordInterface[], config: DrillDownConfigEntity.Type): string[] {
+  private resolvePropertyOrder(data: Record<string, unknown>[], config: DrillDownConfigEntity.Type): string[] {
     if (config.propertyPriority !== undefined && config.propertyPriority.length > 0) {
       return config.propertyPriority;
     }
@@ -137,12 +137,12 @@ export class DrillDown implements DrillDownInterface {
   }
 
   private groupLevel(
-    subset: DataRecordInterface[],
+    subset: Record<string, unknown>[],
     filter: FilterRuleEntity.Type[],
     propertyOrder: string[],
     depth: number,
     context: EngineContextEntity.Type,
-    options?: { 'explicitGroupRules'?: GroupRuleInterface[] | undefined, 'sort'?: SortRuleEntity.Type[] | undefined }
+    options?: { 'explicitGroupRules'?: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined, 'sort'?: SortRuleEntity.Type[] | undefined }
   ): GroupNodeInterface {
     const sort = options?.sort;
     const explicitGroupRules = options?.explicitGroupRules;
@@ -203,7 +203,7 @@ export class DrillDown implements DrillDownInterface {
 
       const perValueRules = group.groupValue.rules;
 
-      let childExplicit: GroupRuleInterface[] | undefined;
+      let childExplicit: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined;
       let childDepth: number;
       let childPropertyOrder: string[];
       let childFilter: FilterRuleEntity.Type[];
@@ -277,12 +277,12 @@ export class DrillDown implements DrillDownInterface {
   }
 
   private resolveGroupRule(
-    data: DataRecordInterface[],
+    data: Record<string, unknown>[],
     propertyOrder: string[],
     depth: number,
-    explicitGroupRules: GroupRuleInterface[] | undefined,
+    explicitGroupRules: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined,
     context: EngineContextEntity.Type
-  ): { 'rule': GroupRuleInterface, 'wasExplicit': boolean } | null {
+  ): { 'rule': DrilldownRulesEntity.GroupRuleEntity.Type, 'wasExplicit': boolean } | null {
     // EXPLICIT path: explicit rule at this depth takes priority.
     if (explicitGroupRules !== undefined) {
       const rule = explicitGroupRules[depth];
@@ -321,7 +321,7 @@ export class DrillDown implements DrillDownInterface {
     };
   }
 
-  private makeLeaf(data: DataRecordInterface[], sort: SortRuleEntity.Type[] | undefined): GroupNodeInterface {
+  private makeLeaf(data: Record<string, unknown>[], sort: SortRuleEntity.Type[] | undefined): GroupNodeInterface {
     if (sort !== undefined && sort.length > 0 && data.length > 1) {
       sortEngine.sortNodes(data, sort);
     }

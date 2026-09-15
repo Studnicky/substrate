@@ -1,8 +1,8 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '@studnicky/json/node';
+import { EntityCompiler } from '@studnicky/entity/node';
 import { Predicates } from '@studnicky/types/node';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
@@ -67,7 +67,7 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 // machinery every parser is built from (`Predicates.isObject`, `JsonObject.is`, `Predicates.coerceValue`,
 // and the `as*` helpers that already return a value), so requiring intake there is circular.
 // `@studnicky/eslint-config` operates on foreign ESLint and TypeScript AST node shapes rather
-// than application data. `@studnicky/intake-kit` is the generic compile-orchestration and clone
+// than application data. `@studnicky/entity` is the generic compile-orchestration and clone
 // engine every entity's `intake` is built from — same circularity as `@studnicky/types`. None of
 // these packages should be forced into application entities. The exemption is by package name so
 // it is visible and cannot quietly widen to cover a package that should be parsing.
@@ -148,8 +148,8 @@ namespace IntakeParseOnlyOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
 export const intakeParseOnly: Rule.RuleModule = {

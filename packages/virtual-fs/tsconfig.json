@@ -2,6 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "rootDir": "./src",
     "outDir": "./dist"
   },
@@ -9,6 +10,7 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../clock" },
+    { "path": "../entity" },
     { "path": "../errors" }
   ]
 }

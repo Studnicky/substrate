@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/retry'
-description: Generic async retry with extensible error classification and backoff strategies.
+description: Retry asynchronous operations with configurable error classification and backoff.
 ---
 
 # @studnicky/retry
 
-> Generic async retry utility with extensible error classification.
+> Retry asynchronous operations and control which failures receive another attempt.
 
 ## Install
 
@@ -13,11 +13,9 @@ description: Generic async retry with extensible error classification and backof
 pnpm add @studnicky/retry
 ```
 
-Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
-
 ## Usage
 
-Create a `Retry` instance with `Retry.create(config)`, then pass any operation to `execute`. The instance tracks stats and retries on transient failures:
+Create a `Retry` instance with `Retry.create(config)`, then pass an operation to `execute`.
 
 <<< ../../packages/retry/examples/basicRetry.ts#usage
 
@@ -25,54 +23,32 @@ Create a `Retry` instance with `Retry.create(config)`, then pass any operation t
 
 <RunnableExample src="packages/retry/examples/basicRetry" title="Basic retry with backoff" />
 
-The output shows `Retry.create({ maxRetries: 3 })`, the operation failing twice before succeeding on the third attempt, and final stats reporting 2 retries.
+## Classify errors
 
-### Lifecycle hooks
-
-`TelemetryRetry` subclasses `Retry` and overrides `onAttempt`, `onRetryableError`, `onRetryScheduled`, `onGiveUp`, and `enterCall`. Each hook logs its FSM transition as the retry cycle runs, and the give-up event fires after the `maxRetries=2` budget is exhausted.
-
-<RunnableExample src="packages/retry/examples/observedRetry" title="Observed retry — lifecycle hook trace" />
-
-## Public API
-
-Import `Retry`, `BackoffStrategy`, and retry errors from `@studnicky/retry/node`. Configuration is parsed at the boundary through `RetryConfigEntity.intake`, so there are no standalone guard exports. Retry entities use `@studnicky/retry/entities`, and retry contracts use `@studnicky/retry/interfaces`; algorithm constants are implementation details.
-
-## Custom error classification
-
-Subclass `Retry` and override `classifyError` to control which errors are retryable for your domain:
+Subclass `Retry` and override `classifyError` to choose retryable failures for your domain.
 
 <<< ../../packages/retry/examples/customClassifier.ts#usage
 
-## Observability hooks
+## Observe retries
 
-`classifyError(error, attemptNumber)` and `onRetryScheduled(context)` are the in-band behavioral seams. Override them to define retryability and scheduling policy: `classifyError(...)` decides whether an error is retryable for your domain, and `onRetryScheduled(context)` can set `context.delayMs` (using a shipped `BackoffStrategy`), set `context.abort` to stop retrying, or mutate `context.state` across attempts (it may be async). The observation-only hooks — `onAttempt`, `onSuccess`, `onRetryableError`, `onGiveUp`, `enterCall` — let you collect telemetry without coupling the retry core to any metrics library:
+Override `onRetryScheduled(context)` to set `delayMs`, stop retrying with `abort`, or retain state between attempts. The remaining hooks observe attempts, successes, retries, and terminal failures. `clock` provides deterministic elapsed-time budgets; `hookTimeoutMs` limits asynchronous hook execution.
 
-<<< ../../packages/retry/examples/observedRetry.ts#usage
+<RunnableExample src="packages/retry/examples/observedRetry" title="Observed retry lifecycle" />
 
-The base class never calls any logger or metrics library. Observer hooks are no-ops by default and stay observational; by default `onRetryScheduled` leaves `delayMs` at 0, so retries fire immediately unless a backoff is applied.
+## Imports
 
-### Deterministic elapsed-time budget
-
-`Retry.create` accepts an optional `clock` provider. It measures `maximumElapsedMs`, hook success durations, and retry-context elapsed time, so a virtual provider makes elapsed-budget behavior deterministic.
-
-The observation-only hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). Pass `hookTimeoutMs` to `Retry.create({ hookTimeoutMs })` to bound how long an async hook may run before it fails through `onHookError` with a `HookTimeoutError` cause. Left unset, a hook may take arbitrarily long.
-
-[Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/retry)
+Import runtime APIs from `@studnicky/retry/node`, configuration entities from `@studnicky/retry/entities`, and contracts from `@studnicky/retry/interfaces`.
 
 ## Entities
 
-`@studnicky/retry/entities` exports every schema namespace in `src/entities`.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import { RetryConfigEntity } from '@studnicky/retry/entities';
 ```
 
 ## Interfaces
 
-`@studnicky/retry/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+<!-- inline-ts-ok: published import path -->
 ```typescript
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 ```
@@ -81,10 +57,10 @@ import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BackoffStrategy` | Provides backoff strategy functionality. | `@studnicky/retry/node` |
-| `BackoffStrategyInterface` | Defines the backoff strategy contract. | `@studnicky/retry/interfaces` |
-| `Retry` | Provides retry functionality. | `@studnicky/retry/node` |
-| `MaximumRetriesExceededError` | Represents maximum retries exceeded failures. | `@studnicky/retry/node` |
-| `NonRetryableError` | Represents non retryable failures. | `@studnicky/retry/node` |
-| `RetryError` | Represents retry failures. | `@studnicky/retry/node` |
-| `RetryConfigInterface` | Defines retry settings and the optional clock collaborator. | `@studnicky/retry/interfaces` |
+| `BackoffStrategy` | Provides retry delays. | `@studnicky/retry/node` |
+| `BackoffStrategyInterface` | Defines a backoff strategy. | `@studnicky/retry/interfaces` |
+| `Retry` | Runs retryable operations. | `@studnicky/retry/node` |
+| `MaximumRetriesExceededError` | Represents an exhausted retry budget. | `@studnicky/retry/node` |
+| `NonRetryableError` | Represents a non-retryable failure. | `@studnicky/retry/node` |
+| `RetryError` | Represents a retry failure. | `@studnicky/retry/node` |
+| `RetryConfigInterface` | Defines retry settings. | `@studnicky/retry/interfaces` |

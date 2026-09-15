@@ -588,7 +588,7 @@ class NamespaceScanner {
     return false;
   }
 
-  static scanBody(bodyNode: unknown, context: Rule.RuleContext) {
+  static scanBody(bodyNode: unknown) {
     const result = {
       'hasCreate': false,
       'hasIntake': false,
@@ -636,15 +636,6 @@ class NamespaceScanner {
           const d: unknown = declarations.at(declIndex);
 
           if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
-            continue;
-          }
-          const bundleMembers = SchemaMemberGuards.boundaryBundleMembers(d, context);
-
-          if (bundleMembers.length > 0) {
-            result.hasCreate = result.hasCreate || bundleMembers.includes('create');
-            result.hasIntake = result.hasIntake || bundleMembers.includes('intake');
-            result.hasValidate = result.hasValidate || bundleMembers.includes('validate');
-            result.hasValidateTypeGuard = result.hasValidateTypeGuard || bundleMembers.includes('validate');
             continue;
           }
           const { name } = d.id;
@@ -736,7 +727,7 @@ class EntityNamespaceCheck {
         });
       }
 
-      const members = NamespaceScanner.scanBody(decl.body, context);
+      const members = NamespaceScanner.scanBody(decl.body);
       const reportNode = exportStmt as Rule.Node;
 
       if (!members.hasSchema) {
@@ -1378,11 +1369,11 @@ export const folderContentShape: Rule.RuleModule = {
         "File '{{file}}' declares {{count}} top-level constants ({{names}}) alongside other top-level declarations (re-exports, functions, classes, or mutable bindings), so it is not a self-contained constants module. Extract these constants into their own '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) file, isolated from the other declarations, grouped under one exported frozen object literal.",
       'interfaceInTypesFolder':
         "Interface '{{name}}' is declared in a 'types/' folder, which is reserved for data shapes (`type` alias declarations). Move this contract to an 'interfaces/' folder, or — if it's actually a pure data shape with no contract signal — declare it as a `type {{name}}` instead.",
-      'missingCreate': 'Entity namespace with a literal object `Schema` must export `create` as `const create = SchemaValidator.compileCreate<Type>(Schema)` for locally produced partial data.',
-      'missingIntake': 'Entity namespace must export `intake` as `const intake = SchemaValidator.compileIntake<Type>(Schema)`, so callers hold a value proven to have crossed the input boundary.',
+      'missingCreate': 'Entity namespace with a literal object `Schema` must export `create` as `const create = EntityCompiler.compileCreate<Type>(Schema)` for locally produced partial data.',
+      'missingIntake': 'Entity namespace must export `intake` as `const intake = EntityCompiler.compileIntake<Type>(Schema)`, so callers hold a value proven to have crossed the input boundary.',
       'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`, or a schema-builder call (e.g. `Type.Object({...})`).',
       'missingType': 'Entity namespace must export `type Type` derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`).',
-      'missingValidate': 'Entity namespace must export `validate` — either `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
+      'missingValidate': 'Entity namespace must export `validate` — either `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
       'namespaceMismatch': 'Namespace name `{{found}}` must match the filename base `{{expected}}`.',
       'noNamespace': 'Entity files must export exactly one namespace (e.g. `export namespace XxxEntity { ... }`).',
       'regexBelongsInConstants':
@@ -1391,7 +1382,7 @@ export const folderContentShape: Rule.RuleModule = {
       'typeInInterfacesFolder':
         "Type alias '{{name}}' is declared in an 'interfaces/' folder, which is reserved for runtime contracts (`interface` declarations). Move this data shape to a 'types/' folder, or declare it as an actual `interface` if it has a genuine contract signal (call/construct signature, or a member typed as a function/constructor/class instance).",
       'typeNotFromSchema': 'Entity `type Type` must be derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`) — do not hand-write the type.',
-      'validateNotTypeGuard': 'Entity `validate` must be a type guard: `const validate = SchemaValidator.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type { ... }`.'
+      'validateNotTypeGuard': 'Entity `validate` must be a type guard: `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type { ... }`.'
     },
     'schema': [],
     'type': 'problem'

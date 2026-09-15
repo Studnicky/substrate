@@ -1,15 +1,14 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
   Clone,
-  DataType,
   Frozen,
   FrozenMutationError,
   Hash,
   Merge,
-  SchemaValidator,
   Sort,
   StructuralHash
 } from '../../../src/index.js';
@@ -63,7 +62,6 @@ type ScenarioShape =
   | 'merge-hidden-class'
   | 'merge-isolation'
   | 'merge-primitives'
-  | 'schema-validator'
   | 'sort-functions'
   | 'structural-hash-different'
   | 'structural-hash-metadata';
@@ -79,10 +77,8 @@ type ScenarioCase = {
 };
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-type CloneValue = PropertyKey | bigint | boolean | object | null | undefined;
-
 class TaggedClone extends Clone {
-  protected static override cloneObject(value: Record<string, CloneValue>): Record<string, CloneValue> {
+  protected static override cloneObject(value: Record<string, unknown>): Record<string, unknown> {
     const base = super.cloneObject(value);
     return { ...base, '__tag': 'cloned' };
   }
@@ -198,21 +194,21 @@ const scenarioRunnerMap = {
   'data-deepequal-true': (scenarioCase) => {
     const input = readJson(scenarioCase);
     for (const value of requireArray(requiredValue(input, 'primitives'), 'deepEqual true primitives')) {
-      assert.equal(DataType.deepEqual(value, value), scenarioCase.expected.result);
+      assert.equal(Predicates.areDeeplyEqual(value, value), scenarioCase.expected.result);
     }
     for (const pair of requireArray(requiredValue(input, 'pairs'), 'deepEqual true pairs')) {
       const record = requireJsonObject(pair, 'deepEqual true pair');
       const left = requiredValue(record, 'left');
       const right = requiredValue(record, 'right');
       assert.notStrictEqual(left, right);
-      assert.equal(DataType.deepEqual(left, right), scenarioCase.expected.result);
+      assert.equal(Predicates.areDeeplyEqual(left, right), scenarioCase.expected.result);
     }
   },
 
   'data-deepequal-false': (scenarioCase) => {
     const values = requireArray(readJson(scenarioCase).values, 'deepEqual false values');
-    assert.equal(DataType.deepEqual(values[0], values[1]), scenarioCase.expected.result);
-    assert.equal(DataType.deepEqual(values[2], values[3]), scenarioCase.expected.result);
+    assert.equal(Predicates.areDeeplyEqual(values[0], values[1]), scenarioCase.expected.result);
+    assert.equal(Predicates.areDeeplyEqual(values[2], values[3]), scenarioCase.expected.result);
   },
 
   'data-deepequal-special': (scenarioCase) => {
@@ -221,44 +217,44 @@ const scenarioRunnerMap = {
       const record = requireJsonObject(pair, 'deepEqual special pair');
       const left = requiredValue(record, 'left');
       const right = requiredValue(record, 'right');
-      assert.equal(DataType.deepEqual(left, right), requiredValue(record, 'equal'));
+      assert.equal(Predicates.areDeeplyEqual(left, right), requiredValue(record, 'equal'));
     }
   },
 
   'data-plain-object': (scenarioCase) => {
-    assert.equal(DataType.isPlainObject({}), scenarioCase.expected.plain);
-    assert.equal(DataType.isPlainObject({ a: 1 }), scenarioCase.expected.plain);
-    assert.equal(DataType.isPlainObject(Object.create(null)), scenarioCase.expected.plain);
-    assert.equal(DataType.isPlainObject([]), scenarioCase.expected.array);
-    assert.equal(DataType.isPlainObject(null), false);
-    assert.equal(DataType.isPlainObject(new Date()), scenarioCase.expected.date);
-    assert.equal(DataType.isPlainObject('string'), false);
+    assert.equal(Predicates.isPlainObject({}), scenarioCase.expected.plain);
+    assert.equal(Predicates.isPlainObject({ a: 1 }), scenarioCase.expected.plain);
+    assert.equal(Predicates.isPlainObject(Object.create(null)), scenarioCase.expected.plain);
+    assert.equal(Predicates.isPlainObject([]), scenarioCase.expected.array);
+    assert.equal(Predicates.isPlainObject(null), false);
+    assert.equal(Predicates.isPlainObject(new Date()), scenarioCase.expected.date);
+    assert.equal(Predicates.isPlainObject('string'), false);
   },
 
   'data-record': (scenarioCase) => {
-    assert.equal(DataType.isRecord({}), scenarioCase.expected.object);
-    assert.equal(DataType.isRecord(new Map()), scenarioCase.expected.map);
-    assert.equal(DataType.isRecord([]), scenarioCase.expected.array);
-    assert.equal(DataType.isRecord(null), scenarioCase.expected.null);
+    assert.equal(Predicates.isRecord({}), scenarioCase.expected.object);
+    assert.equal(Predicates.isRecord(new Map()), scenarioCase.expected.map);
+    assert.equal(Predicates.isRecord([]), scenarioCase.expected.array);
+    assert.equal(Predicates.isRecord(null), scenarioCase.expected.null);
   },
 
   'data-cycle': (scenarioCase) => {
-    assert.equal(DataType.hasCycle({ a: 1, b: [2, 3] }), scenarioCase.expected.acyclic);
+    assert.equal(Predicates.hasCycle({ a: 1, b: [2, 3] }), scenarioCase.expected.acyclic);
     const obj: Record<string, unknown> = { a: 1 };
     obj.self = obj;
-    assert.equal(DataType.hasCycle(obj), scenarioCase.expected.objectCycle);
+    assert.equal(Predicates.hasCycle(obj), scenarioCase.expected.objectCycle);
     const arr: unknown[] = [1, 2];
     arr.push(arr);
-    assert.equal(DataType.hasCycle(arr), scenarioCase.expected.arrayCycle);
+    assert.equal(Predicates.hasCycle(arr), scenarioCase.expected.arrayCycle);
   },
 
   'data-deepequal-negative-branches': (scenarioCase) => {
     assert.deepEqual(readJson(scenarioCase).checks, ['array-size', 'array-value', 'object-size', 'object-missing']);
     const negativeChecks = [
-      DataType.deepEqual([1, 2], [1]),
-      DataType.deepEqual([1], [2]),
-      DataType.deepEqual({ a: 1, b: 2 }, { a: 1 }),
-      DataType.deepEqual({ a: 1 }, { b: 1 })
+      Predicates.areDeeplyEqual([1, 2], [1]),
+      Predicates.areDeeplyEqual([1], [2]),
+      Predicates.areDeeplyEqual({ a: 1, b: 2 }, { a: 1 }),
+      Predicates.areDeeplyEqual({ a: 1 }, { b: 1 })
     ];
     assert.equal(negativeChecks.every((result) => result === false), scenarioCase.expected.allNegativeChecksFail);
   },
@@ -456,23 +452,6 @@ const scenarioRunnerMap = {
     const ids = entities.map((entity) => requireJsonObject(entity, 'entities-core entity').id);
     assert.deepEqual(ids, scenarioCase.expected.ids);
   },
-
-  'schema-validator': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const schema = requireJsonObject(input.schema, 'schema-validator schema');
-    const first = SchemaValidator.compile<Record<string, unknown>>(schema);
-    const second = SchemaValidator.compile<Record<string, unknown>>(schema);
-    assert.equal(first === second, scenarioCase.expected.idempotent);
-    assert.equal(first(input.valid), true);
-    assert.equal(first(input.invalid), false);
-    const formatted = SchemaValidator.formatErrors(first.errors);
-    for (const expectedText of requireArray(scenarioCase.expected.formattedIncludes, 'schema formatted includes')) {
-      assert.ok(formatted.includes(requireString(expectedText, 'schema formatted include')));
-    }
-    assert.equal(SchemaValidator.formatErrors(null), scenarioCase.expected.fallback);
-    assert.equal(SchemaValidator.formatErrors(undefined), scenarioCase.expected.fallback);
-    assert.equal(SchemaValidator.formatErrors([]), scenarioCase.expected.fallback);
-  }
 } satisfies Record<ScenarioShape, ScenarioRunner>;
 
 const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
@@ -504,7 +483,7 @@ function readJson(scenarioCase: ScenarioCase): JsonObject {
 }
 
 function isJsonObject<T>(value: T): value is T & JsonObject {
-  return DataType.isRecord(value);
+  return Predicates.isRecord(value);
 }
 
 function requireJsonObject<T>(value: T, context: string): JsonObject {
@@ -721,21 +700,87 @@ void describe('Clone.deep runtime containers', () => {
   });
 });
 
+void describe('Clone.deep RegExp and custom values', () => {
+  void it('clones RegExp values and preserves unsupported custom-object identity', () => {
+    class CustomValue {
+      public readonly nested = { 'state': 'original' };
+    }
+
+    const expression = /value/giu;
+    expression.lastIndex = 2;
+    const expressionClone = Clone.deep(expression);
+    const customValue = new CustomValue();
+    const customClone = Clone.deep(customValue);
+
+    assert.ok(Predicates.isRegExp(expressionClone));
+    assert.notStrictEqual(expressionClone, expression);
+    assert.equal(expressionClone.source, expression.source);
+    assert.equal(expressionClone.flags, expression.flags);
+    assert.equal(expressionClone.lastIndex, expression.lastIndex);
+    assert.strictEqual(customClone, customValue);
+  });
+});
+
+void describe('Frozen nested collection protection', () => {
+  void it('retains guarded Map and Set references in frozen parent containers', () => {
+    const source = {
+      'collection': new Map<unknown, unknown>([['members', new Set<unknown>([{ 'id': 1 }])]])
+    };
+    const frozen = Frozen.deepFreeze(source);
+    const nestedSet = frozen.collection.get('members');
+
+    assert.throws(() => frozen.collection.set('other', 1), FrozenMutationError);
+    assert.ok(nestedSet instanceof Set);
+    assert.throws(() => nestedSet.add({ 'id': 2 }), FrozenMutationError);
+  });
+
+  void it('detaches Map and Set snapshots from caller-held collection aliases', () => {
+    const sourceMap = new Map<string, unknown>([['member', { 'id': 1 }]]);
+    const sourceSet = new Set<unknown>(['member']);
+    const frozenMap = Frozen.deepFreeze(sourceMap);
+    const frozenSet = Frozen.deepFreeze(sourceSet);
+
+    sourceMap.set('late', { 'id': 2 });
+    sourceMap.delete('member');
+    sourceSet.add('late');
+    sourceSet.delete('member');
+
+    assert.equal(frozenMap.size, 1);
+    assert.ok(frozenMap.has('member'));
+    assert.equal(frozenSet.size, 1);
+    assert.ok(frozenSet.has('member'));
+    assert.throws(() => frozenMap.set('other', 3), FrozenMutationError);
+    assert.throws(() => frozenSet.add('other'), FrozenMutationError);
+  });
+
+  void it('preserves guarded collection references through a cyclic object graph', () => {
+    const collection = new Map<unknown, unknown>();
+    const source: Record<string, unknown> = { 'collection': collection };
+    collection.set('parent', source);
+
+    const frozen = Frozen.deepFreeze(source);
+    const frozenCollection = frozen.collection;
+    assert.ok(frozenCollection instanceof Map);
+    assert.throws(() => frozenCollection.set('other', 1), FrozenMutationError);
+    assert.strictEqual(frozenCollection.get('parent'), frozen);
+  });
+});
+
 void describe('restored value-utility runtime contracts', () => {
   void it('compares NaN, Date, RegExp, Map, and Set values structurally', () => {
     const untrusted: unknown = Number.NaN;
-    assert.equal(DataType.deepEqual(untrusted, untrusted), true);
-    assert.equal(DataType.deepEqual(Number.NaN, Number.NaN), true);
-    assert.equal(DataType.deepEqual(new Date(1), new Date(1)), true);
-    assert.equal(DataType.deepEqual(new Date(1), new Date(2)), false);
-    assert.equal(DataType.deepEqual(new Date(1), {}), false);
-    assert.equal(DataType.deepEqual(/value/giu, /value/giu), true);
-    assert.equal(DataType.deepEqual(/value/gu, /other/gu), false);
-    assert.equal(DataType.deepEqual(/value/gu, {}), false);
-    assert.equal(DataType.deepEqual(new Set(['a', 'b']), new Set(['b', 'a'])), true);
-    assert.equal(DataType.deepEqual(new Set(['a']), new Set(['b'])), false);
-    assert.equal(DataType.deepEqual(new Map([['item', { 'count': 1 }]]), new Map([['item', { 'count': 1 }]])), true);
-    assert.equal(DataType.deepEqual(new Map([['item', 1]]), new Map([['item', 2]])), false);
+    assert.equal(Predicates.areDeeplyEqual(untrusted, untrusted), true);
+    assert.equal(Predicates.areDeeplyEqual(Number.NaN, Number.NaN), true);
+    assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
+    assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(2)), false);
+    assert.equal(Predicates.areDeeplyEqual(new Date(1), {}), false);
+    assert.equal(Predicates.areDeeplyEqual(/value/giu, /value/giu), true);
+    assert.equal(Predicates.areDeeplyEqual(/value/gu, /other/gu), false);
+    assert.equal(Predicates.areDeeplyEqual(/value/gu, {}), false);
+    assert.equal(Predicates.areDeeplyEqual(new Set(['a', 'b']), new Set(['b', 'a'])), true);
+    assert.equal(Predicates.areDeeplyEqual(new Set(['a']), new Set(['b'])), false);
+    assert.equal(Predicates.areDeeplyEqual(new Map([['item', { 'count': 1 }]]), new Map([['item', { 'count': 1 }]])), true);
+    assert.equal(Predicates.areDeeplyEqual(new Map([['item', 1]]), new Map([['item', 2]])), false);
   });
 
   void it('hashes Date, Map, and Set values deterministically', () => {

@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { Batch } from '@studnicky/batch/node';
 import { ConfigurationError } from '@studnicky/config/node';
 
-import { SchemaIntakeError } from '@studnicky/json/node';
+import { SchemaIntakeError } from '@studnicky/entity/node';
 
 import { Throttle } from '../../../src/index.js';
 import {

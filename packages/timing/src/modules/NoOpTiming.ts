@@ -14,12 +14,6 @@ class NoOpTimingInstance {
     return result;
   }
 
-  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
-  // from the constructor rather than being a phantom generic supplied only at the call site.
-  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 /**
@@ -62,7 +56,7 @@ export class NoOpTiming implements TimingInterface {
     this: Function & { readonly 'prototype': TInstance; }
   ): TInstance {
     const result = NoOpTimingInstance.construct(this);
-    if (!NoOpTimingInstance.belongsTo<TInstance>(this, result)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('NoOpTiming.create() did not construct the requested subclass.');
     }
     return result;

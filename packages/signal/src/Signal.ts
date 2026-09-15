@@ -13,12 +13,6 @@ class SignalInstance {
     return result;
   }
 
-  // `TInstance` flows into BOTH the constructor parameter and the predicate, so it is inferred
-  // from the constructor rather than being a phantom generic supplied only at the call site.
-  static belongsTo<TInstance extends object>(constructor: Function & { readonly 'prototype': TInstance }, value: object): value is TInstance {
-    const result = value instanceof constructor;
-    return result;
-  }
 }
 
 export class Signal {
@@ -32,7 +26,7 @@ export class Signal {
 
   static create<TInstance extends Signal = Signal>(this: Function & { readonly 'prototype': TInstance; }): TInstance {
     const result = SignalInstance.construct(this);
-    if (!SignalInstance.belongsTo<TInstance>(this, result)) {
+    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Signal.create() did not construct the requested subclass.');
     }
     return result;

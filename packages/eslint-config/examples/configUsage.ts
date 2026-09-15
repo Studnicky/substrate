@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import { plugin, v8Plugin } from '../src/index.js';
+import { plugin, v8Plugin } from '../src/browser/index.js';
 
 const config = {
   'plugins': {

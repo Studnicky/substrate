@@ -1,4 +1,4 @@
-import type { SchemaCreateFunctionInterface, SchemaIntakeFunctionInterface } from '@studnicky/json/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 import type { Rule } from 'eslint';
 import type {
   FromSchema, JSONSchema
@@ -8,7 +8,7 @@ import type {
 } from 'typescript';
 import type * as ts from 'typescript';
 
-import { SchemaValidator } from '@studnicky/json/browser';
+import { EntityCompiler } from '@studnicky/entity/node';
 import { Predicates } from '@studnicky/types/browser';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
@@ -36,8 +36,8 @@ namespace StaticMethodVerbsOptionsEntity {
 
   export type Type = FromSchema<typeof Schema>;
 
-  export const intake: SchemaIntakeFunctionInterface<Type> = SchemaValidator.compileIntake<Type>(Schema);
-  export const create: SchemaCreateFunctionInterface<Type> = SchemaValidator.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
 interface ParserServicesInterface {
@@ -300,7 +300,7 @@ class AstHelpers {
 // `folder-content-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
 // type guard — its own message names the two accepted spellings:
 //
-//     export const validate = SchemaValidator.compile<Type>(Schema)        (preferred)
+//     export const validate = EntityCompiler.compile<Type>(Schema)        (preferred)
 //     export function validate(candidate: unknown): candidate is Type      (also accepted)
 //
 // This rule treats a `TSModuleBlock` as transparent, so both spellings read as a

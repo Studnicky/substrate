@@ -129,7 +129,7 @@ class TaskRunner {
 
 `PendingTaskInterface` is an exported task-record contract from `@studnicky/scheduler/interfaces`.
 
-`SchedulerTaskDataEntity` owns the serializable due time, interval, and timer variant fields composed by scheduler contracts. `SchedulerLogEntryEntity` owns the task identifier and lifecycle event fields used by logging schedulers.
+`SchedulerTaskDataEntity` owns the serializable due time, interval, and timer variant fields composed by scheduler contracts. `SchedulerLogEntryEntity` owns the task identifier and lifecycle event fields used by logging schedulers. `CancellableTaskStateEntity` and `CancellableTaskTransitionEventEntity` provide complete lifecycle records from `@studnicky/scheduler/entities` for integrations that record task state.
 
 Both classes expose protected extension seams for subclassing:
 

@@ -61,7 +61,7 @@ dispatcher.getBus().subscribe('dispatch', (event) => {
 
 A caller's own topic map merges onto the same bus alongside `'dispatch'` — pass `BoundedDispatcher.create<MyTopicMapInterface>()` to keep both typed on one bus.
 
-`BoundedDispatcherStartEventEntity`, `BoundedDispatcherSuccessEventEntity`, and `BoundedDispatcherErrorEventEntity` own the schema-derived phase discriminants composed by the runtime event interfaces. The event interfaces retain their runtime `result` and `error` fields.
+`BoundedDispatcherStartEventEntity` is the complete JSON start event. `BoundedDispatcherSuccessEventEntity` and `BoundedDispatcherErrorEventEntity` own the JSON phase fields composed by runtime event interfaces, which retain arbitrary callback `result` and `error` values.
 
 ## Extending
 

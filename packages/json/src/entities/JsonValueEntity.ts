@@ -1,26 +1,17 @@
+import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { JSONSchema7Type } from 'json-schema';
 import type { FromSchema } from 'json-schema-to-ts';
 
-import { SchemaValidator } from '../schema/SchemaValidator.js';
+import { EntityCompiler } from '@studnicky/entity/node';
 
-/**
- * Canonical finite, acyclic JSON data from an external boundary.
- *
- * A single `type` ARRAY, not `anyOf` of single-type branches — the plain, canonical way to
- * express a primitive-type union in JSON Schema. (Historical note: this shape was originally
- * required to avoid an Ajv `coerceTypes` misbehavior with `anyOf`-expressed unions nested as an
- * object property, as inside `PatchOperationEntity`'s `value` field — Ajv would try each `anyOf`
- * branch and sometimes coerce a value that already matched an earlier branch. `compileIntake` no
- * longer coerces at all, so that hazard no longer applies, but the `type` array remains the
- * simpler, more direct expression regardless.)
- */
+import { JsonValueSchema } from '../schema/JsonValueSchema.js';
+
+/** Canonical finite, acyclic JSON data from an external boundary. */
 export namespace JsonValueEntity {
   export const Schema = {
-    'additionalProperties': {},
-    'items': {},
-    'plainJsonValue': true,
-    'title': 'JsonValue',
-    'type': ['array', 'boolean', 'null', 'number', 'object', 'string']
+    ...JsonValueSchema,
+    '$ref': '#/$defs/JsonValue',
+    'title': 'JsonValue'
   } as const;
 
   export type Type = FromSchema<
@@ -28,6 +19,6 @@ export namespace JsonValueEntity {
     { 'deserialize': [{ 'output': JSONSchema7Type; 'pattern': { 'title': 'JsonValue' } }] }
   >;
 
-  export const validate = SchemaValidator.compile<Type>(Schema);
-  export const intake = SchemaValidator.compileIntake<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake = EntityCompiler.compileIntake<Type>(Schema);
 }
