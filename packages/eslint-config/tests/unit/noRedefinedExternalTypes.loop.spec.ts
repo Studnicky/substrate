@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
 import parser from '@typescript-eslint/parser';
@@ -47,8 +47,9 @@ function lint(
   root: string,
   host: ProjectHostInterface = new NodeProjectHost()
 ): readonly import('eslint').Linter.LintMessage[] {
+  const projectFilename = 'tsconfig.' + basename(entry, '.ts') + '.json';
   writeFileSync(entry, code);
-  writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({
+  writeFileSync(join(root, projectFilename), JSON.stringify({
     compilerOptions: {
       lib: ['ES2022', 'DOM'],
       module: 'NodeNext',
@@ -64,7 +65,7 @@ function lint(
     languageOptions: {
       parser,
       parserOptions: {
-        project: './tsconfig.json',
+        project: './' + projectFilename,
         tsconfigRootDir: root
       }
     },
