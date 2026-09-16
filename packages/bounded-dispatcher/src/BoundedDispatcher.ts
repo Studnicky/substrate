@@ -1,5 +1,7 @@
 /** Bounded work dispatch composing concurrency's Semaphore, event-bus's EventBus, and scheduler. */
 
+import type { SemaphoreAcquireOptionsInterface } from '@studnicky/concurrency/interfaces';
+import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
 import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
 import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
@@ -10,10 +12,12 @@ import { RealTimeScheduler } from '@studnicky/scheduler/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
+import type { BoundedDispatcherOperationContextInterface } from './interfaces/BoundedDispatcherOperationContextInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';
 
 interface BoundedDispatcherDepsInterface<TTopicMap extends BoundedDispatcherTopicMapInterface> {
   readonly 'bus': EventBus<TTopicMap>;
+  readonly 'pipeline': OperationPipelineInterface<BoundedDispatcherOperationContextInterface> | undefined;
   readonly 'scheduler': SchedulerProviderInterface;
   readonly 'semaphore': Semaphore;
 }
@@ -29,6 +33,9 @@ interface BoundedDispatcherSubclassInterface<TInstance> extends Function {
  * events (`start` / `success` / `error`) onto the composed `EventBus` around the call.
  * `scheduleDispatch()` layers a `scheduler`-driven delayed dispatch on top, returning the
  * scheduler's own cancellable task handle.
+ * When configured, an `OperationPipeline` surrounds complete permit admission and callback execution.
+ * Policies receive only the semaphore acquisition options for that dispatch and propagate their own
+ * failures or the callback failure unchanged.
  *
  * `BoundedDispatcher` has no lifecycle hooks of its own. Permit-level observability stays on
  * `Semaphore`'s existing hooks (`onAcquire`, `onAcquireWait`, `onContended`, `onRelease`,
@@ -40,7 +47,7 @@ interface BoundedDispatcherSubclassInterface<TInstance> extends Function {
  *
  * @example Direct composition
  * ```typescript
- * const dispatcher = BoundedDispatcher.create({ permits: 2 });
+ * const dispatcher = BoundedDispatcher.create({ semaphore: { permits: 2 } });
  *
  * const results = await Promise.all(
  *   [1, 2, 3].map((n) => dispatcher.dispatch(() => doWork(n)))
@@ -72,8 +79,11 @@ export class BoundedDispatcher<
       : EventBus.create<TTopicMap>(config.bus ?? {});
     const result: unknown = Reflect.construct(this, [{
       'bus': bus,
+      'pipeline': config.pipeline,
       'scheduler': config.scheduler ?? RealTimeScheduler.create(),
-      'semaphore': Semaphore.create({ 'permits': config.permits ?? 1 })
+      'semaphore': config.semaphore instanceof Semaphore
+        ? config.semaphore
+        : Semaphore.create(config.semaphore ?? { 'permits': 1 })
     }]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
@@ -82,6 +92,7 @@ export class BoundedDispatcher<
   }
 
   readonly #bus: EventBus<TTopicMap>;
+  readonly #pipeline: OperationPipelineInterface<BoundedDispatcherOperationContextInterface> | undefined;
   readonly #publicationHooks: HookInvoker;
   readonly #scheduler: SchedulerProviderInterface;
   readonly #semaphore: Semaphore;
@@ -89,6 +100,7 @@ export class BoundedDispatcher<
   protected constructor(deps: BoundedDispatcherDepsInterface<TTopicMap>) {
     this.#semaphore = deps.semaphore;
     this.#bus = deps.bus;
+    this.#pipeline = deps.pipeline;
     this.#scheduler = deps.scheduler;
     this.#publicationHooks = new BoundedDispatcher.#OwnedHookInvoker();
   }
@@ -107,38 +119,48 @@ export class BoundedDispatcher<
    * @param fn - The work to run while holding a permit
    * @returns The result of `fn`
    */
-  async dispatch<T>(callback: () => Promise<T> | T): Promise<T> {
-    const result = await this.#semaphore.withPermit(async () => {
-      this.#publicationHooks.invoke(
-        'publishDispatchStart',
-        (): unknown => {
-          const publication = this.#bus.publish('dispatch', { 'phase': 'start' });
-          return publication;
-        }
-      );
+  async dispatch<T>(
+    callback: () => Promise<T> | T,
+    options: SemaphoreAcquireOptionsInterface = {}
+  ): Promise<T> {
+    const context: BoundedDispatcherOperationContextInterface = { 'semaphoreOptions': options };
+    const operation = async (currentContext: BoundedDispatcherOperationContextInterface): Promise<T> => {
+      const result = await this.#semaphore.withPermit(async () => {
+        this.#publicationHooks.invoke(
+          'publishDispatchStart',
+          (): unknown => {
+            const publication = this.#bus.publish('dispatch', { 'phase': 'start' });
+            return publication;
+          }
+        );
 
-      try {
-        const value = await callback();
-        this.#publicationHooks.invoke(
-          'publishDispatchSuccess',
-          (): unknown => {
-            const publication = this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
-            return publication;
-          }
-        );
-        return value;
-      } catch (error: unknown) {
-        this.#publicationHooks.invoke(
-          'publishDispatchError',
-          (): unknown => {
-            const publication = this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
-            return publication;
-          }
-        );
-        throw error;
-      }
-    });
-    return result;
+        try {
+          const value = await callback();
+          this.#publicationHooks.invoke(
+            'publishDispatchSuccess',
+            (): unknown => {
+              const publication = this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
+              return publication;
+            }
+          );
+          return value;
+        } catch (error: unknown) {
+          this.#publicationHooks.invoke(
+            'publishDispatchError',
+            (): unknown => {
+              const publication = this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
+              return publication;
+            }
+          );
+          throw error;
+        }
+      }, currentContext.semaphoreOptions);
+      return result;
+    };
+    if (this.#pipeline === undefined) {
+      return await operation(context);
+    }
+    return await this.#pipeline.run(context, operation);
   }
 
   /** Count of rejected lifecycle publications recorded since construction. */

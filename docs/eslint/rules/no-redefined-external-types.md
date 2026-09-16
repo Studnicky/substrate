@@ -5,7 +5,7 @@ description: "Requires exported local types to reuse or extend direct dependency
 
 # @studnicky/no-redefined-external-types
 
-Requires an exported local `interface` or `type` alias to reuse a public type exported by a direct declared dependency instead of rebuilding the same structural shape. The rule resolves only package names declared in the consumer package manifest and only their package-root public type exports. It compares only the restricted declaration-level shapes it can prove identical, so a local shape with any additional requirement remains valid composition. Private declarations, undeclared or transitive packages, dependency internals, and public types outside the restricted declaration syntax are outside its scope.
+Requires an exported local `interface` or `type` alias to reuse a public type exported by a direct declared dependency instead of rebuilding the same structural shape. The rule resolves every exact public export subpath declared by each direct dependency in the consumer package manifest, including `/node`, `/browser`, and neutral type subpaths. It compares only the restricted declaration-level shapes it can prove identical, so a local shape with any additional requirement remains valid composition. Private declarations, undeclared or transitive packages, wildcard-only export paths, dependency internals, and public types outside the restricted declaration syntax are outside its scope.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 

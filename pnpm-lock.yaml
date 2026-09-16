@@ -171,6 +171,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
@@ -874,6 +877,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       '@studnicky/retry':
         specifier: workspace:*
         version: link:../retry
@@ -889,6 +895,9 @@ importers:
 
   packages/resilience:
     dependencies:
+      '@studnicky/circular-buffer':
+        specifier: workspace:*
+        version: link:../circular-buffer
       '@studnicky/entity':
         specifier: workspace:*
         version: link:../entity
@@ -925,6 +934,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
       '@studnicky/fsm':
         specifier: workspace:*
         version: link:../fsm
@@ -1011,30 +1023,6 @@ importers:
         specifier: workspace:*
         version: link:../types
 
-  packages/sliding-window-limiter:
-    dependencies:
-      '@studnicky/circular-buffer':
-        specifier: workspace:*
-        version: link:../circular-buffer
-      '@studnicky/entity':
-        specifier: workspace:*
-        version: link:../entity
-      '@studnicky/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@studnicky/json':
-        specifier: workspace:*
-        version: link:../json
-      '@studnicky/signal':
-        specifier: workspace:*
-        version: link:../signal
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-      json-schema-to-ts:
-        specifier: ^3.1.1
-        version: 3.1.1
-
   packages/store:
     dependencies:
       '@studnicky/context':
@@ -1090,9 +1078,9 @@ importers:
 
   packages/throttle:
     dependencies:
-      '@studnicky/circular-buffer':
+      '@studnicky/concurrency':
         specifier: workspace:*
-        version: link:../circular-buffer
+        version: link:../concurrency
       '@studnicky/config':
         specifier: workspace:*
         version: link:../config

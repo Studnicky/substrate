@@ -45,7 +45,7 @@
       "input": {
         "dispatcher": {
           "bus": { "shape": "default" },
-          "options": { "permits": 2 },
+          "options": { "semaphore": { "permits": 2 } },
           "scheduler": { "shape": "default" }
         },
         "batch": { "labels": ["a", "b", "c", "d", "e"] }
@@ -59,7 +59,7 @@
       "input": {
         "dispatcher": {
           "bus": { "shape": "default" },
-          "options": { "permits": 1 },
+          "options": { "semaphore": { "permits": 1 } },
           "scheduler": { "shape": "default" }
         },
         "batch": { "taskCount": 3 }
@@ -73,7 +73,7 @@
       "input": {
         "dispatcher": {
           "bus": { "shape": "options", "options": { "highWaterMark": 1 } },
-          "options": { "permits": 3 },
+          "options": { "semaphore": { "permits": 3 } },
           "scheduler": { "shape": "default" }
         },
         "batch": { "taskCount": 3 }
@@ -178,11 +178,29 @@
         "dispatcher": {
           "atMs": 100,
           "bus": { "shape": "default" },
-          "options": { "permits": 1 },
+          "options": { "semaphore": { "permits": 1 } },
           "scheduler": { "counter": {}, "shape": "virtual" }
         }
       },
       "expected": { "order": ["scheduled-start", "scheduled-end"] }
+    },
+    {
+      "name": "bounded-dispatcher-injected-semaphore-queue-cap",
+      "description": "uses the injected semaphore capacity and queue admission limit",
+      "shape": "injected-semaphore-queue-cap",
+      "input": {
+        "dispatcher": { "bus": { "shape": "default" }, "options": {}, "scheduler": { "shape": "default" } }
+      },
+      "expected": { "activeCount": 1, "queuedCount": 1, "results": ["first", "second"] }
+    },
+    {
+      "name": "bounded-dispatcher-injected-semaphore-abort",
+      "description": "forwards abort signals to the injected semaphore without invoking cancelled work",
+      "shape": "injected-semaphore-abort",
+      "input": {
+        "dispatcher": { "bus": { "shape": "default" }, "options": {}, "scheduler": { "shape": "default" } }
+      },
+      "expected": { "activeCount": 1, "callbackInvoked": false, "queuedCount": 1 }
     }
   ]
 }

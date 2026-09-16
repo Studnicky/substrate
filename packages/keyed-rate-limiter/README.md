@@ -4,9 +4,11 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/keyed-rate-limiter)
 
-Rate-limits operations independently per string key (per user ID, per IP, per API token, ...) by lazily creating one rate-limiting strategy instance per key and evicting idle keys via a composed `@studnicky/cache` `LruCache`. Solves the "hand-rolled `Map<string, TokenBucket>` with no eviction bound" pattern every keyed rate limiter otherwise reinvents.
+Rate-limit operations independently by string key, such as a user ID, IP address, or API token. Configure the default token-bucket strategy or supply a compatible strategy factory.
 
-`KeyedRateLimiterRegistryOptionsEntity` owns the serializable registry bounds, while `RateLimitRequestEntity` owns request keys and token counts. Both are exported with runtime validators. The default configuration reuses `TokenBucketOptionsEntity` fields from `@studnicky/resilience` instead of restating their primitive types.
+Import schema declarations from `@studnicky/keyed-rate-limiter/entities` when validating request and limiter configuration.
+
+Use `@studnicky/keyed-rate-limiter/node` in Node or `@studnicky/keyed-rate-limiter/browser` in browsers. Import schema-backed data declarations from `@studnicky/keyed-rate-limiter/entities` and type-only contracts from `@studnicky/keyed-rate-limiter/interfaces`. The Node and browser runtime entrypoints expose the same API.
 
 ## Install
 
@@ -27,29 +29,44 @@ import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter/node';
 
 const limiter = KeyedRateLimiter.create({ requestsPerSecond: 10, burstSize: 20 });
 
-limiter.consume('user-42');            // throws TokenBucketExhaustedError once exhausted
-await limiter.waitForToken('user-42'); // blocks until capacity is available
+const result = limiter.consume('user-42');
+await limiter.waitForToken('user-42');
+
+console.log(result.consumedTokens, result.remainingTokens);
 ```
 
 Each key gets its own independent `TokenBucket`, lazily created on first use. Draining `user-42`'s bucket has no effect on any other key.
+
+Every successful `consume()` and `waitForToken()` returns `RateLimitConsumptionEntity.Type` from `@studnicky/resilience/entities`: `consumedTokens` reports the requested consumption count and `remainingTokens` reports the strategy capacity left after that acquisition. Both operations require a non-empty string key and positive finite tokens when supplied; factory strategies provide callable `consume()` and `waitForToken()` methods and return the same canonical consumption entity.
 
 ## The `RateLimiterStrategyInterface` extension seam
 
 `KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = TokenBucket>` is generic over an injectable rate-limiting **strategy** — not hardcoded to `TokenBucket`. The seam is purely structural:
 
 ```typescript
+import type { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
+
 export interface RateLimiterStrategyInterface {
-  consume(tokens?: number): void;
-  waitForToken(options?: { signal?: AbortSignal; tokens?: number }): Promise<void>;
+  consume(tokens?: number): RateLimitConsumptionEntity.Type;
+  waitForToken(options?: { signal?: AbortSignal; tokens?: number }): Promise<RateLimitConsumptionEntity.Type>;
 }
 ```
 
-`@studnicky/resilience`'s `TokenBucket` already matches this shape without declaring or importing it. Any future rate-limiting algorithm — a sliding-window limiter, a leaky bucket, a fixed-window counter — slots into `KeyedRateLimiter.create()` by supplying a factory that returns an object with those two methods. No import between the two packages, no second wrapper class, no `instanceof` check anywhere in `KeyedRateLimiter`'s own logic:
+`@studnicky/resilience`'s `TokenBucket` already matches this shape without declaring or importing it. Any rate-limiting algorithm that returns `RateLimitConsumptionEntity.Type` slots into `KeyedRateLimiter.create()` through a factory:
 
 ```typescript
+import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter/node';
+import { SlidingWindowLimiter } from '@studnicky/resilience/node';
+
 const limiter = KeyedRateLimiter.create({
-  factory: (key) => MySlidingWindowLimiter.create({ windowMs: 1000, limit: 100 })
+  factory: () => SlidingWindowLimiter.create({
+    algorithm: 'log',
+    limit: 100,
+    windowMs: 1_000,
+  }),
 });
+
+limiter.consume('user-42');
 ```
 
 The factory-based `create()` configuration receives the key on every cache miss, so a caller who wants per-key configuration (e.g. a higher limit for a premium tier) branches on `key` inside the factory itself.
@@ -72,15 +89,13 @@ The factory-based `create()` configuration receives the key on every cache miss,
 | `onKeyCreated(key)` | A key is seen for the first time (or re-seen after eviction) and its strategy is lazily created |
 | `onKeyEvicted(key)` | The internal `LruCache` removes a key's strategy through capacity eviction or idle TTL expiry |
 | `onLimitExceeded(key)` | `key`'s strategy `consume()` throws, before the error propagates |
-| `onTokenAcquired(key, count)` | A successful acquisition on the default `create()` path only — see below |
+| `onTokenAcquired(key, result)` | Every successful `consume()` or `waitForToken()` acquisition, including factory strategies |
 
 The composed cache remains private. Callers observe rate-limiter behavior through `consume()`, `waitForToken()`, and the lifecycle hooks instead of mutating the limiter's owned storage.
 
-### `onTokenAcquired`'s scope
+### `onTokenAcquired` results
 
-`onTokenAcquired(key, count)` is delegated from the per-key `TokenBucket`'s own `onTokenAcquired` hook — but **only on the `create()` path**. `create()` constructs each bucket as a class-private owned delegate that retains its limiter owner and key, then routes acquisition events directly through that owner's canonical hook invoker.
-
-A factory-based `create()` call cannot make the same guarantee generically: `RateLimiterStrategyInterface` has no hook surface of its own — it is deliberately minimal (two methods) so any algorithm can satisfy it without adopting substrate's hook conventions. A consumer who wants acquisition telemetry builds it into their own factory's returned instance.
+`onTokenAcquired(key, result)` receives the same canonical consumption result returned to the caller. It fires after a successful `consume()` or `waitForToken()` call for both default token buckets and factory strategies.
 
 ## Composition order
 

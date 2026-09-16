@@ -43,10 +43,10 @@
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
-      "name": "compose accepts a fractional deadline",
-      "description": "compose accepts a fractional deadline",
+      "name": "compose accepts a whole-millisecond deadline",
+      "description": "compose accepts a whole-millisecond deadline",
       "shape": "compose-deadline-fires",
-      "input": { "composeOptions": { "deadlineMs": 0.5 }, "waitMs": 20 },
+      "input": { "composeOptions": { "deadlineMs": 1 }, "waitMs": 20 },
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
@@ -54,7 +54,7 @@
       "description": "compose rejects invalid deadline",
       "shape": "compose-invalid-deadline",
       "input": { "composeOptions": { "deadlineMs": -1 } },
-      "expected": { "errorMessageIncludes": "deadlineMs must be a non-negative number" }
+      "expected": { "errorMessageIncludes": "deadlineMs must be an integer between 0 and 2147483647" }
     },
     {
       "name": "instance compose with empty options",

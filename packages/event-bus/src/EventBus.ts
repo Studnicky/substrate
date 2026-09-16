@@ -4,7 +4,7 @@ import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
-import type { BusQueueCreateOptionsInterface, EventHandlerInterface, UnsubscribeInterface } from './interfaces/index.js';
+import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
 
 import { BusQueue } from './BusQueue.js';
 
@@ -33,7 +33,7 @@ interface EventBusShapeInterface {
   drain(): Promise<void>;
 }
 
-export class EventBus<TTopicMap extends object> {
+export class EventBus<TTopicMap extends object> implements EventSinkInterface<TTopicMap> {
   static readonly #OwnedSubscriptionQueue = class EventBusSubscriptionQueue<
     TOwnerTopicMap extends object,
     TTopic extends keyof TOwnerTopicMap
@@ -116,18 +116,14 @@ export class EventBus<TTopicMap extends object> {
     this.#config = Object.freeze(structuredClone(config ?? {}));
   }
 
-  #getTopicMap<K extends keyof TTopicMap>(topic: K, create: true): Map<
-    EventHandlerInterface<TTopicMap[K]>, BusQueue<TTopicMap[K]>
-  >;
-  #getTopicMap<K extends keyof TTopicMap>(topic: K, create: false): Map<
-    EventHandlerInterface<TTopicMap[K]>, BusQueue<TTopicMap[K]>
-  > | undefined;
-  #getTopicMap(topic: keyof TTopicMap, create: boolean): unknown {
+  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: true): Set<BusQueue<TTopicMap[K]>>;
+  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: false): Set<BusQueue<TTopicMap[K]>> | undefined;
+  #getTopicSubscriptions(topic: keyof TTopicMap, create: boolean): unknown {
     const existing = this.#store.get(topic);
     if (existing !== undefined || !create) {
       return existing;
     }
-    const fresh = new Map<unknown, unknown>();
+    const fresh = new Set<unknown>();
     this.#store.set(topic, fresh);
     return fresh;
   }
@@ -137,26 +133,9 @@ export class EventBus<TTopicMap extends object> {
     handler: EventHandlerInterface<TTopicMap[K]>,
     options?: { 'signal'?: AbortSignal }
   ): UnsubscribeInterface {
-    const topicMap = this.#getTopicMap(topic, true);
-
+    const topicSubscriptions = this.#getTopicSubscriptions(topic, true);
     const queueController = new AbortController();
-    const stopQueue = (): void => { queueController.abort(); };
-
-    if (this.#busController.signal.aborted) {
-      queueController.abort();
-    } else {
-      this.#busController.signal.addEventListener('abort', stopQueue, { 'once': true });
-    }
-
     const callerSignal = options?.signal;
-    if (callerSignal !== undefined) {
-      if (callerSignal.aborted) {
-        queueController.abort();
-      } else {
-        callerSignal.addEventListener('abort', stopQueue, { 'once': true });
-      }
-    }
-
     const queueHandler = async (payload: TTopicMap[K]): Promise<void> => {
       await handler(payload, queueController.signal);
       await this.hooks.invokeAsync('onDeliver', () => {
@@ -164,43 +143,57 @@ export class EventBus<TTopicMap extends object> {
         return result;
       });
     };
-
     const queueOptions: BusQueueCreateOptionsInterface<TTopicMap[K]> = {
       'handler': queueHandler,
       ...(this.#config.highWaterMark !== undefined ? { 'highWaterMark': this.#config.highWaterMark } : {}),
       'signal': queueController.signal
     };
-    // Lexical arrow closure over `this` (rather than passing `this` directly
-    // as a constructor argument) so the receiver is obtained only through the
-    // rule-permitted `return this` form.
     const getOwner = (): this => { return this; };
     const owner = getOwner();
     const queue = new EventBus.#OwnedSubscriptionQueue<TTopicMap, K>(owner, topic, queueOptions);
-    topicMap.set(handler, queue);
-    this.#queues.add(queue);
-    this.hooks.invoke('onSubscribe', () => { const result = this.onSubscribe(topic); return result; });
-
     let unsubscribed = false;
-    return (): void => {
+    const unsubscribe = (): void => {
       if (unsubscribed) { return; }
       unsubscribed = true;
-      topicMap.delete(handler);
+      topicSubscriptions.delete(queue);
       this.#queues.delete(queue);
-      if (topicMap.size === 0) { this.#store.delete(topic); }
+      if (topicSubscriptions.size === 0) { this.#store.delete(topic); }
       queueController.abort();
-      this.#busController.signal.removeEventListener('abort', stopQueue);
-      if (callerSignal !== undefined) {
-        callerSignal.removeEventListener('abort', stopQueue);
-      }
-      this.hooks.invoke('onUnsubscribe', () => { const result = this.onUnsubscribe(topic); return result; });
+      this.#busController.signal.removeEventListener('abort', unsubscribe);
+      callerSignal?.removeEventListener('abort', unsubscribe);
+      this.hooks.invoke('onUnsubscribe', () => {
+        const result = this.onUnsubscribe(topic);
+        return result;
+      });
     };
+
+    topicSubscriptions.add(queue);
+    this.#queues.add(queue);
+    this.hooks.invoke('onSubscribe', () => {
+      const result = this.onSubscribe(topic);
+      return result;
+    });
+
+    if (this.#busController.signal.aborted || callerSignal?.aborted === true) {
+      unsubscribe();
+    } else {
+      this.#busController.signal.addEventListener('abort', unsubscribe, { 'once': true });
+      callerSignal?.addEventListener('abort', unsubscribe, { 'once': true });
+    }
+    return unsubscribe;
   }
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
-    const topicMap = this.#getTopicMap(topic, false);
-    if (topicMap === undefined || topicMap.size === 0) { return; }
-    await this.hooks.invokeAsync('onPublish', () => { const result = this.onPublish(topic, payload); return result; });
-    await Promise.all([...topicMap.values()].map((q) => { const result = q.enqueue(payload); return result; }));
+    const topicSubscriptions = this.#getTopicSubscriptions(topic, false);
+    if (topicSubscriptions === undefined || topicSubscriptions.size === 0) { return; }
+    await this.hooks.invokeAsync('onPublish', () => {
+      const result = this.onPublish(topic, payload);
+      return result;
+    });
+    await Promise.all([...topicSubscriptions].map((queue) => {
+      const result = queue.enqueue(payload);
+      return result;
+    }));
   }
 
   async drain(): Promise<void> {

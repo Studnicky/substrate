@@ -15,6 +15,10 @@ pnpm add @studnicky/event-bus
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+## Runtime imports
+
+Import `EventBus` and `BusQueue` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import event contracts from `@studnicky/event-bus/interfaces` and schema declarations from `@studnicky/event-bus/entities`.
+
 ## Usage
 
 Subscribe to a topic, publish a payload, and drain the queue. The subscriber receives every published item:
@@ -32,6 +36,28 @@ All subscribers on the same topic receive each published payload independently. 
 Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument; it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
 
 <<< ../../packages/event-bus/examples/abortSignal.ts#usage
+
+## Publish through a minimal sink
+
+Components that only publish events accept `EventSinkInterface` instead of an `EventBus`. The contract contains only `publish`, so it also accepts a custom publisher without requiring subscription or lifecycle methods:
+
+<!-- inline-ts-ok: Demonstrates a consumer-owned event map and a type-only interface import. -->
+```typescript
+import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
+
+interface RetryEventsInterface {
+  readonly 'retry:failed': { readonly attempt: number };
+}
+
+async function recordFailure(
+  sink: EventSinkInterface<RetryEventsInterface>,
+  attempt: number
+): Promise<void> {
+  await sink.publish('retry:failed', { attempt });
+}
+```
+
+`EventBus<RetryEventsInterface>` satisfies this contract directly.
 
 ## Observability hooks
 
@@ -85,6 +111,7 @@ The hooks demo subclasses `EventBus` and overrides seven protected lifecycle met
 | `EventBus<TTopicMap>` | class | Multi-topic pub/sub; created via `EventBus.create<T>(config?)` |
 | `BusQueue<T>` | class | Bounded FIFO queue with backpressure; created via `BusQueue.create(options)` |
 | `EventHandlerInterface<T>` | interface | Callable handler contract: `(payload: T, signal: AbortSignal) => Promise<void> \| void` |
+| `EventSinkInterface<TTopicMap>` | interface | Minimal typed publishing contract: `publish(topic, payload) => Promise<void>` |
 | `UnsubscribeInterface` | interface | Callable unsubscribe contract returned by `subscribe`: `() => void` |
 | `BusQueueCreateOptionsInterface<T>` | interface | Queue construction contract: `{ handler, highWaterMark?, onError?, signal? }` |
 | `BusQueueOptionsEntity` | entity | Schema-backed bus and subscriber queue options |
@@ -128,5 +155,6 @@ import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 | `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus/node` |
 | `EventBus` | Provides event bus functionality. | `@studnicky/event-bus/node` |
 | `EventBusError` | Represents event bus failures. | `@studnicky/event-bus/node` |
+| `EventSinkInterface` | Defines the minimal typed event publishing contract. | `@studnicky/event-bus/interfaces` |
 | `EventHandlerInterface` | Defines the event handler contract. | `@studnicky/event-bus/interfaces` |
 | `UnsubscribeInterface` | Defines the unsubscribe contract. | `@studnicky/event-bus/interfaces` |

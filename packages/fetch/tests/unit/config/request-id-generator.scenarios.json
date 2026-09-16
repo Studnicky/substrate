@@ -14,9 +14,12 @@
     },
     {
       "name": "request-id-generator-null",
-      "description": "ValidateRequestIdGenerator accepts null",
+      "description": "FetchClient rejects a null request ID generator",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "requestIdGenerator must be a function"
+        ]
       },
       "input": {
         "requestIdGenerator": {

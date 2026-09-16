@@ -35,7 +35,7 @@ Subclass `FetchClient` and override `onRequest` to update the outgoing request c
 
 ## Configure and observe
 
-Configure shared `baseURL`, headers, query parameters, timeouts, metadata, request IDs, and dispatcher settings with `FetchClient.create`. Use `UrlQueryString` to build and parse query strings. Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
+Configure shared `baseURL`, headers, query parameters, timeouts, metadata, request IDs, and dispatcher settings with `FetchClient.create`. Timeouts use positive whole milliseconds. Use `UrlQueryString` to build and parse query strings. Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage
 
@@ -84,7 +84,6 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 | `BrowserFetchClient` | Provides native browser fetch through the shared client contract. | `@studnicky/fetch/browser` |
 | `FetchTransport` | Routes browser requests to native fetch. | `@studnicky/fetch/browser` |
 
-## Observability hooks
 ## Observability hooks
 
 Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.

@@ -10,12 +10,12 @@ description: Bound concurrent asynchronous work and publish its outcomes.
 ## Install
 
 ```bash
-pnpm add @studnicky/bounded-dispatcher
+pnpm add @studnicky/bounded-dispatcher @studnicky/pipeline
 ```
 
 ## Usage
 
-Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`. Use `dispatch(fn)` to run a task within the configured limit. Subscribe to the `dispatch` topic for `start`, `success`, and `error` events. `scheduleDispatch(atMs, fn)` returns a cancellable task for delayed work.
+Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node` in Node or `@studnicky/bounded-dispatcher/browser` in browsers. Use `dispatch(fn)` to run a task within the configured limit. Subscribe to the `dispatch` topic for `start`, `success`, and `error` events. `scheduleDispatch(atMs, fn)` returns a cancellable task for delayed work.
 
 <<< ../../packages/bounded-dispatcher/examples/observedBoundedDispatcher.ts#usage
 
@@ -23,11 +23,14 @@ Import `BoundedDispatcher` from `@studnicky/bounded-dispatcher/node`. Use `dispa
 
 | Config key | Accepts | Default |
 |------------|---------|---------|
-| `permits` | Maximum number of active tasks | `1` |
+| `semaphore` | A `Semaphore` or its options, including `permits` and `maximumQueueSize` | A new one-permit semaphore |
 | `bus` | An `EventBus` or bus options | A new event bus |
 | `scheduler` | A scheduler provider | A real-time scheduler |
+| `pipeline` | An `OperationPipelineInterface<BoundedDispatcherOperationContextInterface>` | No policy layer |
 
-Use `getBus()` to subscribe to events and `getHookErrors()` to inspect event-publication failures. Supply a `VirtualScheduler` when your application controls time.
+Use `getBus()` to subscribe to events and `getHookErrors()` to inspect event-publication failures. Pass `{ signal }` as the second `dispatch()` argument to cancel a queued task before its callback runs. Supply a `VirtualScheduler` when your application controls time.
+
+`pipeline` accepts any `OperationPipelineInterface<BoundedDispatcherOperationContextInterface>`; `OperationPipeline` is the supplied implementation. It surrounds the full permit-acquisition and callback operation. Policies receive only `semaphoreOptions` for the current dispatch, including its optional `AbortSignal`. Policies call `next(context)` to continue. The dispatcher lets a policy or callback failure reject `dispatch()` unchanged; handle expected failures in that callback or policy.
 
 ## Try it
 
@@ -48,11 +51,13 @@ Use `@studnicky/bounded-dispatcher/interfaces` for configuration and event contr
 
 <!-- inline-ts-ok: published import path -->
 ```typescript
-import type { BoundedDispatcherConfigInterface } from '@studnicky/bounded-dispatcher/interfaces';
+import type { BoundedDispatcherConfigInterface, BoundedDispatcherOperationContextInterface } from '@studnicky/bounded-dispatcher/interfaces';
 ```
 
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BoundedDispatcher` | Runs bounded asynchronous work. | `@studnicky/bounded-dispatcher/node` |
+| `BoundedDispatcher` | Runs bounded asynchronous work in Node. | `@studnicky/bounded-dispatcher/node` |
+| `BoundedDispatcher` | Runs bounded asynchronous work in browsers. | `@studnicky/bounded-dispatcher/browser` |
+| `BoundedDispatcherOperationContextInterface` | Dispatch-policy acquisition options. | `@studnicky/bounded-dispatcher/interfaces` |

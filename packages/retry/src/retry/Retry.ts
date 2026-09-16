@@ -1,4 +1,5 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
 import { ConfigurationError } from '@studnicky/config/node';
@@ -15,7 +16,7 @@ import { Predicates } from '@studnicky/types/node';
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
-import type { RetryConfigInterface, RetryContextInterface, RetryInterface } from '../interfaces/index.js';
+import type { RetryConfigInterface, RetryContextInterface, RetryEventTopicMapInterface, RetryInterface } from '../interfaces/index.js';
 
 import {
   DEFAULT_MAXIMUM_RETRIES,
@@ -24,7 +25,10 @@ import {
   NO_DELAY_MS
 } from '../constants/index.js';
 import { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
+import { RetryAttemptEventEntity } from '../entities/RetryAttemptEventEntity.js';
 import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
+import { RetryContextDataEntity } from '../entities/RetryContextDataEntity.js';
+import { RetrySuccessEventEntity } from '../entities/RetrySuccessEventEntity.js';
 import {
   MaximumRetriesExceededError,
   NonRetryableError
@@ -48,54 +52,9 @@ class RetryHookInvoker extends HookInvoker {
 }
 
 /**
- * Base class for async operations with retry logic.
- *
- * Protocol-agnostic retry behavior with extensible error classification. The bare
- * class performs NO observability of its own — it exposes protected lifecycle hooks
- * (`onAttempt`, `onSuccess`, `onRetryableError`, `onRetryScheduled`, `onGiveUp`) that
- * a consumer overrides to add logging/timing/metrics. Can be instantiated directly
- * with an errorClassifier in config, or extended with a custom classifyError().
- *
- * @example Direct instantiation with config classifier and backoff
- * ```typescript
- * import { DefaultHttpErrorClassifier } from '@studnicky/errors';
- * import { BackoffStrategy, Retry } from '@studnicky/retry';
- *
- * const retry = Retry.create({
- *   maximumRetries: 3,
- *   errorClassifier: DefaultHttpErrorClassifier.create(),
- *   backoffStrategy: { strategy: BackoffStrategy.exponential, baseDelayMs: 100 }
- * });
- *
- * const result = await retry.execute(() => fetchData());
- * ```
- *
- * @example Adding observability and backoff via hooks
- * ```typescript
- * class ObservedRetry extends Retry {
- *   protected override onRetryScheduled(context: RetryContextInterface): void {
- *     context.delayMs = BackoffStrategy.exponential(context.attemptNumber, 100);
- *     this.logger.warn('retry.scheduled', { attemptNumber: context.attemptNumber, delayMs: context.delayMs });
- *   }
- *   protected override onGiveUp(error: Error, attemptNumber: number, reason: string): void {
- *     this.logger.error('retry.giveUp', { reason, attemptNumber, error: error.message });
- *   }
- * }
- * ```
- *
- * @example Extension of classification
- * ```typescript
- * class FusekiRetry extends Retry {
- *   protected classifyError(error: Error): ErrorClassificationEntity.Type {
- *     const msg = error.message.toLowerCase();
- *     if (msg.includes('transaction abort') || msg.includes('503')) {
- *       return { retryable: true, reason: 'Transient Fuseki error' };
- *     }
- *     return { retryable: false };
- *   }
- * }
- * ```
- *
+ * Executes asynchronous operations with configurable retry classification, backoff, and
+ * optional typed lifecycle-event publishing through eventSink. Protected lifecycle hooks
+ * remain available when an application needs to alter retry behavior or extend classification.
  */
 export class Retry implements RetryInterface {
   static readonly #transitionEventsByVariant = new Map<string, RetryCallTransitionEventEntity.Type>([
@@ -163,6 +122,7 @@ export class Retry implements RetryInterface {
   private readonly classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly clock: Clock;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
+  private readonly eventSink: EventSinkInterface<RetryEventTopicMapInterface> | undefined;
   private readonly backoffStrategy: RetryConfigInterface['backoffStrategy'];
 
   readonly #callMachine: RetryCallMachine = new RetryCallMachine();
@@ -188,6 +148,7 @@ export class Retry implements RetryInterface {
     this.maximumElapsedMs = validated.maximumElapsedMs;
     this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
+    this.eventSink = validated.eventSink;
     this.backoffStrategy = validated.backoffStrategy;
 
     let classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
@@ -215,6 +176,7 @@ export class Retry implements RetryInterface {
         backoffStrategy,
         'clock': clockProvider,
         errorClassifier,
+        eventSink,
         ...configData
       } = config;
 
@@ -236,6 +198,12 @@ export class Retry implements RetryInterface {
         BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
       }
 
+      if (eventSink !== undefined) {
+        if (!Predicates.isObject(eventSink) || !Predicates.isFunction(Reflect.get(eventSink, 'publish'))) {
+          throw ConfigurationError.create('eventSink must implement EventSinkInterface');
+        }
+      }
+
       if (errorClassifier !== undefined && !Predicates.isFunction(errorClassifier)) {
         if (!Predicates.isObject(errorClassifier)) {
           throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
@@ -252,7 +220,8 @@ export class Retry implements RetryInterface {
         ...parsed,
         ...(backoffStrategy === undefined ? {} : { 'backoffStrategy': backoffStrategy }),
         ...(clockProvider === undefined ? {} : { 'clock': clockProvider }),
-        ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier })
+        ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier }),
+        ...(eventSink === undefined ? {} : { 'eventSink': eventSink })
       };
       return result;
     } catch (error) {
@@ -396,7 +365,7 @@ export class Retry implements RetryInterface {
     // elapsed-time budget is exhausted. That is the single exhaustion path —
     // there is no post-loop fallthrough to guard against.
     for (let attempt = INITIAL_COUNTER; ; attempt++) {
-      await this.fireOnAttempt(attempt);
+      await this.fireOnAttempt(attempt, startTime);
 
       const outcome = await this.tryAttempt(callback);
 
@@ -411,9 +380,30 @@ export class Retry implements RetryInterface {
   }
 
   /** Fires the `onAttempt` lifecycle hook for the given attempt number. */
-  private async fireOnAttempt(attempt: number): Promise<void> {
+  private async fireOnAttempt(attempt: number, startTime: number): Promise<void> {
     await this.hooks.invokeAsync('onAttempt', () => {
       const result = this.onAttempt(attempt);
+      return result;
+    });
+    this.publishEvent('attempt', RetryAttemptEventEntity.create({
+      'attemptNumber': attempt,
+      'elapsedMs': this.clock.now() - startTime
+    }));
+  }
+
+  private publishEvent<K extends keyof RetryEventTopicMapInterface>(
+    topic: K,
+    payload: RetryEventTopicMapInterface[K]
+  ): void {
+    const eventSink = this.eventSink;
+    if (eventSink === undefined) {
+      return;
+    }
+
+    const snapshot = structuredClone(payload);
+    Object.freeze(snapshot);
+    this.hooks.invoke('publishRetryEvent', () => {
+      const result = eventSink.publish(topic, snapshot);
       return result;
     });
   }
@@ -530,10 +520,15 @@ export class Retry implements RetryInterface {
     this.stats.successfulRequests++;
 
     callFsm.transition({ 'variant': 'succeeded' });
+    const elapsedMs = this.clock.now() - startTime;
     await this.hooks.invokeAsync('onSuccess', () => {
-      const result = this.onSuccess(attempt, this.clock.now() - startTime);
+      const result = this.onSuccess(attempt, elapsedMs);
       return result;
     });
+    this.publishEvent('success', RetrySuccessEventEntity.create({
+      'attemptNumber': attempt,
+      'elapsedMs': elapsedMs
+    }));
   }
 
   /**
@@ -585,6 +580,21 @@ export class Retry implements RetryInterface {
       const result = this.onRetryScheduled(context);
       return result;
     });
+
+    const retryScheduledData = context.abort === undefined
+      ? {
+        'attemptNumber': context.attemptNumber,
+        'delayMs': context.delayMs,
+        'elapsedMs': context.elapsedMs
+      }
+      : {
+        'abort': context.abort,
+        'attemptNumber': context.attemptNumber,
+        'delayMs': context.delayMs,
+        'elapsedMs': context.elapsedMs
+      };
+    const retryScheduledEvent = RetryContextDataEntity.create(retryScheduledData);
+    this.publishEvent('retryScheduled', retryScheduledEvent);
 
     if (context.abort === true) {
       await this.handleAbort(callFsm, attempt, error);

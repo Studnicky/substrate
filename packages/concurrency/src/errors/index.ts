@@ -2,3 +2,4 @@ export { ChannelError } from './ChannelError.js';
 export { CoalesceTimeoutError } from './CoalesceTimeoutError.js';
 export { ConcurrencyError } from './ConcurrencyError.js';
 export { SemaphoreError } from './SemaphoreError.js';
+export { SemaphoreQueueFullError } from './SemaphoreQueueFullError.js';

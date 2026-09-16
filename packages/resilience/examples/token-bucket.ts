@@ -16,9 +16,10 @@ const bucket = TokenBucket.create({ 'burstSize': 3, 'clock': Clock.now, 'request
 console.log('Initial available tokens:', bucket.available);
 
 // --- consume() drains tokens ---
+const firstAdmission = bucket.consume();
 bucket.consume();
 bucket.consume();
-bucket.consume();
+console.log('First admission:', firstAdmission);
 console.log('Available after 3 consumes:', bucket.available);
 
 // --- Advance 500 ms → 1 new token (2 tokens/s × 0.5 s = 1) ---

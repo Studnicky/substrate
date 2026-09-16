@@ -5,3 +5,4 @@ export type { StatePersistenceInterface } from './StatePersistenceInterface.js';
 export type { StoreInterface } from './StoreInterface.js';
 export type { StoreListenerInterface } from './StoreListenerInterface.js';
 export type { StoreOptionsInterface } from './StoreOptionsInterface.js';
+export type { StoreSynchronizationIdentityInterface } from './StoreSynchronizationIdentityInterface.js';

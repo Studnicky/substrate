@@ -1,3 +1,5 @@
+import { Clone } from '@studnicky/json/browser';
+
 import type { StateCodecInterface } from '../interfaces/StateCodecInterface.js';
 import type { StatePersistenceInterface } from '../interfaces/StatePersistenceInterface.js';
 import type { BrowserPersistenceOptionsInterface } from './BrowserPersistenceOptionsInterface.js';
@@ -78,13 +80,13 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
       return undefined;
     }
 
-    const result = this.#codec.decode(serialized);
+    const result = Clone.deep(this.#codec.decode(serialized));
 
     return result;
   }
 
   public async save(key: string, state: TState): Promise<void> {
-    const serialized = this.#codec.encode(state);
+    const serialized = this.#codec.encode(Clone.deep(state));
 
     if (this.#storageTarget === StorageTarget.Memory) {
       this.#memory.set(key, serialized);

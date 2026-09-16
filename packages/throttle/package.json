@@ -64,7 +64,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/throttle)
 
-Throttle concurrent async operations to a configurable limit. As each operation completes, the next queued operation starts immediately — no polling, no intervals. Supports graceful drain, immediate abort with detach-and-abandon semantics, and optional adaptive concurrency based on observed latency.
+Throttle concurrent async operations to a configurable limit in Node.js and browser runtimes. Import runtime APIs from `@studnicky/throttle/node` or `@studnicky/throttle/browser`. As each operation completes, the next queued operation starts immediately — no polling, no intervals. Supports graceful drain, immediate abort with detach-and-abandon semantics, and optional adaptive concurrency based on observed latency.
 
 ## Install
 

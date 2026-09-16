@@ -141,9 +141,9 @@
       }
     },
     {
-      "name": "run-start-return-passed-to-first-stage",
-      "description": "onRunStart return value is passed to the first stage",
-      "shape": "run-start-return-passed-to-first-stage",
+      "name": "run-start-observer-leaves-first-stage-input",
+      "description": "onRunStart observes the original stage input",
+      "shape": "run-start-observer-leaves-first-stage-input",
       "input": {
         "ctx": 0,
         "stages": [
@@ -151,13 +151,13 @@
         ]
       },
       "expected": {
-        "stageInput": 1000
+        "stageInput": 0
       }
     },
     {
-      "name": "run-complete-return-value",
-      "description": "onRunComplete return value is the resolved value of run",
-      "shape": "run-complete-return-value",
+      "name": "run-complete-observer-leaves-result-intact",
+      "description": "onRunComplete observes the final transformed context",
+      "shape": "run-complete-observer-leaves-result-intact",
       "input": {
         "ctx": 10,
         "stages": [
@@ -304,9 +304,9 @@
       }
     },
     {
-      "name": "run-error-contains-pipeline-error",
-      "description": "onRunError receives the wrapped PipelineError",
-      "shape": "run-error-contains-pipeline-error",
+      "name": "run-error-receives-original-stage-error",
+      "description": "onRunError receives the original stage error",
+      "shape": "run-error-receives-original-stage-error",
       "input": {
         "ctx": 0,
         "stages": [
@@ -314,7 +314,7 @@
         ]
       },
       "expected": {
-        "errorInstanceOf": "PipelineError"
+        "errorInstanceOf": "RuntimeError"
       }
     },
     {
@@ -349,7 +349,7 @@
     },
     {
       "name": "throwing-on-stage-start",
-      "description": "a throwing onStageStart hook propagates as HookInvocationError",
+      "description": "a throwing onStageStart observer leaves the stage result intact",
       "shape": "throwing-on-stage-start",
       "input": {
         "ctx": 1,
@@ -358,12 +358,12 @@
         ]
       },
       "expected": {
-        "errorName": "HookInvocationError"
+        "result": 2
       }
     },
     {
       "name": "throwing-on-stage-success",
-      "description": "a throwing onStageSuccess hook propagates as HookInvocationError",
+      "description": "a throwing onStageSuccess observer leaves the stage result intact",
       "shape": "throwing-on-stage-success",
       "input": {
         "ctx": 1,
@@ -372,12 +372,12 @@
         ]
       },
       "expected": {
-        "errorName": "HookInvocationError"
+        "result": 2
       }
     },
     {
       "name": "throwing-on-stage-error",
-      "description": "a throwing onStageError hook propagates as HookInvocationError",
+      "description": "a throwing onStageError observer leaves the stage failure intact",
       "shape": "throwing-on-stage-error",
       "input": {
         "ctx": 1,
@@ -386,12 +386,12 @@
         ]
       },
       "expected": {
-        "errorName": "HookInvocationError"
+        "errorName": "RuntimeError"
       }
     },
     {
       "name": "throwing-on-run-error",
-      "description": "a throwing onRunError hook propagates as HookInvocationError",
+      "description": "a throwing onRunError observer leaves the stage failure intact",
       "shape": "throwing-on-run-error",
       "input": {
         "ctx": 1,
@@ -400,7 +400,7 @@
         ]
       },
       "expected": {
-        "errorName": "HookInvocationError"
+        "errorName": "RuntimeError"
       }
     },
     {
@@ -435,7 +435,7 @@
     },
     {
       "name": "on-run-start-throw-does-not-trigger-run-error",
-      "description": "a throw from onRunStart does not trigger onRunError",
+      "description": "a throwing onRunStart observer leaves the stage result intact",
       "shape": "on-run-start-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,
@@ -450,7 +450,7 @@
     },
     {
       "name": "on-run-complete-throw-does-not-trigger-run-error",
-      "description": "a throw from onRunComplete does not trigger onRunError",
+      "description": "a throwing onRunComplete observer leaves the stage result intact",
       "shape": "on-run-complete-throw-does-not-trigger-run-error",
       "input": {
         "ctx": 0,

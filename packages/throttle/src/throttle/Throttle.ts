@@ -1,4 +1,4 @@
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { Semaphore } from '@studnicky/concurrency/node';
 import { ConfigurationError } from '@studnicky/config/node';
 import { SchemaIntakeError } from '@studnicky/entity/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
@@ -38,11 +38,8 @@ import type { OperationRejectedEventInterface } from '../interfaces/OperationRej
 
 import {
   DEFAULT_ADAPTIVE_CONFIG,
-  DEFAULT_BUFFER_CAPACITY,
   DEFAULT_THROTTLE_CONCURRENCY,
   DEFAULT_TIMEOUT,
-  EMPTY_LENGTH,
-  FIRST_ARRAY_INDEX,
   INITIAL_COUNTER,
   NO_DELAY_MS,
   PERCENTILE_P50,
@@ -71,15 +68,14 @@ interface ActiveOperationInterface {
   'completed': ActiveOperationStateEntity.Type['completed'];
 
   /**
-   * Resolves the execute() promise with undefined (aborted state)
+   * Releases an acquired permit exactly once.
+   */
+  'release': (() => Promise<void>) | undefined;
+
+  /**
+   * Resolves the execute() promise with undefined when the operation is aborted.
    */
   'resolve': () => void;
-}
-
-/** Queued continuation retained until a concurrency slot becomes available. */
-interface ThrottleQueueEntryInterface {
-  readonly 'reject': (error: unknown) => void;
-  readonly 'resolve': () => void;
 }
 
 interface LifecycleEffectHandlerInterface {
@@ -210,11 +206,11 @@ export class Throttle implements ThrottleInterface {
    */
   #state: ThrottleStateEntity.Type = 'idle';
 
-  private activeCount = INITIAL_COUNTER;
+  private readonly abortController = new AbortController();
   private readonly activeOperations = new Set<ActiveOperationInterface>();
   private adjustmentCount = INITIAL_COUNTER;
-  private completionPromise: null | Promise<void> = null;
   private config: ValidatedThrottleConfigEntity.Type;
+  private drainWaiter: PromiseWithResolvers<void> | undefined;
   protected readonly hooks: HookInvoker = new HookInvoker();
   private lastAdjustmentTime = INITIAL_COUNTER;
   private readonly latencyBuffer: SampleBuffer | undefined;
@@ -228,8 +224,7 @@ export class Throttle implements ThrottleInterface {
   private readonly lifecycle = new OperationLifecycleMachine();
   private lifecycleState: OperationLifecycleStateEntity.Type = this.lifecycle.getInitialState();
 
-  private readonly observers: (() => void)[] = [];
-  private readonly queue: CircularBuffer<ThrottleQueueEntryInterface>;
+  private readonly semaphore: Semaphore;
 
   private totalExecuted = INITIAL_COUNTER;
 
@@ -253,10 +248,7 @@ export class Throttle implements ThrottleInterface {
    */
   protected constructor(config?: Partial<ThrottleConfigEntity.Type>) {
     this.config = Throttle.validateConfig(config);
-    this.queue = CircularBuffer.create<ThrottleQueueEntryInterface>({
-      'capacity': DEFAULT_BUFFER_CAPACITY,
-      'overflow': 'grow'
-    });
+    this.semaphore = Semaphore.create({ 'permits': this.config.concurrencyLimit });
 
     const buffer: SampleBuffer | undefined = this.config.adaptive?.enabled === true
       ? SampleBuffer.create({ 'capacity': this.config.adaptive.sampleWindow })
@@ -493,7 +485,6 @@ export class Throttle implements ThrottleInterface {
 
     const startTotal = this.totalExecuted;
 
-    // Transition to draining for the grace period (if not already draining)
     if (this.#state !== 'draining') {
       this.transition('draining');
     }
@@ -502,15 +493,13 @@ export class Throttle implements ThrottleInterface {
 
     this.transition('aborted');
 
-    const cancelledCount = this.activeOperations.size + this.queue.length;
+    const cancelledCount = this.activeOperations.size;
 
-    // abort() is already async and all accounting for the abort decision is
-    // already committed above (state transitioned, cancelledCount computed) —
-    // awaiting here cannot race with a concurrent synchronous call. cancelActiveOperations(),
-    // drainQueue(), and notifyObservers() unblock OTHER callers (queued/active
-    // execute() promises, drain()/waitForCompletion() waiters) and must run
-    // unconditionally, so a hook failure is captured and rethrown only after
-    // that cleanup completes.
+    this.abortController.abort();
+    await this.cancelActiveOperations();
+    this.drainWaiter?.resolve();
+    this.drainWaiter = undefined;
+
     let abortHookError: unknown;
 
     try {
@@ -518,10 +507,6 @@ export class Throttle implements ThrottleInterface {
     } catch (error) {
       abortHookError = error;
     }
-
-    this.cancelActiveOperations();
-    this.drainQueue();
-    this.notifyObservers();
 
     if (abortHookError !== undefined) {
       throw abortHookError;
@@ -535,62 +520,83 @@ export class Throttle implements ThrottleInterface {
   }
 
   /**
-   * Acquire a concurrency slot
-   * Synchronously increments activeCount to prevent race conditions
+   * Acquires a shared permit and maps its state to the throttle lifecycle.
    */
-  private async acquireSlot(): Promise<void> {
-    if (this.activeCount < this.config.concurrencyLimit) {
-      if (this.activeCount === INITIAL_COUNTER && this.#state === 'idle') {
-        this.transition('active');
-      }
-      this.activeCount++;
+  private async acquireSlot(operation: ActiveOperationInterface): Promise<void> {
+    const waited = this.semaphore.available <= INITIAL_COUNTER || this.semaphore.queuedCount > INITIAL_COUNTER;
+    let acquisition: Promise<(() => Promise<void>) | undefined>;
+    let acquisitionError: unknown;
 
-      // Accounting (transition + activeCount++) is already committed above, so
-      // awaiting here is safe — a concurrent synchronous acquireSlot() call sees
-      // the updated activeCount regardless of when this hook settles. If the hook
-      // fails, the slot was never actually put to use, so it is rolled back via
-      // releaseSlot() before the failure propagates to the caller.
+    if (waited) {
+      this.fireLifecycleEffect({
+        'activeCount': this.semaphore.activeCount,
+        'queuedCount': this.semaphore.queuedCount,
+        'type': 'Contended'
+      });
+
+      const admission = new AbortController();
+      acquisition = this.semaphore.acquire({ 'signal': AbortSignal.any([this.abortController.signal, admission.signal]) }).catch((error: unknown) => {
+        acquisitionError = error;
+        return undefined;
+      });
       try {
-        await this.fireLifecycleEffectAsync({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'Acquired' });
+        await this.fireLifecycleEffectAsync({
+          'queuedCount': this.semaphore.queuedCount,
+          'type': 'Queued'
+        });
       } catch (error) {
-        this.releaseSlot();
+        admission.abort();
+        await acquisition;
         throw error;
       }
-
-      return;
+    } else {
+      if (this.#state === 'idle') {
+        this.transition('active');
+      }
+      acquisition = this.semaphore.acquire({ 'signal': this.abortController.signal });
     }
 
-    // Synchronous entry preserves the ordering guarantee that onContended fires
-    // before this caller is pushed onto the queue.
-    this.fireLifecycleEffect({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'Contended' });
-
-    await new Promise<void>((resolve, reject) => {
-      const pendingTask = {
-        'reject': reject,
-        'resolve': resolve
-      };
-      this.queue.push(pendingTask);
-
-      // onAcquireWait fires from inside a Promise executor, which must stay
-      // synchronous per the Promise constructor contract — it cannot be awaited
-      // here. invokeAsync exposes both synchronous and asynchronous hook
-      // failures through its completion promise, so the same catch handles
-      // either failure mode.
-      this.fireLifecycleEffectAsync({ 'queuedCount': this.queue.length, 'type': 'Queued' })
-        .catch((error) => {
-          const queuedCount = this.queue.length;
-
-          for (let i = INITIAL_COUNTER; i < queuedCount; i++) {
-            const queuedTask = this.queue.shift();
-
-            if (queuedTask !== undefined && queuedTask !== pendingTask) {
-              this.queue.push(queuedTask);
-            }
-          }
-
-          reject(error);
+    try {
+      const release = await acquisition;
+      if (release === undefined) {
+        throw acquisitionError ?? RuntimeError.create('Semaphore acquisition failed without an error.');
+      }
+      this.bindPermit(operation, release);
+      if (waited) {
+        this.fireLifecycleEffect({
+          'activeCount': this.semaphore.activeCount,
+          'queuedCount': this.semaphore.queuedCount,
+          'type': 'WindowSlid'
         });
-    });
+      } else {
+        await this.fireLifecycleEffectAsync({
+          'activeCount': this.semaphore.activeCount,
+          'queuedCount': this.semaphore.queuedCount,
+          'type': 'Acquired'
+        });
+      }
+    } catch (error) {
+      if (operation.release !== undefined) {
+        await operation.release();
+      } else {
+        this.completeIfIdle();
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Gives one tracked operation sole, idempotent ownership of its acquired permit.
+   */
+  private bindPermit(operation: ActiveOperationInterface, release: () => Promise<void>): void {
+    let released = false;
+    operation.release = async (): Promise<void> => {
+      if (released) {
+        return;
+      }
+      released = true;
+      await this.releaseSlot(release);
+    };
   }
 
   /**
@@ -617,60 +623,49 @@ export class Throttle implements ThrottleInterface {
   }
 
   /**
-   * Cancel all active operations by resolving them with undefined
+   * Resolves tracked consumers and releases permits before abort observability runs.
    */
-  private cancelActiveOperations(): void {
+  private async cancelActiveOperations(): Promise<void> {
+    const releases: Promise<void>[] = [];
     for (const operation of this.activeOperations) {
-      if (!operation.completed) {
-        operation.completed = true;
-        operation.resolve();
+      if (operation.completed) {
+        continue;
+      }
+      operation.completed = true;
+      operation.resolve();
+      if (operation.release !== undefined) {
+        releases.push(operation.release());
       }
     }
     this.activeOperations.clear();
-    this.activeCount = INITIAL_COUNTER;
+    await Promise.allSettled(releases);
   }
 
   /**
-   * Enter draining mode to stop accepting new operations and wait for completion
-   *
-   * Sets the throttle to draining mode, preventing new operations from being queued
-   * while waiting for active and already-queued operations to complete normally.
-   * Use this for graceful shutdown where you want queued work to finish.
-   *
-   * @returns Promise that resolves when all operations complete
-   *
-   * @example Graceful shutdown
-   * ```typescript
-   * // Stop accepting new operations and wait for completion
-   * await throttle.drain();
-   * console.log('All operations completed gracefully');
-   * await cleanupResources();
-   * ```
+   * Enter draining mode and wait for the shared permit gate to become idle.
    */
   async drain(): Promise<void> {
-    if (this.#state === 'draining' || this.#state === 'aborted') {
-      return await this.waitForCompletion();
+    if (this.#state === 'aborted') {
+      return;
     }
 
-    this.transition('draining');
-
-    // drain() is already async and the state transition above is already
-    // committed — awaiting here cannot race with a concurrent synchronous call.
-    await this.fireLifecycleEffectAsync({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'DrainStarted' });
-
-    return await this.waitForCompletion();
-  }
-
-  /**
-   * Drain the queue by resolving all pending operations with undefined
-   */
-  private drainQueue(): void {
-    let pendingTask = this.queue.shift();
-
-    while (pendingTask !== undefined) {
-      pendingTask.resolve();
-      pendingTask = this.queue.shift();
+    if (this.#state !== 'draining') {
+      this.transition('draining');
+      await this.fireLifecycleEffectAsync({
+        'activeCount': this.semaphore.activeCount,
+        'queuedCount': this.semaphore.queuedCount,
+        'type': 'DrainStarted'
+      });
     }
+
+    if (this.semaphore.activeCount === INITIAL_COUNTER && this.semaphore.queuedCount === INITIAL_COUNTER) {
+      return;
+    }
+
+    this.drainWaiter ??= Promise.withResolvers<void>();
+    await Promise.race([this.semaphore.waitForIdle(), this.drainWaiter.promise]);
+    this.drainWaiter = undefined;
+    this.completeIfIdle();
   }
 
   /**
@@ -689,40 +684,42 @@ export class Throttle implements ThrottleInterface {
   async execute<T>(callback: () => Promise<T>): Promise<T | undefined> {
     this.validateExecuteState();
 
-    const result = await new Promise<T | undefined>((resolveExecute, rejectExecute) => {
-      this.acquireSlot().then(() => {
-        if (this.#state === 'aborted') {
-          resolveExecute(undefined);
-
-          return;
-        }
-
-        const resolveOperation = (): void => { resolveExecute(undefined); };
-        const operation: ActiveOperationInterface = {
-          'completed': false,
-          'resolve': resolveOperation
-        };
-
-        this.activeOperations.add(operation);
-
-        const operationStartTime = this.now();
-
-        try {
-          // handleOperationSuccess/handleOperationError may now throw a
-          // HookInvocationError (a lifecycle hook they invoke can fail) — the
-          // appended .catch(rejectExecute) is the safety net so that failure
-          // rejects execute() instead of becoming an unhandled rejection.
-          callback().then(
-            (successResult) => { this.handleOperationSuccess(operation, successResult, operationStartTime, resolveExecute); },
-            (error) => { this.handleOperationError(operation, Predicates.isError(error) ? error : RuntimeError.create(String(error)), rejectExecute); }
-          ).catch(rejectExecute);
-        } catch (error) {
-          this.handleOperationError(operation, Predicates.isError(error) ? error : RuntimeError.create(String(error)), rejectExecute);
-        }
-      })
-        .catch(rejectExecute);
+    return await new Promise<T | undefined>((resolve, reject) => {
+      const operation: ActiveOperationInterface = {
+        'completed': false,
+        'release': undefined,
+        'resolve': (): void => { resolve(undefined); }
+      };
+      this.activeOperations.add(operation);
+      this.startOperation(operation, callback, resolve, reject).catch(reject);
     });
-    return result;
+  }
+
+  /**
+   * Keeps an execute() request cancellation-owned through admission and operation execution.
+   */
+  private async startOperation<T>(
+    operation: ActiveOperationInterface,
+    callback: () => Promise<T>,
+    resolve: (value: T | undefined) => void,
+    reject: (reason?: unknown) => void
+  ): Promise<void> {
+    try {
+      await this.acquireSlot(operation);
+    } catch (error) {
+      if (!operation.completed) {
+        operation.completed = true;
+        this.activeOperations.delete(operation);
+        reject(error);
+      }
+      return;
+    }
+
+    if (operation.completed) {
+      return;
+    }
+
+    await this.runOperation(operation, callback, resolve, reject);
   }
 
   /**
@@ -745,11 +742,11 @@ export class Throttle implements ThrottleInterface {
    */
   getStats(): ThrottleStatsEntity.Type {
     const stats: ThrottleStatsEntity.Type = {
-      'activeCount': this.activeCount,
+      'activeCount': this.semaphore.activeCount,
       'concurrencyLimit': this.config.concurrencyLimit,
       'isAborted': this.#state === 'aborted',
       'isDraining': this.#state === 'draining',
-      'queuedCount': this.queue.length,
+      'queuedCount': this.semaphore.queuedCount,
       'totalExecuted': this.totalExecuted
     };
 
@@ -794,96 +791,111 @@ export class Throttle implements ThrottleInterface {
   }
 
   /**
-   * Handle operation error
+   * Runs one consumer operation while the shared semaphore owns its permit.
    */
-  private handleOperationError(
+  private async runOperation<T>(
     operation: ActiveOperationInterface,
-    error: Error,
-    rejectExecute: (error: Error) => void
-  ): void {
-    if (operation.completed) {
-      return;
+    callback: () => Promise<T>,
+    resolve: (value: T | undefined) => void,
+    reject: (reason?: unknown) => void
+  ): Promise<void> {
+    const releasePermit = operation.release;
+    if (releasePermit === undefined) {
+      throw RuntimeError.create('An acquired throttle operation must own a permit release.');
     }
-
-    operation.completed = true;
-    this.activeOperations.delete(operation);
-
-    const normalizedError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
+    const operationStartTime = this.now();
 
     try {
-      this.fireLifecycleEffect({ 'reason': normalizedError, 'type': 'OperationRejected' });
-    } finally {
-      this.releaseSlot();
-    }
+      const result = await callback();
+      if (operation.completed) {
+        await releasePermit();
+        return;
+      }
 
-    rejectExecute(normalizedError);
-  }
+      this.totalExecuted += 1;
+      if (this.latencyBuffer !== undefined) {
+        this.latencyBuffer.push(this.now() - operationStartTime);
+        await this.maybeAdjustConcurrency();
+      }
 
-  /**
-   * Handle successful operation completion
-   */
-  private handleOperationSuccess<T>(
-    operation: ActiveOperationInterface,
-    result: T,
-    operationStartTime: number,
-    resolveExecute: (value: T | undefined) => void
-  ): void {
-    if (operation.completed) {
-      return;
-    }
+      operation.completed = true;
+      this.activeOperations.delete(operation);
+      try {
+        await releasePermit();
+      } catch (releaseError) {
+        reject(releaseError);
+        return;
+      }
+      resolve(result);
+    } catch (error) {
+      if (operation.completed) {
+        await releasePermit();
+        return;
+      }
 
-    operation.completed = true;
-    this.activeOperations.delete(operation);
-    this.totalExecuted++;
-
-    if (this.latencyBuffer !== undefined) {
-      const duration = this.now() - operationStartTime;
-
-      this.latencyBuffer.push(duration);
+      operation.completed = true;
+      this.activeOperations.delete(operation);
+      const normalizedError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
+      let outcome: unknown = normalizedError;
 
       try {
-        this.maybeAdjustConcurrency();
-      } catch (error) {
-        // maybeAdjustConcurrency already throws a HookInvocationError (from
-        // scaleConcurrency's onAdaptiveAdjust or processQueuedOperations'
-        // onWindowSlide) — this operation's own slot still must be released.
-        this.releaseSlot();
-        throw error;
+        this.fireLifecycleEffect({ 'reason': normalizedError, 'type': 'OperationRejected' });
+      } catch (hookError) {
+        outcome = hookError;
       }
+
+      try {
+        await releasePermit();
+      } catch (releaseError) {
+        outcome = releaseError;
+      }
+
+      reject(outcome);
     }
-
-    // releaseSlot() is the sole place that fires onRelease — it does so exactly once,
-    // for every outcome (queue handoff, becomes idle, still busy), by routing through
-    // OperationLifecycleMachine's 'SlotReleased' event. No separate explicit firing here.
-    this.releaseSlot();
-
-    resolveExecute(result);
   }
 
   /**
-   * Check if the throttle has completed all operations
-   *
-   * @returns True if no operations are active or queued
-   *
-   * @example Check completion state
-   * ```typescript
-   * if (throttle.isComplete()) {
-   *   console.log('Throttle has no pending work');
-   * }
-   * ```
+   * Releases a shared permit and publishes the throttle-level lifecycle event.
+   */
+  private async releaseSlot(release: () => Promise<void>): Promise<void> {
+    const queuedBeforeRelease = this.semaphore.queuedCount;
+    await release();
+
+    const activeCount = this.semaphore.activeCount;
+    let outcome: 'became-idle' | 'handoff-granted' | 'still-busy';
+    if (queuedBeforeRelease > this.semaphore.queuedCount && activeCount > INITIAL_COUNTER) {
+      outcome = 'handoff-granted';
+    } else if (activeCount === INITIAL_COUNTER) {
+      outcome = 'became-idle';
+    } else {
+      outcome = 'still-busy';
+    }
+
+    try {
+      this.fireLifecycleEffect({
+        'activeCount': activeCount,
+        'outcome': outcome,
+        'totalExecuted': this.totalExecuted,
+        'type': 'SlotReleased'
+      });
+    } finally {
+      this.completeIfIdle();
+    }
+  }
+
+  /**
+   * Check if the throttle has completed all operations.
    */
   isComplete(): boolean {
-    const result = this.activeCount === INITIAL_COUNTER && this.queue.length === EMPTY_LENGTH;
+    const isIdle = this.semaphore.activeCount === INITIAL_COUNTER && this.semaphore.queuedCount === INITIAL_COUNTER;
+    const result = this.#state === 'aborted' || isIdle;
     return result;
   }
 
   /**
-   * Adjust concurrency limit based on observed latencies
-   *
-   * Called after each successful operation. Scales up when latency is low,
-   * scales down when latency approaches the target.
+   * Adjust concurrency through the shared permit gate.
    */
-  private maybeAdjustConcurrency(): void {
+  private async maybeAdjustConcurrency(): Promise<void> {
     const adaptive = this.config.adaptive;
 
     if (!this.shouldAdjustConcurrency(adaptive)) {
@@ -891,54 +903,39 @@ export class Throttle implements ThrottleInterface {
     }
 
     const p95 = this.latencyBuffer?.percentile(PERCENTILE_P95);
-
     if (p95 === undefined) {
       return;
     }
 
     const newLimit = this.calculateNewLimit(adaptive, p95);
-
     if (newLimit !== this.config.concurrencyLimit) {
       this.config.concurrencyLimit = newLimit;
-      this.adjustmentCount++;
-      this.processQueuedOperations();
+      this.adjustmentCount += 1;
+      await this.semaphore.setPermits(newLimit);
     }
 
     this.lastAdjustmentTime = this.now();
   }
 
   /**
-   * Notify all observers that the throttle is now idle.
-   *
-   * Transitions active → idle or draining → idle when all work is complete.
-   * No transition when aborted (terminal state).
+   * Completes the logical drain state once the permit gate has no work.
    */
-  private notifyObservers(): void {
-    try {
-      if (this.#state === 'draining') {
-        try {
-          this.fireLifecycleEffect({ 'totalExecuted': this.totalExecuted, 'type': 'DrainCompleted' });
-        } finally {
-          this.transition('idle');
-        }
-      } else if (this.#state === 'active') {
+  private completeIfIdle(): void {
+    if (!this.isComplete() || this.#state === 'aborted') {
+      return;
+    }
+
+    if (this.#state === 'draining') {
+      try {
+        this.fireLifecycleEffect({ 'totalExecuted': this.totalExecuted, 'type': 'DrainCompleted' });
+      } finally {
         this.transition('idle');
       }
-    } finally {
-      const length = this.observers.length;
+      return;
+    }
 
-      try {
-        for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
-          const observer = this.observers.at(i);
-
-          if (observer !== undefined) {
-            observer();
-          }
-        }
-      } finally {
-        this.observers.length = EMPTY_LENGTH;
-        this.completionPromise = null;
-      }
+    if (this.#state === 'active') {
+      this.transition('idle');
     }
   }
 
@@ -999,103 +996,6 @@ export class Throttle implements ThrottleInterface {
    */
   protected onRelease(_activeCount: number, _totalExecuted: number): void {}
 
-  /** Grants the next queued caller a slot and reports the grant outcome. */
-  private grantNextQueuedOperation(): 'failed' | 'granted' | undefined {
-    const pendingTask = this.queue.shift();
-
-    if (pendingTask === undefined) {
-      return undefined;
-    }
-
-    this.activeCount++;
-
-    try {
-      this.fireLifecycleEffect({ 'activeCount': this.activeCount, 'queuedCount': this.queue.length, 'type': 'WindowSlid' });
-    } catch (error) {
-      this.activeCount--;
-      pendingTask.reject(error);
-
-      return 'failed';
-    }
-
-    pendingTask.resolve();
-
-    return 'granted';
-  }
-
-  /**
-   * Process queued operations up to concurrency limit
-   * @returns Number of operations dequeued
-   */
-  private processQueuedOperations(): number {
-    let count = INITIAL_COUNTER;
-
-    while (this.queue.length > EMPTY_LENGTH && this.activeCount < this.config.concurrencyLimit) {
-      const outcome = this.grantNextQueuedOperation();
-
-      if (outcome === 'granted') {
-        count++;
-      } else if (outcome === undefined) {
-        return count;
-      }
-    }
-
-    return count;
-  }
-
-  /**
-   * Release a concurrency slot and process queued operations
-   */
-  private releaseSlot(): void {
-    this.activeCount--;
-
-    if (this.queue.length > EMPTY_LENGTH) {
-      const outcome = this.grantNextQueuedOperation();
-
-      if (outcome === 'granted') {
-        // onRelease here describes the just-completed operation's own release
-        // (accounting is already fully committed above), so a failure
-        // propagates up to that operation's caller rather than to the waiter.
-        this.fireLifecycleEffect({
-          'activeCount': this.activeCount,
-          'outcome': 'handoff-granted',
-          'totalExecuted': this.totalExecuted,
-          'type': 'SlotReleased'
-        });
-      }
-
-      // outcome === 'failed' (onWindowSlide threw): the waiter was already rejected by
-      // grantNextQueuedOperation and its own failure has already been surfaced there —
-      // this release did not successfully hand off, so no onRelease fires for it.
-      return;
-    }
-
-    if (this.activeCount === INITIAL_COUNTER) {
-      try {
-        this.fireLifecycleEffect({
-          'activeCount': this.activeCount,
-          'outcome': 'became-idle',
-          'totalExecuted': this.totalExecuted,
-          'type': 'SlotReleased'
-        });
-      } finally {
-        this.notifyObservers();
-      }
-
-      return;
-    }
-
-    // Still busy (activeCount > 0) with an empty queue — this is the outcome the old
-    // procedural code failed to cover from inside releaseSlot() itself, relying instead
-    // on an inconsistent explicit call at the handleOperationSuccess() call site only.
-    // Every release outcome now fires onRelease exactly once, from this one method.
-    this.fireLifecycleEffect({
-      'activeCount': this.activeCount,
-      'outcome': 'still-busy',
-      'totalExecuted': this.totalExecuted,
-      'type': 'SlotReleased'
-    });
-  }
 
   /**
    * Scale concurrency limit
@@ -1149,28 +1049,6 @@ export class Throttle implements ThrottleInterface {
   }
 
   /**
-   * Wait for all active and queued operations to complete (internal use only)
-   *
-   * Returns a promise that resolves when the throttle becomes idle
-   * (no active operations and empty queue).
-   *
-   * @internal Used by drain() and abort() - not part of public API
-   */
-  private waitForCompletion(): Promise<void> {
-    if (this.isComplete()) {
-      const result = Promise.resolve();
-      return result;
-    }
-
-    this.completionPromise ??= new Promise<void>((resolve) => {
-      this.observers.push(resolve);
-    });
-
-    const result = this.completionPromise;
-    return result;
-  }
-
-  /**
    * Wait for operations to complete, up to a maximum time
    * @param timeout Maximum time to wait in milliseconds
    * @returns true if timed out, false if completed within time
@@ -1181,10 +1059,7 @@ export class Throttle implements ThrottleInterface {
     }
 
     const controller = new AbortController();
-
-    this.observers.push((): void => {
-      controller.abort();
-    });
+    const complete = this.semaphore.waitForIdle().then(() => { controller.abort(); });
 
     try {
       await Delay.for(timeout, controller.signal);
@@ -1192,7 +1067,7 @@ export class Throttle implements ThrottleInterface {
       // Timeout completed - operations did not finish in time
       return true;
     } catch {
-      // AbortError - operations completed before timeout
+      await complete;
       return false;
     }
   }

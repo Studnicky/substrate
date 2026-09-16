@@ -298,12 +298,6 @@
       "path": "packages/flag-evaluator/tsconfig.tests.json"
     },
     {
-      "path": "packages/sliding-window-limiter"
-    },
-    {
-      "path": "packages/sliding-window-limiter/tsconfig.tests.json"
-    },
-    {
       "path": "packages/worker-pool"
     },
     {

@@ -1,10 +1,10 @@
 import { SchemaIntakeError } from '@studnicky/entity/node';
+import { ImmutableSnapshot } from '@studnicky/json/node';
 
 import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 
 import { LogFaultConfigEntity } from '../entities/LogFaultConfigEntity.js';
 import { LogBuildError } from '../errors/LogBuildError.js';
-import { ImmutableSnapshot } from './ImmutableSnapshot.js';
 
 /** Constructs immutable normalized fault entries from one configuration object. */
 export class LogFault {

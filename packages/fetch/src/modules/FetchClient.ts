@@ -5,9 +5,7 @@
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { SchemaIntakeError } from '@studnicky/entity/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Clone } from '@studnicky/json/node';
 import { Signal } from '@studnicky/signal/node';
 import { Predicates } from '@studnicky/types/node';
 
@@ -24,7 +22,6 @@ import type { ResponseContextInterface } from '../interfaces/ResponseContextInte
 import type { TestDispatcher } from '../testing/TestDispatcher.js';
 
 import { DispatcherAgent } from '../config/DispatcherAgent.js';
-import { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import {
   AbortError,
   BodyTimeoutError,
@@ -36,6 +33,7 @@ import {
   TimeoutError
 } from '../errors/index.js';
 import { BodySerializer } from './BodySerializer.js';
+import { FetchClientConfiguration } from './FetchClientConfiguration.js';
 import { FetchTransport } from './FetchTransport.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
 import { UrlQueryString } from './UrlQueryString.js';
@@ -119,7 +117,7 @@ export class FetchClient implements FetchClientInterface {
     this.config = validated.config;
     this.queryParameters = validated.queryParameters;
     this.clock = Clock.create(validated.config.clock ?? RealTimeClockProvider.create());
-    this.signal = validated.config.signal ?? Signal.create();
+    this.signal = validated.config.signal instanceof Signal ? validated.config.signal : Signal.create();
     this.hooks = validated.config.hookTimeoutMs === undefined
       ? new HookInvoker()
       : new HookInvoker({ 'timeoutMs': validated.config.hookTimeoutMs });
@@ -274,8 +272,8 @@ export class FetchClient implements FetchClientInterface {
         ...standardOptions
       } = requestContext.options;
 
-      if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout))) {
-        throw new ConfigurationError('timeout must be a positive number');
+      if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout) || !Number.isInteger(timeout))) {
+        throw new ConfigurationError('timeout must be a positive number and integer');
       }
 
       externalSignal = configuredSignal ?? undefined;
@@ -755,120 +753,21 @@ export class FetchClient implements FetchClientInterface {
   }
 
   private static validateConfig(config: ClientConfigInterface): ValidatedClientConfigInterface {
-    if (!Predicates.isRecord(config)) {
-      throw new ConfigurationError('config must be an object');
-    }
+    const validated = FetchClientConfiguration.intake(config);
 
-    const {
-      'clock': clockProvider,
-      'options': configuredOptions,
-      'parameters': runtimeParameters,
-      requestIdGenerator,
-      'signal': signalComposer,
-      ...configData
-    } = config;
-    const intakeData = configData;
-    if (!Predicates.isNullish(configData.hookTimeoutMs) && !Predicates.isNumberType(configData.hookTimeoutMs)) {
-      throw new ConfigurationError('hookTimeoutMs must be a number');
+    if (validated.config.requestIdGenerator !== undefined) {
+      FetchClient.assertRequestIdGenerator(validated.config.requestIdGenerator);
     }
-    if (Predicates.isNumberType(configData.hookTimeoutMs) && configData.hookTimeoutMs <= 0) {
-      throw new ConfigurationError('hookTimeoutMs must be positive');
-    }
-    if (Predicates.isNumberType(configData.hookTimeoutMs) && !Number.isFinite(configData.hookTimeoutMs)) {
-      throw new ConfigurationError('hookTimeoutMs must be finite');
-    }
-    if (!Predicates.isNullish(configData.timeout) && !Predicates.isNumberType(configData.timeout)) {
-      throw new ConfigurationError('timeout must be a number');
-    }
-    if (Predicates.isNumberType(configData.timeout) && configData.timeout <= 0) {
-      throw new ConfigurationError('timeout must be positive');
-    }
-    if (Predicates.isNumberType(configData.timeout) && !Number.isFinite(configData.timeout)) {
-      throw new ConfigurationError('timeout must be finite');
-    }
-    let queryParameters: QueryParametersEntity.Type | undefined;
-    if (runtimeParameters !== undefined) {
-      try {
-        queryParameters = UrlQueryString.intakeParameters(runtimeParameters);
-      } catch (error) {
-        if (error instanceof SchemaIntakeError) {
-          throw new ConfigurationError(RuntimeError.toMessage(error));
-        }
-        throw error;
-      }
-    }
-    if (!Predicates.isNullish(configuredOptions) && !Predicates.isRecord(configuredOptions)) {
-      throw new ConfigurationError('options must be an object');
-    }
-    const {
-      body,
-      dispatcher,
-      headers,
-      json,
-      metadata,
-      signal,
-      ...optionData
-    } = configuredOptions ?? {};
-    const { 'timeout': optionTimeout, ...optionsWithoutTimeout } = optionData;
-    const normalizedOptionData = optionTimeout === null ? optionsWithoutTimeout : optionData;
-    if (normalizedOptionData.integrity !== undefined && !Predicates.isString(normalizedOptionData.integrity)) {
-      throw new ConfigurationError('integrity must be a string');
-    }
-    if (normalizedOptionData.referrer !== undefined && !Predicates.isString(normalizedOptionData.referrer)) {
-      throw new ConfigurationError('referrer must be a string');
-    }
-    if (!Predicates.isNullish(optionTimeout) && !Predicates.isNumberType(optionTimeout)) {
-      throw new ConfigurationError('timeout must be a number');
-    }
-    if (!Predicates.isNullish(signal) && !Predicates.isAbortSignal(signal)) {
-      throw new ConfigurationError('signal must be an AbortSignal instance');
-    }
-    const input = Predicates.isNullish(configuredOptions)
-      ? intakeData
-      : { ...intakeData, 'options': normalizedOptionData };
-
-    let parsed: ClientConfigDataEntity.Type;
-    try {
-      parsed = ClientConfigDataEntity.intake(input);
-    } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ConfigurationError(RuntimeError.toMessage(error));
-      }
-      throw error;
-    }
-
-    if (!Predicates.isNullish(requestIdGenerator)) {
-      FetchClient.assertRequestIdGenerator(requestIdGenerator);
-    }
-    if (!Predicates.isNullish(clockProvider) && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+    if (validated.config.clock !== undefined && (!Predicates.isFunction(validated.config.clock.hrtime) || !Predicates.isFunction(validated.config.clock.now))) {
       throw new ConfigurationError('clock must implement ClockProviderInterface');
     }
-    if (!Predicates.isNullish(signalComposer) && !(signalComposer instanceof Signal)) {
+    if (validated.config.signal !== undefined && !(validated.config.signal instanceof Signal)) {
       throw new ConfigurationError('signal must be a Signal instance');
     }
 
-    const options: FetchOptionsInterface | undefined = parsed.options === undefined
-      ? undefined
-      : FetchClient.snapshotOptions({
-        ...parsed.options,
-        ...(body === undefined ? {} : { 'body': body }),
-        ...(dispatcher === undefined ? {} : { 'dispatcher': dispatcher }),
-        ...(headers === undefined ? {} : { 'headers': headers }),
-        ...(json === undefined ? {} : { 'json': json }),
-        ...(metadata === undefined ? {} : { 'metadata': metadata }),
-        ...(signal === undefined ? {} : { 'signal': signal })
-      });
-    const result: ClientConfigInterface = {
-      ...parsed,
-      ...(Predicates.isNullish(clockProvider) ? {} : { 'clock': clockProvider }),
-      ...(options === undefined ? {} : { 'options': options }),
-      ...(Predicates.isNullish(requestIdGenerator) ? {} : { 'requestIdGenerator': requestIdGenerator }),
-      ...(Predicates.isNullish(signalComposer) ? {} : { 'signal': signalComposer })
-    };
-    return { 'config': result, 'queryParameters': queryParameters };
+    return validated;
   }
 
-  /** Verifies the injected request-ID collaborator's runtime contract once at construction. */
   private static assertRequestIdGenerator(requestIdGenerator: RequestIdGeneratorInterface): void {
     if (!Predicates.isFunction(requestIdGenerator)) {
       throw new ConfigurationError('requestIdGenerator must be a function');
@@ -886,27 +785,4 @@ export class FetchClient implements FetchClientInterface {
     }
   }
 
-  private static snapshotOptions(options: FetchOptionsInterface): FetchOptionsInterface {
-    let body = options.body;
-    if (options.body instanceof ArrayBuffer) {
-      body = options.body.slice(0);
-    } else if (options.body instanceof Uint8Array) {
-      body = Uint8Array.from(options.body);
-    }
-
-    const json = options.json;
-    const snapshotJson = Predicates.isObjectLike(json)
-      && Object.getPrototypeOf(json) !== Object.prototype
-      && Object.getPrototypeOf(json) !== null
-      ? json
-      : Clone.deep(json);
-    const result: FetchOptionsInterface = {
-      ...options,
-      ...(body === undefined ? {} : { 'body': body }),
-      ...(options.headers === undefined ? {} : { 'headers': { ...options.headers } }),
-      ...(json === undefined ? {} : { 'json': snapshotJson }),
-      ...(options.metadata === undefined ? {} : { 'metadata': Clone.deep(options.metadata) })
-    };
-    return result;
-  }
 }

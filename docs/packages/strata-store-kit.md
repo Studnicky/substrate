@@ -13,6 +13,10 @@ description: Compose stores into a layered cache and durable persistence flow.
 pnpm add @studnicky/strata-store-kit @studnicky/store
 ```
 
+## Runtime imports
+
+Import `StrataStore` from `@studnicky/strata-store-kit/node` in Node or `@studnicky/strata-store-kit/browser` in browsers. Import its contract from `@studnicky/strata-store-kit/interfaces`.
+
 ## Layer order
 
 `StrataStore<TState>` accepts stores from source to target. Consumer writes enter the first store; every update then propagates to the next store before the write resolves. Reads and subscriptions observe the final store.
@@ -25,6 +29,21 @@ MemoryPersistence ───► LocalStorage ───► consumer snapshot
 ```
 
 `hydrate()` restores the final durable store, then seeds the source store with that value. The source update propagates through the full chain, leaving the cache and durable state aligned for the next update. `clear()` removes the named value from every layer. Call `dispose()` when the composition no longer owns its subscriptions.
+
+## Coordinating independent compositions
+
+Pass a shared `MutexInterface<string>` and the same `mutexKey` to serialize full layered mutations across independently created `StrataStore` instances. The pair differs from every layer's synchronization identity.
+
+<!-- inline-ts-ok: Independent StrataStore compositions coordinate whole-layer mutations. -->
+```typescript
+import { Mutex } from "@studnicky/mutex/node";
+import { StrataStore } from "@studnicky/strata-store-kit/node";
+import type { MutexInterface } from "@studnicky/mutex/interfaces";
+
+const mutex: MutexInterface<string> = Mutex.create<string>();
+const first = StrataStore.create({ layers: firstLayers, mutex, mutexKey: "cart" });
+const second = StrataStore.create({ layers: secondLayers, mutex, mutexKey: "cart" });
+```
 
 ## Try it
 
@@ -41,6 +60,7 @@ The complete example seeds a local-storage counter as if it came from an earlier
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `StrataStore` | Ordered store composition that implements `StoreInterface<TState>`. | `@studnicky/strata-store-kit/node` |
-| `StrataStoreOptionsInterface<TState>` | Construction options containing source-to-target `layers`. | `@studnicky/strata-store-kit/interfaces` |
+| `StrataStoreOptionsInterface<TState>` | Construction options containing source-to-target `layers` and optional shared mutation coordination. | `@studnicky/strata-store-kit/interfaces` |
+| `StoreSynchronizationIdentityInterface` | Required layer contract used to reject self-reacquiring coordination. | `@studnicky/store/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/strata-store-kit)

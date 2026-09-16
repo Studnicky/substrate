@@ -1,9 +1,10 @@
-import type { FetchClientInterface } from '@studnicky/fetch/node';
-import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import type { Retry } from '@studnicky/retry/node';
-import type { Signal } from '@studnicky/signal/node';
+import type { FetchClientInterface } from '@studnicky/fetch/interfaces';
+import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import type { RetryInterface } from '@studnicky/retry/interfaces';
+import type { SignalInterface } from '@studnicky/signal/interfaces';
 
-import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';
+import type { RequestExecutorConfigDataEntity } from '../entities/RequestExecutorConfigDataEntity.js';
+import type { RequestExecutorOperationContextInterface } from './RequestExecutorOperationContextInterface.js';
 import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterface.js';
 
 /**
@@ -11,19 +12,22 @@ import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterfac
  */
 export interface RequestExecutorConfigInterface {
   /** Default deadline in milliseconds for calls without a per-call deadline. */
-  readonly 'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];
+  readonly 'deadlineMs'?: RequestExecutorConfigDataEntity.Type['deadlineMs'];
 
   /** HTTP client implementation for this runtime. */
   readonly 'fetchClient': FetchClientInterface;
 
-  /** A pre-built retry primitive or configuration passed to `Retry.create()`. */
-  readonly 'retry'?: RetryConfigInterface | Retry;
+  /** Optional policies surrounding one fully observed request execution. */
+  readonly 'pipeline'?: OperationPipelineInterface<RequestExecutorOperationContextInterface>;
+
+  /** Retry runtime port used to execute the callback. */
+  readonly 'retry': RetryInterface;
 
   /**
    * A scope factory. Request execution only creates a scope when supplied.
    */
   readonly 'scope'?: RequestScopeFactoryInterface;
 
-  /** A pre-built signal primitive. Defaults to `Signal.create()`. */
-  readonly 'signal'?: Signal;
+  /** Signal runtime port used to compose caller cancellation and deadlines. */
+  readonly 'signal': SignalInterface;
 }

@@ -1,5 +1,7 @@
 import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
+import { Clone } from '@studnicky/json/browser';
+
 import type { JsonStateCodecOptionsInterface } from './interfaces/JsonStateCodecOptionsInterface.js';
 import type { StateCodecInterface } from './interfaces/StateCodecInterface.js';
 
@@ -31,13 +33,14 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   public decode(serialized: string): TState {
     const parsed: unknown = JSON.parse(serialized);
 
-    const result = this.#decodeValue(parsed);
+    const result = Clone.deep(this.#decodeValue(parsed));
 
     return result;
   }
 
   public encode(state: TState): string {
-    const normalized = this.#entityIntake === undefined ? state : this.#entityIntake(state);
+    const detached = Clone.deep(state);
+    const normalized = this.#entityIntake === undefined ? detached : this.#entityIntake(detached);
     const result = JSON.stringify(normalized);
 
     if (typeof result !== 'string') {

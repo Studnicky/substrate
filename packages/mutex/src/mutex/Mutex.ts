@@ -317,6 +317,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private readonly config: MutexConfigEntity.Type;
   private readonly inFlightOperations: Map<K, InFlightOperationInterface>;
   private readonly lockMetrics: Map<K, LockMetricsEntity.Type>;
+  private readonly lockOwners: Map<K, symbol>;
   private readonly locks: Set<K>;
   private readonly observers: (() => void)[] = [];
   private readonly queues: Map<K, LinkedAcquisitionQueue>;
@@ -341,6 +342,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.locks = new Set();
     this.queues = new Map();
     this.lockMetrics = new Map();
+    this.lockOwners = new Map();
     this.inFlightOperations = new Map();
     const { 'clock': clockProvider, ...config } = options;
     if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
@@ -583,7 +585,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * Handle immediate lock acquisition when lock is not held
    */
   private acquireImmediate(key: K, requestedAt: number): () => void {
+    const owner = Symbol();
     this.locks.add(key);
+    this.lockOwners.set(key, owner);
     this.transitionKey(key, 'locked');
     const acquiredAt = this.#clock.now();
 
@@ -597,7 +601,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       return result;
     });
 
-    const result = this.createReleaseFunction(key);
+    const result = this.createReleaseFunction(key, owner);
     return result;
   }
 
@@ -644,7 +648,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.locks.clear();
     this.queues.clear();
     this.lockMetrics.clear();
+    this.lockOwners.clear();
     this.inFlightOperations.clear();
+    this.notifyObservers();
   }
 
   /**
@@ -757,13 +763,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
   /**
    * Create release function with key captured in closure
-   * Guards against double-release by checking lock existence before releasing
+   * Guards a release token so only its own active lock can be released
    */
-  private createReleaseFunction(key: K): () => void {
+  private createReleaseFunction(key: K, owner: symbol): () => void {
+    let released = false;
     return (): void => {
-      if (this.locks.has(key)) {
-        this.release(key);
+      if (released || this.lockOwners.get(key) !== owner) {
+        return;
       }
+      released = true;
+      this.release(key);
     };
   }
 
@@ -972,7 +981,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         this.transitionKey(key, 'queued');
       }
 
-      const releaseLock = (): void => { this.release(key); };
+      const owner = Symbol();
+      this.lockOwners.set(key, owner);
+      const releaseLock = this.createReleaseFunction(key, owner);
 
       next.resolve(releaseLock);
     }
@@ -1075,6 +1086,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     this.locks.delete(key);
     this.lockMetrics.delete(key);
+    this.lockOwners.delete(key);
 
     // afterRelease now fires from release()'s single call site, covering
     // this branch and the queue-handoff branch alike — see the comment there.

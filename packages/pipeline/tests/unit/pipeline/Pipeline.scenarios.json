@@ -50,11 +50,11 @@
       "expected": { "original": [1, 2, 3], "value": [1, 2, 3, 99] }
     },
     {
-      "name": "throwing-lifecycle-hook-rejects-run",
-      "description": "a throwing lifecycle hook rejects run with HookInvocationError",
-      "shape": "throwing-lifecycle-hook-rejects-run",
+      "name": "throwing-lifecycle-observer-has-no-effect",
+      "description": "a throwing lifecycle observer leaves the stage result intact",
+      "shape": "throwing-lifecycle-observer-has-no-effect",
       "input": { "value": 0 },
-      "expected": { "hookName": "onStageStart" }
+      "expected": { "value": 1 }
     },
     {
       "name": "stages-is-defensive-snapshot",
@@ -64,11 +64,10 @@
       "expected": { "value": 1 }
     },
     {
-      "name": "hook-timeout-resolving-has-no-effect",
-      "description": "a resolving hook succeeds with hookTimeoutMs set",
-      "shape": "hook-timeout-resolving-has-no-effect",
+      "name": "async-observer-has-no-effect",
+      "description": "a resolving observer leaves the stage result intact",
+      "shape": "async-observer-has-no-effect",
       "input": {
-        "options": { "hookTimeoutMs": 200 },
         "stages": [
           { "shape": "add", "value": 1 }
         ],
@@ -77,22 +76,9 @@
       "expected": { "value": 1 }
     },
     {
-      "name": "hook-timeout-hanging-rejects",
-      "description": "a hanging hook rejects with HookTimeoutError",
-      "shape": "hook-timeout-hanging-rejects",
-      "input": {
-        "options": { "hookTimeoutMs": 25 },
-        "stages": [
-          { "shape": "add", "value": 1 }
-        ],
-        "value": 0
-      },
-      "expected": { "causeName": "HookTimeoutError", "hookName": "onStageStart" }
-    },
-    {
-      "name": "hook-timeout-unset-resolving-has-no-effect",
-      "description": "a resolving hook succeeds with hookTimeoutMs unset",
-      "shape": "hook-timeout-unset-resolving-has-no-effect",
+      "name": "hanging-observer-has-no-effect",
+      "description": "a hanging observer leaves the stage result intact",
+      "shape": "hanging-observer-has-no-effect",
       "input": {
         "stages": [
           { "shape": "add", "value": 1 }

@@ -32,6 +32,9 @@
       "path": "../json"
     },
     {
+      "path": "../pipeline"
+    },
+    {
       "path": "../scheduler"
     },
     {

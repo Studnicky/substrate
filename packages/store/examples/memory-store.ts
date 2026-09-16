@@ -1,10 +1,10 @@
-import {
-  MemoryPersistence, Store
-} from '../src/index.js';
+import { Mutex } from '@studnicky/mutex/node';
+import { MemoryPersistence, Store } from '@studnicky/store/node';
 
 // #region usage
 const persistence = MemoryPersistence.create<number>();
-const store = Store.create({ 'initialState': 0, 'key': 'demo:memory-counter', 'persistence': persistence });
+const mutex = Mutex.create<string>();
+const store = Store.create({ 'initialState': 0, 'key': 'demo:memory-counter', 'mutex': mutex, 'persistence': persistence });
 
 store.subscribe((snapshot): void => {
   console.log(`subscriber received ${snapshot}`);
@@ -15,7 +15,7 @@ await store.update((snapshot): number => {
   return result;
 });
 
-const hydrated = Store.create({ 'initialState': 0, 'key': 'demo:memory-counter', 'persistence': persistence });
+const hydrated = Store.create({ 'initialState': 0, 'key': 'demo:memory-counter', 'mutex': mutex, 'persistence': persistence });
 
 await hydrated.hydrate();
 

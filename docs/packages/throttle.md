@@ -21,7 +21,7 @@ Create a `Throttle` with its concurrency settings, then pass asynchronous operat
 
 ## Drain and abort
 
-Call `drain()` to finish active and queued operations before accepting no more work. Call `abort()` to cancel queued work.
+Call `drain()` to finish active and queued operations before accepting no more work. Call `abort()` to cancel queued work and resolve active calls with `undefined` while their callbacks finish in the background.
 
 <<< ../../packages/throttle/examples/drainThrottle.ts#usage
 
@@ -33,7 +33,7 @@ Subclass `Throttle` to collect acquisition, queueing, release, drain, abort, and
 
 ## Imports
 
-Import runtime APIs from `@studnicky/throttle/node`, entities from `@studnicky/throttle/entities`, and interfaces from `@studnicky/throttle/interfaces`.
+Import runtime APIs from `@studnicky/throttle/node` or `@studnicky/throttle/browser`, entities from `@studnicky/throttle/entities`, and interfaces from `@studnicky/throttle/interfaces`.
 
 ## Entities
 
