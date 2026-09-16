@@ -185,7 +185,7 @@ assert_changeset_required() {
   local base_ref="$1" head_ref="${2:-HEAD}" changeset_path has_added_changeset
   has_added_changeset=false
 
-  if git diff --quiet "$base_ref...$head_ref" -- . ':!.github/**' ':!.githooks/**'; then
+  if git diff --quiet "$base_ref...$head_ref" -- . ':!.github/**' ':!.githooks/**' ':!docs/**' ':!**/README.md' ':!**/CHANGELOG.md' ':!release_notes.md' ':!CONTRIBUTING.md' ':!SECURITY.md'; then
     return 0
   fi
 
