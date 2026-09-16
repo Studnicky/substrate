@@ -66,10 +66,13 @@ repo=$(make_repo)
   git add -A
   git commit -q -m "chore: base release state"
   git update-ref refs/remotes/origin/main HEAD
-  mkdir -p .github/workflows .githooks
+  mkdir -p .github/workflows .githooks docs
   printf 'name: Publish Packages\n' > .github/workflows/publish.yml
   printf '#!/usr/bin/env bash\n' > .githooks/pre-commit
-  git add .github/workflows/publish.yml .githooks/pre-commit
+  printf '# Release guide\n' > docs/release.md
+  printf 'Release v1.0.0\n' > release_notes.md
+  printf '# Package a\n' > packages/a/README.md
+  git add .github/workflows/publish.yml .githooks/pre-commit docs/release.md release_notes.md packages/a/README.md
   git commit -q -m "ci: configure package publication"
   assert_changeset_required origin/main
 
