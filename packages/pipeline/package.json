@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/pipeline",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Generic typed async pipeline for sequential context transforms",
   "type": "module",
   "sideEffects": false,
@@ -12,10 +12,6 @@
     "./browser": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./entities": {
-      "types": "./dist/entities/index.d.ts",
-      "import": "./dist/entities/index.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",

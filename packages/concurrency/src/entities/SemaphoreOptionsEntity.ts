@@ -7,6 +7,7 @@ export namespace SemaphoreOptionsEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
+      'maximumQueueSize': { 'minimum': 0, 'type': 'integer' },
       'permits': { 'minimum': 1, 'type': 'integer' }
     },
     'required': ['permits'],

@@ -431,8 +431,8 @@
       }
     },
     {
-      "name": "floating-point-timeout",
-      "description": "FetchClient accepts floating point timeout values",
+      "name": "fractional-timeout",
+      "description": "FetchClient rejects a fractional timeout at the request boundary",
       "input": {
         "request": {
           "timeout": 50.5,
@@ -440,7 +440,10 @@
         }
       },
       "expected": {
-        "error": "TimeoutError",
+        "error": "Error",
+        "messageIncludes": [
+          "integer"
+        ],
         "shape": "rejects"
       }
     }

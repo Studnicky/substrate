@@ -18,6 +18,10 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/pipeline
 ```
 
+## Runtime imports
+
+Import runtime APIs from `@studnicky/pipeline/node` in Node or `@studnicky/pipeline/browser` in browsers. Import pipeline contracts from `@studnicky/pipeline/interfaces`.
+
 ## Usage
 
 ```typescript
@@ -41,44 +45,54 @@ const result = await pipeline.run({ items: ['a', 'b', 'c'], total: 0, discount: 
 // result.total === 25 (3 items × 10 = 30, discount 5, total 25)
 ```
 
+## Wrap an operation
+
+Use `OperationPipeline<TContext>` when a policy needs to run before and after a supplied operation. Policies are entered in declaration order and call `next(context)` to continue. Each `run()` call supplies its own result type. The final operation result and any thrown value pass through unchanged.
+
+```typescript
+import { OperationPipeline } from '@studnicky/pipeline/node';
+import type {
+  OperationInterceptorInterface,
+  OperationPipelineInterface
+} from '@studnicky/pipeline/interfaces';
+
+interface RequestContext { requestId: string }
+
+const audit: OperationInterceptorInterface<RequestContext> = async (context, next) => {
+  console.log(`starting ${context.requestId}`);
+  const result = await next(context);
+  console.log(`completed ${context.requestId}`);
+  return result;
+};
+
+const pipeline: OperationPipelineInterface<RequestContext> =
+  OperationPipeline.create<RequestContext>([audit]);
+const result = await pipeline.run({ requestId: 'request-42' }, async (context) => `handled ${context.requestId}`);
+```
+
 ## Extending
 
-Subclass `Pipeline<T>` to observe or transform execution at any fire point. All four protected hooks have pass-through defaults — override only what you need. `onRunStart` runs once before stage 0, `beforeStage` and `afterStage` wrap each individual stage, and `onRunComplete` runs after all stages and determines the final resolved value.
+`beforeStage` and `afterStage` are transform hooks: each returns the context passed to the adjacent stage, and a thrown error rejects the run. Every lifecycle hook is an observer: `onRunStart`, `onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`, and `onRunComplete` may return `void` or a promise. Hooks that receive context receive a detached, deeply frozen snapshot. Their return values are ignored; a throw, rejection, unresolved promise, or snapshot failure never delays, replaces, or changes the stage or run outcome. A context that cannot be cloned skips that observer while the pipeline continues.
 
 ```typescript
 import { Pipeline } from '@studnicky/pipeline/node';
 import type { AuditContextEntity } from './entities/AuditContextEntity.js';
 
 class AuditPipeline extends Pipeline<AuditContextEntity.Type> {
-  protected override onRunStart(
-    ctx: AuditContextEntity.Type
-  ): AuditContextEntity.Type {
-    return { ...ctx, timestamp: Date.now() };
+  protected override beforeStage(context: AuditContextEntity.Type): AuditContextEntity.Type {
+    return { ...context, timestamp: Date.now() };
   }
 
-  protected override onRunComplete(
-    ctx: AuditContextEntity.Type
-  ): AuditContextEntity.Type {
-    console.log(`[audit] ${ctx.action} by ${ctx.userId} at ${ctx.timestamp}`);
-    return ctx;
+  protected override onRunComplete(context: Readonly<AuditContextEntity.Type>): void {
+    console.log(`[audit] ${context.action} by ${context.userId} at ${context.timestamp}`);
   }
 }
 
 const pipeline = AuditPipeline.create<AuditContextEntity.Type>([
-  async (ctx) => {
-    // stage logic
-    return ctx;
-  }
+  async (context) => context
 ]);
 
 const result = await pipeline.run({ userId: 'u1', action: 'login' });
-// result.timestamp is set; audit log emitted after all stages
-```
-
-The four void observer hooks (`onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`) run through a composed `HookInvoker` (see `@studnicky/errors/node`). Pass `hookTimeoutMs` to bound how long an async observer hook may run before it's treated as a failure — left unset, a hook may take arbitrarily long, matching prior behavior:
-
-```typescript
-const pipeline = Pipeline.create<OrderContextEntity.Type>([calculateTotal], { hookTimeoutMs: 5000 });
 ```
 
 ## Documentation

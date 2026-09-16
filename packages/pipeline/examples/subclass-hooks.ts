@@ -1,7 +1,7 @@
 /**
  * subclass-hooks — extend Pipeline<T> to override protected lifecycle hooks.
  * TimedPipeline records start time in onRunStart and attaches elapsed
- * milliseconds to the context in onRunComplete.
+ * milliseconds to the context in afterStage.
  *
  * Run: npx tsx packages/pipeline/examples/subclass-hooks.ts
  */
@@ -15,12 +15,11 @@ import { HookRequestContextEntity } from './entities/HookRequestContextEntity.js
 class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   private startTime = 0;
 
-  protected override onRunStart(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
+  protected override onRunStart(_context: Readonly<HookRequestContextEntity.Type>): void {
     this.startTime = Date.now();
-    return context;
   }
 
-  protected override onRunComplete(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
+  protected override afterStage(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
     return { ...context, 'elapsed': Date.now() - this.startTime };
   }
 }

@@ -2,8 +2,8 @@
  * FetchClient configuration types
  */
 
-import type { ClockProviderInterface } from '@studnicky/clock/node';
-import type { Signal } from '@studnicky/signal/node';
+import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
+import type { SignalInterface } from '@studnicky/signal/interfaces';
 
 import type { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -120,7 +120,7 @@ export interface ClientConfigInterface {
    * Signal composition primitive shared by request deadlines and caller cancellation.
    * Defaults to `Signal.create()`.
    */
-  'signal'?: Signal;
+  'signal'?: SignalInterface;
 
   /**
    * Default timeout in milliseconds

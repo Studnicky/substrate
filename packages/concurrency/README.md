@@ -1,14 +1,12 @@
 # @studnicky/concurrency
 
-> Keyed async channels, counting semaphores, concurrent-call coalescing, and async iterable combinators.
+> Keyed async channels, keyed permit pools, counting semaphores, concurrent-call coalescing, and async iterable combinators.
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/concurrency)
 
-`@studnicky/concurrency` provides four building blocks for async coordination in Node.js. `Channel` is a string-keyed fan-in inbox where producers publish items and consumers iterate them as async generators. `Semaphore` is a counting permit gate that bounds how many concurrent operations run at once. `Coalesce` deduplicates concurrent calls by key so that a shared factory runs exactly once per in-flight batch. `AsyncIter` supplies static combinators — `merge`, `filter`, and `enrich` — for composing async iterables.
+`@studnicky/concurrency` provides five building blocks for async coordination in Node.js and browser runtimes. `Channel` is a string-keyed fan-in inbox where producers publish items and consumers iterate them as async generators. `Semaphore` is a counting permit gate that bounds how many concurrent operations run at once. `KeyedSemaphore` applies that same policy independently to each resource key. `Coalesce` deduplicates concurrent calls by key so that a shared factory runs exactly once per in-flight batch. `AsyncIter` supplies static combinators — `merge`, `filter`, and `enrich` — for composing async iterables.
 
-All primitives are TypeScript-native and ESM-only. The package declares runtime dependencies on `@studnicky/circular-buffer`, `@studnicky/errors`, `@studnicky/json`, `ajv`, and `json-schema-to-ts`.
-
-Schema-backed data declarations are available from `@studnicky/concurrency/entities`; type-only internal coordination contracts are available from `@studnicky/concurrency/interfaces`.
+Use `@studnicky/concurrency/node` in Node.js and `@studnicky/concurrency/browser` in browser bundles. Both runtime entry points export the same API. Schema-backed data declarations are available from `@studnicky/concurrency/entities`; type-only internal coordination contracts are available from `@studnicky/concurrency/interfaces`.
 
 ## Install
 
@@ -22,10 +20,24 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/concurrency
 ```
 
+### Runtime imports
+
+Node.js:
+
+```typescript
+import { KeyedSemaphore, Semaphore } from '@studnicky/concurrency/node';
+```
+
+Browser:
+
+```typescript
+import { KeyedSemaphore, Semaphore } from '@studnicky/concurrency/browser';
+```
+
 ## Usage
 
 ```typescript
-import { AsyncIter, Channel, Coalesce, Semaphore } from '@studnicky/concurrency/node';
+import { AsyncIter, Channel, Coalesce, KeyedSemaphore, Semaphore } from '@studnicky/concurrency/node';
 
 // Channel — keyed producer / consumer
 const channel = Channel.create<string>();
@@ -50,6 +62,23 @@ const result = await sem.withPermit(async () => {
   return fetch('https://api.example.com/data');
 });
 console.log(sem.available); // 2 — permit returned
+
+// A bounded queue refuses excess waiting work. Compose an acquisition deadline
+// with an AbortSignal; the same call works in Node and browsers.
+const bounded = Semaphore.create({ maximumQueueSize: 100, permits: 2 });
+await bounded.withPermit(async () => fetch('https://api.example.com/data'), {
+  signal: AbortSignal.timeout(5_000),
+});
+
+// Capacity can change without interrupting work that already holds a permit.
+await sem.setPermits(4);
+await sem.waitForIdle();
+console.log(sem.activeCount, sem.queuedCount); // 0, 0
+
+// KeyedSemaphore gives each key independent capacity and queue space.
+const keyed = KeyedSemaphore.create<string>({ maximumQueueSize: 10, permits: 1 });
+await keyed.withPermit("account:42", async () => fetch('https://api.example.com/accounts/42'));
+await keyed.waitForIdle('account:42');
 
 // Coalesce — deduplicate concurrent calls
 const coalesce = Coalesce.create<Response>();

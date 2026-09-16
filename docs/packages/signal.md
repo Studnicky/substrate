@@ -25,7 +25,7 @@ Create a `Signal` instance with `Signal.create()`. Its async `compose` method co
 
 ### Never-aborting sentinel and deadline signal
 
-The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.create().compose({ deadlineMs })` creates a deadline signal through the same observed composition path used for every other option combination.
+The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.create().compose({ deadlineMs })` accepts whole milliseconds from 0 through 2,147,483,647 and creates a deadline signal through the same observed composition path used for every other option combination.
 
 <<< ../../packages/signal/examples/neverTimeout.ts#usage
 

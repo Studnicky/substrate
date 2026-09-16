@@ -2,6 +2,7 @@ export { Clone } from './Clone.js';
 export { Draft } from './Draft.js';
 export { Frozen } from './Frozen.js';
 export { Hash } from './Hash.js';
+export { ImmutableSnapshot } from './ImmutableSnapshot.js';
 export { Merge } from './Merge.js';
 export { Patch } from './Patch.js';
 export { Path } from './Path.js';

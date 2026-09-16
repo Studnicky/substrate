@@ -24,6 +24,10 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 pnpm add @studnicky/event-bus
 ```
 
+## Runtime imports
+
+Import `EventBus` and `BusQueue` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import `EventSinkInterface` and the other contracts from `@studnicky/event-bus/interfaces`; import schema declarations from `@studnicky/event-bus/entities`.
+
 ## Usage
 
 ### Basic pub/sub
@@ -87,6 +91,25 @@ await bus.publish('ping', 'ignored');
 await bus.drain();
 
 await bus.close();
+```
+
+### Publish through a minimal sink
+
+A component that only publishes events can depend on `EventSinkInterface` instead of the full bus lifecycle. `EventBus` and custom publishers both satisfy this contract:
+
+```typescript
+import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
+
+interface RetryEventsInterface {
+  readonly 'retry:failed': { readonly attempt: number };
+}
+
+async function recordFailure(
+  sink: EventSinkInterface<RetryEventsInterface>,
+  attempt: number
+): Promise<void> {
+  await sink.publish('retry:failed', { attempt });
+}
 ```
 
 ### `BusQueue` standalone usage

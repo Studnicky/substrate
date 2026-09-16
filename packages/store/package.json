@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/store",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Observable state stores with interchangeable persistence adapters",
   "type": "module",
   "sideEffects": false,
@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node ../../scripts/test-suite.mjs all --package ."

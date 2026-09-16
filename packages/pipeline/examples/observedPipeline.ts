@@ -3,28 +3,25 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { PipelineOptionsEntity } from '../src/entities/index.js';
 import type { PipelineFunctionInterface } from '../src/interfaces/index.js';
 
-import { Pipeline, PipelineError } from '../src/index.js';
+import { Pipeline } from '../src/index.js';
 import { StepContextTypeEntity } from './entities/StepContextTypeEntity.js';
 
 class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> {
   public constructor(
-    stages: readonly PipelineFunctionInterface<T>[],
-    options?: Readonly<PipelineOptionsEntity.Type>
+    stages: readonly PipelineFunctionInterface<T>[]
   ) {
-    super(stages, options);
+    super(stages);
   }
 
-  readonly stageStartEvents: { 'context': T; 'index': number }[] = [];
-  readonly stageSuccessEvents: { 'context': T; 'index': number }[] = [];
-  readonly stageErrorEvents: { 'error': Error; 'index': number }[] = [];
-  readonly runErrorEvents: { 'error': Error }[] = [];
+  readonly stageStartEvents: { 'context': Readonly<T>; 'index': number }[] = [];
+  readonly stageSuccessEvents: { 'context': Readonly<T>; 'index': number }[] = [];
+  readonly stageErrorIndexes: number[] = [];
+  runErrorCount = 0;
 
-  protected override onRunStart(context: T): T {
+  protected override onRunStart(_context: Readonly<T>): void {
     console.log('[pipeline] runStart');
-    return context;
   }
 
   protected override beforeStage(context: T, index: number): T {
@@ -32,12 +29,12 @@ class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> 
     return context;
   }
 
-  protected override onStageStart(index: number, context: T): void {
+  protected override onStageStart(index: number, context: Readonly<T>): void {
     console.log(`[pipeline] stageStart index=${index}`);
     this.stageStartEvents.push({ 'context': context, 'index': index });
   }
 
-  protected override onStageSuccess(index: number, context: T): void {
+  protected override onStageSuccess(index: number, context: Readonly<T>): void {
     console.log(`[pipeline] stageSuccess index=${index}`);
     this.stageSuccessEvents.push({ 'context': context, 'index': index });
   }
@@ -47,20 +44,18 @@ class TracingPipeline<T extends StepContextTypeEntity.Type> extends Pipeline<T> 
     return context;
   }
 
-  protected override onStageError(index: number, error: Error): void {
-    console.log(`[pipeline] stageError index=${index} error=${error.message}`);
-    this.stageErrorEvents.push({ 'error': error, 'index': index });
+  protected override onStageError(index: number): void {
+    console.log(`[pipeline] stageError index=${index}`);
+    this.stageErrorIndexes.push(index);
   }
 
-  protected override onRunError(error: Error): void {
-    const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : error.message;
-    console.log(`[pipeline] runError error=${message}`);
-    this.runErrorEvents.push({ 'error': error });
+  protected override onRunError(): void {
+    console.log('[pipeline] runError');
+    this.runErrorCount += 1;
   }
 
-  protected override onRunComplete(context: T): T {
+  protected override onRunComplete(_context: Readonly<T>): void {
     console.log('[pipeline] runComplete');
-    return context;
   }
 }
 
@@ -87,7 +82,7 @@ console.log('\n--- failing path ---');
 try {
   await failPipeline.run(StepContextTypeEntity.create({ 'step': 0, 'value': 'start' }));
 } catch (error: unknown) {
-  const message = error instanceof PipelineError ? `PipelineError: ${error.message}` : String(error);
+  const message = error instanceof Error ? error.message : String(error);
   console.log(`caught: ${message}`);
 }
 // #endregion usage
@@ -97,8 +92,8 @@ try {
 // Success pipeline: 3 stages all started and succeeded
 assert.strictEqual(successPipeline.stageStartEvents.length, 3);
 assert.strictEqual(successPipeline.stageSuccessEvents.length, 3);
-assert.strictEqual(successPipeline.stageErrorEvents.length, 0);
-assert.strictEqual(successPipeline.runErrorEvents.length, 0);
+assert.strictEqual(successPipeline.stageErrorIndexes.length, 0);
+assert.strictEqual(successPipeline.runErrorCount, 0);
 
 assert.strictEqual(successPipeline.stageStartEvents[0]?.index, 0);
 assert.strictEqual(successPipeline.stageStartEvents[1]?.index, 1);
@@ -112,10 +107,9 @@ assert.strictEqual(successPipeline.stageSuccessEvents[2]?.context.value, 'start-
 assert.strictEqual(failPipeline.stageStartEvents.length, 2);
 assert.strictEqual(failPipeline.stageSuccessEvents.length, 1);
 assert.strictEqual(failPipeline.stageSuccessEvents[0]?.index, 0);
-assert.strictEqual(failPipeline.stageErrorEvents.length, 1);
-assert.strictEqual(failPipeline.stageErrorEvents[0]?.index, 1);
-assert.ok(failPipeline.stageErrorEvents[0]?.error instanceof Error);
-assert.strictEqual(failPipeline.runErrorEvents.length, 1);
-assert.ok(failPipeline.runErrorEvents[0]?.error instanceof PipelineError);
+assert.strictEqual(failPipeline.stageErrorIndexes.length, 1);
+assert.strictEqual(failPipeline.stageErrorIndexes[0], 1);
+assert.strictEqual(failPipeline.runErrorCount, 1);
+
 
 console.log('observedPipeline: all assertions passed');

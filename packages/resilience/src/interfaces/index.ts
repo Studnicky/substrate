@@ -4,4 +4,6 @@ export type { CircuitBreakerOptionsInterface } from './CircuitBreakerOptionsInte
 export type { DeadLetterQueueEntryInterface } from './DeadLetterQueueEntryInterface.js';
 export type { DeadLetterQueueOptionsInterface } from './DeadLetterQueueOptionsInterface.js';
 export type { DeadLetterQueueRetryGeneratorOptionsInterface } from './DeadLetterQueueRetryGeneratorOptionsInterface.js';
+export type { RateLimiterClockInterface } from './RateLimiterClockInterface.js';
+export type { SlidingWindowLimiterOptionsInterface } from './SlidingWindowLimiterOptionsInterface.js';
 export type { TokenBucketOptionsInterface } from './TokenBucketOptionsInterface.js';

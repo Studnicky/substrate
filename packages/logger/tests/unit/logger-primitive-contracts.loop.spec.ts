@@ -1,5 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
-import { FrozenMutationError } from '@studnicky/json/node';
+import { FrozenMutationError, ImmutableSnapshot } from '@studnicky/json/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -25,7 +25,6 @@ import {
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
-import { ImmutableSnapshot } from '../../src/modules/ImmutableSnapshot.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'trace' | 'warn';

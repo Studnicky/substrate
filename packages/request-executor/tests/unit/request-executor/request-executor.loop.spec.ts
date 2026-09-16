@@ -1,15 +1,25 @@
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+import { BrowserFetchClient } from '@studnicky/fetch/browser';
+import { OperationPipeline as BrowserOperationPipeline } from '@studnicky/pipeline/browser';
+import { RequestExecutor as BrowserRequestExecutor } from '@studnicky/request-executor/browser';
+import { Retry as BrowserRetry } from '@studnicky/retry/browser';
+import { Signal as BrowserSignal } from '@studnicky/signal/browser';
 import { AbortError, type ClientConfigInterface, FetchClient, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch/node';
+import { OperationPipeline } from '@studnicky/pipeline/node';
 import { Retry } from '@studnicky/retry/node';
-import type { RetryContextInterface, RetryConfigInterface } from '@studnicky/retry/interfaces';
+import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import type { RetryContextInterface, RetryConfigInterface, RetryInterface } from '@studnicky/retry/interfaces';
+import type { SignalInterface } from '@studnicky/signal/interfaces';
 
 import { RequestExecutor } from '../../../src/index.js';
-import { RequestDeadlineEntity } from '../../../src/entities/index.js';
+import { RequestDeadlineEntity, RequestExecutorConfigDataEntity, RequestExecutorExecuteOptionsDataEntity } from '../../../src/entities/index.js';
 import type { RequestExecutorConfigInterface } from '../../../src/interfaces/RequestExecutorConfigInterface.js';
+import type { RequestExecutorOperationContextInterface } from '../../../src/interfaces/RequestExecutorOperationContextInterface.js';
 import type { RequestScopeFactoryInterface } from '../../../src/interfaces/RequestScopeFactoryInterface.js';
 import type { RequestScopeInterface } from '../../../src/interfaces/RequestScopeInterface.js';
 import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
@@ -78,7 +88,7 @@ type ScenarioCase =
       description: string;
       expected: { responseStatus: number; responseText: string };
       input: { fetchResponseText: string; fetchUrl: string };
-      shape: 'defaults-real-primitives';
+      shape: 'caller-owned-runtime-ports';
       name: string;
     }
   | {
@@ -315,9 +325,10 @@ class TrackingRetry extends Retry {
 function resolvePlainExecutorConfig(input?: ScenarioRequestExecutorInputInterface): RequestExecutorConfigInterface {
   return {
     'fetchClient': createFetchClientFromScenario(input ?? {}),
+    'retry': createRetryFromScenario(input ?? {}),
+    'signal': BrowserSignal.create(),
     ...(input?.context !== undefined ? { scope: new TestRequestScopeFactory(input.context) } : {}),
-    ...(input?.deadlineMs !== undefined ? { deadlineMs: input.deadlineMs } : {}),
-    ...(input?.retry !== undefined ? { retry: input.retry } : {})
+    ...(input?.deadlineMs !== undefined ? { deadlineMs: input.deadlineMs } : {})
   };
 }
 
@@ -408,12 +419,12 @@ const runnerMap: RunnerMap = {
     assert.equal(sameFetchClientObserved, scenarioCase.expected.sameFetchClient);
   },
 
-  'defaults-real-primitives': async (scenarioCase) => {
+  'caller-owned-runtime-ports': async (scenarioCase) => {
     setFetch(async (): Promise<Response> => {
       return new Response(scenarioCase.input.fetchResponseText);
     });
 
-    const executor = RequestExecutor.create({ 'fetchClient': FetchClient.create() });
+    const executor = RequestExecutor.create(resolvePlainExecutorConfig());
     const response = await executor.execute((client, signal) => client.get(scenarioCase.input.fetchUrl, { signal }));
     assert.equal(response.status, scenarioCase.expected.responseStatus);
     assert.equal(await response.text(), scenarioCase.expected.responseText);
@@ -628,7 +639,7 @@ const runnerMap: RunnerMap = {
       return new Response(scenarioCase.input.fetchResponseText);
     });
 
-    const executor = RequestExecutor.create({ 'fetchClient': FetchClient.create() });
+    const executor = RequestExecutor.create(resolvePlainExecutorConfig());
     const response = await executor.execute((client, signal) => client.get(scenarioCase.input.fetchUrl, { signal }));
 
     assert.equal(response.status, scenarioCase.expected.responseStatus);
@@ -655,7 +666,7 @@ const runnerMap: RunnerMap = {
 
     const fetchClient = TrackingFetchClient.create(scenarioCase.input.requestExecutor.fetchClient ?? {});
     const retry = new TrackingRetry(scenarioCase.input.requestExecutor.retry);
-    const executor = RequestExecutor.create({ fetchClient, retry });
+    const executor = RequestExecutor.create({ fetchClient, retry, 'signal': BrowserSignal.create() });
 
     const response = await executor.execute(async (client, signal) => {
       const result = await client.get(scenarioCase.input.fetchPath, { signal });
@@ -684,4 +695,281 @@ void describe('RequestExecutor', () => {
       await runCase(scenario);
     });
   }
+
+  void it('intakes serializable constructor data without mutating caller configuration', () => {
+    const data = { 'deadlineMs': undefined };
+    const parsed = RequestExecutorConfigDataEntity.intake(data);
+
+    assert.deepStrictEqual(parsed, {});
+    assert.deepStrictEqual(data, { 'deadlineMs': undefined });
+
+    const executor = RequestExecutor.create({
+      'deadlineMs': undefined,
+      'fetchClient': FetchClient.create(),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    });
+
+    assert.ok(executor instanceof RequestExecutor);
+  });
+
+  void it('rejects undeclared and invalid constructor configuration through entity intake', () => {
+    const withUnknownKey = {
+      'fetchClient': FetchClient.create(),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create(),
+      'unexpected': true
+    };
+    const withInvalidDeadline = {
+      'deadlineMs': -1,
+      'fetchClient': FetchClient.create(),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    };
+
+    assert.throws(
+      () => { RequestExecutor.create(withUnknownKey); },
+      (error: unknown): boolean => error instanceof SchemaIntakeError
+        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorConfigData'
+    );
+    assert.throws(
+      () => { RequestExecutor.create(withInvalidDeadline); },
+      (error: unknown): boolean => error instanceof SchemaIntakeError
+        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorConfigData'
+    );
+  });
+
+  void it('intakes per-call data while preserving declared runtime signal composition', async () => {
+    const data = { 'deadlineMs': undefined, 'scopeInitial': undefined };
+    const parsed = RequestExecutorExecuteOptionsDataEntity.intake(data);
+
+    assert.deepStrictEqual(parsed, {});
+    assert.deepStrictEqual(data, { 'deadlineMs': undefined, 'scopeInitial': undefined });
+
+    const controller = new AbortController();
+    const signalProvider: SignalInterface = {
+      async compose(options): Promise<AbortSignal> {
+        assert.strictEqual(options.signal, controller.signal);
+        return controller.signal;
+      }
+    };
+    const executor = RequestExecutor.create({
+      'fetchClient': FetchClient.create(),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': signalProvider
+    });
+    const result = await executor.execute(
+      async (_client, requestSignal): Promise<string> => {
+        assert.strictEqual(requestSignal, controller.signal);
+        return 'completed';
+      },
+      { 'deadlineMs': undefined, 'signal': controller.signal }
+    );
+
+    assert.equal(result, 'completed');
+  });
+
+  void it('rejects undeclared and non-JSON per-call data through entity intake', async () => {
+    const executor = RequestExecutor.create({
+      'fetchClient': FetchClient.create(),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    });
+    const withUnknownKey: unknown = { 'unexpected': true };
+    const withRuntimeScopeValue: unknown = { 'scopeInitial': { 'createdAt': new Date() } };
+
+    await assert.rejects(
+      Reflect.apply(executor.execute, executor, [async (): Promise<string> => 'completed', withUnknownKey]),
+      (error: unknown): boolean => error instanceof SchemaIntakeError
+        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorExecuteOptionsData'
+    );
+    await assert.rejects(
+      Reflect.apply(executor.execute, executor, [async (): Promise<string> => 'completed', withRuntimeScopeValue]),
+      (error: unknown): boolean => error instanceof SchemaIntakeError
+        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorExecuteOptionsData'
+    );
+  });
+
+  void it('runs ordered operation policies around the full retried execution', async () => {
+    const events: string[] = [];
+    const contexts: RequestExecutorOperationContextInterface[] = [];
+    let callbackSignal: AbortSignal | undefined;
+    const outer: OperationInterceptorInterface<RequestExecutorOperationContextInterface> = async (context, next) => {
+      contexts.push(context);
+      events.push('outer:before');
+      const result = await next(context);
+      events.push('outer:after');
+      return result;
+    };
+    const inner: OperationInterceptorInterface<RequestExecutorOperationContextInterface> = async (context, next) => {
+      contexts.push(context);
+      events.push('inner:before');
+      const result = await next(context);
+      events.push('inner:after');
+      return result;
+    };
+    const fetchClient = FetchClient.create();
+    const retry = new TrackingRetry({ 'maximumRetries': 1 });
+    const executor = RequestExecutor.create({
+      'fetchClient': fetchClient,
+      'pipeline': OperationPipeline.create([outer, inner]),
+      'retry': retry,
+      'signal': BrowserSignal.create()
+    });
+    let callbackAttempts = 0;
+
+    const result = await executor.execute(async (client, signal): Promise<string> => {
+      assert.strictEqual(client, fetchClient);
+      callbackSignal = signal;
+      callbackAttempts += 1;
+      events.push(['callback', String(callbackAttempts)].join(':'));
+      if (callbackAttempts === 1) {
+        throw RuntimeError.create('retry once');
+      }
+      return 'completed';
+    });
+
+    assert.equal(result, 'completed');
+    assert.deepStrictEqual(events, ['outer:before', 'inner:before', 'callback:1', 'callback:2', 'inner:after', 'outer:after']);
+    assert.deepStrictEqual(retry.attempts, [0, 1]);
+    assert.strictEqual(contexts[0]?.fetchClient, fetchClient);
+    assert.strictEqual(contexts[0]?.signal, callbackSignal);
+    assert.strictEqual(contexts[1]?.fetchClient, fetchClient);
+    assert.strictEqual(contexts[1]?.signal, callbackSignal);
+  });
+
+  void it('runs operation policies inside the configured scope', async () => {
+    const scope = new TestRequestScopeFactory({ 'requestId': 'request-42' });
+    let policyRequestId: unknown;
+    const policy: OperationInterceptorInterface<RequestExecutorOperationContextInterface> = async (context, next) => {
+      policyRequestId = scope.get('requestId');
+      const result = await next(context);
+      return result;
+    };
+    const executor = RequestExecutor.create({
+      'fetchClient': FetchClient.create(),
+      'pipeline': OperationPipeline.create([policy]),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create(),
+      'scope': scope
+    });
+
+    const result = await executor.execute(async (): Promise<string> => 'completed');
+
+    assert.equal(result, 'completed');
+    assert.equal(policyRequestId, 'request-42');
+  });
+
+  void it('propagates the terminal retry failure unchanged through operation policies', async () => {
+    const events: string[] = [];
+    const callbackFailure = RuntimeError.create('callback failure');
+    let terminalFailure: unknown;
+    const policy: OperationInterceptorInterface<RequestExecutorOperationContextInterface> = async (context, next) => {
+      events.push('policy:before');
+      try {
+        const result = await next(context);
+        events.push('policy:after');
+        return result;
+      } catch (error) {
+        terminalFailure = error;
+        throw error;
+      }
+    };
+    const executor = RequestExecutor.create({
+      'fetchClient': FetchClient.create(),
+      'pipeline': OperationPipeline.create([policy]),
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    });
+
+    const observed = await captureRejectedError(executor.execute(async (): Promise<never> => {
+      throw callbackFailure;
+    }));
+
+    assert.strictEqual(observed, terminalFailure);
+    assertErrorMessageIncludes(observed, callbackFailure.message);
+    assert.deepStrictEqual(events, ['policy:before']);
+  });
+
+  void it('accepts a structural operation pipeline contract', async () => {
+    class StructuralPipeline implements OperationPipelineInterface<RequestExecutorOperationContextInterface> {
+      readonly contexts: RequestExecutorOperationContextInterface[] = [];
+
+      run<TResult>(
+        context: RequestExecutorOperationContextInterface,
+        operation: OperationFunctionInterface<RequestExecutorOperationContextInterface, TResult>
+      ): Promise<TResult> {
+        this.contexts.push(context);
+        const result = Promise.resolve(operation(context));
+        return result;
+      }
+    }
+
+    const fetchClient = FetchClient.create();
+    const pipeline = new StructuralPipeline();
+    const executor = RequestExecutor.create({
+      'fetchClient': fetchClient,
+      'pipeline': pipeline,
+      'retry': Retry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    });
+    const result = await executor.execute(async (client, signal): Promise<string> => {
+      assert.strictEqual(client, fetchClient);
+      assert.strictEqual(signal, pipeline.contexts[0]?.signal);
+      return 'completed';
+    });
+
+    assert.equal(result, 'completed');
+    assert.equal(pipeline.contexts.length, 1);
+    assert.strictEqual(pipeline.contexts[0]?.fetchClient, fetchClient);
+  });
+
+  void it('executes browser runtime ports from public browser exports', async () => {
+    setFetch(async (): Promise<Response> => new Response('browser-ready'));
+    const executor = BrowserRequestExecutor.create({
+      'fetchClient': BrowserFetchClient.create({ 'baseURL': 'https://example.test' }),
+      'pipeline': BrowserOperationPipeline.create([]),
+      'retry': BrowserRetry.create({ 'maximumRetries': 0 }),
+      'signal': BrowserSignal.create()
+    });
+
+    const response = await executor.execute((client, signal) => client.get('/health', { signal }));
+
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), 'browser-ready');
+  });
+
+  void it('accepts structural retry and signal ports', async () => {
+    let composeCount = 0;
+    const retry: RetryInterface = {
+      async execute<TResult>(operation: () => Promise<TResult>): Promise<TResult> {
+        const result = await operation();
+        return result;
+      },
+      getStats() {
+        return { 'failedRequests': 0, 'successfulRequests': 0, 'totalRequests': 0, 'totalRetries': 0 };
+      },
+      resetStats(): void {}
+    };
+    const signal: SignalInterface = {
+      async compose(options): Promise<AbortSignal> {
+        composeCount += 1;
+        const result = options.signal ?? new AbortController().signal;
+        return result;
+      }
+    };
+    const executor = RequestExecutor.create({
+      'fetchClient': FetchClient.create(),
+      'retry': retry,
+      'signal': signal
+    });
+
+    const result = await executor.execute(async (_client, abortSignal): Promise<string> => {
+      assert.equal(abortSignal.aborted, false);
+      return 'completed';
+    });
+
+    assert.equal(result, 'completed');
+    assert.equal(composeCount, 1);
+  });
 });

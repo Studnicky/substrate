@@ -1,10 +1,10 @@
 import { SchemaIntakeError } from '@studnicky/entity/node';
+import { ImmutableSnapshot } from '@studnicky/json/node';
 
 import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 
 import { LogBodyConfigEntity } from '../entities/LogBodyConfigEntity.js';
 import { LogBuildError } from '../errors/LogBuildError.js';
-import { ImmutableSnapshot } from './ImmutableSnapshot.js';
 
 /** Constructs immutable normalized log entries from one configuration object. */
 export class LogBody {

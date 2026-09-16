@@ -11,6 +11,16 @@
       "name": "basic-retry"
     },
     {
+      "description": "Runs the EventBus retry telemetry example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/eventSinkRetry.ts"
+      },
+      "name": "event-sink-retry"
+    },
+    {
       "description": "Runs the custom classifier example",
       "expected": {
         "importsWithoutThrow": true

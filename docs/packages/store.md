@@ -13,11 +13,32 @@ description: Observable browser-ready state stores with interchangeable persiste
 pnpm add @studnicky/store
 ```
 
+## Runtime imports
+
+Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import entities and contracts from the neutral `@studnicky/store/entities` and `@studnicky/store/interfaces` paths.
+
 ## Core store
 
-`Store<TState>` owns one named state value. `setState` and `update` persist before notifying subscribers; `hydrate` restores the named value; and `clear` removes it before publishing the initial state.
+`Store<TState>` owns one named state value. `setState` and `update` persist before notifying subscribers; `hydrate` restores the named value; and `clear` removes it before publishing the initial state. Store copies initial state, mutation inputs, and persistence values at its boundary. `getSnapshot`, updater callbacks, and subscribers receive detached immutable snapshots; return a new value from `update` instead of changing its snapshot.
 
 <<< ../../packages/store/examples/memory-store.ts#usage
+
+## Shared mutation coordination
+
+Pass the same `MutexInterface<string>` to independent stores that write the same persistence key. `Store` uses its existing `key` as the mutex key, so equal store keys serialize while different keys continue independently. Import the concrete mutex from the runtime entry point and the contract from the neutral interfaces entry point.
+
+<!-- inline-ts-ok: Independent Store instances coordinate writes through a canonical Mutex. -->
+```typescript
+import { Mutex } from "@studnicky/mutex/node";
+import { Store } from "@studnicky/store/node";
+import type { MutexInterface } from "@studnicky/mutex/interfaces";
+
+const mutex: MutexInterface<string> = Mutex.create<string>();
+const first = Store.create({ initialState: 0, key: "cart", mutex, persistence });
+const second = Store.create({ initialState: 0, key: "cart", mutex, persistence });
+```
+
+A layered composition uses a distinct mutex and key pair from every layer. `StoreInterface` implementations provide `getSynchronizationIdentity()` for this composition contract.
 
 ## Entity-backed persistence
 
@@ -37,23 +58,27 @@ const persistence = BrowserPersistence.create({
 
 Use `JsonStateCodec.create({ decode })` only when the state is not a JSON entity and its domain supplies a different typed decoder.
 
-## Context-scoped state (Node)
+## Context-scoped state
 
-`ContextStore` resolves one backing `Store` while a `Context` scope is active. It delegates every operation to that store, so serialized writes, persistence, and listener protections remain the standard Store behavior. It implements `StoreInterface<TState>`, so it can be a layer in `@studnicky/strata-store-kit/node`.
+`ContextStore` is available from both runtime entry points and resolves one backing `Store` per active `Context` scope. It implements `StoreInterface<TState>`, so one long-lived `StrataStore` can relay every scope's updates to a durable layer. Supply its stable `synchronizationIdentity`; every backing Store is checked against it when that scope first uses the ContextStore.
 
 <!-- inline-ts-ok: Consumer composition example showing the published Node runtime and neutral interface imports. -->
 ```typescript
 import { Context } from '@studnicky/context/node';
+import { Mutex } from '@studnicky/mutex/node';
 import { ContextStore, MemoryPersistence, Store } from '@studnicky/store/node';
 import type { ContextStoreOptionsInterface } from '@studnicky/store/interfaces';
 
 const context = Context.create({ name: 'request' });
+const mutex = Mutex.create<string>();
 const options: ContextStoreOptionsInterface<{ readonly items: string[] }> = {
   context,
   key: 'request.cart',
+  synchronizationIdentity: { key: 'request.cart', mutex },
   createStore: () => Store.create({
     initialState: { items: [] },
     key: 'request.cart',
+    mutex,
     persistence: MemoryPersistence.create(),
   }),
 };
@@ -87,11 +112,14 @@ The runnable sample writes, hydrates, reports, and clears one counter for every 
 | Surface | Consumer use |
 |---|---|
 | `StoreInterface<TState>` | Depend on a state container without coupling to a concrete implementation. |
+| `StoreSynchronizationIdentityInterface` | Expose the mutex and key that serialize a store's mutations. |
 | `StatePersistenceInterface<TState>` | Supply a persistence adapter for another environment or backing service. |
 | `StateCodecInterface<TState>` | Validate and serialize persisted values at the storage boundary. |
 | `MemoryPersistence<TState>` | Keep transient state in process memory. |
 | `BrowserPersistence<TState>` | Persist state through a browser-native target. |
 | `StorageTarget` | Select `Memory`, `LocalStorage`, `SessionStorage`, or `IndexedDb`. |
+
+The same runtime symbols are available from `@studnicky/store/browser`; select the entry point for the active runtime.
 
 ## Exports
 

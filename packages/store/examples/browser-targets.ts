@@ -1,9 +1,6 @@
 import {
-  BrowserPersistence, StorageTarget
-} from '../src/browser/index.js';
-import {
-  JsonStateCodec, Store
-} from '../src/index.js';
+  BrowserPersistence, JsonStateCodec, StorageTarget, Store
+} from '@studnicky/store/browser';
 
 const NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown): number => {
   if (typeof value !== 'number') {

@@ -19,7 +19,7 @@ Consumers use one canonical sequence:
 ```typescript
 import { Retry } from '@studnicky/retry/node';
 
-const retry = Retry.create({ maxRetries: 3 });
+const retry = Retry.create({ maximumRetries: 3 });
 const result = await retry.execute(async () => loadRecord());
 ```
 
@@ -73,14 +73,14 @@ class AppRetry extends Retry {
   }
 }
 
-const retry = AppRetry.create({ maxRetries: 5 });
+const retry = AppRetry.create({ maximumRetries: 5 });
 ```
 
 Stateless utilities are pure-static classes. Stateful primitives are created explicitly and injected; no package exports a mutable stateful singleton.
 
 ## Package families
 
-The 50 packages group into stateful primitives, stateless utilities, and matching/routing tools. The matching/routing family can feed filters, discovery, selection, or delivery without imposing a required pipeline. See the [Packages Index](/packages/) for the complete package list.
+The 51 packages group into stateful primitives, stateless utilities, and matching/routing tools. The matching/routing family can feed filters, discovery, selection, or delivery without imposing a required pipeline. See the [Packages Index](/packages/) for the complete package list.
 
 ```mermaid
 flowchart TD
@@ -89,7 +89,7 @@ flowchart TD
         C["Concurrency\nRetry · Throttle · Mutex · Batch\nConcurrency · File-Lock\nIdempotency-Guard · Memoize\nBounded-Dispatcher · Keyed-Work-Gate\nKeyed-Rate-Limiter"]
         T["Time\nClock · Scheduler · Timing"]
         S["State & Flow\nContext · FSM · Pipeline · Paginator\nProcess-Kit · Visible-Range · Flag-Evaluator"]
-        O["I/O & Observability\nEvent-Bus · Fetch · Logger · Errors\nRequest-Executor · Resilience\nSliding-Window-Limiter · Boundary-Kit\nHealth-Registry · System · Worker-Pool"]
+        O["I/O & Observability\nEvent-Bus · Fetch · Logger · Errors\nRequest-Executor · Resilience\nBoundary-Kit\nHealth-Registry · System · Worker-Pool"]
     end
     subgraph Stateless["Stateless (pure / type-only)"]
         direction LR

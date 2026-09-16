@@ -1,5 +1,17 @@
 # Changelog
 
+## 14.0.0
+
+### Patch Changes
+
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/resilience@14.0.0
+  - @studnicky/throttle@14.0.0
+  - @studnicky/retry@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
+
 ## 13.0.0
 
 ### Patch Changes

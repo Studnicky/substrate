@@ -49,6 +49,8 @@ void describe('fetch data entities', () => {
     assert.throws(() => {
       ClientConfigDataEntity.intake({ 'unexpected': true });
     }, /must NOT have additional properties/);
+  });
+
   void it('omits an undefined composed request method while retaining nested validation', () => {
     assert.deepStrictEqual(ClientConfigDataEntity.intake({ 'options': { 'method': undefined } }), { 'options': {} });
     assert.throws(() => {
@@ -56,7 +58,6 @@ void describe('fetch data entities', () => {
     }, /\/options\/headers\/authorization: must be string/u);
   });
 
-  });
   void it('intakes query parameters as JSON-safe data', () => {
     const input = { 'active': true, 'tags': ['typescript', null] };
 
@@ -67,6 +68,9 @@ void describe('fetch data entities', () => {
     assert.throws(() => {
       QueryParametersEntity.intake({ 'filter': { 'status': 'active' } });
     });
+    assert.throws(() => {
+      QueryParametersEntity.intake({ 'omittedOnlyAtRuntime': undefined });
+    }, /undefined is not valid JSON data/);
   });
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {

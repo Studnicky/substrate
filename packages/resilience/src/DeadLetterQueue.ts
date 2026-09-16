@@ -1,4 +1,5 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
+import { CircularBuffer } from '@studnicky/circular-buffer/node';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
 import { Predicates } from '@studnicky/types/node';
 
@@ -30,7 +31,7 @@ export class DeadLetterQueue<T> {
 
   readonly #capacity: number;
   readonly #clock: () => number;
-  readonly #entries: DeadLetterQueueEntryInterface<T>[] = [];
+  readonly #entries: CircularBuffer<DeadLetterQueueEntryInterface<T>>;
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
@@ -66,6 +67,7 @@ export class DeadLetterQueue<T> {
 
   protected constructor(options?: DeadLetterQueueOptionsInterface) {
     this.hooks = new DeadLetterQueue.#OwnedHookInvoker();
+    this.#entries = CircularBuffer.create<DeadLetterQueueEntryInterface<T>>({ 'overflow': 'grow' });
     const capacity = options?.capacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');

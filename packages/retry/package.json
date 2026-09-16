@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/retry",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Generic async retry utility with extensible error classification",
   "type": "module",
   "sideEffects": false,
@@ -68,6 +68,7 @@
     "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/event-bus": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",

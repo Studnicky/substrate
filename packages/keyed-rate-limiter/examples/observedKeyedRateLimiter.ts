@@ -1,6 +1,8 @@
-import { RuntimeError } from '@studnicky/errors/node';
 /** observedKeyedRateLimiter — override onKeyCreated/onKeyEvicted/onLimitExceeded/onTokenAcquired to collect telemetry. Run: npx tsx examples/observedKeyedRateLimiter.ts */
 // #region usage
+import type { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
+
+import { RuntimeError } from '@studnicky/errors/node';
 import { TokenBucketExhaustedError } from '@studnicky/resilience/node';
 import assert from 'node:assert/strict';
 
@@ -26,9 +28,14 @@ class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
     telemetryEvents.push(`exceeded:${key}`);
   }
 
-  protected override onTokenAcquired(key: string, count: number): void {
-    console.log(`[keyed-rate-limiter] token acquired key=${key} count=${count}`);
-    telemetryEvents.push(`acquired:${key}:${count}`);
+  protected override onTokenAcquired(
+    key: string,
+    result: RateLimitConsumptionEntity.Type
+  ): void {
+    console.log(
+      `[keyed-rate-limiter] token acquired key=${key} consumed=${result.consumedTokens} remaining=${result.remainingTokens}`
+    );
+    telemetryEvents.push(`acquired:${key}:${result.consumedTokens}:${result.remainingTokens}`);
   }
 }
 
@@ -66,13 +73,15 @@ console.log('Events:', telemetryEvents);
 class FixedAllowance implements RateLimiterStrategyInterface {
   #remaining: number;
   constructor(allowance: number) { this.#remaining = allowance; }
-  consume(tokens = 1): void {
+  consume(tokens = 1): RateLimitConsumptionEntity.Type {
     if (this.#remaining < tokens) { throw RuntimeError.create('exhausted'); }
     this.#remaining -= tokens;
+    return { 'consumedTokens': tokens, 'remainingTokens': this.#remaining };
   }
-  waitForToken(options?: { 'signal'?: AbortSignal; 'tokens'?: number }): Promise<void> {
-    this.consume(options?.tokens ?? 1);
-    const result = Promise.resolve();
+  waitForToken(
+    options?: { 'signal'?: AbortSignal; 'tokens'?: number }
+  ): Promise<RateLimitConsumptionEntity.Type> {
+    const result = Promise.resolve(this.consume(options?.tokens ?? 1));
     return result;
   }
 }
@@ -86,16 +95,16 @@ genericLimiter.consume('tenant-1', 3);
 
 assert.deepEqual(telemetryEvents, [
   'created:user-a',
-  'acquired:user-a:1',
-  'acquired:user-a:1',
+  'acquired:user-a:1:1',
+  'acquired:user-a:1:0',
   'exceeded:user-a',
   'created:user-b',
-  'acquired:user-b:1',
+  'acquired:user-b:1:1',
   // consuming user-c evicts the LRU tail (user-a) as part of the cache
   // insert, so onKeyEvicted fires before onKeyCreated for the new key.
   'evicted:user-a',
   'created:user-c',
-  'acquired:user-c:1'
+  'acquired:user-c:1:1'
 ]);
 
 console.log('observedKeyedRateLimiter: all assertions passed');

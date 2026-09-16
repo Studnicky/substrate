@@ -328,14 +328,14 @@
     },
     {
       "name": "on-drop-noop",
-      "description": "publishing to a subscriber whose queue is already aborted drops the event and fires onDrop",
+      "description": "publishing after a pre-aborted caller signal has no subscription to deliver to",
       "shape": "on-drop-noop",
       "input": {
         "topic": "order:created",
         "payloadId": "1"
       },
       "expected": {
-        "dropCount": 1,
+        "dropCount": 0,
         "topic": "order:created"
       }
     },

@@ -229,11 +229,7 @@ function buildMermaid(packages, edges, highlights = {}) {
   const keptNodeIds = collectNodeIds(graphLines);
   const presentStatuses = new Set();
   const presentHops = new Set();
-  const classDefinitions = [
-    'classDef added fill:#d4edda,stroke:#28a745,color:#155724',
-    'classDef modified fill:#fff3cd,stroke:#856404,color:#664d03',
-    'classDef deleted fill:#f8d7da,stroke:#dc3545,color:#842029,stroke-dasharray:5 5',
-  ];
+  const classDefinitions = [];
   const classLines = [];
 
   for (const name of packages) {
@@ -253,6 +249,17 @@ function buildMermaid(packages, edges, highlights = {}) {
     if (hop !== undefined) {
       classLines.push(`class ${nodeId} impacted_${hop}`);
       presentHops.add(hop);
+    }
+  }
+
+  const statusStyles = new Map([
+    ['added', 'fill:#d4edda,stroke:#28a745,color:#155724'],
+    ['modified', 'fill:#fff3cd,stroke:#856404,color:#664d03'],
+    ['deleted', 'fill:#f8d7da,stroke:#dc3545,color:#842029,stroke-dasharray:5 5'],
+  ]);
+  for (const status of STATUS_PRIORITY) {
+    if (presentStatuses.has(status)) {
+      classDefinitions.push(`classDef ${status} ${statusStyles.get(status)}`);
     }
   }
 

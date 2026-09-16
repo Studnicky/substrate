@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/logger",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Pluggable logging interface with portable transport architecture",
   "type": "module",
   "sideEffects": false,

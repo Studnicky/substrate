@@ -5,7 +5,7 @@ description: JSON and object utilities for deep merge, clone, freeze, patch, has
 
 # @studnicky/json
 
-> JSON/object value-tools: deep merge, clone, freeze, path access, sort, patch, hash.
+> JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch, hash.
 
 ## Install
 
@@ -30,6 +30,14 @@ Deep merge nested objects: overlay wins on conflict, base keys are preserved, an
 The output shows overlay keys winning on conflict, base keys preserved, arrays replaced atomically by default, and `ConcatMerge` demonstrating the static-override subclass pattern.
 
 `Merge.deep` uses generic overloads that preserve the caller's value domain: two object inputs return their intersection, same-type inputs retain that type, and mixed inputs return the input union. Runtime merging remains limited to arrays and plain objects; `Date`, `Map`, `Set`, regular expressions, class instances, and other non-plain objects remain atomic values.
+
+## Immutable snapshots
+
+`ImmutableSnapshot.from(value)` creates a detached, deeply frozen value with `structuredClone` and `Frozen.deepFreeze`. The snapshot never shares mutable object, `Map`, or `Set` references with its input. Mutation attempts on frozen maps and sets throw `FrozenMutationError`; values that cannot be structured-cloned throw `ImmutableSnapshotError`.
+
+<<< ../../packages/json/examples/immutable-snapshot.ts#usage
+
+<RunnableExample src="packages/json/examples/immutable-snapshot" title="Immutable snapshot" />
 
 ## Patch, predicates, and Frozen
 
@@ -98,11 +106,13 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 | `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json/node` |
 | `Frozen` | Provides frozen functionality. | `@studnicky/json/node` |
 | `Hash` | Provides hash functionality. | `@studnicky/json/node` |
+| `ImmutableSnapshot` | Creates detached deeply frozen snapshots. | `@studnicky/json/node` |
 | `Merge` | Provides merge functionality. | `@studnicky/json/node` |
 | `Patch` | Provides patch functionality. | `@studnicky/json/node` |
 | `Path` | Provides path functionality. | `@studnicky/json/node` |
 | `Sort` | Provides sort functionality. | `@studnicky/json/node` |
 | `StructuralHash` | Provides structural hash functionality. | `@studnicky/json/node` |
 | `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json/node` |
+| `ImmutableSnapshotError` | Represents snapshot isolation failures. | `@studnicky/json/node` |
 | `JsonError` | Represents json failures. | `@studnicky/json/node` |
 | `PatchError` | Represents patch failures. | `@studnicky/json/node` |

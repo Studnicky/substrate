@@ -15,11 +15,10 @@
       "name": "beforeAcquire-reentrant-same-key"
     },
     {
-      "description": "Mutex records reentrant onRelease for the same key",
+      "description": "Mutex ignores a stale release re-entered from an onRelease hook while preserving queued lock handoff",
       "expected": {
         "complete": true,
-        "hookErrorCount": 1,
-        "hookName": "onRelease",
+        "hookErrorCount": 0,
         "lockedAfterFirstRelease": true,
         "lockedAfterSecondRelease": true,
         "lockedAfterThirdRelease": false

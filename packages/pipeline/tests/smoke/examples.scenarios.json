@@ -21,6 +21,16 @@
       "name": "observed-pipeline"
     },
     {
+      "description": "Runs the operation pipeline example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/operation-pipeline.ts"
+      },
+      "name": "operation-pipeline"
+    },
+    {
       "description": "Runs the subclass hooks example",
       "expected": {
         "importsWithoutThrow": true

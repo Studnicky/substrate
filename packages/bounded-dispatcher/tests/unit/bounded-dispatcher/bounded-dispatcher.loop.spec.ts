@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { VirtualTimeCounter } from '@studnicky/clock/node';
+import { Semaphore, SemaphoreQueueFullError } from '@studnicky/concurrency/node';
 import { EventBus } from '@studnicky/event-bus/node';
+import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import { OperationPipeline } from '@studnicky/pipeline/node';
 import { VirtualScheduler } from '@studnicky/scheduler/node';
 
-import type { BoundedDispatcherConfigInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
+import type { BoundedDispatcherConfigInterface, BoundedDispatcherOperationContextInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';
 
 type DispatcherBusDescriptor =
@@ -15,7 +18,7 @@ type DispatcherBusDescriptor =
   | { failureOrdinal: number; shape: 'rejecting' };
 
 type DispatcherOptionsDescriptor = {
-  permits?: number;
+  semaphore?: { permits: number };
 };
 
 type DispatcherScenarioConfig = {
@@ -43,6 +46,8 @@ type ScenarioShape =
   | 'reject-error-publication'
   | 'reject-start-publication'
   | 'reject-success-publication'
+  | 'injected-semaphore-abort'
+  | 'injected-semaphore-queue-cap'
   | 'schedule-cancel'
   | 'schedule-fires'
   | 'schedule-uses-dispatch'
@@ -107,7 +112,7 @@ type MaterializedScheduler = {
 
 type MutableDispatcherConfig = {
   bus?: NonNullable<BoundedDispatcherConfigInterface['bus']>;
-  permits?: NonNullable<BoundedDispatcherConfigInterface['permits']>;
+  semaphore?: NonNullable<BoundedDispatcherConfigInterface['semaphore']>;
   scheduler?: NonNullable<BoundedDispatcherConfigInterface['scheduler']>;
 };
 
@@ -192,8 +197,8 @@ const schedulerMaterializerMap: Record<DispatcherSchedulerDescriptor['shape'], S
 
 function materializeDispatcher(config: DispatcherScenarioConfig, cause?: PublicationCause): MaterializedDispatcher {
   const dispatcherConfig: MutableDispatcherConfig = Object.create(null);
-  if (config.options.permits !== undefined) {
-    dispatcherConfig.permits = config.options.permits;
+  if (config.options.semaphore !== undefined) {
+    dispatcherConfig.semaphore = config.options.semaphore;
   }
   const bus = busMaterializerMap[config.bus.shape](config.bus, cause);
   if (bus !== undefined) {
@@ -450,6 +455,59 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
       : undefined, Number(expected.snapshotValue));
   },
 
+  'injected-semaphore-queue-cap': async ({ expected }) => {
+    const semaphore = Semaphore.create({ 'maximumQueueSize': 1, 'permits': 1 });
+    const dispatcher = BoundedDispatcher.create({ 'semaphore': semaphore });
+    const gate = Promise.withResolvers<void>();
+    const first = dispatcher.dispatch(async () => {
+      await gate.promise;
+      return 'first';
+    });
+    await flushMicrotasks();
+    const second = dispatcher.dispatch(() => 'second');
+    await flushMicrotasks();
+
+    assert.equal(semaphore.activeCount, Number(expected.activeCount));
+    assert.equal(semaphore.queuedCount, Number(expected.queuedCount));
+    await assert.rejects(dispatcher.dispatch(() => 'third'), SemaphoreQueueFullError);
+    assert.equal(semaphore.activeCount, Number(expected.activeCount));
+    assert.equal(semaphore.queuedCount, Number(expected.queuedCount));
+
+    gate.resolve();
+    assert.deepEqual(await Promise.all([first, second]), expected.results);
+    await semaphore.waitForIdle();
+    assert.equal(semaphore.activeCount, 0);
+    assert.equal(semaphore.queuedCount, 0);
+  },
+
+  'injected-semaphore-abort': async ({ expected }) => {
+    const semaphore = Semaphore.create({ 'permits': 1 });
+    const dispatcher = BoundedDispatcher.create({ 'semaphore': semaphore });
+    const gate = Promise.withResolvers<void>();
+    const first = dispatcher.dispatch(async () => {
+      await gate.promise;
+    });
+    await flushMicrotasks();
+
+    const controller = new AbortController();
+    let callbackInvoked = false;
+    const aborted = dispatcher.dispatch(() => {
+      callbackInvoked = true;
+    }, { 'signal': controller.signal });
+    await flushMicrotasks();
+    assert.equal(semaphore.queuedCount, Number(expected.queuedCount));
+
+    controller.abort();
+    await assert.rejects(aborted, /Semaphore acquisition was aborted/);
+    assert.equal(callbackInvoked, Boolean(expected.callbackInvoked));
+    assert.equal(semaphore.activeCount, Number(expected.activeCount));
+    assert.equal(semaphore.queuedCount, 0);
+
+    gate.resolve();
+    await first;
+    await semaphore.waitForIdle();
+  },
+
   'schedule-fires': async ({ expected, input }) => {
     const { dispatcher, scheduler } = createVirtualDispatcher(input.dispatcher);
 
@@ -522,4 +580,144 @@ void describe('BoundedDispatcher', () => {
       await runCase(scenarioCase);
     });
   }
+
+  void it('runs ordered policies around the dispatched callback', async () => {
+    const events: string[] = [];
+    const controller = new AbortController();
+    const outer: OperationInterceptorInterface<BoundedDispatcherOperationContextInterface> = async (context, next) => {
+      assert.strictEqual(context.semaphoreOptions.signal, controller.signal);
+      events.push('outer:before');
+      const result = await next(context);
+      events.push('outer:after');
+      return result;
+    };
+    const inner: OperationInterceptorInterface<BoundedDispatcherOperationContextInterface> = async (context, next) => {
+      events.push('inner:before');
+      const result = await next(context);
+      events.push('inner:after');
+      return result;
+    };
+    const dispatcher = BoundedDispatcher.create({
+      'pipeline': OperationPipeline.create([outer, inner]),
+      'semaphore': { 'permits': 1 }
+    });
+
+    const result = await dispatcher.dispatch(() => {
+      events.push('callback');
+      return 'completed';
+    }, { 'signal': controller.signal });
+
+    assert.equal(result, 'completed');
+    assert.deepEqual(events, ['outer:before', 'inner:before', 'callback', 'inner:after', 'outer:after']);
+  });
+
+  void it('propagates queued aborts through operation policies without invoking callbacks', async () => {
+    const semaphore = Semaphore.create({ 'permits': 1 });
+    const controller = new AbortController();
+    let policyFailure: unknown;
+    let policyInvocations = 0;
+    const signals: Array<AbortSignal | undefined> = [];
+    const policy: OperationInterceptorInterface<BoundedDispatcherOperationContextInterface> = async (context, next) => {
+      policyInvocations += 1;
+      signals.push(context.semaphoreOptions.signal);
+      try {
+        return await next(context);
+      } catch (error: unknown) {
+        policyFailure = error;
+        throw error;
+      }
+    };
+    const dispatcher = BoundedDispatcher.create({
+      'pipeline': OperationPipeline.create([policy]),
+      'semaphore': semaphore
+    });
+    const gate = Promise.withResolvers<void>();
+    const first = dispatcher.dispatch(async () => { await gate.promise; });
+    await flushMicrotasks();
+
+    let callbackInvoked = false;
+    const queued = dispatcher.dispatch(() => {
+      callbackInvoked = true;
+    }, { 'signal': controller.signal });
+    await flushMicrotasks();
+    assert.equal(policyInvocations, 2);
+    assert.strictEqual(signals[1], controller.signal);
+    assert.equal(semaphore.queuedCount, 1);
+
+    controller.abort();
+    let receivedFailure: unknown;
+    try {
+      await queued;
+    } catch (error: unknown) {
+      receivedFailure = error;
+    }
+
+    assert.strictEqual(receivedFailure, policyFailure);
+    assert.match(receivedFailure instanceof Error ? receivedFailure.message : '', /Semaphore acquisition was aborted/);
+    assert.equal(callbackInvoked, false);
+    assert.equal(semaphore.activeCount, 1);
+    assert.equal(semaphore.queuedCount, 0);
+
+    gate.resolve();
+    await first;
+    await semaphore.waitForIdle();
+  });
+
+  void it('propagates callback failures unchanged through operation policies', async () => {
+    const callbackFailure = RuntimeError.create('callback failure');
+    let policyFailure: unknown;
+    let callbackInvoked = false;
+    const policy: OperationInterceptorInterface<BoundedDispatcherOperationContextInterface> = async (context, next) => {
+      try {
+        return await next(context);
+      } catch (error: unknown) {
+        policyFailure = error;
+        throw error;
+      }
+    };
+    const dispatcher = BoundedDispatcher.create({
+      'pipeline': OperationPipeline.create([policy]),
+      'semaphore': { 'permits': 1 }
+    });
+
+    let receivedFailure: unknown;
+    try {
+      await dispatcher.dispatch(() => {
+        callbackInvoked = true;
+        throw callbackFailure;
+      });
+    } catch (error: unknown) {
+      receivedFailure = error;
+    }
+
+    assert.equal(callbackInvoked, true);
+    assert.strictEqual(receivedFailure, callbackFailure);
+    assert.strictEqual(policyFailure, callbackFailure);
+  });
+
+  void it('accepts a structural operation pipeline contract', async () => {
+    class StructuralPipeline implements OperationPipelineInterface<BoundedDispatcherOperationContextInterface> {
+      readonly contexts: BoundedDispatcherOperationContextInterface[] = [];
+
+      run<TResult>(
+        context: BoundedDispatcherOperationContextInterface,
+        operation: OperationFunctionInterface<BoundedDispatcherOperationContextInterface, TResult>
+      ): Promise<TResult> {
+        this.contexts.push(context);
+        const result = Promise.resolve(operation(context));
+        return result;
+      }
+    }
+
+    const pipeline = new StructuralPipeline();
+    const dispatcher = BoundedDispatcher.create({
+      'pipeline': pipeline,
+      'semaphore': { 'permits': 1 }
+    });
+    const result = await dispatcher.dispatch((): string => 'completed');
+
+    assert.equal(result, 'completed');
+    assert.equal(pipeline.contexts.length, 1);
+    assert.deepEqual(pipeline.contexts[0]?.semaphoreOptions, {});
+  });
 });

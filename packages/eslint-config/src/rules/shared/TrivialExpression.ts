@@ -148,7 +148,7 @@ class InaccessibleReceiverGuard {
    * non-public — `method` may be public on `field`'s own type and it would not matter).
    */
   public static hasInaccessibleReceiver(node: unknown, context: Rule.RuleContext): boolean {
-    const call = InaccessibleReceiverGuard.#unwrapToCallExpression(node);
+    const call = InaccessibleReceiverGuard.unwrapToCallExpression(node);
 
     if (call === undefined) {
       return false;
@@ -243,7 +243,7 @@ class InaccessibleReceiverGuard {
     return false;
   }
 
-  static #unwrapToCallExpression(node: unknown): { readonly 'callee': unknown } | undefined {
+  public static unwrapToCallExpression(node: unknown): { readonly 'arguments': unknown; readonly 'callee': unknown } | undefined {
     if (!Predicates.isRecord(node)) {
       return undefined;
     }
@@ -251,15 +251,15 @@ class InaccessibleReceiverGuard {
     const type = AstHelpers.getNodeType(node);
 
     if (type === 'CallExpression') {
-      return node as { readonly 'callee': unknown };
+      return { 'arguments': node.arguments, 'callee': node.callee };
     }
     if (type === 'AwaitExpression') {
-      const result = InaccessibleReceiverGuard.#unwrapToCallExpression(node.argument);
+      const result = InaccessibleReceiverGuard.unwrapToCallExpression(node.argument);
 
       return result;
     }
     if (type === 'ChainExpression') {
-      const result = InaccessibleReceiverGuard.#unwrapToCallExpression(node.expression);
+      const result = InaccessibleReceiverGuard.unwrapToCallExpression(node.expression);
 
       return result;
     }
@@ -567,10 +567,11 @@ export class TrivialExpression {
       if (type === 'CallExpression' && ReceiverBindingAdapterGuard.isReceiverBindingAdapter(node, context)) {
         return false;
       }
-      // A direct CallExpression must additionally forward its OWN arguments 1:1 — see the
-      // module comment above `CallArgumentForwarding`. `Identifier`/`AwaitExpression`/
-      // `ChainExpression` have no `arguments` list of their own to check here.
-      if (type === 'CallExpression' && !CallArgumentForwarding.isPureForward(node, parameterNames)) {
+      // A call must additionally forward its OWN arguments 1:1 — including calls wrapped by
+      // `await` or optional chaining. The shared unwrap preserves the call argument list.
+      const call = InaccessibleReceiverGuard.unwrapToCallExpression(node);
+
+      if (call !== undefined && !CallArgumentForwarding.isPureForward(call, parameterNames)) {
         return false;
       }
 

@@ -4,9 +4,6 @@ Generated from `madge` local traversal and TypeScript static workspace imports o
 
 ```mermaid
 flowchart LR
-classDef added fill:#d4edda,stroke:#28a745,color:#155724
-classDef modified fill:#fff3cd,stroke:#856404,color:#664d03
-classDef deleted fill:#f8d7da,stroke:#dc3545,color:#842029,stroke-dasharray:5 5
 p__studnicky_batch["@studnicky/batch"]
 p__studnicky_boundary_kit["@studnicky/boundary-kit"]
 p__studnicky_bounded_dispatcher["@studnicky/bounded-dispatcher"]
@@ -47,7 +44,6 @@ p__studnicky_sample_buffer["@studnicky/sample-buffer"]
 p__studnicky_scheduler["@studnicky/scheduler"]
 p__studnicky_semantic_matching["@studnicky/semantic-matching"]
 p__studnicky_signal["@studnicky/signal"]
-p__studnicky_sliding_window_limiter["@studnicky/sliding-window-limiter"]
 p__studnicky_store["@studnicky/store"]
 p__studnicky_strata_store_kit["@studnicky/strata-store-kit"]
 p__studnicky_system["@studnicky/system"]
@@ -71,6 +67,7 @@ p__studnicky_bounded_dispatcher --> p__studnicky_concurrency
 p__studnicky_bounded_dispatcher --> p__studnicky_entity
 p__studnicky_bounded_dispatcher --> p__studnicky_errors
 p__studnicky_bounded_dispatcher --> p__studnicky_event_bus
+p__studnicky_bounded_dispatcher --> p__studnicky_pipeline
 p__studnicky_bounded_dispatcher --> p__studnicky_scheduler
 p__studnicky_bounded_dispatcher --> p__studnicky_types
 p__studnicky_cache --> p__studnicky_clock
@@ -183,17 +180,17 @@ p__studnicky_paginator --> p__studnicky_entity
 p__studnicky_paginator --> p__studnicky_errors
 p__studnicky_paginator --> p__studnicky_fsm
 p__studnicky_paginator --> p__studnicky_types
-p__studnicky_pipeline --> p__studnicky_entity
-p__studnicky_pipeline --> p__studnicky_errors
-p__studnicky_pipeline --> p__studnicky_types
+p__studnicky_pipeline --> p__studnicky_json
 p__studnicky_process_kit --> p__studnicky_fsm
 p__studnicky_process_kit --> p__studnicky_scheduler
 p__studnicky_request_executor --> p__studnicky_entity
 p__studnicky_request_executor --> p__studnicky_errors
 p__studnicky_request_executor --> p__studnicky_fetch
+p__studnicky_request_executor --> p__studnicky_pipeline
 p__studnicky_request_executor --> p__studnicky_retry
 p__studnicky_request_executor --> p__studnicky_signal
 p__studnicky_request_executor --> p__studnicky_types
+p__studnicky_resilience --> p__studnicky_circular_buffer
 p__studnicky_resilience --> p__studnicky_entity
 p__studnicky_resilience --> p__studnicky_errors
 p__studnicky_resilience --> p__studnicky_fsm
@@ -204,6 +201,7 @@ p__studnicky_retry --> p__studnicky_clock
 p__studnicky_retry --> p__studnicky_config
 p__studnicky_retry --> p__studnicky_entity
 p__studnicky_retry --> p__studnicky_errors
+p__studnicky_retry --> p__studnicky_event_bus
 p__studnicky_retry --> p__studnicky_fsm
 p__studnicky_retry --> p__studnicky_signal
 p__studnicky_retry --> p__studnicky_types
@@ -218,19 +216,9 @@ p__studnicky_scheduler --> p__studnicky_types
 p__studnicky_semantic_matching --> p__studnicky_entity
 p__studnicky_signal --> p__studnicky_errors
 p__studnicky_signal --> p__studnicky_types
-p__studnicky_sliding_window_limiter --> p__studnicky_circular_buffer
-p__studnicky_sliding_window_limiter --> p__studnicky_entity
-p__studnicky_sliding_window_limiter --> p__studnicky_errors
-p__studnicky_sliding_window_limiter --> p__studnicky_signal
-p__studnicky_sliding_window_limiter --> p__studnicky_types
-p__studnicky_store --> p__studnicky_context
-p__studnicky_store --> p__studnicky_entity
-p__studnicky_store --> p__studnicky_mutex
-p__studnicky_strata_store_kit --> p__studnicky_mutex
-p__studnicky_strata_store_kit --> p__studnicky_store
 p__studnicky_system --> p__studnicky_entity
 p__studnicky_system --> p__studnicky_errors
-p__studnicky_throttle --> p__studnicky_circular_buffer
+p__studnicky_throttle --> p__studnicky_concurrency
 p__studnicky_throttle --> p__studnicky_config
 p__studnicky_throttle --> p__studnicky_entity
 p__studnicky_throttle --> p__studnicky_errors

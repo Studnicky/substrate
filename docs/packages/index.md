@@ -90,8 +90,7 @@ platform-parity status.
 | [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata |
 | [@studnicky/errors](/packages/errors) | Standardized error hierarchy serializing to RFC 9457 Problem Details |
 | [@studnicky/request-executor](/packages/request-executor) | Composes fetch, retry, signal, timing, and context into a one-shot request execution pattern |
-| [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket, and dead-letter queue primitives |
-| [@studnicky/sliding-window-limiter](/packages/sliding-window-limiter) | Sliding-window rate limiter — exact timestamp-log or approximate blended-counter algorithm |
+| [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket and sliding-window rate limiters, and dead-letter queue primitives |
 | [@studnicky/boundary-kit](/packages/boundary-kit) | Composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern |
 | [@studnicky/health-registry](/packages/health-registry) | Named async health-check registry with worst-status-wins aggregation |
 | [@studnicky/system](/packages/system) | CPU/GPU/memory/platform detection for worker sizing |

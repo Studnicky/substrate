@@ -14,9 +14,12 @@
     },
     {
       "name": "options-null",
-      "description": "ValidateOptions accepts null",
+      "description": "FetchClient rejects null options at the configuration boundary",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "options must be an object"
+        ]
       },
       "input": {
         "options": null
@@ -94,9 +97,12 @@
     },
     {
       "name": "options-headers-null",
-      "description": "ValidateOptions accepts null headers values without inspecting them",
+      "description": "FetchClient rejects null option headers at the configuration boundary",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "/options/headers: must be object"
+        ]
       },
       "input": {
         "options": {
@@ -555,9 +561,12 @@
     },
     {
       "name": "options-signal-null",
-      "description": "ValidateOptions accepts null signal values",
+      "description": "FetchClient rejects null option signals at the configuration boundary",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "signal must be an AbortSignal instance"
+        ]
       },
       "input": {
         "options": {
@@ -623,9 +632,12 @@
     },
     {
       "name": "options-timeout-null",
-      "description": "ValidateOptions accepts null timeout values",
+      "description": "FetchClient rejects null option timeouts at the configuration boundary",
       "expected": {
-        "shape": "ok"
+        "shape": "throws",
+        "messageIncludes": [
+          "timeout must be a number"
+        ]
       },
       "input": {
         "options": {

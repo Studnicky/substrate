@@ -1,11 +1,8 @@
+import { Mutex } from '@studnicky/mutex/browser';
 import {
-  BrowserPersistence, StorageTarget
+  BrowserPersistence, JsonStateCodec, MemoryPersistence, StorageTarget, Store
 } from '@studnicky/store/browser';
-import {
-  JsonStateCodec, MemoryPersistence, Store
-} from '@studnicky/store/node';
-
-import { StrataStore } from '../src/index.js';
+import { StrataStore } from '@studnicky/strata-store-kit/browser';
 
 const NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown): number => {
   if (typeof value !== 'number') {
@@ -17,6 +14,7 @@ const NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown):
 
 // #region usage
 const key = 'demo:layered-counter';
+const mutex = Mutex.create<string>();
 const cache = Store.create({ 'initialState': 0, 'key': key, 'persistence': MemoryPersistence.create<number>() });
 const durable = Store.create({
   'initialState': 0,
@@ -26,7 +24,7 @@ const durable = Store.create({
 
 await durable.setState(7);
 
-const counter = StrataStore.create({ 'layers': [cache, durable] });
+const counter = StrataStore.create({ 'layers': [cache, durable], 'mutex': mutex, 'mutexKey': key });
 
 counter.subscribe((snapshot): void => {
   console.log(`durable subscriber received ${snapshot}`);

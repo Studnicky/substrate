@@ -35,7 +35,7 @@ export namespace ClientConfigDataEntity {
         ]
       },
       'parameters': QueryParametersEntity.Schema,
-      'timeout': { 'exclusiveMinimum': 0, 'type': 'number' }
+      'timeout': { 'exclusiveMinimum': 0, 'multipleOf': 1, 'type': 'number' }
     },
     'title': 'ClientConfigData',
     'type': 'object'

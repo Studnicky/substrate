@@ -25,7 +25,7 @@ export namespace FetchRequestOptionsEntity {
         'enum': ['', 'no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url']
       },
       'requestId': { 'type': 'string' },
-      'timeout': { 'exclusiveMinimum': 0, 'type': 'number' }
+      'timeout': { 'exclusiveMinimum': 0, 'multipleOf': 1, 'type': 'number' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

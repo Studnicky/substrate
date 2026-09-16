@@ -17,7 +17,7 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { complete: boolean; hookErrorCount: number; hookName: 'onRelease'; lockedAfterFirstRelease: boolean; lockedAfterSecondRelease: boolean; lockedAfterThirdRelease: boolean };
+      expected: { complete: boolean; hookErrorCount: number; lockedAfterFirstRelease: boolean; lockedAfterSecondRelease: boolean; lockedAfterThirdRelease: boolean };
       input: { batch: { pendingCount: number }; key: string };
       shape: 'onRelease-reentrant-same-key';
       name: string;
@@ -137,11 +137,6 @@ const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Pr
       mutex.setRelease1(release1);
       release1();
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
-      const err = mutex.getHookErrors()[0];
-      assert.ok(err !== undefined, 'Expected a recorded hook error');
-      assert.ok(err instanceof HookInvocationError);
-      assert.strictEqual(err.hookName, scenarioCase.expected.hookName);
-      assert.ok(err.cause instanceof ReentrantHookInvocationError);
       assert.strictEqual(mutex.isLocked(scenarioCase.input.key), scenarioCase.expected.lockedAfterFirstRelease);
       const release2 = await readArrayItem(pendings, 0, 'pendings');
       release2();

@@ -44,11 +44,11 @@ export class Signal {
     const callerSignal = options.signal;
     const deadlineMs = options.deadlineMs;
 
-    if (deadlineMs !== undefined && (!Predicates.isNumber(deadlineMs) || isNaN(deadlineMs) || deadlineMs < 0)) {
-      throw new SignalError('deadlineMs must be a non-negative number');
+    if (deadlineMs !== undefined && (!Predicates.isFiniteNumber(deadlineMs) || !Number.isInteger(deadlineMs) || deadlineMs < 0 || deadlineMs > 2_147_483_647)) {
+      throw new SignalError('deadlineMs must be an integer between 0 and 2147483647');
     }
 
-    const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(Math.ceil(deadlineMs)) : undefined;
+    const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
 
     let result: AbortSignal;
 

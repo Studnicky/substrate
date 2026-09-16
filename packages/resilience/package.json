@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/resilience",
-  "version": "13.0.0",
-  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, DeadLetterQueue",
+  "version": "14.0.0",
+  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, SlidingWindowLimiter, DeadLetterQueue",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -50,6 +50,7 @@
   "keywords": [
     "circuit-breaker",
     "rate-limiter",
+    "sliding-window",
     "dead-letter-queue",
     "resilience",
     "typescript"
@@ -58,6 +59,7 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",

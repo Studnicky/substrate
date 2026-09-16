@@ -15,6 +15,10 @@ pnpm add @studnicky/pipeline
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
+## Runtime imports
+
+Import `Pipeline` and `OperationPipeline` from `@studnicky/pipeline/node` in Node or `@studnicky/pipeline/browser` in browsers. Import type contracts from `@studnicky/pipeline/interfaces`.
+
 ## Usage
 
 Construct a `Pipeline<T>` instance with a fixed array of stages, and run a context
@@ -30,69 +34,65 @@ The basic demo constructs a `Pipeline` directly with `Pipeline.create<RequestCtx
 
 <RunnableExample src="packages/pipeline/examples/basic-pipeline" title="Pipeline stages" />
 
-The hooks demo subclasses `Pipeline` and overrides all eight protected lifecycle hooks, then runs both a happy path and a failing path. Watch the happy path emit `runStart → beforeStage → stageStart → stageSuccess → afterStage` for each of three stages, then `runComplete`. The failing path shows `stageError` at index 1 followed by `runError` wrapping the stage failure in a `PipelineError`.
+The hooks demo subclasses `Pipeline` and overrides all eight protected hooks. The failing run emits `stageError` and `runError` with the exact stage error, then rejects with that same value.
 
 <RunnableExample src="packages/pipeline/examples/observedPipeline" title="Pipeline lifecycle hooks" />
 
 ## Public API
 
-Import `Pipeline` and `PipelineError` from `@studnicky/pipeline/node`; import schema namespaces from `@studnicky/pipeline/entities` and type contracts from `@studnicky/pipeline/interfaces`.
+Use the runtime entry point for the active platform and import type contracts from `@studnicky/pipeline/interfaces`.
+
+## Run an operation through policies
+
+Use `OperationPipeline<TContext>` when a policy surrounds a supplied operation. Interceptors receive the context and `next(context)`. The first declared interceptor enters first, each interceptor decides when to call `next`, each `run()` call chooses its own result type, and the operation result or thrown value passes through unchanged:
+
+<<< ../../packages/pipeline/examples/operation-pipeline.ts#usage
+
+<RunnableExample src="packages/pipeline/examples/operation-pipeline" title="Operation policies" />
 
 ## Extending
 
-`Pipeline` exposes four protected hooks (`onRunStart`, `beforeStage`, `afterStage`,
-and `onRunComplete`) that subclasses can override to inject timing, logging, or
-context mutation without coupling the core pipeline to any external dependency:
+`beforeStage` and `afterStage` are the transform hooks. Each returns the context passed to the adjacent stage, and an error from either rejects the run. The six lifecycle hooks are observers: `onRunStart`, `onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`, and `onRunComplete`. They receive a detached, deeply frozen context snapshot when context is available and may return `void` or a promise; their return values are ignored, and a throw, rejection, unresolved promise, or snapshot failure never delays, replaces, or changes a stage or run outcome. A context that cannot be cloned skips only that observer while the pipeline continues.
 
 <<< ../../packages/pipeline/examples/subclass-hooks.ts#usage
 
-The `stages` getter returns a readonly snapshot of all constructed transforms, useful
-for inspection or tooling.
+The `stages` getter returns a readonly snapshot of all constructed transforms, useful for inspection or tooling.
 
 ## Observability hooks
 
-`Pipeline` exposes eight protected hooks for every stage of execution. The four **transform hooks** (`onRunStart`, `beforeStage`, `afterStage`, `onRunComplete`) return `T`, stay in-band, and can transform the context or fail the run. The four **observer hooks** are void, fire at every stage boundary and error path, and are kept observational so they do not replace the stage result or canonical stage error.
-
 | Hook | When it fires | Args |
 |------|---------------|------|
-| `onRunStart(ctx)` | Before the first stage; return value becomes the initial ctx | `ctx: T` |
-| `beforeStage(ctx, index)` | Before each stage fn; return value is passed to the stage fn | `ctx: T`, `index: number` |
-| `onStageStart(index, ctx)` | After `beforeStage`, before the stage fn — void observer | `index: number`, `ctx: T` |
-| `onStageSuccess(index, ctx)` | After the stage fn succeeds, before `afterStage` — void observer | `index: number`, `ctx: T` |
-| `afterStage(ctx, index)` | After each stage fn; return value becomes ctx for the next stage | `ctx: T`, `index: number` |
-| `onStageError(index, error)` | When a stage fn throws, before the error is wrapped — void observer | `index: number`, `error: unknown` |
-| `onRunError(error)` | When a stage error propagates out of `run()`, after `onStageError` — void observer | `error: unknown` |
-| `onRunComplete(ctx)` | After all stages complete; return value is the resolved result | `ctx: T` |
+| `onRunStart(ctx)` | Before the first stage. | `ctx: Readonly<T>` |
+| `beforeStage(ctx, index)` | Before each stage; return value becomes the stage input. | `ctx: T`, `index: number` |
+| `onStageStart(index, ctx)` | After `beforeStage`, before the stage. | `index: number`, `ctx: Readonly<T>` |
+| `onStageSuccess(index, ctx)` | After a stage succeeds, before `afterStage`. | `index: number`, `ctx: Readonly<T>` |
+| `afterStage(ctx, index)` | After each stage; return value becomes the next context. | `ctx: T`, `index: number` |
+| `onStageError(index, error)` | When a stage throws, before the same value propagates. | `index: number`, `error: unknown` |
+| `onRunError(error)` | When a stage error propagates out of `run()`, after `onStageError`. | `error: unknown` |
+| `onRunComplete(ctx)` | After all stages complete. | `ctx: Readonly<T>` |
 
 <<< ../../packages/pipeline/examples/observedPipeline.ts#usage
 
-The base class never calls any logger or metrics library. Observer hooks are no-ops by default; transform hooks are the behavioral seams.
-
-The four observer hooks run through a composed `HookInvoker` (see [`@studnicky/errors`](/packages/errors#hookinvoker)). A throwing observer surfaces as `HookInvocationError`. Pass `hookTimeoutMs` to `Pipeline.create<T>([...stages], { hookTimeoutMs })` to bound an asynchronous observer; exceeding the bound surfaces through `HookTimeoutError`. Without `hookTimeoutMs`, hook invocation is unbounded.
-
-## Entities
-
-`@studnicky/pipeline/entities` exports the pipeline option schema namespace.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
-```typescript
-import { PipelineOptionsEntity } from '@studnicky/pipeline/entities';
-```
-
 ## Interfaces
 
-`@studnicky/pipeline/interfaces` exports pipeline stage and runner contracts.
+`@studnicky/pipeline/interfaces` exports pipeline stage, operation, interceptor, and injectable operation-pipeline contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
-import type { PipelineFunctionInterface } from '@studnicky/pipeline/interfaces';
+import type {
+  OperationFunctionInterface,
+  OperationInterceptorInterface,
+  OperationPipelineInterface,
+  PipelineFunctionInterface
+} from '@studnicky/pipeline/interfaces';
 ```
 
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
+| `OperationPipeline` | Runs a supplied operation through typed interceptors. | `@studnicky/pipeline/node` |
+| `OperationPipelineInterface` | Injectable operation-policy contract. | `@studnicky/pipeline/interfaces` |
 | `Pipeline` | Runs typed transformation stages in sequence. | `@studnicky/pipeline/node` |
-| `PipelineError` | Represents pipeline execution failures. | `@studnicky/pipeline/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

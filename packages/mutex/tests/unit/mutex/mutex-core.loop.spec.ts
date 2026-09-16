@@ -841,6 +841,58 @@ void describe('Mutex core', () => {
     }
   });
 
+  void it("keeps a stale release from unlocking a handed-off lock", async () => {
+    const mutex = Mutex.create<string>();
+    const releaseFirst = await mutex.acquire("account:42");
+    const pendingSecond = mutex.acquire("account:42");
+
+    releaseFirst();
+    const releaseSecond = await pendingSecond;
+    releaseFirst();
+
+    assert.equal(mutex.isLocked("account:42"), true);
+    releaseSecond();
+    assert.equal(mutex.isLocked("account:42"), false);
+  });
+
+  void it("settles completeQueue observers when clear resets active work", async () => {
+    const mutex = Mutex.create<string>();
+    await mutex.acquire("account:42");
+    const idle = mutex.completeQueue();
+
+    mutex.clear();
+    await idle;
+    assert.equal(mutex.isComplete(), true);
+  });
+
+  void it("does not invoke a stale release while its earlier release hook is active", async () => {
+    class HookReentrantMutex extends Mutex<string> {
+      staleRelease: (() => void) | undefined;
+
+      get lifecycleHookErrorCount(): number {
+        const result = this.hooks.hookErrorCount;
+        return result;
+      }
+
+      protected override afterRelease(): void {
+        this.staleRelease?.();
+      }
+    }
+
+    const mutex = HookReentrantMutex.create();
+    const releaseFirst = await mutex.acquire("account:42");
+    mutex.staleRelease = releaseFirst;
+    const second = mutex.acquire("account:42");
+
+    releaseFirst();
+    const releaseSecond = await second;
+
+    assert.equal(mutex.lifecycleHookErrorCount, 0);
+    assert.equal(mutex.isLocked("account:42"), true);
+    releaseSecond();
+    await mutex.completeQueue();
+  });
+
   for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);

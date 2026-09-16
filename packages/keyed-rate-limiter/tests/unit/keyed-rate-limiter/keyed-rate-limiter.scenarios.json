@@ -77,7 +77,11 @@
       "shape": "consume-strategy-created-once",
       "input": {},
       "expected": {
-        "factoryCalls": 1
+        "factoryCalls": 1,
+        "result": {
+          "consumedTokens": 1,
+          "remainingTokens": 0
+        }
       }
     },
     {
@@ -106,7 +110,16 @@
           "allowance": 2
         }
       },
-      "expected": {}
+      "expected": {
+        "firstResult": {
+          "consumedTokens": 1,
+          "remainingTokens": 1
+        },
+        "secondResult": {
+          "consumedTokens": 1,
+          "remainingTokens": 0
+        }
+      }
     },
     {
       "name": "waitForToken works through the generic strategy path too",
@@ -117,7 +130,48 @@
           "allowance": 1
         }
       },
-      "expected": {}
+      "expected": {
+        "result": {
+          "consumedTokens": 1,
+          "remainingTokens": 0
+        }
+      }
+    },
+    {
+      "name": "factory strategies return fractional consumption results",
+      "description": "factory strategies return fractional consumption results",
+      "shape": "generic-fractional-consumption-result",
+      "input": {},
+      "expected": {
+        "result": {
+          "consumedTokens": 1.5,
+          "remainingTokens": 0.5
+        }
+      }
+    },
+    {
+      "name": "factory strategies report every successful consumption through onTokenAcquired",
+      "description": "factory strategies report every successful consumption through onTokenAcquired",
+      "shape": "generic-acquisition-observation",
+      "input": {},
+      "expected": {
+        "acquired": [
+          {
+            "key": "user-a",
+            "result": {
+              "consumedTokens": 1,
+              "remainingTokens": 1
+            }
+          },
+          {
+            "key": "user-a",
+            "result": {
+              "consumedTokens": 1,
+              "remainingTokens": 0
+            }
+          }
+        ]
+      }
     },
     {
       "name": "maximumKeys/keyIdleTtlMs bound the generic strategy path via the same LruCache",
@@ -140,6 +194,24 @@
             1
           ]
         ]
+      }
+    },
+    {
+      "name": "default token buckets return consumed and remaining capacity",
+      "description": "default token buckets return consumed and remaining capacity",
+      "shape": "consume-default-result",
+      "input": {
+        "keyedRateLimiter": {
+          "burstSize": 5,
+          "requestsPerSecond": 1,
+          "tokens": 2
+        }
+      },
+      "expected": {
+        "result": {
+          "consumedTokens": 2,
+          "remainingTokens": 3
+        }
       }
     },
     {
@@ -273,8 +345,8 @@
       }
     },
     {
-      "name": "onTokenAcquired fires for the default TokenBucket path",
-      "description": "onTokenAcquired fires for the default TokenBucket path",
+      "name": "onTokenAcquired exposes consumption results",
+      "description": "onTokenAcquired exposes consumption results",
       "shape": "on-token-acquired",
       "input": {
         "keyedRateLimiter": {
@@ -286,11 +358,17 @@
         "acquired": [
           {
             "key": "user-a",
-            "count": 1
+            "result": {
+              "consumedTokens": 1,
+              "remainingTokens": 1
+            }
           },
           {
             "key": "user-a",
-            "count": 1
+            "result": {
+              "consumedTokens": 1,
+              "remainingTokens": 0
+            }
           }
         ]
       }

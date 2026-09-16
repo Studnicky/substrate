@@ -13,7 +13,7 @@ description: Per-key rate limiting composing cache and resilience — one strate
 pnpm add @studnicky/keyed-rate-limiter
 ```
 
-`@studnicky/keyed-rate-limiter/node` provides the runtime API; entities and interfaces retain their canonical public subpaths.
+`@studnicky/keyed-rate-limiter/node` and `@studnicky/keyed-rate-limiter/browser` provide the same runtime API. Import schema declarations from `@studnicky/keyed-rate-limiter/entities` and contracts from `@studnicky/keyed-rate-limiter/interfaces`.
 
 ## Usage
 
@@ -21,11 +21,13 @@ pnpm add @studnicky/keyed-rate-limiter
 
 <<< ../../packages/keyed-rate-limiter/examples/observedKeyedRateLimiter.ts#usage
 
+Every successful acquisition returns `RateLimitConsumptionEntity.Type` from `@studnicky/resilience/entities`. `consumedTokens` is the amount acquired and `remainingTokens` is the capacity left for that key.
+
 ## Try it
 
 <RunnableExample src="packages/keyed-rate-limiter/examples/observedKeyedRateLimiter" title="Per-key token buckets with LRU eviction" />
 
-The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user-a` and `user-b`, `onLimitExceeded` firing once `user-a`'s bucket is drained, and `onKeyEvicted` firing for `user-a` when a third key (`user-c`) exceeds `maximumKeys` and evicts the LRU tail.
+The output shows `onKeyCreated` and `onTokenAcquired` results for independent keys, `onLimitExceeded` once `user-a` is drained, and `onKeyEvicted` when `maximumKeys` evicts the least recently used key.
 
 ## The `RateLimiterStrategyInterface` extension seam
 
@@ -33,10 +35,10 @@ The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user
 
 <<< ../../packages/keyed-rate-limiter/src/interfaces/RateLimiterStrategyInterface.ts
 
-`@studnicky/resilience`'s `TokenBucket` matches this shape without declaring or importing it. `KeyedRateLimiter.create(config)` accepts either of two node-exported config families:
+Both the default token bucket and factory strategies return `RateLimitConsumptionEntity.Type` from `@studnicky/resilience/entities`. `KeyedRateLimiter.create(config)` accepts either of two runtime-exported config families:
 
-- `KeyedRateLimiterCreateConfigInterface` supplies `requestsPerSecond`, `burstSize`, and optional `clock`, `maxKeys`, and `keyIdleTtlMs` for the default `TokenBucket`-per-key path.
-- `KeyedRateLimiterStrategyConfigInterface<TStrategy>` supplies `factory`, `maxKeys`, and `keyIdleTtlMs` for any structural strategy implementation.
+- `KeyedRateLimiterCreateConfigInterface` supplies `requestsPerSecond`, `burstSize`, and optional `clock`, `maximumKeys`, and `keyIdleTtlMs` for the default `TokenBucket`-per-key path.
+- `KeyedRateLimiterStrategyConfigInterface<TStrategy>` supplies `factory`, `maximumKeys`, and `keyIdleTtlMs` for any structural strategy implementation.
 
 ## Hooks
 
@@ -45,25 +47,20 @@ The output shows `onKeyCreated`/`onTokenAcquired` firing independently for `user
 | `onKeyCreated(key)` | A key is seen for the first time (or re-seen after eviction) and its strategy is lazily created |
 | `onKeyEvicted(key)` | The internal `LruCache` removes a key's strategy through capacity eviction or idle TTL expiry |
 | `onLimitExceeded(key)` | `key`'s strategy `consume()` throws, before the error propagates |
-| `onTokenAcquired(key, count)` | A successful acquisition on the default token-bucket config path; factory-supplied strategies own their acquisition telemetry |
+| `onTokenAcquired(key, result)` | Every successful `consume()` or `waitForToken()` acquisition, including factory strategies |
 
 `KeyedRateLimiter`'s own hooks are specifically about per-key rate-limiting semantics — never a restatement of generic cache/bucket lifecycle.
 
-## Encapsulation contract
+## Using a strategy
 
-`KeyedRateLimiter`'s own hooks (`onKeyCreated`, `onKeyEvicted`, `onLimitExceeded`, `onTokenAcquired`) are specifically about per-key rate-limiting semantics:
-
-The composed cache remains private. Callers observe rate-limiter behavior through `consume()`, `waitForToken()`, and the lifecycle hooks instead of mutating the limiter's owned storage. `onKeyEvicted` is delegated from the internally composed `LruCache`; `onTokenAcquired` is delegated from a per-key `TokenBucket` for the default config family. A factory-supplied strategy owns its own acquisition telemetry because `RateLimiterStrategyInterface` has no hook surface.
-
-## Composition order
-
-`consume()`/`waitForToken()` resolve the key's strategy (cache hit → return it; cache miss → `factory(key)` → `cache.set()` → `onKeyCreated`), then delegate to the strategy's own method. `consume()` wraps the call in a try/catch that fires `onLimitExceeded` and rethrows on failure — it never suppresses the underlying error.
+Call `consume(key, tokens?)` for immediate admission or `waitForToken(key, options?)` to wait for capacity. The default strategy throws `TokenBucketExhaustedError` when capacity is unavailable; a supplied strategy keeps its own documented error behavior.
 
 ## Errors
 
 | Error | Thrown when |
 |-------|-------------|
 | `KeyedRateLimiterConfigError` | `KeyedRateLimiter.create(config)` receives an invalid default or strategy configuration |
+| `KeyedRateLimiterBoundaryError` | An operation request, factory strategy, or strategy result violates the public contract |
 
 `consume()`/`waitForToken()` throw whatever the underlying strategy throws on exhaustion — `TokenBucketExhaustedError` (from `@studnicky/resilience`) on the default `create()` path.
 
@@ -96,6 +93,7 @@ import type { KeyedRateLimiterCreateConfigInterface } from '@studnicky/keyed-rat
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `KeyedRateLimiter` | Provides keyed rate limiter functionality. | `@studnicky/keyed-rate-limiter/node` |
+| `KeyedRateLimiterBoundaryError` | Represents invalid operation, strategy, and strategy-result boundaries. | `@studnicky/keyed-rate-limiter/node` |
 | `KeyedRateLimiterConfigError` | Represents keyed rate limiter config failures. | `@studnicky/keyed-rate-limiter/node` |
 | `KeyedRateLimiterError` | Represents keyed rate limiter failures. | `@studnicky/keyed-rate-limiter/node` |
 | `RateLimiterStrategyInterface` | Defines the rate limiter strategy contract. | `@studnicky/keyed-rate-limiter/interfaces` |

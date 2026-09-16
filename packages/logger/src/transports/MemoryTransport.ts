@@ -1,11 +1,11 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ImmutableSnapshot } from '@studnicky/json/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsEntity } from '../entities/MemoryTransportOptionsEntity.js';
 import type { TransportInterface } from './TransportInterface.js';
 
-import { ImmutableSnapshot } from '../modules/ImmutableSnapshot.js';
 import { ResolveMinimumLevel } from '../modules/ResolveMinimumLevel.js';
 
 interface MemoryTransportSubclassInterface<TInstance> extends Function {

@@ -1,16 +1,17 @@
+import type { OperationFunctionInterface } from '@studnicky/pipeline/interfaces';
+import type { RequestExecutorDepsInterface, RequestExecutorOperationContextInterface } from '@studnicky/request-executor/interfaces';
+/** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 // #region usage
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
-/** observedRequestExecutor — direct composition of caller-owned subclassed primitives. Run: npx tsx examples/observedRequestExecutor.ts */
 
 import { RuntimeError } from '@studnicky/errors/node';
 import { FetchClient, type RequestContextInterface, type ResponseContextInterface } from '@studnicky/fetch/node';
+import { OperationPipeline } from '@studnicky/pipeline/node';
+import { RequestExecutor } from '@studnicky/request-executor/node';
 import { Retry } from '@studnicky/retry/node';
+import { Signal } from '@studnicky/signal/node';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-
-import type { RequestExecutorDepsInterface } from '../src/interfaces/index.js';
-
-import { RequestExecutor } from '../src/index.js';
 
 class TelemetryFetchClient extends FetchClient {
   readonly requestPaths: string[] = [];
@@ -37,8 +38,23 @@ class TelemetryRetry extends Retry {
   }
 
   protected override onRetryScheduled(context: RetryContextInterface): void {
-    console.log(`[retry] attempt ${context.attemptNumber} scheduled retry`);
+    console.log('[retry] attempt', context.attemptNumber, 'scheduled retry');
     this.scheduledRetries.push(context.attemptNumber);
+  }
+}
+
+class PolicyAudit {
+  static readonly events: string[] = [];
+
+  static async trace<TResult>(
+    context: RequestExecutorOperationContextInterface,
+    next: OperationFunctionInterface<RequestExecutorOperationContextInterface, TResult>
+  ): Promise<TResult> {
+    console.log('[policy] signal aborted:', context.signal.aborted);
+    PolicyAudit.events.push('before');
+    const result = await next(context);
+    PolicyAudit.events.push('after');
+    return result;
   }
 }
 
@@ -63,8 +79,12 @@ class ReportingRequestExecutor extends RequestExecutor {
   // `this.create(...)` (not `RequestExecutor.create(...)`) so the inherited factory's
   // `new this(...)` binds to ReportingRequestExecutor — same `new this()` polymorphism
   // FetchClient/Retry use for their own subclass factories.
-  static tracked(fetchClient: TelemetryFetchClient, retry: TelemetryRetry): ReportingRequestExecutor {
-    const result = this.create({ 'fetchClient': fetchClient, 'retry': retry });
+  static tracked(
+    fetchClient: TelemetryFetchClient,
+    retry: TelemetryRetry,
+    pipeline: OperationPipeline<RequestExecutorOperationContextInterface>
+  ): ReportingRequestExecutor {
+    const result = this.create({ 'fetchClient': fetchClient, 'pipeline': pipeline, 'retry': retry, 'signal': Signal.create() });
 
     if (!(result instanceof ReportingRequestExecutor)) {
       throw RuntimeError.create('RequestExecutor subclass factory returned the wrong instance type');
@@ -120,7 +140,7 @@ if (address === null || typeof address !== 'object') {
 const fetchClient = TelemetryFetchClient.create({ 'baseURL': `http://localhost:${address.port}` });
 const retry = new TelemetryRetry({ 'maximumRetries': 3 });
 
-const executor = ReportingRequestExecutor.tracked(fetchClient, retry);
+const executor = ReportingRequestExecutor.tracked(fetchClient, retry, OperationPipeline.create([PolicyAudit.trace]));
 
 const response = await executor.execute(async (client, signal) => {
   const result = await client.get('/flaky', { 'signal': signal });
@@ -149,6 +169,7 @@ assert.equal(report.retries, 2);
 // The two /flaky 500s are absorbed by the retry loop, so execute() never fails and
 // onExecuteError never fires.
 assert.deepEqual(executor.errorMessages, []);
+assert.deepEqual(PolicyAudit.events, ['before', 'after']);
 assert.equal(executor.hookErrorCount, 0);
 
 server.close();
