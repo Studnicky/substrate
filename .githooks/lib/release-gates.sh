@@ -185,6 +185,10 @@ assert_changeset_required() {
   local base_ref="$1" head_ref="${2:-HEAD}" changeset_path has_added_changeset
   has_added_changeset=false
 
+  if git diff --quiet "$base_ref...$head_ref" -- . ':!.github/**' ':!.githooks/**'; then
+    return 0
+  fi
+
   while IFS= read -r -d '' changeset_path; do
     case "$changeset_path" in
       .changeset/README.md) ;;
