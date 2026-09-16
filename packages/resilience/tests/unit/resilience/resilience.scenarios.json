@@ -586,6 +586,25 @@
       }
     },
     {
+      "name": "resilience-tokenbucket-consumption-observation",
+      "description": "TokenBucket reports consumed tokens and fractional remaining capacity",
+      "shape": "tb-consumption-observation",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 3,
+          "burstSize": 4,
+          "clock": [0, 500],
+          "consume": [4, 0.5]
+        }
+      },
+      "expected": {
+        "observation": {
+          "consumedTokens": 0.5,
+          "remainingTokens": 1
+        }
+      }
+    },
+    {
       "name": "resilience-tokenbucket-consume-exhausted",
       "description": "TokenBucket throws when exhausted",
       "shape": "tb-consume-exhausted",
@@ -715,6 +734,10 @@
       },
       "expected": {
         "completed": true,
+        "observation": {
+          "consumedTokens": 1,
+          "remainingTokens": 0
+        },
         "availableAfterWait": 0
       }
     },
@@ -1328,6 +1351,27 @@
         ],
         "rejectionEvents": 0,
         "hookName": "onYield"
+      }
+    },
+    {
+      "name": "resilience-entity-rate-limit-consumption",
+      "description": "RateLimitConsumptionEntity validates positive consumption and non-negative remaining capacity",
+      "shape": "entity-rate-limit-consumption",
+      "input": {
+        "resilience": {
+          "valid": {
+            "consumedTokens": 0.5,
+            "remainingTokens": 1
+          },
+          "invalid": {
+            "consumedTokens": 0,
+            "remainingTokens": -1
+          }
+        }
+      },
+      "expected": {
+        "valid": true,
+        "invalid": false
       }
     },
     {

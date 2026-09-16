@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/concurrency'
-description: "Async concurrency primitives: channels, semaphores, coalescing, and iterable utilities."
+description: "Async concurrency primitives: channels, keyed and unkeyed semaphores, coalescing, and iterable utilities."
 ---
 
 # @studnicky/concurrency
 
-> Keyed async channels, counting semaphores, concurrent-call coalescing, and async iterable combinators.
+> Keyed async channels, keyed permit pools, counting semaphores, concurrent-call coalescing, and async iterable combinators.
 
 ## Install
 
@@ -13,17 +13,41 @@ description: "Async concurrency primitives: channels, semaphores, coalescing, an
 pnpm add @studnicky/concurrency
 ```
 
+### Runtime imports
+
+Node.js:
+
+<!-- inline-ts-ok: Canonical published Node runtime import path; verified by check-docs-exports. -->
+```typescript
+import { KeyedSemaphore, Semaphore } from '@studnicky/concurrency/node';
+```
+
+Browser:
+
+<!-- inline-ts-ok: Canonical published browser runtime import path; verified by check-docs-exports. -->
+```typescript
+import { KeyedSemaphore, Semaphore } from '@studnicky/concurrency/browser';
+```
+
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-The package declares runtime dependencies on `@studnicky/circular-buffer`, `@studnicky/errors`, `@studnicky/json`, `ajv`, and `json-schema-to-ts`.
+Runtime APIs have identical `@studnicky/concurrency/node` and `@studnicky/concurrency/browser` entry points. Choose the entry point for the consumer runtime; both export the same API.
 
 ## Usage
 
 ### Channel and Semaphore
 
-Channel provides keyed producer/consumer buffering; Semaphore gates concurrent access to a shared resource with a counting permit:
+Channel provides keyed producer/consumer buffering; Semaphore gates concurrent access to a shared resource with a counting permit. Its `activeCount` and `queuedCount` properties expose current load; use `setPermits()` to adapt capacity without cancelling in-flight work, and `waitForIdle()` to await a fully drained gate:
 
 <<< ../../packages/concurrency/examples/channelSemaphore.ts#usage
+
+A semaphore accepts an optional queue cap. Pass `signal` to `acquire()` or `withPermit()` to cancel a wait or apply a deadline with `AbortSignal.timeout(...)`; Node and browser consumers use the same API.
+
+### KeyedSemaphore
+
+Use `KeyedSemaphore` when each account, tenant, partition, or other key needs its own concurrency limit. The configured permit and queue limits apply independently to every key, and idle keys are released automatically:
+
+<<< ../../packages/concurrency/examples/keyedSemaphore.ts#usage
 
 ### Coalesce: deduplicate concurrent calls by key
 
@@ -103,6 +127,8 @@ The channel-and-semaphore demo constructs both primitives directly with `create(
 
 <RunnableExample src="packages/concurrency/examples/channelSemaphore" title="Channel and Semaphore" />
 
+<RunnableExample src="packages/concurrency/examples/keyedSemaphore" title="Keyed semaphore" />
+
 The async-iter demo uses native `async function*` generators as sources — no Node.js streams — and passes them through `AsyncIter.merge`, `AsyncIter.filter`, and `AsyncIter.enrich`. Watch the merged output interleave values from two independent ranges, the filter keep only even numbers, and the final composed pipeline emit only the multiples-of-three with a `tier` enrichment applied to values above five.
 
 <RunnableExample src="packages/concurrency/examples/asyncIter" title="AsyncIter merge / filter / enrich" />
@@ -118,6 +144,8 @@ The async-iter demo uses native `async function*` generators as sources — no N
 | `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency/node` |
 | `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency/node` |
 | `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency/node` |
+| `KeyedSemaphore` | Independent per-key permit gates. | `@studnicky/concurrency/node` |
+| `SemaphoreQueueFullError` | Signals that a bounded semaphore queue is full. | `@studnicky/concurrency/node` |
 | `SemaphoreError` | Base error for semaphore operations. | `@studnicky/concurrency/node` |
 
 ## Entities
@@ -152,10 +180,25 @@ import type { SemaphoreAcquireOptionsInterface } from '@studnicky/concurrency/in
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `create` | `static create(options: SemaphoreOptionsEntity.Type) => Semaphore` | Constructs a semaphore with the required permit count |
-| `acquire` | `() => Promise<() => Promise<void>>` | Waits for a permit; returns an asynchronous release function |
+| `acquire` | `(options?: SemaphoreAcquireOptionsInterface) => Promise<() => Promise<void>>` | Waits for a permit; `signal` cancels or bounds the wait |
 | `withPermit` | `<T>(callback: () => Promise<T>) => Promise<T>` | Acquires, runs callback, releases |
-| `available` | `number` | Current available permit count |
+| `setPermits` | `(permits: number) => Promise<void>` | Changes capacity; work already holding permits continues |
+| `waitForIdle` | `() => Promise<void>` | Resolves when no work is active or queued |
+| `activeCount` | `number` | Current holders |
+| `maximumQueueSize` | `number` | Waiting capacity; `0` means unlimited |
+| `available` | `number` | Current available permit count; may be negative while a reduced capacity drains |
+| `queuedCount` | `number` | Current waiting acquirers |
 | `permits` | `number` | Total configured permits |
+
+### `KeyedSemaphore<K>`
+
+| Member | Signature | Description |
+|--------|-----------|-------------|
+| `create` | `static create<K>(options: SemaphoreOptionsEntity.Type) => KeyedSemaphore<K>` | Constructs one permit policy per key |
+| `acquire` | `(key: K, options?: SemaphoreAcquireOptionsInterface) => Promise<() => Promise<void>>` | Acquires a permit for `key` |
+| `withPermit` | `<T>(key: K, callback: () => Promise<T>, options?: SemaphoreAcquireOptionsInterface) => Promise<T>` | Runs work within `key`’s permit limit |
+| `waitForIdle` | `(key?: K) => Promise<void>` | Waits for one key or all keys to drain |
+| `activeCount`, `queuedCount` | `(key?: K) => number` | Reads per-key or aggregate load |
 
 ### `Coalesce<T>`
 

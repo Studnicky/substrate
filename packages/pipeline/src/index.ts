@@ -3,5 +3,5 @@
  * Generic typed async pipeline for sequential context transforms
  */
 
-export { PipelineError } from './errors/index.js';
+export { OperationPipeline } from './operation/OperationPipeline.js';
 export { Pipeline } from './pipeline/Pipeline.js';

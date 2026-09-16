@@ -1,4 +1,4 @@
-export { KeyedRateLimiterConfigError, KeyedRateLimiterError } from './errors/index.js';
+export { KeyedRateLimiterBoundaryError, KeyedRateLimiterConfigError, KeyedRateLimiterError } from './errors/index.js';
 export type {
   RateLimiterStrategyInterface
 } from './interfaces/index.js';

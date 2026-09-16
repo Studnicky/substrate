@@ -13,10 +13,10 @@ import {
 } from 'node:test';
 
 import { Context } from '@studnicky/context/node';
+import { Mutex } from '@studnicky/mutex/node';
 
-import {
-  StrataStore
-} from '../../src/index.js';
+import { StrataStore } from '../../src/node/StrataStore.js';
+import { StrataStore as BrowserStrataStore } from '../../src/browser/StrataStore.js';
 
 class BrowserStorage implements Storage {
   readonly #entries = new Map<string, string>();
@@ -145,6 +145,78 @@ void describe('StrataStore', () => {
     assert.equal(await durablePersistence.load('counter'), undefined);
   });
 
+  void it("rejects layers that reacquire the composition mutex and key during construction", () => {
+    const mutex = Mutex.create<string>();
+    const layer = Store.create({
+      "initialState": 0,
+      "key": "counter",
+      "mutex": mutex,
+      "persistence": MemoryPersistence.create<number>()
+    });
+
+    assert.throws((): void => {
+      StrataStore.create({ "layers": [layer], "mutex": mutex, "mutexKey": "counter" });
+    }, /must not reuse its mutex and mutexKey/u);
+
+    const context = Context.create({ "name": "request" });
+    const contextLayer = ContextStore.create<number>({
+      "context": context,
+      "createStore": (): StoreInterface<number> => Store.create({
+        "initialState": 0,
+        "key": "counter",
+        "mutex": mutex,
+        "persistence": MemoryPersistence.create<number>()
+      }),
+      "key": "request-counter",
+      "synchronizationIdentity": { "key": "counter", "mutex": mutex }
+    });
+    assert.throws((): void => {
+      StrataStore.create({ "layers": [contextLayer], "mutex": mutex, "mutexKey": "counter" });
+    }, /must not reuse its mutex and mutexKey/u);
+  });
+
+  void it('serializes independent compositions through an injected mutex and stable mutex key', async () => {
+    const backing = MemoryPersistence.create<number>();
+    const firstSaveStarted = Promise.withResolvers<void>();
+    const releaseFirstSave = Promise.withResolvers<void>();
+    const writes: number[] = [];
+    let saveCalls = 0;
+    const persistence: StatePersistenceInterface<number> = {
+      'clear': async (key: string): Promise<void> => backing.clear(key),
+      'load': async (key: string): Promise<number | undefined> => backing.load(key),
+      'save': async (key: string, state: number): Promise<void> => {
+        saveCalls += 1;
+        if (saveCalls === 1) {
+          firstSaveStarted.resolve();
+          await releaseFirstSave.promise;
+        }
+        writes.push(state);
+        await backing.save(key, state);
+      }
+    };
+    const mutex = Mutex.create<string>();
+    const firstLayer = Store.create({ 'initialState': 0, 'key': 'counter', 'persistence': persistence });
+    const secondLayer = Store.create({ 'initialState': 0, 'key': 'counter', 'persistence': persistence });
+    const first = StrataStore.create({ 'layers': [firstLayer], 'mutex': mutex, 'mutexKey': 'counter' });
+    const second = StrataStore.create({ 'layers': [secondLayer], 'mutex': mutex, 'mutexKey': 'counter' });
+
+    const firstWrite = first.setState(1);
+    await firstSaveStarted.promise;
+    const secondWrite = second.setState(2);
+    await Promise.resolve();
+
+    assert.equal(saveCalls, 1);
+    releaseFirstSave.resolve();
+    await Promise.all([firstWrite, secondWrite]);
+
+    assert.deepEqual(writes, [1, 2]);
+    assert.equal(await backing.load('counter'), 2);
+    assert.equal(first.getSnapshot(), 1);
+    assert.equal(second.getSnapshot(), 2);
+    first.dispose();
+    second.dispose();
+  });
+
   void it('stops propagation after disposal', async () => {
     const lower = Store.create({ 'initialState': 0, 'key': 'lower', 'persistence': MemoryPersistence.create<number>() });
     const upper = Store.create({ 'initialState': 0, 'key': 'upper', 'persistence': MemoryPersistence.create<number>() });
@@ -189,7 +261,7 @@ void describe('StrataStore', () => {
 
     const cache = Store.create({ 'initialState': 0, 'key': 'counter', 'persistence': MemoryPersistence.create<number>() });
     const durable = Store.create({ 'initialState': 0, 'key': 'counter', 'persistence': persistence });
-    const store = StrataStore.create({ 'layers': [cache, durable] });
+    const store = BrowserStrataStore.create({ 'layers': [cache, durable] });
 
     await store.hydrate();
     await store.update((snapshot): number => snapshot + 1);
@@ -227,8 +299,10 @@ void describe('StrataStore', () => {
     assert.equal(durable.getSnapshot(), 2);
   });
 
-  void it('propagates ContextStore writes to a durable layer while isolating scoped state', async () => {
+  void it('relays updates from independently scoped Context stores through one long-lived composition', async () => {
     const context = Context.create({ 'name': 'request' });
+    const lowerMutex = Mutex.create<string>();
+    const lowerSynchronizationIdentity = { 'key': 'request-cache', 'mutex': lowerMutex };
     let lowerStoreCreates = 0;
     const lower = ContextStore.create<number>({
       'context': context,
@@ -237,11 +311,13 @@ void describe('StrataStore', () => {
 
         return Store.create({
           'initialState': 0,
-          'key': 'request-cache:' + lowerStoreCreates,
+          'key': 'request-cache',
+          'mutex': lowerMutex,
           'persistence': MemoryPersistence.create<number>()
         });
       },
-      'key': 'request-cache'
+      'key': 'request-cache',
+      'synchronizationIdentity': lowerSynchronizationIdentity
     });
     const durablePersistence = MemoryPersistence.create<number>();
     const durable = Store.create({
@@ -249,24 +325,20 @@ void describe('StrataStore', () => {
       'key': 'durable-counter',
       'persistence': durablePersistence
     });
+    const store = StrataStore.create({ 'layers': [lower, durable] });
     const firstScope = context.initialize();
     const secondScope = context.initialize();
 
     await firstScope.execute(async (): Promise<void> => {
-      const store = StrataStore.create({ 'layers': [lower, durable] });
-
       await store.setState(7);
 
       assert.equal(lower.getSnapshot(), 7);
       assert.equal(store.getSnapshot(), 7);
       assert.equal(durable.getSnapshot(), 7);
       assert.equal(await durablePersistence.load('durable-counter'), 7);
-      store.dispose();
     });
 
     await secondScope.execute(async (): Promise<void> => {
-      const store = StrataStore.create({ 'layers': [lower, durable] });
-
       assert.equal(lower.getSnapshot(), 0);
       assert.equal(store.getSnapshot(), 7);
 
@@ -275,13 +347,13 @@ void describe('StrataStore', () => {
       assert.equal(lower.getSnapshot(), 2);
       assert.equal(store.getSnapshot(), 2);
       assert.equal(await durablePersistence.load('durable-counter'), 2);
-      store.dispose();
     });
 
     const firstScopeSnapshot = firstScope.execute((): number => lower.getSnapshot());
 
     assert.equal(firstScopeSnapshot, 7);
     assert.equal(lowerStoreCreates, 2);
+    store.dispose();
     firstScope.terminate();
     secondScope.terminate();
   });

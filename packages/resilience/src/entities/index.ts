@@ -20,4 +20,6 @@ export { CircuitStateEntity } from './CircuitStateEntity.js';
 export { DeadLetterQueueEntryMetadataEntity } from './DeadLetterQueueEntryMetadataEntity.js';
 export { DeadLetterQueueOptionsEntity } from './DeadLetterQueueOptionsEntity.js';
 export { DeadLetterQueueRetryGeneratorOptionsEntity } from './DeadLetterQueueRetryGeneratorOptionsEntity.js';
+export { RateLimitConsumptionEntity } from './RateLimitConsumptionEntity.js';
+export { SlidingWindowLimiterOptionsEntity } from './SlidingWindowLimiterOptionsEntity.js';
 export { TokenBucketOptionsEntity } from './TokenBucketOptionsEntity.js';

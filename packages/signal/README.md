@@ -46,7 +46,7 @@ function getDefaultSignal(): AbortSignal {
   return Signal.never(); // same singleton on every call
 }
 
-// Invalid deadlineMs throws SignalError
+// SignalError rejects deadlineMs outside 0 through 2,147,483,647 whole milliseconds
 try {
   await signals.compose({ deadlineMs: -1 });
 } catch (err) {

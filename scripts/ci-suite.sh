@@ -3,20 +3,47 @@ set -eu
 
 . "$(dirname "$0")/../.githooks/lib/security-suite.sh"
 
+package_dist_ready() {
+  node -e '
+    const filesystem = require("node:fs");
+    const paths = require("node:path");
+    const manifestPath = process.argv[1];
+    const manifest = JSON.parse(filesystem.readFileSync(manifestPath, "utf8"));
+    const targets = new Set();
+    const collectTargets = (entry) => {
+      if (typeof entry === "string") {
+        if (entry.startsWith("./dist/") && (entry.endsWith(".js") || entry.endsWith(".d.ts"))) {
+          targets.add(entry);
+        }
+        return;
+      }
+      if (entry !== null && typeof entry === "object") {
+        for (const value of Object.values(entry)) {
+          collectTargets(value);
+        }
+      }
+    };
+    collectTargets(manifest.exports);
+    const packageDirectory = paths.dirname(manifestPath);
+    const missing = [...targets].filter((target) => !filesystem.existsSync(paths.resolve(packageDirectory, target)));
+    for (const target of missing) {
+      console.error("::error::missing " + target + " for " + packageDirectory);
+    }
+    process.exitCode = missing.length === 0 ? 0 : 1;
+  ' "$1"
+}
+
 verify_dist() {
   missing=0
   for pkgjson in packages/*/package.json; do
-    dir=$(dirname "$pkgjson")
-    if [ -f "$dir/dist/index.js" ]; then continue; fi
-    echo "::error::missing dist/index.js for $dir"; missing=1
+    package_dist_ready "$pkgjson" || missing=1
   done
   test "$missing" -eq 0
 }
 
 dist_ready() {
   for pkgjson in packages/*/package.json; do
-    dir=$(dirname "$pkgjson")
-    if [ ! -f "$dir/dist/index.js" ]; then return 1; fi
+    package_dist_ready "$pkgjson" >/dev/null 2>&1 || return 1
   done
 }
 

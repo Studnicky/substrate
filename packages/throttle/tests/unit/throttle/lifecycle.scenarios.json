@@ -30,7 +30,7 @@
         "throttle": { "concurrencyLimit": 1 },
         "activeResult": "kept-running"
       },
-      "expected": { "abort": { "cancelled": 0, "completed": 0, "timedOut": false } }
+      "expected": { "abort": { "cancelled": 1, "completed": 0, "timedOut": false } }
     },
     {
       "name": "abort-zero-timeout-with-active-work",
@@ -41,7 +41,7 @@
         "abortOptions": { "timeout": 0 },
         "activeResult": "kept-running"
       },
-      "expected": { "abort": { "cancelled": 0, "completed": 0, "timedOut": false } }
+      "expected": { "abort": { "cancelled": 1, "completed": 0, "timedOut": false } }
     },
     {
       "name": "abort-start-hook-throws",

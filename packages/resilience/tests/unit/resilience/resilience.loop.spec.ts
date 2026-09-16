@@ -13,13 +13,17 @@ import {
   DeadLetterQueueAbortedError,
   DeadLetterQueueClosedError,
   DeadLetterQueueFullError,
+  RateLimiterClock,
   ResilienceConfigError,
+  SlidingWindowLimiter,
   TokenBucket,
   TokenBucketExhaustedError
 } from '../../../src/index.js';
 import {
   CircuitStateEntity,
-  DeadLetterQueueEntryMetadataEntity
+  DeadLetterQueueEntryMetadataEntity,
+  RateLimitConsumptionEntity,
+  TokenBucketOptionsEntity
 } from '../../../src/entities/index.js';
 import type {
   CircuitBreakerOptionsInterface,
@@ -461,6 +465,7 @@ type ScenarioShape =
   | 'tb-cap'
   | 'tb-wait-immediate'
   | 'tb-wait-refill'
+  | 'tb-consumption-observation'
   | 'tb-wait-abort'
   | 'tb-wait-too-many'
   | 'tb-listener-leak'
@@ -495,6 +500,7 @@ type ScenarioShape =
   | 'dlqr-lifecycle'
   | 'dlqr-hook-swallows'
   | 'dlqr-async-hook-isolation'
+  | 'entity-rate-limit-consumption'
   | 'entity-dlq-entry';
 
 type ScenarioHandler = (scenarioCase: ScenarioCase, input: ScenarioInput) => Promise<void> | void;
@@ -846,6 +852,17 @@ const scenarioHandlers = {
     assert.equal(bucket.available, numberInput(expected, 'available'));
     assert.equal(bucket.available < 1, booleanInput(expected, 'exhausted'));
   },
+  'tb-consumption-observation': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const clock = numberArrayInput(input, 'clock');
+    let time = clock[0] ?? 0;
+    const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
+    const consume = numberArrayInput(input, 'consume');
+    bucket.consume(consume[0]);
+    time = clock[1] ?? time;
+    const observation = bucket.consume(consume[1]);
+    assert.deepEqual(observation, recordInput(scenarioCase.expected, 'observation'));
+    assert.equal(RateLimitConsumptionEntity.validate(observation), true);
+  },
   'tb-consume-exhausted': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const bucket = TokenBucket.create(tokenBucketOptions(input));
@@ -904,7 +921,7 @@ const scenarioHandlers = {
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume();
     let completed = false;
-    const wait = bucket.waitForToken().then(() => { completed = true; });
+    const wait = bucket.waitForToken().then((observation) => { completed = true; return observation; });
 
     // First tick nudges the clock forward, but not far enough to refill a full
     // token — the wait must still be pending, proving it is genuinely gated on
@@ -914,9 +931,10 @@ const scenarioHandlers = {
 
     // Second tick crosses the refill threshold; the pending wait now resolves.
     await new Promise<void>((resolve) => { setImmediate(() => { time = clock[2] ?? time; resolve(); }); });
-    await wait;
+    const observation = await wait;
 
     assert.equal(completed, booleanInput(expected, 'completed'));
+    assert.deepEqual(observation, recordInput(expected, 'observation'));
     assert.equal(bucket.available, numberInput(expected, 'availableAfterWait'));
   },
   'tb-wait-abort': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
@@ -1395,6 +1413,17 @@ const scenarioHandlers = {
       process.off('unhandledRejection', onUnhandledRejection);
     }
   },
+  'entity-rate-limit-consumption': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
+    const expected: ScenarioInput = scenarioCase.expected;
+    assert.equal(
+      RateLimitConsumptionEntity.validate(recordInput(input, 'valid')),
+      booleanInput(expected, 'valid')
+    );
+    assert.equal(
+      RateLimitConsumptionEntity.validate(recordInput(input, 'invalid')),
+      booleanInput(expected, 'invalid')
+    );
+  },
   'entity-dlq-entry': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     assert.equal(DeadLetterQueueEntryMetadataEntity.validate(recordInput(input, 'valid')), booleanInput(expected, 'valid'));
@@ -1419,4 +1448,120 @@ void describe('Resilience', () => {
       await runCase(scenarioCase);
     });
   }
+});
+
+void describe('TokenBucket token demand boundaries', () => {
+  const invalidTokenDemands: readonly number[] = [
+    0,
+    -1,
+    Number.NaN,
+    Number.NEGATIVE_INFINITY,
+    Number.POSITIVE_INFINITY
+  ];
+
+  void it('consume rejects invalid demands without changing capacity', () => {
+    for (const tokens of invalidTokenDemands) {
+      const bucket = TokenBucket.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
+
+      assert.throws(() => { bucket.consume(tokens); }, ResilienceConfigError);
+      assert.equal(bucket.available, 3);
+      assert.deepEqual(bucket.consume(1), { 'consumedTokens': 1, 'remainingTokens': 2 });
+    }
+  });
+
+  void it('waitForToken rejects invalid demands without changing capacity', async () => {
+    for (const tokens of invalidTokenDemands) {
+      const bucket = TokenBucket.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
+
+      await assert.rejects(() => bucket.waitForToken({ 'tokens': tokens }), ResilienceConfigError);
+      assert.equal(bucket.available, 3);
+      assert.deepEqual(bucket.consume(1), { 'consumedTokens': 1, 'remainingTokens': 2 });
+    }
+  });
+});
+
+
+void describe('TokenBucket unknown-property boundary', () => {
+  void it('rejects an unrecognized configuration property instead of discarding it', () => {
+    const configuration = Object.assign(
+      { 'burstSize': 1, 'requestsPerSecond': 1 },
+      { 'unrecognizedOption': true }
+    );
+
+    assert.equal(TokenBucketOptionsEntity.validate(configuration), false);
+    assert.throws(() => { TokenBucket.create(configuration); }, ResilienceConfigError);
+  });
+});
+
+void describe('TokenBucket configuration boundaries', () => {
+  const invalidConfigurations: readonly TokenBucketOptionsInterface[] = [
+    { 'burstSize': 1, 'requestsPerSecond': Number.NaN },
+    { 'burstSize': 1, 'requestsPerSecond': Number.NEGATIVE_INFINITY },
+    { 'burstSize': 1, 'requestsPerSecond': Number.POSITIVE_INFINITY },
+    { 'burstSize': Number.NaN, 'requestsPerSecond': 1 },
+    { 'burstSize': Number.NEGATIVE_INFINITY, 'requestsPerSecond': 1 },
+    { 'burstSize': Number.POSITIVE_INFINITY, 'requestsPerSecond': 1 }
+  ];
+
+  void it('rejects non-finite configuration values through the canonical entity boundary', () => {
+    for (const configuration of invalidConfigurations) {
+      assert.equal(TokenBucketOptionsEntity.validate(configuration), false);
+      assert.throws(() => { TokenBucket.create(configuration); }, ResilienceConfigError);
+    }
+  });
+});
+
+
+void describe('Rate limiter clock boundaries', () => {
+  const invalidReadings: readonly (() => number)[] = [
+    (): number => Number.NaN,
+    (): number => Number.NEGATIVE_INFINITY,
+    (): number => Number.POSITIVE_INFINITY
+  ];
+
+  void it('rejects non-callable clock collaborators', () => {
+    assert.throws(() => { RateLimiterClock.create(0); }, ResilienceConfigError);
+  });
+
+  void it('rejects a throwing clock before rate math', () => {
+    const clock = RateLimiterClock.create((): number => { throw RuntimeError.create('clock failure'); });
+    assert.throws(() => { clock(); }, ResilienceConfigError);
+  });
+
+  void it('rejects non-finite clock readings before rate math', () => {
+    for (const source of invalidReadings) {
+      const clock = RateLimiterClock.create(source);
+      assert.throws(() => { clock(); }, ResilienceConfigError);
+    }
+  });
+
+  void it('rejects backward clock readings before rate math', () => {
+    let time = 2;
+    const clock = RateLimiterClock.create((): number => time);
+    assert.equal(clock(), 2);
+    time = 1;
+    assert.throws(() => { clock(); }, ResilienceConfigError);
+  });
+
+  void it('guards TokenBucket and SlidingWindowLimiter reads', () => {
+    assert.throws(() => {
+      TokenBucket.create({ 'burstSize': 1, 'clock': (): number => { throw RuntimeError.create('clock failure'); }, 'requestsPerSecond': 1 });
+    }, ResilienceConfigError);
+    assert.throws(() => {
+      TokenBucket.create({ 'burstSize': 1, 'clock': (): number => Number.NaN, 'requestsPerSecond': 1 });
+    }, ResilienceConfigError);
+    assert.throws(() => {
+      SlidingWindowLimiter.create({ 'algorithm': 'log', 'clock': (): number => Number.POSITIVE_INFINITY, 'limit': 1, 'windowMs': 1 });
+    }, ResilienceConfigError);
+
+    let tokenTime = 2;
+    const tokenBucket = TokenBucket.create({ 'burstSize': 2, 'clock': (): number => tokenTime, 'requestsPerSecond': 1 });
+    tokenTime = 1;
+    assert.throws(() => { tokenBucket.consume(); }, ResilienceConfigError);
+
+    let windowTime = 2;
+    const limiter = SlidingWindowLimiter.create({ 'algorithm': 'log', 'clock': (): number => windowTime, 'limit': 2, 'windowMs': 1 });
+    windowTime = 1;
+    assert.throws(() => { limiter.consume(); }, ResilienceConfigError);
+  });
 });

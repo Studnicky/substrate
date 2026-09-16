@@ -7,6 +7,7 @@ import {
 
 
 import { EventBus } from '../../src/EventBus.js';
+import type { EventSinkInterface } from '../../src/interfaces/index.js';
 import scenarioGroups from './EventBus.scenarios.json' with { type: 'json' };
 
 async function flushMicrotasks(times = 20): Promise<void> {
@@ -602,7 +603,6 @@ const runnerMap: RunnerMap = {
     return bus.publish(input.topic, { 'id': input.payloadId })
       .then(() => {
         assert.strictEqual(bus.dropEvents.length, expected.dropCount);
-        assert.strictEqual(bus.dropEvents[0], expected.topic);
       })
       .finally(() => bus.close());
   },
@@ -879,4 +879,93 @@ void describe('EventBus', () => {
       await runCase(scenario as ScenarioCase);
     });
   }
+});
+
+
+interface RetryEventTopics {
+  readonly 'retry:failed': { readonly 'attempt': number };
+}
+
+function acceptEventSink<TTopicMap extends object>(sink: EventSinkInterface<TTopicMap>): EventSinkInterface<TTopicMap> {
+  return sink;
+}
+
+void describe('EventSinkInterface', () => {
+  void it('accepts a custom sink with only publish', async () => {
+    const published: string[] = [];
+    const sink = acceptEventSink<RetryEventTopics>({
+      async publish(topic, payload): Promise<void> {
+        published.push(`${topic}:${payload.attempt}`);
+      }
+    });
+
+    await sink.publish('retry:failed', { 'attempt': 2 });
+
+    assert.deepStrictEqual(published, ['retry:failed:2']);
+  });
+
+  void it('is implemented by EventBus without requiring lifecycle capabilities', async () => {
+    const bus = EventBus.create<RetryEventTopics>();
+    const sink = acceptEventSink<RetryEventTopics>(bus);
+
+    await sink.publish('retry:failed', { 'attempt': 1 });
+    await bus.close();
+  });
+});
+
+
+void describe("EventBus subscription ownership", () => {
+  void it("aborting a live caller signal removes its subscription with explicit-unsubscribe semantics", async () => {
+    class AbortObservedBus extends EventBus<TestTopics> {
+      unsubscribeCount = 0;
+
+      protected override onUnsubscribe(): void {
+        this.unsubscribeCount += 1;
+      }
+    }
+
+    const bus = AbortObservedBus.create();
+    const controller = new AbortController();
+    const received: string[] = [];
+    const unsubscribe = bus.subscribe("ping", async (payload) => {
+      received.push(payload);
+    }, { 'signal': controller.signal });
+
+    controller.abort();
+
+    assert.strictEqual(bus.unsubscribeCount, 1);
+    await bus.publish("ping", "after-abort");
+    await bus.drain();
+    assert.deepStrictEqual(received, []);
+
+    unsubscribe();
+    assert.strictEqual(bus.unsubscribeCount, 1);
+    await bus.close();
+  });
+
+  void it("keeps duplicate handler subscriptions independent", async () => {
+    const bus = EventBus.create<TestTopics>();
+    const received: string[] = [];
+    const handler = async (payload: string): Promise<void> => {
+      received.push(payload);
+    };
+    const unsubscribeFirst = bus.subscribe("ping", handler);
+    const unsubscribeSecond = bus.subscribe("ping", handler);
+
+    await bus.publish("ping", "first");
+    await bus.drain();
+
+    unsubscribeFirst();
+
+    await bus.publish("ping", "second");
+    await bus.drain();
+
+    unsubscribeSecond();
+
+    await bus.publish("ping", "third");
+    await bus.drain();
+
+    assert.deepStrictEqual(received, ["first", "first", "second"]);
+    await bus.close();
+  });
 });

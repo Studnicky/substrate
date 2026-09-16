@@ -95,11 +95,11 @@ const STATEFUL = [
   'entity-store', 'event-bus', 'file-lock', 'flag-evaluator', 'fsm', 'health-registry', 'idempotency-guard',
   'keyed-rate-limiter', 'keyed-work-gate', 'logger', 'memoize', 'mutex', 'paginator', 'pipeline', 'process-kit',
   'request-executor', 'resilience', 'retry', 'sample-buffer', 'scheduler',
-  'sliding-window-limiter', 'store', 'strata-store-kit', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
+  'store', 'strata-store-kit', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
 ] as const;
 
 const STATELESS = [
-  'config', 'errors', 'eslint-config', 'fetch', 'intake-kit', 'json',
+  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'fetch', 'json',
   'signal', 'system', 'types'
 ] as const;
 

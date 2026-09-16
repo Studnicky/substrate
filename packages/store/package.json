@@ -30,7 +30,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node ../../scripts/test-suite.mjs all --package ."

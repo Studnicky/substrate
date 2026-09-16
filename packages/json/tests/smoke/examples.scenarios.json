@@ -1,6 +1,17 @@
 {
   "cases": [
     {
+      "description": "imports the immutable snapshot example without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/immutable-snapshot.ts"
+      },
+      "shape": "immutable-snapshot",
+      "name": "json-smoke-immutable-snapshot"
+    },
+    {
       "description": "imports the draft example without throwing",
       "expected": {
         "importsWithoutThrow": true

@@ -397,3 +397,17 @@ void describe('Signal', () => {
     });
   }
 });
+
+
+void describe('Signal deadline boundaries', () => {
+  const invalidDeadlines = [Number.POSITIVE_INFINITY, 2_147_483_648, 0.5] as const;
+
+  for (const deadlineMs of invalidDeadlines) {
+    void it(`rejects deadline ${deadlineMs} before creating a platform timeout`, async () => {
+      await assert.rejects(
+        Signal.create().compose({ deadlineMs }),
+        SignalError
+      );
+    });
+  }
+});

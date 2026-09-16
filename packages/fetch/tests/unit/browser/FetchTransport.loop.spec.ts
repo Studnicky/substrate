@@ -96,4 +96,47 @@ void describe('browser fetch transport', () => {
     assert.equal(receivedHeaders?.get('X-Client'), 'browser');
     await client.destroy();
   });
+
+  void it('rejects a fractional timeout before dispatching a browser request', async () => {
+    let fetchCalled = false;
+    globalThis.fetch = async (): Promise<Response> => {
+      fetchCalled = true;
+      return new Response();
+    };
+    const client = BrowserFetchClient.create();
+
+    await assert.rejects(client.get('https://example.test/records', { 'timeout': 50.5 }), (error): boolean => {
+      return error instanceof ConfigurationError && error.message.includes('integer');
+    });
+    assert.equal(fetchCalled, false);
+  });
+
+  void it('intakes browser configuration and preserves its detached request values', async () => {
+    const headers = { 'X-Client': 'original' };
+    const parameters = { 'filter': undefined, 'page': 1 };
+    const client = BrowserFetchClient.create({
+      'headers': headers,
+      'parameters': parameters
+    });
+    headers['X-Client'] = 'changed';
+    parameters.page = 2;
+    let receivedHeaders: Headers | undefined;
+    let receivedUrl = '';
+    globalThis.fetch = async (input, init): Promise<Response> => {
+      receivedHeaders = new Headers(init?.headers);
+      receivedUrl = String(input);
+      return new Response('ok');
+    };
+
+    await client.get('https://example.test/records');
+
+    assert.equal(receivedHeaders?.get('X-Client'), 'original');
+    assert.equal(receivedUrl, 'https://example.test/records?page=1');
+    assert.throws(() => {
+      Reflect.apply(BrowserFetchClient.create, BrowserFetchClient, [{ 'unknown': true }]);
+    }, (error: Error): boolean => error instanceof ConfigurationError && error.message.includes('must NOT have additional properties'));
+    assert.throws(() => {
+      Reflect.apply(BrowserFetchClient.create, BrowserFetchClient, [{ 'parameters': { 'filter': { 'status': 'active' } } }]);
+    }, (error: Error): boolean => error instanceof ConfigurationError && error.message.includes('/filter'));
+  });
 });

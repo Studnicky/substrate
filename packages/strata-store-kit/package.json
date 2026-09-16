@@ -6,12 +6,12 @@
   "sideEffects": false,
   "exports": {
     "./node": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
     },
     "./browser": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "node ../../scripts/test-suite.mjs all --package ."

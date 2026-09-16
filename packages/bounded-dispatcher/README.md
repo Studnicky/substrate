@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/bounded-dispatcher)
 
-Composes three substrate primitives into the "bounded work dispatch" pattern: `dispatch()` acquires a `Semaphore` permit before running the caller's `fn`, initiates non-blocking `'dispatch'` lifecycle publications (`start` / `success` / `error`) on a composed `EventBus` around the call, and releases the permit once `fn` settles. `scheduleDispatch()` layers a `scheduler`-driven delayed dispatch on top, returning the scheduler's own cancellable task handle. Event-bus backpressure never extends the permit hold or lowers the configured work concurrency.
+Import runtime values from `@studnicky/bounded-dispatcher/node` in Node or `@studnicky/bounded-dispatcher/browser` in browsers. Composes three substrate primitives into the "bounded work dispatch" pattern: `dispatch()` acquires a `Semaphore` permit before running the caller's `fn`, initiates non-blocking `'dispatch'` lifecycle publications (`start` / `success` / `error`) on a composed `EventBus` around the call, and releases the permit once `fn` settles. `scheduleDispatch()` layers a `scheduler`-driven delayed dispatch on top, returning the scheduler's own cancellable task handle. Event-bus backpressure never extends the permit hold or lowers the configured work concurrency.
 
 ## Install
 
@@ -15,22 +15,35 @@ Packages publish to GitHub Packages — add the registry to `.npmrc`:
 ```
 
 ```sh
-pnpm add @studnicky/bounded-dispatcher
+pnpm add @studnicky/bounded-dispatcher @studnicky/pipeline
 ```
 
 ## Usage
 
 ```typescript
+import type { OperationInterceptorInterface } from '@studnicky/pipeline/interfaces';
+import { OperationPipeline } from '@studnicky/pipeline/node';
+import type { BoundedDispatcherOperationContextInterface } from '@studnicky/bounded-dispatcher/interfaces';
 import { BoundedDispatcher } from '@studnicky/bounded-dispatcher/node';
 
-const dispatcher = BoundedDispatcher.create({ permits: 2 });
+const observe: OperationInterceptorInterface<BoundedDispatcherOperationContextInterface> = async (context, next) => {
+  const result = await next(context);
+  return result;
+};
+
+const dispatcher = BoundedDispatcher.create({
+  pipeline: OperationPipeline.create([observe]),
+  semaphore: { permits: 2 }
+});
 
 const results = await Promise.all(
   [1, 2, 3].map((n) => dispatcher.dispatch(() => doWork(n)))
 );
 ```
 
-`permits` is shorthand for `Semaphore.create({ permits })`. `bus` accepts either a pre-built `EventBus` instance or `BusQueueOptionsEntity.Type` config (e.g. `{ highWaterMark: 4 }`) passed straight to `EventBus.create()`. `scheduler` accepts a pre-built `SchedulerProviderInterface` — defaults to `RealTimeScheduler.create()`; pass a `VirtualScheduler` for deterministic test fixtures.
+`semaphore` accepts either a pre-built `Semaphore` instance or its options (for example, `{ permits: 2, maximumQueueSize: 16 }`) passed directly to `Semaphore.create()`. `dispatch()` also accepts semaphore acquisition options: pass `{ signal }` to cancel a task while it waits, before its callback runs. `bus` accepts either a pre-built `EventBus` instance or `BusQueueOptionsEntity.Type` config (e.g. `{ highWaterMark: 4 }`) passed straight to `EventBus.create()`. `scheduler` accepts a pre-built `SchedulerProviderInterface` — defaults to `RealTimeScheduler.create()`; pass a `VirtualScheduler` for deterministic test fixtures.
+
+`pipeline` accepts any `OperationPipelineInterface<BoundedDispatcherOperationContextInterface>`; `OperationPipeline` is the supplied implementation and surrounds the full permit-admission and callback operation. Each policy receives `BoundedDispatcherOperationContextInterface`, which exposes only the dispatch's `semaphoreOptions`, including an optional `AbortSignal`. The first policy is outermost and explicitly calls `next(context)` to continue. The dispatcher does not recover, suppress, collect, or reinterpret a policy or callback failure: the exact thrown value rejects `dispatch()`. Handle expected outcomes inside the callback or an explicit policy.
 
 ## Observability
 

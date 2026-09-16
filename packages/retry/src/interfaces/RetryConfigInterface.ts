@@ -1,9 +1,11 @@
 import type { ClockProviderInterface } from '@studnicky/clock/node';
 import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/node';
+import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
 import type { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
 import type { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import type { BackoffStrategyInterface } from './BackoffStrategyInterface.js';
+import type { RetryEventTopicMapInterface } from './RetryEventTopicMapInterface.js';
 
 interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
   readonly 'strategy': BackoffStrategyInterface;
@@ -24,4 +26,6 @@ export interface RetryConfigInterface extends RetryConfigEntity.Type {
   /** Clock used to measure the retry elapsed-time budget. Default: `RealTimeClockProvider`. */
   readonly 'clock'?: ClockProviderInterface;
   readonly 'errorClassifier'?: ErrorClassifierFunctionInterface | ErrorClassifierInterface;
+  /** Optional lifecycle-event publisher. Publication failures are advisory. */
+  readonly 'eventSink'?: EventSinkInterface<RetryEventTopicMapInterface>;
 }

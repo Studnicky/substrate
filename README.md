@@ -12,7 +12,7 @@ Composable TypeScript packages for asynchronous work, state, data, routing, and 
 [Browse all package guides →](https://studnicky.github.io/substrate/packages/)
 
 > [!CAUTION]
-> Packages require Node.js 24 or later. Check the package guide before using a package in a browser or another runtime.
+> Node runtime imports require Node.js 24 or later. Browser applications import the matching `/browser` entry point.
 
 > [!TIP]
 > Choose the smallest package that matches the problem you are solving.
@@ -441,18 +441,9 @@ Use it to combine a request, retry policy, cancellation, timing, and request con
 <details>
 <summary><strong>@studnicky/resilience</strong> — protect unreliable dependencies</summary>
 
-Use it for circuit breaking, token buckets, and dead-letter queues.
+Use it for circuit breaking, token buckets, sliding-window limits, and dead-letter queues.
 
 [Read the resilience guide →](https://studnicky.github.io/substrate/packages/resilience)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/sliding-window-limiter</strong> — enforce a sliding-window rate limit</summary>
-
-Use it when you need exact or approximate rate limiting over a time window.
-
-[Read the sliding-window-limiter guide →](https://studnicky.github.io/substrate/packages/sliding-window-limiter)
 
 </details>
 

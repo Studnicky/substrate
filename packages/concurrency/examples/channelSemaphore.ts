@@ -91,6 +91,24 @@ class ChannelSemaphoreDemo {
     assert.ok(maximumConcurrent <= 2, `maximum concurrent ${maximumConcurrent} exceeded permits`);
   }
 
+  static async runSemaphoreCapacity(): Promise<void> {
+    const sem = Semaphore.create({ 'permits': 1 });
+    const releaseFirst = await sem.acquire();
+    const waiting = sem.acquire();
+
+    await Promise.resolve();
+    assert.equal(sem.queuedCount, 1);
+
+    await sem.setPermits(2);
+    const releaseSecond = await waiting;
+    assert.equal(sem.activeCount, 2);
+
+    await releaseFirst();
+    await releaseSecond();
+    await sem.waitForIdle();
+    assert.equal(sem.available, 2);
+  }
+
   static async runSemaphoreAcquireRelease(): Promise<void> {
     const sem = Semaphore.create({ 'permits': 1 });
 
@@ -111,6 +129,7 @@ await ChannelSemaphoreDemo.runChannel();
 await ChannelSemaphoreDemo.runChannelMultiKey();
 await ChannelSemaphoreDemo.runChannelConcurrent();
 await ChannelSemaphoreDemo.runSemaphoreWithPermit();
+await ChannelSemaphoreDemo.runSemaphoreCapacity();
 await ChannelSemaphoreDemo.runSemaphoreAcquireRelease();
 
 console.log('channelSemaphore: all assertions passed');

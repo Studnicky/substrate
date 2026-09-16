@@ -1,3 +1,5 @@
+import { Clone } from '@studnicky/json/browser';
+
 import type { StatePersistenceInterface } from './interfaces/StatePersistenceInterface.js';
 
 export class MemoryPersistence<TState> implements StatePersistenceInterface<TState> {
@@ -19,13 +21,14 @@ export class MemoryPersistence<TState> implements StatePersistenceInterface<TSta
   public async load(key: string): Promise<TState | undefined> {
     await Promise.resolve();
 
-    const result = this.#states.get(key);
+    const state = this.#states.get(key);
+    const result = state === undefined ? undefined : Clone.deep(state);
 
     return result;
   }
 
   public async save(key: string, state: TState): Promise<void> {
     await Promise.resolve();
-    this.#states.set(key, state);
+    this.#states.set(key, Clone.deep(state));
   }
 }

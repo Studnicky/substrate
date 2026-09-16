@@ -1,15 +1,18 @@
-import type { FetchClientInterface } from '@studnicky/fetch/node';
-import type { Retry } from '@studnicky/retry/node';
-import type { Signal } from '@studnicky/signal/node';
+import type { FetchClientInterface } from '@studnicky/fetch/interfaces';
+import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import type { RetryInterface } from '@studnicky/retry/interfaces';
+import type { SignalInterface } from '@studnicky/signal/interfaces';
 
-import type { RequestDeadlineEntity } from '../entities/RequestDeadlineEntity.js';
+import type { RequestExecutorConfigDataEntity } from '../entities/RequestExecutorConfigDataEntity.js';
+import type { RequestExecutorOperationContextInterface } from './RequestExecutorOperationContextInterface.js';
 import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterface.js';
 
 /** Fully resolved runtime dependencies retained by a `RequestExecutor`. */
 export interface RequestExecutorDepsInterface {
-  readonly 'deadlineMs': RequestDeadlineEntity.Type['deadlineMs'] | undefined;
+  readonly 'deadlineMs': RequestExecutorConfigDataEntity.Type['deadlineMs'] | undefined;
   readonly 'fetchClient': FetchClientInterface;
-  readonly 'retry': Retry;
+  readonly 'pipeline': OperationPipelineInterface<RequestExecutorOperationContextInterface> | undefined;
+  readonly 'retry': RetryInterface;
   readonly 'scope': RequestScopeFactoryInterface | undefined;
-  readonly 'signal': Signal;
+  readonly 'signal': SignalInterface;
 }

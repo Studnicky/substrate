@@ -37,8 +37,8 @@
       "expected": { "accepted": false }
     },
     {
-      "name": "builds callable FetchClient and Retry dependencies from plain config",
-      "description": "builds callable FetchClient and Retry dependencies from plain config",
+      "name": "executes with caller-owned ports initialized from configuration",
+      "description": "executes with caller-owned ports initialized from configuration",
       "shape": "create-plain-config",
       "input": {
         "fetchInputUrl": "https://example.test/resource",
@@ -76,9 +76,9 @@
       }
     },
     {
-      "name": "produces a working, callable instance with real default primitives",
-      "description": "produces a working, callable instance with real default primitives",
-      "shape": "defaults-real-primitives",
+      "name": "executes through caller-owned runtime ports",
+      "description": "executes through caller-owned runtime ports",
+      "shape": "caller-owned-runtime-ports",
       "input": {
         "fetchResponseText": "ok",
         "fetchUrl": "https://example.test/"

@@ -1,14 +1,14 @@
 # @studnicky/resilience
 
-> Circuit breaker, token bucket rate limiter, and bounded dead-letter queue — composable and independently usable.
+> Circuit breaker, token bucket and sliding-window rate limiters, and a bounded dead-letter queue — composable and independently usable.
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/resilience)
 
-Three standalone resilience primitives for async TypeScript services: a three-state circuit breaker that fast-fails when a dependency is unhealthy, a token bucket rate limiter that controls throughput with optional backpressure, and a bounded dead-letter queue that captures failed items for later retry via an async generator.
+Four standalone resilience primitives for async TypeScript services: a three-state circuit breaker that fast-fails when a dependency is unhealthy, token-bucket and sliding-window rate limiters, and a bounded dead-letter queue that captures failed items for later retry via an async generator.
 
 Each primitive is independently usable and composes naturally — wrap a rate-limited call with a circuit breaker, or pipe circuit breaker rejections into a DLQ for reprocessing.
 
-Use `@studnicky/resilience/node` for runtime primitives, `@studnicky/resilience/entities` for schema-backed data declarations, and `@studnicky/resilience/interfaces` for type-only contracts.
+Use `@studnicky/resilience/node` for runtime primitives in Node or `@studnicky/resilience/browser` in browsers, `@studnicky/resilience/entities` for schema-backed data declarations, and `@studnicky/resilience/interfaces` for type-only contracts.
 
 ## Install
 
@@ -79,7 +79,7 @@ class MyBreaker extends CircuitBreaker {
 
 ### TokenBucket
 
-Token bucket rate limiter. `consume` throws immediately when exhausted; `waitForToken` blocks until tokens refill.
+Token bucket rate limiter. `consume` throws immediately when exhausted; `waitForToken` blocks until tokens refill. Both operations accept positive finite token counts, including fractional units. An optional `clock` supplies finite, nondecreasing millisecond readings for deterministic tests.
 
 ```typescript
 import { TokenBucket, TokenBucketExhaustedError } from '@studnicky/resilience/node';
@@ -91,7 +91,8 @@ const bucket = TokenBucket.create({
 
 // Non-blocking — throws when empty
 try {
-  bucket.consume();
+  const admission = bucket.consume();
+  console.log('Remaining rate-limit capacity:', admission.remainingTokens);
   await sendRequest();
 } catch (err) {
   if (err instanceof TokenBucketExhaustedError) {
@@ -101,11 +102,39 @@ try {
 
 // Blocking — waits until a token is available
 const controller = new AbortController();
-await bucket.waitForToken({ tokens: 1, signal: controller.signal });
+const admission = await bucket.waitForToken({ tokens: 1, signal: controller.signal });
+console.log(admission.remainingTokens);
 await sendRequest();
 
 bucket.available; // current token count
+// consume() and waitForToken() return { consumedTokens, remainingTokens }.
 ```
+
+### SlidingWindowLimiter
+
+Use a sliding window when a limit is a fixed number of requests within a rolling interval. Select `log` for exact accounting or `counter` for a constant-space approximation.
+
+```typescript
+import { SlidingWindowExhaustedError, SlidingWindowLimiter } from '@studnicky/resilience/node';
+
+const limiter = SlidingWindowLimiter.create({
+  algorithm: 'log',
+  limit: 100,
+  windowMs: 60_000,
+});
+
+try {
+  const admission = limiter.consume();
+  console.log(admission.remainingTokens);
+  await handleRequest();
+} catch (error) {
+  if (error instanceof SlidingWindowExhaustedError) {
+    // The request does not fit in the current rolling window.
+  }
+}
+```
+
+`consume(tokens?)` and `waitForToken({ tokens?, signal? })` return `RateLimitConsumptionEntity.Type`, the same admission contract used by `TokenBucket`.
 
 ### DeadLetterQueue
 
@@ -145,9 +174,9 @@ for await (const entry of retryGen.generate()) {
 }
 ```
 
-## Hook failure disposition
+## Lifecycle hooks
 
-`CircuitBreaker`, `DeadLetterQueue`, `DeadLetterQueueRetryGenerator`, and `TokenBucket` each compose an instance-local `HookInvoker` from `@studnicky/errors/node`. The invoker is the sole owner of hook-failure diagnostics and exposes detached `HookInvocationError` snapshots through its count and projection APIs. The primitives retain their swallow disposition so hook failures do not replace canonical operation results or errors, and they add no public diagnostic facade.
+Subclass a resilience primitive when the application needs lifecycle telemetry. Protected hook methods are synchronous no-ops by default; keep overrides fast and non-throwing. The package guide lists each hook and its arguments.
 
 ## Declaration boundaries
 

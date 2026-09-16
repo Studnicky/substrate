@@ -1,7 +1,23 @@
-import { BrowserFetchClient } from '@studnicky/fetch/browser';
-import { Retry } from '@studnicky/retry/node';
+import type { OperationFunctionInterface } from '@studnicky/pipeline/interfaces';
+import type { RequestExecutorOperationContextInterface } from '@studnicky/request-executor/interfaces';
 
-import { RequestExecutor } from '../src/index.js';
+import { BrowserFetchClient } from '@studnicky/fetch/browser';
+import { OperationPipeline } from '@studnicky/pipeline/browser';
+import { RequestExecutor } from '@studnicky/request-executor/browser';
+import { Retry } from '@studnicky/retry/browser';
+import { Signal } from '@studnicky/signal/browser';
+
+class BrowserExecutionPolicy {
+  static async observe<TResult>(
+    context: RequestExecutorOperationContextInterface,
+    next: OperationFunctionInterface<RequestExecutorOperationContextInterface, TResult>
+  ): Promise<TResult> {
+    console.log({ 'aborted': context.signal.aborted, 'stage': 'before' });
+    const result = await next(context);
+    console.log({ 'stage': 'after' });
+    return result;
+  }
+}
 
 const originalFetch = globalThis.fetch;
 let failuresRemaining = 2;
@@ -20,7 +36,9 @@ globalThis.fetch = (): Promise<Response> => {
 try {
   const executor = RequestExecutor.create({
     'fetchClient': BrowserFetchClient.create({ 'baseURL': 'https://example.test' }),
-    'retry': Retry.create({ 'maximumRetries': 3 })
+    'pipeline': OperationPipeline.create([BrowserExecutionPolicy.observe]),
+    'retry': Retry.create({ 'maximumRetries': 3 }),
+    'signal': Signal.create()
   });
   const response = await executor.execute(async (client, signal): Promise<Response> => {
     const result = await client.get('/health', { 'signal': signal });

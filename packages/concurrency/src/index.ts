@@ -5,4 +5,6 @@ export { ChannelError } from './errors/index.js';
 export { CoalesceTimeoutError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';
 export { SemaphoreError } from './errors/index.js';
+export { SemaphoreQueueFullError } from './errors/index.js';
+export { KeyedSemaphore } from './KeyedSemaphore.js';
 export { Semaphore } from './Semaphore.js';

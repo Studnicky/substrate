@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 
 
 import { Semaphore } from '../../src/Semaphore.js';
+import { SemaphoreQueueFullError } from '../../src/errors/SemaphoreQueueFullError.js';
 import scenarioGroups from './Semaphore.scenarios.json' with { type: 'json' };
 
 type ScenarioCase =
@@ -374,4 +375,206 @@ void describe('Semaphore', () => {
       await runCase(scenario);
     });
   }
+});
+
+
+void describe('Semaphore capacity coordination', () => {
+  void it('grows capacity, grants queued work, and reports exact counts', async () => {
+    const semaphore = Semaphore.create({ 'permits': 1 });
+    const releaseFirst = await semaphore.acquire();
+    const pending = semaphore.acquire();
+    await flushMicrotasks();
+
+    assert.equal(semaphore.activeCount, 1);
+    assert.equal(semaphore.queuedCount, 1);
+
+    await semaphore.setPermits(2);
+    const releaseSecond = await pending;
+
+    assert.equal(semaphore.permits, 2);
+    assert.equal(semaphore.activeCount, 2);
+    assert.equal(semaphore.queuedCount, 0);
+
+    await releaseFirst();
+    await releaseSecond();
+    assert.equal(semaphore.activeCount, 0);
+    assert.equal(semaphore.available, 2);
+  });
+
+  void it('shrinks capacity without revoking active work and waits for idle', async () => {
+    const semaphore = Semaphore.create({ 'permits': 2 });
+    const releaseFirst = await semaphore.acquire();
+    const releaseSecond = await semaphore.acquire();
+    const pending = semaphore.acquire();
+    await flushMicrotasks();
+
+    await semaphore.setPermits(1);
+    let idle = false;
+    const idleWaiter = semaphore.waitForIdle().then(() => { idle = true; });
+
+    assert.equal(semaphore.available, -1);
+    await releaseFirst();
+    assert.equal(semaphore.available, 0);
+    await releaseSecond();
+    const releaseThird = await pending;
+    assert.equal(semaphore.activeCount, 1);
+    assert.equal(idle, false);
+
+    await releaseThird();
+    await idleWaiter;
+    assert.equal(idle, true);
+    assert.equal(semaphore.available, 1);
+  });
+
+  void it('removes an aborted waiter from the reported queue depth', async () => {
+    const semaphore = Semaphore.create({ 'permits': 1 });
+    const release = await semaphore.acquire();
+    const controller = new AbortController();
+    const pending = semaphore.acquire({ 'signal': controller.signal });
+    await flushMicrotasks();
+
+    assert.equal(semaphore.queuedCount, 1);
+    controller.abort();
+    await assert.rejects(pending);
+    assert.equal(semaphore.queuedCount, 0);
+
+    await release();
+    await semaphore.waitForIdle();
+  });
+
+  void it('settles idle waiters when a release hook fails', async () => {
+    class ThrowingReleaseSemaphore extends Semaphore {
+      protected override onRelease(): void {
+        throw RuntimeError.create('release hook failed');
+      }
+    }
+
+    const semaphore = ThrowingReleaseSemaphore.create({ 'permits': 1 });
+    const release = await semaphore.acquire();
+    const idle = semaphore.waitForIdle();
+
+    await assert.rejects(release, HookInvocationError);
+    await idle;
+    assert.equal(semaphore.activeCount, 0);
+    assert.equal(semaphore.queuedCount, 0);
+  });
+
+  void it("refuses a full queue without changing its admission state", async () => {
+    const semaphore = Semaphore.create({ "maximumQueueSize": 1, "permits": 1 });
+    const releaseFirst = await semaphore.acquire();
+    const pending = semaphore.acquire();
+    await flushMicrotasks();
+
+    await assert.rejects(() => semaphore.acquire(), SemaphoreQueueFullError);
+    assert.equal(semaphore.activeCount, 1);
+    assert.equal(semaphore.queuedCount, 1);
+
+    await releaseFirst();
+    const releaseSecond = await pending;
+    await releaseSecond();
+  });
+
+  void it("unlinks an aborted middle waiter before admitting a replacement", async () => {
+    const semaphore = Semaphore.create({ "maximumQueueSize": 2, "permits": 1 });
+    const releaseFirst = await semaphore.acquire();
+    const releaseSecond = semaphore.acquire();
+    const controller = new AbortController();
+    const abortedThird = semaphore.acquire({ "signal": controller.signal });
+    await flushMicrotasks();
+
+    controller.abort();
+    await assert.rejects(abortedThird);
+    assert.equal(semaphore.queuedCount, 1);
+
+    const releaseFourth = semaphore.acquire();
+    await flushMicrotasks();
+    assert.equal(semaphore.queuedCount, 2);
+
+    await releaseFirst();
+    const releaseSecondPermit = await releaseSecond;
+    await releaseSecondPermit();
+    const releaseFourthPermit = await releaseFourth;
+    await releaseFourthPermit();
+    await semaphore.waitForIdle();
+  });
+  void it("cancels a suspended head waiter and immediately grants a ready follower when capacity exists", async () => {
+    class SuspendedFirstWaitSemaphore extends Semaphore {
+      readonly resumeFirstWait = Promise.withResolvers<void>();
+      readonly firstWaitEntered = Promise.withResolvers<void>();
+      #waitCount = 0;
+
+      constructor() {
+        super({ "permits": 1 });
+      }
+
+      protected override async onAcquireWait(): Promise<void> {
+        this.#waitCount += 1;
+        if (this.#waitCount === 1) {
+          this.firstWaitEntered.resolve();
+          await this.resumeFirstWait.promise;
+        }
+      }
+    }
+
+    const semaphore = new SuspendedFirstWaitSemaphore();
+    const releaseHolder = await semaphore.acquire();
+    const controller = new AbortController();
+    const cancelled = semaphore.acquire({ "signal": controller.signal });
+    await semaphore.firstWaitEntered.promise;
+    const follower = semaphore.acquire();
+    await flushMicrotasks();
+    await semaphore.setPermits(2);
+
+    const cancelledAssertion = assert.rejects(cancelled, /aborted/);
+    controller.abort();
+    await cancelledAssertion;
+    const releaseFollower = await follower;
+
+    assert.equal(semaphore.activeCount, 2);
+    assert.equal(semaphore.queuedCount, 0);
+    await releaseFollower();
+    await releaseHolder();
+    semaphore.resumeFirstWait.resolve();
+    await semaphore.waitForIdle();
+  });
+
+  void it("cancels a waiter suspended in its contention hook without blocking ready followers", async () => {
+    class SuspendedContentionSemaphore extends Semaphore {
+      readonly contentionEntered = Promise.withResolvers<void>();
+      readonly resumeContention = Promise.withResolvers<void>();
+      #contentionCount = 0;
+
+      constructor() {
+        super({ "permits": 1 });
+      }
+
+      protected override async onContended(): Promise<void> {
+        this.#contentionCount += 1;
+        if (this.#contentionCount === 1) {
+          this.contentionEntered.resolve();
+          await this.resumeContention.promise;
+        }
+      }
+    }
+
+    const semaphore = new SuspendedContentionSemaphore();
+    const releaseHolder = await semaphore.acquire();
+    const controller = new AbortController();
+    const cancelled = semaphore.acquire({ "signal": controller.signal });
+    await semaphore.contentionEntered.promise;
+    const follower = semaphore.acquire();
+    await flushMicrotasks();
+    await semaphore.setPermits(2);
+
+    controller.abort();
+    await assert.rejects(cancelled, /aborted/);
+    const releaseFollower = await follower;
+
+    assert.equal(semaphore.activeCount, 2);
+    assert.equal(semaphore.queuedCount, 0);
+    await releaseFollower();
+    await releaseHolder();
+    semaphore.resumeContention.resolve();
+    await semaphore.waitForIdle();
+  });
 });

@@ -1,5 +1,6 @@
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { ImmutableSnapshot } from '@studnicky/json/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
@@ -11,7 +12,6 @@ import type { TransportInterface } from '../transports/TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
-import { ImmutableSnapshot } from './ImmutableSnapshot.js';
 import { ParseLogLevel } from './parseLogLevel.js';
 
 class TransportErrorHookInvoker extends HookInvoker {

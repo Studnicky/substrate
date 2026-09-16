@@ -1,145 +1,92 @@
 # @studnicky/retry
 
-> Generic async retry utility with extensible error classification
+> Retry asynchronous operations with explicit classification, backoff, and typed lifecycle events.
 
-[![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/retry)
-
-A protocol-agnostic async retry engine with pluggable error classification and backoff, and protected lifecycle hooks for zero-cost observability via subclassing.
+[Package guide](https://studnicky.github.io/substrate/packages/retry)
 
 ## Install
 
-Packages publish to GitHub Packages — add the registry to `.npmrc`:
+Packages publish to GitHub Packages. Add this to .npmrc:
 
-```
+~~~
 @studnicky:registry=https://npm.pkg.github.com
-```
+~~~
 
-```sh
-pnpm add @studnicky/retry
-```
+~~~sh
+pnpm add @studnicky/retry @studnicky/event-bus
+~~~
 
-## Usage
+## Retry an operation
 
-```typescript
+~~~typescript
 import { DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import { BackoffStrategy, Retry } from '@studnicky/retry/node';
+
+const retry = Retry.create({
+  'backoffStrategy': { 'baseDelayMs': 100, 'strategy': BackoffStrategy.exponential },
+  'errorClassifier': DefaultHttpErrorClassifier.create(),
+  'maximumRetries': 3
+});
+
+const response = await retry.execute(() => fetch('https://api.example.com/data'));
+~~~
+
+## Publish lifecycle events
+
+Pass an EventSinkInterface to eventSink for basic telemetry. EventBus satisfies the interface directly; any publisher with the same typed publish method also works.
+
+~~~typescript
+import type { RetryEventTopicMapInterface } from '@studnicky/retry/interfaces';
+
+import { EventBus } from '@studnicky/event-bus/node';
 import { Retry } from '@studnicky/retry/node';
 
-const retry = Retry.create({
-  maximumRetries: 3,
-  errorClassifier: DefaultHttpErrorClassifier.create()
+const bus = EventBus.create<RetryEventTopicMapInterface>();
+bus.subscribe('retryScheduled', async (event) => {
+  console.log(event.attemptNumber, event.delayMs);
 });
 
-const result = await retry.execute(() => fetch('https://api.example.com/data').then((r) => r.json()));
+const retry = Retry.create({ 'eventSink': bus });
+~~~
 
-console.log(retry.getStats());
-// { totalRequests: 1, successfulRequests: 1, failedRequests: 0, totalRetries: 2 }
-```
+Retry publishes these topics in lifecycle order:
 
-### Backoff
+| Topic | Snapshot |
+|---|---|
+| attempt | Attempt number and elapsed time. |
+| retryScheduled | Final attempt, delay, elapsed-time, and abort values after the scheduling hook runs. |
+| success | Successful attempt number and elapsed time. |
 
-Backoff has the same dual-path treatment as error classification: supply a `backoffStrategy` in config, or override the `onRetryScheduled` hook. Config takes precedence when both are present on the same instance — a subclass that overrides `onRetryScheduled` fully replaces the default body, so the config-based backoff never runs for that instance.
+Every payload is a detached, frozen JSON snapshot. Event delivery is advisory: a rejected or slow sink never changes the operation result, terminal error, retry count, delay, or abort decision.
 
-`BackoffConfigEntity` owns the serializable `baseDelayMs` field, while `RetryContextDataEntity` owns serializable attempt, delay, elapsed-time, and abort state. `RetryConfigInterface` and `RetryContextInterface` compose those schema-derived fields with their callable strategy and runtime error members.
+## Control retry behavior
 
-Config-based, using a shipped `BackoffStrategy`:
+Use configuration for standard backoff. Override onRetryScheduled only when the application must alter the next retry directly, such as setting delayMs from domain state or setting abort to true. Override classifyError when the default classifier does not model the domain failure.
 
-```typescript
-import { Retry, BackoffStrategy } from '@studnicky/retry/node';
-
-const retry = Retry.create({
-  maximumRetries: 3,
-  backoffStrategy: { strategy: BackoffStrategy.exponential, baseDelayMs: 100 }
-});
-```
-
-Subclass-override, for full control over `context.delayMs`:
-
-```typescript
+~~~typescript
 import type { RetryContextInterface } from '@studnicky/retry/interfaces';
 
-import { Retry, BackoffStrategy } from '@studnicky/retry/node';
-
-class CustomBackoffRetry extends Retry {
-  protected override onRetryScheduled(context: RetryContextInterface): void {
-    context.delayMs = BackoffStrategy.exponentialWithJitter(context.attemptNumber, 100);
-  }
-}
-```
-
-### Time ceiling
-
-`maximumElapsedMs` bounds total elapsed time across all attempts, independent of `maximumRetries`. Whichever ceiling is hit first — attempt count or elapsed time — ends the retry loop, mirroring Python `tenacity`'s `stop_after_attempt(N) | stop_after_delay(T)` combined policy. Time-ceiling exhaustion is treated identically to attempt-count exhaustion: `onGiveUp` fires with `reason: 'exhausted'` and a `MaximumRetriesExceededError` is thrown. Supply a `ClockProviderInterface` through `clock` to make this budget deterministic under virtual time.
-
-```typescript
-const retry = Retry.create({
-  maximumRetries: 10,
-  maximumElapsedMs: 5000 // give up after 5s even if maximumRetries hasn't been reached
-});
-```
-
-Omitting `maximumElapsedMs` preserves the default behavior: only `maximumRetries` governs exhaustion.
-
-### Hook timeout
-
-All lifecycle hooks, including behavioral `onRetryScheduled` and FSM `enterCall`, run through a composed `HookInvoker` (see `@studnicky/errors/node`). Hook failures are advisory and never replace the retry result. Pass `hookTimeoutMs` to bound how long an awaited async hook may run before it is treated as a failure — left unset, an awaited hook may take arbitrarily long:
-
-```typescript
-const retry = Retry.create({
-  maximumRetries: 3,
-  hookTimeoutMs: 5000
-});
-```
-
-## Extending
-
-Subclass `Retry` and override any of the protected lifecycle hooks to add telemetry without changing the retry logic. All hooks are no-ops in the base class.
-
-```typescript
-import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
-import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
-
 import { Retry } from '@studnicky/retry/node';
 
-class InstrumentedRetry extends Retry {
-  readonly events: string[] = [];
-
-  constructor(config?: RetryConfigInterface) {
-    super(config ?? {});
-  }
-
-  protected override onRetryScheduled(context: RetryContextInterface): void {
-    this.events.push(`scheduled attempt=${context.attemptNumber} delay=${context.delayMs}ms`);
-  }
-
-  protected override onGiveUp(
-    error: Error,
-    attemptNumber: number,
-    reason: 'aborted' | 'exhausted' | 'nonRetryable'
-  ): void {
-    this.events.push(`giveUp reason=${reason} attempt=${attemptNumber} err=${error.message}`);
-  }
-}
-
-const retry = new InstrumentedRetry({ maximumRetries: 2 });
-// retry.events is populated as the FSM progresses
-```
-
-Override `classifyError` to supply domain-specific retry decisions without providing a full classifier object:
-
-```typescript
 class DatabaseRetry extends Retry {
-  protected override classifyError(error: Error): ErrorClassificationEntity.Type {
-    if (error.message.includes('deadlock')) {
-      return { retryable: true, reason: 'Transient deadlock' };
-    }
-    return { retryable: false };
+  protected override onRetryScheduled(context: RetryContextInterface): void {
+    context.delayMs = 250;
   }
 }
-```
+~~~
+
+## Imports
+
+| Surface | Import path |
+|---|---|
+| Node runtime APIs | @studnicky/retry/node |
+| Browser runtime APIs | @studnicky/retry/browser |
+| Schema entities | @studnicky/retry/entities |
+| Type contracts | @studnicky/retry/interfaces |
 
 ## Documentation
 
-Full reference: https://studnicky.github.io/substrate/packages/retry
+Full consumer guide: https://studnicky.github.io/substrate/packages/retry
 
 ## License
 

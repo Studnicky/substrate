@@ -68,6 +68,7 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/fetch": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/pipeline": "workspace:*",
     "@studnicky/retry": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",

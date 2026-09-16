@@ -1,9 +1,7 @@
+import type { RequestExecutorExecuteOptionsInterface } from '@studnicky/request-executor/interfaces';
+
 // #region usage
-/** directComposition — hand-composes FetchClient, Retry, and Signal directly,
- * without RequestExecutor, to show the same one-shot request execution pattern built from its
- * four primitives by hand, including the lifecycle hook points RequestExecutor brackets the
- * retry loop with. Compare with observedRequestExecutor.ts, which does identical work through
- * the kit. Run: npx tsx examples/directComposition.ts */
+/** directComposition — composes FetchClient, Retry, and Signal directly without RequestExecutor. It uses the same public contracts as RequestExecutor while keeping every caller-owned primitive visible. Run: npx tsx examples/directComposition.ts */
 import { RuntimeError } from '@studnicky/errors/node';
 import { FetchClient } from '@studnicky/fetch/node';
 import { Retry } from '@studnicky/retry/node';
@@ -11,55 +9,7 @@ import { Signal } from '@studnicky/signal/node';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 
-import type { RequestDeadlineEntity } from '../src/entities/index.js';
-
-interface ExecuteOptionsInterface<T> {
-  'deadlineMs'?: RequestDeadlineEntity.Type['deadlineMs'];
-  'onExecuteComplete'?: (result: T) => void;
-  'onExecuteError'?: (error: Error) => void;
-  'onExecuteStart'?: () => void;
-}
-
-/**
- * The same composition order RequestExecutor#execute() uses internally: `onExecuteStart`/
- * `onExecuteComplete`/`onExecuteError` bracket the
- * retry loop, the retry loop wraps the caller's callback, and the composed cancellation signal
- * threads through into whatever call callback makes. Nothing here is hidden inside a facade class —
- * every primitive is a plain local variable the caller owns, and the lifecycle hooks are plain
- * callbacks rather than protected methods to override.
- */
-class Directly {
-  static async execute<T>(
-    fetchClient: FetchClient,
-    retry: Retry,
-    signal: Signal,
-    callback: (client: FetchClient, abortSignal: AbortSignal) => Promise<T>,
-    options: ExecuteOptionsInterface<T> = {}
-  ): Promise<T> {
-    const composedSignal = await signal.compose(
-      options.deadlineMs !== undefined ? { 'deadlineMs': options.deadlineMs } : {}
-    );
-
-    options.onExecuteStart?.();
-
-    try {
-      const attemptResult = await retry.execute(() => { const callbackResult = callback(fetchClient, composedSignal); return callbackResult; });
-
-      options.onExecuteComplete?.(attemptResult);
-
-      return attemptResult;
-    } catch (cause) {
-      const error = cause instanceof Error ? cause : RuntimeError.create(String(cause));
-      options.onExecuteError?.(error);
-      throw cause;
-    }
-  }
-}
 // #endregion usage
-
-class LifecycleLog {
-  static readonly entries: string[] = [];
-}
 
 let failuresRemaining = 2;
 
@@ -96,35 +46,31 @@ const fetchClient = FetchClient.create({ 'baseURL': `http://localhost:${address.
 const retry = Retry.create({ 'maximumRetries': 3 });
 const signal = Signal.create();
 
-const response = await Directly.execute(
-  fetchClient,
-  retry,
-  signal,
-  async (client, abortSignal) => {
-    const result = await client.get('/flaky', { 'signal': abortSignal });
+const response = await (async (): Promise<Response> => {
+  const options: RequestExecutorExecuteOptionsInterface = { 'deadlineMs': 5000 };
+  const composedSignal = await signal.compose(
+    options.deadlineMs === undefined ? {} : { 'deadlineMs': options.deadlineMs }
+  );
+  const result = await retry.execute(async (): Promise<Response> => {
+    const attempt = await fetchClient.get('/flaky', { 'signal': composedSignal });
 
-    if (!result.ok) {
-      throw RuntimeError.create(`HTTP ${result.status}`);
+    if (!attempt.ok) {
+      throw RuntimeError.create(`HTTP ${attempt.status}`);
     }
 
-    return result;
-  },
-  {
-    'deadlineMs': 5000,
-    'onExecuteComplete': (result) => { LifecycleLog.entries.push(`complete:${result.status}`); },
-    'onExecuteStart': () => { LifecycleLog.entries.push('start'); }
-  }
-);
+    return attempt;
+  });
+
+  return result;
+})();
 
 console.log('Response status:', response.status);
-console.log('Lifecycle events:', LifecycleLog.entries);
 // #endregion usage
 
 assert.equal(response.status, 200);
 assert.equal(await response.text(), 'ok');
 assert.equal(retry.getStats().totalRetries, 2);
 assert.equal(retry.getStats().successfulRequests, 1);
-assert.deepEqual(LifecycleLog.entries, ['start', 'complete:200']);
 
 server.close();
 

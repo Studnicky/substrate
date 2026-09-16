@@ -1,6 +1,6 @@
 # @studnicky/json
 
-> JSON/object value-tools: deep merge, clone, freeze, path access, sort, patch, hash
+> JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch, hash
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/json)
 
@@ -27,7 +27,7 @@ Use `@studnicky/json/node` in Node.js and `@studnicky/json/browser` in browser b
 ```ts
 import { Predicates } from '@studnicky/types/node';
 
-import { Clone, Draft, Frozen, FrozenMutationError, Hash, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json/node';
+import { Clone, Draft, Frozen, FrozenMutationError, Hash, ImmutableSnapshot, ImmutableSnapshotError, Merge, Patch, Path, Sort, StructuralHash } from '@studnicky/json/node';
 
 // --- Merge ---
 const base = { a: 1, b: { x: 10, y: 20 } };
@@ -78,6 +78,12 @@ Predicates.hasCycle({});                               // false
 const frozen = Frozen.deepFreeze({ nested: { value: 42 } });
 // Object.isFrozen(frozen) === true
 // Nested Map/Set references remain mutation-guarded and throw FrozenMutationError.
+
+// --- Immutable snapshot ---
+const sourceSnapshot = { profile: { name: 'Ada' }, roles: new Set([ 'reader' ]) };
+const immutableSnapshot = ImmutableSnapshot.from(sourceSnapshot);
+// immutableSnapshot is detached from sourceSnapshot and deeply frozen.
+// ImmutableSnapshotError is thrown when structuredClone cannot detach a value.
 
 // --- Patch (instance-based, RFC-6902) ---
 const doc = { status: 'draft', count: 0 };
