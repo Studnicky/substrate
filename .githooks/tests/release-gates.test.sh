@@ -66,6 +66,16 @@ repo=$(make_repo)
   git add -A
   git commit -q -m "chore: base release state"
   git update-ref refs/remotes/origin/main HEAD
+  mkdir -p .github/workflows .githooks
+  printf 'name: Publish Packages\n' > .github/workflows/publish.yml
+  printf '#!/usr/bin/env bash\n' > .githooks/pre-commit
+  git add .github/workflows/publish.yml .githooks/pre-commit
+  git commit -q -m "ci: configure package publication"
+  assert_changeset_required origin/main
+
+  printf '{"name":"a","version":"1.0.1"}\n' > packages/a/package.json
+  git add packages/a/package.json
+  git commit -q -m "fix: update package a"
   if assert_pending_changesets_are_valid origin/main >missing-head-argument.out 2>&1; then
     fail "release gates" "expected omitted changeset validation head ref to fail"
   fi
