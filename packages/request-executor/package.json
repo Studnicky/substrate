@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/request-executor",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "One-shot request execution pattern composing fetch, retry, signal, and an optional scope port",
   "type": "module",
   "sideEffects": false,

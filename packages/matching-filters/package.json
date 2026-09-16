@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/matching-filters",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "FilterEngine adapters for deterministic matching primitives",
   "type": "module",
   "sideEffects": false,

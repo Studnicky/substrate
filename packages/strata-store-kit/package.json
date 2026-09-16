@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/strata-store-kit",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Composable store strata with deterministic lower-to-higher propagation",
   "type": "module",
   "sideEffects": false,
