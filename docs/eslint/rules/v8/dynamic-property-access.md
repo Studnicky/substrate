@@ -13,6 +13,27 @@ Literal string and numeric keys are exempt: `object['name']` compiles to the sam
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
+## Why indexed collections are exempt
+
+Hidden classes describe named properties, held in the descriptor array; indexed properties live in
+a separate elements backing store keyed by elements kind, so indexed access cannot break hidden
+classes — the map pointer is unchanged across indexed writes. At 5,000,000 elements, `a[i]` is the
+fastest way to iterate an array — 3.9 ms, the 1.00× baseline — against 26.9 ms for `for...of`
+(6.85×, the case [`for-of-arrays`](./for-of-arrays) forbids), 6.5 ms for `.at(i)` (1.66×), 21.5 ms
+for `.forEach` (5.46×), 23.3 ms for `.reduce` (5.94×), and 35.2 ms for `.entries()` (8.97×). On a
+`Float64Array` the gap is worse: `t[i]` at 3.2 ms against `t.at(i)` at 92.9 ms (28.92×). Reporting
+`a[i]` would be more than a missed optimization: it forbids the fastest way to iterate an array
+and mandates a slower one. A rule in this family must not mandate the slow path, so indexed
+collections stay exempt even though the object hazard above is real.
+
+Typed arrays and `DataView` are matched by symbol name rather than by type predicate: the checker's
+`isArrayType` and `isTupleType` do not classify them, so name matching is the only resolution that
+recognises the exemption.
+
+## Verifying the hazard
+
+Under `--allow-natives-syntax`, `%HasFastProperties` reports `false` for an object written through a variable key and `true` for an array or typed array written through an index. `%DebugPrint` shows an identical `- map:` pointer across indexed writes, which is the direct evidence that indexed access leaves the hidden class untouched.
+
 ## Why reads are not reported
 
 The measured hazard is a variable-key **assignment** driving a plain object out of fast properties:

@@ -582,28 +582,8 @@ export class TypeContractClassification {
     return result;
   }
 
-  /**
-   * True when `node` — after unwrapping the same top-level parenthesized wrapper
-   * {@link isTopLevelMixedCallableData} itself unwraps — is a union/intersection with `any` as
-   * one of its DIRECT constituents (after unwrapping each constituent's own transparent
-   * parenthesized/optional/rest/readonly wrappers).
-   *
-   * D6 (see the eslint-config objectives) — PAIRED RULE `type-alias-invariants`, this method's
-   * only caller: `classifyCallability` deliberately treats `any` as unconditionally callable (see
-   * that method's own doc comment), so `type X = any | { a: 1 };` classifies `hasCallable: true,
-   * hasData: true` — "mixed" — identically to a genuine `type X = (() => void) | { a: 1 };`.
-   * `typeAliasInvariants` used to defer BOTH cases to `no-mixed-callable-shapes`
-   * ("that rule owns this declaration's only diagnostic"), reasoning that a mixed union has no
-   * interface remedy. That reasoning holds for a genuine callable constituent — but
-   * `no-mixed-callable-shapes` is registered in `plugin.ts` and absent from `eslint.config.mjs`
-   * (see C1), so deferring to it when it may not even run means the diagnostic never lands at
-   * all. VERIFIED via `npx eslint` probe (ZzP4 prefix): `export type X = { 'a': 1; } | any;`
-   * produced ZERO errors from `type-alias-invariants` — only the unrelated
-   * `@typescript-eslint/no-explicit-any` / `no-redundant-type-constituents` fired. `any` is not a
-   * genuine callable constituent needing a split into an interface; it is the escape hatch this
-   * rule exists to close, so a mix that includes it is reported HERE unconditionally instead —
-   * correct whether or not `no-mixed-callable-shapes` ever gets enabled.
-   */
+  // `any` as a direct constituent is reported here unconditionally rather than deferred to
+  // `no-mixed-callable-shapes` — see type-alias-invariants.md Related rules for why.
   public topLevelMixIncludesAny(node: TypeNode): boolean {
     if (isParenthesizedTypeNode(node)) {
       const result = this.topLevelMixIncludesAny(node.type);
@@ -1021,34 +1001,8 @@ export class TypeContractClassification {
       };
     }
 
-    // `Function & { readonly 'prototype': TInstance }` IS NOT A MIXED SHAPE.
-    //
-    // The rule this method backs bans mixing a CALLABLE shape with DATA — an options object
-    // that happens to also be callable. `prototype` is not data bolted onto a callable; it is
-    // an INTRINSIC member every function value already carries (`name`, `length`, `prototype`,
-    // and — non-strict-mode only — `arguments`/`caller`). Intersecting `Function` with a
-    // literal naming only those members adds no data shape at all; it NARROWS which function
-    // this is (one whose `prototype` is `TInstance`) without introducing a second, unrelated
-    // concern the way `{ (): void; retries: number }` would. This is the canonical TypeScript
-    // spelling for "a constructor function whose instances are `TInstance`", required by the
-    // polymorphic static-factory idiom this codebase is built on:
-    //
-    //   static create<TInstance extends X>(this: Function & { readonly 'prototype': TInstance }): TInstance {
-    //     const result: unknown = Reflect.construct(this, []);
-    //     ...
-    //
-    // (`packages/health-registry/src/HealthRegistry.ts`, `packages/idempotency-guard/src/
-    // IdempotencyGuard.ts` — both the `this` parameter and the `isConstructed` guard's
-    // `constructor` parameter use it.) `arch/lexical-this-only` ALREADY recognises and permits
-    // this exact factory idiom in static context (`this` as a constructor reference) — see
-    // that rule's own module comment. The two rules must agree about the SAME idiom rather
-    // than one permitting what the other bans; this exemption is what keeps them agreeing.
-    //
-    // Scoped narrowly: every non-callable constituent of the intersection must be a type
-    // LITERAL whose members are drawn ONLY from the intrinsic-property allowlist below, with a
-    // statically-known (non-computed) name. A literal naming any OTHER member — `retries`,
-    // `options`, anything not already on every function value — is still data riding along
-    // with a callable, and stays reported exactly as before.
+    // `Function & { readonly 'prototype': TInstance }` static-factory idiom is not a mixed
+    // shape — see no-mixed-callable-shapes.md Detection.
     if (isIntersectionTypeNode(node) && this.isIntrinsicFunctionIntersection(node)) {
       return {
         'hasCallable': true, 'hasData': false

@@ -7,34 +7,8 @@ import { Predicates } from '@studnicky/types/browser';
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { LoopContext } from '../shared/LoopContext.js';
 
-// MEASURED, Node v24, N = 5,000,000, 3 warm-up calls + median of 7 timed calls
-// (scratchpad bench: identical per-iteration body, one arm wrapping the read in
-// try/catch, both summing `a[i]`):
-//
-//   no try/catch      3.307 ms
-//   with try/catch    3.329 ms   -> 1.007x  (noise-level, not a real cost)
-//
-// The rule's ORIGINAL premise — "V8 cannot optimize functions containing
-// try-catch in hot paths" — predates TurboFan's 2018 native try/catch
-// support and is FALSE today: the measured cost is indistinguishable from
-// noise. Per the "disproven premise -> update to proven intent, don't
-// delete" rule, this is retained as a STRUCTURAL constraint, not a
-// performance one: it forces error handling for a per-iteration operation
-// out of the hot body and into a separately named, independently testable
-// static method, which is a real (if not V8-measurable) readability/testing
-// win. The `v8Optimization/` message prefix used elsewhere in this package
-// for genuinely-measured rules has been dropped here for the same reason
-// `switch-statements` dropped it: it would protect no V8 mechanism.
-//
-// MIGRATED onto `LoopContext.isPerIteration` (was `FunctionScope.isInsideLoop`)
-// to close the `.forEach`-shaped bypass documented in `shared/LoopContext.ts`:
-// `chunks.forEach((chunk) => { try { risky(chunk); } catch { ... } })` is a
-// per-element loop body in every sense that matters here, but the lexical
-// "did we cross a loop keyword" walk `FunctionScope.isInsideLoop` performs
-// treats the callback as an opaque function boundary and never reports it.
-// Applied at both call sites below: the direct TryStatement check, and the
-// same-file helper call-site analysis (so a helper reachable ONLY through a
-// `.forEach` callback is now also caught).
+// Structural/testability constraint, not a V8-performance claim; benchmark and scope
+// rationale: docs/eslint/rules/v8/try-catch-in-loops.md.
 
 interface PendingTryEntryInterface {
   readonly 'functionNode': Rule.Node;
@@ -59,9 +33,8 @@ class EnclosingFunctionFinder {
 }
 
 class DeclaredFunctionVariable {
-  // Resolves the scope variable that calls to `functionNode` would reference:
-  // the function's own name for a `function foo() {}` declaration, or the
-  // bound identifier for `const foo = function () {}` / `const foo = () => {}`.
+  // The declared function's own name, or the bound identifier for a
+  // `const foo = function () {}` / `const foo = () => {}` variable declarator.
   public static resolve(functionNode: Rule.Node, context: Rule.RuleContext): Scope.Variable | undefined {
     if (functionNode.type === 'FunctionDeclaration') {
       const raw = functionNode as unknown as Record<string, unknown>;
@@ -113,9 +86,8 @@ class DeclaredFunctionVariable {
 }
 
 class CallSiteAnalysis {
-  // A reference is a direct call site (`name(...)`) rather than some other use
-  // (passed as a callback value, reassigned, etc.) when its identifier is the
-  // callee of a CallExpression.
+  // True only when the reference's identifier is the callee of a CallExpression,
+  // not passed as a callback value, reassigned, or otherwise indirect.
   public static isDirectCallReference(reference: Scope.Reference): boolean {
     const identifier = reference.identifier as unknown as { readonly 'parent'?: unknown };
     const parent = identifier.parent;
@@ -129,12 +101,8 @@ class CallSiteAnalysis {
     return result;
   }
 
-  // Bounded, same-file call-graph check: true only when every reference to the
-  // function is (a) a resolvable direct call and (b) per-iteration (loop keyword
-  // OR built-in per-element iteration callback — see `LoopContext`).
-  // Any reference that is not a direct call (passed by reference, exported,
-  // reassigned, etc.) makes the call graph unresolvable within this bounded
-  // analysis, so the function is conservatively left unflagged.
+  // True only when every reference is a resolvable direct call in a per-iteration
+  // position; any indirect reference leaves the function conservatively unflagged.
   public static allCallSitesInsideLoops(variable: Scope.Variable, context: Rule.RuleContext): boolean {
     const readReferences = variable.references.filter((reference: Scope.Reference) => {
       const result = !reference.isWrite();
@@ -175,11 +143,8 @@ export const tryCatchInLoops: Rule.RuleModule = {
         return;
       }
 
-      // Not per-iteration by itself — check the bounded, control-flow-vs-lexical-scope
-      // gap: a helper function whose try/catch never sits inside a loop textually, but
-      // which is itself called exclusively from per-iteration positions. See
-      // CallSiteAnalysis for the residual limitation of this bounded analysis
-      // (documented on the module).
+      // Not per-iteration lexically — queue it for the bounded call-site check
+      // (CallSiteAnalysis) in case every call site is itself per-iteration.
       const functionNode = EnclosingFunctionFinder.find(node);
 
       if (functionNode !== undefined) {
@@ -221,12 +186,8 @@ export const tryCatchInLoops: Rule.RuleModule = {
   },
   'meta': {
     'docs': {
-      // Residual limitation (documented, not fixed): this bounded call-graph check only
-      // covers same-file helpers whose EVERY reference is a resolvable direct call
-      // (`name(...)`). Multi-file call graphs, conditionally-called helpers (called from
-      // both inside and outside a loop), and helpers invoked indirectly (passed as a
-      // callback, `.bind()`, re-exported, called via `obj.method()`) remain undetected —
-      // full call-graph analysis would be required to close those gaps.
+      // Bounded call-graph check: same-file helpers only. See doc for the indirect
+      // call shapes (callback, `.bind()`, re-exported, `obj.method()`) left undetected.
       'description': 'Require try-catch to be extracted out of loop bodies (including `.forEach`-shaped per-element callbacks) into a named, independently testable static method. Also flags a same-file helper function whose try-catch is not lexically per-iteration but whose every call site is. This is a structural/readability constraint, not a performance one: measured 1.007x at 5,000,000 iterations on Node v24 — TurboFan\'s try/catch support since 2018 makes the original "V8 cannot optimize this" claim false.',
       'recommended': false
     },

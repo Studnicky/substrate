@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-/** Data constants for `FunctionScope`: the AST node-type sets used to detect function-scope and loop boundaries, and the memoization cache for the rebuilt-in-function-scope walk. */
+/** Data constants for `FunctionScope`: the AST node-type sets for detecting function-scope and loop boundaries, and the memoization cache for the rebuilt-in-function-scope walk. */
 
 export const FUNCTION_TYPES: ReadonlySet<string> = new Set([
   'ArrowFunctionExpression',
@@ -16,11 +16,6 @@ export const LOOP_TYPES: ReadonlySet<string> = new Set([
   'WhileStatement'
 ]);
 
-// Ancestor-chain walks are pure functions of their starting node: for a given
-// dispatch-map object literal, every function-valued property in it passes
-// the SAME ObjectExpression node as the starting point (see inlineFunctions.ts
-// and inlineArrowFunctions.ts). Memoizing on that node avoids re-walking the
-// identical ancestor chain once per property. Keyed by object reference, so
-// entries are garbage-collected once a file's AST is no longer referenced —
-// this cannot leak across files.
+// Memoizes the ancestor-chain walk per starting ObjectExpression (shared across its properties
+// in inlineFunctions.ts/inlineArrowFunctions.ts). WeakMap-keyed, so entries cannot leak across files.
 export const REBUILT_IN_FUNCTION_SCOPE_CACHE: WeakMap<Rule.Node, boolean> = new WeakMap();

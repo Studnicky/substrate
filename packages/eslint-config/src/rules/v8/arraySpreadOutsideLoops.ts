@@ -5,26 +5,12 @@ import {
   MESSAGE, RULE_NAME
 } from './constants/ArraySpreadOutsideLoopsConstants.js';
 
-// PER-ITERATION IS RESOLVED VIA `LoopContext`, NOT `FunctionScope.isInsideLoop`. A spread
-// inside a `.forEach()`/`.map()` callback allocates a fresh array once per element,
-// identically to one written with a loop keyword — `LoopContext.isPerIteration` treats
-// the callback as a loop body; the previous `FunctionScope.isInsideLoop` walk stopped at
-// the callback's function boundary and missed it. `CallIdentity` is not used here: a
-// `SpreadElement` inside an `ArrayExpression` is pure syntax, not a resolved call, so
-// there is no callee signature to resolve identity from — unlike every sibling rule in
-// this file set that targets a method call.
+// Per-iteration detection and the CallIdentity exclusion are explained in
+// docs/eslint/rules/v8/array-spread-outside-loops.md
 
 class SpreadBinding {
-  // A spread element is only the O(n^2) allocate-and-copy anti-pattern when it
-  // sits directly in an array literal that is itself bound to something
-  // (a reassignment or a fresh declaration) — not when it is nested deeper,
-  // and not when the array literal is merely a call argument.
-  //
-  // Spread used as a CALL ARGUMENT (e.g. `result.push(...items)`) is a related
-  // but distinct O(n) pattern — spreading into an argument list rather than
-  // into an array literal being bound to a variable/property. It is
-  // intentionally out of scope for this rule; naturally excluded here since
-  // its immediate parent is a CallExpression, not an ArrayExpression.
+  // Flags only an array literal bound via assignment or declaration; see
+  // docs/eslint/rules/v8/array-spread-outside-loops.md for the call-argument exclusion.
   public static isBoundArrayLiteral(arrayExpression: Rule.Node): boolean {
     const parent = arrayExpression.parent;
 

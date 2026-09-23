@@ -101,10 +101,7 @@ class InlineDataPortion {
     let current = node.parent;
     while (current !== undefined && current !== boundary) {
       if (classification.isInlinePureDataPortion(current)) { return true; }
-      // An ancestor union or intersection that mixes a callable constituent with a data
-      // constituent has no interface remedy — `no-mixed-callable-shapes` owns that diagnostic.
-      // Reporting the data constituent here as well would tell the consumer to both split the
-      // shape and extract it to a named entity, two contradictory fixes for one declaration.
+      // Mixed callable/data ancestor: no-mixed-callable-shapes owns that diagnostic, not this rule.
       if ((isUnionTypeNode(current) || isIntersectionTypeNode(current)) && classification.mixesCallableAndData(current)) {
         return true;
       }
@@ -114,14 +111,7 @@ class InlineDataPortion {
   }
 }
 
-/**
- * Resolves an indexed-access member type (`Big['a']`) to the `TypeNode` that actually declares
- * the referenced property's shape, so it can be run through the same inline-data classification
- * that would apply if that shape were written directly at the member. Without this, `a:
- * Big['a']` escapes detection entirely — the shape lives in a separate declaration, and
- * `findInterfaceTypeContract` treats the indexed-access node itself as inert ("nonJson")
- * type-level computation.
- */
+/** Without this, `a: Big['a']` reads to the classifier as inert type-level computation. */
 class IndexedAccessResolution {
   public static resolveMemberTypeNode(node: TypeNode, checker: TypeChecker): TypeNode | undefined {
     if (!isIndexedAccessTypeNode(node)) { return undefined; }
@@ -262,11 +252,7 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       if (classification.isInlineContractPortion(member.parent)) { return; }
       if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
 
-      // A bare type-parameter reference (`handler: T`) or an indexed-access reference into a
-      // separately-declared shape (`a: Big['a']`) each launder an inline pure-data shape away
-      // from the checks below — the parameter's own `extends { ... }` constraint, or the
-      // indexed property's own declared type, is the actual shape a consumer sees, even though
-      // neither is written inline at this member.
+      // T or Big['a'] would otherwise launder an inline pure-data shape past the checks below.
       const resolvedConstraint = classification.resolveTypeParameterConstraint(memberType);
       const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
         ? IndexedAccessResolution.resolveMemberTypeNode(memberType, checker)
@@ -274,13 +260,8 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
       const substituted = resolvedConstraint ?? resolvedIndexedAccess;
 
       if (substituted !== undefined) {
-        // A substituted shape lives in a different declaration entirely (the type parameter's own
-        // heritage, or the indexed property's own interface) — no other listener independently
-        // classifies it from THIS member's position. `visitInlineData` deliberately exempts a
-        // type literal that is itself a type parameter's constraint (so the constraint
-        // declaration is never flagged on its own), so deferring to "some other listener already
-        // covers it" via `InlineDataPortion.contains` would silently drop the diagnostic. Apply
-        // the same inline-data check `visitInlineData` applies directly instead.
+        // visitInlineData exempts a type parameter's own constraint literal from self-flagging;
+        // deferring to InlineDataPortion.contains here would silently drop this diagnostic.
         if (classification.isInlinePureDataPortion(substituted) || classification.requiresNamedDataComposition(substituted)) {
           context.report({
             'data': {

@@ -59,10 +59,8 @@ interface ModuleScopeArrayEntryInterface {
   readonly 'variable': Scope.Variable;
 }
 
-// Tracks a `.filter/.some/.every/.find/.findIndex(fn)` call whose function-argument
-// subtree is currently being traversed by ESLint's own visitor, so that a nested
-// ArrayLiteral.includes()/indexOf() match encountered by the ordinary CallExpression
-// listener can be attributed back to this outer call without a second manual walk.
+// Tracks an outer iteration call's function-argument subtree during traversal so a
+// nested match attributes back to it without a second walk.
 interface IterationStackEntryInterface {
   'found': PreferCollectionTypesInternalEntity.Type['found'];
   readonly 'method': PreferCollectionTypesInternalEntity.Type['method'];
@@ -183,10 +181,8 @@ class MembershipCallDetection {
 }
 
 class MembershipIndexOfCall {
-  // Returns the indexOf CallExpression node if `node` is a BinaryExpression testing
-  // its result for membership, in any of its equivalent forms:
-  // x.indexOf(y) !== -1 | x.indexOf(y) === -1 (negated) | x.indexOf(y) > -1
-  // x.indexOf(y) < 0 | x.indexOf(y) >= 0 (negated)
+  // Returns the indexOf CallExpression node if `node` is a BinaryExpression performing
+  // a membership comparison equivalent to `.includes()`.
   public static get(node: unknown): unknown {
     if (AstHelpers.getNodeType(node) !== 'BinaryExpression') { return undefined; }
     if (!Predicates.isRecord(node)) { return undefined; }
@@ -207,17 +203,11 @@ class MembershipIndexOfCall {
   }
 }
 
-// Rides ESLint's own single AST traversal instead of running a second manual walk:
-// pushes a marker when an outer `.filter/.some/.every/.find/.findIndex(fn)` call is
-// entered, and pops it (reporting once, on the outer node) when the function
-// argument's own subtree has been fully visited via its `:exit` listener. Nested
-// qualifying calls stay correctly attributed because ESLint's traversal is a proper
-// DFS: an inner call's stack entry is always pushed after, and popped before, its
-// enclosing call's entry — giving genuine LIFO ordering with no extra subtree scans.
+// Rides ESLint's single AST traversal via a LIFO stack instead of a second manual
+// walk; DFS ordering keeps nested qualifying calls correctly attributed.
 class IterationCallbackTracker {
-  // If `node` is arr.method(fn) for a tracked iteration method with at least one
-  // function-typed argument, pushes a stack entry so nested matches (found via the
-  // rule's ordinary CallExpression listener) can be attributed back to this call.
+  // Pushes a stack entry when `node` is a tracked iteration method call with at
+  // least one function-typed argument, for later attribution.
   public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryInterface[]): void {
     const raw = node as unknown as Record<string, unknown>;
     if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
@@ -250,9 +240,8 @@ class IterationCallbackTracker {
     stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArguments': pendingArguments, 'reported': false });
   }
 
-  // Marks every currently-active outer call as containing a match — mirrors the old
-  // manual walk's behavior of finding matches at any depth beneath the callback body,
-  // including inside further-nested qualifying calls.
+  // Marks every active outer call as containing a match, including calls nested
+  // further beneath it.
   public static markActiveFound(stack: IterationStackEntryInterface[]): void {
     const stackLength = stack.length;
     for (let stackIndex = 0; stackIndex < stackLength; stackIndex += 1) {
@@ -261,9 +250,8 @@ class IterationCallbackTracker {
     }
   }
 
-  // Called from the function argument's `:exit` listener. Pops the entry once all of
-  // its function-typed arguments have finished traversal, reporting once if a match
-  // was found anywhere beneath it.
+  // Pops the entry once all its function-typed arguments finish traversal; reports
+  // once if a match was found beneath it.
   public static onFunctionArgumentExit(node: unknown, stack: IterationStackEntryInterface[], context: Rule.RuleContext): void {
     const top = stack.at(-1);
     if (top === undefined) { return; }
@@ -331,9 +319,6 @@ class ScopeReferenceDetection {
     return result;
   }
 
-  // Returns true if this scope reference is: ident[key] — a computed member lookup with
-  // the identifier as the object, e.g. a variable bound to Object.fromEntries(...) read via
-  // bracket notation.
   public static isComputedMemberObjectReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
     const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
@@ -379,10 +364,8 @@ class RuleHandlers {
       return;
     }
 
-    // Pattern D: arr.filter/some/every/find/findIndex(x => ['a','b'].includes(x))
-    // Marks the call as a candidate; the actual match is discovered by this same
-    // listener firing again (via ESLint's normal traversal) on the nested
-    // ArrayLiteral.includes()/indexOf() call above, then reported at :exit.
+    // Pattern D candidate; the match is discovered when this listener fires again
+    // on the nested ArrayLiteral call above, reported at :exit.
     IterationCallbackTracker.pushIfQualifying(node, iterationStack);
   }
 
@@ -486,11 +469,8 @@ class RuleHandlers {
     const isFromEntriesInit = MembershipCallDetection.isObjectFromEntriesCall(declaratorRaw.init);
     if (!isArrayLiteralInit && !isFromEntriesInit) { return; }
 
-    // getDeclaredVariables on the VariableDeclaration gives us the scope variable — from
-    // whichever scope (module, function, or class-method body) it was declared in — with full
-    // reference tracking populated by the end of the AST pass. Tracking is no longer limited to
-    // Program (module) scope: a const array/fromEntries binding used exclusively for membership
-    // or lookup is just as much a collection-type candidate inside a function body.
+    // getDeclaredVariables resolves the scope variable regardless of declaring scope,
+    // with reference tracking populated by the end of the AST pass.
     const parentNode = node.parent;
     if (parentNode === null) { return; }
     const declared = context.sourceCode.getDeclaredVariables(parentNode);

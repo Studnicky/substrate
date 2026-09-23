@@ -8,63 +8,11 @@ import {
   MESSAGE, RULE_NAME
 } from './constants/ConditionalPropertyAssignmentConstants.js';
 
-// WHY SAME-PROPERTY BRANCHING IS EXEMPT, AND DIFFERENT-PROPERTY BRANCHING IS NOT.
-//
-//   node --allow-natives-syntax
-//   class SameProperty { constructor(flag) { this.tag = 1; if (flag) { this.value = 1; } else { this.value = 2; } } }
-//   class DifferentProperty { constructor(flag) { this.tag = 1; if (flag) { this.value = 1; } else { this.other = 2; } } }
-//   class MissingElse { constructor(flag) { this.tag = 1; if (flag) { this.value = 1; } } }
-//   class LogicalShortCircuit { constructor(flag) { this.tag = 1; flag && (this.extra = 2); } }
-//
-//   %HaveSameMap(new SameProperty(true), new SameProperty(false))            -> true   <-- no divergence
-//   %HaveSameMap(new DifferentProperty(true), new DifferentProperty(false))  -> false  <-- real hazard
-//   %HaveSameMap(new MissingElse(true), new MissingElse(false))              -> false  <-- real hazard
-//   %HaveSameMap(new LogicalShortCircuit(true), new LogicalShortCircuit(false)) -> false <-- real hazard
-//
-// Every branch shape stays in `%HasFastProperties`, so this was never a dictionary-mode
-// question — it is whether every branch of a conditional construct is PROVEN to establish
-// the identical set of properties. When it does (both `if`/`else` assign only `value`), the
-// two instances end up with the same map and every call site reading them stays
-// monomorphic. When it does not — a different property per branch, a branch that assigns
-// nothing (`if` with no `else`), or a `&&` short-circuit (which has no "else" to compare
-// against by construction) — the instances diverge and any call site reading both goes
-// megamorphic. Benchmarked at 5,000,000 reads across a 2-instance pool, median of 7,
-// 3-call warm-up (scratchpad/bench_conditionalAssign.js):
-//
-//   same-property branches (monomorphic .tag read)       5.17 ms
-//   different-property branches (megamorphic .tag read)  6.75 ms   1.3x
-//
-// (in line with the previously reported 1.80x for this class of hazard; pool shape and
-// GC pressure at this scale account for the spread — the DIRECTION is what is load-bearing)
-//
-// So this rule now applies a DISTINCT-PROPERTY check uniformly across all four branching
-// shapes it recognizes:
-//   * `if`/`else` — compares the property-name SET assigned in each branch (one
-//     `BlockStatement`-deep, matching the existing `SwitchStatement` handler's granularity).
-//     Equal sets: exempt. A bare `if` with no `else`, or an `else if` chain (where this
-//     level cannot see the chain's eventual terminal branches without walking further),
-//     conservatively still flags — proven divergent above for the no-`else` case, and
-//     unproven-safe for a chain, which resolves toward the stricter side.
-//   * Ternary (`cond ? (this.a = 1) : (this.b = 2)`) — same comparison, expression-shaped:
-//     each side must itself be a direct `this.<name> = ...` assignment with the SAME name.
-//   * `&&` short-circuit — always flagged. There is no second branch to compare against;
-//     "sometimes assigned, sometimes not" is the missing-else hazard by construction.
-//   * `Object.assign(this, cond ? {...} : {...})` — compares the STATIC (non-computed,
-//     non-spread) key sets of the two object-literal branches. Either branch containing a
-//     spread or a computed key cannot be proven safe from the AST alone, so — same
-//     resolve-toward-stricter posture — it still flags.
-//   * `switch` — unchanged; this is the check the other four shapes were extended to match.
-//
-// PAIRED RULE: `define-property`'s redefinition check reaches the same conclusion
-// (non-uniform establishment diverges instance shape) via `Object.defineProperty` instead
-// of a plain assignment. Change them together.
+// See docs/eslint/rules/v8/conditional-property-assignment.md for the measured rationale.
 
 class AstWalker {
-  // Generic recursive descendant walk over raw AST shape (no visitor-keys
-  // dependency): iterates every own property, recursing into arrays and
-  // nested `{ type: string }` objects. Bounded to the subtree it is called
-  // on (constructor bodies here), so the lack of a fast visitor-keys table
-  // is not a performance concern.
+  // Recursive descendant walk over raw AST shape (no visitor-keys table), bounded to the
+  // subtree it is called on (constructor bodies here), so this is not a performance concern.
   public static forEachDescendant(node: unknown, visit: (descendant: AstNodeInterface) => void): void {
     if (!Predicates.isRecord(node)) {
       return;
@@ -111,9 +59,8 @@ class AstWalker {
 }
 
 class ThisAssignment {
-  // Resolves `this.<name> = ...` to `<name>`. Deliberately excludes
-  // computed member writes (`this[key] = ...`) — a dynamic key is
-  // `dynamicPropertyAccess`'s concern, not this rule's.
+  // Resolves `this.<name> = ...` to `<name>`. Excludes computed writes (`this[key] = ...`) —
+  // a dynamic key is `dynamicPropertyAccess`'s concern, not this rule's.
   public static getPropertyName(node: unknown): string | undefined {
     if (!Predicates.isRecord(node) || node.type !== 'AssignmentExpression') {
       return undefined;
@@ -142,14 +89,12 @@ class ThisAssignment {
 }
 
 class ClassMethodEligibility {
-  // Local per-run cache: a helper method's eligibility depends only on its
-  // sibling constructor, so it is stable across the many assignment/switch/
-  // Object.assign call sites that may live inside the same helper.
+  // Per-run cache: a helper method's eligibility depends only on its sibling constructor, so
+  // it is stable across the many call sites that may live inside the same helper.
   private readonly cache = new Map<AstNodeInterface, boolean>();
 
-  // Walks up from `node` to the nearest enclosing MethodDefinition. Returns
-  // undefined when `node` is not lexically inside any class method body
-  // (e.g. a top-level function).
+  // Walks up from `node` to the nearest enclosing MethodDefinition; undefined when `node` is
+  // not lexically inside any class method body.
   public static findEnclosingMethod(node: Rule.Node): AstNodeInterface | undefined {
     let current: Rule.Node | null = node.parent;
 
@@ -165,12 +110,7 @@ class ClassMethodEligibility {
     return undefined;
   }
 
-  // A method is a valid target when it is the constructor itself, or when
-  // it is a same-class helper method called directly from the constructor
-  // (`this.helperName()`) — a bounded, one-level indirection check.
-  // Helpers called only transitively (through another helper) are not
-  // covered; this is a documented residual limitation rather than a full
-  // call-graph analysis.
+  // Bounded, one-level indirection check: constructor, or a helper called directly from it.
   public isEligible(methodDef: AstNodeInterface): boolean {
     const cached = this.cache.get(methodDef);
 
@@ -258,10 +198,8 @@ class ClassMethodEligibility {
 }
 
 class StatementAssignments {
-  // A single statement's direct `this.<name> = ...` — only an ExpressionStatement whose
-  // expression is itself a `this`-assignment counts; anything else (a ternary/logical
-  // expression statement, a return, a nested if, …) is not a "direct" assignment at this
-  // level and is left to whatever listener owns that shape.
+  // Only an ExpressionStatement whose expression is itself a `this`-assignment counts;
+  // anything else is not "direct" at this level and is left to whatever listener owns it.
   private static collectOne(statement: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
     if (!Predicates.isRecord(statement) || statement.type !== 'ExpressionStatement') {
       return [];
@@ -278,9 +216,7 @@ class StatementAssignments {
     }];
   }
 
-  // Collects direct (or one-`BlockStatement`-deep) `this.<name> = ...` assignments from a
-  // single branch node — a `BlockStatement` (its `.body` is walked one level) or a bare
-  // single statement (an `if` without braces, or one `switch`-case statement).
+  // Collects direct (or one-`BlockStatement`-deep) assignments from a single branch node.
   public static collectBranch(branchNode: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
     if (!Predicates.isRecord(branchNode)) {
       return [];
@@ -340,10 +276,8 @@ class PropertyNameSets {
 }
 
 class ObjectExpressionKeys {
-  // The static (non-computed, non-spread) top-level key set of an object-literal branch of
-  // `Object.assign(this, cond ? {...} : {...})`. `undefined` means "cannot prove" — a
-  // spread or computed key defeats static analysis, and the caller resolves toward the
-  // stricter side (flags) rather than guess.
+  // Static (non-computed, non-spread) top-level key set of an `Object.assign` branch.
+  // `undefined` means "cannot prove"; the caller resolves toward the stricter side.
   public static namesOf(node: unknown): ReadonlySet<string> | undefined {
     if (!Predicates.isRecord(node) || node.type !== 'ObjectExpression' || !Array.isArray(node.properties)) {
       return undefined;
@@ -362,12 +296,8 @@ class ObjectExpressionKeys {
 
       const key = property.key;
 
-      // Accepts a bare `Identifier` key OR a quoted `Literal` key: this repo's
-      // `quote-props: always` convention (`eslint.config.mjs`) makes every non-computed
-      // object-literal property key a `Literal` (`{ 'a': 1 }`, not `{ a: 1 }`) — an
-      // `Identifier`-only check would never resolve real, convention-compliant code and
-      // this method would always return `undefined` (i.e. always flag, defeating the
-      // same-key exemption below).
+      // Accepts `Identifier` OR quoted `Literal`: the repo's `quote-props: always` convention
+      // makes every non-computed key a `Literal`, so an `Identifier`-only check would never resolve.
       if (!Predicates.isRecord(key)) {
         return undefined;
       }
@@ -392,9 +322,7 @@ class ObjectExpressionKeys {
 }
 
 class CaseAssignments {
-  // Direct (or one-BlockStatement-deep) `this.<name> = ...` expression
-  // statements within a single switch case's consequent — matches the
-  // documented `case X: this.a = 1; break;` shape without a full deep walk.
+  // Direct (or one-BlockStatement-deep) assignments within a single switch case's consequent.
   public static collect(switchCase: unknown): readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] {
     if (!Predicates.isRecord(switchCase) || !Array.isArray(switchCase.consequent)) {
       return [];
@@ -436,9 +364,6 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
       }
     };
 
-    // `if`/`else` — flags only when the branches are NOT proven to establish the same
-    // property set. A bare `if` (no `else`) or an `else if` chain conservatively flags
-    // every assignment found in the `if`-branch — see the module comment.
     const onIfStatement: NonNullable<Rule.RuleListener['IfStatement']> = (node) => {
       const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
 
@@ -471,10 +396,8 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
       reportEach(alternateAssignments);
     };
 
-    // Covers ternary (`cond ? (this.a = 1) : (this.b = 2)`) and logical short-circuit
-    // (`cond && (this.extra = 2)`). `IfStatement` ancestry is deliberately not inspected
-    // here — `onIfStatement` above owns that shape, so double-reporting the same
-    // assignment from both listeners cannot happen.
+    // `IfStatement` ancestry is deliberately not inspected here — `onIfStatement` owns that
+    // shape, so double-reporting the same assignment from both listeners cannot happen.
     const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
       const ownPropertyName = ThisAssignment.getPropertyName(node);
 
@@ -520,8 +443,7 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
       }
 
       if (matchedLogical) {
-        // No second branch exists to compare against — a `&&`-guarded assignment is the
-        // missing-else hazard by construction (proven divergent in the module comment).
+        // No second branch exists to compare against — a `&&`-guarded assignment is the missing-else hazard by construction.
         context.report({
           'messageId': 'forbidden', 'node': node
         });
@@ -592,11 +514,6 @@ export const conditionalPropertyAssignment: Rule.RuleModule = {
       });
     };
 
-    // Covers `switch (cond) { case 'a': this.a = 1; break; case 'b': this.b = 2; break; }`
-    // — flagged only when cases assign *differing* properties. A switch where every case
-    // assigns the same property does not vary the resulting hidden class and is not
-    // flagged. This is the check the other four branching shapes above were extended to
-    // match.
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
       const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
 

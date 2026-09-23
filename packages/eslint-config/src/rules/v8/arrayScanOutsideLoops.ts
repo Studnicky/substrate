@@ -6,26 +6,12 @@ import {
   FUNCTION_TYPES, LOOP_TYPES, MESSAGE, RULE_NAME, SCAN_METHODS, SCAN_OWNERS
 } from './constants/ArrayScanOutsideLoopsConstants.js';
 
-// IDENTITY IS RESOLVED, NOT NAME-MATCHED. See `shared/CallIdentity.ts` for the full
-// reasoning; the short version applies here identically to `arrayConcatOutsideLoops`:
-// `indexOf`/`includes`/`find`/`filter`/`some`/`every` all exist as unrelated methods on
-// other types (a custom `Rope.indexOf`, a `Map`-like class with its own `.find`), and a
-// computed/const-aliased call (`arr[SCAN_METHOD](x)`) must still resolve. Matching
-// `callee.property.name` against a name set (the previous implementation) is wrong in
-// both directions for exactly the reasons documented there.
-//
-// PER-ITERATION IS RESOLVED VIA `LoopContext`, NOT `FunctionScope.isInsideLoop`. A scan
-// method called from inside a `.forEach()`/`.map()` callback runs once per element and
-// is a loop body in every sense that matters to this rule — `LoopContext.isPerIteration`
-// sees that; the old `FunctionScope.isInsideLoop` walk stopped at the callback's function
-// boundary and missed it entirely.
+// See docs/eslint/rules/v8/array-scan-outside-loops.md for the rationale. Identity is
+// resolved via `CallIdentity`; per-iteration status is resolved via `LoopContext`.
 
 class ReceiverOrigin {
-  // Walks a (possibly chained) MemberExpression down to its root Identifier —
-  // `entry.variable.references` resolves to `entry`. Any other root shape
-  // (ThisExpression, CallExpression, ...) returns undefined: such receivers are not
-  // lexical variables the rule can prove are loop-local, so the caller's default is to
-  // keep flagging rather than guess.
+  // Walks a (possibly chained) MemberExpression down to its root Identifier. Any other
+  // root shape returns undefined, and the caller's default is to keep flagging.
   public static findRootIdentifier(node: unknown): Rule.Node | undefined {
     let current = node;
 
@@ -68,11 +54,8 @@ class ReceiverOrigin {
     return undefined;
   }
 
-  // A receiver is proven loop-local when its root identifier's declaration site falls
-  // within the enclosing loop's own AST range — e.g. a for-of loop's own binding, or a
-  // `const` declared in the loop body. Such a value is freshly derived every iteration,
-  // not the same stable collection re-scanned each time, so it is not the anti-pattern
-  // this rule targets.
+  // Proven loop-local when the declaration site falls within the enclosing loop's own AST
+  // range — freshly derived every iteration, not the same collection re-scanned.
   public static isProvenLoopLocal(receiverObject: unknown, loopNode: Rule.Node, context: Rule.RuleContext): boolean {
     const rootIdentifier = ReceiverOrigin.findRootIdentifier(receiverObject);
 
@@ -103,13 +86,8 @@ class ReceiverOrigin {
 }
 
 class LoopRange {
-  // Finds the nearest enclosing REAL loop keyword — distinct from `LoopContext`'s
-  // boolean `isPerIteration`, because the loop-local receiver check above needs an
-  // actual node range to compare a declaration site against. Stops (returns undefined)
-  // at a function boundary, including an iteration-callback boundary: when the
-  // per-iteration context is a `.forEach()`/`.map()` callback rather than a loop
-  // keyword, there is no loop-node range to compare against, so the receiver-locality
-  // exemption is skipped and the call is conservatively still flagged.
+  // Nearest enclosing real loop keyword, distinct from `LoopContext`'s boolean;
+  // stops at a function boundary, including an iteration-callback boundary.
   public static findEnclosingLoop(node: Rule.Node): Rule.Node | undefined {
     let current: Rule.Node | null = node.parent;
 

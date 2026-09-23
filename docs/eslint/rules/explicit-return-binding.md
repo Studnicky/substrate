@@ -13,6 +13,19 @@ It does not report a bare identifier, literal, `this`, member read, `new` expres
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
+## Survey basis
+
+The house style is that a return which does work names its result before handing it back. No existing rule enforces this: all 97 `@stylistic` rules and all 146 rules configured in `eslint.config.ts` fail to match this shape. `sonarjs/prefer-immediate-return` enforces the opposite (it flags `const result = f(); return result;` and suggests inlining); it is not enabled in this config, and this rule supersedes it within the scope described above.
+
+`grep -rl 'const result = ' packages/*/src --include='*.ts' | wc -l` finds 107 files already following the style; `grep -rn 'const result = ' packages/*/src --include='*.ts' | wc -l` finds 586 sites. Sampling those sites shows the bound expression is almost always a call — a method invocation or a static factory call.
+
+`REQUIRES_BINDING_TYPES` excludes four categories, each disproven by direct codebase evidence:
+
+- `AwaitExpression`/`YieldExpression` — `return await x;` appears 26 times and is never bound (`const result = await ...` matches 0 times). The `await` keyword already marks the suspension point.
+- `NewExpression` — 37 unbound vs. 8 bound, dominated by unbound (`return new ModuleError(...)`, `return new Agent(options)`). Treated as construction, not delegation, matching how `TrivialExpression.isTrivial` treats factories and constructors.
+- `ObjectExpression`/`ArrayExpression` — `return { ...` matches 5 times, all unbound.
+- `MemberExpression` — plain field reads outside `this.` match 30 times, all unbound, at any chain depth.
+
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -71,6 +84,8 @@ function g(): number {
 ## No autofix
 
 The rule deliberately has no fixer. Binding a return expression can remove TypeScript contextual typing and widen values, including object-literal members in conditional return expressions. A manual repair preserves the intended type context.
+
+A return type contextually typed by the function's declared return type — a literal-type member in a conditional return expression — widens to `string` once bound to an un-annotated `const`, producing `TypeContractClassification.ts(1983,5): TS2322`; an automated fix across this shape applies at 325 call sites in `packages/eslint-config/src` alone. Copying the enclosing function's declared return-type annotation onto the new `const` closes that specific case, but not a return type mentioning the function's own generic parameters, a conditional or mapped return type, an overload signature picking a different return type per call site, or a type nameable only in the declaration's enclosing scope — each can fail silently in ways no AST shape-check catches for every case, because binding a contextually-typed expression to a variable inherently changes how TypeScript infers it. Detection stays `error`; every violation — 754 across the codebase — is left for a manual fix.
 
 ## Configuration
 

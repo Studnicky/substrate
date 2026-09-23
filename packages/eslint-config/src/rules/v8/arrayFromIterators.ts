@@ -8,37 +8,8 @@ import {
   MESSAGE, PUSH_METHODS, PUSH_OWNERS, RULE_NAME
 } from './constants/ArrayFromIteratorsConstants.js';
 
-// A8 — PREMISE DISPROVEN, RULE RETARGETED, NOT DELETED.
-//
-// The previous implementation flagged `Array.from(iterable)` itself, on the theory that
-// avoiding it was faster. Measured (Node v24, Set with 5,000,000 entries; 3 warm-up
-// calls, median of 7; command: `node scratchpad/bench.mjs`, see the `A8` section):
-//
-//   Array.from(set)             5.64ms
-//   [...set]                    5.57ms   -> 0.99x vs Array.from  (performance-neutral)
-//   for-of + push                42.50ms  -> 7.53x SLOWER than Array.from
-//   preallocate + index-fill    30.01ms  -> 5.32x SLOWER than Array.from
-//
-// The implied remedy (a manual loop) is not faster — it is the SLOWEST option measured,
-// by a wide margin, because `Array.from`/spread over a built-in `Set`/`Map` hit an
-// internal fast path that a `for...of` loop's iterator-protocol calls do not. Flagging
-// `Array.from(iterable)` was therefore steering code toward something slower.
-//
-// RETARGETED to what the rule was actually reaching for: converting an iterable to an
-// array efficiently. The genuine anti-pattern, proven above, is the hand-rolled
-// `for (const x of iterable) { acc.push(x); }` drain — so THAT is now what this rule
-// flags, recommending `Array.from(iterable)` or `[...iterable]` (tied for fastest)
-// instead. `Array.from(iterable, mapFn)` — the two-argument mapped form — is a distinct
-// concern with its own distinct cost, covered by the sibling rule `array-from-map-callback`.
-//
-// SCOPE: only a *fresh, empty* accumulator (`const out = []; for (...) { out.push(x); }`,
-// declared as the statement immediately before the loop) is flagged — not accumulation
-// onto a pre-existing or non-empty array, which `Array.from`/spread cannot reproduce as
-// a drop-in replacement. And only when the iterable is PROVEN not already an array (via
-// the type checker): pushing from an array in a loop is a copy/filter operation with its
-// own idioms, not the iterator-drain this rule targets. Without type services, this
-// proof is unavailable and the rule reports nothing — "if we cannot prove it, we do not
-// enforce it," the same posture as every type-aware rule in this file set.
+// Flags only a hand-rolled iterator-drain into a fresh, empty, proven-non-array
+// accumulator. Benchmark and scope: docs/eslint/rules/v8/array-from-iterators.md.
 
 class ForOfBinding {
   /** The loop's own binding name — `for (const x of ...)` or `for (x of ...)`. */
@@ -111,18 +82,10 @@ class SoleBodyPushCall {
 }
 
 class AccumulatorBinding {
-  /**
-   * True when the statement immediately preceding `forOfNode` in the same block is
-   * `const <name> = [];` / `let <name> = [];` — a *fresh, empty* array, which is what
-   * makes `Array.from(iterable)` / `[...iterable]` an exact drop-in replacement rather
-   * than a behavior change.
-   */
+  /** True when `const <name> = [];`/`let <name> = [];` is the statement immediately preceding `forOfNode`. */
   public static isFreshEmptyArrayDeclaredBefore(forOfNode: Rule.Node, name: string): boolean {
-    // Cast through `unknown` before the generic AST walk: `forOfNode.parent`'s declared
-    // type (`Rule.Node`) intersects with `Predicates.isRecord`'s `Record<string,
-    // unknown>` predicate rather than being erased by it, so `.body` would otherwise
-    // keep its original `Statement[]` element type and reject a bare `Rule.Node` search
-    // target below. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
+    // Cast through `unknown`: `Predicates.isRecord` doesn't erase `Rule.Node`'s declared
+    // `.body` type. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
     const block = forOfNode.parent as unknown;
 
     if (!Predicates.isRecord(block)) {

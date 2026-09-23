@@ -63,12 +63,7 @@ interface DeclarationLocationInterface {
   readonly 'name': DeclarationLocationEntity.Type['name'];
 }
 
-/**
- * Describes where a mixed union or intersection sits relative to the nearest enclosing named
- * type alias or interface declaration, walking outward through property signatures and index
- * signatures to build a dotted member path. A node with no enclosing named declaration (an
- * inline annotation on a parameter or variable, for example) reports itself generically.
- */
+// Builds the `{{location}}` dotted path; see docs/eslint/rules/no-mixed-callable-shapes.md.
 class DeclarationLocation {
   public static describe(node: Node): DeclarationLocationInterface {
     const segments: string[] = [];

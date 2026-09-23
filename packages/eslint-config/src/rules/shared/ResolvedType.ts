@@ -45,11 +45,8 @@ interface TypeScriptServicesInterface {
 
 /** Resolves an ESTree node's TypeScript type to answer whether it is unparsed (`unknown`/`any`). */
 export class ResolvedType {
-  /**
-   * Reports whether `node`'s RESOLVED type is `unknown` or `any`, regardless of how it was
-   * written. Returns `false` when type information is unavailable, so a rule degrades to silence
-   * rather than to false positives on a project without a type-aware parser.
-   */
+  // Returns `false` when type information is unavailable, so a rule degrades to silence
+  // rather than false positives on a project without a type-aware parser.
   public static isUnparsed(context: Rule.RuleContext, node: unknown): boolean {
     const services: unknown = context.sourceCode.parserServices;
 
