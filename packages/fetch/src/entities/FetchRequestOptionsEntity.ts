@@ -9,6 +9,7 @@ export namespace FetchRequestOptionsEntity {
     'properties': {
       'cache': { 'enum': ['default', 'force-cache', 'no-cache', 'no-store', 'only-if-cached', 'reload'] },
       'credentials': { 'enum': ['include', 'omit', 'same-origin'] },
+      'duplex': { 'enum': ['half'] },
       'headers': {
         'additionalProperties': false,
         'patternProperties': { '^.*$': { 'type': 'string' } },
@@ -25,7 +26,8 @@ export namespace FetchRequestOptionsEntity {
         'enum': ['', 'no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url']
       },
       'requestId': { 'type': 'string' },
-      'timeout': { 'exclusiveMinimum': 0, 'multipleOf': 1, 'type': 'number' }
+      'timeout': { 'exclusiveMinimum': 0, 'multipleOf': 1, 'type': 'number' },
+      'window': { 'type': 'null' }
     },
     'type': 'object'
   } as const satisfies JSONSchema;

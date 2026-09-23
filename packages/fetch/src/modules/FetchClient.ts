@@ -35,6 +35,7 @@ import {
 import { BodySerializer } from './BodySerializer.js';
 import { FetchClientConfiguration } from './FetchClientConfiguration.js';
 import { FetchTransport } from './FetchTransport.js';
+import { RequestInitEncoder } from './RequestInitEncoder.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
 import { UrlQueryString } from './UrlQueryString.js';
 
@@ -262,15 +263,8 @@ export class FetchClient implements FetchClientInterface {
         throw new ConfigurationError('url must be a non-empty string');
       }
 
-      const {
-        dispatcher,
-        'json': _json,
-        'metadata': _metadata,
-        'requestId': _requestId,
-        'signal': configuredSignal,
-        timeout,
-        ...standardOptions
-      } = requestContext.options;
+      const encoded = RequestInitEncoder.encode(requestContext.options);
+      const { dispatcher, 'signal': configuredSignal, timeout } = encoded;
 
       if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout) || !Number.isInteger(timeout))) {
         throw new ConfigurationError('timeout must be a positive number and integer');
@@ -290,8 +284,8 @@ export class FetchClient implements FetchClientInterface {
       }
 
       const requestInit: Record<string, unknown> = requestSignal === undefined
-        ? { ...standardOptions }
-        : { ...standardOptions, 'signal': requestSignal };
+        ? { ...encoded.requestInit }
+        : { ...encoded.requestInit, 'signal': requestSignal };
 
       if (dispatcher !== undefined) {
         requestInit.dispatcher = dispatcher;
