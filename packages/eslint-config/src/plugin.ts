@@ -19,7 +19,6 @@ import { hashPrivateFields } from './rules/hashPrivateFields.js';
 import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
-import { interfaceSuffix } from './rules/interfaceSuffix.js';
 import { noFunctionRegistries } from './rules/noFunctionRegistries.js';
 import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
 import { noRedefinedExternalTypes } from './rules/noRedefinedExternalTypes.js';
@@ -45,7 +44,6 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'inline-trivial-logic': inlineTrivialLogic,
     'intake-parse-only': intakeParseOnly,
     'interface-must-be-contract': interfaceMustBeContract,
-    'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
     'known-types-outside-adapters': knownTypesOutsideAdapters,
     'layer-import-boundary': layerImportBoundary,
