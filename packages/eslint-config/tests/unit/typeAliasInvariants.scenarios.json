@@ -56,6 +56,34 @@
         "code": "import type { FromSchema, JSONSchema } from \"json-schema-to-ts\";\nexport namespace AccountEntity {\n  export const Schema = { type: \"string\" } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
         "filename": "packages/eslint-config/CanonicalEntity.ts",
         "name": "an entity namespace Type resolves the canonical json-schema-to-ts FromSchema import against its own Schema"
+      },
+      {
+        "code": "function accept<T>(value: Partial<T>): void {}",
+        "name": "'Partial<T>' on a generic type parameter - not flagged, T is not a canonical owned shape"
+      },
+      {
+        "code": "interface HolderInterface { value: Partial<{ a: number; b: string }>; }",
+        "name": "'Partial<{...}>' on an inline object-literal type - not flagged, no named canonical type referenced"
+      },
+      {
+        "code": "interface FooInterface { a: number; }\nfunction accept(value: Required<FooInterface>): void {}",
+        "name": "'Required<X>' - not flagged, not a subsetting utility (does not hide properties)"
+      },
+      {
+        "code": "import type { Rule } from 'eslint';\nfunction accept(value: Partial<Rule.RuleModule>): void {}",
+        "name": "'Partial<X>' on a type declared in node_modules - not flagged, not a domain shape this codebase owns"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { [K in keyof FooInterface]: FooInterface[K] }): void {}",
+        "name": "a full keyof remap is not a subset - not flagged, every property is retained"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { a: FooInterface['a']; b: FooInterface['b'] }): void {}",
+        "name": "inline indexed-access reproducing every canonical property is not a subset - not flagged"
+      },
+      {
+        "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] };",
+        "name": "a reusable generic Pick-shaped utility definition itself is not flagged - its own object type is a type parameter, not a canonical owned type"
       }
     ],
     "invalid": [
@@ -305,6 +333,69 @@
         ],
         "filename": "packages/eslint-config/ImitationEntity.ts",
         "name": "a local type named FromSchema cannot validate a canonical entity alias"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Partial<FooInterface>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Partial<X>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Pick<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Pick<X, K>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; method(): void; }\nfunction accept(value: Omit<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Omit<X, K>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; }\nlet holder: Partial<FooInterface>;",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Partial<X>' used as a variable type annotation - flagged"
+      },
+      {
+        "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] };\ninterface FooInterface { a: number; b: string; }\nfunction accept(value: MyPickType<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "a custom-named alias structurally reimplementing Pick is flagged the same as the literal utility name"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { [K in 'a']: FooInterface[K] }): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "a manual mapped type with zero Omit/Partial/Pick reference is flagged the same as the utility"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; c: boolean; }\nfunction accept(value: { a: FooInterface['a']; b: FooInterface['b'] }): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "plain inline indexed-access subsetting into fewer than every canonical property is flagged"
       }
     ]
   },

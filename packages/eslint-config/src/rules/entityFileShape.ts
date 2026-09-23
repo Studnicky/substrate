@@ -14,12 +14,12 @@ import {
   INDEX_FILES,
   PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES,
   TS_WRAPPER_EXPRESSION_TYPES
-} from './constants/FolderContentShapeConstants.js';
+} from './constants/EntityFileShapeConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 
 /**
- * folder-content-shape — folder location signals what a file's top-level
+ * entity-file-shape — folder location signals what a file's top-level
  * declarations must look like.
  *
  * Three mutually-exclusive checks, dispatched per-file:
@@ -80,7 +80,7 @@ import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
  *    type declaration, or a `const` declaration (exported or not) — is already
  *    a self-contained constants file regardless of its folder;
  *  - a module that exports a namespace whose name ends in `Entity` carries the
- *    same entity-namespace signal `folderContentShape`'s entity check looks
+ *    same entity-namespace signal `entityFileShape`'s entity check looks
  *    for, so its non-Schema/Type/validate top-level consts are exempt too;
  *  - a **pure barrel** — every top-level statement is a re-export
  *    (`export … from …` / `export * from …`) with no local declaration of its
@@ -1069,17 +1069,17 @@ class ModuleShape {
 //
 // It advertised two remedies: extract the constants "grouped under one
 // exported namespace OR frozen object literal". Only the second is actually
-// reachable. `single-export` requires a module's sole export to be named in
+// reachable. `export-shape` requires a module's sole export to be named in
 // SCREAMING_SNAKE_CASE, and a TS `namespace` declaration is a PascalCase
 // construct — there is no SCREAMING_SNAKE_CASE spelling of `namespace Foo {}`
 // that TypeScript accepts. Verified directly: a constants file isolating its
 // values under `export namespace SOME_CONSTANTS { ... }` still fails
-// `single-export` (the namespace's own identifier casing is wrong by
+// `export-shape` (the namespace's own identifier casing is wrong by
 // construction, independent of what's inside it), while the same values
 // isolated as `export const SOME_CONSTANTS = { ... } as const;` passes both
 // rules clean. The namespace alternative is dropped from the message below —
 // not because grouping is wrong, but because that specific spelling of
-// grouping can never satisfy the paired rule. `single-export` itself is
+// grouping can never satisfy the paired rule. `export-shape` itself is
 // unchanged; the fix is only to stop this rule from pointing at a dead end.
 class ConstantsCountCheck {
   static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], physicalFilename: string): void {
@@ -1242,7 +1242,7 @@ class FileCategoryResolver {
 // Same standing policy as `explicitReturnBinding.ts` (see that file's "NO
 // FIXER" note) and `inline-trivial-logic`'s deleted fixer: a human resolves
 // each violation by hand.
-export const folderContentShape: Rule.RuleModule = {
+export const entityFileShape: Rule.RuleModule = {
   'create': (context) => {
     const { filename } = context;
     const category = FileCategoryResolver.resolve(filename);

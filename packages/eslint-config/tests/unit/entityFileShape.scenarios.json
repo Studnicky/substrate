@@ -777,6 +777,16 @@
           "messageId": "missingCreate"
         }
       ]
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace BarEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = FromSchema<typeof Schema>;\n  export const validate = EntityCompiler.compile<Type>(Schema);\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "namespaceMismatch"
+        }
+      ],
+      "filename": "/project/src/FooEntity.ts",
+      "name": "[entities] namespace name BarEntity does not match filename base FooEntity"
     }
   ]
 }

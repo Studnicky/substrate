@@ -2,7 +2,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from './astHelpers.js';
 
-// Shared between `folder-content-shape`, which REQUIRES an entity namespace to expose a
+// Shared between `entity-file-shape`, which REQUIRES an entity namespace to expose a
 // `validate` type guard, and `static-method-verbs`, which would otherwise report that same
 // declaration as a freestanding module-scope function. Both rules must agree on exactly
 // what the canonical shape is, so the predicate lives here and is imported by both rather

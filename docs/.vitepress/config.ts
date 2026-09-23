@@ -72,12 +72,12 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const ESLINT_CONFIG_RULES = [
-  'adapter-only-import', 'all-types-are-entities', 'canonical-export-names', 'clean-diagnostics',
-  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'folder-content-shape',
-  'explicit-return-binding', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract', 'interface-suffix',
+  'adapter-only-import', 'all-types-are-entities', 'clean-diagnostics',
+  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'entity-file-shape',
+  'explicit-return-binding', 'export-shape', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object', 'single-export',
-  'static-method-verbs', 'type-alias-invariants', 'whole-canonical-types'
+  'lexical-this-only', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-threaded-vocabulary', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
+  'static-method-verbs', 'type-alias-invariants'
 ] as const;
 
 const ESLINT_V8_RULES = [

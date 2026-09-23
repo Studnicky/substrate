@@ -9,7 +9,7 @@ export const noFunctionRegistries: Rule.RuleModule = {
         if (property?.type !== 'Property') {
           continue;
         }
-        if (property.value.type === 'ArrowFunctionExpression' || property.value.type === 'FunctionExpression') {
+        if (property.kind === 'init' && (property.value.type === 'ArrowFunctionExpression' || property.value.type === 'FunctionExpression')) {
           functionPropertyCount += 1;
         }
       }

@@ -139,7 +139,7 @@ export default [
     'files': ['packages/*/src/**/*.ts'],
     'plugins': { '@studnicky': plugin },
     'rules': {
-      // The other three `arch/*` rules stay OFF, measured rather than assumed. All three encode
+      // The other four `arch/*` rules stay OFF, measured rather than assumed. All four encode
       // "a business-logic core with a conversion boundary around it"; substrate has neither —
       // four bands of utility and infrastructure code, no domain layer, and no intake boundary
       // separate from where a dependency is already wrapped.
@@ -156,6 +156,11 @@ export default [
       //   domain-purity                 1 violation: `BaseError`'s `Date.now()` timestamp,
       //     which is legitimate. No band is a domain layer; `foundation` is the closest only
       //     by being lowest, and it holds error handling and types, not business rules.
+      //   no-threaded-vocabulary        250 violations across 109 files (sourceRoot: 'packages').
+      //     The rule expects a resolution site that exchanges a closed-vocabulary token for a
+      //     port implementation; substrate has no port/adapter architecture for a token to
+      //     resolve INTO, so a mode/kind/type enum threaded through an ordinary parameterized
+      //     utility function is ubiquitous and legitimate here, not an unresolved token.
       //
       // `layer-import-boundary` is enabled because substrate genuinely HAS what it describes —
       // a dependency-depth hierarchy with an enforceable upward-import ban — which is why it
@@ -200,12 +205,11 @@ export default [
       'rules': {
         // @studnicky custom rules
         '@studnicky/all-types-are-entities': 'error',
-        '@studnicky/canonical-export-names': 'error',
         '@studnicky/clean-diagnostics': 'error',
         '@studnicky/descriptive-identifiers': 'error',
         '@studnicky/direct-invocation-only': 'error',
         '@studnicky/explicit-return-binding': 'error',
-        '@studnicky/folder-content-shape': 'error',
+        '@studnicky/entity-file-shape': 'error',
         '@studnicky/hash-private-fields': 'error',
         '@studnicky/inline-trivial-logic': 'error',
         '@studnicky/intake-parse-only': ['error', {
@@ -213,18 +217,17 @@ export default [
         }],
         '@typescript-eslint/no-unnecessary-type-parameters': 'error',
         '@studnicky/interface-must-be-contract': 'error',
-        '@studnicky/interface-suffix': 'error',
+        '@studnicky/export-shape': 'error',
         '@studnicky/interfaces-compose-named-types': 'error',
         '@studnicky/lexical-this-only': 'error',
+        '@studnicky/no-function-registries': 'error',
         '@studnicky/no-mixed-callable-shapes': 'error',
         '@studnicky/no-redefined-external-types': 'error',
         '@studnicky/no-unparsed-assertion': 'error',
         '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
-        '@studnicky/single-export': 'error',
         '@studnicky/static-method-verbs': 'error',
         '@studnicky/type-alias-invariants': 'error',
-        '@studnicky/whole-canonical-types': 'error',
         // @studnicky/v8 optimisation rules
         '@studnicky/v8/arguments-object': 'error',
         '@studnicky/v8/array-concat-outside-loops': 'error',
@@ -398,7 +401,7 @@ export default [
       },
       'rules': {
         '@studnicky/inline-trivial-logic': 'off',
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         '@studnicky/v8/for-of-arrays': 'off',
         '@typescript-eslint/consistent-type-exports': 'off',
         '@typescript-eslint/consistent-type-imports': 'off',
@@ -416,7 +419,7 @@ export default [
     {
       'files': ['eslint.config.*', '*.config.*', '*.config.mjs'],
       'rules': {
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         'import-x/no-default-export': 'off'
       }
     },
@@ -434,7 +437,7 @@ export default [
         }
       },
       'rules': {
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         'import-x/no-default-export': 'off',
         'no-console': 'off'
       }

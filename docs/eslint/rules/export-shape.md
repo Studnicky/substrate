@@ -1,11 +1,15 @@
 ---
-title: '@studnicky/single-export'
-description: 'Requires each non-index file to export exactly one named symbol matching the filename, except for exempt directories and constrained enum files.'
+title: '@studnicky/export-shape'
+description: 'Enforces a module export surface: one named export matching the filename, canonical export names, and index-only re-export placement.'
 ---
 
-# @studnicky/single-export
+# @studnicky/export-shape
 
-Each non-index source file must export exactly one named symbol, and the export name must match the filename base (case-insensitively, supporting camelCase, PascalCase, and SCREAMING_SNAKE_CASE for constant modules). Default exports are forbidden in all files. `export *` is forbidden outside index files.
+Governs the shape of a module's export surface: how many symbols it exports and what they are named relative to the filename, plus whether an export may be aliased or re-exported outside a package index.
+
+## Export cardinality and naming
+
+Each non-index source file must export exactly one named symbol, and the export name must match the filename base (case-insensitively, supporting camelCase, PascalCase, and SCREAMING_SNAKE_CASE for constant modules). Violating the count reports `tooMany`; violating the name match reports `mismatch`. Default exports are forbidden in all files (`defaultExport`). `export *` is forbidden outside index files (`exportAll`).
 
 Index files (`index.ts`, `index.mts`, `index.cts`, `index.tsx`) are exempt from the single-symbol limit but still forbid default exports.
 
@@ -13,7 +17,15 @@ Restricted topology may be expressed either as folders (`entities/`, `errors/`, 
 
 A companion enum — a type alias and a const of the same name, the type + const satisfies-object pattern — earns the same exemption as an `enum` file, provided every other export in the file is a type alias or a const value. The file must still be named for the shared companion name.
 
-Constant modules have an additional constraint: every exported symbol must use `SCREAMING_SNAKE_CASE`.
+Constant modules have an additional constraint: every exported symbol must use `SCREAMING_SNAKE_CASE` (`constantsCase`).
+
+## Export naming and re-export placement
+
+Every `ExportSpecifier` must export the local name unchanged, including in index files and type-only exports; renaming a symbol at the export site reports `exportAlias`.
+
+Outside `index.js`, `index.mjs`, `index.mts`, and `index.ts`, the rule also reports direct named re-exports (`reExportOutsideIndex`), `export *` re-exports (`starReExportOutsideIndex`), `export =` assignments of imported bindings (`reExportOutsideIndex`), and exporting an imported binding (`exportImportedBindingOutsideIndex`). It tracks a direct imported binding through one simple declaration such as `const localCopy = imported;` before checking a later export.
+
+The index-file basenames recognized for the cardinality checks and for the naming/re-export-placement checks are each their own fixed set, so a file may be treated as an index for one family of checks without being treated as one for the other.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -38,6 +50,31 @@ export default class UserService { /* ... */ }
 export class UserManager { /* ... */ }
 ```
 
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+export { MyClass as TheClass };
+```
+
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+// user-service.ts
+export { MyClass } from './MyClass.js';
+```
+
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+// user-service.ts
+import { MyClass } from './MyClass.js';
+const localCopy = MyClass;
+export { localCopy };
+```
+
+<!-- inline-ts-ok: conceptual rule example -->
+```ts
+// user-service.ts
+export * from './helpers.js';
+```
+
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -48,9 +85,9 @@ export class UserService { /* ... */ }
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-// index.ts — multiple exports are allowed in index files
+// index.ts — multiple exports and re-exports are allowed in index files
 export { UserService } from './UserService.js';
-export { AdminService } from './AdminService.js';
+export * from './helpers.js';
 ```
 
 <!-- inline-ts-ok: eslint rule example -->

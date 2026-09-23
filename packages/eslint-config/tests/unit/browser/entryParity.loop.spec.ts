@@ -7,12 +7,17 @@ import parser from '@typescript-eslint/parser';
 import type { ProjectHostInterface } from '../../../src/interfaces/ProjectHostInterface.js';
 
 const expectedExports = [
-  'HexagonalSuite',
-  'entitySuite',
-  'hygieneSuite',
+  'LayerBoundarySuite',
+  'VocabularySuite',
+  'classMechanicsSuite',
+  'diagnosticsSuite',
+  'entityModelSuite',
+  'moduleDesignSuite',
   'plugin',
+  'v8CollectionTraversalSuite',
+  'v8ObjectShapeSuite',
   'v8Plugin',
-  'v8Suite'
+  'v8RepeatedWorkSuite'
 ];
 
 const browserHost: ProjectHostInterface = {

@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/eslint-config)
 
-Custom ESLint rule plugin that ships two namespaced rule sets for TypeScript projects — 29 core rules (`plugin`) and 27 V8-optimization rules (`v8Plugin`) — plus domain-grouped suite presets for one-import consumption. Register `plugin` and `v8Plugin` in your flat config and enable the rules you want, or spread a suite in directly.
+Custom ESLint rule plugin that ships two namespaced rule sets for TypeScript projects — 26 core rules (`plugin`) and 27 V8-optimization rules (`v8Plugin`) — plus domain-grouped suite presets for one-import consumption. Register `plugin` and `v8Plugin` in your flat config and enable the rules you want, or spread a suite in directly.
 
 ## Install
 
@@ -39,7 +39,7 @@ export default [
     },
     rules: {
       '@studnicky/type-alias-invariants': 'error',
-      '@studnicky/single-export': 'error',
+      '@studnicky/export-shape': 'error',
       '@studnicky/inline-trivial-logic': 'error',
       '@studnicky/v8/array-spread-outside-loops': 'error'
     }
@@ -47,7 +47,7 @@ export default [
 ];
 ```
 
-Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `HexagonalSuite`, and `v8Suite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project files or module resolution.
+Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export the same values: `plugin`, `v8Plugin`, `entityModelSuite`, `moduleDesignSuite`, `diagnosticsSuite`, `VocabularySuite`, `classMechanicsSuite`, `LayerBoundarySuite`, `v8ObjectShapeSuite`, `v8CollectionTraversalSuite`, and `v8RepeatedWorkSuite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project files or module resolution.
 
 
 ## Browser hosts
@@ -75,24 +75,44 @@ export default [{ settings: { '@studnicky/projectHost': projectHost }, plugins: 
 
 ## Suites
 
-Wiring all 56 rules individually is tedious, so the package also exports domain-grouped presets. Each suite is a plain `Linter.Config` object — spread it into a flat-config array alongside your other config entries.
+Wiring all 53 rules individually is tedious, so the package also exports domain-grouped presets. A static suite is a plain `Linter.Config` object — spread it into a flat-config array. A factory suite needs project-specific options its member rules cannot default — call `.create(...)` to get the config entry.
 
 | Suite | Domain |
 |-------|--------|
-| `entitySuite` | Type/interface/entity-namespace shape, naming, and location |
-| `hygieneSuite` | General-purpose export, function, class, and comment conventions |
-| `v8Suite` | V8 hidden-class stability and hot-path allocation rules |
-| `HexagonalSuite.create(...)` | Hexagonal-architecture layer boundaries (factory, not a static object) |
+| `entityModelSuite` | Type/interface/entity-namespace shape, naming, location, and keyed-collection typing |
+| `moduleDesignSuite` | Export shape, return-binding, function-registry safety, options-object calls, and non-trivial method bodies |
+| `diagnosticsSuite` | Rejects inline lint configuration and diagnostic suppression |
+| `VocabularySuite.create(...)` | Identifier and static-method wording plus closed-vocabulary threading (factory — `no-threaded-vocabulary` needs a project `sourceRoot`) |
+| `classMechanicsSuite` | Lexical `this` binding, private-field encapsulation, and direct method invocation |
+| `LayerBoundarySuite.create(...)` | Hexagonal-architecture layer boundaries and the entity intake boundary (factory, not a static object) |
+| `v8ObjectShapeSuite` | Constructs that destabilize V8 hidden-class/inline-cache assumptions |
+| `v8CollectionTraversalSuite` | How a collection is walked, not how often |
+| `v8RepeatedWorkSuite` | Cost that compounds per hot-loop iteration |
 
 ```js
 // eslint.config.mjs
-import { entitySuite, hygieneSuite, v8Suite, HexagonalSuite } from '@studnicky/eslint-config/node';
+import {
+  classMechanicsSuite,
+  diagnosticsSuite,
+  entityModelSuite,
+  LayerBoundarySuite,
+  moduleDesignSuite,
+  v8CollectionTraversalSuite,
+  v8ObjectShapeSuite,
+  v8RepeatedWorkSuite,
+  VocabularySuite
+} from '@studnicky/eslint-config/node';
 
 export default [
-  entitySuite,
-  hygieneSuite,
-  v8Suite,
-  HexagonalSuite.create({
+  entityModelSuite,
+  moduleDesignSuite,
+  diagnosticsSuite,
+  classMechanicsSuite,
+  v8ObjectShapeSuite,
+  v8CollectionTraversalSuite,
+  v8RepeatedWorkSuite,
+  VocabularySuite.create({ sourceRoot: 'src' }),
+  LayerBoundarySuite.create({
     layers: ['domain', 'application', 'adapters'],
     sourceRoot: 'src',
     domainPurity: { forbiddenImports: ['fs', 'axios'] }
@@ -100,18 +120,18 @@ export default [
 ];
 ```
 
-`layer-import-boundary`, `domain-purity`, `adapter-only-import`, and `known-types-outside-adapters` all share the same layers/sourceRoot configuration but take distinct extra options, so `HexagonalSuite` is a factory rather than a static suite — call `.create(...)` once with the shared layer config plus each rule's own extras to enable all four consistently.
+`layer-import-boundary`, `domain-purity`, `adapter-only-import`, and `known-types-outside-adapters` all share the same layers/sourceRoot configuration but take distinct extra options, and `intake-parse-only` takes its own unrelated options, so `LayerBoundarySuite` is a factory rather than a static suite — call `.create(...)` once with the shared layer config plus each rule's own extras to enable all five consistently.
 
 ## Entity declaration contract
 
-`entitySuite` enables the coordinated type/interface rules:
+`entityModelSuite` enables the coordinated type/interface rules:
 
 - canonical pure data uses the exact exported `*Entity.Type = FromSchema<typeof Schema>` form;
 - callable, constructor, runtime, brand, non-schema, and readonly access contracts are interfaces;
 - contract interfaces reference named entity types for inline pure-data portions; and
 - canonical aliases have no path, package, test-file, namespace, or comment bypass.
 
-The suite also disables `@typescript-eslint/prefer-function-type`. Minimal callable contracts are intentionally interfaces under this declaration model, so enabling that upstream preference after `entitySuite` would produce contradictory advice for a valid callable interface.
+The suite also disables `@typescript-eslint/prefer-function-type`. Minimal callable contracts are intentionally interfaces under this declaration model, so enabling that upstream preference after `entityModelSuite` would produce contradictory advice for a valid callable interface.
 
 Import `FromSchema` and `JSONSchema` directly from `json-schema-to-ts` and declare that package as a direct dependency:
 
@@ -144,11 +164,12 @@ Each rule is enabled or disabled as a complete unit in flat configuration. The r
 
 ```js
 export default [
-  entitySuite,
+  entityModelSuite,
   {
     files: ['generated/**/*.ts'],
     rules: {
       '@studnicky/all-types-are-entities': 'off',
+      '@studnicky/entity-file-shape': 'off',
       '@studnicky/interface-must-be-contract': 'off',
       '@studnicky/interfaces-compose-named-types': 'off',
       '@studnicky/type-alias-invariants': 'off'
@@ -159,32 +180,36 @@ export default [
 
 ## Custom rules
 
-**`@studnicky` namespace** (29 rules via `plugin`):
+**`@studnicky` namespace** (26 rules via `plugin`):
 
 | Rule | Purpose |
 |------|---------|
 | `@studnicky/adapter-only-import` | Disallow importing adapter-only third-party dependencies (HTTP frameworks, database drivers, external API clients) outside the adapters layer |
 | `@studnicky/all-types-are-entities` | Require every canonical pure-data alias to be the exact schema-derived `Type` member of an `*Entity` namespace |
-| `@studnicky/canonical-export-names` | Disallow aliased exports and any non-index re-export path |
 | `@studnicky/clean-diagnostics` | Disallow lint and type suppression comments |
 | `@studnicky/descriptive-identifiers` | Bans internal shorthand identifiers (`cb`, `dlq`, `cfg`, `opts`, `ctx`, `idx`, etc.) in favor of descriptive names |
 | `@studnicky/direct-invocation-only` | Disallow `Function.prototype.bind`/`call`/`apply` usage |
 | `@studnicky/domain-purity` | Disallow impure runtime dependencies (I/O imports, non-deterministic calls) inside hexagonal-architecture domain-layer files |
-| `@studnicky/folder-content-shape` | Enforce that `interfaces/`, `types/`, and `constants/`/`fixtures/` folders hold only the declaration shape their name promises |
+| `@studnicky/entity-file-shape` | Constrains an `interfaces/`, `types/`, or `constants/`/`fixtures/` file to the declaration shape its owning category promises |
+| `@studnicky/explicit-return-binding` | Requires a returned operation to bind its result to a `const` before returning it |
+| `@studnicky/export-shape` | Governs a module's export surface: how many symbols it exports, what they're named relative to the filename, and whether an export may be aliased or re-exported outside a package index |
 | `@studnicky/hash-private-fields` | Disallow underscore-prefixed class members; use real `#private` fields/methods instead |
 | `@studnicky/inline-trivial-logic` | Flags thin wrapper functions that only forward/delegate a value without adding logic |
-| `@studnicky/interface-must-be-contract` | Require interfaces to express runtime, callable, nominal, non-schema, or readonly access contracts; pure data, including empty interfaces, is schema-derived |
-| `@studnicky/interface-suffix` | Every interface declaration's name must end with `Interface` |
+| `@studnicky/intake-parse-only` | Permits an `unknown`/`any` parameter only on the `intake` member of an `*Entity` namespace |
+| `@studnicky/interface-must-be-contract` | Require interfaces to express runtime, callable, nominal, non-schema, or readonly access contracts and to carry the `Interface` suffix; pure data, including empty interfaces, is schema-derived |
 | `@studnicky/interfaces-compose-named-types` | Require named entity references for inline pure-data portions of contract interfaces while permitting inline callable and runtime contract objects |
 | `@studnicky/known-types-outside-adapters` | Disallow `any`/`unknown` types outside the adapters layer of a hexagonal architecture |
 | `@studnicky/layer-import-boundary` | Disallow imports that cross hexagonal-architecture layer boundaries not permitted by the configured allow-matrix |
 | `@studnicky/lexical-this-only` | Disallow aliasing `this` to another variable or assignment |
+| `@studnicky/no-function-registries` | Disallow object literals containing two or more function implementations |
+| `@studnicky/no-mixed-callable-shapes` | Forbid a union or intersection type from mixing a callable/constructable constituent with a data constituent |
+| `@studnicky/no-redefined-external-types` | Requires an exported local interface/type alias to reuse a public type a direct dependency already exports instead of rebuilding the same shape |
+| `@studnicky/no-threaded-vocabulary` | Disallow carrying a closed-vocabulary token (boolean/enum/literal union) past the frame that resolved it into a port implementation |
+| `@studnicky/no-unparsed-assertion` | Disallow a TypeScript assertion from `unknown`/`any` to a named type reference; a named assertion bypasses the entity parsing boundary |
 | `@studnicky/prefer-collection-types` | Prefer `Set`/`Map` over arrays/POJOs for membership and lookup operations |
 | `@studnicky/require-options-object` | Require 2+ optional parameters to be collected into a single trailing options object |
-| `@studnicky/single-export` | Enforce one named export per regular file, with restricted-topology exemptions and SCREAMING_SNAKE_CASE constant modules |
 | `@studnicky/static-method-verbs` | Disallow freestanding functions at module scope; convert to static class methods |
-| `@studnicky/type-alias-invariants` | Enforce alias identity, verified schema-derived data provenance, contract declaration shape, naming, and mutable data output in diagnostic-precedence order |
-| `@studnicky/whole-canonical-types` | Disallow deriving `Partial`/`Pick`/`Omit` subset views from canonical, codebase-owned named types/interfaces — define an explicit type instead |
+| `@studnicky/type-alias-invariants` | Enforce alias identity, verified schema-derived data provenance, contract declaration shape, naming, whole-canonical-type consumption, and mutable data output in diagnostic-precedence order |
 
 **`@studnicky/v8` namespace** (27 rules via `v8Plugin`):
 

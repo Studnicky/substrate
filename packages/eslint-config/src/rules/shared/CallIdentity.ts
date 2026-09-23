@@ -53,7 +53,7 @@ import { AstHelpers } from './astHelpers.js';
 
 // The match target is passed as two plain parameters (method name, owning interfaces)
 // rather than bundled into a `{ method, owners }` shape. A bundle would need to be
-// either an interface — which `single-export` forbids alongside the class, and which
+// either an interface — which `export-shape` forbids alongside the class, and which
 // `interfaces-compose-named-types` rejects for carrying bare `string` members — or a
 // schema-derived entity, which cannot express `ReadonlySet<string>` in JSON Schema.
 // Two parameters need no such contortion and read the same at every call site.

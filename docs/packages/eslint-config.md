@@ -5,7 +5,7 @@ description: ESLint rules and flat-config suites for TypeScript projects.
 
 # @studnicky/eslint-config
 
-> 56 ESLint rules: 29 structural and semantic `@studnicky` rules and 27 `@studnicky/v8` performance rules.
+> 53 ESLint rules: 26 structural and semantic `@studnicky` rules and 27 `@studnicky/v8` performance rules.
 
 ## Install
 
@@ -27,7 +27,7 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ## Import paths
 
-Use `/node` in Node-hosted ESLint configuration. Use `/browser` with a browser ESLint host. Both paths export the same six values: `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `HexagonalSuite`, and `v8Suite`.
+Use `/node` in Node-hosted ESLint configuration. Use `/browser` with a browser ESLint host. Both paths export the same values: `plugin`, `v8Plugin`, `entityModelSuite`, `moduleDesignSuite`, `diagnosticsSuite`, `VocabularySuite`, `classMechanicsSuite`, `LayerBoundarySuite`, `v8ObjectShapeSuite`, `v8CollectionTraversalSuite`, and `v8RepeatedWorkSuite`.
 
 Use `/interfaces` for `ProjectHostInterface`, the shared host contract for rules that inspect project files or resolve imports.
 
@@ -85,16 +85,31 @@ export default [
 
 ## Suites
 
-`entitySuite`, `hygieneSuite`, and `v8Suite` are flat-config entries. `HexagonalSuite.create(...)` creates an entry from your layer configuration.
+`entityModelSuite`, `moduleDesignSuite`, `diagnosticsSuite`, `classMechanicsSuite`, `v8ObjectShapeSuite`, `v8CollectionTraversalSuite`, and `v8RepeatedWorkSuite` are flat-config entries. `VocabularySuite.create(...)` and `LayerBoundarySuite.create(...)` create entries from project-specific options their member rules cannot default.
 
 ```js
-import { entitySuite, hygieneSuite, v8Suite, HexagonalSuite } from '@studnicky/eslint-config/node';
+import {
+  classMechanicsSuite,
+  diagnosticsSuite,
+  entityModelSuite,
+  LayerBoundarySuite,
+  moduleDesignSuite,
+  v8CollectionTraversalSuite,
+  v8ObjectShapeSuite,
+  v8RepeatedWorkSuite,
+  VocabularySuite
+} from '@studnicky/eslint-config/node';
 
 export default [
-  entitySuite,
-  hygieneSuite,
-  v8Suite,
-  HexagonalSuite.create({
+  entityModelSuite,
+  moduleDesignSuite,
+  diagnosticsSuite,
+  classMechanicsSuite,
+  v8ObjectShapeSuite,
+  v8CollectionTraversalSuite,
+  v8RepeatedWorkSuite,
+  VocabularySuite.create({ sourceRoot: 'src' }),
+  LayerBoundarySuite.create({
     layers: ['domain', 'application', 'adapters'],
     sourceRoot: 'src',
     domainPurity: { forbiddenImports: ['fs', 'axios'] }
@@ -105,7 +120,7 @@ export default [
 ## Rule reference
 
 - [ESLint Plugins Overview](/eslint/) — registration and rule tables
-- [Configuration rules](/eslint/) — 29 `@studnicky` rules
+- [Configuration rules](/eslint/) — 26 `@studnicky` rules
 - [V8 performance rules](/eslint/) — 27 `@studnicky/v8` rules
 
 ## Exports
@@ -114,10 +129,15 @@ export default [
 |---|---|---|
 | `plugin` | Provides the `@studnicky` ESLint plugin. | `@studnicky/eslint-config/node` |
 | `v8Plugin` | Provides the `@studnicky/v8` ESLint plugin. | `@studnicky/eslint-config/node` |
-| `entitySuite` | Provides entity-focused configuration rules. | `@studnicky/eslint-config/node` |
-| `hygieneSuite` | Provides code-hygiene configuration rules. | `@studnicky/eslint-config/node` |
-| `HexagonalSuite` | Creates hexagonal-architecture configuration rules. | `@studnicky/eslint-config/node` |
-| `v8Suite` | Provides V8 performance configuration rules. | `@studnicky/eslint-config/node` |
+| `entityModelSuite` | Provides type/interface/entity-namespace shape, naming, location, and keyed-collection rules. | `@studnicky/eslint-config/node` |
+| `moduleDesignSuite` | Provides export-shape, return-binding, function-registry, and options-object rules. | `@studnicky/eslint-config/node` |
+| `diagnosticsSuite` | Rejects inline lint configuration and diagnostic suppression. | `@studnicky/eslint-config/node` |
+| `VocabularySuite` | Creates identifier, static-method-verb, and closed-vocabulary rules. | `@studnicky/eslint-config/node` |
+| `classMechanicsSuite` | Provides lexical-`this`, private-field, and direct-invocation rules. | `@studnicky/eslint-config/node` |
+| `LayerBoundarySuite` | Creates hexagonal-architecture layer-boundary and entity-intake-boundary rules. | `@studnicky/eslint-config/node` |
+| `v8ObjectShapeSuite` | Provides hidden-class/inline-cache stability rules. | `@studnicky/eslint-config/node` |
+| `v8CollectionTraversalSuite` | Provides collection-traversal rules. | `@studnicky/eslint-config/node` |
+| `v8RepeatedWorkSuite` | Provides hot-loop repeated-work rules. | `@studnicky/eslint-config/node` |
 | `ProjectHostInterface` | Defines project services for project-aware rules. | `@studnicky/eslint-config/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/eslint-config)

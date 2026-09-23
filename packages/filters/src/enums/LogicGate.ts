@@ -4,42 +4,59 @@
 
 import { Frozen } from '@studnicky/json/browser';
 
+/** Logic gate implementations backing `LogicGate.CORE`. */
+class LogicGateHandlers {
+  public static and(results: boolean[]): boolean {
+    const result = results.every(Boolean);
+
+    return result;
+  }
+
+  public static nand(results: boolean[]): boolean {
+    const result = !results.every(Boolean);
+
+    return result;
+  }
+
+  public static nor(results: boolean[]): boolean {
+    const result = !results.some(Boolean);
+
+    return result;
+  }
+
+  public static not(results: boolean[]): boolean {
+    const result = results[0] !== true;
+
+    return result;
+  }
+
+  public static or(results: boolean[]): boolean {
+    const result = results.some(Boolean);
+
+    return result;
+  }
+
+  public static xnor(results: boolean[]): boolean {
+    const result = results.filter(Boolean).length !== 1;
+
+    return result;
+  }
+
+  public static xor(results: boolean[]): boolean {
+    const result = results.filter(Boolean).length === 1;
+
+    return result;
+  }
+}
+
 export const LogicGate = Frozen.deepFreeze({
   'CORE': {
-    'AND': (results: boolean[]) => {
-      const result = results.every(Boolean);
-
-      return result;
-    },
-    'NAND': (results: boolean[]) => {
-      const result = !results.every(Boolean);
-
-      return result;
-    },
-    'NOR': (results: boolean[]) => {
-      const result = !results.some(Boolean);
-
-      return result;
-    },
-    'NOT': (results: boolean[]) => {
-      const result = results[0] !== true;
-
-      return result;
-    },
-    'OR': (results: boolean[]) => {
-      const result = results.some(Boolean);
-
-      return result;
-    },
-    'XNOR': (results: boolean[]) => {
-      const result = results.filter(Boolean).length !== 1;
-
-      return result;
-    },
-    'XOR': (results: boolean[]) => {
-      const result = results.filter(Boolean).length === 1;
-
-      return result;
-    }
+    'AND': LogicGateHandlers.and,
+    'NAND': LogicGateHandlers.nand,
+    'NOR': LogicGateHandlers.nor,
+    'NOT': LogicGateHandlers.not,
+    'OR': LogicGateHandlers.or,
+    'XNOR': LogicGateHandlers.xnor,
+    'XOR': LogicGateHandlers.xor
   }
 });

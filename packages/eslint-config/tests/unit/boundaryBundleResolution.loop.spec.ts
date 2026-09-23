@@ -9,7 +9,7 @@ import { Linter } from 'eslint';
 import ts from 'typescript';
 
 import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
-import { folderContentShape } from '../../src/rules/folderContentShape.js';
+import { entityFileShape } from '../../src/rules/entityFileShape.js';
 import scenarios from './boundaryBundleResolution.scenarios.json' with { type: 'json' };
 
 it('rejects bundled entity boundary calls', () => {
@@ -34,7 +34,7 @@ it('rejects bundled entity boundary calls', () => {
       const messages = linter.verify(scenario.code, [{
         files: ['**/*.ts'],
         languageOptions: { parser, parserOptions: { programs: [program], tsconfigRootDir: root } },
-        plugins: { test: { rules: { shape: folderContentShape } } },
+        plugins: { test: { rules: { shape: entityFileShape } } },
         settings: { '@studnicky/projectHost': new NodeProjectHost() },
         rules: { 'test/shape': 'error' }
       }], { filename: entry });

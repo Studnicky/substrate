@@ -297,7 +297,7 @@ class AstHelpers {
 
 // THE CANONICAL ENTITY `validate` TYPE GUARD IS EXEMPT. DO NOT REMOVE THIS.
 //
-// `folder-content-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
+// `entity-file-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
 // type guard — its own message names the two accepted spellings:
 //
 //     export const validate = EntityCompiler.compile<Type>(Schema)        (preferred)
@@ -311,7 +311,7 @@ class AstHelpers {
 // The namespace transparency itself is CORRECT and stays — `namespace Utils { export
 // function f() {} }` really is a freestanding function in disguise, and closing that
 // bypass was the point. Only the entity type-guard shape is carved out, and it is
-// recognised by the SAME predicate `folder-content-shape` uses to require it
+// recognised by the SAME predicate `entity-file-shape` uses to require it
 // (`SchemaMemberGuards.isValidateTypeGuard`), imported rather than re-implemented, so the
 // two rules cannot drift back into disagreement.
 export const staticMethodVerbs: Rule.RuleModule = {

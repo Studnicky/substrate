@@ -1,9 +1,9 @@
 ---
-title: '@studnicky/folder-content-shape'
+title: '@studnicky/entity-file-shape'
 description: 'Constrains entity boundaries, declaration folders, top-level data constants, and inline regex literals.'
 ---
 
-# @studnicky/folder-content-shape
+# @studnicky/entity-file-shape
 
 Constrains a file through one of three mutually exclusive categories, with entity detection taking precedence over declaration-folder checks, which take precedence over the constants check. An independent inline-regex check runs for every category unless the module is structurally exempt from the constants check.
 

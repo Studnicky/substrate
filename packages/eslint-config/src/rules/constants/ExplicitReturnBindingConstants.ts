@@ -9,7 +9,7 @@
 
 // Cast/assertion wrappers carry no computation of their own — strip and
 // classify the expression underneath, same convention as
-// `TrivialExpression.isTrivial` and `folderContentShape.ts`'s `DeclaratorName.unwrapTsExpression`.
+// `TrivialExpression.isTrivial` and `entityFileShape.ts`'s `DeclaratorName.unwrapTsExpression`.
 export const TS_WRAPPER_EXPRESSION_TYPES: ReadonlySet<string> = new Set([
   'TSAsExpression',
   'TSNonNullExpression',

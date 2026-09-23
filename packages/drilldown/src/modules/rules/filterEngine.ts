@@ -69,10 +69,27 @@ class FilterPredicates {
   }
 }
 
+class FilterDispatchHandlers {
+  static date(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
+    const result = FilterPredicates.passesDateFilter(item, filter as DateRangeFilterRuleEntity.Type);
+    return result;
+  }
+
+  static numeric(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
+    const result = FilterPredicates.passesNumericFilter(item, filter as NumericRangeFilterRuleEntity.Type);
+    return result;
+  }
+
+  static value(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
+    const result = FilterPredicates.passesValueFilter(item, filter as ValueFilterRuleEntity.Type);
+    return result;
+  }
+}
+
 const filterDispatch: Record<string, (item: Record<string, unknown>, filter: FilterRuleEntity.Type) => boolean> = {
-  'date': (item, filter) => { const result = FilterPredicates.passesDateFilter(item, filter as DateRangeFilterRuleEntity.Type); return result; },
-  'numeric': (item, filter) => { const result = FilterPredicates.passesNumericFilter(item, filter as NumericRangeFilterRuleEntity.Type); return result; },
-  'value': (item, filter) => { const result = FilterPredicates.passesValueFilter(item, filter as ValueFilterRuleEntity.Type); return result; }
+  'date': FilterDispatchHandlers.date,
+  'numeric': FilterDispatchHandlers.numeric,
+  'value': FilterDispatchHandlers.value
 };
 
 /**

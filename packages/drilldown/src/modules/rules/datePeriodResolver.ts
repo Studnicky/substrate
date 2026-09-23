@@ -40,20 +40,39 @@ class DateArithmetic {
 // 'day' has no transformation (the key IS the date string) and is handled directly by
 // `getDatePeriodKey` before consulting this dispatch map — a dispatch entry for it would be a
 // pure identity forward with nothing to inline it into.
-const datePeriodKeyDispatch: Record<Exclude<DateGranularityValueEntity.Type, 'day'>, DatePeriodKeyFunctionInterface> = {
-  'month': (_, year, month) => { const result = `${year}-${String(month + 1).padStart(2, '0')}`; return result; },
-  'quarter': (_, year, month) => { const result = `${year}-Q${Math.floor(month / 3) + 1}`; return result; },
-  'week': (_, year, month, day) => {
+class DatePeriodKeyFormatters {
+  static month(_dateString: string, year: number, month: number): string {
+    const result = `${year}-${String(month + 1).padStart(2, '0')}`;
+    return result;
+  }
+
+  static quarter(_dateString: string, year: number, month: number): string {
+    const result = `${year}-Q${Math.floor(month / 3) + 1}`;
+    return result;
+  }
+
+  static week(_dateString: string, year: number, month: number, day: number): string {
     const epochMs = DateArithmetic.toEpochMs(year, month, day);
     const weekStart = epochMs - DateArithmetic.toDayOfWeek(epochMs) * DAY_MS;
     const result = DrilldownUtilities.isoFromEpochMs(weekStart)?.slice(0, 10) ?? '1970-01-01';
     return result;
-  },
-  'year': (_, year) => { const result = `${year}`; return result; }
+  }
+
+  static year(_dateString: string, year: number): string {
+    const result = `${year}`;
+    return result;
+  }
+}
+
+const datePeriodKeyDispatch: Record<Exclude<DateGranularityValueEntity.Type, 'day'>, DatePeriodKeyFunctionInterface> = {
+  'month': DatePeriodKeyFormatters.month,
+  'quarter': DatePeriodKeyFormatters.quarter,
+  'week': DatePeriodKeyFormatters.week,
+  'year': DatePeriodKeyFormatters.year
 };
 
-const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePeriodRangeFunctionInterface> = {
-  'day': (_key, yearString, monthString, dayString) => {
+class DatePeriodRangeResolvers {
+  static day(_key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
     const day = parseInt(dayString, 10);
@@ -63,8 +82,9 @@ const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePerio
       'before': DateArithmetic.toEpochMs(year, month, day + 1),
       'type': 'date'
     };
-  },
-  'month': (_, yearString, monthString) => {
+  }
+
+  static month(_key: string, yearString: string, monthString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
 
@@ -73,8 +93,9 @@ const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePerio
       'before': month === 11 ? DateArithmetic.toEpochMs(year + 1, 0, 1) : DateArithmetic.toEpochMs(year, month + 1, 1),
       'type': 'date'
     };
-  },
-  'quarter': (key) => {
+  }
+
+  static quarter(key: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const quarterParts = key.split('-Q');
     const year = parseInt(quarterParts[0] ?? '1970', 10);
     const quarter = parseInt(quarterParts[1] ?? '1', 10);
@@ -85,8 +106,9 @@ const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePerio
       'before': quarter === 4 ? DateArithmetic.toEpochMs(year + 1, 0, 1) : DateArithmetic.toEpochMs(year, startMonth + 3, 1),
       'type': 'date'
     };
-  },
-  'week': (_key, yearString, monthString, dayString) => {
+  }
+
+  static week(_key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
     const day = parseInt(dayString, 10);
@@ -96,8 +118,9 @@ const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePerio
       'before': DateArithmetic.toEpochMs(year, month, day + 7),
       'type': 'date'
     };
-  },
-  'year': (key) => {
+  }
+
+  static year(key: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const year = parseInt(key, 10);
 
     return {
@@ -106,19 +129,27 @@ const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePerio
       'type': 'date'
     };
   }
+}
+
+const datePeriodRangeDispatch: Record<DateGranularityValueEntity.Type, DatePeriodRangeFunctionInterface> = {
+  'day': DatePeriodRangeResolvers.day,
+  'month': DatePeriodRangeResolvers.month,
+  'quarter': DatePeriodRangeResolvers.quarter,
+  'week': DatePeriodRangeResolvers.week,
+  'year': DatePeriodRangeResolvers.year
 };
 
 /**
  * Resolves date period keys and ranges for date grouping operations.
  */
-export const datePeriodResolver = {
+export class datePeriodResolver {
   /**
    * Converts a period key back to a date range group value.
    * @param key - Period key string
    * @param granularity - The date granularity level
    * @returns DrilldownRulesEntity.DateGroupValueEntity.Type with after/before range
    */
-  'datePeriodToRange': function (key: string, granularity: DateGranularityValueEntity.Type): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  public static datePeriodToRange(key: string, granularity: DateGranularityValueEntity.Type): DrilldownRulesEntity.DateGroupValueEntity.Type {
     const parts = key.split('-');
     const yearString = parts[0] ?? '1970';
     const monthString = parts[1] ?? '01';
@@ -127,7 +158,7 @@ export const datePeriodResolver = {
     const result = handler(key, yearString, monthString, dayString);
 
     return result;
-  },
+  }
 
   /**
    * Generates a period key from a date string at the specified granularity.
@@ -135,9 +166,10 @@ export const datePeriodResolver = {
    * @param granularity - The date granularity level
    * @returns Period key string for grouping
    */
-  'getDatePeriodKey': function (dateString: string, granularity: DateGranularityValueEntity.Type): string {
+  public static getDatePeriodKey(dateString: string, granularity: DateGranularityValueEntity.Type): string {
     if (granularity === 'day') {
-      return dateString;
+      const result = dateString;
+      return result;
     }
 
     const parts = dateString.split('-');
@@ -152,4 +184,4 @@ export const datePeriodResolver = {
 
     return result;
   }
-};
+}
