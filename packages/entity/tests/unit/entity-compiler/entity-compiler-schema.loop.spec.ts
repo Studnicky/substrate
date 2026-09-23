@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { EntityCompiler } from '../../../src/EntityCompiler.js';
+import { EntityCompiler } from '../../../src/node/index.js';
 import { SchemaIntakeError } from '../../../src/SchemaIntakeError.js';
 
 void describe('EntityCompiler schema boundaries', () => {
