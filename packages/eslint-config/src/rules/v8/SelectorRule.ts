@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { JsonObject } from '@studnicky/types/node';
+import { JsonObject } from '@studnicky/types/browser';
 
 export class SelectorRule {
   public static create(ruleName: string, selector: string, message: string): Rule.RuleModule {

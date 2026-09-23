@@ -2,7 +2,7 @@
  * Condition types for compiled conditions
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const ConditionType = Frozen.deepFreeze({
   'CORE': {

@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { RateLimiterClockInterface } from './interfaces/RateLimiterClockInterface.js';
 

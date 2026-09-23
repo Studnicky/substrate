@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Describes a registered error code entry in `ErrorCodeRegistry`. */
 export namespace ErrorCodeDescriptorEntity {

@@ -2,7 +2,7 @@
  * Array logic operators for multi-value conditions - using Node.js array method names
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const ArrayLogic = Frozen.deepFreeze({
   'CORE': {

@@ -2,11 +2,11 @@
  * BoundaryKit configuration contract
  */
 
-import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
+import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/resilience/browser';
+import type { Retry } from '@studnicky/retry/browser';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import type { Retry } from '@studnicky/retry/node';
+import type { Throttle } from '@studnicky/throttle/browser';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
-import type { Throttle } from '@studnicky/throttle/node';
 
 /**
  * Configuration accepted by `BoundaryKit.create()`.

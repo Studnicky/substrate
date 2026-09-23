@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { BoundsAccumulatorEntity } from '../entities/BoundsAccumulatorEntity.js';
 import type { GroupingOptionsEntity } from '../entities/GroupingOptionsEntity.js';

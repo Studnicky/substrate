@@ -2,8 +2,8 @@
  * Comparator functions with direct function access
  */
 
-import { Frozen } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { Frozen } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { ComparatorFunctionInterface } from '../interfaces.js';
 

@@ -4,8 +4,8 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from './shared/astHelpers.js';
 import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';

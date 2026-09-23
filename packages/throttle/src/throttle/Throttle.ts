@@ -1,9 +1,9 @@
-import { Semaphore } from '@studnicky/concurrency/node';
-import { ConfigurationError } from '@studnicky/config/node';
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { SampleBuffer } from '@studnicky/sample-buffer/node';
-import { Predicates } from '@studnicky/types/node';
+import { Semaphore } from '@studnicky/concurrency/browser';
+import { ConfigurationError } from '@studnicky/config/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { SampleBuffer } from '@studnicky/sample-buffer/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { AbortStartedEventEntity } from '../entities/AbortStartedEventEntity.js';

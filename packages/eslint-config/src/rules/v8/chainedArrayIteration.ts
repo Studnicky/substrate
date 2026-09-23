@@ -3,7 +3,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
 

@@ -2,9 +2,9 @@
 
 import {
   type HookInvocationError, HookInvoker, RuntimeError
-} from '@studnicky/errors/node';
-import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { Signal } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';

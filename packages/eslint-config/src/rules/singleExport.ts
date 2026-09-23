@@ -4,7 +4,7 @@ import type {
 } from 'json-schema-to-ts';
 import type * as ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 import {
   type Program, type Symbol, SymbolFlags
 } from 'typescript';

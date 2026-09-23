@@ -2,7 +2,7 @@
  * Filter modes for data filtering
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const FilterMode = Frozen.deepFreeze({
   'CORE': {

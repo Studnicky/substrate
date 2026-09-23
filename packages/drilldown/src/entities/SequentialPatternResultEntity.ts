@@ -1,7 +1,7 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Detected shared-prefix/suffix numeric sequence pattern across a set of string values. */
 export namespace SequentialPatternResultEntity {

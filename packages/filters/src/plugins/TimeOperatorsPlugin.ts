@@ -15,7 +15,7 @@
 import {
   Predicates,
   TIME_ONLY_PATTERN
-} from '@studnicky/types/node';
+} from '@studnicky/types/browser';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { ContextualOperatorFunctionInterface } from './ContextualOperatorFunctionInterface.js';

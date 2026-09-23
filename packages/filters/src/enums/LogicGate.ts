@@ -2,7 +2,7 @@
  * Logical operators for combining criteria with direct function access
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const LogicGate = Frozen.deepFreeze({
   'CORE': {

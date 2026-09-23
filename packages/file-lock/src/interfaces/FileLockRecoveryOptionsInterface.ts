@@ -1,4 +1,4 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
 
 import type { FileLockInspectionEntity } from '../entities/FileLockInspectionEntity.js';
 

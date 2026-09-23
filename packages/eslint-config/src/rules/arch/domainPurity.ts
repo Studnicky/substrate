@@ -6,8 +6,8 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';

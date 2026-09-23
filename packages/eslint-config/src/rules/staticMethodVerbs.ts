@@ -8,7 +8,7 @@ import type {
 } from 'typescript';
 import type * as ts from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';

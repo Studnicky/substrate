@@ -16,7 +16,7 @@
  *
  * @module
  */
-import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/browser';
 
 import type { EntityCreateFunctionInterface } from './interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFunctionInterface.js';

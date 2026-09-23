@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';

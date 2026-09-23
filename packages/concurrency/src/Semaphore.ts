@@ -1,7 +1,7 @@
 /** Counting permit gate. acquire() returns a release function. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
 import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';

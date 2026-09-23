@@ -26,10 +26,10 @@
  *
  * @module
  */
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { RuntimeError } from '@studnicky/errors/node';
-import { StateMachine } from '@studnicky/fsm/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { StateMachine } from '@studnicky/fsm/browser';
 
 import type { AbortStartedEventEntity } from '../entities/AbortStartedEventEntity.js';
 import type { AcquiredEventEntity } from '../entities/AcquiredEventEntity.js';

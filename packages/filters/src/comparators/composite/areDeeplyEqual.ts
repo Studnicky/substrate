@@ -15,7 +15,7 @@
  * - String comparisons respect case sensitivity settings from FilterConditionInterface
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface

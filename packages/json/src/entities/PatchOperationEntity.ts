@@ -2,7 +2,7 @@ import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfac
 import type { JSONSchema7Type } from 'json-schema';
 import type { FromSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 import { JsonValueSchema } from '../schema/JsonValueSchema.js';
 

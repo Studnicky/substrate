@@ -2,7 +2,7 @@
  * @module ObjectOperators
  * @description Object operation implementations for FilterEngine
  */
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { FilterConditionInterface } from '../interfaces.js';

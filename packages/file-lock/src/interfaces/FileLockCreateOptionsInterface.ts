@@ -1,6 +1,6 @@
-import type { ClockProviderInterface } from '@studnicky/clock/node';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
-import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
+import type { ClockProviderInterface } from '@studnicky/clock/browser';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
 
 import type { FileLockOptionsEntity } from '../entities/FileLockOptionsEntity.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';

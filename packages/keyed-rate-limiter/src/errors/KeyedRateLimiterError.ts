@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
 
 /** Abstract base for all `@studnicky/keyed-rate-limiter` errors. */
 export abstract class KeyedRateLimiterError extends BaseError {

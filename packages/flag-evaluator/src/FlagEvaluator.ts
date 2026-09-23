@@ -1,8 +1,8 @@
 /** Local deterministic feature-flag evaluation with percentage rollout and observability hooks */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Hash } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Hash } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { FlagContextEntity } from './entities/FlagContextEntity.js';
 

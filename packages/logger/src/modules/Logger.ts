@@ -1,7 +1,7 @@
-import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { ImmutableSnapshot } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { ImmutableSnapshot } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';

@@ -1,6 +1,6 @@
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Human-readable diagnostic fields exposed by Error-compatible contracts. */
 export namespace ErrorDiagnosticEntity {

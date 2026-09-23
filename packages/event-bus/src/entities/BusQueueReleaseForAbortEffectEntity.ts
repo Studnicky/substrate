@@ -1,7 +1,7 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Cancel the in-flight entry (if any) and release every backpressure/drain waiter. Fires exactly once, on the transition that first requests abort. */
 export namespace BusQueueReleaseForAbortEffectEntity {

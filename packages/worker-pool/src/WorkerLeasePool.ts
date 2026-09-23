@@ -1,5 +1,5 @@
-import { Semaphore } from '@studnicky/concurrency/node';
-import { Predicates } from '@studnicky/types/node';
+import { Semaphore } from '@studnicky/concurrency/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
 import type { WorkerFactoryInterface } from './interfaces/WorkerFactoryInterface.js';

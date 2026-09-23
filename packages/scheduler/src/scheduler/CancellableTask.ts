@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { TransitionRejectedError } from '@studnicky/fsm/node';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';

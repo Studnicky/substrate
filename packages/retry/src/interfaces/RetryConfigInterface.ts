@@ -1,5 +1,5 @@
-import type { ClockProviderInterface } from '@studnicky/clock/node';
-import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/node';
+import type { ClockProviderInterface } from '@studnicky/clock/browser';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/browser';
 import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
 import type { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';

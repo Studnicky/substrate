@@ -1,5 +1,5 @@
-import { BaseError, HookInvoker } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { BaseError, HookInvoker } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { BatchStatsEntity } from '../entities/BatchStatsEntity.js';
 

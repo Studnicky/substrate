@@ -6,7 +6,7 @@
  * each unit amount expires exactly at its own rolling-window boundary.
  */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 
 export class TimestampLog extends CircularBuffer<{ readonly 'timestamp': number; readonly 'tokens': number }> {
   /** Adds weighted units, coalescing admissions recorded at the same timestamp. */

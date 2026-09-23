@@ -2,7 +2,7 @@ import type {
   Rule, Scope
 } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { LoopContext } from '../shared/LoopContext.js';

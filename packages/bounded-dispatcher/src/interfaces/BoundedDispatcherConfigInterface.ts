@@ -2,12 +2,12 @@
  * BoundedDispatcher configuration type
  */
 
+import type { Semaphore } from '@studnicky/concurrency/browser';
 import type { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
-import type { Semaphore } from '@studnicky/concurrency/node';
+import type { EventBus } from '@studnicky/event-bus/browser';
 import type { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
-import type { EventBus } from '@studnicky/event-bus/node';
 import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
 
 import type { BoundedDispatcherOperationContextInterface } from './BoundedDispatcherOperationContextInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './BoundedDispatcherTopicMapInterface.js';

@@ -3,7 +3,7 @@ import type {
 } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Serializable browser persistence selection. */
 export namespace BrowserPersistenceOptionsEntity {

@@ -2,7 +2,7 @@
  * Compares two strings with optional case sensitivity
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface

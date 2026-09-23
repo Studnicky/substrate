@@ -28,15 +28,15 @@
  * ```
  */
 
-import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
 import {
   HookInvoker,
   ReentrantHookInvocationError,
   RuntimeError
-} from '@studnicky/errors/node';
-import { TransitionRejectedError } from '@studnicky/fsm/node';
-import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { Signal } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';

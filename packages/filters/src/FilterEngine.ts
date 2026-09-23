@@ -8,7 +8,7 @@ import { ThrownValueEntity } from '@studnicky/errors/entities';
 import {
   Predicates,
   RuntimeValue
-} from '@studnicky/types/node';
+} from '@studnicky/types/browser';
 
 import type { FilterValueEntity } from './FilterValueEntity.js';
 import type {

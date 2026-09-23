@@ -2,10 +2,10 @@
  * Pure function memoization composing cache and concurrency
  */
 
-import { LruCache } from '@studnicky/cache/node';
-import { Coalesce } from '@studnicky/concurrency/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { LruCache } from '@studnicky/cache/browser';
+import { Coalesce } from '@studnicky/concurrency/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
 import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';

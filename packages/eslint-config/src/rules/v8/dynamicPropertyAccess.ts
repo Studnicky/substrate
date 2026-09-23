@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';

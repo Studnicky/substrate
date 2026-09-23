@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 import {
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,

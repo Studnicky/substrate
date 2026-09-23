@@ -5,12 +5,12 @@
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 import type { TokenBucketOptionsInterface } from '@studnicky/resilience/interfaces';
 
-import { LruCache } from '@studnicky/cache/node';
-import { EntityCompiler } from '@studnicky/entity/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { LruCache } from '@studnicky/cache/browser';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RateLimiterClock, ResilienceConfigError, TokenBucket } from '@studnicky/resilience/browser';
 import { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
-import { RateLimiterClock, ResilienceConfigError, TokenBucket } from '@studnicky/resilience/node';
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { KeyedRateLimiterCreateConfigInterface } from './interfaces/KeyedRateLimiterCreateConfigInterface.js';
 import type { KeyedRateLimiterStrategyConfigInterface } from './interfaces/KeyedRateLimiterStrategyConfigInterface.js';
@@ -70,7 +70,7 @@ class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
  * @example Generic strategy extension point
  * ```typescript
  * import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter/node';
- * import { SlidingWindowLimiter } from '@studnicky/resilience/node';
+ * import { SlidingWindowLimiter } from '@studnicky/resilience/browser';
  *
  * const limiter = KeyedRateLimiter.create({
  *   factory: () => SlidingWindowLimiter.create({

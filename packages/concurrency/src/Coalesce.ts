@@ -1,8 +1,8 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
 import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';

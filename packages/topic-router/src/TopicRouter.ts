@@ -1,5 +1,5 @@
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { TopicCandidateSourceInterface } from './interfaces/TopicCandidateSourceInterface.js';
 import type { TopicEnvelopeInterface } from './interfaces/TopicEnvelopeInterface.js';

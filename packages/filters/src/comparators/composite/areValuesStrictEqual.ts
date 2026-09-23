@@ -2,7 +2,7 @@
  * Case-aware equality comparison
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface

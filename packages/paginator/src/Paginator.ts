@@ -1,7 +1,7 @@
 import {
   HookInvocationError, HookInvoker, RuntimeError
-} from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { PaginatorExhaustedCursorEntity } from './entities/PaginatorExhaustedCursorEntity.js';
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';

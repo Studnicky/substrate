@@ -8,10 +8,10 @@
  * algorithm retains current and prior window totals in constant space.
  * Successful operations return the canonical consumption result.
  */
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout, Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RaceTimeout, Signal } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';

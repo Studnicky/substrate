@@ -2,14 +2,14 @@
 
 import type { SemaphoreAcquireOptionsInterface } from '@studnicky/concurrency/interfaces';
 import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
 import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
-import { Semaphore } from '@studnicky/concurrency/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { EventBus } from '@studnicky/event-bus/node';
-import { RealTimeScheduler } from '@studnicky/scheduler/node';
-import { Predicates } from '@studnicky/types/node';
+import { Semaphore } from '@studnicky/concurrency/browser';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { EventBus } from '@studnicky/event-bus/browser';
+import { RealTimeScheduler } from '@studnicky/scheduler/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
 import type { BoundedDispatcherOperationContextInterface } from './interfaces/BoundedDispatcherOperationContextInterface.js';

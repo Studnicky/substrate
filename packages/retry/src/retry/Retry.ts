@@ -1,17 +1,17 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { ConfigurationError } from '@studnicky/config/node';
-import { SchemaIntakeError } from '@studnicky/entity/node';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { ConfigurationError } from '@studnicky/config/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker,
   RuntimeError
-} from '@studnicky/errors/node';
-import { TransitionRejectedError } from '@studnicky/fsm/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';

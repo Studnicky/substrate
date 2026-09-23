@@ -1,7 +1,7 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Reentrancy-guard variant for `Semaphore`'s waiter-granting loop. */
 export namespace SemaphoreGrantVariantEntity {

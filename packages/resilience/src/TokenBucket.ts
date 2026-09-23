@@ -1,8 +1,8 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';

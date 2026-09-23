@@ -1,9 +1,9 @@
 import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import { Clone } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Clone } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';

@@ -1,4 +1,4 @@
-import type { HookInvoker } from '@studnicky/errors/node';
+import type { HookInvoker } from '@studnicky/errors/browser';
 /**
  * `SchedulerProvider` backed by `setTimeout` / `setInterval`.
  * Each scheduled task returns a `ScheduledTask` whose `cancel()` clears the timer.
@@ -7,8 +7,8 @@ import type { HookInvoker } from '@studnicky/errors/node';
  * @module
  */
 
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { SchedulerLogEntryEntity } from '../entities/SchedulerLogEntryEntity.js';
 import type { SchedulerTaskDataEntity } from '../entities/SchedulerTaskDataEntity.js';

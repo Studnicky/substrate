@@ -1,7 +1,7 @@
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import { Clone } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Clone } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';

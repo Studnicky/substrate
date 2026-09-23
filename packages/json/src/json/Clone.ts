@@ -1,6 +1,6 @@
 /** Deep cloning for JavaScript values. */
 
-import { JsonObject, Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 export class Clone {
   /** Clone an array element-by-element. */

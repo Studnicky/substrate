@@ -1,6 +1,6 @@
-import { Plugin } from '@studnicky/filters/node';
-import { JaroWinklerScorer } from '@studnicky/matching/node';
-import { Predicates } from '@studnicky/types/node';
+import { Plugin } from '@studnicky/filters/browser';
+import { JaroWinklerScorer } from '@studnicky/matching/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { TextThresholdFilterValuePredicate } from './predicates/TextThresholdFilterValuePredicate.js';
 

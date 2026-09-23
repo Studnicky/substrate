@@ -1,7 +1,7 @@
+import type { Coalesce } from '@studnicky/concurrency/browser';
 import type { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
-import type { Coalesce } from '@studnicky/concurrency/node';
+import type { Mutex } from '@studnicky/mutex/browser';
 import type { MutexConfigEntity } from '@studnicky/mutex/entities';
-import type { Mutex } from '@studnicky/mutex/node';
 
 /** Composition configuration for `KeyedWorkGate.create()`. */
 export interface KeyedWorkGateConfigInterface<

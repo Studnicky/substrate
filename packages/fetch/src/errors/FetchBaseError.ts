@@ -11,7 +11,7 @@
  *
  * `this.name` is set automatically to the concrete class name via `new.target.name`.
  */
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
 
 export abstract class FetchBaseError extends BaseError {
   protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {

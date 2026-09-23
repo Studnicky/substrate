@@ -1,11 +1,11 @@
-import { Coalesce } from '@studnicky/concurrency/node';
+import { Coalesce } from '@studnicky/concurrency/browser';
 /**
  * Keyed single-flight and serialized work gate composing `@studnicky/mutex` and
  * `@studnicky/concurrency`'s `Coalesce`.
  */
-import { RuntimeError } from '@studnicky/errors/node';
-import { Mutex } from '@studnicky/mutex/node';
-import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Mutex } from '@studnicky/mutex/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateConfigInterface.js';
 

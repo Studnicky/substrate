@@ -3,8 +3,8 @@ import type { Rule } from 'eslint';
 import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type * as TypeScript from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { Predicates } from '@studnicky/types/browser';
 import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
 
 import type { LayerBindingEntity } from '../layers/LayerBindingEntity.js';

@@ -1,5 +1,5 @@
-import { BaseError, RuntimeError } from '@studnicky/errors/node';
-import { JsonObject, Predicates } from '@studnicky/types/node';
+import { BaseError, RuntimeError } from '@studnicky/errors/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 

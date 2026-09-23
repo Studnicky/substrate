@@ -10,8 +10,8 @@
  * default hook is a no-op.
  */
 
-import { HookInvoker } from '@studnicky/errors/node';
-import { JsonObject, Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';

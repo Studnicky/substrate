@@ -2,9 +2,9 @@
  * Core type definitions for the FilterEngine
  */
 
-import type { RuntimeValue } from '@studnicky/types/node';
+import type { RuntimeValue } from '@studnicky/types/browser';
 
-import { JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonValue, Predicates } from '@studnicky/types/browser';
 
 import { FILTER_CONDITION_MEMBER_NAMES } from './constants/FILTER_CONDITION_MEMBER_NAMES.js';
 import { FilterValueEntity } from './FilterValueEntity.js';

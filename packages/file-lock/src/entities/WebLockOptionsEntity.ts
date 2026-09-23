@@ -5,7 +5,7 @@ import type {
   FromSchema, JSONSchema
 } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
 /** Validated options for acquiring a browser Web Lock. */
 export namespace WebLockOptionsEntity {

@@ -1,4 +1,4 @@
-import { Predicate, Predicates } from '@studnicky/types/node';
+import { Predicate, Predicates } from '@studnicky/types/browser';
 
 import { StringNumberMapPredicate } from './StringNumberMapPredicate.js';
 

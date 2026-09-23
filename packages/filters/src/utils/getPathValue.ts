@@ -6,7 +6,7 @@
 import {
   Predicates,
   RuntimeValue
-} from '@studnicky/types/node';
+} from '@studnicky/types/browser';
 
 import { FilterTypeGuards } from '../interfaces.js';
 import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';

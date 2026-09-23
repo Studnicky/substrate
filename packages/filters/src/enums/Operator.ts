@@ -2,8 +2,8 @@
  * Comparison operators with direct function access for declarative configuration
  */
 
-import { Frozen } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { Frozen } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { FilterConditionInterface } from '../interfaces.js';

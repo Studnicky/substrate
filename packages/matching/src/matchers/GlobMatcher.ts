@@ -1,6 +1,6 @@
-import { LruCache } from '@studnicky/cache/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { LruCache } from '@studnicky/cache/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 import picomatch from 'picomatch';
 
 export class GlobMatcher {

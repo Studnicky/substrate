@@ -3,7 +3,7 @@
  */
 
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const ErrorCollectionMode = Frozen.deepFreeze({
   'FIRST': 'FIRST',
