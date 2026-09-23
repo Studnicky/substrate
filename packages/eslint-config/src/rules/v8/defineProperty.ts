@@ -7,98 +7,8 @@ import {
   MESSAGE, RULE_NAME
 } from './constants/DefinePropertyConstants.js';
 
-// WHY "BREAKS HIDDEN CLASSES" WAS FALSE FOR DEFINITION, AND WHAT IS TRUE INSTEAD.
-//
-//   node --allow-natives-syntax
-//   function PlainAssign() { this.a = 1; this.b = 2; }
-//   function DefinePropertyBuilt() {
-//     this.a = 1;
-//     Object.defineProperty(this, 'b', { value: 2, writable: true, enumerable: true, configurable: true });
-//   }
-//   %HasFastProperties(new PlainAssign())          -> true
-//   %HasFastProperties(new DefinePropertyBuilt())  -> true
-//   %HasFastProperties(new DefinePropertyBuilt() with non-enumerable/non-configurable) -> true
-//
-// A FRESH property — one never assigned before — stays in fast properties no matter how
-// it is installed. The prior message ("Object.defineProperty breaks hidden classes")
-// asserted a cost that does not exist for the common case: defining a brand-new property
-// once, in the constructor. That premise is retracted; this rule no longer flags it.
-//
-// What IS measured to break fast properties is REDEFINITION — calling
-// `Object.defineProperty` on a property that was already established (by a prior plain
-// assignment or a prior `defineProperty` call) earlier in the same function:
-//
-//   function DataToAccessor() {
-//     this.a = 1; this.b = 2;                              // 'b' established as data
-//     let _b = this.b;
-//     Object.defineProperty(this, 'b', { get() { return _b; }, set(v) { _b = v; } });
-//   }
-//   %HasFastProperties(new DataToAccessor())  -> false      <-- dictionary mode
-//
-// Benchmarked at 5,000,000 property reads (median of 7, 3-call warm-up,
-// scratchpad/bench_defineProperty.js):
-//
-//   fast-property read (never redefined)     1.99 ms
-//   redefined data -> accessor (dictionary)  31.45 ms       15.8x
-//
-// A second, independent hazard: redefinition applied NON-UNIFORMLY across instances (a
-// conditional branch, or a call made after construction) diverges their hidden-class map
-// even when both stay in fast properties:
-//
-//   function Widget(flag) {
-//     this.a = 1; this.b = 2;
-//     if (flag) { Object.defineProperty(this, 'b', { value: 99, writable: false, ... }); }
-//   }
-//   %HaveSameMap(new Widget(false), new Widget(true))  -> false
-//
-//   const o1 = new Plain(), o2 = new Plain();             // %HaveSameMap -> true
-//   Object.defineProperty(o1, 'b', { value: 42, writable: false, ... }); // o1 only
-//   %HaveSameMap(o1, o2)                                  -> false        <-- diverged
-//
-// This is the same megamorphic hazard `conditional-property-assignment` guards against,
-// applied to `defineProperty` instead of a plain assignment. Both rules reduce to one
-// question: is every instance guaranteed to reach the SAME shape? A `defineProperty` call
-// reached only through some branches, or issued after construction on some instances and
-// not others, answers no — regardless of whether the descriptor is data or accessor.
-//
-// A THIRD, separate finding: even a FRESH accessor descriptor (never previously a data
-// property) diverges maps across instances:
-//
-//   function FreshAccessor() {
-//     this.a = 1; let _b = 2;
-//     Object.defineProperty(this, 'b', { get() { return _b; }, set(v) { _b = v; } });
-//   }
-//   %HasFastProperties(new FreshAccessor())                 -> true  (still fast — no dict mode)
-//   %HaveSameMap(new FreshAccessor(), new FreshAccessor())  -> false
-//
-// This is not a defineProperty-specific cost — it is the closure-per-instance problem
-// (each instance's getter/setter is a distinct function object, so each instance's
-// descriptor entry differs). The same divergence happens with `this.method = () => {}`
-// in a constructor, with no `defineProperty` involved. This rule still flags EVERY
-// accessor descriptor unconditionally, because a `get`/`set` pair captures per-instance
-// state in every case measured here — but the underlying mechanism is closures, not
-// defineProperty, and a rule targeting closures directly does not exist in this batch.
-//
-// WHAT THIS RULE DELIBERATELY DOES NOT MATCH: a `defineProperty`/`defineProperties` call
-// establishing a property for the FIRST time in this function (no prior assignment, no
-// prior defineProperty call on the same key, non-accessor descriptor) — measured fast and
-// uniform, see above. Establishment is tracked per ENCLOSING FUNCTION only; a property
-// established in one function and redefined in a different one is not connected by this
-// rule (proving that connection would require whole-program flow analysis this rule does
-// not attempt — same posture as `arrayConcatOutsideLoops`'s `HelperReachability`, which
-// stops at what a single-function scan can prove).
-//
-// PAIRED RULE: `conditional-property-assignment` — same hazard (per-instance shape
-// divergence from non-uniform property establishment), different syntax (`this.x = ...`
-// vs `Object.defineProperty(this, 'x', ...)`). Change them together.
-//
-// CALL DETECTION deliberately stays SYNTACTIC (alias/destructure/Reflect tracking below),
-// not `CallIdentity`-resolved. `Object.defineProperty` never has a same-named,
-// different-behavior user overload the way `Array.prototype.concat` does (the false
-// positive `CallIdentity` exists to prevent), so the type-checker dependency buys nothing
-// here and would go silent without `projectService` — undesirable for a hidden-class-shape
-// rule that should still catch `const O = Object; O.defineProperty(this, key, desc)` in a
-// plain JS file with no type services at all.
+// See docs/eslint/rules/v8/define-property.md for the measured rationale. Establishment is
+// tracked per enclosing function only; cross-function flow analysis is out of scope.
 
 const TARGET_METHOD_NAMES: ReadonlySet<string> = new Set([
   'defineProperties',
@@ -106,17 +16,8 @@ const TARGET_METHOD_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 class PropertyKeyName {
-  // Resolves a (possibly computed, bracket-notation) member/object-literal-property key to
-  // its static string name. Handles `Object.defineProperty` (non-computed Identifier),
-  // `Object['defineProperty']` (computed string Literal), AND a non-computed but QUOTED
-  // object-literal key (`{ 'defineProperty': fn }`) — the repo's `quote-props: always`
-  // convention (`eslint.config.mjs`) makes every object-literal property key a `Literal`
-  // even when `computed` is `false`; a resolver that only accepted `Identifier` there would
-  // silently fail to resolve real, convention-compliant code (verified: this rule's own
-  // `DescriptorClassification`/`Object.defineProperties` map-entry checks missed
-  // `{ 'get': () => {...} }` before this fix, using string-quoted keys as this codebase's
-  // own convention requires). Returns undefined for anything else (e.g. a truly dynamic
-  // key), which correctly falls through to "not matched".
+  // Resolves a static key from an Identifier OR a quoted Literal: the repo's `quote-props:
+  // always` convention makes every object-literal key a `Literal` even when non-computed.
   public static resolve(propertyNode: unknown, computed: boolean): string | undefined {
     if (!Predicates.isRecord(propertyNode)) {
       return undefined;
@@ -359,9 +260,7 @@ export const defineProperty: Rule.RuleModule = {
       aliases.observeDeclarator(node);
     };
 
-    // Evaluates the two-or-more-argument `defineProperty`/`Reflect.defineProperty` call
-    // shape: `(target, key, descriptor)`. Reports only when `HazardEvaluator` proves a
-    // redefinition or an accessor descriptor.
+    // The `(target, key, descriptor)` call shape.
     const evaluateSingleForm = (node: Rule.Node & { readonly 'arguments': readonly unknown[] }): void => {
       const [
         targetArg,

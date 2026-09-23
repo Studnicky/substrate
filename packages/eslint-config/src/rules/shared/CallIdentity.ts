@@ -111,14 +111,8 @@ class DeclarationNames {
 }
 
 export class CallIdentity {
-  /**
-   * True when `node` resolves to one of `methods` declared on one of `owners` in the
-   * standard library — independent of how the callee was spelled. Dot access,
-   * computed literal, and computed const binding all resolve identically.
-   *
-   * Returns `false` when type services are unavailable, so consumers go silent rather
-   * than guessing. See the module comment for why that trade is deliberate.
-   */
+  // True when `node` resolves to one of `methods` declared on one of `owners` in the
+  // standard library, independent of callee spelling; `false` when type services are unavailable.
   public static isBuiltinCall(
     node: Rule.Node,
     context: Rule.RuleContext,

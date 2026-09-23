@@ -2,11 +2,8 @@ import type ts from 'typescript';
 
 import { Predicates } from '@studnicky/types/browser';
 
-// `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configurations and
-// `WeakMap`-shaped under others (e.g. `@typescript-eslint/parser`'s
-// `projectService`/`allowDefaultProject` mode) — both expose the same `.get()`
-// API this rule set actually consumes, so the contract is duck-typed on that
-// method rather than pinned to the `Map` constructor.
+// `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configs and `WeakMap`-shaped
+// under others; duck-typed on `.get()` rather than pinned to the `Map` constructor.
 interface EsTreeToTsNodeMapLikeInterface {
   get(key: unknown): ts.Node | undefined;
 }
@@ -37,11 +34,8 @@ export class AstHelpers {
     return result;
   }
 
-  /**
-   * Visits every descendant of `node` (not `node` itself), recursing through own-enumerable
-   * object and array properties. Skips `parent` so a node whose `.parent` back-reference has
-   * already been set by ESLint's own traversal never sends this walk back up the tree.
-   */
+  // Visits every descendant of `node` (not `node` itself). Skips `parent` so a node whose
+  // back-reference ESLint's traversal already set never sends this walk back up the tree.
   public static forEachDescendant(node: unknown, visit: (descendant: Record<string, unknown>) => void): void {
     if (!Predicates.isRecord(node)) { return; }
 

@@ -12,109 +12,8 @@ import { DeclareThenReturnShape } from './shared/DeclareThenReturnShape.js';
 import { ParameterNames } from './shared/ParameterNames.js';
 import { TrivialExpression } from './shared/TrivialExpression.js';
 
-// THREE DEFECTS FOUND AND FIXED HERE, EACH VERIFIED BEFORE AND AFTER THE FIX.
-//
-// (a) DETECTION WAS SYNTACTIC, SO THE HOUSE STYLE SUPPRESSED IT.
-//
-// The old detector matched only a single-statement `return <expr>;` body. The
-// repo's own deliberate return-binding style (`explicitReturnBinding.ts` — bind
-// a call's result to a `const`, then `return` it on its own line) turns a
-// single-statement body into a two-statement one, which the old check never
-// looked at. Verified directly:
-//
-//   class X {
-//     wrap(v) { return Math.abs(v); }                            // 1 statement
-//     wrapPadded(v) { const r = Math.abs(v); return r; }          // 2 statements
-//   }
-//   npx eslint --no-eslintrc --rulesets ... (old rule)
-//   -> `wrap` reported, `wrapPadded` NOT reported.
-//
-// Both are the same shim: a value passed straight through to another call with
-// zero added logic. Padding it with a throwaway binding must not change that.
-// Detection is now SEMANTIC: `ForwardedReturnReduction.reduce` reduces a
-// function body to "the expression it ultimately returns" whether that
-// expression appears directly (`return <expr>;`, 1 statement) or is bound once
-// and returned unchanged (`const x = <expr>; return x;`, 2 statements, the
-// declared name and the returned name matching exactly) — and then hands that
-// SAME reduced expression to the unchanged `TrivialExpression.isTrivial` check.
-// A body of any other shape (extra statements, a declarator whose returned name
-// doesn't match, a reassignment) does not reduce, and is left alone — this is
-// not "flag every 2-statement function", only the exact declare-once-and-
-// return-unchanged shape that the 1-statement check already flagged before
-// padding.
-//
-// (b) DOUBLE-REPORTING.
-//
-// The old listener map registered handlers on BOTH a function's own node type
-// (`FunctionExpression`/`ArrowFunctionExpression`) AND every container that can
-// hold one (`MethodDefinition`, `Property`) — but a `MethodDefinition`'s
-// `value` and a `Property`'s `value` ARE `FunctionExpression`/
-// `ArrowFunctionExpression` nodes in the AST, and ESLint's traversal visits
-// every node by its own type regardless of its parent. Both listeners fired
-// for the same body. Verified:
-//
-//   export class X { static wrap(v){ return Math.abs(v); } }
-//   -> 2 `inline-trivial-logic` messages for 1 violation (one from
-//      `MethodDefinition`, one from the child `FunctionExpression`).
-//
-// The same double-visit applies to `Property` (object methods and object
-// arrow-valued properties are visited independently as
-// `FunctionExpression`/`ArrowFunctionExpression` nodes too). This inflated
-// every trivial-shim count in the repo by up to 2x. FIXED by removing the
-// `MethodDefinition` and `Property` listeners entirely — their body checks
-// were fully redundant with the `FunctionExpression`/`ArrowFunctionExpression`
-// listeners, which already fire on the same child node regardless of what
-// contains it (a class method, an object method, an object arrow-valued
-// property, or nothing at all). Each function-bearing node in the AST now has
-// exactly one listener whose type matches it, so it is visited, and reported,
-// exactly once. `FunctionDeclaration` was never double-visited (it has no
-// separate container node) and is unaffected.
-//
-// (c) THE AUTOFIXER CONTRADICTED ITS OWN MESSAGE.
-//
-// The message says "Inline the logic at the call site" — i.e. delete the shim
-// and have callers invoke the target directly. The old fixer instead REWROTE
-// `return <expr>;` into `const result = <expr>; return result;`, which is not
-// an inlining — it is exactly the padding shape that defect (a) shows defeats
-// this rule's own detector. Shipping that fixer meant `eslint --fix` actively
-// broke the rule it was attached to.
-//
-// "Inline the logic at the call site" is a cross-file, semantics-changing
-// rewrite: every call site of the shim must be found and rewritten to call the
-// target directly, which may be impossible for an exported/externally-consumed
-// method and is unsafe for an autofixer to attempt from a single-file AST
-// pass. `fixable: 'code'` is dropped rather than shipping a fixer that risks
-// producing wrong code (or, as before, one that contradicts the rule). This
-// finding must be resolved by a human, same posture as `staticMethodVerbs.ts`
-// for its own non-mechanical remedy.
-//
-// PAIRED RULE: `explicitReturnBinding.ts` (E1) mandates the exact binding shape
-// that used to hide these shims from this rule. See that file's "COMPOSITION"
-// section for why the two rules deliberately overlap in what they report
-// without contradicting each other.
-
-// (d) BLIND TO TYPE PREDICATES: A FORWARDED VALUE CAN STILL NARROW A DIFFERENT TYPE.
-//
-// This rule reasons about VALUE-level forwarding only -- "does the body just hand back what it
-// called?" -- and that question is blind to a function's declared TYPE-level contract. A function
-// whose return type is a `TSTypePredicate` (`value is Foo`) is not just forwarding a boolean; it
-// is asserting a narrowing that belongs to ITS signature, not the callee's. Concretely:
-//
-//   // lib.es5.d.ts: isArray(arg: any): arg is any[]  -- narrows to `any[]`, leaks `any`.
-//   public static isArray(value: unknown): value is readonly unknown[] {
-//     const result = Array.isArray(value);
-//     return result;
-//   }
-//
-// `Array.isArray` narrows to `any[]`; this wrapper re-declares the same runtime check under the
-// `readonly unknown[]` predicate the codebase's `no any` policy requires. Deleting it and calling
-// `Array.isArray` directly at each of its call sites reintroduces `any` everywhere it is used.
-// The predicate IS the function's contract, and it is not the callee's -- so a declared
-// `TSTypePredicate` return type exempts the function from this rule, checked syntactically off
-// the return-type annotation (no type-checker/parser services required). This slightly
-// over-exempts a guard that forwards to another guard asserting the IDENTICAL predicate type;
-// that false negative is accepted, since the alternative -- flagging every narrowing wrapper as a
-// "trivial shim" -- deletes real type-safety boundaries.
+// Detection reduces a body to its forwarded expression (TrivialExpression.isTrivial); see
+// inline-trivial-logic.md for exemption evidence, semantics, and the explicit-return-binding pairing.
 
 namespace InlineTrivialLogicOptionsEntity {
   export const Schema = {
@@ -140,66 +39,10 @@ namespace InlineTrivialLogicOptionsEntity {
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
-/**
- * Reduces a function body to the single expression it ultimately returns —
- * whether that expression is returned directly (`return <expr>;`) or is bound
- * once and returned unchanged (`const x = <expr>; return x;`). Any other body
- * shape (more statements, a mismatched name, a reassignment) does not reduce,
- * and `undefined` is returned so the caller leaves it alone. See defect (a)
- * above for why the two-statement, declare-once-and-return-unchanged shape
- * must reduce to exactly the same expression the one-statement shape already
- * matched.
- *
- * A leading `EmptyStatement` (a stray `;`) is stripped before dispatching on
- * length — it is a no-op, not a second statement, so `{ ; return bar(x); }`
- * still reduces exactly like `{ return bar(x); }`.
- */
-/**
- * True when `node`'s declared return type is a `TSTypePredicate` (`x is Foo`). See defect (d)
- * above: such a function re-declares a TYPE-level narrowing contract even when its VALUE-level
- * body is a pure forward, so it is exempt from this rule regardless of body shape.
- */
-// A CALLBACK PASSED AS AN ARGUMENT IS NOT A SHIM. DO NOT REMOVE THIS EXEMPTION.
-//
-// This rule's remedy is "inline the logic at the call site". That presupposes a NAMED
-// binding with call sites to inline into. An inline function passed as an argument has
-// neither — it IS the argument, and it is a DEFERRED computation whose whole purpose is
-// that the callee decides whether and when to run it:
-//
-//   this.hooks.invoke('onContended', () => {
-//     const result = this.onContended(key, queue.size);
-//     return result;
-//   });
-//
-// `hooks.invoke` runs the thunk only when that hook is enabled. "Inlining" it would
-// evaluate `this.onContended(...)` eagerly at every call — a SEMANTIC change from lazy
-// to eager, not a refactor. There is no compliant rewrite, which is the signature of a
-// false positive rather than a finding.
-//
-// Before this exemption the rule reported 469 of these across the hook-invoking
-// primitives (Mutex, Throttle, Retry, RealTimeScheduler, VirtualScheduler, EventBus,
-// SampleBuffer), every one unfixable. Two independent cleanup agents stopped and
-// escalated rather than force them, correctly.
-//
-// PAIRED RULE: `v8/inline-arrow-functions` already owns the performance concern for an
-// inline function in a position rebuilt per call or iteration. That rule decides whether
-// a callback should be hoisted; this rule stays on named forwarding bindings. Neither is
-// weakened — they cover different questions, and duplicating the callback case here only
-// produced diagnostics with no remedy.
+// A callback argument is a deferred computation, not a shim — no call site exists to inline
+// into. See inline-trivial-logic.md Exemptions for the hook-thunk evidence and rule pairing.
 class CallbackArgumentGuard {
-  /**
-   * True when `node` is an inline function that reaches a call argument — directly, or as
-   * a property value inside an object/array literal that is itself an argument:
-   *
-   *   runIfEnabled('hook', () => { ... })                          direct
-   *   DomainErrorArgs.build(fields, { 'message': (f) => `...` })    via a property value
-   *
-   * The second shape is just as undeliverable to a "call site": the `message` slot REQUIRES
-   * a function value, so there is nothing to inline it into. Only LITERAL containers are
-   * walked through — an arrow bound to a `const`, or stored on a class field, is not a
-   * required callback and stays reportable, which keeps `v8/inline-functions` as the owner
-   * of the dispatch-map question.
-   */
+  /** Reaches through literal (object/array) containers only — see inline-trivial-logic.md Exemptions. */
   public static isCallArgument(node: Rule.Node): boolean {
     let current: Rule.Node = node;
     let walker = current.parent;
@@ -233,6 +76,7 @@ class CallbackArgumentGuard {
 }
 
 class TypePredicateGuard {
+  /** Type-predicate exemption — see inline-trivial-logic.md Exemptions. */
   public static hasTypePredicateReturn(node: unknown): boolean {
     if (!Predicates.isRecord(node)) {
       return false;
@@ -256,58 +100,10 @@ class TypePredicateGuard {
   }
 }
 
-// (e) A MEMBER DECLARED BY A TYPE CONTRACT HAS NO CALL SITE TO INLINE INTO.
-//
-// This rule's message is "inline the logic at the call site" -- a fix that presupposes a
-// NAMED binding whose call sites can be found and rewritten. That presupposition fails for
-// a class member whose signature is DICTATED, not chosen, by a type the class declares
-// conformance to:
-//
-//   export class SystemProvider implements SystemProviderInterface {
-//     arch(): string {
-//       const result = os.arch();
-//       return result;
-//     }
-//   }
-//
-// (`packages/system/src/providers/SystemProvider.ts`.) Callers never call `SystemProvider`
-// directly -- they hold a `SystemProviderInterface` and dispatch through it, and a SECOND
-// implementation (`packages/system/src/providers/browser/SystemProvider.ts`) supplies a
-// different body for the same member. There is no single call site to inline into: deleting
-// the method removes the class's conformance to `implements SystemProviderInterface`, and
-// "inlining" would require rewriting every caller everywhere the interface is used, which
-// changes virtual dispatch into a compile-time choice of implementation -- not a refactor.
-//
-// The same absence of a call site applies to a `protected` template-method hook a base class
-// declares for its subclasses to override:
-//
-//   /** Pass-through default -- override to pre-process the initial context. */
-//   protected onRunStart(context: T): T {
-//     const result = context;
-//     return result;
-//   }
-//
-// (`packages/pipeline/src/pipeline/Pipeline.ts`.) Deleting it removes a documented extension
-// seam AND breaks the base class's own internal call sites that invoke it polymorphically --
-// there is no "the call site", there are as many call sites as subclasses, present and future.
-//
-// Both shapes share the same root cause: the method exists because a TYPE says it must, not
-// because the author chose to factor it out. `TypeContractGuard` recognizes exactly that --
-// a class member whose declaring class has a heritage clause (`implements`/`extends`) whose
-// resolved type already declares a member of the same name, or a member marked `protected` or
-// `override` -- and exempts it. A COMPUTED method name (`[dynamicKey]() { ... }`) is
-// deliberately NOT exempt: the static name is unknowable, so neither the heritage-resolution
-// question nor the override-seam question can be answered, and the rule stays strict rather
-// than guess.
+// A class member mandated by a type contract has no call site to inline into — see
+// inline-trivial-logic.md Exemptions.
 class TypeContractGuard {
-  /**
-   * True when `node` is the function value of a class method (or a class-field function
-   * value) whose declaration is mandated by a type contract rather than chosen freely --
-   * see the block comment above. Uses the TypeScript checker to resolve heritage members
-   * rather than matching identifiers by name (this package's standing convention; see
-   * `CallIdentity.ts`), so a same-named unrelated method on an unrelated interface never
-   * produces a false exemption.
-   */
+  /** True when `node`'s declaration is mandated by heritage or a `protected`/`override` modifier, resolved through the checker rather than name-matching. */
   public static isTypeContractMember(node: Rule.Node, context: Rule.RuleContext): boolean {
     const container = TypeContractGuard.#findMethodContainer(node);
 
@@ -438,16 +234,7 @@ class TypeContractGuard {
     return result;
   }
 
-  /**
-   * True when any `extends`/`implements` heritage expression resolves (via the checker, not
-   * name-matching -- see `CallIdentity.ts`) to a type that already declares `methodName`. This
-   * single check covers both an interface member (case a) and an inherited/abstract base-class
-   * member (also case a, and the source of case b's "abstract anywhere in the heritage chain":
-   * `checker.getTypeAtLocation` flattens abstract members into the resolved type identically to
-   * concrete ones, so an abstract ancestor member surfaces here with no separate walk needed).
-   * Silent (`false`) when type services are unavailable, matching this package's standing
-   * posture of going quiet rather than guessing without types.
-   */
+  /** Covers interface and abstract base-class members alike via `checker.getTypeAtLocation`; `false` without type-aware parser services (see inline-trivial-logic.md Exemptions). */
   static #heritageDeclaresMember(classNode: Rule.Node, methodName: string, context: Rule.RuleContext): boolean {
     const servicesUnknown: unknown = context.sourceCode.parserServices;
 
@@ -484,31 +271,8 @@ class TypeContractGuard {
   }
 }
 
-// (f) A BODY THAT IS A VALUE IS NOT A SHIM. ONLY DELEGATION IS.
-//
-// Three sites reduce to a literal, a bare identifier, or a template literal — not to a call:
-//
-//   packages/types/src/guards/Empty.ts             static string(): string { return ''; }
-//   packages/retry/.../BackoffStrategy.ts          static constant(_a, baseDelayMs) { return baseDelayMs; }
-//   packages/logger/src/modules/LogEventName.ts    static create(c, o) { return `${c}.${o}`; }
-//
-// This rule's message names an indirection to remove: "inline the logic at the call site."
-// A SHIM is by definition an indirection layer — it forwards to something else and adds
-// nothing. None of these forwards to anything else; each one IS the value it produces. There
-// is no callee to inline, no hidden delegation these three could be replaced by calling
-// directly instead. `Empty.string()` and `LogEventName.create()` are the general case:
-// The schema's `allowLiterals` default is `true`, so
-// a body that reduces to a `Literal`/`TemplateLiteral` is exempt by default — a changed
-// default rather than a new branch, since the option already existed for exactly this
-// question and only its DEFAULT value was wrong. `BackoffStrategy.constant` needs one more
-// step: its reduced body is a bare parameter reference, not a literal, and `TrivialExpression`
-// handles that case separately — see `IdentifierSelection`'s own module comment in
-// `TrivialExpression.ts` for why a function selecting among several of its own parameters
-// (discarding the rest) is exempt the same way, while a single-parameter identity function
-// (`passThrough(x) { return x; }`) stays reported. A genuine 1:1 forward to another call —
-// `wrap(a, b) { return Other.compute(a, b); }` — is unaffected by any of these exemptions: it
-// reduces to a `CallExpression`, the one shape this rule still reports unconditionally.
-
+// Reduces a body to the expression it ultimately returns (one statement, or an exact
+// declare-then-return pair) — see inline-trivial-logic.md "Detection is semantic".
 class ForwardedReturnReduction {
   public static reduce(body: readonly unknown[]): unknown {
     const meaningful = ForwardedReturnReduction.#dropLeadingEmptyStatements(body);
@@ -519,9 +283,7 @@ class ForwardedReturnReduction {
       return result;
     }
     if (meaningful.length === 2) {
-      // Accepts any declaration kind (`var`/`let`/`const`) — see `DeclareThenReturnShape`'s
-      // own module comment for why this rule's value-forwarding question is kind-agnostic
-      // while `v8/inline-arrow-functions`'s house-style question is not.
+      // Accepts any declaration kind (`var`/`let`/`const`) — kind-agnostic by design; see `DeclareThenReturnShape`.
       const result = DeclareThenReturnShape.of(meaningful.at(0), meaningful.at(1))?.initializer;
 
       return result;

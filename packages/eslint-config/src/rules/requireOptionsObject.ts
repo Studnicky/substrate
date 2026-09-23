@@ -33,12 +33,7 @@ interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
 }
 
 class ParamInspector {
-  /**
-   * Returns true when an `Identifier` param's own type annotation is a union containing
-   * `undefined` (`value: T | undefined`). No `?` and no default value are present, but a caller
-   * may still idiomatically omit the argument (`undefined` is a valid explicit value at every
-   * call site), so this counts the same as an explicitly optional parameter.
-   */
+  // `T | undefined` counts as optional even with no `?` — see docs/eslint/rules/require-options-object.md.
   private static hasUndefinedUnionAnnotation(param: Record<string, unknown>): boolean {
     const ann = param.typeAnnotation;
     if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return false; }
@@ -49,12 +44,7 @@ class ParamInspector {
     return result;
   }
 
-  /**
-   * A rest param typed as a tuple (`...args: [name?: string, age?: number]`) is not a single
-   * non-optional unit — its own optional tuple members are exactly the kind of "caller may omit
-   * this" surface the rule exists to catch. Named tuple members mark themselves via
-   * `optional: true`; unnamed members wrap their element type in `TSOptionalType`.
-   */
+  // Rest-tuple optional members count individually: `optional: true` (named) or `TSOptionalType` (unnamed).
   private static tupleOptionalCount(param: Record<string, unknown>): number {
     const ann = param.typeAnnotation;
     if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return 0; }
@@ -70,11 +60,6 @@ class ParamInspector {
     return count;
   }
 
-  /**
-   * Returns how many "caller may omit" optional slots a single parameter contributes. Ordinary
-   * optional parameters contribute at most one; a rest-tuple parameter can contribute several,
-   * one per optional tuple member, since it is not really a single param for this rule's purposes.
-   */
   public static optionalCount(param: unknown): number {
     if (!Predicates.isRecord(param)) { return 0; }
     if (param.type === 'RestElement') { const result = ParamInspector.tupleOptionalCount(param);

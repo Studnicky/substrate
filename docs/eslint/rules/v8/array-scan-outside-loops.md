@@ -7,7 +7,7 @@ description: 'Disallows resolved linear scans that execute once per iteration.'
 
 Disallows built-in `every`, `filter`, `find`, `includes`, `indexOf`, and `some` calls on `Array`, `ReadonlyArray`, and typed arrays when they execute once per iteration. It treats a callback passed to a built-in per-element iterator as a loop body as well as loop-keyword bodies. Repeated scans of the same collection make the enclosing work quadratic; use a `Map` or `Set`, or compute the scan result once.
 
-The rule resolves standard-library signatures rather than method spelling, so computed access is covered and same-named user methods are not. It does not report a receiver proven to be declared within the enclosing real loop, because that collection is fresh for the iteration. Type services are required for signature resolution; without them the rule reports nothing.
+The rule resolves standard-library signatures rather than method spelling, so computed access is covered and same-named user methods are not. It does not report a receiver proven to be declared within the enclosing real loop, because that collection is fresh for the iteration. That exemption requires an actual loop-keyword node range to compare the declaration site against, so it is skipped when the per-iteration context is a `.forEach()`/`.map()` callback rather than a loop keyword — the call is conservatively still flagged there. Type services are required for signature resolution; without them the rule reports nothing.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 

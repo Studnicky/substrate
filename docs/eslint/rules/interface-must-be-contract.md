@@ -27,7 +27,9 @@ An interface is a contract when its own or inherited shape includes at least one
 
 Readonly on an interface describes consumer access policy. A lone readonly member does not establish a contract when the interface also has three or more mutable pure-data members; make the access policy comprehensive or use a runtime, callable, nominal, or type-level contract signal instead.
 
-Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal.
+The `toString`/`valueOf` decoy exclusion catches both ways of spelling a zero-parameter builtin-shadow method: a method signature (`toString(): string;`) and a property whose value is itself a zero-parameter function type (`'toString': () => string;`) are the same decoy through different syntax, and a quoted string-literal key (`'toString'`) is checked the same as the unquoted identifier spelling. Either spelling with parameters, or any other method name, is ordinary — and sufficient — contract evidence. The same exclusion applies to a builtin-shadow member nested inside an inline object member's own type (`interface X { nested: { toString(): string }; }`).
+
+Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal, including through a heritage clause that names a type alias rather than another interface — the alias might itself resolve to a callable, constructable, branded, or readonly object type. A member typed as a bare reference to the interface's own generic type parameter (`handler: Fn` where `Fn extends () => void`) is checked through that parameter's declared constraint, since the reference itself resolves to neither a callable nor a readonly TypeScript type and a constraint-carried contract signal would otherwise go undetected.
 
 ## Interface suffix
 

@@ -6,22 +6,8 @@ import { Predicates } from '@studnicky/types/browser';
 
 import { LoopContext } from '../shared/LoopContext.js';
 
-// MEASURED, Node v24: allocating a closure (arrow or function expression) is
-// 2.3x measurably costly WHEN GENUINELY HOT (rebuilt every iteration of a
-// real loop). But neither "rebuilt in some enclosing function" (the
-// predecessor's `FunctionScope.isRebuiltInFunctionScope` heuristic) nor "has
-// a default-parameter closure at all" (the predecessor's unconditional flag)
-// is evidence of hotness — a factory function called exactly once at module
-// init satisfies both and was flagged identically to real hot-loop code.
-// This module replaces both heuristics with `LoopContext.isPerIteration`
-// (proof: the position is lexically inside a loop, or inside a built-in
-// per-element iteration callback) or, where the allocation site is not
-// itself lexically per-iteration (a default-parameter value is evaluated at
-// CALL time, not at its own source position), a bounded call-site
-// reachability check identical in spirit to `arrayConcatOutsideLoops`'s
-// `HelperReachability` — flag only when every call site of the owning
-// function is itself provably per-iteration. Unprovable cases go unflagged:
-// silence over a guess, matching this package's established posture.
+// Flags only per-iteration-proven positions; unprovable cases go unflagged.
+// Rationale and measurement: docs/eslint/rules/v8/inline-arrow-functions.md.
 
 class EnclosingFunction {
   /** Nearest ancestor function (declaration/expression/arrow) containing `node`. */
@@ -45,9 +31,8 @@ class EnclosingFunction {
 }
 
 class DeclaredFunctionVariable {
-  // Resolves the scope variable that calls to `functionNode` would reference:
-  // the function's own name for a `function foo() {}` declaration, or the
-  // bound identifier for `const foo = function () {}` / `const foo = () => {}`.
+  // The declared function's own name, or the bound identifier for a
+  // `const foo = function () {}` / `const foo = () => {}` variable declarator.
   public static resolve(functionNode: Rule.Node, context: Rule.RuleContext): Scope.Variable | undefined {
     if (functionNode.type === 'FunctionDeclaration') {
       const raw = functionNode as unknown as Record<string, unknown>;
@@ -99,15 +84,7 @@ class DeclaredFunctionVariable {
 }
 
 class DefaultParameterReachability {
-  /**
-   * A default-parameter closure is allocated fresh on every CALL to the
-   * function that owns it — it has no loop-relative source position of its
-   * own; it lives in a parameter list, evaluated at call time. Provable only
-   * for the same bounded shape as `arrayConcatOutsideLoops`'s
-   * `HelperReachability`: the owning function has exactly one resolvable
-   * binding, every reference to which is a direct call, and every one of
-   * those calls is itself per-iteration.
-   */
+  /** Bounded reachability check for a default-parameter closure; scope: docs/eslint/rules/v8/inline-arrow-functions.md. */
   public static isReachedOnlyPerIteration(assignmentPattern: Rule.Node, context: Rule.RuleContext): boolean {
     const owner = EnclosingFunction.find(assignmentPattern);
 
@@ -148,24 +125,7 @@ class DefaultParameterReachability {
   }
 }
 
-/**
- * Shared trigger-position resolution for `inlineArrowFunctions` and
- * `inlineFunctions`. Both rules flag an inline callable (arrow or function
- * expression) that is provably reallocated once per loop iteration; this
- * class answers "is this inline callable sitting in one of the positions
- * where that provably happens", independent of which node type (arrow vs.
- * function expression) is being inspected.
- *
- * Recognized positions, resolved by first unwrapping ternary branches and
- * array-literal elements (so `cond ? fn : fn` and `[["a", fn]]`-style
- * dispatch-table construction resolve to their real containing context):
- *   - Property value of an ObjectExpression that is itself constructed
- *     per-iteration (dispatch map built inside a loop).
- *   - Default value of an AssignmentPattern, where every call site of the
- *     owning function is provably per-iteration.
- *   - Argument passed directly to a CallExpression/NewExpression whose call
- *     site is itself per-iteration.
- */
+/** Shared trigger-position resolution for `inlineArrowFunctions`/`inlineFunctions`; positions: docs/eslint/rules/v8/inline-arrow-functions.md. */
 export class InlineCallablePosition {
   public static isFlagged(node: Rule.Node, context: Rule.RuleContext): boolean {
     const position = InlineCallablePosition.unwrapContainers(node);
@@ -232,10 +192,8 @@ export class InlineCallablePosition {
       return false;
     }
 
-    // Evidence-based: only flag when the object literal is provably
-    // constructed per-iteration. "Inside some function" (the predecessor's
-    // heuristic) is not evidence — a one-shot factory called once satisfies
-    // that too, and was flagged identically to real hot-loop code.
+    // Evidence-based: only flags when the object literal is provably
+    // constructed per-iteration, not merely "inside some function".
     const result = LoopContext.isPerIteration(objectExpr, context);
 
     return result;

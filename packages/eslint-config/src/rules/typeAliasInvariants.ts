@@ -836,18 +836,8 @@ export const typeAliasInvariants: Rule.RuleModule = {
       }
 
       if (analysis.classification === 'interfaceContract') {
-        // A top-level mixed union/intersection has no interface remedy at all — `interface X`
-        // cannot itself be a union — so `no-mixed-callable-shapes` owns this declaration's only
-        // diagnostic instead of the unfollowable "declare as an interface" advice.
-        //
-        // D6 (see the eslint-config objectives): EXCEPT when the mix includes `any` as a direct
-        // constituent — `any`'s "callable" classification is `classifyCallability`'s own
-        // escape-hatch heuristic (see `topLevelMixIncludesAny`'s doc comment), not a genuine
-        // callable shape needing a split into an interface, and `no-mixed-callable-shapes` is not
-        // enabled in `eslint.config.mjs` (see C1). Deferring THIS declaration's only diagnostic to
-        // a rule that may never run means `type X = any | Data;` escapes every custom type rule
-        // silently — VERIFIED via `npx eslint` probe (ZzP4 prefix). Report it here instead,
-        // unconditionally, regardless of whether `no-mixed-callable-shapes` ever gets enabled.
+        // Mixed union/intersection has no interface remedy; `no-mixed-callable-shapes` owns the
+        // diagnostic, except when `any` is a direct constituent (D6) — reported here unconditionally.
         if (
           classification?.isTopLevelMixedCallableData(declaration.type) === true
           && !classification.topLevelMixIncludesAny(declaration.type)

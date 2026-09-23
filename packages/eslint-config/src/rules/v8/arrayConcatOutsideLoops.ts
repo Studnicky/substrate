@@ -8,30 +8,11 @@ import {
   CONCAT_METHODS, CONCAT_OWNERS, MESSAGE, RULE_NAME
 } from './constants/ArrayConcatOutsideLoopsConstants.js';
 
-// Measured cost of the pattern this rule forbids, 200-element chunks:
-//   result = result.concat(chunk)  in a loop   150.3 ms
-//   result.push(...chunk)          in a loop    20.6 ms   -> 7.3x
-//
-// IDENTITY IS RESOLVED, NOT NAME-MATCHED. See `shared/CallIdentity.ts` for why; the
-// short version is that the previous name-matching implementation both missed
-// `result[CONCAT](chunk)` and falsely reported a user-defined `Rope.concat`. Roughly
-// 150 lines of alias/indirection chasing collapsed into one resolved-signature check
-// that no spelling can evade.
-//
-// `.call`/`.apply` indirection is deliberately NOT handled here. `arr.concat.call(...)`
-// resolves to `CallableFunction.call`, not `Array.concat`, so it would need its own
-// special case — but `direct-invocation-only` already forbids `.call`/`.apply`
-// outright, so the pattern is unreachable in compliant code. The two rules cover the
-// surface together rather than each half-implementing the other's job.
+// See docs/eslint/rules/v8/array-concat-outside-loops.md for the measured rationale.
+// `.call`/`.apply` indirection resolves to `CallableFunction.call`, not `Array.concat`.
 
 class HelperReachability {
-  /**
-   * A concat call that is not itself per-iteration still runs per-iteration when it
-   * lives in a helper whose every call site is per-iteration. Only two helper shapes
-   * are provable without whole-program call-graph analysis: a named
-   * `function helper() {}`, or `const helper = () => {}` / `= function () {}`. Both
-   * expose exactly one binding whose references are the call sites.
-   */
+  /** Provable only for a named `function helper() {}` or `const helper = () => {}`/`= function () {}`. */
   public static isReachedOnlyPerIteration(node: Rule.Node, context: Rule.RuleContext): boolean {
     const enclosing = HelperReachability.#findEnclosingFunction(node);
 
@@ -39,17 +20,7 @@ class HelperReachability {
       return false;
     }
 
-    // `getDeclaredVariables` resolves the binding the declaration actually creates.
-    // The predecessor walked the scope chain comparing variable NAMES, which a shadowed
-    // binding defeats; this cannot be shadowed because it starts from the declaration.
-    //
-    // Which node OWNS the binding differs by helper shape, and getting this wrong fails
-    // silently rather than loudly:
-    //   function helper() {}      -> the FunctionDeclaration declares `helper`
-    //   const helper = () => {}   -> the VariableDeclarator declares `helper`; the arrow
-    //                                itself declares NOTHING, so asking it returns []
-    // Ask the declarator in the second case, or every `const`-assigned helper silently
-    // reports zero call sites and is never flagged.
+    // Resolves the binding from its declaration, so it cannot be shadowed by name.
     const owner = HelperReachability.#bindingOwner(enclosing);
     const declared = context.sourceCode.getDeclaredVariables(owner);
     const variable = declared.at(0);

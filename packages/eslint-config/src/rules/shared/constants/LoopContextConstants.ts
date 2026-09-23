@@ -14,11 +14,8 @@ export const FUNCTION_TYPES: ReadonlySet<string> = new Set([
   'FunctionExpression'
 ]);
 
-/**
- * Standard-library interfaces that declare per-element iteration methods. Typed
- * arrays each declare their own `forEach`/`map`/… rather than inheriting from
- * `Array`, so every one must be listed or their callbacks escape loop detection.
- */
+// Typed arrays each declare their own iteration methods rather than inheriting
+// from `Array`; every one must be listed or its callbacks escape loop detection.
 export const ITERATION_OWNERS: ReadonlySet<string> = new Set([
   'Array',
   'BigInt64Array',

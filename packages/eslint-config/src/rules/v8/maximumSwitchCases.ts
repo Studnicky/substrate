@@ -6,30 +6,11 @@ import {
   BLOCK_TYPES, MAXIMUM_INT_SWITCH_CASES, MAXIMUM_STRING_SWITCH_CASES, MAXIMUM_SWITCH_CASES_DEFAULT
 } from './constants/MaximumSwitchCasesConstants.js';
 
-// Re-measure command (Node v24): scratchpad bench comparing a generated N-case
-// switch against an equivalent `Record<key, handler>` dispatch map, 5,000,000
-// dispatches, 3 warm-up calls + median of 7. See MaximumSwitchCasesConstants.ts
-// for the per-count numbers this threshold split is built from.
-//
-// The rule's original single MAX_SWITCH_CASES=20 threshold was wrong in BOTH
-// directions at once, because it never looked at what the switch discriminates
-// ON:
-//   - integer-keyed switches never need a cap (switch wins or ties at every
-//     measured count, 3 through 100 cases) — the old threshold forced a
-//     needless, slower rewrite at 20 cases.
-//   - string-keyed switches cross over to a slower switch by 6 cases, not
-//     20 — the old threshold let 14 genuinely-slower cases (6-19) through
-//     uncaught.
-//
-// `DiscriminantKind` below resolves which regime a switch is in from its own
-// case labels (syntactic, no type-checker dependency — literal `case 1:` /
-// `case 'x':` values are unambiguous without one).
+// Per-count threshold numbers and benchmark method: MaximumSwitchCasesConstants.ts.
+// Classifies syntactically from case labels, no type-checker dependency needed.
 
-// Not a named `type` alias: `@studnicky/type-alias-invariants` requires any
-// top-level `type X = ...` to be schema-derived canonical data, which a
-// private three-value dispatch tag is not. The union is written out inline
-// at each of its three use sites instead (`classify`'s return type,
-// `maximumCasesFor`'s parameter, and `SwitchGroup.kind`'s field type).
+// Not a named `type` alias: `@studnicky/type-alias-invariants` requires a top-level
+// `type X = ...` to be schema-derived canonical data; written out inline instead.
 
 class DiscriminantKind {
   /** Classifies a switch by its own non-default case test literal types — not the discriminant expression's static type. */
@@ -94,18 +75,7 @@ class SwitchGroup {
   public kindSet = false;
 }
 
-/**
- * Resolves a discriminant expression to a structural equality key, so two
- * `switch` statements testing the *same* value — not merely textually
- * identical source — are recognized as splitting one dispatch decision.
- * Deliberately narrow: only `Identifier`, `ThisExpression`, and
- * non-computed/literal-computed `MemberExpression` chains built from those
- * are resolved. Anything more complex (call expressions, computed access
- * with a non-literal key, binary expressions, etc.) returns `null` and is
- * therefore never merged with another switch — avoiding false positives
- * from two switches that merely *look* similar but discriminate on
- * different runtime values.
- */
+/** Structural equality key for a discriminant; scope and rationale: docs/eslint/rules/v8/max-switch-cases.md. */
 class DiscriminantKey {
   public static compute(node: unknown): string | null {
     if (!Predicates.isRecord(node)) {
@@ -179,9 +149,8 @@ class SwitchScope {
 
 export const maximumSwitchCases: Rule.RuleModule = {
   'create': (context) => {
-    // Keyed by enclosing block, then by discriminant key — switches with an
-    // unresolvable (complex) discriminant use the switch node itself as a
-    // singleton key, so they behave exactly as a standalone switch always did.
+    // A switch with an unresolvable discriminant uses the switch node itself
+    // as a singleton key, so it behaves exactly as a standalone switch.
     const groups = new Map<Rule.Node, Map<string | Rule.Node, SwitchGroup>>();
 
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
@@ -215,11 +184,8 @@ export const maximumSwitchCases: Rule.RuleModule = {
         byKey.set(key, group);
       }
 
-      // Kind is fixed from the FIRST switch seen for this discriminant. Sibling
-      // switches on the same discriminant should share a value type by
-      // construction (they discriminate on the same variable); if a later
-      // switch disagrees this simplification just keeps the group's original
-      // kind rather than re-classifying mid-aggregation.
+      // Kind is fixed from the first switch seen for this discriminant; a
+      // disagreeing later switch keeps the group's original kind.
       if (!group.kindSet) {
         group.kind = DiscriminantKind.classify(cases);
         group.kindSet = true;

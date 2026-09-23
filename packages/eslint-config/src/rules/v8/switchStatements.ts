@@ -9,9 +9,7 @@ const TERMINATOR_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 class SwitchCaseShape {
-  // Counts the statements a case body actually inlines, ignoring a single trailing
-  // break/continue/return terminator so a one-statement-plus-break case (the
-  // idiomatic delegate-then-break shape) is not penalized for the terminator.
+  // Ignores one trailing break/continue/return so a delegate-then-break case is not penalized.
   public static countInlinedStatements(consequent: readonly unknown[]): number {
     if (consequent.length === 0) {
       return 0;
@@ -26,30 +24,8 @@ class SwitchCaseShape {
   }
 }
 
-/**
- * Case bodies must delegate (single call/return), not inline multi-statement
- * logic — regardless of case count. This is independent of the switch-vs
- * dispatch-map choice `maxSwitchCases` enforces at scale: a small switch
- * below that threshold is still required to keep each case a one-line
- * delegation to a static class method, not an inline block.
- *
- * Flags two equivalent shapes with identical runtime characteristics:
- *  - a case body explicitly wrapped in `{ }` (a `BlockStatement`)
- *  - a case body with 2+ statements attached directly to `SwitchCase.consequent`
- *    (braces are optional in JS/TS switch-case syntax)
- *
- * NOT a V8 optimization rule, despite living in this package's `v8/` rule
- * set. Proven with `node --allow-natives-syntax --print-bytecode
- * --print-bytecode-filter=<fn>` on a 20-case int switch: a version with
- * one-line delegating case bodies and a version with multi-statement inlined
- * case bodies both compile to the identical dispatch opcode
- * `SwitchOnSmiNoFeedback [0], [20], [0]` — case-body size has ZERO effect on
- * dispatch strategy. The rule is retained purely as a readability/structure
- * constraint (paired with `max-switch-cases`, which DOES carry a proven
- * performance claim about case COUNT, not case-body size) — the message
- * below carries no `v8Optimization/` prefix because it protects no V8
- * mechanism.
- */
+// Readability/structure rule, not V8 optimization; see docs/eslint/rules/v8/switch-statements.md.
+// Flags both a BlockStatement-wrapped case body and 2+ unbraced statements on SwitchCase.consequent.
 export const switchStatements: Rule.RuleModule = {
   'create': (context) => {
     const onBlockStatement = (node: Rule.Node): void => {
