@@ -26,7 +26,7 @@
         "workerPool": {
           "batch": { "concurrency": 8 },
           "concurrency": 2,
-          "workerPath": "../fixtures/reusableEchoWorker.mjs"
+          "workerPath": "../fixtures/reusableEchoWorker.ts"
         }
       },
       "shape": "reuses-workers",

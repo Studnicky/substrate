@@ -11,6 +11,6 @@ export default {
     'eslint --fix --no-warn-ignored'
   ],
   [FORMAT_PATTERN]: (files) => {
-    return `node scripts/lint-staged-format.mjs ${files.map(shellQuote).join(' ')}`;
+    return `node scripts/lint-staged-format.ts ${files.map(shellQuote).join(' ')}`;
   }
 };

@@ -390,6 +390,165 @@ export default [
         'unused-imports/no-unused-imports': 'error'
       }
     },
+    // Tooling — scripts, CI helpers and the docs site are procedural CLI/build code, not
+    // published package surfaces, so the package-authoring rules (entity shape, static-method
+    // dispatch, descriptive-identifier banlist) do not apply. Correctness, type-safety and
+    // style rules stay fully enforced.
+    {
+      'files': ['scripts/**/*.ts', '.github/**/*.ts', 'docs/**/*.ts'],
+      'languageOptions': {
+        'parser': tseslint.parser,
+        'parserOptions': {
+          'projectService': {
+            'allowDefaultProject': [
+              'docs/.vitepress/*.ts',
+              'docs/.vitepress/theme/*.ts',
+              'docs/.vitepress/theme/utils/*.ts'
+            ],
+            'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 40
+          },
+          'tsconfigRootDir': import.meta.dirname
+        }
+      },
+      'linterOptions': {
+        'reportUnusedDisableDirectives': 'error'
+      },
+      'plugins': {
+        '@stylistic': stylistic,
+        'import-x': importX,
+        'perfectionist': perfectionistPlugin,
+        'regexp': regexp,
+        'unused-imports': unusedImports,
+        ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
+      },
+      'rules': {
+        // @stylistic
+        '@stylistic/comma-dangle': ['error', 'never'],
+        '@stylistic/eol-last': ['error', 'always'],
+        '@stylistic/indent': ['error', 2],
+        '@stylistic/no-trailing-spaces': 'error',
+        '@stylistic/quote-props': ['error', 'always'],
+        '@stylistic/quotes': ['error', 'single', { 'avoidEscape': true }],
+        '@stylistic/semi': ['error', 'always'],
+        // @typescript-eslint — auto-fixable set
+        '@typescript-eslint/array-type': ['error', { 'default': 'array' }],
+        '@typescript-eslint/await-thenable': 'error',
+        '@typescript-eslint/consistent-type-exports': 'error',
+        '@typescript-eslint/consistent-type-imports': ['error', { 'fixStyle': 'separate-type-imports' }],
+        '@typescript-eslint/dot-notation': 'error',
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            'custom': { 'match': true, 'regex': 'Interface$|^Type$' },
+            'format': ['PascalCase'],
+            'selector': 'interface'
+          },
+          {
+            'format': ['PascalCase'],
+            'selector': 'typeAlias'
+          }
+        ],
+        '@typescript-eslint/no-duplicate-type-constituents': 'error',
+        '@typescript-eslint/no-explicit-any': ['error', { 'fixToUnknown': true }],
+        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-inferrable-types': 'error',
+        '@typescript-eslint/no-meaningless-void-operator': 'error',
+        '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-redundant-type-constituents': 'error',
+        '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+        '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+        '@typescript-eslint/no-unsafe-assignment': 'error',
+        '@typescript-eslint/no-unused-vars': ['error', {
+          'argsIgnorePattern': '^_',
+          'varsIgnorePattern': '^(_|[A-Z][A-Za-z]*Schema$|[A-Za-z]*Interface$|[A-Za-z]*Type$)'
+        }],
+        '@typescript-eslint/no-useless-empty-export': 'error',
+        '@typescript-eslint/non-nullable-type-assertion-style': 'error',
+        '@typescript-eslint/prefer-as-const': 'error',
+        '@typescript-eslint/prefer-function-type': 'off',
+        '@typescript-eslint/prefer-nullish-coalescing': 'error',
+        '@typescript-eslint/prefer-optional-chain': 'error',
+        '@typescript-eslint/require-await': 'error',
+        '@typescript-eslint/return-await': ['error', 'always'],
+        '@typescript-eslint/strict-boolean-expressions': ['error', {
+          'allowNullableObject': false,
+          'allowNumber': false,
+          'allowString': false
+        }],
+        // Core
+        'arrow-body-style': ['error', 'always'],
+        'consistent-return': 'error',
+        'curly': ['error', 'all'],
+        'eqeqeq': ['error', 'always'],
+        // import-x
+        'import-x/newline-after-import': 'error',
+        'import-x/no-default-export': 'error',
+        'no-array-constructor': 'error',
+        'no-case-declarations': 'error',
+        'no-class-assign': 'error',
+        'no-cond-assign': ['error', 'always'],
+        'no-const-assign': 'error',
+        'no-constant-condition': 'error',
+        'no-debugger': 'error',
+        'no-duplicate-case': 'error',
+        'no-duplicate-imports': ['error', { 'allowSeparateTypeImports': true }],
+        'no-else-return': ['error', { 'allowElseIf': false }],
+        'no-eq-null': 'error',
+        'no-eval': 'error',
+        'no-extra-bind': 'error',
+        'no-func-assign': 'error',
+        'no-global-assign': 'error',
+        'no-implicit-coercion': 'error',
+        'no-implicit-globals': 'error',
+        'no-invalid-regexp': 'error',
+        'no-lonely-if': 'error',
+        'no-multi-assign': 'error',
+        'no-nested-ternary': 'error',
+        'no-new-func': 'error',
+        'no-new-wrappers': 'error',
+        'no-object-constructor': 'error',
+        'no-prototype-builtins': 'error',
+        'no-template-curly-in-string': 'error',
+        'no-throw-literal': 'error',
+        'no-unexpected-multiline': 'error',
+        'no-unreachable': 'error',
+        'no-unsafe-negation': 'error',
+        'no-unused-expressions': 'error',
+        'no-var': 'error',
+        'object-shorthand': ['error', 'never'],
+        'one-var': ['error', 'never'],
+        'perfectionist/sort-array-includes': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-classes': 'off',
+        'perfectionist/sort-decorators': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-enums': 'error',
+        'perfectionist/sort-exports': 'error',
+        'perfectionist/sort-heritage-clauses': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-imports': 'error',
+        'perfectionist/sort-interfaces': 'error',
+        'perfectionist/sort-intersection-types': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-maps': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-modules': 'off',
+        'perfectionist/sort-named-exports': 'error',
+        'perfectionist/sort-named-imports': 'error',
+        'perfectionist/sort-object-types': 'error',
+        'perfectionist/sort-objects': 'error',
+        'perfectionist/sort-sets': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-switch-case': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-union-types': 'off',
+        'perfectionist/sort-variable-declarations': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'prefer-const': 'error',
+        'prefer-rest-params': 'error',
+        'prefer-spread': 'error',
+        'prefer-template': 'error',
+        // regexp
+        'regexp/no-unused-capturing-group': 'error',
+        'regexp/no-useless-flag': 'error',
+        'regexp/prefer-regexp-exec': 'error',
+        'require-yield': 'error',
+        // unused-imports
+        'unused-imports/no-unused-imports': 'error'
+      }
+    },
     // Test files — parse with TS parser (no type-checking) and relax rules
     {
       'files': ['packages/*/tests/**/*.ts'],
@@ -415,9 +574,9 @@ export default [
         '@typescript-eslint/return-await': 'off'
       }
     },
-    // Config-file overrides — allow default exports in config files
+    // Config and framework entrypoints their loader requires to default-export.
     {
-      'files': ['eslint.config.*', '*.config.*', '*.config.mjs'],
+      'files': ['eslint.config.*', '*.config.*', 'docs/.vitepress/config.ts', 'docs/.vitepress/theme/index.ts'],
       'rules': {
         '@studnicky/export-shape': 'off',
         'import-x/no-default-export': 'off'
@@ -441,6 +600,13 @@ export default [
         'import-x/no-default-export': 'off',
         'no-console': 'off'
       }
+    },
+    // CLI tools write to stdout/stderr as their interface, not as debug residue.
+    {
+      'files': ['scripts/**/*.ts', '.github/**/*.ts'],
+      'rules': {
+        'no-console': 'off'
+      }
     }
   ),
   // Only these files are permitted to use `console` directly. ConsoleTransport
@@ -455,6 +621,14 @@ export default [
     ],
     'rules': {
       'no-console': 'off'
+    }
+  },
+  // The playground evaluator's entire purpose is running sucrase-transpiled example source
+  // with an injected require shim — `new Function` is the mechanism, not a workaround.
+  {
+    'files': ['docs/.vitepress/theme/utils/playgroundRuntime.ts'],
+    'rules': {
+      'no-new-func': 'off'
     }
   },
   // drilldown's matcher registry implements one shared interface (MatcherHandlerInterface) via

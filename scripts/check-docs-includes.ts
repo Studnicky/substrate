@@ -21,15 +21,32 @@ import { fileURLToPath } from 'node:url';
 
 const INLINE_TS_CEILING = 0;
 
-const SKIP_DIRS = new Set(['.vitepress', 'public', '_examples', 'plans', 'proposals', 'design']);
+const SKIP_DIRS = new Set(['.vitepress', '_examples', 'design', 'plans', 'proposals', 'public']);
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const docsRoot = path.join(repoRoot, 'docs');
 
-const collectMarkdown = async (dir) => {
+interface OffenderInterface {
+  readonly 'lang': string;
+  readonly 'line': number;
+}
+
+interface DocReportInterface {
+  readonly 'file': string;
+  readonly 'offenders': readonly OffenderInterface[];
+}
+
+const INLINE_TS_OK_PATTERN = /^<!--\s*inline-ts-ok:/u;
+const TS_FENCE_PATTERN = /^```(ts|typescript)\b/u;
+
+const collectMarkdown = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { 'withFileTypes': true });
-  const files = [];
-  for (const entry of entries) {
+  const files: string[] = [];
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    if (entry === undefined) {
+      continue;
+    }
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) {
         continue;
@@ -43,14 +60,18 @@ const collectMarkdown = async (dir) => {
   return files;
 };
 
-const countNonGroupTsBlocks = (content) => {
+const countNonGroupTsBlocks = (content: string): OffenderInterface[] => {
   const lines = content.split('\n');
-  const offenders = [];
+  const offenders: OffenderInterface[] = [];
   let inGroup = false;
   let inFence = false;
   let pendingExemption = false;
   let lineNo = 0;
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line === undefined) {
+      continue;
+    }
     lineNo += 1;
     const trimmed = line.trim();
     if (trimmed.startsWith('::: code-group')) {
@@ -61,15 +82,16 @@ const countNonGroupTsBlocks = (content) => {
       inGroup = false;
       continue;
     }
-    if (/^<!--\s*inline-ts-ok:/u.test(trimmed)) {
+    if (INLINE_TS_OK_PATTERN.test(trimmed)) {
       pendingExemption = true;
       continue;
     }
-    const fenceMatch = /^```(ts|typescript)\b/u.exec(trimmed);
-    if (fenceMatch !== null && !inFence) {
+    const fenceMatch = TS_FENCE_PATTERN.exec(trimmed);
+    const lang = fenceMatch?.[1];
+    if (fenceMatch !== null && lang !== undefined && !inFence) {
       inFence = true;
       if (!inGroup && !pendingExemption) {
-        offenders.push({ 'line': lineNo, 'lang': fenceMatch[1] });
+        offenders.push({ 'lang': lang, 'line': lineNo });
       }
       pendingExemption = false;
       continue;
@@ -87,21 +109,33 @@ const countNonGroupTsBlocks = (content) => {
 
 const files = await collectMarkdown(docsRoot);
 let total = 0;
-const report = [];
-for (const file of files) {
+const report: DocReportInterface[] = [];
+for (let index = 0; index < files.length; index += 1) {
+  const file = files[index];
+  if (file === undefined) {
+    continue;
+  }
   const content = await readFile(file, 'utf8');
   const offenders = countNonGroupTsBlocks(content);
   if (offenders.length > 0) {
     total += offenders.length;
-    report.push({ 'file': path.relative(repoRoot, file), offenders });
+    report.push({ 'file': path.relative(repoRoot, file), 'offenders': offenders });
   }
 }
 
 if (total > INLINE_TS_CEILING) {
   process.stderr.write(`check-docs-includes: ${String(total)} inline TypeScript block(s) exceed ceiling ${String(INLINE_TS_CEILING)}.\n`);
   process.stderr.write('Replace hand-written code with `<<< ../path/to/example.ts#region`, or exempt a conceptual snippet with `<!-- inline-ts-ok: reason -->`.\n\n');
-  for (const entry of report) {
-    for (const offender of entry.offenders) {
+  for (let entryIndex = 0; entryIndex < report.length; entryIndex += 1) {
+    const entry = report[entryIndex];
+    if (entry === undefined) {
+      continue;
+    }
+    for (let offenderIndex = 0; offenderIndex < entry.offenders.length; offenderIndex += 1) {
+      const offender = entry.offenders[offenderIndex];
+      if (offender === undefined) {
+        continue;
+      }
       process.stderr.write(`  ${entry.file}:${String(offender.line)} (\`\`\`${offender.lang})\n`);
     }
   }

@@ -7,17 +7,26 @@
  */
 import { parentPort } from 'node:worker_threads';
 
-parentPort.once('message', ({ n }) => {
-  parentPort.postMessage({ 'type': 'log', 'message': `computing fib(${String(n)})` });
+interface FibonacciRequestInterface {
+  readonly 'n': number;
+}
+
+if (parentPort === null) {
+  throw new Error('observedWorkerPoolWorker must run in a worker thread');
+}
+const port = parentPort;
+
+port.once('message', ({ n }: FibonacciRequestInterface) => {
+  port.postMessage({ 'message': `computing fib(${String(n)})`, 'type': 'log' });
 
   let previous = 0;
   let current = 1;
   for (let i = 0; i < n; i += 1) {
     if (i === Math.floor(n / 2)) {
-      parentPort.postMessage({ 'type': 'progress', 'percent': 50 });
+      port.postMessage({ 'percent': 50, 'type': 'progress' });
     }
     [previous, current] = [current, previous + current];
   }
 
-  parentPort.postMessage({ 'type': 'result', 'value': previous });
+  port.postMessage({ 'type': 'result', 'value': previous });
 });

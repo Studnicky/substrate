@@ -12,6 +12,8 @@
 // `runExample` transpiles the example's editor text with sucrase and executes
 // it with a `require` shim bound to the example's path.
 
+/// <reference types="vite/client" />
+
 import { transform } from 'sucrase';
 
 import { ExampleSources } from './ExampleSources';
@@ -43,17 +45,17 @@ const STATIC_MODULES: Record<string, unknown> = buildStaticModules();
 const PENDING_MODULES = new Map<string, Promise<Record<string, unknown>>>();
 
 for (const [key, loader] of Object.entries(SOURCE_GLOB)) {
-  const canonical = key.replace(/^(\.\.\/)+/, '').replace(/\.ts$/, '');
+  const canonical = key.replace(/^(?:\.\.\/)+/u, '').replace(/\.ts$/u, '');
   SOURCE_LOADERS[canonical] = loader;
 }
 
 interface TimerOptionsInterface {
-  signal?: AbortSignal;
+  'signal'?: AbortSignal;
 }
 
 function makeTimersShim(): Record<string, unknown> {
   return {
-    setTimeout: (ms: number, value?: unknown, opts?: TimerOptionsInterface): Promise<unknown> => {
+    'setTimeout': (ms: number, value?: unknown, opts?: TimerOptionsInterface): Promise<unknown> => {
       return new Promise<unknown>((resolve, reject) => {
         if (opts?.signal?.aborted === true) {
           reject(new DOMException('Aborted', 'AbortError'));
@@ -70,10 +72,20 @@ function makeTimersShim(): Record<string, unknown> {
 }
 
 function assert(value: unknown, message?: string | Error): void {
-  if (value !== true && !value) {
-    throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
+  const holds = Boolean(value);
+  if (holds) {
+    return;
   }
+  throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
 }
+
+const deepEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
+  const as = JSON.stringify(a);
+  const bs = JSON.stringify(b);
+  if (as !== bs) {
+    throw new Error(msg instanceof Error ? msg.message : (msg ?? `Deep equal failed:\n  ${as}\n  ${bs}`));
+  }
+};
 
 function makeAssertShim(): unknown {
   assert.ok = assert;
@@ -102,15 +114,9 @@ function makeAssertShim(): unknown {
     }
   };
 
-  assert.deepEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
-    const as = JSON.stringify(a);
-    const bs = JSON.stringify(b);
-    if (as !== bs) {
-      throw new Error(msg instanceof Error ? msg.message : (msg ?? `Deep equal failed:\n  ${as}\n  ${bs}`));
-    }
-  };
 
-  assert.deepStrictEqual = assert.deepEqual;
+  assert.deepEqual = deepEqual;
+  assert.deepStrictEqual = deepEqual;
 
   assert.throws = (fn: () => unknown, _expected?: unknown, msg?: string): void => {
     try {
@@ -149,7 +155,7 @@ function buildStaticModules(): Record<string, unknown> {
   out['node:assert'] = assertShim;
   out['node:assert/strict'] = assertShim;
   out['node:timers/promises'] = makeTimersShim();
-  out['node:crypto'] = { randomUUID: () => { return globalThis.crypto.randomUUID(); } };
+  out['node:crypto'] = { 'randomUUID': () => { return globalThis.crypto.randomUUID(); } };
 
   return out;
 }
@@ -208,7 +214,7 @@ function resolveModuleSpecifier(specifier: string, fromCanonical: string): strin
 function resolveSourceCanonical(canonical: string): string | undefined {
   const browserCanonical = canonical.replace(
     /^(packages\/[^/]+\/src)\/index/,
-    (_match: string, prefix: string): string => { return prefix + '/browser/index'; }
+    (_match: string, prefix: string): string => { return `${prefix  }/browser/index`; }
   );
 
   if (browserCanonical in SOURCE_LOADERS) {
@@ -217,7 +223,7 @@ function resolveSourceCanonical(canonical: string): string | undefined {
 
   const rootCanonical = canonical.replace(
     /^(packages\/[^/]+\/src)\/browser\/index/,
-    (_match: string, prefix: string): string => { return prefix + '/index'; }
+    (_match: string, prefix: string): string => { return `${prefix  }/index`; }
   );
 
   if (rootCanonical in SOURCE_LOADERS) {
@@ -296,8 +302,8 @@ async function preloadDependencies(code: string, fromCanonical: string, visited:
 
     if (rawSource !== undefined) {
       const transformed = transform(rawSource, {
-        filePath: `${canonical}.ts`,
-        transforms: ['imports', 'typescript']
+        'filePath': `${canonical}.ts`,
+        'transforms': ['imports', 'typescript']
       });
       await preloadDependencies(transformed.code, canonical, visited);
     }
@@ -305,18 +311,18 @@ async function preloadDependencies(code: string, fromCanonical: string, visited:
 }
 
 interface LoadedModuleInterface {
-  exports: Record<string, unknown>;
+  'exports': Record<string, unknown>;
 }
 
 const moduleCache = new Map<string, LoadedModuleInterface>();
-const silentConsole: Console = { ...console, debug() {}, error() {}, info() {}, log() {}, warn() {} };
+const silentConsole: Console = { ...console, 'debug': function() {}, 'error': function() {}, 'info': function() {}, 'log': function() {}, 'warn': function() {} };
 
 const processEnvironment: Record<string, string> = {};
-const processShim = { cwd: () => { return '/'; }, env: processEnvironment, platform: 'browser' };
+const processShim = { 'cwd': () => { return '/'; }, 'env': processEnvironment, 'platform': 'browser' };
 
 function evaluate(source: string, canonical: string, runtimeConsole: Console): Record<string, unknown> {
-  const { code } = transform(source, { filePath: `${canonical}.ts`, transforms: ['imports', 'typescript'] });
-  const moduleObject: LoadedModuleInterface = { exports: {} };
+  const { code } = transform(source, { 'filePath': `${canonical}.ts`, 'transforms': ['imports', 'typescript'] });
+  const moduleObject: LoadedModuleInterface = { 'exports': {} };
   const requireShim = makeRequire(canonical);
 
   // new Function is the playground's mechanism for evaluating sucrase-transpiled
@@ -357,7 +363,7 @@ function makeRequire(fromCanonical: string): (specifier: string) => unknown {
     }
 
     // Reserve the cache slot before evaluating to tolerate import cycles.
-    const slot: LoadedModuleInterface = { exports: {} };
+    const slot: LoadedModuleInterface = { 'exports': {} };
     moduleCache.set(canonical, slot);
 
     // Dependency module bodies run with a silent console so only the example
@@ -375,7 +381,7 @@ function makeRequire(fromCanonical: string): (specifier: string) => unknown {
  * `runtimeConsole` captures the example's output.
  */
 export async function runExample(source: string, path: string, runtimeConsole: Console): Promise<void> {
-  const { code } = transform(source, { filePath: `${path}.ts`, transforms: ['imports', 'typescript'] });
+  const { code } = transform(source, { 'filePath': `${path}.ts`, 'transforms': ['imports', 'typescript'] });
 
   if (collectRequireSpecifiers(code).includes('@faker-js/faker')) {
     await ensureFakerLoaded();
@@ -383,7 +389,7 @@ export async function runExample(source: string, path: string, runtimeConsole: C
 
   await preloadDependencies(code, path, new Set<string>());
   const requireShim = makeRequire(path);
-  const moduleObject: LoadedModuleInterface = { exports: {} };
+  const moduleObject: LoadedModuleInterface = { 'exports': {} };
 
   // new Function executes user-edited example source (CJS from sucrase) with an
   // injected require shim. Running arbitrary TS examples is the playground's purpose.

@@ -7,7 +7,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "x" }]
       },
@@ -22,7 +22,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "error": "kaboom", "value": "x" }]
       },
@@ -38,7 +38,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "x" }]
       },
@@ -54,7 +54,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "x" }]
       },
@@ -71,7 +71,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "firstItems": [{ "value": "first" }],
         "secondItems": [{ "value": "second" }]

@@ -1,9 +1,45 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+
+interface PackageManifestInterface {
+  readonly 'name': string;
+}
+
+interface PackagePayloadInterface {
+  readonly 'graph': Record<string, string[]>;
+  readonly 'rootDir': string;
+  readonly 'sourceFiles': string[];
+}
+
+interface DependencyGraphInterface {
+  readonly 'edges': string[];
+  readonly 'packages': string[];
+}
+
+interface MermaidHighlightsInterface {
+  readonly 'impactedHops'?: Map<string, number>;
+  readonly 'missingTests'?: Set<string>;
+  readonly 'statuses'?: Map<string, Set<string>>;
+}
+
+interface BlastRadiusAnalysisInterface {
+  readonly 'impacted': string[];
+  readonly 'impactedHops': Map<string, number>;
+  readonly 'missingTests': Set<string>;
+  readonly 'statuses': Map<string, Set<string>>;
+  readonly 'testCounts': Map<string, number>;
+  readonly 'touched': string[];
+}
+
+interface BlastRadiusCommentInterface {
+  readonly 'body': string;
+  readonly 'mermaid': string;
+  readonly 'truncated': boolean;
+}
 
 const repoRoot = process.cwd();
 const docsPath = path.join(repoRoot, 'docs', 'dependency-graph.md');
@@ -11,37 +47,45 @@ const args = new Set(process.argv.slice(2));
 const checkMode = args.has('--check');
 const blastRadiusMode = args.has('--blast-radius');
 
-function readJson(filePath) {
+function readJson(filePath: string): unknown {
   return JSON.parse(readFileSync(filePath, 'utf8'));
 }
 
-function listPackageDirs() {
-  return readdirSync(path.join(repoRoot, 'packages'), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(repoRoot, 'packages', entry.name))
-    .filter((dir) => existsSync(path.join(dir, 'package.json')));
+function isPackageManifest(value: unknown): value is PackageManifestInterface {
+  return typeof value === 'object' && value !== null && typeof (value as { 'name'?: unknown }).name === 'string';
 }
 
-function packageNameFromDir(dir) {
-  return readJson(path.join(dir, 'package.json')).name;
+function listPackageDirs(): string[] {
+  return readdirSync(path.join(repoRoot, 'packages'), { 'withFileTypes': true })
+    .filter((entry) => {return entry.isDirectory();})
+    .map((entry) => {return path.join(repoRoot, 'packages', entry.name);})
+    .filter((dir) => {return existsSync(path.join(dir, 'package.json'));});
 }
 
-function tsconfigFromDir(dir) {
+function packageNameFromDir(dir: string): string {
+  const manifest = readJson(path.join(dir, 'package.json'));
+  if (!isPackageManifest(manifest)) {
+    throw new Error(`${dir}/package.json is missing a string "name" field.`);
+  }
+  return manifest.name;
+}
+
+function tsconfigFromDir(dir: string): string | null {
   const candidate = path.join(dir, 'tsconfig.json');
   return existsSync(candidate) ? candidate : null;
 }
 
-function madgeGraph(entryPath, tsconfigPath) {
+function madgeGraph(entryPath: string, tsconfigPath: string): Record<string, string[]> {
   const output = execFileSync(
     'pnpm',
     ['exec', 'madge', '--json', '--extensions', 'ts,tsx,js,mjs,cjs', '--ts-config', tsconfigPath, entryPath],
-    { cwd: repoRoot, encoding: 'utf8' }
+    { 'cwd': repoRoot, 'encoding': 'utf8' }
   );
 
-  return JSON.parse(output);
+  return JSON.parse(output) as Record<string, string[]>;
 }
 
-function resolvePackage(filePath, packageDirs, packageByDir, baseDir) {
+function resolvePackage(filePath: string, packageDirs: string[], packageByDir: Map<string, string>, baseDir: string): string | null {
   const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath);
   for (const dir of packageDirs) {
     const prefix = `${dir}${path.sep}`;
@@ -52,19 +96,19 @@ function resolvePackage(filePath, packageDirs, packageByDir, baseDir) {
   return null;
 }
 
-function entrypointsFromDir(dir) {
+function entrypointsFromDir(dir: string): string[] {
   const sourceDir = path.join(dir, 'src');
   const candidates = [
     path.join(sourceDir, 'index.ts'),
     path.join(sourceDir, 'node', 'index.ts'),
-    path.join(sourceDir, 'browser', 'index.ts'),
+    path.join(sourceDir, 'browser', 'index.ts')
   ];
-  const entrypoints = candidates.filter(existsSync);
+  const entrypoints = candidates.filter((candidate) => {return existsSync(candidate);});
   return entrypoints.length > 0 ? entrypoints : [sourceDir];
 }
 
-function sourceFilesFromGraph(graph, sourceDir, entrypoints) {
-  const sourceFiles = new Set();
+function sourceFilesFromGraph(graph: Record<string, string[]>, sourceDir: string, entrypoints: string[]): string[] {
+  const sourceFiles = new Set<string>();
   for (const entrypoint of entrypoints) {
     if (existsSync(entrypoint) && path.extname(entrypoint) !== '') {
       sourceFiles.add(entrypoint);
@@ -79,7 +123,7 @@ function sourceFilesFromGraph(graph, sourceDir, entrypoints) {
   return [...sourceFiles].toSorted();
 }
 
-function staticModuleSpecifiers(sourcePath) {
+function staticModuleSpecifiers(sourcePath: string): Set<string> {
   const sourceFile = ts.createSourceFile(
     sourcePath,
     readFileSync(sourcePath, 'utf8'),
@@ -87,9 +131,9 @@ function staticModuleSpecifiers(sourcePath) {
     true,
     path.extname(sourcePath) === '.tsx' ? ts.ScriptKind.TSX : ts.ScriptKind.TS
   );
-  const specifiers = new Set();
+  const specifiers = new Set<string>();
 
-  const visit = (node) => {
+  const visit = (node: ts.Node): void => {
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
       specifiers.add(node.moduleSpecifier.text);
     } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
@@ -104,41 +148,47 @@ function staticModuleSpecifiers(sourcePath) {
   return specifiers;
 }
 
-function workspacePackageFromSpecifier(specifier, workspacePackages) {
+function workspacePackageFromSpecifier(specifier: string, workspacePackages: Set<string>): string | null {
   const [scope, name] = specifier.split('/');
   if (scope !== '@studnicky' || name === undefined || name === '') {
     return null;
   }
-  const packageName = scope + '/' + name;
+  const packageName = `${scope}/${name}`;
   return workspacePackages.has(packageName) ? packageName : null;
 }
 
-function buildGraph() {
+function buildGraph(): DependencyGraphInterface {
   const packageDirs = listPackageDirs();
-  const packageByDir = new Map(packageDirs.map((dir) => [dir, packageNameFromDir(dir)]));
+  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
   const workspacePackages = new Set(packageByDir.values());
-  const packageToFiles = new Map();
+  const packageToFiles = new Map<string, PackagePayloadInterface>();
 
   for (const dir of packageDirs) {
     const tsconfigPath = tsconfigFromDir(dir);
     const entrypoints = entrypointsFromDir(dir);
-    if (!tsconfigPath || !existsSync(entrypoints[0])) {
+    const firstEntrypoint = entrypoints[0];
+    if (tsconfigPath === null || firstEntrypoint === undefined || !existsSync(firstEntrypoint)) {
       continue;
     }
 
-    const graph = {};
+    const graph: Record<string, string[]> = {};
     for (const entrypoint of entrypoints) {
       Object.assign(graph, madgeGraph(entrypoint, tsconfigPath));
     }
 
-    packageToFiles.set(packageByDir.get(dir), {
-      graph,
-      rootDir: path.join(dir, 'src'),
-      sourceFiles: sourceFilesFromGraph(graph, path.join(dir, 'src'), entrypoints),
+    const packageName = packageByDir.get(dir);
+    if (packageName === undefined) {
+      continue;
+    }
+
+    packageToFiles.set(packageName, {
+      'graph': graph,
+      'rootDir': path.join(dir, 'src'),
+      'sourceFiles': sourceFilesFromGraph(graph, path.join(dir, 'src'), entrypoints)
     });
   }
 
-  const edges = new Set();
+  const edges = new Set<string>();
   for (const [packageName, payload] of packageToFiles.entries()) {
     for (const [file, dependencies] of Object.entries(payload.graph)) {
       const fromPackage = resolvePackage(file, packageDirs, packageByDir, payload.rootDir);
@@ -170,40 +220,40 @@ function buildGraph() {
   }
 
   return {
-    edges: [...edges].toSorted(),
-    packages: [...workspacePackages].toSorted(),
+    'edges': [...edges].toSorted(),
+    'packages': [...workspacePackages].toSorted()
   };
 }
 
-function sanitizeNodeId(value) {
-  return `p_${value.replace(/[^A-Za-z0-9_]/g, '_')}`;
+function sanitizeNodeId(value: string): string {
+  return `p_${value.replace(/[^A-Za-z0-9_]/gu, '_')}`;
 }
 
 const STATUS_PRIORITY = ['added', 'modified', 'deleted'];
 const BLAST_FILLS = ['#e28c36', '#e2a363', '#e5b98d', '#eacfb4', '#f2e6d9'];
 const BLAST_STROKE = '#ad661f';
 
-function blastFill(hop, maxHop) {
+function blastFill(hop: number, maxHop: number): string {
   const ratio = maxHop <= 1 ? 0 : (hop - 1) / (maxHop - 1);
-  return BLAST_FILLS[Math.round(ratio * (BLAST_FILLS.length - 1))];
+  return BLAST_FILLS[Math.round(ratio * (BLAST_FILLS.length - 1))] ?? '#e28c36';
 }
 
-function contrastText(hex) {
-  const [r, g, b] = [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
-  return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? '#000000' : '#ffffff';
+function contrastText(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((index) => {return Number.parseInt(hex.slice(index, index + 2), 16);});
+  return ((r ?? 0) * 299 + (g ?? 0) * 587 + (b ?? 0) * 114) / 1000 >= 128 ? '#000000' : '#ffffff';
 }
 
-function statusForPackage(packageName, statusMap) {
+function statusForPackage(packageName: string, statusMap: Map<string, Set<string>>): string | null {
   const statuses = statusMap.get(packageName) ?? new Set();
-  return STATUS_PRIORITY.find((status) => statuses.has(status)) ?? null;
+  return STATUS_PRIORITY.find((status) => {return statuses.has(status);}) ?? null;
 }
 
-function collectNodeIds(lines) {
-  const nodeIds = new Set();
+function collectNodeIds(lines: string[]): Set<string> {
+  const nodeIds = new Set<string>();
   for (const line of lines) {
-    for (const part of line.trim().split(/\s+-->\s+|\s+-\.->\s+/)) {
-      const match = part.match(/^([A-Za-z0-9_]+)/);
-      if (match) {
+    for (const part of line.trim().split(/\s+-->\s+|\s+-\.->\s+/u)) {
+      const match = /^([A-Za-z0-9_]+)/u.exec(part);
+      if (match?.[1] !== undefined) {
         nodeIds.add(match[1]);
       }
     }
@@ -211,26 +261,26 @@ function collectNodeIds(lines) {
   return nodeIds;
 }
 
-function buildMermaid(packages, edges, highlights = {}) {
+function buildMermaid(packages: string[], edges: string[], highlights: MermaidHighlightsInterface = {}): string {
   const packageSet = new Set(packages);
-  const statuses = highlights.statuses ?? new Map();
-  const impactedHops = highlights.impactedHops ?? new Map();
-  const missingTests = highlights.missingTests ?? new Set();
-  const nodeLines = packages.map((name) => `${sanitizeNodeId(name)}["${name}"]`).toSorted();
+  const statuses = highlights.statuses ?? new Map<string, Set<string>>();
+  const impactedHops = highlights.impactedHops ?? new Map<string, number>();
+  const missingTests = highlights.missingTests ?? new Set<string>();
+  const nodeLines = packages.map((name) => {return `${sanitizeNodeId(name)}["${name}"]`;}).toSorted();
   const mermaidEdges = edges.filter((edge) => {
     const [from, to] = edge.split(' -> ');
-    return packageSet.has(from) && packageSet.has(to);
+    return from !== undefined && to !== undefined && packageSet.has(from) && packageSet.has(to);
   }).map((edge) => {
     const [from, to] = edge.split(' -> ');
-    return `${sanitizeNodeId(from)} --> ${sanitizeNodeId(to)}`;
+    return `${sanitizeNodeId(from ?? '')} --> ${sanitizeNodeId(to ?? '')}`;
   }).toSorted();
 
   const graphLines = [...nodeLines, ...mermaidEdges];
   const keptNodeIds = collectNodeIds(graphLines);
-  const presentStatuses = new Set();
-  const presentHops = new Set();
-  const classDefinitions = [];
-  const classLines = [];
+  const presentStatuses = new Set<string>();
+  const presentHops = new Set<number>();
+  const classDefinitions: string[] = [];
+  const classLines: string[] = [];
 
   for (const name of packages) {
     const nodeId = sanitizeNodeId(name);
@@ -254,22 +304,22 @@ function buildMermaid(packages, edges, highlights = {}) {
 
   const statusStyles = new Map([
     ['added', 'fill:#d4edda,stroke:#28a745,color:#155724'],
-    ['modified', 'fill:#fff3cd,stroke:#856404,color:#664d03'],
     ['deleted', 'fill:#f8d7da,stroke:#dc3545,color:#842029,stroke-dasharray:5 5'],
+    ['modified', 'fill:#fff3cd,stroke:#856404,color:#664d03']
   ]);
   for (const status of STATUS_PRIORITY) {
     if (presentStatuses.has(status)) {
-      classDefinitions.push(`classDef ${status} ${statusStyles.get(status)}`);
+      classDefinitions.push(`classDef ${status} ${statusStyles.get(status) ?? ''}`);
     }
   }
 
   const maxHopSeen = presentHops.size > 0 ? Math.max(...presentHops) : 1;
-  for (const hop of [...presentHops].toSorted((a, b) => a - b)) {
+  for (const hop of [...presentHops].toSorted((a, b) => {return a - b;})) {
     const fill = blastFill(hop, maxHopSeen);
     classDefinitions.push(`classDef impacted_${hop} fill:${fill},stroke:${BLAST_STROKE},color:${contrastText(fill)}`);
   }
 
-  const noteLines = [];
+  const noteLines: string[] = [];
   let missingTestNoteCount = 0;
   for (const name of [...missingTests].toSorted()) {
     const nodeId = sanitizeNodeId(name);
@@ -285,18 +335,18 @@ function buildMermaid(packages, edges, highlights = {}) {
     classDefinitions.push('classDef notest fill:#fdecea,stroke:#c0392b,color:#7a1f1f,stroke-dasharray:3 3');
   }
 
-  const legendLines = [];
+  const legendLines: string[] = [];
   const legendLabels = new Map([
     ['added', 'Package contains added files'],
-    ['modified', 'Package contains modified files'],
     ['deleted', 'Package contains deleted files'],
+    ['modified', 'Package contains modified files']
   ]);
   for (const status of STATUS_PRIORITY) {
     if (presentStatuses.has(status)) {
-      legendLines.push(`legend_${status}["${legendLabels.get(status)}"]:::${status}`);
+      legendLines.push(`legend_${status}["${legendLabels.get(status) ?? ''}"]:::${status}`);
     }
   }
-  for (const hop of [...presentHops].toSorted((a, b) => a - b)) {
+  for (const hop of [...presentHops].toSorted((a, b) => {return a - b;})) {
     legendLines.push(`legend_impacted_${hop}["Impacted ${hop === 1 ? '1 hop' : `${hop} hops`} away"]:::impacted_${hop}`);
   }
   if (missingTestNoteCount > 0) {
@@ -309,15 +359,15 @@ function buildMermaid(packages, edges, highlights = {}) {
     ...graphLines,
     ...noteLines,
     ...classLines,
-    ...(legendLines.length > 0 ? ['subgraph Legend', ...legendLines.map((line) => `  ${line}`), 'end'] : []),
+    ...(legendLines.length > 0 ? ['subgraph Legend', ...legendLines.map((line) => {return `  ${line}`;}), 'end'] : [])
   ].join('\n');
 }
 
-function listText(values) {
+function listText(values: string[]): string {
   return values.length > 0 ? values.join(', ') : 'none';
 }
 
-function buildMarkdown(packages, edges) {
+function buildMarkdown(packages: string[], edges: string[]): string {
   const mermaid = buildMermaid(packages, edges);
 
   return [
@@ -328,37 +378,37 @@ function buildMarkdown(packages, edges) {
     '```mermaid',
     mermaid,
     '```',
-    '',
+    ''
   ].join('\n');
 }
 
-function buildBlastRadiusMermaid(graph, analysis) {
+function buildBlastRadiusMermaid(graph: DependencyGraphInterface, analysis: BlastRadiusAnalysisInterface): string {
   const packages = analysis.impacted.length > 0 ? analysis.impacted : ['No package changes detected'];
   const edges = analysis.impacted.length > 0
     ? graph.edges.filter((edge) => {
-        const [from, to] = edge.split(' -> ');
-        return analysis.impacted.includes(from) && analysis.impacted.includes(to);
-      })
+      const [from, to] = edge.split(' -> ');
+      return from !== undefined && to !== undefined && analysis.impacted.includes(from) && analysis.impacted.includes(to);
+    })
     : [];
   return analysis.impacted.length > 0
     ? buildMermaid(packages, edges, {
-        impactedHops: analysis.impactedHops,
-        missingTests: analysis.missingTests,
-        statuses: analysis.statuses,
-      })
+      'impactedHops': analysis.impactedHops,
+      'missingTests': analysis.missingTests,
+      'statuses': analysis.statuses
+    })
     : buildMermaid(packages, []);
 }
 
-function testedSummary(analysis) {
+function testedSummary(analysis: BlastRadiusAnalysisInterface): string {
   const impacted = analysis.impacted.length;
   if (impacted === 0) {
     return 'none';
   }
-  const withTests = analysis.impacted.filter((pkg) => (analysis.testCounts.get(pkg) ?? 0) > 0).length;
+  const withTests = analysis.impacted.filter((pkg) => {return (analysis.testCounts.get(pkg) ?? 0) > 0;}).length;
   return `${withTests}/${impacted} impacted package(s) have package tests`;
 }
 
-function buildBlastRadiusMarkdown(graph, baseRef, analysis) {
+function buildBlastRadiusMarkdown(graph: DependencyGraphInterface, baseRef: string, analysis: BlastRadiusAnalysisInterface): string {
   const mermaid = buildBlastRadiusMermaid(graph, analysis);
 
   return [
@@ -376,19 +426,19 @@ function buildBlastRadiusMarkdown(graph, baseRef, analysis) {
     mermaid,
     '```',
     '',
-    '',
+    ''
   ].join('\n');
 }
 
-function truncateMermaidForComment(mermaid, header, footer) {
+function truncateMermaidForComment(mermaid: string, header: string, footer: string): { 'mermaid': string; 'truncated': boolean } {
   const maxBodyLength = 60000;
   const body = `${header}${mermaid}${footer}`;
   if (body.length <= maxBodyLength) {
-    return { mermaid, truncated: false };
+    return { 'mermaid': mermaid, 'truncated': false };
   }
 
   const budget = maxBodyLength - header.length - footer.length - 90;
-  const kept = [];
+  const kept: string[] = [];
   let total = 0;
   for (const line of mermaid.split('\n')) {
     if (total + line.length + 1 > budget) {
@@ -398,10 +448,10 @@ function truncateMermaidForComment(mermaid, header, footer) {
     total += line.length + 1;
   }
   kept.push('  note_truncated["diagram truncated to fit GitHub comment size"]');
-  return { mermaid: kept.join('\n'), truncated: true };
+  return { 'mermaid': kept.join('\n'), 'truncated': true };
 }
 
-function buildBlastRadiusComment(graph, baseRef, analysis) {
+function buildBlastRadiusComment(graph: DependencyGraphInterface, baseRef: string, analysis: BlastRadiusAnalysisInterface): BlastRadiusCommentInterface {
   const mermaid = buildBlastRadiusMermaid(graph, analysis);
   const marker = '<!-- substrate-dependency-blast-radius -->';
   const header = [
@@ -417,54 +467,55 @@ function buildBlastRadiusComment(graph, baseRef, analysis) {
     `Package test signal: ${testedSummary(analysis)}`,
     '',
     '```mermaid',
-    '',
+    ''
   ].join('\n');
   const footer = '\n```';
   const truncated = truncateMermaidForComment(mermaid, header, footer);
 
   return {
-    body: `${header}${truncated.mermaid}${footer}\n`,
-    mermaid,
-    truncated: truncated.truncated,
+    'body': `${header}${truncated.mermaid}${footer}\n`,
+    'mermaid': mermaid,
+    'truncated': truncated.truncated
   };
 }
 
-function writeOptionalArtifact(envKey, contents) {
+function writeOptionalArtifact(envKey: string, contents: string): string | null {
   const artifactPath = process.env[envKey];
   if (artifactPath === undefined || artifactPath === '') {
     return null;
   }
 
   const resolvedArtifactPath = path.resolve(repoRoot, artifactPath);
-  mkdirSync(path.dirname(resolvedArtifactPath), { recursive: true });
+  mkdirSync(path.dirname(resolvedArtifactPath), { 'recursive': true });
   writeFileSync(resolvedArtifactPath, contents);
   return path.relative(repoRoot, resolvedArtifactPath);
 }
 
-function parseBaseRef() {
+function parseBaseRef(): string {
   const baseIndex = process.argv.indexOf('--base');
-  if (baseIndex !== -1 && process.argv[baseIndex + 1]) {
-    return process.argv[baseIndex + 1];
+  const explicitBaseRef = process.argv[baseIndex + 1];
+  if (baseIndex !== -1 && explicitBaseRef !== undefined && explicitBaseRef !== '') {
+    return explicitBaseRef;
   }
 
   try {
-    return execFileSync('git', ['symbolic-ref', 'refs/remotes/origin/HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim().replace(/^refs\/remotes\/origin\//, 'origin/');
+    return execFileSync('git', ['symbolic-ref', 'refs/remotes/origin/HEAD'], { 'cwd': repoRoot, 'encoding': 'utf8' }).trim().replace(/^refs\/remotes\/origin\//u, 'origin/');
   } catch {
     return 'origin/develop';
   }
 }
 
-function changedFiles(baseRef, diffFilter = null) {
+function changedFiles(baseRef: string, diffFilter: string | null = null): string[] {
   const gitArguments = ['diff', '--name-only'];
   if (diffFilter !== null) {
     gitArguments.push(`--diff-filter=${diffFilter}`);
   }
   gitArguments.push(`${baseRef}...HEAD`);
-  const output = execFileSync('git', gitArguments, { cwd: repoRoot, encoding: 'utf8' });
-  return output.split('\n').map((line) => line.trim()).filter(Boolean);
+  const output = execFileSync('git', gitArguments, { 'cwd': repoRoot, 'encoding': 'utf8' });
+  return output.split('\n').map((line) => {return line.trim();}).filter((line) => {return line.length > 0;});
 }
 
-function packageForPath(filePath, packageDirs, packageByDir) {
+function packageForPath(filePath: string, packageDirs: string[], packageByDir: Map<string, string>): string | null {
   const resolved = path.resolve(repoRoot, filePath);
   for (const dir of packageDirs) {
     if (resolved.startsWith(`${dir}${path.sep}`)) {
@@ -474,12 +525,12 @@ function packageForPath(filePath, packageDirs, packageByDir) {
   return null;
 }
 
-function packageTestCounts(packageDirs, packageByDir) {
-  const counts = new Map();
-  const testPattern = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
-  const visit = (dir) => {
+function packageTestCounts(packageDirs: string[], packageByDir: Map<string, string>): Map<string, number> {
+  const counts = new Map<string, number>();
+  const testPattern = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
+  const visit = (dir: string): number => {
     let total = 0;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    for (const entry of readdirSync(dir, { 'withFileTypes': true })) {
       if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.orchestration') {
         continue;
       }
@@ -494,31 +545,37 @@ function packageTestCounts(packageDirs, packageByDir) {
   };
 
   for (const dir of packageDirs) {
-    counts.set(packageByDir.get(dir), visit(dir));
+    const packageName = packageByDir.get(dir);
+    if (packageName !== undefined) {
+      counts.set(packageName, visit(dir));
+    }
   }
   return counts;
 }
 
-function computeBlastRadius(graph, baseRef) {
+function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): BlastRadiusAnalysisInterface {
   const packageDirs = listPackageDirs();
-  const packageByDir = new Map(packageDirs.map((dir) => [dir, packageNameFromDir(dir)]));
-  const reverseEdges = new Map();
-  const statuses = new Map();
-  const touched = new Set();
+  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
+  const reverseEdges = new Map<string, string[]>();
+  const statuses = new Map<string, Set<string>>();
+  const touched = new Set<string>();
 
-  const addStatus = (status, file) => {
+  const addStatus = (status: string, file: string): void => {
     const pkg = packageForPath(file, packageDirs, packageByDir);
-    if (!pkg) {
+    if (pkg === null) {
       return;
     }
     touched.add(pkg);
-    const packageStatuses = statuses.get(pkg) ?? new Set();
+    const packageStatuses = statuses.get(pkg) ?? new Set<string>();
     packageStatuses.add(status);
     statuses.set(pkg, packageStatuses);
   };
 
   for (const edge of graph.edges) {
     const [from, to] = edge.split(' -> ');
+    if (from === undefined || to === undefined) {
+      continue;
+    }
     const list = reverseEdges.get(to) ?? [];
     list.push(from);
     reverseEdges.set(to, list);
@@ -535,11 +592,15 @@ function computeBlastRadius(graph, baseRef) {
   }
 
   const impacted = new Set(touched);
-  const impactedHops = new Map();
-  const queue = [...touched].map((pkg) => [pkg, 0]);
+  const impactedHops = new Map<string, number>();
+  const queue: [string, number][] = [...touched].map((pkg) => {return [pkg, 0];});
 
   while (queue.length > 0) {
-    const [current, hop] = queue.shift();
+    const next = queue.shift();
+    if (next === undefined) {
+      continue;
+    }
+    const [current, hop] = next;
     const parents = reverseEdges.get(current) ?? [];
     for (const parent of parents) {
       if (impacted.has(parent)) {
@@ -553,16 +614,16 @@ function computeBlastRadius(graph, baseRef) {
 
   const testCounts = packageTestCounts(packageDirs, packageByDir);
   const missingTests = new Set(
-    [...impacted].filter((pkg) => !touched.has(pkg) && (testCounts.get(pkg) ?? 0) === 0)
+    [...impacted].filter((pkg) => {return !touched.has(pkg) && (testCounts.get(pkg) ?? 0) === 0;})
   );
 
   return {
-    impacted: [...impacted].toSorted(),
-    impactedHops,
-    missingTests,
-    statuses,
-    testCounts,
-    touched: [...touched].toSorted(),
+    'impacted': [...impacted].toSorted(),
+    'impactedHops': impactedHops,
+    'missingTests': missingTests,
+    'statuses': statuses,
+    'testCounts': testCounts,
+    'touched': [...touched].toSorted()
   };
 }
 
@@ -591,10 +652,10 @@ if (blastRadiusMode) {
   process.stdout.write(`Package test signal: ${testedSummary(analysis)}\n`);
   const comment = buildBlastRadiusComment(graph, baseRef, analysis);
 
-  const artifactPath = process.env['DEPENDENCY_DIAGRAM_ARTIFACT'];
+  const artifactPath = process.env.DEPENDENCY_DIAGRAM_ARTIFACT;
   if (artifactPath !== undefined && artifactPath !== '') {
     const resolvedArtifactPath = path.resolve(repoRoot, artifactPath);
-    mkdirSync(path.dirname(resolvedArtifactPath), { recursive: true });
+    mkdirSync(path.dirname(resolvedArtifactPath), { 'recursive': true });
     writeFileSync(resolvedArtifactPath, buildBlastRadiusMarkdown(graph, baseRef, analysis));
     process.stdout.write(`Blast-radius diagram: ${path.relative(repoRoot, resolvedArtifactPath)}\n`);
   }

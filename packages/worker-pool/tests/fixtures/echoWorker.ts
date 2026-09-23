@@ -15,10 +15,23 @@
  */
 import { parentPort } from 'node:worker_threads';
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+interface EchoRequestInterface {
+  barrier?: SharedArrayBuffer;
+  barrierTarget?: number;
+  error?: string;
+  ms?: number;
+  value: unknown;
+}
+
+if (parentPort === null) {
+  throw new Error('echoWorker must run in a worker thread');
+}
+const port = parentPort;
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 const barrierTimeoutMs = 5000;
 
-function awaitBarrier(barrier, target) {
+function awaitBarrier(barrier: SharedArrayBuffer, target: number): void {
   const view = new Int32Array(barrier);
   const deadline = Date.now() + barrierTimeoutMs;
 
@@ -31,25 +44,25 @@ function awaitBarrier(barrier, target) {
   }
 }
 
-parentPort.once('message', async (message) => {
+port.once('message', async (message: EchoRequestInterface) => {
   const { value, ms, error, barrier, barrierTarget } = message;
 
-  parentPort.postMessage({ 'type': 'log', 'message': `received ${JSON.stringify(value)}` });
+  port.postMessage({ 'type': 'log', 'message': `received ${JSON.stringify(value)}` });
 
   if (typeof ms === 'number' && ms > 0) {
     await delay(ms);
   }
 
-  parentPort.postMessage({ 'type': 'progress', 'percent': 100 });
+  port.postMessage({ 'type': 'progress', 'percent': 100 });
 
   if (barrier instanceof SharedArrayBuffer && typeof barrierTarget === 'number') {
     awaitBarrier(barrier, barrierTarget);
   }
 
   if (typeof error === 'string') {
-    parentPort.postMessage({ 'type': 'error', 'error': error });
+    port.postMessage({ 'type': 'error', 'error': error });
     return;
   }
 
-  parentPort.postMessage({ 'type': 'result', 'value': value });
+  port.postMessage({ 'type': 'result', 'value': value });
 });

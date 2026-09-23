@@ -111,7 +111,7 @@ const pool = TelemetryWorkerPool.create({
 const results = await pool.run([{ n: 5 }, { n: 10 }, { n: 15 }]);
 ```
 
-See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWorkerPoolWorker.mjs` for the full runnable version.
+See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWorkerPoolWorker.ts` for the full runnable version.
 
 
 ## Documentation

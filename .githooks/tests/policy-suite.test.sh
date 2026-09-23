@@ -6,14 +6,14 @@ cd "$(dirname "$0")" || exit 1
 source "_helpers.sh"
 
 POLICY_RUNNER="$(cd "$PWD/../.." && pwd)/scripts/policy-suite.sh"
-CI_SECRETS_CHECKER="$(cd "$PWD/../.." && pwd)/.github/scripts/check-ci-secrets.mjs"
+CI_SECRETS_CHECKER="$(cd "$PWD/../.." && pwd)/.github/scripts/check-ci-secrets.ts"
 REPO_ROOT="$(cd "$PWD/../.." && pwd)"
 
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
   mkdir -p .github/scripts .github/workflows
-  cp "$CI_SECRETS_CHECKER" .github/scripts/check-ci-secrets.mjs
+  cp "$CI_SECRETS_CHECKER" .github/scripts/check-ci-secrets.ts
   cat > .github/ci-secrets.json <<'JSON'
 [
   {

@@ -5,7 +5,7 @@ cd "$(dirname "$0")" || exit 1
 # shellcheck source=_helpers.sh
 source "_helpers.sh"
 
-CHECKER="$(cd "$PWD/../.." && pwd)/scripts/check-docs-demos.mjs"
+CHECKER="$(cd "$PWD/../.." && pwd)/scripts/check-docs-demos.ts"
 repo=$(mktemp -d)
 
 cleanup() {

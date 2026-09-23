@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function resolveRepoRoot() {
+function resolveRepoRoot(): string {
   const [option, root] = process.argv.slice(2);
 
   if (option === undefined) {
@@ -26,11 +26,11 @@ function resolveRepoRoot() {
     return path.resolve(root);
   }
 
-  throw new Error('Usage: check-docs-demos.mjs [--root path]');
+  throw new Error('Usage: check-docs-demos.ts [--root path]');
 }
 
-function getRunnableSources(content) {
-  const sources = [];
+function getRunnableSources(content: string): string[] {
+  const sources: string[] = [];
   const componentPattern = /<RunnableExample\b[^>]*\bsrc\s*=\s*(["'])([^"']+)\1[^>]*>/gu;
 
   for (const match of content.matchAll(componentPattern)) {
@@ -43,7 +43,7 @@ function getRunnableSources(content) {
   return sources;
 }
 
-function resolveSourceCanonical(repoRoot, source) {
+function resolveSourceCanonical(repoRoot: string, source: string): string | undefined {
   if (existsSync(path.join(repoRoot, `${source}.ts`))) {
     return source;
   }
@@ -52,14 +52,14 @@ function resolveSourceCanonical(repoRoot, source) {
   return existsSync(path.join(repoRoot, `${indexCanonical}.ts`)) ? indexCanonical : undefined;
 }
 
-function sourceHasRegisteredLoader(repoRoot, source, registeredSourcePaths) {
+function sourceHasRegisteredLoader(repoRoot: string, source: string, registeredSourcePaths: Set<string>): boolean {
   const canonical = resolveSourceCanonical(repoRoot, source);
   return canonical !== undefined && registeredSourcePaths.has(canonical);
 }
 
-async function findExampleSourcePaths(repoRoot, directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const result = [];
+async function findExampleSourcePaths(repoRoot: string, directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { 'withFileTypes': true });
+  const result: string[] = [];
 
   for (const entry of entries) {
     const filePath = path.join(directory, entry.name);
@@ -69,7 +69,7 @@ async function findExampleSourcePaths(repoRoot, directory) {
       continue;
     }
     if (entry.isFile() && entry.name.endsWith('.ts')) {
-      result.push(path.relative(repoRoot, filePath).replace(/\.ts$/, '').split(path.sep).join('/'));
+      result.push(path.relative(repoRoot, filePath).replace(/\.ts$/u, '').split(path.sep).join('/'));
     }
   }
 
@@ -80,13 +80,14 @@ const repoRoot = resolveRepoRoot();
 const packagesRoot = path.join(repoRoot, 'packages');
 const docsPackagesRoot = path.join(repoRoot, 'docs', 'packages');
 const sourceRegistryPath = path.join(repoRoot, 'docs', '.vitepress', 'theme', 'utils', 'ExampleSourcePaths.json');
-const registeredSourcePaths = new Set(JSON.parse(await readFile(sourceRegistryPath, 'utf8')));
-const entries = await readdir(packagesRoot, { withFileTypes: true });
+const registeredSourceEntries: unknown = JSON.parse(await readFile(sourceRegistryPath, 'utf8'));
+const registeredSourcePaths = new Set(Array.isArray(registeredSourceEntries) ? registeredSourceEntries : []);
+const entries = await readdir(packagesRoot, { 'withFileTypes': true });
 const packageNames = entries
-  .filter((entry) => entry.isDirectory() && existsSync(path.join(packagesRoot, entry.name, 'package.json')))
-  .map((entry) => entry.name)
-  .toSorted((left, right) => left.localeCompare(right));
-const violations = [];
+  .filter((entry) => {return entry.isDirectory() && existsSync(path.join(packagesRoot, entry.name, 'package.json'));})
+  .map((entry) => {return entry.name;})
+  .toSorted((left, right) => {return left.localeCompare(right);});
+const violations: string[] = [];
 
 for (const source of registeredSourcePaths) {
   if (typeof source !== 'string' || resolveSourceCanonical(repoRoot, source) === undefined) {
@@ -126,7 +127,7 @@ for (const packageName of packageNames) {
   }
 
   const packageExamplePrefix = `packages/${packageName}/examples/`;
-  const validSource = sources.find((source) => source.startsWith(packageExamplePrefix) && sourceHasRegisteredLoader(repoRoot, source, registeredSourcePaths));
+  const validSource = sources.find((source) => {return source.startsWith(packageExamplePrefix) && sourceHasRegisteredLoader(repoRoot, source, registeredSourcePaths);});
 
   if (validSource === undefined) {
     violations.push(`docs/packages/${packageName}.md must reference an existing ${packageExamplePrefix}*.ts source from <RunnableExample>.`);

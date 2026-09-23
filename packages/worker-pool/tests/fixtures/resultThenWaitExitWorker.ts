@@ -1,11 +1,18 @@
 import { parentPort } from 'node:worker_threads';
 
+interface ResultThenWaitExitRequestInterface {
+  exitAfterResult?: boolean;
+  gate: SharedArrayBuffer;
+  value: unknown;
+}
+
 if (parentPort === null) {
   throw new Error('resultThenWaitExitWorker must run in a worker thread');
 }
+const port = parentPort;
 
-parentPort.on('message', (item) => {
-  parentPort.postMessage({ 'type': 'result', 'value': item.value });
+port.on('message', (item: ResultThenWaitExitRequestInterface) => {
+  port.postMessage({ 'type': 'result', 'value': item.value });
   if (item.exitAfterResult !== true) {
     return;
   }

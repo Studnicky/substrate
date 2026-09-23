@@ -11,9 +11,20 @@
  */
 import { parentPort } from 'node:worker_threads';
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+interface ConcurrencyRequestInterface {
+  counts: SharedArrayBuffer;
+  ms: number;
+  value: unknown;
+}
 
-parentPort.once('message', async (message) => {
+if (parentPort === null) {
+  throw new Error('concurrencyWorker must run in a worker thread');
+}
+const port = parentPort;
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+port.once('message', async (message: ConcurrencyRequestInterface) => {
   const { counts, ms, value } = message;
   const view = new Int32Array(counts);
 
@@ -30,5 +41,5 @@ parentPort.once('message', async (message) => {
 
   Atomics.sub(view, 0, 1);
 
-  parentPort.postMessage({ 'type': 'result', 'value': value });
+  port.postMessage({ 'type': 'result', 'value': value });
 });

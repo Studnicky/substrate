@@ -33,7 +33,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "keywords": [
     "store",
