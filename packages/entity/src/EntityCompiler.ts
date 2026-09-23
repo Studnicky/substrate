@@ -1,11 +1,14 @@
 /**
  * EntityCompiler — schema-as-source-of-truth runtime validation.
  *
- * Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate
- * backed by Ajv. Entities declare a single `Schema` (`as const satisfies
- * JSONSchema`) and derive both their compile-time `Type`
- * (via `FromSchema`) and their runtime `validate` guard from it — there is no
- * second, hand-written validator to drift out of sync.
+ * Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate.
+ * Entities declare a single `Schema` (`as const satisfies JSONSchema`) and derive
+ * both their compile-time `Type` (via `FromSchema`) and their runtime `validate`
+ * guard from it — there is no second, hand-written validator to drift out of sync.
+ *
+ * This base class holds every rule that does not depend on a compilation backend.
+ * The node and browser entrypoints each subclass it, overriding the protected
+ * static `registries` accessor with a backend suited to their runtime.
  *
  * `compileIntake` parses data from outside the codebase; `compileCreate` builds
  * object entities from trusted data. Both fill schema defaults and validate the
@@ -16,52 +19,54 @@
  *
  * @module
  */
-import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/browser';
 
 import type { EntityCreateFunctionInterface } from './interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from './interfaces/EntityValidateFunctionInterface.js';
 import type { EntityValidationErrorInterface } from './interfaces/EntityValidationErrorInterface.js';
+import type { SchemaCompilerInterface } from './interfaces/SchemaCompilerInterface.js';
+import type { SchemaRegistrySetInterface } from './interfaces/SchemaRegistrySetInterface.js';
 
-import { EntityAjvInstance } from './EntityAjvInstance.js';
 import { SchemaIntakeError } from './SchemaIntakeError.js';
 
-interface SchemaRegistryInterface {
-  readonly 'compile': <TValidated>(schema: object) => EntityValidateFunctionInterface<TValidated>;
-  readonly 'getSchema': <TValidated>(key: string) => EntityValidateFunctionInterface<TValidated> | undefined;
-}
-
 export class EntityCompiler {
-  private static readonly patternPropertyValidators = new WeakMap<object, Map<string, EntityValidateFunctionInterface<Record<string, null>>>>();
+  private static readonly patternPropertyMatchers = new WeakMap<object, Map<string, RegExp>>();
+
+  /** The compilation backend to dispatch to. Every runtime entrypoint overrides this. */
+  protected static get registries(): SchemaRegistrySetInterface {
+    throw new Error('EntityCompiler must be extended with a runtime-specific registries accessor.');
+  }
+
   /**
    * Compiles `schema` into a type-guard predicate. The returned function
-   * narrows `unknown` to `TValidated` and carries Ajv's `.errors` array after
-   * each call, so callers needing detail can pair it with {@link formatErrors}.
+   * narrows `unknown` to `TValidated` and carries the backend's `.errors` array
+   * after each call, so callers needing detail can pair it with {@link EntityCompiler.formatErrors}.
    *
    * Compile once at module load and reuse; compilation is the expensive step.
    */
   public static compile<TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> {
     const id = EntityCompiler.schemaId(schema);
     if (id !== undefined) {
-      const existing = EntityAjvInstance.assert.getSchema<TValidated>(id);
+      const existing = this.registries.assert.getSchema<TValidated>(id);
       if (existing !== undefined) {
         return existing;
       }
     }
-    const result = EntityAjvInstance.assert.compile<TValidated>(schema);
+    const result = this.registries.assert.compile<TValidated>(schema);
     return result;
   }
 
   /**
    * Compiles `schema` into an untrusted-input parser. The parser clones input
-   * before Ajv applies schema defaults, leaving the caller's value unchanged.
+   * before defaults are applied, leaving the caller's value unchanged.
    *
    * Cyclic values are rejected before cloning because JSON Schema models JSON
    * trees rather than object graphs. Scalar values are never coerced — a `"true"`
    * string for a `boolean` field is rejected, not silently accepted as `true`.
    */
   public static compileIntake<TValidated>(schema: object): EntityIntakeFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.intake, schema);
+    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.intake, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
       if (Predicates.hasCycle(input)) {
@@ -93,7 +98,7 @@ export class EntityCompiler {
   public static compileCreate<TValidated extends object>(
     schema: object
   ): EntityCreateFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.create, schema);
+    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.create, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const create: EntityCreateFunctionInterface<TValidated> = (partial = {}) => {
       const cloned = structuredClone(partial);
@@ -107,7 +112,7 @@ export class EntityCompiler {
   }
 
   /**
-   * Renders an Ajv error array into a single human-readable line. Returns a
+   * Renders an error array into a single human-readable line. Returns a
    * stable fallback when the array is empty, `null`, or `undefined`.
    */
   public static formatErrors(errors: Readonly<readonly EntityValidationErrorInterface[]> | null | undefined): string {
@@ -119,13 +124,13 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Renders a single Ajv error object. */
+  /** Renders a single schema-validation error object. */
   private static formatError(error: Readonly<EntityValidationErrorInterface>): string {
     const result = EntityCompiler.formatPathMessage(error.instancePath, error.message ?? 'invalid');
     return result;
   }
 
-  /** Renders JSON-validity errors using the same path convention as Ajv errors. */
+  /** Renders JSON-validity errors using the same path convention as schema-validation errors. */
   private static formatJsonValidityErrors(value: unknown): string {
     const messages = EntityCompiler.collectJsonValidityErrors(value);
     const result = messages.join('; ');
@@ -357,7 +362,7 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Finds an object-valued pattern schema that declares a property name. */
+  /** Finds an object-valued pattern schema whose regex matches a property name. */
   private static getPatternPropertySchema(
     patternProperties: Record<string, unknown> | undefined,
     propertyName: string
@@ -365,9 +370,9 @@ export class EntityCompiler {
     if (patternProperties === undefined) {
       return undefined;
     }
-    const validators = EntityCompiler.patternPropertyValidators.get(patternProperties)
-      ?? new Map<string, EntityValidateFunctionInterface<Record<string, null>>>();
-    EntityCompiler.patternPropertyValidators.set(patternProperties, validators);
+    const matchers = EntityCompiler.patternPropertyMatchers.get(patternProperties)
+      ?? new Map<string, RegExp>();
+    EntityCompiler.patternPropertyMatchers.set(patternProperties, matchers);
     const patterns = Object.keys(patternProperties);
     for (let index = 0; index < patterns.length; index += 1) {
       const pattern = patterns[index]!;
@@ -375,20 +380,12 @@ export class EntityCompiler {
       if (patternSchema === undefined) {
         continue;
       }
-      let validator = validators.get(pattern);
-      if (validator === undefined) {
-        const patternMatchSchema: Record<string, boolean> = {};
-        Reflect.set(patternMatchSchema, pattern, true);
-        validator = EntityAjvInstance.assert.compile<Record<string, null>>({
-          'additionalProperties': false,
-          'patternProperties': patternMatchSchema,
-          'type': 'object'
-        });
-        validators.set(pattern, validator);
+      let matcher = matchers.get(pattern);
+      if (matcher === undefined) {
+        matcher = new RegExp(pattern, 'u');
+        matchers.set(pattern, matcher);
       }
-      const candidate: Record<string, null> = {};
-      Reflect.set(candidate, propertyName, null);
-      if (validator(candidate)) {
+      if (matcher.test(propertyName)) {
         return patternSchema;
       }
     }
@@ -570,8 +567,10 @@ export class EntityCompiler {
     const result = Predicates.isRecord(member) ? member : undefined;
     return result;
   }
+
+  /** Compiles or reuses the cached validator a registry keeps for a schema's `$id`. */
   private static schemaValidator<TValidated>(
-    registry: SchemaRegistryInterface,
+    registry: SchemaCompilerInterface,
     schema: object
   ): EntityValidateFunctionInterface<TValidated> {
     const id = EntityCompiler.schemaId(schema);

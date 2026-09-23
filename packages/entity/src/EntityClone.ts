@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 /** Cycle-safe deep clone for entity boundaries. */
 export class EntityClone {
