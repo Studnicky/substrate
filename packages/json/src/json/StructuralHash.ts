@@ -1,6 +1,6 @@
 /** Schema hashing with metadata-key stripping. */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import { Hash } from './Hash.js';
@@ -29,18 +29,19 @@ export class StructuralHash {
       const result = value;
       return result;
     }
-    const result: Record<string, JsonValueEntity.Type> = {};
     const keys = Object.keys(value);
     const keyLength = keys.length;
+    const entries = new Map<string, JsonValueEntity.Type>();
     for (let index = 0; index < keyLength; index += 1) {
       const key = keys[index];
       if (key !== undefined && !this.isMetadataKey(key)) {
         const item = value[key];
         if (item !== undefined) {
-          Reflect.set(result, key, this.stripMetadata(item));
+          entries.set(key, this.stripMetadata(item));
         }
       }
     }
+    const result = JsonObject.fromEntries(entries);
     return result;
   }
 

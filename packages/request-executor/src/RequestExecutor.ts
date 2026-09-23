@@ -7,7 +7,7 @@ import type { RetryInterface } from '@studnicky/retry/interfaces';
 import type { SignalInterface } from '@studnicky/signal/interfaces';
 
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
@@ -127,15 +127,16 @@ export class RequestExecutor {
   }
 
   static #withoutRuntimeFields(input: Record<string, unknown>, runtimeFieldNames: ReadonlySet<string>): Record<string, unknown> {
-    const data: Record<string, unknown> = {};
     const entries = Object.entries(input);
     const entryCount = entries.length;
+    const dataEntries = new Map<string, unknown>();
     for (let index = 0; index < entryCount; index += 1) {
       const [key, value] = entries[index]!;
       if (!runtimeFieldNames.has(key)) {
-        Reflect.set(data, key, value);
+        dataEntries.set(key, value);
       }
     }
+    const data = JsonObject.fromEntries(dataEntries);
     return data;
   }
 

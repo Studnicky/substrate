@@ -27,7 +27,12 @@ const ruleTester = new RuleTester({
     parser,
     parserOptions: {
       projectService: {
-        allowDefaultProject: ['*.ts']
+        allowDefaultProject: [
+          '*.ts',
+          'packages/eslint-config/*.ts',
+          'packages/types/src/guards/*.ts'
+        ],
+        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
       },
       tsconfigRootDir: repoRoot
     }

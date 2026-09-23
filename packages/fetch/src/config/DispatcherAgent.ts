@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { JsonObject } from '@studnicky/types/node';
 import { Agent } from 'undici';
 
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -75,18 +76,18 @@ export class DispatcherAgent {
   }
 
   static #setIfTruthy(options: Record<string, unknown>, key: string, value: number | undefined): void {
-    if (value !== undefined && value !== 0) { Reflect.set(options, key, value); }
+    if (value !== undefined && value !== 0) { JsonObject.write(options, key, value); }
   }
 
   static #setIfDefined(options: Record<string, unknown>, key: string, value: number | string | null | undefined): void {
-    if (value !== undefined && value !== null) { Reflect.set(options, key, value); }
+    if (value !== undefined && value !== null) { JsonObject.write(options, key, value); }
   }
 
   static #setIfNotNull(options: Record<string, unknown>, key: string, value: number | null): void {
-    if (value !== null) { Reflect.set(options, key, value); }
+    if (value !== null) { JsonObject.write(options, key, value); }
   }
 
   static #setIfPositive(options: Record<string, unknown>, key: string, value: number | undefined): void {
-    if (value !== undefined && value > 0) { Reflect.set(options, key, value); }
+    if (value !== undefined && value > 0) { JsonObject.write(options, key, value); }
   }
 }

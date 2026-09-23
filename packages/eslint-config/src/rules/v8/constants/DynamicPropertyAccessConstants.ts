@@ -24,3 +24,14 @@ export const INDEXED_COLLECTION_NAMES: ReadonlySet<string> = new Set([
   'Uint16Array',
   'Uint32Array'
 ]);
+
+// The sanctioned trust-boundary writes in @studnicky/types: `JsonObject.fromEntries`
+// (construction) and `JsonObject.write` (mutation), identified by resolved declaration.
+export const TRUST_BOUNDARY_OWNER = 'JsonObject';
+export const TRUST_BOUNDARY_MEMBERS: ReadonlySet<string> = new Set(['fromEntries', 'write']);
+export const TRUST_BOUNDARY_SOURCE_SUFFIX = 'packages/types/src/guards/JsonObject.ts';
+
+// `Reflect.set` performs the same dynamic-keyed write as `target[key] = value` and is
+// covered by the same rule.
+export const REFLECT_SET_METHODS: ReadonlySet<string> = new Set(['set']);
+export const REFLECT_SET_OWNERS: ReadonlySet<string> = new Set(['Reflect']);

@@ -5,7 +5,7 @@
  *
  * Guards:
  *   - `Predicates`       — pure-static type-safe accessors, type guards, and JSON Schema predicates
- *   - `JsonObject`       — narrowing guard for the JSON-object boundary (`JsonObject.is`)
+ *   - `JsonObject`       — narrowing guard and trust-boundary writes for plain objects (`JsonObject.is`, `.fromEntries`, `.write`)
  *   - `JsonValue`        — validation and coercion of `unknown` into canonical JSON data
  *   - `RuntimeValue`     — validation of runtime operands that retain native values
  *

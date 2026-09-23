@@ -64,13 +64,14 @@ export class JsonValue {
       ancestors.add(value);
       const keys = Object.keys(value);
       const length = keys.length;
-      const result: Record<string, JSONSchema7Type> = {};
+      const entries = new Map<string, JSONSchema7Type>();
       for (let index = 0; index < length; index += 1) {
         const key = keys[index]!;
         const item: unknown = Reflect.get(value, key);
-        Reflect.set(result, key, JsonValue.coerce(item, ancestors));
+        entries.set(key, JsonValue.coerce(item, ancestors));
       }
       ancestors.delete(value);
+      const result = JsonObject.fromEntries(entries);
       return result;
     }
     return null;

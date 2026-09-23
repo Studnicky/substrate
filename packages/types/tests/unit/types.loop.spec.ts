@@ -35,6 +35,7 @@ type MaterializeMarkers = {
   readonly infinity: MarkerMaterializer;
   readonly iterable: MarkerMaterializer;
   readonly map: MarkerMaterializer;
+  readonly mapWithEntries: MarkerMaterializer;
   readonly mapWithEntry: MarkerMaterializer;
   readonly namedFunction: MarkerMaterializer;
   readonly nan: MarkerMaterializer;
@@ -82,6 +83,7 @@ const materializeMarkers = {
   infinity: () => Number.POSITIVE_INFINITY,
   iterable: () => [1, 2, 3],
   map: () => new Map(),
+  mapWithEntries: () => new Map([['a', 1], ['b', 2]]),
   mapWithEntry: () => new Map([['a', 1]]),
   namedFunction: () => named,
   nan: () => Number.NaN,
@@ -162,6 +164,10 @@ function getMappedValue<ValueMap extends object>(
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isEntryIterable(value: unknown): value is Iterable<readonly [string, unknown]> {
+  return Predicates.isIterable(value);
 }
 
 function materialize(value: unknown): unknown {
@@ -361,13 +367,80 @@ void describe('Empty', () => {
   }
 });
 
+type JsonObjectExecutors = {
+  readonly fromEntries: ScenarioExecutor;
+  readonly is: ScenarioExecutor;
+  readonly write: ScenarioExecutor;
+};
+
+const jsonObjectExecutors = {
+  fromEntries: (scenario) => {
+    const input = materialize(scenario.input);
+    assert.ok(isEntryIterable(input));
+    expectOutcome(JsonObject.fromEntries(input), scenario.outcome);
+  },
+  is: (scenario) => {
+    expectOutcome(JsonObject.is(materialize(scenario.input)), scenario.outcome);
+  },
+  write: (scenario) => {
+    const input = materialize(scenario.input);
+    assert.ok(isObjectRecord(input));
+    const target = input['target'];
+    const key = input['key'];
+    assert.ok(isObjectRecord(target));
+    assert.ok(typeof key === 'string');
+    const result = JsonObject.write(target, key, input['value']);
+    const prototypeIntact = Object.getPrototypeOf(target) === Object.prototype;
+    expectOutcome({ 'prototypeIntact': prototypeIntact, 'result': result, 'target': target }, scenario.outcome);
+  }
+} satisfies JsonObjectExecutors;
+
 void describe('JsonObject', () => {
   for (const scenario of scenarioGroups.jsonObject) {
+    const execute = getMappedValue(jsonObjectExecutors, scenario.method, 'JsonObject scenario method');
     void it(scenario.description, () => {
-      const input = materialize(scenario.input);
-      expectOutcome(JsonObject.is(input), scenario.outcome);
+      execute(scenario);
     });
   }
+});
+
+void describe('JsonObject.write', () => {
+  void it('writes a string key onto a plain object and returns true', () => {
+    const target: Record<string, unknown> = {};
+    const returned = JsonObject.write(target, 'name', 'Ada');
+    assert.equal(returned, true);
+    assert.equal(target.name, 'Ada');
+  });
+
+  void it('writes a symbol key onto an existing target and returns true', () => {
+    const marker = Symbol('marker');
+    const target: Record<PropertyKey, unknown> = { 'existing': 1 };
+    const returned = JsonObject.write(target, marker, 'tagged');
+    assert.equal(returned, true);
+    assert.equal(target[marker], 'tagged');
+    assert.equal(target.existing, 1);
+  });
+
+  void it('writes a numeric index onto an existing array and returns true', () => {
+    const target: unknown[] = ['a', 'b'];
+    const returned = JsonObject.write(target, 1, 'z');
+    assert.equal(returned, true);
+    assert.deepStrictEqual(target, ['a', 'z']);
+  });
+
+  void it('returns false and leaves a frozen target unchanged, matching Reflect.set', () => {
+    const target: Record<string, unknown> = Object.freeze({ 'locked': true });
+    const returned = JsonObject.write(target, 'locked', false);
+    assert.equal(returned, false);
+    assert.equal(target.locked, true);
+  });
+
+  void it('rejects a __proto__ key and leaves the target prototype unchanged', () => {
+    const target: Record<string, unknown> = {};
+    const returned = JsonObject.write(target, '__proto__', { 'polluted': true });
+    assert.equal(returned, false);
+    assert.equal(Reflect.getPrototypeOf(target), Object.prototype);
+  });
 });
 
 void describe('JsonValue', () => {

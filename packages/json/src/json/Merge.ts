@@ -1,6 +1,6 @@
 /** Deep merging for arbitrary in-memory values. */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import { Clone } from './Clone.js';
 
@@ -13,13 +13,13 @@ export class Merge {
 
   /** Return the sorted union of keys from `base` and `overlay`. */
   protected static unionKeys(base: Readonly<Record<string, unknown>>, overlay: Readonly<Record<string, unknown>>): readonly string[] {
-    const seenKeys: Record<string, true> = {};
+    const seenKeys = new Set<string>();
     const baseKeys = Object.keys(base);
     const baseKeyLength = baseKeys.length;
     for (let index = 0; index < baseKeyLength; index += 1) {
       const key = baseKeys[index];
       if (key !== undefined) {
-        Reflect.set(seenKeys, key, true);
+        seenKeys.add(key);
       }
     }
     const overlayKeys = Object.keys(overlay);
@@ -27,10 +27,10 @@ export class Merge {
     for (let index = 0; index < overlayKeyLength; index += 1) {
       const key = overlayKeys[index];
       if (key !== undefined) {
-        Reflect.set(seenKeys, key, true);
+        seenKeys.add(key);
       }
     }
-    const result = Object.keys(seenKeys).toSorted();
+    const result = [...seenKeys].toSorted();
     return result;
   }
 
@@ -57,7 +57,7 @@ export class Merge {
       const key = keys[index];
       if (key !== undefined) {
         const item: unknown = Reflect.get(snapshot, key);
-        Reflect.set(snapshot, key, this.snapshot(item));
+        JsonObject.write(snapshot, key, this.snapshot(item));
       }
     }
     const result = snapshot;
@@ -82,7 +82,7 @@ export class Merge {
       if (key !== undefined) {
         const baseItem: unknown = Reflect.get(base, key);
         const overlayItem: unknown = Reflect.get(overlay, key);
-        Reflect.set(merged, key, this.deep(baseItem, overlayItem));
+        JsonObject.write(merged, key, this.deep(baseItem, overlayItem));
       }
     }
     return merged;

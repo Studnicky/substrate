@@ -4,8 +4,9 @@ import type ts from 'typescript';
 import { Predicates } from '@studnicky/types/node';
 
 import { AstHelpers } from '../shared/astHelpers.js';
+import { CallIdentity } from '../shared/CallIdentity.js';
 import {
-  INDEXED_COLLECTION_NAMES, MESSAGE, RULE_NAME
+  INDEXED_COLLECTION_NAMES, MESSAGE, REFLECT_SET_METHODS, REFLECT_SET_OWNERS, RULE_NAME, TRUST_BOUNDARY_MEMBERS, TRUST_BOUNDARY_OWNER, TRUST_BOUNDARY_SOURCE_SUFFIX
 } from './constants/DynamicPropertyAccessConstants.js';
 
 // WHY THIS RULE IS SCOPED THE WAY IT IS — measured, not asserted.
@@ -233,29 +234,52 @@ class PropertyOperation {
   }
 }
 
+class TrustBoundaryClassification {
+  /** True when `node` sits inside the resolved declaration of the boundary primitive's write — a same-named local class cannot spoof this, since identity is resolved through the checker, not the linted file's path. */
+  public static isPrimitiveWrite(node: Rule.Node, context: Rule.RuleContext): boolean {
+    const methodKey = TrustBoundaryClassification.#enclosingMethodKey(node);
+
+    if (methodKey === undefined) {
+      return false;
+    }
+
+    const result = CallIdentity.isDeclarationIdentity(
+      methodKey,
+      context,
+      TRUST_BOUNDARY_OWNER,
+      TRUST_BOUNDARY_MEMBERS,
+      TRUST_BOUNDARY_SOURCE_SUFFIX
+    );
+
+    return result;
+  }
+
+  static #enclosingMethodKey(node: Rule.Node): Rule.Node | undefined {
+    let current: Rule.Node | undefined = node.parent ?? undefined;
+
+    while (current !== undefined) {
+      const raw = current as unknown as Record<string, unknown>;
+
+      if (raw.type === 'MethodDefinition' && Predicates.isRecord(raw.key)) {
+        return raw.key as unknown as Rule.Node;
+      }
+      current = current.parent ?? undefined;
+    }
+
+    return undefined;
+  }
+}
+
 export const dynamicPropertyAccess: Rule.RuleModule = {
   'create': (context) => {
-    const onMemberExpression = (node: Rule.Node): void => {
-      if (!Predicates.isRecord(node)) {
-        return;
-      }
-      if (node.computed !== true) {
-        return;
-      }
-      if (KeyClassification.isStaticKey(node.property)) {
-        return;
-      }
-      if (!PropertyOperation.isWrite(node)) {
-        return;
-      }
-
+    const reportUnlessIndexedCollection = (node: Rule.Node, receiverArg: unknown): void => {
       const servicesUnknown: unknown = context.sourceCode.parserServices;
 
       if (!AstHelpers.hasTypeServices(servicesUnknown)) {
         return;
       }
 
-      const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(node.object);
+      const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(receiverArg);
 
       if (tsNode === undefined) {
         return;
@@ -274,7 +298,51 @@ export const dynamicPropertyAccess: Rule.RuleModule = {
       });
     };
 
-    return { 'MemberExpression[computed=true]': onMemberExpression };
+    const onMemberExpression = (node: Rule.Node): void => {
+      if (!Predicates.isRecord(node)) {
+        return;
+      }
+      if (node.computed !== true) {
+        return;
+      }
+      if (KeyClassification.isStaticKey(node.property)) {
+        return;
+      }
+      if (!PropertyOperation.isWrite(node)) {
+        return;
+      }
+      if (TrustBoundaryClassification.isPrimitiveWrite(node, context)) {
+        return;
+      }
+
+      reportUnlessIndexedCollection(node, node.object);
+    };
+
+    const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
+      if (!CallIdentity.isBuiltinCall(node, context, REFLECT_SET_METHODS, REFLECT_SET_OWNERS)) {
+        return;
+      }
+      if (!Predicates.isRecord(node)) {
+        return;
+      }
+
+      const callArguments = node.arguments;
+      const [targetArg, keyArg] = Predicates.isArray(callArguments) ? callArguments : [];
+
+      if (targetArg === undefined || KeyClassification.isStaticKey(keyArg)) {
+        return;
+      }
+      if (TrustBoundaryClassification.isPrimitiveWrite(node, context)) {
+        return;
+      }
+
+      reportUnlessIndexedCollection(node, targetArg);
+    };
+
+    return {
+      'CallExpression': onCallExpression,
+      'MemberExpression[computed=true]': onMemberExpression
+    };
   },
   'meta': {
     'docs': {

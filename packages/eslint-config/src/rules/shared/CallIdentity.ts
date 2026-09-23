@@ -78,6 +78,24 @@ class DeclarationNames {
   }
 
   /**
+   * Reads the enclosing owner's name for a declaration — an interface/class member's
+   * parent has it directly; a `declare namespace X { function f() {} }` member's
+   * parent is the namespace body, so the name sits one level further up.
+   */
+  public static ownerNameOf(declaration: ts.Declaration): string | undefined {
+    const direct = DeclarationNames.of(declaration.parent);
+
+    if (direct !== undefined) {
+      return direct;
+    }
+
+    const grandparent: unknown = (declaration.parent as unknown as { readonly 'parent'?: unknown }).parent;
+    const result = DeclarationNames.of(grandparent);
+
+    return result;
+  }
+
+  /**
    * True when the declaration comes from a TypeScript lib file (`lib.es5.d.ts`,
    * `lib.dom.d.ts`, …) rather than from project or dependency source. This is the
    * check that separates a genuine built-in from a same-named user method.
@@ -136,13 +154,53 @@ export class CallIdentity {
       return false;
     }
 
-    const owner = DeclarationNames.of(declaration.parent);
+    const owner = DeclarationNames.ownerNameOf(declaration);
 
     if (owner === undefined) {
       return false;
     }
 
     const result = owners.has(owner);
+
+    return result;
+  }
+
+  /** Resolves a name node to one of `memberNames` declared on `ownerName` in the file ending `sourceFileSuffix`, so a same-named declaration elsewhere cannot satisfy the check. */
+  public static isDeclarationIdentity(
+    node: unknown,
+    context: Rule.RuleContext,
+    ownerName: string,
+    memberNames: ReadonlySet<string>,
+    sourceFileSuffix: string
+  ): boolean {
+    const servicesUnknown: unknown = context.sourceCode.parserServices;
+
+    if (!AstHelpers.hasTypeServices(servicesUnknown)) {
+      return false;
+    }
+
+    const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
+
+    if (tsNode === undefined) {
+      return false;
+    }
+
+    const checker = servicesUnknown.program.getTypeChecker();
+    const symbol = checker.getSymbolAtLocation(tsNode);
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.at(0);
+    const declaredName = declaration === undefined ? undefined : DeclarationNames.of(declaration);
+
+    if (declaration === undefined || declaredName === undefined || !memberNames.has(declaredName)) {
+      return false;
+    }
+
+    const owner = DeclarationNames.of(declaration.parent);
+
+    if (owner !== ownerName) {
+      return false;
+    }
+
+    const result = declaration.getSourceFile().fileName.endsWith(sourceFileSuffix);
 
     return result;
   }

@@ -236,11 +236,11 @@ export class EntityCompiler {
         if (EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
           continue;
         }
-        Reflect.set(result, key, item);
+        JsonObject.write(result, key, item);
         continue;
       }
       if (propertySchemas.length === 0) {
-        Reflect.set(result, key, item);
+        JsonObject.write(result, key, item);
         continue;
       }
       let normalized: unknown = item;
@@ -248,7 +248,7 @@ export class EntityCompiler {
       for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
         normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
       }
-      Reflect.set(result, key, normalized);
+      JsonObject.write(result, key, normalized);
     }
     return result;
   }
@@ -377,8 +377,7 @@ export class EntityCompiler {
       }
       let validator = validators.get(pattern);
       if (validator === undefined) {
-        const patternMatchSchema: Record<string, boolean> = {};
-        Reflect.set(patternMatchSchema, pattern, true);
+        const patternMatchSchema = JsonObject.fromEntries<boolean>([[pattern, true]]);
         validator = EntityAjvInstance.assert.compile<Record<string, null>>({
           'additionalProperties': false,
           'patternProperties': patternMatchSchema,
@@ -386,8 +385,7 @@ export class EntityCompiler {
         });
         validators.set(pattern, validator);
       }
-      const candidate: Record<string, null> = {};
-      Reflect.set(candidate, propertyName, null);
+      const candidate = JsonObject.fromEntries<null>([[propertyName, null]]);
       if (validator(candidate)) {
         return patternSchema;
       }

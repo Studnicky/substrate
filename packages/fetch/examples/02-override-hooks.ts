@@ -1,8 +1,9 @@
 /** 02-override-hooks — subclass FetchClient and override onRequest/onResponse to transform requests and responses. Run: npx tsx packages/fetch/examples/02-override-hooks.ts */
 
+// #region usage
+import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
-// #region usage
 import type { RequestContextInterface, ResponseContextInterface } from '../src/node/index.js';
 
 import { FetchClient } from '../src/node/index.js';
@@ -44,10 +45,7 @@ class AuthClient extends FetchClient {
 await (async function runOverrideHooksExample(): Promise<void> {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (_input, init) => {
-    const echoed: Record<string, string> = {};
-    for (const [name, value] of new Headers(init?.headers).entries()) {
-      Reflect.set(echoed, name, value);
-    }
+    const echoed = JsonObject.fromEntries(new Headers(init?.headers).entries());
 
     const result = Promise.resolve(new Response(JSON.stringify({ 'echoed': echoed }), {
       'headers': { 'Content-Type': 'application/json' },

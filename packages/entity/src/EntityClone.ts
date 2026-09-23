@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 /** Cycle-safe deep clone for entity boundaries. */
 export class EntityClone {
@@ -41,16 +41,17 @@ export class EntityClone {
       return result;
     }
     if (Predicates.isObject(value)) {
-      const result: Record<string, unknown> = {};
       const keys = Object.keys(value);
       const keysLength = keys.length;
+      const entries = new Map<string, unknown>();
       for (let index = 0; index < keysLength; index += 1) {
         const key = keys[index];
         if (key === undefined) {
           continue;
         }
-        Reflect.set(result, key, EntityClone.cloneValue(Reflect.get(value, key)));
+        entries.set(key, EntityClone.cloneValue(Reflect.get(value, key)));
       }
+      const result = JsonObject.fromEntries(entries);
       return result;
     }
     return value;

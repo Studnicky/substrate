@@ -18,7 +18,7 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
 
 import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
 import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
@@ -69,8 +69,8 @@ export abstract class BaseError extends Error {
     this.name = new.target.name;
     this.code = argumentList.code;
     const metadataEntries = argumentList.metadata !== undefined ? Object.entries(argumentList.metadata) : [];
-    const metadata: Record<string, JSONSchema7Type> = {};
     const metadataEntriesLength = metadataEntries.length;
+    const metadataMap = new Map<string, JSONSchema7Type>();
 
     for (let entryIndex = 0; entryIndex < metadataEntriesLength; entryIndex += 1) {
       const entry = metadataEntries[entryIndex];
@@ -83,9 +83,9 @@ export abstract class BaseError extends Error {
         value
       ] = entry;
 
-      Reflect.set(metadata, key, JsonValue.from(value));
+      metadataMap.set(key, JsonValue.from(value));
     }
-    this.metadata = metadataEntriesLength > 0 ? Object.freeze(metadata) : undefined;
+    this.metadata = metadataEntriesLength > 0 ? Object.freeze(JsonObject.fromEntries(metadataMap)) : undefined;
     this.timestamp = Date.now();
     this.correlationId = argumentList.correlationId;
     this.retryable = argumentList.retryable ?? false;

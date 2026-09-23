@@ -1,7 +1,7 @@
 /** RFC-6902 JSON Patch operations for arbitrary object targets. */
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN, SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
@@ -190,14 +190,14 @@ export class Patch {
     for (let index = 0; index < parts.length - 1; index += 1) {
       const part = parts[index]!;
       if (!Predicates.isObjectLike(current)) {throw new PatchError(`Intermediate path not traversable: ${path}`, 'setValue', path);}
-      if (!Reflect.has(current, part)) {Reflect.set(current, part, {});}
+      if (!Reflect.has(current, part)) {JsonObject.write(current, part, {});}
       current = Reflect.get(current, part);
     }
     const lastPart = parts.at(-1);
     if (lastPart === undefined || !Predicates.isObjectLike(current)) {
       throw new PatchError(`Cannot set on non-object at: ${path}`, 'setValue', path);
     }
-    Reflect.set(current, lastPart, value);
+    JsonObject.write(current, lastPart, value);
   }
 
   /** Remove the value at `path` from `target`. */
@@ -248,7 +248,7 @@ export class Patch {
 
   private applyReplace(target: Record<string, unknown>, operation: PatchOperationEntity.Type): void {
     const resolved = this.resolveReplaceTarget(target, operation.path);
-    if (resolved !== undefined) {Reflect.set(resolved.container, resolved.key, this.requireValue(operation));}
+    if (resolved !== undefined) {JsonObject.write(resolved.container, resolved.key, this.requireValue(operation));}
   }
 
   private applyRemove(target: Record<string, unknown>, operation: PatchOperationEntity.Type): void {

@@ -1,5 +1,5 @@
 import { BaseError, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 
@@ -40,9 +40,9 @@ class RetryDiagnosticSnapshot {
         const propertyValue: unknown = Reflect.get(value, key);
 
         if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+          JsonObject.write(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
-          Reflect.set(snapshot, key, propertyValue);
+          JsonObject.write(snapshot, key, propertyValue);
         }
       }
 
@@ -80,9 +80,9 @@ class RetryDiagnosticSnapshot {
         const propertyValue: unknown = Reflect.get(value, key);
 
         if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+          JsonObject.write(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
-          Reflect.set(snapshot, key, propertyValue);
+          JsonObject.write(snapshot, key, propertyValue);
         }
       }
 
@@ -107,9 +107,9 @@ class RetryDiagnosticSnapshot {
         const propertyValue: unknown = Reflect.get(value, key);
 
         if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
+          JsonObject.write(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
         } else {
-          Reflect.set(snapshot, key, propertyValue);
+          JsonObject.write(snapshot, key, propertyValue);
         }
       }
 

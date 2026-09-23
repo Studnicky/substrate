@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
@@ -45,7 +45,7 @@ namespace HookDiagnosticSnapshotEntity {
             continue;
           }
           const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+          JsonObject.write(snapshot, key, Intake.intake(propertyValue, seen));
         }
         return snapshot;
       }
@@ -80,7 +80,7 @@ namespace HookDiagnosticSnapshotEntity {
             continue;
           }
           const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+          JsonObject.write(snapshot, key, Intake.intake(propertyValue, seen));
         }
         return snapshot;
       }
@@ -99,7 +99,7 @@ namespace HookDiagnosticSnapshotEntity {
             continue;
           }
           const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
+          JsonObject.write(snapshot, key, Intake.intake(propertyValue, seen));
         }
         return snapshot;
       }

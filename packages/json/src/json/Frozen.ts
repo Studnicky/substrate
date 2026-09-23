@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
@@ -85,7 +85,7 @@ export class Frozen {
         const child: unknown = Reflect.get(value, key);
         const frozenChild = this.freezeValue(child, frozenValues);
         if (!Object.is(child, frozenChild)) {
-          Reflect.set(value, key, frozenChild);
+          JsonObject.write(value, key, frozenChild);
         }
       }
     }

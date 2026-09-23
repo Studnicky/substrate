@@ -1,6 +1,6 @@
 /** Immer-style copy-on-write drafting for arbitrary in-memory values. */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
@@ -44,7 +44,7 @@ export class Draft {
     const ownKeysLength = ownKeys.length;
     for (let index = 0; index < ownKeysLength; index += 1) {
       const ownKey = ownKeys[index];
-      if (ownKey !== undefined && ownKey !== key) {Reflect.set(projected, ownKey, Reflect.get(source, ownKey));}
+      if (ownKey !== undefined && ownKey !== key) {JsonObject.write(projected, ownKey, Reflect.get(source, ownKey));}
     }
     return projected;
   }
@@ -107,7 +107,7 @@ export class Draft {
       const copy = this.ensureCopy(node);
       node.children.delete(property);
       node.proxies.delete(property);
-      Reflect.set(copy, property, value);
+      JsonObject.write(copy, property, value);
       return true;
     };
     const result = new Proxy(this.shallowCopy(node.base), {
@@ -139,7 +139,7 @@ export class Draft {
         continue;
       }
       const [key, childNode, dirty] = entry;
-      if (dirty) {Reflect.set(result, key, this.finalize(childNode));}
+      if (dirty) {JsonObject.write(result, key, this.finalize(childNode));}
     }
     return result;
   }

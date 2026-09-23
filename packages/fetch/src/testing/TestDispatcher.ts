@@ -1,6 +1,6 @@
 import { RuntimeError } from '@studnicky/errors/node';
 import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
@@ -130,17 +130,18 @@ export class TestDispatcher {
       if (!Predicates.isObject(parsed)) {
         return {};
       }
-      const result: Record<string, unknown> = {};
       const keys = Object.keys(parsed);
       const keyLength = keys.length;
+      const entries = new Map<string, unknown>();
       for (let index = 0; index < keyLength; index += 1) {
         const key = keys[index];
         if (key === undefined) {
           continue;
         }
         const value: unknown = Reflect.get(parsed, key);
-        Reflect.set(result, key, value);
+        entries.set(key, value);
       }
+      const result = JsonObject.fromEntries(entries);
       return result;
     } catch {
       return {};
@@ -153,18 +154,7 @@ export class TestDispatcher {
     }
 
     const normalized = new Headers(headers);
-    const result: Record<string, string> = {};
-
-    const entries = Array.from(normalized.entries());
-    const entryLength = entries.length;
-    for (let index = 0; index < entryLength; index += 1) {
-      const entry = entries[index];
-      if (entry === undefined) {
-        continue;
-      }
-      const [key, value] = entry;
-      Reflect.set(result, key, value);
-    }
+    const result = JsonObject.fromEntries(normalized.entries());
 
     return result;
   }
@@ -508,17 +498,7 @@ export class TestDispatcher {
     }
 
     if (request.method === 'GET' && request.path === '/echo') {
-      const query: Record<string, string> = {};
-      const queryEntries = Array.from(request.searchParameters.entries());
-      const queryEntryLength = queryEntries.length;
-      for (let index = 0; index < queryEntryLength; index += 1) {
-        const entry = queryEntries[index];
-        if (entry === undefined) {
-          continue;
-        }
-        const [key, value] = entry;
-        Reflect.set(query, key, value);
-      }
+      const query = JsonObject.fromEntries(request.searchParameters.entries());
       const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, { 'query': query });
       return result;
     }

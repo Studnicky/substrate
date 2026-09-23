@@ -59,6 +59,32 @@
     {
       "name": "read: computed access on a plain object nested inside an object literal",
       "code": "declare const record: Record<string, unknown>; declare const key: string; const wrapper = { 'value': record[key] };"
+    },
+    {
+      "name": "Reflect.set with a literal key - same GetNamedProperty fold as bracket-literal write",
+      "code": "declare const record: Record<string, unknown>; Reflect.set(record, 'name', 'Ada');"
+    },
+    {
+      "name": "Reflect.set with a variable key on an array - elements store, never transitions the hidden class",
+      "code": "declare const values: number[]; declare const index: number; Reflect.set(values, index, 1);"
+    },
+    {
+      "name": "Reflect.set with a variable key on a typed array - FLOAT64ELEMENTS store, map unchanged",
+      "code": "declare const buffer: Float64Array; declare const index: number; Reflect.set(buffer, index, 1);"
+    },
+    {
+      "name": "Reflect.get with a variable key on a plain object - a read cannot enter dictionary mode",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; const value = Reflect.get(record, key);"
+    },
+    {
+      "name": "write inside the construction primitive's own declaration is exempt - resolved by class, member, and source file, not by name alone",
+      "filename": "packages/types/src/guards/JsonObject.ts",
+      "code": "export class JsonObject { public static fromEntries<T>(entries: Iterable<readonly [string, T]>): Record<string, T> { const result: Record<string, T> = {}; for (const [key, value] of entries) { result[key] = value; } return result; } }"
+    },
+    {
+      "name": "Reflect.set inside the mutation primitive's own declaration is exempt - resolved by class, member, and source file, not by name alone",
+      "filename": "packages/types/src/guards/JsonObject.ts",
+      "code": "export class JsonObject { public static write(target: object, key: PropertyKey, value: unknown): boolean { if (key === '__proto__') { return false; } const result = Reflect.set(target, key, value); return result; } }"
     }
   ],
   "invalid": [
@@ -90,6 +116,15 @@
       "name": "compound assignment with a variable key mutates the receiver"
     },
     {
+      "name": "Reflect.set with a variable key on a plain object - identical dictionary-mode write to bracket assignment",
+      "code": "declare const record: Record<string, unknown>; declare const key: string; Reflect.set(record, key, 1);",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ]
+    },
+    {
       "code": "declare const record: Record<string, unknown>; declare const key: string; delete record[key];",
       "errors": [
         {
@@ -97,6 +132,26 @@
         }
       ],
       "name": "delete with a variable key mutates the receiver"
+    },
+    {
+      "name": "an identically-named fromEntries on a class named JsonObject in a different file is still reported - the exemption is not name-based",
+      "filename": "packages/eslint-config/JsonObjectSpoof.ts",
+      "code": "export class JsonObject { public static fromEntries<T>(entries: Iterable<readonly [string, T]>): Record<string, T> { const result: Record<string, T> = {}; for (const [key, value] of entries) { result[key] = value; } return result; } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ]
+    },
+    {
+      "name": "an identically-named write on a class named JsonObject in a different file is still reported - the exemption is not name-based",
+      "filename": "packages/eslint-config/JsonObjectSpoof.ts",
+      "code": "export class JsonObject { public static write(target: object, key: PropertyKey, value: unknown): boolean { if (key === '__proto__') { return false; } const result = Reflect.set(target, key, value); return result; } }",
+      "errors": [
+        {
+          "messageId": "forbidden"
+        }
+      ]
     }
   ]
 }
