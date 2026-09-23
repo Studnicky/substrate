@@ -1,4 +1,4 @@
-/** Data constants for the `folder-content-shape` rule: entity-file matchers, index-file basenames, and the AST node-type sets used to classify a `const` initializer as function-like, a builtin collection, or a TS wrapper expression. */
+/** Data constants for the `entity-file-shape` rule: entity-file matchers, index-file basenames, and the AST node-type sets used to classify a `const` initializer as function-like, a builtin collection, or a TS wrapper expression. */
 
 export const ENTITY_FILE_REGEX = /Entity\.[cm]?[tj]sx?$/v;
 export const ENTITY_DIR_REGEX = /\/entities\//v;
