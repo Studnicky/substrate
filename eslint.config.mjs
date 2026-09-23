@@ -139,7 +139,7 @@ export default [
     'files': ['packages/*/src/**/*.ts'],
     'plugins': { '@studnicky': plugin },
     'rules': {
-      // The other three `arch/*` rules stay OFF, measured rather than assumed. All three encode
+      // The other four `arch/*` rules stay OFF, measured rather than assumed. All four encode
       // "a business-logic core with a conversion boundary around it"; substrate has neither —
       // four bands of utility and infrastructure code, no domain layer, and no intake boundary
       // separate from where a dependency is already wrapped.
@@ -156,6 +156,11 @@ export default [
       //   domain-purity                 1 violation: `BaseError`'s `Date.now()` timestamp,
       //     which is legitimate. No band is a domain layer; `foundation` is the closest only
       //     by being lowest, and it holds error handling and types, not business rules.
+      //   no-threaded-vocabulary        250 violations across 109 files (sourceRoot: 'packages').
+      //     The rule expects a resolution site that exchanges a closed-vocabulary token for a
+      //     port implementation; substrate has no port/adapter architecture for a token to
+      //     resolve INTO, so a mode/kind/type enum threaded through an ordinary parameterized
+      //     utility function is ubiquitous and legitimate here, not an unresolved token.
       //
       // `layer-import-boundary` is enabled because substrate genuinely HAS what it describes —
       // a dependency-depth hierarchy with an enforceable upward-import ban — which is why it
