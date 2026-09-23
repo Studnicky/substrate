@@ -34,6 +34,21 @@ export class Draft {
     return result;
   }
 
+  /** Build a fresh array/object holding every own key of `source` except `key`. */
+  protected static projectWithoutKey<T extends object>(source: T, key: PropertyKey): T;
+  protected static projectWithoutKey(source: object, key: PropertyKey): object {
+    // Empty array, not a dense Array.from: skipping an index key leaves a real hole.
+    // Reflect.ownKeys yields array indices ascending then 'length' last, so length is restored after.
+    const projected: object = Array.isArray(source) ? [] : {};
+    const ownKeys = Reflect.ownKeys(source);
+    const ownKeysLength = ownKeys.length;
+    for (let index = 0; index < ownKeysLength; index += 1) {
+      const ownKey = ownKeys[index];
+      if (ownKey !== undefined && ownKey !== key) {Reflect.set(projected, ownKey, Reflect.get(source, ownKey));}
+    }
+    return projected;
+  }
+
   /** Return `true` when `node` or any descendant carries a write. */
   protected static isDirty(node: DraftNodeInterface): boolean {
     if (node.copy !== undefined) {return true;}
@@ -59,11 +74,10 @@ export class Draft {
   /** Build the Proxy handler for one draft node. */
   protected static createProxy<T extends object>(node: DraftNodeInterface<T>): T {
     const deletePropertyHandler: ProxyHandler<T>['deleteProperty'] = (_target, property) => {
-      const copy = this.ensureCopy(node);
+      const source = this.ensureCopy(node);
       node.children.delete(property);
       node.proxies.delete(property);
-      const { 'deleteProperty': removeProperty } = Reflect;
-      removeProperty(copy, property);
+      node.copy = this.projectWithoutKey(source, property);
       return true;
     };
     const getHandler: ProxyHandler<T>['get'] = (_target, property) => {
