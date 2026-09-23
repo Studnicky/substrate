@@ -48,6 +48,13 @@ type ScenarioCase =
       input: { crashItem: ItemInterface; laterItem: ItemInterface; terminateFailureMessage: string; workerPool: WorkerPoolInputInterface };
       shape: 'error-shutdown-rejection';
       name: string;
+    }
+  | {
+      description: string;
+      expected: { rejectionEvents: unknown[]; runRejectedMessageIncludes: string };
+      input: { item: ItemInterface; workerPool: WorkerPoolInputInterface };
+      shape: 'task-timeout-after-startup';
+      name: string;
     };
 
 async function flushTurn(): Promise<void> {
@@ -229,6 +236,19 @@ const runnerMap: RunnerMap = {
     } finally {
       terminateMock.mock.restore();
     }
+  },
+
+  'task-timeout-after-startup': async (scenarioCase) => {
+    const pool = WorkerPool.create<ItemInterface, string>(resolvePoolConfig(scenarioCase.input.workerPool));
+
+    const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
+      await assert.rejects(pool.run([scenarioCase.input.item]), (error: Error) => {
+        assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
+        return true;
+      });
+    });
+
+    assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
   }
 };
 
