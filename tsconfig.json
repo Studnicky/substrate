@@ -4,6 +4,12 @@
   },
   "references": [
     {
+      "path": "scripts"
+    },
+    {
+      "path": ".github/scripts"
+    },
+    {
       "path": "packages/cache"
     },
     {

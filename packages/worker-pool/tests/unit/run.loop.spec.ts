@@ -134,7 +134,7 @@ const runnerMap: RunnerMap = {
 
     // Shared observed-result counter: workers awaiting a barrier block until the parent has
     // *observed* this many 'result' envelopes, closing the race between message delivery from two
-    // independent worker threads (see fixtures/echoWorker.mjs for the worker-side wait).
+    // independent worker threads (see fixtures/echoWorker.ts for the worker-side wait).
     const barrier = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
     const barrierCounts = new Int32Array(barrier);
 

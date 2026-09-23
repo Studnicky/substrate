@@ -24,7 +24,7 @@
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs unit --package ."
+    "test": "tsx ../../scripts/test-suite.ts unit --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",

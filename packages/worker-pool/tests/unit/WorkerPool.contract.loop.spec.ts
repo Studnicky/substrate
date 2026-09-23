@@ -50,7 +50,7 @@ registerWorkerPoolContract({
       'batchConcurrency': options.maximumWorkers,
       'concurrency': options.maximumWorkers,
       'signal': Signal.create(),
-      'workerPath': fileURLToPath(new URL('../fixtures/reusableEchoWorker.mjs', import.meta.url))
+      'workerPath': fileURLToPath(new URL('../fixtures/reusableEchoWorker.ts', import.meta.url))
     };
     if (options.timeoutMs !== undefined) {
       config.timeoutMs = options.timeoutMs;

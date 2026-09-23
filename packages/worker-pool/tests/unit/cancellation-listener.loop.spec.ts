@@ -24,7 +24,7 @@ void describe('WorkerPool caller-signal listener discipline', () => {
     const controller = new AbortController();
     const config: WorkerPoolConfigInterface = {
       'abortSignal': controller.signal,
-      'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
+      'workerPath': resolveWorkerPath('../fixtures/echoWorker.ts')
     };
     const pool = WorkerPool.create<ItemInterface, string>(config);
 
@@ -59,7 +59,7 @@ void describe('WorkerPool caller-signal listener discipline', () => {
     const pool = AbortOnCreatePool.create<ItemInterface, string, AbortOnCreatePool>({
       'abortSignal': controller.signal,
       'startupTimeoutMs': 5000,
-      'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
+      'workerPath': resolveWorkerPath('../fixtures/echoWorker.ts')
     });
 
     await assert.rejects(pool.run([{ 'value': 'never-starts' }]), (error: Error) => {
@@ -77,7 +77,7 @@ void describe('WorkerPool caller-signal listener discipline', () => {
 
     const pool = WorkerPool.create<ItemInterface, string>({
       'abortSignal': controller.signal,
-      'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
+      'workerPath': resolveWorkerPath('../fixtures/echoWorker.ts')
     });
 
     const running = pool.run([{ 'ms': 5000, 'value': 'slow' }]);

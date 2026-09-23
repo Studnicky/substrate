@@ -19,7 +19,7 @@ assert_release_suite_routes_git_flow() {
     printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
     printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
     stub_cmd "$repo" pnpm 'printf "%s\n" "$*"'
-    stub_cmd "$repo" node "case \"\$1\" in */scripts/validate-changeset-ref.mjs) exit 0 ;; esac
+    stub_cmd "$repo" node "case \"\$1\" in */scripts/validate-changeset-ref.ts) exit 0 ;; esac
 exec \"$node_binary\" \"\$@\""
     git add -A
     git commit -q -m "chore: base release state"

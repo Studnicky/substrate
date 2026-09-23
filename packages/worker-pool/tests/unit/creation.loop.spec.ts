@@ -172,7 +172,7 @@ void describe('WorkerPool.create', () => {
   void it('rejects invalid runtime concurrency before dispatch', () => {
     assert.throws(() => WorkerPool.create<ItemInterface, string>({
       'concurrency': 0,
-      'workerPath': resolveWorkerPath('../fixtures/echoWorker.mjs')
+      'workerPath': resolveWorkerPath('../fixtures/echoWorker.ts')
     }), /WorkerPool configuration is invalid/u);
   });
 });

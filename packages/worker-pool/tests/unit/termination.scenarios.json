@@ -7,7 +7,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/terminationWorker.mjs"
+          "workerPath": "../fixtures/terminationWorker.ts"
         },
         "item": { "value": "ok" },
         "terminateFailureMessage": "final termination rejected"
@@ -27,7 +27,7 @@
         "workerPool": {
           "concurrency": 1,
           "timeoutMs": 200,
-          "workerPath": "../fixtures/terminationWorker.mjs"
+          "workerPath": "../fixtures/terminationWorker.ts"
         },
         "timeoutItem": { "ms": 5000, "value": "too-slow" },
         "laterItem": { "value": "later" },
@@ -48,7 +48,7 @@
       "input": {
         "workerPool": {
           "concurrency": 1,
-          "workerPath": "../fixtures/terminationWorker.mjs"
+          "workerPath": "../fixtures/terminationWorker.ts"
         },
         "crashItem": { "crash": true, "error": "boom", "value": "bad" },
         "laterItem": { "value": "later" },

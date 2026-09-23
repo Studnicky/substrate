@@ -1,10 +1,14 @@
+import './env.d.ts';
+
+import type { Theme } from 'vitepress';
+
+import DefaultTheme from 'vitepress/theme';
 import {
   defineAsyncComponent, h
 } from 'vue';
-import type { Theme } from 'vitepress';
-import DefaultTheme from 'vitepress/theme';
-import PackageGrid from './PackageGrid.vue';
+
 import RunnableExample from './components/RunnableExample.vue';
+import PackageGrid from './PackageGrid.vue';
 import './palette.css';
 import './base.css';
 
@@ -17,16 +21,16 @@ const DrilldownTreeDemo = defineAsyncComponent(async () => {
 // The home-page package grid is a real component (not frontmatter features),
 // so its inline-SVG icons render identically on the server and the client.
 export const theme: Theme = {
-  extends: DefaultTheme,
-  Layout() {
-    return h(DefaultTheme.Layout, null, {
-      'sidebar-nav-before': () => h('div', { class: 'substrate-sidebar-logo', 'aria-hidden': 'true' }),
-    });
-  },
-  enhanceApp({ app }) {
+  'enhanceApp': function({ app }) {
     app.component('PackageGrid', PackageGrid);
     app.component('RunnableExample', RunnableExample);
     app.component('DrilldownTreeDemo', DrilldownTreeDemo);
   },
+  'extends': DefaultTheme,
+  'Layout': function() {
+    return h(DefaultTheme.Layout, null, {
+      'sidebar-nav-before': () => {return h('div', { 'aria-hidden': 'true', 'class': 'substrate-sidebar-logo' });}
+    });
+  }
 };
 export default theme;

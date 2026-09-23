@@ -1,5 +1,5 @@
 /**
- * Test fixture worker proving WorkerPool's real pool reuse: unlike `echoWorker.mjs`
+ * Test fixture worker proving WorkerPool's real pool reuse: unlike `echoWorker.ts`
  * (which handles exactly one message via `parentPort.once` and then exits on its own),
  * this fixture keeps listening via `parentPort.on` so the same worker thread can service
  * many tasks in a row across a single `run()` call.
@@ -10,9 +10,20 @@
  */
 import { parentPort } from 'node:worker_threads';
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+interface ReusableEchoRequestInterface {
+  error?: string;
+  ms?: number;
+  value: unknown;
+}
 
-parentPort.on('message', async (message) => {
+if (parentPort === null) {
+  throw new Error('reusableEchoWorker must run in a worker thread');
+}
+const port = parentPort;
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+port.on('message', async (message: ReusableEchoRequestInterface) => {
   const { error, value, ms } = message;
 
   if (typeof ms === 'number' && ms > 0) {
@@ -20,9 +31,9 @@ parentPort.on('message', async (message) => {
   }
 
   if (typeof error === 'string') {
-    parentPort.postMessage({ 'type': 'error', 'error': error });
+    port.postMessage({ 'type': 'error', 'error': error });
     return;
   }
 
-  parentPort.postMessage({ 'type': 'result', 'value': value });
+  port.postMessage({ 'type': 'result', 'value': value });
 });

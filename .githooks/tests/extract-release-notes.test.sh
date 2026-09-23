@@ -15,7 +15,7 @@ make_workspace() {
   local tmp index body
   tmp=$(mktemp -d)
   mkdir -p "$tmp/scripts" "$tmp/packages"
-  cp "$REPO_ROOT/scripts/extract-release-notes.mjs" "$tmp/scripts/extract-release-notes.mjs"
+  cp "$REPO_ROOT/scripts/extract-release-notes.ts" "$tmp/scripts/extract-release-notes.ts"
 
   printf '{"name":"@test/root","version":"%s","repository":{"type":"git","url":"git+https://github.com/Test/workspace.git"}}\n' \
     "$version" > "$tmp/package.json"
@@ -35,7 +35,7 @@ make_workspace() {
 workspace=$(make_workspace 1.0.0 200 3)
 (
   cd "$workspace" || exit 1
-  out=$(node scripts/extract-release-notes.mjs)
+  out=$(node scripts/extract-release-notes.ts)
 
   assert_contains "small release inlines first package" "### @test/pkg1" "$out"
   assert_contains "small release inlines last package" "### @test/pkg3" "$out"
@@ -48,7 +48,7 @@ rm -rf "$workspace"
 workspace=$(make_workspace 2.0.0 20000 20)
 (
   cd "$workspace" || exit 1
-  out=$(node scripts/extract-release-notes.mjs)
+  out=$(node scripts/extract-release-notes.ts)
   size=${#out}
 
   if [ "$size" -gt "$BODY_LIMIT" ]; then
@@ -75,7 +75,7 @@ workspace=$(make_workspace 3.0.0 100 2)
 (
   cd "$workspace" || exit 1
   sed -i.bak 's/^## 3\.0\.0$/## 2.0.0/' packages/pkg1/CHANGELOG.md packages/pkg2/CHANGELOG.md
-  out=$(node scripts/extract-release-notes.mjs)
+  out=$(node scripts/extract-release-notes.ts)
 
   assert_eq "empty release names the version" "Release v3.0.0" "$out"
 )

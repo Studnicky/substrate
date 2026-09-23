@@ -66,8 +66,8 @@ classify_changes() {
     echo "$changed" | grep -qE '^(\.github/|\.githooks/|tsconfig(\..+)?\.json$|eslint\..+|oxlint\..+|lint-staged\.config\.js$|package\.json$|pnpm-workspace\.yaml$)' && CHANGED_CONFIG=true
     echo "$changed" | grep -qE '^\.github/(workflows|actions)/' && CHANGED_WORKFLOWS=true
     echo "$changed" | grep -qE '^\.githooks/' && CHANGED_HOOKS=true
-    echo "$changed" | grep -qE '^(\.github/(workflows/(audit|codeql|dependency-review|gitleaks|security|security-audit|semgrep)\.yml|ci-secrets\.(json|schema\.json)$|scripts/check-ci-secrets\.mjs$)|\.gitleaks\.toml$|\.semgrepignore$)' && CHANGED_SECURITY_CONFIG=true
-    echo "$changed" | grep -qE '^(docs/dependency-graph\.md|docs/public/og-image.*\.(svg|png|svg\.template)$|scripts/(dependency-diagram|stamp-version)\.mjs$|assets/brand/)' && CHANGED_GENERATED_DOCS=true
+    echo "$changed" | grep -qE '^(\.github/(workflows/(audit|codeql|dependency-review|gitleaks|security|security-audit|semgrep)\.yml|ci-secrets\.(json|schema\.json)$|scripts/check-ci-secrets\.ts$)|\.gitleaks\.toml$|\.semgrepignore$)' && CHANGED_SECURITY_CONFIG=true
+    echo "$changed" | grep -qE '^(docs/dependency-graph\.md|docs/public/og-image.*\.(svg|png|svg\.template)$|scripts/(dependency-diagram|stamp-version)\.ts$|assets/brand/)' && CHANGED_GENERATED_DOCS=true
     echo "$changed" | grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$' && CHANGED_LOCKFILES=true
     echo "$changed" | grep -qE '^(\.changeset/|CHANGELOG\.md|package\.json$|packages/.+/package\.json$|docs/public/og-image.*\.(svg|png|svg\.template)$)' && CHANGED_RELEASE=true
 

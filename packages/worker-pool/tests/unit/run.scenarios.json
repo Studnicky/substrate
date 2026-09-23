@@ -14,7 +14,7 @@
         "workerPool": {
           "batch": { "concurrency": 4 },
           "concurrency": 4,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [
           { "ms": 40, "value": "a" },
@@ -42,7 +42,7 @@
         "workerPool": {
           "batch": { "concurrency": 6 },
           "concurrency": 2,
-          "workerPath": "../fixtures/concurrencyWorker.mjs"
+          "workerPath": "../fixtures/concurrencyWorker.ts"
         }
       },
       "shape": "bounded-concurrency",
@@ -61,7 +61,7 @@
         "workerPool": {
           "batch": { "concurrency": 4 },
           "concurrency": 2,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [
           { "value": "a" },
@@ -86,7 +86,7 @@
         "workerPool": {
           "batch": { "concurrency": 2 },
           "concurrency": 1,
-          "workerPath": "../fixtures/exitWorker.mjs"
+          "workerPath": "../fixtures/exitWorker.ts"
         },
         "items": [
           { "exit": true, "stateFile": "retry-flag", "value": "lost" },
@@ -106,7 +106,7 @@
         "workerPool": {
           "batch": { "concurrency": 1 },
           "concurrency": 1,
-          "workerPath": "../fixtures/alwaysExitWorker.mjs"
+          "workerPath": "../fixtures/alwaysExitWorker.ts"
         },
         "items": [
           { "value": "never" }
@@ -130,7 +130,7 @@
         "workerPool": {
           "batch": { "concurrency": 3 },
           "concurrency": 2,
-          "workerPath": "../fixtures/exitWorker.mjs"
+          "workerPath": "../fixtures/exitWorker.ts"
         },
         "items": [
           { "exit": true, "stateFile": "retry-flag", "value": "lost" },
@@ -151,7 +151,7 @@
           "batch": { "concurrency": 1 },
           "concurrency": 1,
           "timeoutMs": 1,
-          "workerPath": "../fixtures/terminationWorker.mjs"
+          "workerPath": "../fixtures/terminationWorker.ts"
         },
         "items": [
           { "ms": 50, "value": "slow" }
@@ -173,7 +173,7 @@
         "workerPool": {
           "batch": { "concurrency": 2 },
           "concurrency": 1,
-          "workerPath": "../fixtures/resultThenExitWorker.mjs"
+          "workerPath": "../fixtures/resultThenExitWorker.ts"
         },
         "items": [
           { "value": "first" },

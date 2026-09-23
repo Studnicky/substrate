@@ -15,7 +15,7 @@
       "shape": "default-concurrency",
       "input": {
         "workerPool": {
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "a" }]
       },
@@ -28,7 +28,7 @@
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "a" }],
         "signal": { "shape": "tracking" }
@@ -46,7 +46,7 @@
         "workerPool": {
           "batch": { "concurrency": 2 },
           "concurrency": 2,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "a" }]
       },
@@ -60,7 +60,7 @@
         "workerPool": {
           "batch": { "concurrency": 1 },
           "concurrency": 1,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         }
       },
       "expected": {
