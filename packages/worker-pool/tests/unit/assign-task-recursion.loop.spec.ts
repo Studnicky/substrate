@@ -86,7 +86,7 @@ void describe('WorkerPool assignTask record === undefined branch', () => {
         'batchConcurrency': 4,
         'concurrency': 1,
         'signal': signal,
-        'workerPath': resolveWorkerPath('../fixtures/reusableEchoWorker.mjs')
+        'workerPath': resolveWorkerPath('../fixtures/reusableEchoWorker.ts')
       };
       const pool = WorkerPool.create<ItemInterface, string>(config);
 
