@@ -23,7 +23,7 @@
     },
     {
       "name": "caller-supplied-signal",
-      "description": "uses a caller-supplied Signal for task deadlines",
+      "description": "composes a caller-supplied Signal exactly once per task, deriving both the startup and task deadlines from it",
       "shape": "caller-supplied-signal",
       "input": {
         "workerPool": {

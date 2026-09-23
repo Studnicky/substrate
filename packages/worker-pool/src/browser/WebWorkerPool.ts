@@ -27,6 +27,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
   readonly #abortSignal: AbortSignal | undefined;
   readonly #signal: Signal;
   readonly #timeoutMs: number | undefined;
+  readonly #startupTimeoutMs: number | undefined;
   readonly #transport: WebWorkerPoolOptionsInterface<TInput, TOutput>['transport'];
   #closed = false;
   #poolClose: Promise<void> | undefined;
@@ -36,6 +37,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     readonly 'factory': WebWorkerPoolOptionsInterface<TInput, TOutput>['factory'];
     readonly 'maximumWorkers': WebWorkerPoolOptionsInterface<TInput, TOutput>['maximumWorkers'];
     readonly 'signal': Signal;
+    readonly 'startupTimeoutMs': number | undefined;
     readonly 'timeoutMs': number | undefined;
     readonly 'transport': WebWorkerPoolOptionsInterface<TInput, TOutput>['transport'];
   }) {
@@ -46,6 +48,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     this.#abortSignal = deps.abortSignal;
     this.#signal = deps.signal;
     this.#timeoutMs = deps.timeoutMs;
+    this.#startupTimeoutMs = deps.startupTimeoutMs;
     this.#transport = deps.transport;
   }
 
@@ -63,11 +66,18 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
         'message': 'WebWorkerPool timeoutMs must be a non-negative finite number'
       });
     }
+    if (options.startupTimeoutMs !== undefined && (!Predicates.isFiniteNumber(options.startupTimeoutMs) || options.startupTimeoutMs < 0)) {
+      throw new WorkerPoolError({
+        'code': 'workerPool.invalidStartupTimeout',
+        'message': 'WebWorkerPool startupTimeoutMs must be a non-negative finite number'
+      });
+    }
     const result: unknown = Reflect.construct(this, [{
       'abortSignal': options.abortSignal,
       'factory': options.factory,
       'maximumWorkers': options.maximumWorkers,
       'signal': options.signal ?? Signal.create(),
+      'startupTimeoutMs': options.startupTimeoutMs,
       'timeoutMs': options.timeoutMs,
       'transport': options.transport
     }]);
@@ -147,15 +157,83 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     return result;
   }
 
-  async #request(lease: WorkerLeaseInterface<WebWorkerInterface>, item: TInput): Promise<TOutput> {
-    const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
-    if (this.#timeoutMs !== undefined) {
-      composeOptions.deadlineMs = this.#timeoutMs;
+  /**
+   * Bounds worker acquisition (creation and initialization) by `startupTimeoutMs`, derived from
+   * `taskCancelSignal` — this task's own internal cancellation source (see `#runItem`).
+   */
+  async #acquire(taskCancelSignal: AbortSignal): Promise<WorkerLeaseInterface<WebWorkerInterface>> {
+    const startupSignal = this.#startupTimeoutMs !== undefined
+      ? AbortSignal.any([taskCancelSignal, AbortSignal.timeout(this.#startupTimeoutMs)])
+      : taskCancelSignal;
+    if (startupSignal.aborted) {
+      throw WebWorkerPool.#startupError(startupSignal, this.#abortSignal);
     }
-    if (this.#abortSignal !== undefined) {
-      composeOptions.signal = this.#abortSignal;
+
+    let onAbort: (() => void) | undefined;
+    const startupAborted = new Promise<never>((_resolve, reject): void => {
+      onAbort = (): void => {
+        reject(WebWorkerPool.#startupError(startupSignal, this.#abortSignal));
+      };
+      startupSignal.addEventListener('abort', onAbort, { 'once': true });
+    });
+
+    const acquisition = this.#pool.acquire();
+    try {
+      return await Promise.race([acquisition, startupAborted]);
+    } catch (cause) {
+      // The startup deadline won the race while acquisition was still pending — reclaim its
+      // lease (and the permit it holds) once it eventually settles, instead of leaking it.
+      acquisition.then((lease) => {
+        lease.terminate().catch((terminationCause: unknown) => {
+          this.onWorkerError(WebWorkerPool.#toWorkerPoolError(terminationCause));
+        });
+      }).catch(() => {});
+      throw cause;
+    } finally {
+      if (onAbort !== undefined) {
+        startupSignal.removeEventListener('abort', onAbort);
+      }
     }
-    const signal = await this.#signal.compose(composeOptions);
+  }
+
+  /** True only for the reason `AbortSignal.timeout()` itself produces — a genuinely elapsed deadline, never a caller abort or a pre-aborted signal. */
+  static #isTimeoutReason(reason: Error): boolean {
+    const result = reason instanceof DOMException && reason.name === 'TimeoutError';
+    return result;
+  }
+
+  static #startupError(startupSignal: AbortSignal, abortSignal: AbortSignal | undefined): Error {
+    const result = WebWorkerPool.#buildStartupError(startupSignal.reason, abortSignal);
+    return result;
+  }
+
+  static #buildStartupError(reason: Error, abortSignal: AbortSignal | undefined): Error {
+    if (abortSignal?.aborted === true) {
+      return new WorkerPoolError({
+        'cause': reason,
+        'code': 'workerPool.cancelled',
+        'message': 'WebWorkerPool request was cancelled before its worker finished starting'
+      });
+    }
+    if (WebWorkerPool.#isTimeoutReason(reason)) {
+      return new WorkerPoolError({
+        'cause': reason,
+        'code': 'workerPool.startupTimedOut',
+        'message': 'WebWorkerPool worker did not finish starting within its startup timeout'
+      });
+    }
+    return new WorkerPoolError({
+      'cause': reason,
+      'code': 'workerPool.startupAborted',
+      'message': 'WebWorkerPool request was not dispatched because its worker startup signal was already aborted'
+    });
+  }
+
+  /** Bounds one request by `timeoutMs`, derived from `taskCancelSignal` — see `#acquire`. */
+  async #request(lease: WorkerLeaseInterface<WebWorkerInterface>, item: TInput, taskCancelSignal: AbortSignal): Promise<TOutput> {
+    const signal = this.#timeoutMs !== undefined
+      ? AbortSignal.any([taskCancelSignal, AbortSignal.timeout(this.#timeoutMs)])
+      : taskCancelSignal;
     WebWorkerPool.#throwIfAborted(signal);
     const request = lease.request(this.#transport, item);
     let onAbort: (() => void) | undefined;
@@ -189,20 +267,38 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
   }
 
   async #runItem(item: TInput): Promise<TOutput> {
+    // The caller's cancellation source is composed once per item; both the startup deadline and
+    // the task deadline derive from `taskCancelController.signal` below.
+    const composeOptions: { 'signal'?: AbortSignal; } = {};
+    if (this.#abortSignal !== undefined) {
+      composeOptions.signal = this.#abortSignal;
+    }
+    const cancellationSignal = await this.#signal.compose(composeOptions);
+
+    const taskCancelController = new AbortController();
+    const onCancellationAbort = (): void => {
+      taskCancelController.abort(cancellationSignal.reason);
+    };
+    if (cancellationSignal.aborted) {
+      onCancellationAbort();
+    } else {
+      cancellationSignal.addEventListener('abort', onCancellationAbort, { 'once': true });
+    }
+
     let lease: WorkerLeaseInterface<WebWorkerInterface> | undefined;
     let terminate = false;
 
     try {
-      lease = await this.#pool.acquire();
+      lease = await this.#acquire(taskCancelController.signal);
       if (!this.#knownWorkers.has(lease.worker)) {
         this.#knownWorkers.add(lease.worker);
         this.onWorkerCreated(lease.worker);
       }
-      return await this.#request(lease, item);
+      return await this.#request(lease, item, taskCancelController.signal);
     } catch (cause) {
       const error = WebWorkerPool.#toWorkerPoolError(cause);
       terminate = error instanceof WorkerPoolError
-        && (error.code === 'workerPool.cancelled' || error.code === 'workerPool.timedOut');
+        && (error.code === 'workerPool.cancelled' || error.code === 'workerPool.timedOut' || error.code === 'workerPool.startupTimedOut' || error.code === 'workerPool.startupAborted');
       if (error instanceof WorkerPoolError && error.code === 'workerPool.timedOut') {
         this.onWorkerTimeout();
       } else {
@@ -210,6 +306,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
       }
       throw error;
     } finally {
+      cancellationSignal.removeEventListener('abort', onCancellationAbort);
       if (lease !== undefined) {
         if (terminate) {
           await lease.terminate();

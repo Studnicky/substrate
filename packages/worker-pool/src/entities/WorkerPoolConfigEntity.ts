@@ -10,6 +10,7 @@ export namespace WorkerPoolConfigEntity {
     'properties': {
       'batchConcurrency': { 'minimum': 1, 'type': 'integer' },
       'concurrency': { 'minimum': 1, 'type': 'integer' },
+      'startupTimeoutMs': { 'minimum': 0, 'type': 'number' },
       'timeoutMs': { 'minimum': 0, 'type': 'number' },
       'workerPath': { 'minLength': 1, 'type': 'string' }
     },

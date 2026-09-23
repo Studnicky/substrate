@@ -9,6 +9,7 @@ export interface WebWorkerPoolOptionsInterface<TInput, TOutput> {
   readonly 'factory': WorkerFactoryInterface<WebWorkerInterface>;
   readonly 'maximumWorkers': number;
   readonly 'signal'?: Signal;
+  readonly 'startupTimeoutMs'?: number;
   readonly 'timeoutMs'?: number;
   readonly 'transport': WorkerTransportInterface<WebWorkerInterface, TInput, TOutput>;
 }

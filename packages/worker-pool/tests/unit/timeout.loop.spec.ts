@@ -26,6 +26,7 @@ interface BatchConfigInputInterface {
 interface WorkerPoolInputInterface {
   batch?: BatchConfigInputInterface;
   concurrency?: WorkerPoolConfigInterface['concurrency'];
+  startupTimeoutMs?: WorkerPoolConfigInterface['startupTimeoutMs'];
   timeoutMs?: WorkerPoolConfigInterface['timeoutMs'];
   workerPath: WorkerPoolConfigInterface['workerPath'];
 }
@@ -86,6 +87,13 @@ type ScenarioCase =
       input: { items: Array<{ exitAfterResult?: boolean; value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
       shape: 'compose-after-exit-queued';
       name: string;
+    }
+  | {
+      description: string;
+      expected: { errorMessageIncludes: string; excludesMessage: string };
+      input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
+      shape: 'startup-timeout';
+      name: string;
     };
 
 function resolveWorkerPath(relativePath: string): string {
@@ -98,6 +106,7 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   };
   if (config.batch?.concurrency !== undefined) { resolved.batchConcurrency = config.batch.concurrency; }
   if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
+  if (config.startupTimeoutMs !== undefined) { resolved.startupTimeoutMs = config.startupTimeoutMs; }
   if (config.timeoutMs !== undefined) { resolved.timeoutMs = config.timeoutMs; }
   return resolved;
 }
@@ -360,6 +369,39 @@ const runnerMap: RunnerMap = {
     await signal.entered.promise;
     signal.release();
     assert.deepStrictEqual(await running, scenarioCase.expected.results);
+  },
+
+  'startup-timeout': async (scenarioCase) => {
+    const timedOutIndexes: number[] = [];
+    const workerErrors: Array<{ error: Error; index: number }> = [];
+
+    class ObservingPool extends WorkerPool<{ value: string }, string> {
+      protected override onWorkerTimeout(index: number): void {
+        timedOutIndexes.push(index);
+      }
+
+      protected override onWorkerError(error: Error, index: number): void {
+        workerErrors.push({ error, index });
+      }
+    }
+
+    const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
+
+    await assert.rejects(
+      pool.run(scenarioCase.input.items),
+      (error: Error) => {
+        assert.ok(error instanceof Error);
+        assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
+        assert.ok(!error.message.includes(scenarioCase.expected.excludesMessage));
+        return true;
+      }
+    );
+
+    // A worker that never finishes starting never runs the task, so this is not a task
+    // timeout: onWorkerTimeout must not fire, only onWorkerError.
+    assert.deepStrictEqual(timedOutIndexes, []);
+    assert.equal(workerErrors.length, 1);
+    assert.equal(workerErrors[0]?.index, 0);
   }
 };
 

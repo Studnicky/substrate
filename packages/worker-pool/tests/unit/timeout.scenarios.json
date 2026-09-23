@@ -139,6 +139,41 @@
           "third"
         ]
       }
+    },
+    {
+      "name": "short-task-timeout-excludes-worker-startup",
+      "description": "an instant task resolves within a task timeout too short to also cover worker startup, because startup is bounded separately",
+      "shape": "within-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "startupTimeoutMs": 5000,
+          "timeoutMs": 500,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "instant" }]
+      },
+      "expected": {
+        "results": ["instant"]
+      }
+    },
+    {
+      "name": "worker-startup-timeout-is-distinct-from-task-timeout",
+      "description": "a startupTimeoutMs that expires before the worker reports online rejects with a startup-specific message distinct from the task-timeout message",
+      "shape": "startup-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "startupTimeoutMs": 0,
+          "timeoutMs": 5000,
+          "workerPath": "../fixtures/echoWorker.mjs"
+        },
+        "items": [{ "value": "never-starts" }]
+      },
+      "expected": {
+        "errorMessageIncludes": "did not finish starting",
+        "excludesMessage": "exceeded its timeout"
+      }
     }
   ]
 }
