@@ -25,9 +25,9 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { sameInstance: true };
+      expected: { distinctInstances: true; firstAborted: false; secondAborted: false };
       input: Record<string, never>;
-      shape: 'never-same-instance';
+      shape: 'never-distinct-instances';
       name: string;
     }
   | {
@@ -67,8 +67,8 @@ type ScenarioCase =
     }
   | {
       description: string;
-      expected: { sameAsNever: true };
-      input: { composeOptions: SerializableComposeOptions; sameAsNever: true };
+      expected: { aborted: false };
+      input: { composeOptions: SerializableComposeOptions };
       shape: 'instance-empty-options';
       name: string;
     }
@@ -133,6 +133,13 @@ type ScenarioCase =
       expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'timeout' };
       input: { waitMs: number };
       shape: 'race-timeout-removes-listener';
+      name: string;
+    }
+  | {
+      description: string;
+      expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'aborted' };
+      input: { abortAfterMs: number; waitMs: number };
+      shape: 'race-timeout-removes-listener-on-abort';
       name: string;
     }
   | {
@@ -213,11 +220,12 @@ const runnerMap: RunnerMap = {
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
 
-  'never-same-instance': async (scenarioCase) => {
+  'never-distinct-instances': async (scenarioCase) => {
     const first = Signal.never();
     const second = Signal.never();
-    assert.equal(first, second);
-    assert.equal(first === second, scenarioCase.expected.sameInstance);
+    assert.equal(first !== second, scenarioCase.expected.distinctInstances);
+    assert.equal(first.aborted, scenarioCase.expected.firstAborted);
+    assert.equal(second.aborted, scenarioCase.expected.secondAborted);
   },
 
   'compose-empty-options': async (scenarioCase) => {
@@ -266,8 +274,7 @@ const runnerMap: RunnerMap = {
     const s = Signal.create();
     const sig = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
     assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig, Signal.never());
-    assert.equal(sig === Signal.never(), scenarioCase.expected.sameAsNever);
+    assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
 
   'instance-provided-signal': async (scenarioCase) => {
@@ -368,6 +375,17 @@ const runnerMap: RunnerMap = {
     const controller = new AbortController();
     const pending = RaceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
     assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
+    const outcome = await pending;
+    assert.equal(outcome, scenarioCase.expected.outcome);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
+  },
+
+  'race-timeout-removes-listener-on-abort': async (scenarioCase) => {
+    const controller = new AbortController();
+    const pending = RaceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
+    await delay(scenarioCase.input.abortAfterMs);
+    controller.abort();
     const outcome = await pending;
     assert.equal(outcome, scenarioCase.expected.outcome);
     assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);

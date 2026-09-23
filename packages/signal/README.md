@@ -8,7 +8,7 @@
 
 `Signal` is an instantiable primitive — `Signal.create()` returns an explicitly owned instance with the canonical `compose(options)` method and a protected hook that a subclass can override to observe composition.
 
-The library also exposes `Signal.never()`, a singleton sentinel that never aborts, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
+The library also exposes `Signal.never()`, which returns a fresh never-aborting `AbortSignal` on every call, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
 
 ## Install
 
@@ -41,9 +41,9 @@ async function fetchWithTimeout(): Promise<Response> {
   return fetch('https://api.example.com/data', { signal });
 }
 
-// Never-aborting sentinel — useful as a safe default
+// Never-aborting signal — useful as a safe default
 function getDefaultSignal(): AbortSignal {
-  return Signal.never(); // same singleton on every call
+  return Signal.never(); // fresh signal on every call
 }
 
 // SignalError rejects deadlineMs outside 0 through 2,147,483,647 whole milliseconds

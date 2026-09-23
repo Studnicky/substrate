@@ -37,14 +37,12 @@ class ComposeDemo {
     console.log(`caseDeadlineOnly: aborted=${signal.aborted}`);
   }
 
-  /** Case 4: neither — returns the never-aborting sentinel. */
+  /** Case 4: neither deadline nor signal supplied — returns a never-aborting AbortSignal. */
   static async caseNeither(): Promise<void> {
     const composed = await signals.compose({});
-    const sentinel = Signal.never();
 
-    assert.strictEqual(composed, sentinel, 'compose({}) returns the same object as Signal.never()');
-    assert.ok(!composed.aborted, 'sentinel is never aborted');
-    console.log(`caseNeither: compose({}) === Signal.never() → ${composed === sentinel}`);
+    assert.ok(!composed.aborted, 'the composed signal is never aborted');
+    console.log(`caseNeither: isAbortSignal=${composed instanceof AbortSignal}, aborted=${composed.aborted}`);
   }
 
   /** deadlineMs of 0 is valid (non-negative) — AbortSignal.timeout(0) aborts immediately. */

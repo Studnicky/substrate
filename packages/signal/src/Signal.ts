@@ -16,8 +16,6 @@ class SignalInstance {
 }
 
 export class Signal {
-  static #never: AbortSignal | null = null;
-
   protected readonly hooks: HookInvoker;
 
   protected constructor(hooks: HookInvoker = new HookInvoker()) {
@@ -33,11 +31,8 @@ export class Signal {
   }
 
   static never(): AbortSignal {
-    if (Signal.#never === null) {
-      Signal.#never = new AbortController().signal;
-    }
-
-    return Signal.#never;
+    const controller = new AbortController();
+    return controller.signal;
   }
 
   async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {

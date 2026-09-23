@@ -8,15 +8,16 @@ import { Signal } from '../src/index.js';
 const signals = Signal.create();
 
 class NeverTimeoutDemo {
-  /** Signal.never() returns the same singleton on every call. */
-  static neverIsSingleton(): void {
+  /** Signal.never() returns a fresh signal on every call. */
+  static neverIsFreshEachCall(): void {
     const a = Signal.never();
     const b = Signal.never();
     const c = Signal.never();
 
-    assert.strictEqual(a, b, 'first and second calls return the same object');
-    assert.strictEqual(b, c, 'second and third calls return the same object');
-    console.log(`neverIsSingleton: a===b=${a === b}, b===c=${b === c}`);
+    assert.notStrictEqual(a, b, 'first and second calls return distinct objects');
+    assert.notStrictEqual(b, c, 'second and third calls return distinct objects');
+    assert.ok(!a.aborted && !b.aborted && !c.aborted, 'each fresh signal is not aborted');
+    console.log(`neverIsFreshEachCall: a===b=${a === b}, b===c=${b === c}`);
   }
 
   /** Signal.never() is never aborted. */
@@ -46,7 +47,7 @@ class NeverTimeoutDemo {
   }
 }
 
-NeverTimeoutDemo.neverIsSingleton();
+NeverTimeoutDemo.neverIsFreshEachCall();
 NeverTimeoutDemo.neverIsNotAborted();
 await NeverTimeoutDemo.deadlineNotYetAborted();
 await NeverTimeoutDemo.deadlinesReturnDistinctInstances();

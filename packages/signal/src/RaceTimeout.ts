@@ -16,7 +16,7 @@ export class RaceTimeout {
         resolve('timeout');
       }, ms);
 
-      signal?.addEventListener('abort', onAbort);
+      signal?.addEventListener('abort', onAbort, { 'once': true });
     });
   }
 }
