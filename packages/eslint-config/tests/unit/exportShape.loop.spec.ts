@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
-import { singleExport } from '../../src/rules/singleExport.js';
-import scenarioGroups from './singleExport.scenarios.json' with { type: 'json' };
+import { exportShape } from '../../src/rules/exportShape.js';
+import scenarioGroups from './exportShape.scenarios.json' with { type: 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -34,11 +34,11 @@ const typeAwareRuleTester = new RuleTester({
   }
 });
 
-void describe('single-export', () => {
+void describe('export-shape', () => {
   for (const run of scenarioGroups.runs) {
     void it(run.name, () => {
       const tester = run.shape === 'type-aware' ? typeAwareRuleTester : ruleTester;
-      tester.run(run.ruleName, singleExport, {
+      tester.run(run.ruleName, exportShape, {
         invalid: run.invalid,
         valid: run.valid
       });

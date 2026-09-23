@@ -2,8 +2,8 @@
   "runs": [
     {
       "shape": "plain",
-      "name": "single-export rule cases",
-      "ruleName": "single-export",
+      "name": "export-shape cardinality cases",
+      "ruleName": "export-shape",
       "valid": [
         {
           "code": "export const myModule = 42;",
@@ -156,7 +156,13 @@
           "code": "export type { Foo } from './foo.js'; export type { Bar } from './bar.js';",
           "errors": [
             {
+              "messageId": "reExportOutsideIndex"
+            },
+            {
               "messageId": "tooMany"
+            },
+            {
+              "messageId": "reExportOutsideIndex"
             }
           ],
           "filename": "/project/src/reexportedTypes.ts",
@@ -296,6 +302,9 @@
           "code": "export * from './other.js';",
           "errors": [
             {
+              "messageId": "starReExportOutsideIndex"
+            },
+            {
               "messageId": "exportAll"
             }
           ],
@@ -325,6 +334,9 @@
         {
           "code": "export * from './other.js';",
           "errors": [
+            {
+              "messageId": "starReExportOutsideIndex"
+            },
             {
               "messageId": "exportAll"
             }
@@ -416,8 +428,8 @@
     },
     {
       "shape": "type-aware",
-      "name": "single-export type-aware Error classification cases",
-      "ruleName": "single-export",
+      "name": "export-shape type-aware Error classification cases",
+      "ruleName": "export-shape",
       "valid": [
         {
           "code": "export class FooError extends Error {}",
@@ -436,6 +448,148 @@
         }
       ],
       "invalid": []
+    },
+    {
+      "shape": "plain",
+      "name": "export-shape naming and re-export placement cases",
+      "ruleName": "export-shape",
+      "valid": [
+        {
+          "code": "export { FooType }",
+          "filename": "/project/src/fooType.ts",
+          "name": "local export without alias"
+        },
+        {
+          "code": "export { FooType } from './foo'",
+          "filename": "/project/src/index.ts",
+          "name": "index file re-export without alias"
+        },
+        {
+          "code": "export { FooType as FooType } from './foo'",
+          "filename": "/project/src/index.ts",
+          "name": "index file re-export with same name"
+        },
+        {
+          "code": "export * from './foo'",
+          "filename": "/project/src/index.ts",
+          "name": "star re-export inside index file"
+        },
+        {
+          "code": "import { FooType } from './foo'; export { FooType };",
+          "filename": "/project/src/index.ts",
+          "name": "index file may export imported binding"
+        },
+        {
+          "code": "import type { FooType } from './foo'; export type { FooType };",
+          "filename": "/project/src/index.ts",
+          "name": "index file may export imported type binding"
+        },
+        {
+          "code": "import { FooType } from './foo'; const LocalCopy = FooType; export { LocalCopy };",
+          "filename": "/project/src/index.ts",
+          "name": "index file may export an imported binding through one level of local reassignment"
+        },
+        {
+          "code": "import Foo from './foo'; export = Foo;",
+          "filename": "/project/src/index.ts",
+          "name": "index file may re-export an imported binding via export ="
+        }
+      ],
+      "invalid": [
+        {
+          "code": "export { FooType as BarType }",
+          "errors": [
+            {
+              "messageId": "exportAlias"
+            }
+          ],
+          "filename": "/project/src/barType.ts",
+          "name": "local export with alias"
+        },
+        {
+          "code": "export { FooType as BarType } from './foo'",
+          "errors": [
+            {
+              "messageId": "exportAlias"
+            }
+          ],
+          "filename": "/project/src/barType.ts",
+          "name": "re-export with alias from non-index file"
+        },
+        {
+          "code": "export { FooType } from './foo'",
+          "errors": [
+            {
+              "messageId": "reExportOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/fooType.ts",
+          "name": "re-export without alias from non-index file"
+        },
+        {
+          "code": "export * from './foo'",
+          "errors": [
+            {
+              "messageId": "starReExportOutsideIndex"
+            },
+            {
+              "messageId": "exportAll"
+            }
+          ],
+          "filename": "/project/src/fooType.ts",
+          "name": "star re-export from non-index file"
+        },
+        {
+          "code": "import { FooType } from './foo'; export { FooType };",
+          "errors": [
+            {
+              "messageId": "exportImportedBindingOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/fooType.ts",
+          "name": "import then export value binding from non-index file"
+        },
+        {
+          "code": "import type { FooType } from './foo'; export type { FooType };",
+          "errors": [
+            {
+              "messageId": "exportImportedBindingOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/fooType.ts",
+          "name": "import then export type binding from non-index file"
+        },
+        {
+          "code": "import { FooType as LocalFooType } from './foo'; export { LocalFooType };",
+          "errors": [
+            {
+              "messageId": "exportImportedBindingOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/localFooType.ts",
+          "name": "import alias then export binding from non-index file"
+        },
+        {
+          "code": "import { FooType } from './foo'; const LocalCopy = FooType; export { LocalCopy };",
+          "errors": [
+            {
+              "messageId": "exportImportedBindingOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/localCopy.ts",
+          "name": "a local reassignment does not launder an imported binding past the outside-index check"
+        },
+        {
+          "code": "import Foo from './foo'; export = Foo;",
+          "errors": [
+            {
+              "messageId": "reExportOutsideIndex"
+            }
+          ],
+          "filename": "/project/src/fooType.ts",
+          "name": "export = re-exporting an imported binding outside an index file is a re-export"
+        }
+      ]
     }
   ]
 }

@@ -10,11 +10,13 @@ import {
 } from 'typescript';
 
 import {
+  CANONICAL_INDEX_BASES,
   INDEX_FILES,
   RESTRICTED_TOPOLOGY_NAMES,
   SCREAMING_SNAKE_CASE_PATTERN,
   WORD_REGEX
 } from './constants/SingleExportConstants.js';
+import { AstHelpers } from './shared/astHelpers.js';
 
 // Locale-aware string comparator for display-ordering export names in lint messages.
 // `Intl.Collator.prototype.compare` is a pre-bound native function (per ECMA-402) —
@@ -253,7 +255,7 @@ namespace ExportShapeEntity {
   export type Type = FromSchema<typeof Schema>;
 }
 
-const ExportShape = {
+const ExportShapeKind = {
   'ConstFunction': 'const-function',
   'ConstValue': 'const-value',
   'Enum': 'enum',
@@ -335,12 +337,12 @@ class TypeCheckerHelpers {
 class ExportClassifier {
   public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportShapeEntity.Type {
     if (node.type !== 'ExportNamedDeclaration') {
-      return ExportShape.Other;
+      return ExportShapeKind.Other;
     }
     const exportNode: unknown = node;
 
     if (!Predicates.isRecord(exportNode)) {
-      return ExportShape.Other;
+      return ExportShapeKind.Other;
     }
 
     const decl: unknown = exportNode.declaration;
@@ -352,41 +354,41 @@ class ExportClassifier {
     // and must fall through to the `TSTypeAliasDeclaration`/`TSInterfaceDeclaration` branches
     // below instead of being swallowed into `TypeReexport` here.
     if (exportNode.exportKind === 'type' && !Predicates.isRecord(decl)) {
-      return ExportShape.TypeReexport;
+      return ExportShapeKind.TypeReexport;
     }
 
     if (!Predicates.isRecord(decl)) {
-      return ExportShape.Other;
+      return ExportShapeKind.Other;
     }
 
     const declType = decl.type ?? '';
 
     if (declType === 'TSTypeAliasDeclaration') {
-      return ExportShape.Type;
+      return ExportShapeKind.Type;
     }
 
     if (declType === 'TSInterfaceDeclaration') {
-      return ExportShape.Interface;
+      return ExportShapeKind.Interface;
     }
 
     if (declType === 'TSEnumDeclaration') {
-      return ExportShape.Enum;
+      return ExportShapeKind.Enum;
     }
 
     if (declType === 'TSModuleDeclaration') {
-      return ExportShape.Namespace;
+      return ExportShapeKind.Namespace;
     }
 
     if (declType === 'FunctionDeclaration') {
-      return ExportShape.Function;
+      return ExportShapeKind.Function;
     }
 
     if (declType === 'ClassDeclaration') {
       if (TypeCheckerHelpers.isErrorClass(decl, services)) {
-        return ExportShape.ErrorClass;
+        return ExportShapeKind.ErrorClass;
       }
 
-      return ExportShape.OtherClass;
+      return ExportShapeKind.OtherClass;
     }
 
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
@@ -402,24 +404,24 @@ class ExportClassifier {
         const initType = declarator.init.type;
 
         if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
-          return ExportShape.ConstFunction;
+          return ExportShapeKind.ConstFunction;
         }
       }
 
-      return ExportShape.ConstValue;
+      return ExportShapeKind.ConstValue;
     }
 
-    return ExportShape.Other;
+    return ExportShapeKind.Other;
   }
 
   public static isEnumOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
-    const result = shape === ExportShape.ConstValue || shape === ExportShape.Enum;
+    const result = shape === ExportShapeKind.ConstValue || shape === ExportShapeKind.Enum;
 
     return result;
   }
 
   public static isTypeOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
-    const result = shape === ExportShape.ConstValue || shape === ExportShape.Type;
+    const result = shape === ExportShapeKind.ConstValue || shape === ExportShapeKind.Type;
 
     return result;
   }
@@ -456,7 +458,7 @@ class ExportClassifier {
       name,
       shapes
     ] of shapesByName) {
-      if (shapes.has(ExportShape.Type) && shapes.has(ExportShape.ConstValue)) {
+      if (shapes.has(ExportShapeKind.Type) && shapes.has(ExportShapeKind.ConstValue)) {
         return name;
       }
     }
@@ -565,7 +567,7 @@ interface ExportRecordInterface {
  * and filename-match checks — but only once each file's own exports actually earn it. A path
  * alone (living under `errors/`, being named `*.errors.ts`) is not proof of shape; a file that
  * exports nothing but arbitrary consts still needs the normal checks. This reuses the same
- * type-aware `ExportShape` classification `ExportClassifier` already computes for every export
+ * type-aware `ExportShapeKind` classification `ExportClassifier` already computes for every export
  * (including its existing `TypeCheckerHelpers.isErrorClass` real-`Error`-inheritance check) rather
  * than introducing a second, parallel classifier — deliberately scoped to "does at least one
  * export in this file carry the shape this folder claims," not a full per-export audit, since the
@@ -584,15 +586,15 @@ class TopologyContentVerification {
   ): boolean {
     if (topology === 'errors') {
       const result = records.some((record) => {
-        if (record.shape === ExportShape.ErrorClass) {
+        if (record.shape === ExportShapeKind.ErrorClass) {
           return true;
         }
         // Without type services (a plain, non-type-aware lint run) a class can never classify as
         // `ErrorClass` — `TypeCheckerHelpers.isErrorClass` requires the checker. Fall back to the
-        // same `*Error`-suffixed naming convention `single-export`'s own filename-matching already
-        // treats as this topology's signal, rather than granting no exemption at all whenever type
-        // information happens to be unavailable.
-        if (record.shape !== ExportShape.OtherClass) {
+        // same `*Error`-suffixed naming convention the single-export-per-file check's own
+        // filename-matching already treats as this topology's signal, rather than granting no
+        // exemption at all whenever type information happens to be unavailable.
+        if (record.shape !== ExportShapeKind.OtherClass) {
           return false;
         }
 
@@ -612,7 +614,7 @@ class TopologyContentVerification {
 
     if (topology === 'interfaces') {
       const result = records.some((record) => {
-        const isInterfaceShaped = record.shape === ExportShape.Interface;
+        const isInterfaceShaped = record.shape === ExportShapeKind.Interface;
 
         return isInterfaceShaped;
       });
@@ -622,7 +624,7 @@ class TopologyContentVerification {
 
     if (topology === 'types') {
       const result = records.some((record) => {
-        const isTypeShaped = record.shape === ExportShape.Type;
+        const isTypeShaped = record.shape === ExportShapeKind.Type;
 
         return isTypeShaped;
       });
@@ -635,7 +637,7 @@ class TopologyContentVerification {
       // `Type` alias — either is proof the file is genuinely entity-shaped, not an arbitrary
       // grab-bag of consts sitting under `entities/`.
       const result = records.some((record) => {
-        const isEntityShaped = record.shape === ExportShape.Type || record.shape === ExportShape.Namespace;
+        const isEntityShaped = record.shape === ExportShapeKind.Type || record.shape === ExportShapeKind.Namespace;
 
         return isEntityShaped;
       });
@@ -647,8 +649,9 @@ class TopologyContentVerification {
   }
 }
 
-export const singleExport: Rule.RuleModule = {
-  'create': (context) => {
+/** Per-file listeners enforcing exactly one named export whose name matches the filename. */
+class ExportCardinalityListeners {
+  public static create(context: Rule.RuleContext): Rule.RuleListener {
     const fileName = context.filename;
 
     if (fileName === '<input>' || fileName.length === 0) {
@@ -659,8 +662,8 @@ export const singleExport: Rule.RuleModule = {
     const restrictedTopology = RestrictedTopology.get(fileName);
 
     if (INDEX_FILES.has(baseName)) {
-      // Index files are exempt: multiple exports and export * are allowed.
-      // Only default exports remain forbidden.
+    // Index files are exempt: multiple exports and export * are allowed.
+    // Only default exports remain forbidden.
       const onExportDefaultDeclaration: NonNullable<Rule.RuleListener['ExportDefaultDeclaration']> = (node) => {
         context.report({
           'messageId': 'defaultExport',
@@ -767,7 +770,7 @@ export const singleExport: Rule.RuleModule = {
         }
       }
 
-      if (exportShapes.includes(ExportShape.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
+      if (exportShapes.includes(ExportShapeKind.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
         return;
       }
 
@@ -831,20 +834,239 @@ export const singleExport: Rule.RuleModule = {
       'ExportNamedDeclaration': onExportNamedDeclaration,
       'Program:exit': onProgramExit
     };
+  }
+}
+
+/** Per-file listeners enforcing canonical export naming and index-only re-export placement. */
+class ExportNamingListeners {
+  public static create(context: Rule.RuleContext): Rule.RuleListener {
+    const filename = context.filename;
+
+    const lastSeparator = Math.max(filename.lastIndexOf('/'), filename.lastIndexOf('\\'));
+    const inIndex = CANONICAL_INDEX_BASES.has(filename.slice(lastSeparator + 1));
+    const importedBindings = new Set<string>();
+
+    const onImportDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'specifiers': { 'local': unknown }[];
+      };
+
+      const specifiers = rawNode.specifiers;
+      const specifiersLength = specifiers.length;
+
+      for (let index = 0; index < specifiersLength; index += 1) {
+        const specifier = specifiers.at(index);
+        const localName = specifier === undefined ? undefined : AstHelpers.getIdentifierName(specifier.local);
+
+        if (localName !== undefined) {
+          importedBindings.add(localName);
+        }
+      }
+    };
+
+    // Propagates the "this is an imported binding" taint through one level of simple
+    // reassignment (`const localCopy = helper;`) — otherwise `export { localCopy }` for a name
+    // that is really just a re-exported import escapes `exportImportedBindingOutsideIndex`
+    // entirely, since only literal `ImportDeclaration` specifiers previously populated
+    // `importedBindings`. Import declarations are hoisted and always precede their use, so this
+    // single-pass, declaration-order propagation is sufficient for the direct-aliasing pattern;
+    // it does not attempt to trace an identifier through arbitrary reassignment chains.
+    const onVariableDeclarator = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'id': unknown;
+        'init': unknown;
+      };
+
+      if (AstHelpers.getNodeType(rawNode.init) !== 'Identifier') {
+        return;
+      }
+      const initName = AstHelpers.getIdentifierName(rawNode.init);
+
+      if (initName === undefined || !importedBindings.has(initName)) {
+        return;
+      }
+
+      const declaredName = AstHelpers.getIdentifierName(rawNode.id);
+
+      if (declaredName !== undefined) {
+        importedBindings.add(declaredName);
+      }
+    };
+
+    const onExportSpecifier = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'exported': { 'name': string; 'type': string; };
+        'local': { 'name': string; 'type': string; };
+      };
+
+      const localName = rawNode.local.name;
+      const exportedName = rawNode.exported.name;
+
+      if (localName === exportedName) {
+        return;
+      }
+
+      context.report({
+        'data': {
+          'exported': exportedName, 'local': localName
+        },
+        'messageId': 'exportAlias',
+        'node': node
+      });
+    };
+
+    const onExportNamedDeclaration = (node: Rule.Node): void => {
+      const rawNode = node as unknown as {
+        'source': unknown;
+        'specifiers': { 'exported': { 'name': string }; 'local': { 'name': string }; }[];
+      };
+
+      if (!inIndex) {
+        if (rawNode.source !== null && rawNode.source !== undefined) {
+          const hasAliasedSpecifier = rawNode.specifiers.some((specifier) => {
+            const result = AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
+
+            return result;
+          });
+
+          if (!hasAliasedSpecifier) {
+            context.report({
+              'messageId': 'reExportOutsideIndex',
+              'node': node
+            });
+          }
+
+          return;
+        }
+
+        const exportsImportedBinding = rawNode.specifiers.some((specifier) => {
+          const localName = AstHelpers.getIdentifierName(specifier.local);
+
+          const result = localName !== undefined && importedBindings.has(localName);
+
+          return result;
+        });
+
+        if (exportsImportedBinding) {
+          context.report({
+            'messageId': 'exportImportedBindingOutsideIndex',
+            'node': node
+          });
+        }
+      }
+    };
+
+    const onExportAllDeclaration = (node: Rule.Node): void => {
+      if (inIndex) {
+        return;
+      }
+
+      context.report({
+        'messageId': 'starReExportOutsideIndex',
+        'node': node
+      });
+    };
+
+    // `export = Foo` (`TSExportAssignment`) is structurally distinct from every other export
+    // form this rule already listens for — it has no `ExportNamedDeclaration`/`ExportSpecifier`
+    // shape at all — so re-exporting an imported namespace/binding through it was a blind spot.
+    const onTSExportAssignment = (node: Rule.Node): void => {
+      if (inIndex) {
+        return;
+      }
+
+      const rawNode = node as unknown as { 'expression': unknown };
+
+      if (AstHelpers.getNodeType(rawNode.expression) !== 'Identifier') {
+        return;
+      }
+      const name = AstHelpers.getIdentifierName(rawNode.expression);
+
+      if (name === undefined || !importedBindings.has(name)) {
+        return;
+      }
+
+      context.report({
+        'messageId': 'reExportOutsideIndex',
+        'node': node
+      });
+    };
+
+    return {
+      'ExportAllDeclaration': onExportAllDeclaration,
+      'ExportNamedDeclaration': onExportNamedDeclaration,
+      'ExportSpecifier': onExportSpecifier,
+      'ImportDeclaration': onImportDeclaration,
+      'TSExportAssignment': onTSExportAssignment,
+      'VariableDeclarator': onVariableDeclarator
+    };
+  }
+}
+
+/**
+ * Every AST visitor key either listener family attaches — a fixed, known union, not a dynamic
+ * key set. `Program:exit` and `TSExportAssignment` fall outside `RuleListener`'s well-known
+ * ESTree keys, so the declared type ESLint infers for them is an unusable code-path-analysis
+ * union; every merged handler is therefore built against the concrete `Rule.Node` shape and the
+ * whole listener map is cast once at the end, rather than fighting each key's declared type.
+ */
+class ListenerMerge {
+  private static dispatch(
+    listeners: { readonly 'first': ((node: Rule.Node) => void) | undefined; readonly 'second': ((node: Rule.Node) => void) | undefined; }
+  ): (node: Rule.Node) => void {
+    const merged = (node: Rule.Node): void => {
+      listeners.first?.(node);
+      listeners.second?.(node);
+    };
+
+    return merged;
+  }
+
+  public static combine(first: Rule.RuleListener, second: Rule.RuleListener): Rule.RuleListener {
+    const firstNode = first as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
+    const secondNode = second as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
+    const literal = {
+      'ExportAllDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportAllDeclaration, 'second': secondNode.ExportAllDeclaration }),
+      'ExportDefaultDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportDefaultDeclaration, 'second': secondNode.ExportDefaultDeclaration }),
+      'ExportNamedDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportNamedDeclaration, 'second': secondNode.ExportNamedDeclaration }),
+      'ExportSpecifier': ListenerMerge.dispatch({ 'first': firstNode.ExportSpecifier, 'second': secondNode.ExportSpecifier }),
+      'ImportDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ImportDeclaration, 'second': secondNode.ImportDeclaration }),
+      'Program:exit': ListenerMerge.dispatch({ 'first': firstNode['Program:exit'], 'second': secondNode['Program:exit'] }),
+      'TSExportAssignment': ListenerMerge.dispatch({ 'first': firstNode.TSExportAssignment, 'second': secondNode.TSExportAssignment }),
+      'VariableDeclarator': ListenerMerge.dispatch({ 'first': firstNode.VariableDeclarator, 'second': secondNode.VariableDeclarator })
+    };
+    const listeners = literal as unknown as Rule.RuleListener;
+
+    return listeners;
+  }
+}
+
+export const exportShape: Rule.RuleModule = {
+  'create': (context) => {
+    const cardinalityListeners = ExportCardinalityListeners.create(context);
+    const namingListeners = ExportNamingListeners.create(context);
+    const listeners = ListenerMerge.combine(cardinalityListeners, namingListeners);
+
+    return listeners;
   },
   'meta': {
     'docs': {
-      'description': 'Require a single named export per file with a matching filename.',
+      'description': 'Enforce a module\'s export surface: one named export matching the filename, canonical export names, and index-only re-export placement.',
       'recommended': false
     },
     'messages': {
       'constantsCase':
         'Constant modules must export SCREAMING_SNAKE_CASE symbols only (found: {{exports}}).',
       'defaultExport': 'Default exports are forbidden.',
+      'exportAlias': "Export alias '{{exported}}' hides the canonical name '{{local}}'. Export as '{{local}}' or rename the symbol at its source.",
       'exportAll':
         'Export all re-exports are forbidden in {{file}}; export a single symbol instead.',
+      'exportImportedBindingOutsideIndex':
+        'Exporting an imported binding is only permitted in index files. Import and use the symbol directly instead of forwarding it.',
       'mismatch':
         'Export \'{{exportName}}\' must match filename base \'{{fileBase}}\' (expected one of: {{expected}}).',
+      'reExportOutsideIndex': 'Re-exports from external modules are only permitted in index files. Move this re-export to the package index or import and use the symbol directly.',
+      'starReExportOutsideIndex': "'export *' re-exports are only permitted in index files.",
       'tooMany':
         'Files must export exactly one named symbol (found: {{exports}}).'
     },
