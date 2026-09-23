@@ -106,6 +106,25 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     assert.equal(nodeValidate.errors?.[0]?.message, 'must be number');
   });
 
+  /**
+   * Ajv's strict mode rejects `prefixItems` tuples that lack a matching `minItems`/`maxItems`/`items`,
+   * so this `unevaluatedItems: false` case cannot compile through the strict node registry; the
+   * expected text is the literal Ajv emits for this configuration, verified separately against a
+   * `strict: false` Ajv2020 instance.
+   */
+  void it('renders the Ajv-verified message for unevaluatedItems on the browser runtime', () => {
+    const schema = {
+      '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-unevaluated-items',
+      'prefixItems': [{ 'type': 'string' }],
+      'type': 'array',
+      'unevaluatedItems': false
+    };
+    const browserValidate = BrowserEntityCompiler.compile<unknown>(schema);
+
+    assert.equal(browserValidate(['x', 5]), false);
+    assert.equal(browserValidate.errors?.[0]?.message, 'must NOT have more than 1 items');
+  });
+
   void it('agrees a cyclic object survives compileCreate on both runtimes', () => {
     const schema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-cyclic-create',
@@ -346,6 +365,69 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
         'type': 'object'
       },
       'value': {}
+    },
+    {
+      'name': 'not',
+      'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-not', 'not': { 'type': 'string' } },
+      'value': 'hello'
+    },
+    {
+      'name': 'unevaluatedProperties',
+      'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-unevaluated-properties', 'type': 'object', 'unevaluatedProperties': false },
+      'value': { 'a': 1 }
+    },
+    {
+      'name': 'oneOf',
+      'schema': {
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-one-of',
+        'oneOf': [{ 'type': 'number' }, { 'minimum': 0, 'type': 'number' }]
+      },
+      'value': 5
+    },
+    {
+      'name': 'dependentRequired (single dependency)',
+      'schema': {
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-dependent-required-single',
+        'dependentRequired': { 'a': ['b'] },
+        'properties': { 'a': {}, 'b': {} },
+        'type': 'object'
+      },
+      'value': { 'a': 1 }
+    },
+    {
+      'name': 'dependentRequired (multiple dependencies)',
+      'schema': {
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-dependent-required-multi',
+        'dependentRequired': { 'a': ['b', 'c'] },
+        'properties': { 'a': {}, 'b': {}, 'c': {} },
+        'type': 'object'
+      },
+      'value': { 'a': 1 }
+    },
+    {
+      'name': 'contains',
+      'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-contains', 'contains': { 'type': 'string' }, 'type': 'array' },
+      'value': []
+    },
+    {
+      'name': 'minContains',
+      'schema': {
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-min-contains',
+        'contains': { 'type': 'string' },
+        'minContains': 2,
+        'type': 'array'
+      },
+      'value': ['a']
+    },
+    {
+      'name': 'maxContains',
+      'schema': {
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-max-contains',
+        'contains': { 'type': 'string' },
+        'maxContains': 1,
+        'type': 'array'
+      },
+      'value': ['a', 'b']
     }
   ];
 

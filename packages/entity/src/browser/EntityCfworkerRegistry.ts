@@ -405,8 +405,73 @@ class EntityCfworkerCompiler {
     return result;
   }
 
+  /** The `/contains`, `/minContains`, or `/maxContains` suffix a unit's `keywordLocation` carries, by keyword. */
+  private static readonly CONTAINS_FAMILY_SUFFIXES = new Map<string, string>([
+    ['contains', '/contains'],
+    ['maxContains', '/maxContains'],
+    ['minContains', '/minContains']
+  ]);
+
+  /** The `minimum`/`maximum` Ajv would use for a `contains`/`minContains`/`maxContains` unit: declared `minContains` (default 1) and `maxContains`. */
+  private static containsParameters(unit: OutputUnit, rootSchema: object): { 'maximum': number | undefined; 'minimum': number } | undefined {
+    const suffix = EntityCfworkerCompiler.CONTAINS_FAMILY_SUFFIXES.get(unit.keyword);
+    if (suffix === undefined || !unit.keywordLocation.endsWith(suffix)) {
+      return undefined;
+    }
+    const fragment = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation.slice(0, -suffix.length));
+    if (!EntityCfworkerCompiler.isPlainObject(fragment)) {
+      return undefined;
+    }
+    const minimum = typeof fragment.minContains === 'number' ? fragment.minContains : 1;
+    const maximum = typeof fragment.maxContains === 'number' ? fragment.maxContains : undefined;
+    const result = { 'maximum': maximum, 'minimum': minimum };
+    return result;
+  }
+
+  /** Ajv reports the full declared `dependentRequired[property]` array, not only the currently-missing keys. */
+  private static dependentRequiredParameters(unit: OutputUnit, rootSchema: object): { 'deps': readonly string[]; 'property': string } | undefined {
+    if (unit.keyword !== 'dependentRequired') {
+      return undefined;
+    }
+    const trigger = QUOTED_VALUE_PATTERN.exec(unit.error)?.[1];
+    if (trigger === undefined) {
+      return undefined;
+    }
+    const suffix = '/dependantRequired';
+    const schemaPath = unit.keywordLocation.endsWith(suffix) ? unit.keywordLocation.slice(0, -suffix.length) : undefined;
+    const fragment = schemaPath === undefined ? undefined : EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, schemaPath);
+    if (!EntityCfworkerCompiler.isPlainObject(fragment) || !EntityCfworkerCompiler.isPlainObject(fragment.dependentRequired)) {
+      return undefined;
+    }
+    const deps = Reflect.get(fragment.dependentRequired, trigger);
+    if (!Array.isArray(deps)) {
+      return undefined;
+    }
+    const declaredDeps = deps.filter((entry): entry is string => {
+      const isString = typeof entry === 'string';
+      return isString;
+    });
+    const result = { 'deps': declaredDeps, 'property': trigger };
+    return result;
+  }
+
+  /** The schema-declared value a keyword's message renders, computed rather than pointer-resolved for `unevaluatedItems`. */
+  private static keywordValue(unit: OutputUnit, rootSchema: object): unknown {
+    if (unit.keyword !== 'unevaluatedItems') {
+      const result = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation);
+      return result;
+    }
+    const suffix = '/unevaluatedItems';
+    const fragment = unit.keywordLocation.endsWith(suffix)
+      ? EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation.slice(0, -suffix.length))
+      : undefined;
+    const prefixItems = EntityCfworkerCompiler.isPlainObject(fragment) ? fragment.prefixItems : undefined;
+    const result = Array.isArray(prefixItems) ? prefixItems.length : 0;
+    return result;
+  }
+
   /** Extracts the structured diagnostic parameters the Node registry reports for the same keywords. */
-  private static diagnosticParameters(unit: OutputUnit): Readonly<Record<string, unknown>> {
+  private static diagnosticParameters(unit: OutputUnit, rootSchema: object): Readonly<Record<string, unknown>> {
     if (unit.keyword === 'required') {
       const match = QUOTED_VALUE_PATTERN.exec(unit.error);
       if (match?.[1] !== undefined) {
@@ -419,18 +484,31 @@ class EntityCfworkerCompiler {
         return { 'additionalProperty': match[1] };
       }
     }
+    const contains = EntityCfworkerCompiler.containsParameters(unit, rootSchema);
+    if (contains !== undefined) {
+      return { 'containsMaximum': contains.maximum, 'containsMinimum': contains.minimum };
+    }
+    const dependentRequired = EntityCfworkerCompiler.dependentRequiredParameters(unit, rootSchema);
+    if (dependentRequired !== undefined) {
+      return { 'dependentProperty': dependentRequired.property, 'missingDependentProperties': dependentRequired.deps };
+    }
     return {};
   }
 
   /** Converts a cfworker output unit into the diagnostic entity consumers expect. */
   private static toEntityError(unit: OutputUnit, rootSchema: object): EntityValidationErrorInterface {
     const instancePath = unit.instanceLocation === '#' ? '' : decodeURIComponent(unit.instanceLocation.slice(1));
-    const diagnosticParameters = EntityCfworkerCompiler.diagnosticParameters(unit);
-    const keywordValue = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation);
+    const diagnosticParameters = EntityCfworkerCompiler.diagnosticParameters(unit, rootSchema);
+    const keywordValue = EntityCfworkerCompiler.keywordValue(unit, rootSchema);
+    const renderKeyword = diagnosticParameters.containsMinimum === undefined ? unit.keyword : 'contains';
     const canonicalMessage = EntityDiagnostics.render({
       'additionalProperty': typeof diagnosticParameters.additionalProperty === 'string' ? diagnosticParameters.additionalProperty : undefined,
-      'keyword': unit.keyword,
+      'containsMaximum': typeof diagnosticParameters.containsMaximum === 'number' ? diagnosticParameters.containsMaximum : undefined,
+      'containsMinimum': typeof diagnosticParameters.containsMinimum === 'number' ? diagnosticParameters.containsMinimum : undefined,
+      'dependentProperty': typeof diagnosticParameters.dependentProperty === 'string' ? diagnosticParameters.dependentProperty : undefined,
+      'keyword': renderKeyword,
       'keywordValue': keywordValue,
+      'missingDependentProperties': Array.isArray(diagnosticParameters.missingDependentProperties) ? diagnosticParameters.missingDependentProperties as readonly string[] : undefined,
       'missingProperty': typeof diagnosticParameters.missingProperty === 'string' ? diagnosticParameters.missingProperty : undefined
     });
     const diagnostic: Record<string, unknown> = {
