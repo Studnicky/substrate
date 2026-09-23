@@ -996,21 +996,63 @@ class FilterEngine {
    * @param {string} negate - Negation prefix ('not ' or '')
    * @returns {string} Formatted error message
    */
-  #formatArrayOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
-    const handlers: Record<string, () => string> = {
-      'CONTAINS': () => { return `must ${negate}contain ${expectedDisplay}`; },
-      'EMPTY': () => { return `must ${negate}be empty`; },
-      'EXCLUDES': () => { return `must ${negate}exclude ${expectedDisplay}`; },
-      'IN': () => { return `must ${negate}be in ${expectedDisplay}`; },
-      'INCLUDES': () => { return `must ${negate}include ${expectedDisplay}`; },
-      'LENGTH': () => { return `must have length ${negate}equal to ${expected}`; },
-      'NOT_EMPTY': () => { return `must ${negate}be non-empty`; }
-    };
-    const handler = handlers[type];
-    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+  #arrayContainsMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}contain ${expectedDisplay}`;
 
     return result;
   }
+
+  #arrayEmptyMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be empty`;
+
+    return result;
+  }
+
+  #arrayExcludesMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}exclude ${expectedDisplay}`;
+
+    return result;
+  }
+
+  #arrayInMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}be in ${expectedDisplay}`;
+
+    return result;
+  }
+
+  #arrayIncludesMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}include ${expectedDisplay}`;
+
+    return result;
+  }
+
+  #arrayLengthMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must have length ${negate}equal to ${expected}`;
+
+    return result;
+  }
+
+  #arrayNotEmptyMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be non-empty`;
+
+    return result;
+  }
+
+  #formatArrayOperatorMessage = (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string => {
+    const handlers: Map<string, (expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = new Map([
+      ['CONTAINS', this.#arrayContainsMessage],
+      ['EMPTY', this.#arrayEmptyMessage],
+      ['EXCLUDES', this.#arrayExcludesMessage],
+      ['IN', this.#arrayInMessage],
+      ['INCLUDES', this.#arrayIncludesMessage],
+      ['LENGTH', this.#arrayLengthMessage],
+      ['NOT_EMPTY', this.#arrayNotEmptyMessage]
+    ]);
+    const handler = handlers.get(type);
+    const result = handler !== undefined ? handler(expected, negate, expectedDisplay) : `must ${negate}pass ${type} validation`;
+
+    return result;
+  };
 
   #formatBooleanOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string): string {
     switch (type) {
@@ -1023,84 +1065,149 @@ class FilterEngine {
     }
   }
 
-  #formatCrossOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
-    const handlers: Record<string, () => string> = {
-      'ABSENT': () => { return `must ${negate}be absent`; },
-      'DEFINED': () => { return `must ${negate}be defined`; },
-      'EQUALS': () => { return `must ${negate}equal ${expectedDisplay}`; },
-      'EXISTS': () => { return `must ${negate}exist`; },
-      'NOT_NULL': () => { return `must ${negate}be non-null`; },
-      'NULL': () => { return `must ${negate}be null`; },
-      'TYPE': () => { return `must ${negate}be of type ${expected}`; },
-      'UNDEFINED': () => { return `must ${negate}be undefined`; }
-    };
-    const handler = handlers[type];
-    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+  #crossAbsentMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be absent`;
 
     return result;
   }
 
-  #formatDateOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+  #crossDefinedMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be defined`;
+
+    return result;
+  }
+
+  #crossEqualsMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}equal ${expectedDisplay}`;
+
+    return result;
+  }
+
+  #crossExistsMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}exist`;
+
+    return result;
+  }
+
+  #crossNotNullMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be non-null`;
+
+    return result;
+  }
+
+  #crossNullMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be null`;
+
+    return result;
+  }
+
+  #crossTypeMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be of type ${expected}`;
+
+    return result;
+  }
+
+  #crossUndefinedMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be undefined`;
+
+    return result;
+  }
+
+  #formatCrossOperatorMessage = (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string => {
+    const handlers: Map<string, (expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = new Map([
+      ['ABSENT', this.#crossAbsentMessage],
+      ['DEFINED', this.#crossDefinedMessage],
+      ['EQUALS', this.#crossEqualsMessage],
+      ['EXISTS', this.#crossExistsMessage],
+      ['NOT_NULL', this.#crossNotNullMessage],
+      ['NULL', this.#crossNullMessage],
+      ['TYPE', this.#crossTypeMessage],
+      ['UNDEFINED', this.#crossUndefinedMessage]
+    ]);
+    const handler = handlers.get(type);
+    const result = handler !== undefined ? handler(expected, negate, expectedDisplay) : `must ${negate}pass ${type} validation`;
+
+    return result;
+  };
+
+  #formatDateOperatorMessage = (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string => {
     switch (type) {
       case 'BETWEEN': return `must ${negate}be between ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} and ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
       case 'EQUALS': return `must ${negate}equal ${expectedDisplay}`;
       case 'OUTSIDE': return `must ${negate}be outside ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} to ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
       default: return `must ${negate}pass ${type} validation`;
     }
-  }
+  };
 
-  #formatNumberOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string): string {
-    const handlers: Record<string, () => string> = {
-      'BETWEEN': () => { return `must ${negate}be between ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} and ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`; },
-      'EQUALS': () => { return `must ${negate}equal ${expected}`; },
-      'GREATER': () => { return `must ${negate}be greater than ${expected}`; },
-      'GREATER_EQUAL': () => { return `must ${negate}be at least ${expected}`; },
-      'LESS': () => { return `must ${negate}be less than ${expected}`; },
-      'LESS_EQUAL': () => { return `must ${negate}be at most ${expected}`; },
-      'OUTSIDE': () => { return `must ${negate}be outside ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} to ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`; }
-    };
-    const handler = handlers[type];
-    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+  #numberBetweenMessage = (expected: FilterValueEntity.Type, negate: string): string => {
+    const result = `must ${negate}be between ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} and ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
+
+    return result;
+  };
+
+  #numberEqualsMessage(expected: FilterValueEntity.Type, negate: string): string {
+    const result = `must ${negate}equal ${expected}`;
 
     return result;
   }
 
+  #numberGreaterMessage(expected: FilterValueEntity.Type, negate: string): string {
+    const result = `must ${negate}be greater than ${expected}`;
+
+    return result;
+  }
+
+  #numberGreaterEqualMessage(expected: FilterValueEntity.Type, negate: string): string {
+    const result = `must ${negate}be at least ${expected}`;
+
+    return result;
+  }
+
+  #numberLessMessage(expected: FilterValueEntity.Type, negate: string): string {
+    const result = `must ${negate}be less than ${expected}`;
+
+    return result;
+  }
+
+  #numberLessEqualMessage(expected: FilterValueEntity.Type, negate: string): string {
+    const result = `must ${negate}be at most ${expected}`;
+
+    return result;
+  }
+
+  #numberOutsideMessage = (expected: FilterValueEntity.Type, negate: string): string => {
+    const result = `must ${negate}be outside ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'min'))} to ${this.#formatValue(FilterEngineHelpers.readRangeBound(expected, 'max'))}`;
+
+    return result;
+  };
+
+  #formatNumberOperatorMessage = (type: string, expected: FilterValueEntity.Type, negate: string): string => {
+    const handlers: Map<string, (expected: FilterValueEntity.Type, negate: string) => string> = new Map([
+      ['BETWEEN', this.#numberBetweenMessage],
+      ['EQUALS', this.#numberEqualsMessage],
+      ['GREATER', this.#numberGreaterMessage],
+      ['GREATER_EQUAL', this.#numberGreaterEqualMessage],
+      ['LESS', this.#numberLessMessage],
+      ['LESS_EQUAL', this.#numberLessEqualMessage],
+      ['OUTSIDE', this.#numberOutsideMessage]
+    ]);
+    const handler = handlers.get(type);
+    const result = handler !== undefined ? handler(expected, negate) : `must ${negate}pass ${type} validation`;
+
+    return result;
+  };
+
   #formatOperatorMessage(category: string, type: string, expected: FilterValueEntity.Type, negate: string): string {
     const expectedDisplay = this.#formatValue(expected);
-    const categoryHandlers: Record<string, (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = {
-      'ARRAY': (typeName, expectedValue, negatePrefix, display) => {
-        const messageResult = this.#formatArrayOperatorMessage(typeName, expectedValue, negatePrefix, display);
-
-        return messageResult;
-      },
-      'BOOLEAN': (typeName, expectedValue, negatePrefix) => {
-        const messageResult = this.#formatBooleanOperatorMessage(typeName, expectedValue, negatePrefix);
-
-        return messageResult;
-      },
-      'CROSS': (typeName, expectedValue, negatePrefix, display) => {
-        const messageResult = this.#formatCrossOperatorMessage(typeName, expectedValue, negatePrefix, display);
-
-        return messageResult;
-      },
-      'DATE': (typeName, expectedValue, negatePrefix, display) => {
-        const messageResult = this.#formatDateOperatorMessage(typeName, expectedValue, negatePrefix, display);
-
-        return messageResult;
-      },
-      'NUMBER': (typeName, expectedValue, negatePrefix) => {
-        const messageResult = this.#formatNumberOperatorMessage(typeName, expectedValue, negatePrefix);
-
-        return messageResult;
-      },
-      'STRING': (typeName, expectedValue, negatePrefix, display) => {
-        const messageResult = this.#formatStringOperatorMessage(typeName, expectedValue, negatePrefix, display);
-
-        return messageResult;
-      }
-    };
-
-    const handler = categoryHandlers[category];
+    const handlers: Map<string, (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = new Map([
+      ['ARRAY', this.#formatArrayOperatorMessage],
+      ['BOOLEAN', this.#formatBooleanOperatorMessage],
+      ['CROSS', this.#formatCrossOperatorMessage],
+      ['DATE', this.#formatDateOperatorMessage],
+      ['NUMBER', this.#formatNumberOperatorMessage],
+      ['STRING', this.#formatStringOperatorMessage]
+    ]);
+    const handler = handlers.get(category);
     const result = handler !== undefined
       ? handler(type, expected, negate, expectedDisplay)
       : `must ${negate}pass ${category}.${type} validation`;
@@ -1108,22 +1215,70 @@ class FilterEngine {
     return result;
   }
 
-  #formatStringOperatorMessage(type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
-    const handlers: Record<string, () => string> = {
-      'CONTAINS': () => { return `must ${negate}contain "${expected}"`; },
-      'EMPTY': () => { return `must ${negate}be empty`; },
-      'ENDS_WITH': () => { return `must ${negate}end with "${expected}"`; },
-      'EQUALS': () => { return `must ${negate}equal "${expected}"`; },
-      'LENGTH': () => { return `must have length ${negate}equal to ${expected}`; },
-      'NOT_EMPTY': () => { return `must ${negate}be non-empty`; },
-      'REGEX': () => { return `must ${negate}match pattern ${expectedDisplay}`; },
-      'STARTS_WITH': () => { return `must ${negate}start with "${expected}"`; }
-    };
-    const handler = handlers[type];
-    const result = handler !== undefined ? handler() : `must ${negate}pass ${type} validation`;
+  #stringContainsMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}contain "${expected}"`;
 
     return result;
   }
+
+  #stringEmptyMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be empty`;
+
+    return result;
+  }
+
+  #stringEndsWithMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}end with "${expected}"`;
+
+    return result;
+  }
+
+  #stringEqualsMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}equal "${expected}"`;
+
+    return result;
+  }
+
+  #stringLengthMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must have length ${negate}equal to ${expected}`;
+
+    return result;
+  }
+
+  #stringNotEmptyMessage(_expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}be non-empty`;
+
+    return result;
+  }
+
+  #stringRegexMessage(_expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string {
+    const result = `must ${negate}match pattern ${expectedDisplay}`;
+
+    return result;
+  }
+
+  #stringStartsWithMessage(expected: FilterValueEntity.Type, negate: string, _expectedDisplay: string): string {
+    const result = `must ${negate}start with "${expected}"`;
+
+    return result;
+  }
+
+  #formatStringOperatorMessage = (type: string, expected: FilterValueEntity.Type, negate: string, expectedDisplay: string): string => {
+    const handlers: Map<string, (expected: FilterValueEntity.Type, negate: string, expectedDisplay: string) => string> = new Map([
+      ['CONTAINS', this.#stringContainsMessage],
+      ['EMPTY', this.#stringEmptyMessage],
+      ['ENDS_WITH', this.#stringEndsWithMessage],
+      ['EQUALS', this.#stringEqualsMessage],
+      ['LENGTH', this.#stringLengthMessage],
+      ['NOT_EMPTY', this.#stringNotEmptyMessage],
+      ['REGEX', this.#stringRegexMessage],
+      ['STARTS_WITH', this.#stringStartsWithMessage]
+    ]);
+    const handler = handlers.get(type);
+    const result = handler !== undefined ? handler(expected, negate, expectedDisplay) : `must ${negate}pass ${type} validation`;
+
+    return result;
+  };
 
   /**
    * Formats a value for display in error messages

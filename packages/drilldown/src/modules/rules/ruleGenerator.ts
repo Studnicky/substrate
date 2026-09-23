@@ -93,14 +93,14 @@ class PropertySelector {
 /**
  * Generates drilldown rules based on data analysis.
  */
-export const ruleGenerator = {
+export class ruleGenerator {
   /**
    * Generates optimized drilldown rules for data based on configuration.
    * @param data - Array of data records to analyze
    * @param config - Auto-grouping configuration specifying target counts
    * @returns Generated drilldown rules with type-aware value buckets
    */
-  'generateRules': function (data: Record<string, unknown>[], config: AutoGroupingConfigEntity.Type): DrilldownRulesEntity.Type {
+  public static generateRules(data: Record<string, unknown>[], config: AutoGroupingConfigEntity.Type): DrilldownRulesEntity.Type {
     const analysis = DataAnalyzer.analyze(data);
     const properties = OptimalProperties.calculate(analysis, config);
     const firstProperty = properties[0];
@@ -113,7 +113,7 @@ export const ruleGenerator = {
 
     const result = LinearNodeTree.build(firstProperty, values);
     return result;
-  },
+  }
 
   /**
    * Returns the full ordered list of properties for multi-level grouping,
@@ -123,7 +123,7 @@ export const ruleGenerator = {
    * @param excludeProperties - Property names to exclude from consideration
    * @returns Ordered list of property names for progressive grouping
    */
-  'orderProperties': function (
+  public static orderProperties(
     data: Record<string, unknown>[],
     config: AutoGroupingConfigEntity.Type,
     excludeProperties?: string[]
@@ -139,4 +139,4 @@ export const ruleGenerator = {
     const result = OptimalProperties.calculate(analysis, config);
     return result;
   }
-};
+}

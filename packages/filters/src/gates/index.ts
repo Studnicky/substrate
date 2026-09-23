@@ -2,25 +2,36 @@
  * Core logic gate handlers accessible via dot notation
  */
 
-export const CORE = {
-  'AND': (results: boolean[]) => {
+/** Logic gate implementations backing `CORE`. */
+class CoreGateHandlers {
+  public static and(results: boolean[]): boolean {
     const result = results.every(Boolean);
 
     return result;
-  },
-  'NOT': (results: boolean[]) => {
+  }
+
+  public static not(results: boolean[]): boolean {
     const result = results[0] !== true;
 
     return result;
-  },
-  'OR': (results: boolean[]) => {
+  }
+
+  public static or(results: boolean[]): boolean {
     const result = results.some(Boolean);
 
     return result;
-  },
-  'XOR': (results: boolean[]) => {
+  }
+
+  public static xor(results: boolean[]): boolean {
     const result = results.filter(Boolean).length === 1;
 
     return result;
   }
+}
+
+export const CORE = {
+  'AND': CoreGateHandlers.and,
+  'NOT': CoreGateHandlers.not,
+  'OR': CoreGateHandlers.or,
+  'XOR': CoreGateHandlers.xor
 };

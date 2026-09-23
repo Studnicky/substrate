@@ -588,16 +588,8 @@ class StringValues {
   }
 }
 
-const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterface> = {
-  'date': (values, options) => {
-    const result = DateValues.generate(values, options.granularity?.date);
-    return result;
-  },
-  'ip': (values, options) => {
-    const result = CidrValues.generate(values, options.granularity?.cidr);
-    return result;
-  },
-  'number': (values, options) => {
+class NumericDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[] {
     const count = options.granularity?.count ?? 5;
     const strategy = options.strategy === 'quantile'
       ? GroupingStrategy.QUANTILE
@@ -605,7 +597,27 @@ const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterfa
     const result = NumericValues.generate(values, { 'count': count, 'strategy': strategy });
 
     return result;
-  },
+  }
+}
+
+class DateDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[] {
+    const result = DateValues.generate(values, options.granularity?.date);
+    return result;
+  }
+}
+
+class IpDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[] {
+    const result = CidrValues.generate(values, options.granularity?.cidr);
+    return result;
+  }
+}
+
+const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterface> = {
+  'date': DateDispatchHandler.generate,
+  'ip': IpDispatchHandler.generate,
+  'number': NumericDispatchHandler.generate,
   'semver': SemverValues.generate,
   'string': StringValues.generate
 };

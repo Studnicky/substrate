@@ -24,43 +24,40 @@ import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js'
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import { TypeGuards } from '../../typeguards/index.js';
 
-const stringHandler: MatcherHandlerInterface<DrilldownRulesEntity.StringGroupValueEntity.Type, StringMatcherInterface, string> = {
-  'compare': function (first: string, second: string): number {
+class StringHandler {
+  public static compare(first: string, second: string): number {
     const result = first.localeCompare(second);
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, group: PartitionGroupInterface): StringMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, group: PartitionGroupInterface): StringMatcherInterface {
     return {
       'group': group,
       'match': valueDef.match
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type): string {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type): string {
     const result = valueDef.match;
     return result;
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.StringGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.StringGroupValueEntity.Type {
     const result = 'match' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': function (value: unknown): value is string {
+  public static isNodeValue(value: unknown): value is string {
     const result = Predicates.isString(value);
     return result;
-  },
+  }
 
-  'match': function (matcher: StringMatcherInterface, _value: unknown, stringValue: string): boolean {
+  public static match(matcher: StringMatcherInterface, _value: unknown, stringValue: string): boolean {
     const result = stringValue === matcher.match;
     return result;
-  },
+  }
 
-  'supportsBinarySearch': false,
-
-  'type': 'string',
-
-  'validate': function (valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.StringGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.match === '') {
@@ -69,41 +66,45 @@ const stringHandler: MatcherHandlerInterface<DrilldownRulesEntity.StringGroupVal
 
     return errors;
   }
-};
+}
 
-const rangeHandler: MatcherHandlerInterface<DrilldownRulesEntity.RangeGroupValueEntity.Type, RangeMatcherInterface, RangeEntity.Type> = {
-  'compare': function (first: RangeEntity.Type, second: RangeEntity.Type): number {
+class RangeHandler {
+  public static compare(first: RangeEntity.Type, second: RangeEntity.Type): number {
     const result = first.minimum !== second.minimum ? first.minimum - second.minimum : first.maximum - second.maximum;
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, group: PartitionGroupInterface): RangeMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, group: PartitionGroupInterface): RangeMatcherInterface {
     return {
       'group': group,
       'maximum': valueDef.maximum,
       'minimum': valueDef.minimum
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type): RangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type): RangeEntity.Type {
     return {
       'maximum': valueDef.maximum,
       'minimum': valueDef.minimum
     };
-  },
+  }
 
-  'getSortKey': function (matcher: RangeMatcherInterface): number {
+  public static getSortKey(matcher: RangeMatcherInterface): number {
     const result = matcher.minimum;
     return result;
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.RangeGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.RangeGroupValueEntity.Type {
     const result = 'minimum' in value && 'maximum' in value && !('sequential' in value);
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isRange,
+  public static isNodeValue(value: unknown): value is RangeEntity.Type {
+    const result = TypeGuards.isRange(value);
+    return result;
+  }
 
-  'match': function (matcher: RangeMatcherInterface, value: unknown, _stringValue: string, context: MatchContextInterface): boolean {
+  public static match(matcher: RangeMatcherInterface, value: unknown, _stringValue: string, context: MatchContextInterface): boolean {
     const numericValue = context.toDateTimestamp(value) ?? context.toStrictNumber(value);
 
     if (numericValue === null) {
@@ -112,13 +113,9 @@ const rangeHandler: MatcherHandlerInterface<DrilldownRulesEntity.RangeGroupValue
 
     const result = Predicates.performRangeComparison(numericValue, matcher.minimum, matcher.maximum, true, { 'boundary': 'half-open' });
     return result;
-  },
+  }
 
-  'supportsBinarySearch': true,
-
-  'type': 'range',
-
-  'validate': function (valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.RangeGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (!Predicates.isNumberType(valueDef.minimum)) {
@@ -133,10 +130,10 @@ const rangeHandler: MatcherHandlerInterface<DrilldownRulesEntity.RangeGroupValue
 
     return errors;
   }
-};
+}
 
-const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEntity.Type, CidrMatcherInterface, CidrRangeEntity.Type> = {
-  'compare': function (first: CidrRangeEntity.Type, second: CidrRangeEntity.Type): number {
+class CidrHandler {
+  public static compare(first: CidrRangeEntity.Type, second: CidrRangeEntity.Type): number {
     const rangeFirst = Predicates.parseCidrRange(first.cidr);
     const rangeSecond = Predicates.parseCidrRange(second.cidr);
 
@@ -153,8 +150,9 @@ const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEn
 
     const result = rangeFirst.start !== rangeSecond.start ? rangeFirst.start - rangeSecond.start : rangeFirst.end - rangeSecond.end;
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, group: PartitionGroupInterface): CidrMatcherInterface | null {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, group: PartitionGroupInterface): CidrMatcherInterface | null {
     const range = Predicates.parseCidrRange(valueDef.cidr);
 
     if (range === undefined) {
@@ -166,20 +164,23 @@ const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEn
       'group': group,
       'start': range.start
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type): CidrRangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type): CidrRangeEntity.Type {
     return { 'cidr': valueDef.cidr };
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.CidrGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.CidrGroupValueEntity.Type {
     const result = 'cidr' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isCidrRange,
+  public static isNodeValue(value: unknown): value is CidrRangeEntity.Type {
+    const result = TypeGuards.isCidrRange(value);
+    return result;
+  }
 
-  'match': function (matcher: CidrMatcherInterface, _value: unknown, stringValue: string): boolean {
+  public static match(matcher: CidrMatcherInterface, _value: unknown, stringValue: string): boolean {
     const ipNumber = Predicates.ipv4ToUint32(stringValue);
 
     if (ipNumber === undefined) {
@@ -188,13 +189,9 @@ const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEn
 
     const result = Predicates.performRangeComparison(ipNumber, matcher.start, matcher.end, true);
     return result;
-  },
+  }
 
-  'supportsBinarySearch': false,
-
-  'type': 'cidr',
-
-  'validate': function (valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.CidrGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.cidr === '') {
@@ -206,44 +203,44 @@ const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEn
 
     return errors;
   }
-};
+}
 
-const semverHandler: MatcherHandlerInterface<DrilldownRulesEntity.SemverGroupValueEntity.Type, SemverMatcherInterface, SemverRangeEntity.Type> = {
-  'compare': function (first: SemverRangeEntity.Type, second: SemverRangeEntity.Type): number {
+class SemverHandler {
+  public static compare(first: SemverRangeEntity.Type, second: SemverRangeEntity.Type): number {
     const firstVersion = first.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
     const secondVersion = second.semver.replace(DRILLDOWN_DEFAULTS.semverPrefixPattern, '');
 
     const result = Predicates.compareSemverVersions(firstVersion, secondVersion);
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, group: PartitionGroupInterface): SemverMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, group: PartitionGroupInterface): SemverMatcherInterface {
     return {
       'group': group,
       'range': valueDef.semver
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type): SemverRangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type): SemverRangeEntity.Type {
     return { 'semver': valueDef.semver };
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SemverGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SemverGroupValueEntity.Type {
     const result = 'semver' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isSemverRange,
+  public static isNodeValue(value: unknown): value is SemverRangeEntity.Type {
+    const result = TypeGuards.isSemverRange(value);
+    return result;
+  }
 
-  'match': function (matcher: SemverMatcherInterface, _value: unknown, stringValue: string): boolean {
+  public static match(matcher: SemverMatcherInterface, _value: unknown, stringValue: string): boolean {
     const result = Predicates.satisfiesSemverRange(stringValue, matcher.range);
     return result;
-  },
+  }
 
-  'supportsBinarySearch': false,
-
-  'type': 'semver',
-
-  'validate': function (valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.SemverGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.semver === '') {
@@ -252,10 +249,10 @@ const semverHandler: MatcherHandlerInterface<DrilldownRulesEntity.SemverGroupVal
 
     return errors;
   }
-};
+}
 
-const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEntity.Type, DateMatcherInterface, DateRangeEntity.Type> = {
-  'compare': function (first: DateRangeEntity.Type, second: DateRangeEntity.Type): number {
+class DateHandler {
+  public static compare(first: DateRangeEntity.Type, second: DateRangeEntity.Type): number {
     const afterDiff = first.after - second.after;
 
     if (afterDiff !== 0) {
@@ -264,35 +261,39 @@ const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEn
 
     const result = first.before - second.before;
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, group: PartitionGroupInterface): DateMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, group: PartitionGroupInterface): DateMatcherInterface {
     return {
       'afterTs': valueDef.after,
       'beforeTs': valueDef.before,
       'group': group
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type): DateRangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type): DateRangeEntity.Type {
     return {
       'after': valueDef.after,
       'before': valueDef.before
     };
-  },
+  }
 
-  'getSortKey': function (matcher: DateMatcherInterface): number {
+  public static getSortKey(matcher: DateMatcherInterface): number {
     const result = matcher.afterTs;
     return result;
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.DateGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.DateGroupValueEntity.Type {
     const result = 'after' in value && 'before' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isDateRange,
+  public static isNodeValue(value: unknown): value is DateRangeEntity.Type {
+    const result = TypeGuards.isDateRange(value);
+    return result;
+  }
 
-  'match': function (matcher: DateMatcherInterface, value: unknown, _stringValue: string, context: MatchContextInterface): boolean {
+  public static match(matcher: DateMatcherInterface, value: unknown, _stringValue: string, context: MatchContextInterface): boolean {
     const dateValue = context.toDateTimestamp(value);
 
     if (dateValue === null) {
@@ -301,13 +302,9 @@ const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEn
 
     const result = Predicates.performRangeComparison(dateValue, matcher.afterTs, matcher.beforeTs, true, { 'boundary': 'half-open' });
     return result;
-  },
+  }
 
-  'supportsBinarySearch': true,
-
-  'type': 'date',
-
-  'validate': function (valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.DateGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (!Number.isFinite(valueDef.after)) {
@@ -319,10 +316,10 @@ const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEn
 
     return errors;
   }
-};
+}
 
-const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
-  'compare': function (first: SequentialRangeEntity.Type, second: SequentialRangeEntity.Type): number {
+class SequentialHandler {
+  public static compare(first: SequentialRangeEntity.Type, second: SequentialRangeEntity.Type): number {
     const prefixCmp = first.prefix.localeCompare(second.prefix);
 
     if (prefixCmp !== 0) {
@@ -331,8 +328,9 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
 
     const result = first.minimum !== second.minimum ? first.minimum - second.minimum : first.maximum - second.maximum;
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, group: PartitionGroupInterface): SequentialMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, group: PartitionGroupInterface): SequentialMatcherInterface {
     return {
       'group': group,
       'maximum': valueDef.sequential.maximum,
@@ -340,9 +338,9 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
       'prefix': valueDef.sequential.prefix,
       'suffix': valueDef.sequential.suffix ?? ''
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type): SequentialRangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type): SequentialRangeEntity.Type {
     return {
       'maximum': valueDef.sequential.maximum,
       'minimum': valueDef.sequential.minimum,
@@ -350,16 +348,19 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
       'prefix': valueDef.sequential.prefix,
       ...(valueDef.sequential.suffix !== undefined && { 'suffix': valueDef.sequential.suffix })
     };
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SequentialGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.SequentialGroupValueEntity.Type {
     const result = 'sequential' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isSequentialRange,
+  public static isNodeValue(value: unknown): value is SequentialRangeEntity.Type {
+    const result = TypeGuards.isSequentialRange(value);
+    return result;
+  }
 
-  'match': function (matcher: SequentialMatcherInterface, _value: unknown, stringValue: string): boolean {
+  public static match(matcher: SequentialMatcherInterface, _value: unknown, stringValue: string): boolean {
     if (!stringValue.startsWith(matcher.prefix) || !stringValue.endsWith(matcher.suffix)) {
       return false;
     }
@@ -371,9 +372,9 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
 
     const result = !isNaN(numericValue) && numericValue >= matcher.minimum && numericValue <= matcher.maximum;
     return result;
-  },
+  }
 
-  'mergeIfOverlapping': function (first: DrilldownRulesEntity.SequentialGroupValueEntity.Type, second: DrilldownRulesEntity.SequentialGroupValueEntity.Type): null | DrilldownRulesEntity.SequentialGroupValueEntity.Type {
+  public static mergeIfOverlapping(first: DrilldownRulesEntity.SequentialGroupValueEntity.Type, second: DrilldownRulesEntity.SequentialGroupValueEntity.Type): null | DrilldownRulesEntity.SequentialGroupValueEntity.Type {
     if (second.sequential.minimum > first.sequential.maximum + 1) {
       return null;
     }
@@ -388,13 +389,9 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
       },
       'type': 'sequential'
     };
-  },
+  }
 
-  'supportsBinarySearch': false,
-
-  'type': 'sequential',
-
-  'validate': function (valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.SequentialGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.sequential.prefix === '') {
@@ -415,44 +412,48 @@ const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.Sequential
 
     return errors;
   }
-};
+}
 
-const alphabeticHandler: MatcherHandlerInterface<DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
-  'compare': function (first: AlphabeticRangeEntity.Type, second: AlphabeticRangeEntity.Type): number {
+class AlphabeticHandler {
+  public static compare(first: AlphabeticRangeEntity.Type, second: AlphabeticRangeEntity.Type): number {
     const startCmp = first.start.localeCompare(second.start);
 
     const result = startCmp !== 0 ? startCmp : first.end.localeCompare(second.end);
     return result;
-  },
-  'createMatcher': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, group: PartitionGroupInterface): AlphabeticMatcherInterface {
+  }
+
+  public static createMatcher(valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, group: PartitionGroupInterface): AlphabeticMatcherInterface {
     return {
       'end': valueDef.end,
       'group': group,
       'start': valueDef.start
     };
-  },
+  }
 
-  'createNodeValue': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): AlphabeticRangeEntity.Type {
+  public static createNodeValue(valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): AlphabeticRangeEntity.Type {
     return {
       'end': valueDef.end,
       'start': valueDef.start
     };
-  },
+  }
 
-  'isGroupValue': function (value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.AlphabeticGroupValueEntity.Type {
+  public static isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is DrilldownRulesEntity.AlphabeticGroupValueEntity.Type {
     const result = 'start' in value && 'end' in value;
     return result;
-  },
+  }
 
-  'isNodeValue': TypeGuards.isAlphabeticRange,
+  public static isNodeValue(value: unknown): value is AlphabeticRangeEntity.Type {
+    const result = TypeGuards.isAlphabeticRange(value);
+    return result;
+  }
 
-  'match': function (matcher: AlphabeticMatcherInterface, _value: unknown, stringValue: string): boolean {
+  public static match(matcher: AlphabeticMatcherInterface, _value: unknown, stringValue: string): boolean {
     const isInRange = Predicates.performRangeComparison(stringValue, matcher.start, matcher.end, true, { 'caseSensitive': false });
 
     return isInRange;
-  },
+  }
 
-  'mergeIfOverlapping': function (first: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, second: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): DrilldownRulesEntity.AlphabeticGroupValueEntity.Type | null {
+  public static mergeIfOverlapping(first: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, second: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type): DrilldownRulesEntity.AlphabeticGroupValueEntity.Type | null {
     if (second.start.localeCompare(first.end) > 0) {
       return null;
     }
@@ -462,13 +463,9 @@ const alphabeticHandler: MatcherHandlerInterface<DrilldownRulesEntity.Alphabetic
       'start': first.start,
       'type': 'alphabetic'
     };
-  },
+  }
 
-  'supportsBinarySearch': false,
-
-  'type': 'alphabetic',
-
-  'validate': function (valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, path: string): string[] {
+  public static validate(valueDef: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, path: string): string[] {
     const errors: string[] = [];
 
     if (valueDef.start === '') {
@@ -483,6 +480,94 @@ const alphabeticHandler: MatcherHandlerInterface<DrilldownRulesEntity.Alphabetic
 
     return errors;
   }
+}
+
+const stringHandler: MatcherHandlerInterface<DrilldownRulesEntity.StringGroupValueEntity.Type, StringMatcherInterface, string> = {
+  'compare': StringHandler.compare,
+  'createMatcher': StringHandler.createMatcher,
+  'createNodeValue': StringHandler.createNodeValue,
+  'isGroupValue': StringHandler.isGroupValue,
+  'isNodeValue': StringHandler.isNodeValue,
+  'match': StringHandler.match,
+  'supportsBinarySearch': false,
+  'type': 'string',
+  'validate': StringHandler.validate
+};
+
+const rangeHandler: MatcherHandlerInterface<DrilldownRulesEntity.RangeGroupValueEntity.Type, RangeMatcherInterface, RangeEntity.Type> = {
+  'compare': RangeHandler.compare,
+  'createMatcher': RangeHandler.createMatcher,
+  'createNodeValue': RangeHandler.createNodeValue,
+  'getSortKey': RangeHandler.getSortKey,
+  'isGroupValue': RangeHandler.isGroupValue,
+  'isNodeValue': RangeHandler.isNodeValue,
+  'match': RangeHandler.match,
+  'supportsBinarySearch': true,
+  'type': 'range',
+  'validate': RangeHandler.validate
+};
+
+const cidrHandler: MatcherHandlerInterface<DrilldownRulesEntity.CidrGroupValueEntity.Type, CidrMatcherInterface, CidrRangeEntity.Type> = {
+  'compare': CidrHandler.compare,
+  'createMatcher': CidrHandler.createMatcher,
+  'createNodeValue': CidrHandler.createNodeValue,
+  'isGroupValue': CidrHandler.isGroupValue,
+  'isNodeValue': CidrHandler.isNodeValue,
+  'match': CidrHandler.match,
+  'supportsBinarySearch': false,
+  'type': 'cidr',
+  'validate': CidrHandler.validate
+};
+
+const semverHandler: MatcherHandlerInterface<DrilldownRulesEntity.SemverGroupValueEntity.Type, SemverMatcherInterface, SemverRangeEntity.Type> = {
+  'compare': SemverHandler.compare,
+  'createMatcher': SemverHandler.createMatcher,
+  'createNodeValue': SemverHandler.createNodeValue,
+  'isGroupValue': SemverHandler.isGroupValue,
+  'isNodeValue': SemverHandler.isNodeValue,
+  'match': SemverHandler.match,
+  'supportsBinarySearch': false,
+  'type': 'semver',
+  'validate': SemverHandler.validate
+};
+
+const dateHandler: MatcherHandlerInterface<DrilldownRulesEntity.DateGroupValueEntity.Type, DateMatcherInterface, DateRangeEntity.Type> = {
+  'compare': DateHandler.compare,
+  'createMatcher': DateHandler.createMatcher,
+  'createNodeValue': DateHandler.createNodeValue,
+  'getSortKey': DateHandler.getSortKey,
+  'isGroupValue': DateHandler.isGroupValue,
+  'isNodeValue': DateHandler.isNodeValue,
+  'match': DateHandler.match,
+  'supportsBinarySearch': true,
+  'type': 'date',
+  'validate': DateHandler.validate
+};
+
+const sequentialHandler: MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
+  'compare': SequentialHandler.compare,
+  'createMatcher': SequentialHandler.createMatcher,
+  'createNodeValue': SequentialHandler.createNodeValue,
+  'isGroupValue': SequentialHandler.isGroupValue,
+  'isNodeValue': SequentialHandler.isNodeValue,
+  'match': SequentialHandler.match,
+  'mergeIfOverlapping': SequentialHandler.mergeIfOverlapping,
+  'supportsBinarySearch': false,
+  'type': 'sequential',
+  'validate': SequentialHandler.validate
+};
+
+const alphabeticHandler: MatcherHandlerInterface<DrilldownRulesEntity.AlphabeticGroupValueEntity.Type, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
+  'compare': AlphabeticHandler.compare,
+  'createMatcher': AlphabeticHandler.createMatcher,
+  'createNodeValue': AlphabeticHandler.createNodeValue,
+  'isGroupValue': AlphabeticHandler.isGroupValue,
+  'isNodeValue': AlphabeticHandler.isNodeValue,
+  'match': AlphabeticHandler.match,
+  'mergeIfOverlapping': AlphabeticHandler.mergeIfOverlapping,
+  'supportsBinarySearch': false,
+  'type': 'alphabetic',
+  'validate': AlphabeticHandler.validate
 };
 
 /**
