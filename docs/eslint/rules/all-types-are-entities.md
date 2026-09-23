@@ -60,3 +60,5 @@ export namespace UserEntity {
 ## Diagnostic ownership
 
 [`type-alias-invariants`](./type-alias-invariants.md) owns aliases that fail its own identity, declaration-shape, naming, provenance, or readonly checks. This rule reports only declarations the shared classifier identifies as canonical pure data but that are not in the canonical entity form.
+
+[`entity-file-shape`](./entity-file-shape.md) owns the paired concern: whether an `*Entity` namespace's members — `Schema`, `Type`, `validate`, `intake`, `create` — are present and correctly shaped, and whether declaration and constants files sit in their conventional folders. This rule governs the type-alias declaration itself; `entity-file-shape` governs the namespace and file that declaration lives in.
