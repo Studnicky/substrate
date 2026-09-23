@@ -200,12 +200,11 @@ export default [
       'rules': {
         // @studnicky custom rules
         '@studnicky/all-types-are-entities': 'error',
-        '@studnicky/canonical-export-names': 'error',
         '@studnicky/clean-diagnostics': 'error',
         '@studnicky/descriptive-identifiers': 'error',
         '@studnicky/direct-invocation-only': 'error',
         '@studnicky/explicit-return-binding': 'error',
-        '@studnicky/folder-content-shape': 'error',
+        '@studnicky/entity-file-shape': 'error',
         '@studnicky/hash-private-fields': 'error',
         '@studnicky/inline-trivial-logic': 'error',
         '@studnicky/intake-parse-only': ['error', {
@@ -213,7 +212,7 @@ export default [
         }],
         '@typescript-eslint/no-unnecessary-type-parameters': 'error',
         '@studnicky/interface-must-be-contract': 'error',
-        '@studnicky/interface-suffix': 'error',
+        '@studnicky/export-shape': 'error',
         '@studnicky/interfaces-compose-named-types': 'error',
         '@studnicky/lexical-this-only': 'error',
         '@studnicky/no-mixed-callable-shapes': 'error',
@@ -221,10 +220,8 @@ export default [
         '@studnicky/no-unparsed-assertion': 'error',
         '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
-        '@studnicky/single-export': 'error',
         '@studnicky/static-method-verbs': 'error',
         '@studnicky/type-alias-invariants': 'error',
-        '@studnicky/whole-canonical-types': 'error',
         // @studnicky/v8 optimisation rules
         '@studnicky/v8/arguments-object': 'error',
         '@studnicky/v8/array-concat-outside-loops': 'error',
@@ -398,7 +395,7 @@ export default [
       },
       'rules': {
         '@studnicky/inline-trivial-logic': 'off',
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         '@studnicky/v8/for-of-arrays': 'off',
         '@typescript-eslint/consistent-type-exports': 'off',
         '@typescript-eslint/consistent-type-imports': 'off',
@@ -416,7 +413,7 @@ export default [
     {
       'files': ['eslint.config.*', '*.config.*', '*.config.mjs'],
       'rules': {
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         'import-x/no-default-export': 'off'
       }
     },
@@ -434,7 +431,7 @@ export default [
         }
       },
       'rules': {
-        '@studnicky/single-export': 'off',
+        '@studnicky/export-shape': 'off',
         'import-x/no-default-export': 'off',
         'no-console': 'off'
       }

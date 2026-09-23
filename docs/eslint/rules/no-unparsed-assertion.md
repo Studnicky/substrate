@@ -72,6 +72,6 @@ const node = raw as ForeignNode;
 
 ## Rationale
 
-[`all-types-are-entities`](./all-types-are-entities.md), [`whole-canonical-types`](./whole-canonical-types.md), [`folder-content-shape`](./folder-content-shape.md), and [`intake-parse-only`](./intake-parse-only.md) make an entity type evidence that its value passed through an entity’s parsing boundary. An assertion from `unknown` or `any` to a named type forges that evidence, so this rule closes the remaining escape hatch.
+[`all-types-are-entities`](./all-types-are-entities.md), [`type-alias-invariants`](./type-alias-invariants.md), [`entity-file-shape`](./entity-file-shape.md), and [`intake-parse-only`](./intake-parse-only.md) make an entity type evidence that its value passed through an entity’s parsing boundary. An assertion from `unknown` or `any` to a named type forges that evidence, so this rule closes the remaining escape hatch.
 
 `@studnicky/types` is exempt because it supplies the narrowing primitives that parsers are built from. `@studnicky/eslint-config` is exempt because it works with foreign ESLint and TypeScript AST node shapes rather than application data; the repository’s assertions in that package describe those foreign shapes.

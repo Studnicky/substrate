@@ -16,8 +16,8 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 //
 // Three rules already guarantee that every data shape in this codebase IS an entity:
 // `all-types-are-entities` requires each canonical pure-data alias to be an exported
-// `*Entity.Type` derived from its own `Schema`, `whole-canonical-types` forbids subsetting one
-// positionally, and `folder-content-shape` fixes the members an entity namespace exposes.
+// `*Entity.Type` derived from its own `Schema`, `type-alias-invariants` forbids subsetting one
+// positionally, and `entity-file-shape` fixes the members an entity namespace exposes.
 //
 // What none of them constrains is the DIRECTION IN. Nothing required `unknown` to become an
 // entity by passing through one, so it did not: measured before this rule, 483 functions took an

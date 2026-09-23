@@ -5,8 +5,8 @@ import { describe, it } from 'node:test';
 import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 
-import { entitySuite } from '../../src/suites/entitySuite.js';
-import scenarioGroups from './entitySuite.scenarios.json' with { type: 'json' };
+import { entityModelSuite } from '../../src/suites/entityModelSuite.js';
+import scenarioGroups from './entityModelSuite.scenarios.json' with { type: 'json' };
 
 const repoRoot = resolve(import.meta.dirname, '../../../..');
 
@@ -90,7 +90,7 @@ const runnerMap: RunnerMap = {
             languageOptions,
             plugins: { '@typescript-eslint': tseslint.plugin }
           },
-          entitySuite
+          entityModelSuite
         ],
         { filename: scenario.filename }
       );
@@ -116,7 +116,7 @@ const runnerMap: RunnerMap = {
           languageOptions,
           plugins: { '@typescript-eslint': tseslint.plugin }
         },
-        entitySuite
+        entityModelSuite
       ],
       { filename: scenarioCase.input.filename }
     );
@@ -137,7 +137,7 @@ const runnerMap: RunnerMap = {
           plugins: { '@typescript-eslint': tseslint.plugin },
           rules: { '@typescript-eslint/prefer-function-type': 'error' }
         },
-        entitySuite
+        entityModelSuite
       ],
       { filename: scenarioCase.input.filename }
     );
@@ -149,8 +149,8 @@ const runnerMap: RunnerMap = {
   },
   'preserves-entity-rules': (scenarioCase) => {
     assert.deepEqual(scenarioCase.input.rules, scenarioCase.expected.rules);
-    assert.deepEqual(entitySuite.linterOptions, { noInlineConfig: true });
-    assert.deepEqual(entitySuite.rules, scenarioCase.expected.rules);
+    assert.deepEqual(entityModelSuite.linterOptions, { noInlineConfig: true });
+    assert.deepEqual(entityModelSuite.rules, scenarioCase.expected.rules);
   }
 };
 
@@ -158,7 +158,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('entitySuite', () => {
+void describe('entityModelSuite', () => {
   for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
     void it(scenario.name, () => {
       runCase(scenario);

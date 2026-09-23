@@ -571,7 +571,7 @@ interface ExportRecordInterface {
  * (including its existing `TypeCheckerHelpers.isErrorClass` real-`Error`-inheritance check) rather
  * than introducing a second, parallel classifier — deliberately scoped to "does at least one
  * export in this file carry the shape this folder claims," not a full per-export audit, since the
- * folder-shape checks (`folder-content-shape`) already own the stricter per-declaration form
+ * folder-shape checks (`entity-file-shape`) already own the stricter per-declaration form
  * rules for `interfaces/`/`types/`; this rule only needs to stop a blank/arbitrary-content file
  * from slipping through on path alone.
  *
@@ -633,7 +633,7 @@ class TopologyContentVerification {
     }
 
     if (topology === 'entities') {
-      // The entity convention (see `folder-content-shape`) is a namespace or a schema-derived
+      // The entity convention (see `entity-file-shape`) is a namespace or a schema-derived
       // `Type` alias — either is proof the file is genuinely entity-shaped, not an arbitrary
       // grab-bag of consts sitting under `entities/`.
       const result = records.some((record) => {
