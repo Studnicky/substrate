@@ -96,7 +96,6 @@ p__studnicky_context --> p__studnicky_types
 p__studnicky_drilldown --> p__studnicky_cache
 p__studnicky_drilldown --> p__studnicky_entity
 p__studnicky_drilldown --> p__studnicky_types
-p__studnicky_entity --> p__studnicky_types
 p__studnicky_entity_store --> p__studnicky_errors
 p__studnicky_entity_store --> p__studnicky_types
 p__studnicky_errors --> p__studnicky_entity
