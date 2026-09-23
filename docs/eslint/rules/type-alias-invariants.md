@@ -7,7 +7,7 @@ description: 'Type aliases preserve schema-derived data identity while interface
 
 Enforces one ordered contract for type aliases and imported type identity.
 
-A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes.
+A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes. Canonical, codebase-owned named types are also consumed whole: `Partial<X>`, `Pick<X, K>`, `Omit<X, K>`, and structurally equivalent subsetting forms are rejected wherever they appear, not only inside a type alias declaration.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -51,6 +51,7 @@ The rule has no subchecks or internal severity settings. ESLint's configured sev
 3. Canonical provenance reports data-shaped aliases without verified schema provenance.
 4. Exported naming requires retained aliases — including type-level functions — to end in `Type`.
 5. Readonly output reports mutable data aliases that author access policy.
+6. Whole-type consumption reports `Partial`/`Pick`/`Omit`, a structurally equivalent custom generic utility, or an inline mapped or indexed-access form that subsets a canonical, codebase-owned named `type`/`interface`, wherever the subsetting form appears — a type alias body, a function parameter, a variable annotation, or any other type position.
 
 An earlier verdict suppresses later advice for the same alias. Structural equality, near-match, and subsumption are not identity evidence: two data types may share a shape while representing different semantics. The rule therefore performs no heuristic imported-shape comparison and does not infer canonical identity from broader or narrower shapes.
 
@@ -94,6 +95,12 @@ type ValueType = FromSchema<typeof ValueSchema>;
 export type ValueListType = readonly ValueType[];
 ```
 
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface FooInterface { a: number; b: string; }
+function accept(value: Partial<FooInterface>): void {}
+```
+
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
@@ -123,6 +130,11 @@ type ConditionalType<T> = T extends string ? number : boolean;
 interface HandlerInterface {
   (value: string): void;
 }
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+function accept<T>(value: Partial<T>): void {}
 ```
 
 ## Configuration
