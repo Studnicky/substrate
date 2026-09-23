@@ -56,7 +56,7 @@ scope.execute(() => {
 });
 
 const snapshot = scope.terminate();
-console.log('Final snapshot keys:', Object.keys(snapshot).toSorted());
+console.log('Final snapshot keys:', [...snapshot.keys()].toSorted());
 // #endregion usage
 
 assert.equal(context.initializeEvents.length, 1, 'onInitialize fired once');
@@ -70,7 +70,7 @@ assert.ok(context.deleteEvents.some((event) => {
   const result = event.key === 'nonexistent' && !event.existed;
   return result;
 }));
-assert.ok(!('tempKey' in snapshot));
-assert.equal(snapshot.requestId, 'req-001');
+assert.ok(!snapshot.has('tempKey'));
+assert.equal(snapshot.get('requestId'), 'req-001');
 
 console.log('observedContext: all assertions passed');

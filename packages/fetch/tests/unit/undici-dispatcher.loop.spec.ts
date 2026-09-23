@@ -240,8 +240,8 @@ const runnerMap: RunnerMap = {
   'get-stats-freeze': async (scenarioCase) => {
     const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);
     const stats = dispatcher.getStats();
-    assert.equal(Object.isFrozen(stats), true);
-    assert.equal(Object.isFrozen(stats[scenarioCase.input.origin] as object), true);
+    assert.ok(stats instanceof Map);
+    assert.equal(Object.isFrozen(stats.get(scenarioCase.input.origin)), true);
   },
   'health-invalid-stats': async (scenarioCase) => {
     const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);

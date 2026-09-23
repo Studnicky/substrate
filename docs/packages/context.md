@@ -37,7 +37,7 @@ const result = await context.run({ requestId: "req-001" }, async () => {
   return response.status;
 });
 
-console.log(result.value, result.snapshot.requestId);
+console.log(result.value, result.snapshot.get("requestId"));
 ```
 
 ## Browser usage
@@ -82,7 +82,7 @@ const result = await context.run({ requestId: "req-001" }, async (scope) => {
   return response.status;
 });
 
-console.log(result.value, result.snapshot.requestId);
+console.log(result.value, result.snapshot.get("requestId"));
 ```
 
 ### Opaque callback boundaries

@@ -245,16 +245,16 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   /**
    * Get connection pool statistics for all origins
    *
-   * @returns Frozen record mapping origin URLs to frozen dispatcher statistics
+   * @returns Map of origin URLs to frozen dispatcher statistics conforming to the pool-stats shape
    */
-  getStats(): Readonly<Record<string, unknown>> {
+  getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>> {
     if (this.agent instanceof TestDispatcher) {
       const result = this.agent.getStats();
       return result;
     }
 
     const stats = this.agent.stats;
-    const frozenStats: Record<string, unknown> = {};
+    const frozenStats = new Map<string, Readonly<SocketDispatcherStatsEntity.Type>>();
 
     const originEntries = Object.entries(stats);
     const originEntryLength = originEntries.length;
@@ -264,11 +264,13 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
         continue;
       }
       const [origin, dispatcherStats] = entry;
-      Reflect.set(frozenStats, origin, Object.freeze({ ...dispatcherStats }));
+      if (!SocketDispatcherStatsEntity.validate(dispatcherStats)) {
+        continue;
+      }
+      frozenStats.set(origin, Object.freeze({ ...dispatcherStats }));
     }
 
-    const result = Object.freeze(frozenStats);
-    return result;
+    return frozenStats;
   }
 
 }

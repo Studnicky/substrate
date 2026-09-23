@@ -384,16 +384,13 @@ export class Context implements ContextInterface {
   }
 
   /**
-   * Gets a shallow copy of all context data.
+   * Gets a copy of all context data as a map.
    *
-   * @returns Copy of the context contents
+   * @returns Map of the context contents, keyed by context key
    * @throws {ContextError} If no context is active
    */
-  snapshot(): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of this.#getStore()) {
-      Reflect.set(result, key, value);
-    }
+  snapshot(): ReadonlyMap<string, unknown> {
+    const result = new Map(this.#getStore());
     return result;
   }
 

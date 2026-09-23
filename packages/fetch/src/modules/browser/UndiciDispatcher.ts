@@ -7,6 +7,7 @@
 
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
 import type { DispatcherHealthEntity } from '../../entities/DispatcherHealthEntity.js';
+import type { SocketDispatcherStatsEntity } from '../../entities/SocketDispatcherStatsEntity.js';
 import type { UndiciDispatcherInterface } from '../../interfaces/UndiciDispatcherInterface.js';
 
 import { ConfigurationError } from '../../errors/index.js';
@@ -38,7 +39,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
-  getStats(): Readonly<Record<string, unknown>> {
+  getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>> {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 }

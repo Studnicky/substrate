@@ -22,7 +22,7 @@ class BrowserContextDemo {
       return result;
     });
 
-    if (automatic.value !== 'automatic' || automatic.snapshot.requestId !== 'automatic') {
+    if (automatic.value !== 'automatic' || automatic.snapshot.get('requestId') !== 'automatic') {
       throw new Error('Context.run did not return the operation value and final snapshot.');
     }
 

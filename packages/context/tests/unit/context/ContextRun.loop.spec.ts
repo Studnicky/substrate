@@ -22,7 +22,7 @@ describe('Context.run', () => {
     });
 
     assert.deepStrictEqual(result, {
-      'snapshot': { 'id': 'sync', 'state': 'complete' },
+      'snapshot': new Map([['id', 'sync'], ['state', 'complete']]),
       'value': 42
     });
     assert.strictEqual(context.isActive(), false);
@@ -38,7 +38,7 @@ describe('Context.run', () => {
     });
 
     assert.deepStrictEqual(result, {
-      'snapshot': { 'id': 'async', 'state': 'complete' },
+      'snapshot': new Map([['id', 'async'], ['state', 'complete']]),
       'value': 'done'
     });
     assert.strictEqual(context.isActive(), false);

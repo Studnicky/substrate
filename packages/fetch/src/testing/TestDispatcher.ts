@@ -302,8 +302,8 @@ export class TestDispatcher {
     };
   }
 
-  getStats(): Readonly<Record<string, unknown>> {
-    const frozen: Record<string, unknown> = {};
+  getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>> {
+    const frozen = new Map<string, Readonly<SocketDispatcherStatsEntity.Type>>();
 
     const originStateEntries = Array.from(this.#originStates.entries());
     const originStateEntryLength = originStateEntries.length;
@@ -313,11 +313,10 @@ export class TestDispatcher {
         continue;
       }
       const [origin, state] = entry;
-      Reflect.set(frozen, origin, Object.freeze({ ...state.stats }));
+      frozen.set(origin, Object.freeze({ ...state.stats }));
     }
 
-    const result = Object.freeze(frozen);
-    return result;
+    return frozen;
   }
 
   async fetch(url: string, init: Record<string, unknown>): Promise<Response> {

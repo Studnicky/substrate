@@ -38,12 +38,12 @@ scope.execute(() => {
 
 const snapshot = scope.terminate();
 
-console.log('snapshot keys:', Object.keys(snapshot).toSorted());
+console.log('snapshot keys:', [...snapshot.keys()].toSorted());
 // #endregion usage
 
-assert.equal(snapshot.operation, 'delete');
-assert.equal(snapshot.resource, 'user/99');
-const auditedCreatedAt: unknown = Reflect.get(snapshot, '_createdAt');
+assert.equal(snapshot.get('operation'), 'delete');
+assert.equal(snapshot.get('resource'), 'user/99');
+const auditedCreatedAt = snapshot.get('_createdAt');
 assert.ok(typeof auditedCreatedAt === 'number' && auditedCreatedAt > 0);
 
 console.log('subclass-hooks: all assertions passed');

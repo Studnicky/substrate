@@ -49,7 +49,7 @@ const result = await scope.execute(async () => {
 
 // Extract final state and close the scope
 const snapshot = scope.terminate();
-// { requestId: 'req-001', statusCode: 200 }
+// Map { 'requestId' => 'req-001', 'statusCode' => 200 }
 ```
 
 ## Browser usage

@@ -51,8 +51,8 @@ const runnerMap: RunnerMap = {
     const response = await client.get(scenarioCase.input.path);
 
     assert.strictEqual(response.status, 200);
-    assert.ok(origin in dispatcher.getStats(), `expected dispatcher stats to include origin ${origin}`);
-    assert.equal(origin in dispatcher.getStats(), scenarioCase.expected.originRecorded);
+    assert.ok(dispatcher.getStats().has(origin), `expected dispatcher stats to include origin ${origin}`);
+    assert.equal(dispatcher.getStats().has(origin), scenarioCase.expected.originRecorded);
 
     await dispatcher.destroy();
   },
@@ -72,10 +72,10 @@ const runnerMap: RunnerMap = {
     const response = await client.get(scenarioCase.input.path);
 
     assert.strictEqual(response.status, 200);
-    assert.ok(origin in usedDispatcher.getStats(), 'request should route through the configured dispatcher');
-    assert.equal(origin in usedDispatcher.getStats(), !scenarioCase.expected.idleOriginRecorded);
-    assert.ok(!(origin in idleDispatcher.getStats()), 'a dispatcher never passed to the client should see no activity');
-    assert.equal(origin in idleDispatcher.getStats(), scenarioCase.expected.idleOriginRecorded);
+    assert.ok(usedDispatcher.getStats().has(origin), 'request should route through the configured dispatcher');
+    assert.equal(usedDispatcher.getStats().has(origin), !scenarioCase.expected.idleOriginRecorded);
+    assert.ok(!idleDispatcher.getStats().has(origin), 'a dispatcher never passed to the client should see no activity');
+    assert.equal(idleDispatcher.getStats().has(origin), scenarioCase.expected.idleOriginRecorded);
 
     await usedDispatcher.destroy();
     await idleDispatcher.destroy();

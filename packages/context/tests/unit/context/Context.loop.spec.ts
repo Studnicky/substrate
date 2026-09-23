@@ -94,6 +94,10 @@ function requireRecord<TValue>(value: TValue, label: string): Record<string, unk
   return value;
 }
 
+function snapshotToRecord(snapshot: ReadonlyMap<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(snapshot);
+}
+
 function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
@@ -263,7 +267,7 @@ const runnerMap = {
       }
       context.set('count', count + 1);
     });
-    assert.strictEqual(scope.terminate().count, scenarioCase.expected.count);
+    assert.strictEqual(scope.terminate().get('count'), scenarioCase.expected.count);
     return;
   },
 
@@ -282,14 +286,14 @@ const runnerMap = {
       context.set('statusCode', 200);
       context.set('result', 'success');
     });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.snapshot);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.snapshot);
     return;
   },
 
   'terminate-clears': (scenarioCase) => {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.strictEqual(scope.terminate().key, scenarioCase.expected.firstValue);
+    assert.strictEqual(scope.terminate().get('key'), scenarioCase.expected.firstValue);
     assert.throws(() => scope.terminate(), { message: 'test scope has already been terminated' });
     return;
   },
@@ -400,7 +404,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
     scope.execute(() => {
-      assert.deepStrictEqual(context.snapshot(), scenarioCase.expected.snapshot);
+      assert.deepStrictEqual(snapshotToRecord(context.snapshot()), scenarioCase.expected.snapshot);
     });
     return;
   },
@@ -411,7 +415,7 @@ const runnerMap = {
     scope.execute(() => {
       const snap = context.snapshot();
       context.set('key', scenarioCase.expected.current);
-      assert.strictEqual(snap.key, scenarioCase.expected.snapshot);
+      assert.strictEqual(snap.get('key'), scenarioCase.expected.snapshot);
       assert.strictEqual(context.get('key'), scenarioCase.expected.current);
     });
     return;
@@ -463,7 +467,7 @@ const runnerMap = {
     assert.strictEqual('getStore' in context, false);
     assert.strictEqual(context.has('key'), scenarioCase.expected.has);
     assert.deepStrictEqual(context.keys(), scenarioCase.expected.keys);
-    assert.deepStrictEqual(context.snapshot(), scenarioCase.expected.snapshot);
+    assert.deepStrictEqual(snapshotToRecord(context.snapshot()), scenarioCase.expected.snapshot);
     return;
   },
 
@@ -544,8 +548,8 @@ const runnerMap = {
         assert.strictEqual(context.get('value'), scopeInitial(scenarioCase, 'initial2')?.value);
       })
     ]).then(() => {
-      assert.strictEqual(scope1.terminate().value, scenarioCase.expected.scope1);
-      assert.strictEqual(scope2.terminate().value, scenarioCase.expected.scope2);
+      assert.strictEqual(scope1.terminate().get('value'), scenarioCase.expected.scope1);
+      assert.strictEqual(scope2.terminate().get('value'), scenarioCase.expected.scope2);
     });
   },
 
@@ -565,10 +569,10 @@ const runnerMap = {
     ]).then(() => {
       const final1 = scope1.terminate();
       const final2 = scope2.terminate();
-      assert.ok('only1' in final1);
-      assert.ok(!('only2' in final1));
-      assert.ok('only2' in final2);
-      assert.ok(!('only1' in final2));
+      assert.ok(final1.has('only1'));
+      assert.ok(!final1.has('only2'));
+      assert.ok(final2.has('only2'));
+      assert.ok(!final2.has('only1'));
     });
   },
 
@@ -624,7 +628,7 @@ const runnerMap = {
       return scenarioCase.expected.result;
     }).then((result) => {
       assert.strictEqual(result, scenarioCase.expected.result);
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.finalState);
+      assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.finalState);
       assert.throws(() => scope.execute(() => {}), {
         message: `${context.name} scope has been terminated`
       });

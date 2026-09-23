@@ -133,9 +133,9 @@ async function runQueuedAbortCase(scenarioCase: ScenarioCase): Promise<void> {
     await queuedAssertion;
 
     const stats = dispatcher.getStats();
-    assert.ok(scenarioCase.expected.origin in stats);
+    assert.ok(stats.has(scenarioCase.expected.origin));
     assert.deepStrictEqual(
-      stats[scenarioCase.expected.origin],
+      stats.get(scenarioCase.expected.origin),
       scenarioCase.expected.stats
     );
   } finally {
