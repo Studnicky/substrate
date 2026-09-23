@@ -12,12 +12,15 @@
 import type { OutputUnit } from '@cfworker/json-schema';
 
 import { Validator } from '@cfworker/json-schema';
+import { JsonObject } from '@studnicky/types/browser';
 
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
 import type { SchemaCompilerInterface } from '../interfaces/SchemaCompilerInterface.js';
 import type { SchemaRegistrySetInterface } from '../interfaces/SchemaRegistrySetInterface.js';
 
+import { EntityDiagnostics } from '../EntityDiagnostics.js';
+import { SchemaId } from '../SchemaId.js';
 import { ENTITY_CFWORKER_CONSTANTS } from './constants/EntityCfworkerConstants.js';
 import { QUOTED_VALUE_PATTERN } from './constants/QuotedValuePattern.js';
 
@@ -26,12 +29,15 @@ interface MutableValidateFunctionInterface<TValidated> {
   'errors': readonly EntityValidationErrorInterface[] | null;
 }
 
+/** Marks a value the JSON Schema data model cannot represent (`undefined`, a function, a `bigint`, a `symbol`). */
+const UNREPRESENTABLE = Symbol('unrepresentable-json-instance');
+
 class EntityCfworkerCompiler {
   public static createCompiler(fillDefaults: boolean): SchemaCompilerInterface {
     const cache = new Map<string, MutableValidateFunctionInterface<unknown>>();
 
     const compile = <TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> => {
-      const id = EntityCfworkerCompiler.schemaId(schema);
+      const id = SchemaId.of(schema);
       if (id !== undefined) {
         const existing = cache.get(id);
         if (existing !== undefined) {
@@ -43,8 +49,18 @@ class EntityCfworkerCompiler {
         if (fillDefaults) {
           EntityCfworkerCompiler.applyDefaults(data, schema, schema);
         }
-        const outcome = validator.validate(data);
-        predicate.errors = outcome.valid ? null : EntityCfworkerCompiler.leafErrors(outcome.errors).map(EntityCfworkerCompiler.toEntityError);
+        const instance = EntityCfworkerCompiler.toJsonInstance(data, schema, schema);
+        if (instance === UNREPRESENTABLE) {
+          predicate.errors = [EntityCfworkerCompiler.unrepresentableInstanceError(schema)];
+          return false;
+        }
+        const outcome = validator.validate(instance);
+        predicate.errors = outcome.valid
+          ? null
+          : EntityCfworkerCompiler.leafErrors(outcome.errors, schema).map((unit) => {
+            const entityError = EntityCfworkerCompiler.toEntityError(unit, schema);
+            return entityError;
+          });
         return outcome.valid;
       }) as MutableValidateFunctionInterface<TValidated>;
       predicate.errors = null;
@@ -68,10 +84,183 @@ class EntityCfworkerCompiler {
     return result;
   }
 
-  private static schemaId(schema: object): string | undefined {
-    const id: unknown = Reflect.get(schema, '$id');
-    const result = typeof id === 'string' ? id : undefined;
+  /** Declared properties across `$ref`/`allOf` composition; a `required`-only key maps to `undefined` (no subschema). */
+  private static declaredProperties(schema: unknown, rootSchema: object): ReadonlyMap<string, unknown> {
+    const result = new Map<string, unknown>();
+    if (!EntityCfworkerCompiler.isPlainObject(schema)) {
+      return result;
+    }
+    const composed = EntityCfworkerCompiler.compositionSchemas(schema, rootSchema, new Set());
+    const composedCount = composed.length;
+    for (let index = 0; index < composedCount; index += 1) {
+      const fragment = composed[index]!;
+      const properties = fragment.properties;
+      if (EntityCfworkerCompiler.isPlainObject(properties)) {
+        const keys = Object.keys(properties);
+        const keyCount = keys.length;
+        for (let keyIndex = 0; keyIndex < keyCount; keyIndex += 1) {
+          const key = keys[keyIndex]!;
+          if (!result.has(key)) {
+            result.set(key, Reflect.get(properties, key));
+          }
+        }
+      }
+      const required = fragment.required;
+      if (Array.isArray(required)) {
+        const requiredCount = required.length;
+        for (let requiredIndex = 0; requiredIndex < requiredCount; requiredIndex += 1) {
+          const key: unknown = required[requiredIndex];
+          if (typeof key === 'string' && !result.has(key)) {
+            result.set(key, undefined);
+          }
+        }
+      }
+    }
     return result;
+  }
+
+  /** Projects onto the JSON Schema data model so cfworker fails instead of throwing; `seen` memoizes copies against cyclic input. */
+  private static toJsonInstance(value: unknown, schema: unknown, rootSchema: object, seen: Map<object, unknown> = new Map()): unknown {
+    if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      const result = Number.isFinite(value) ? value : null;
+      return result;
+    }
+    const cached = typeof value === 'object' ? seen.get(value) : undefined;
+    if (cached !== undefined) {
+      return cached;
+    }
+    if (Array.isArray(value)) {
+      const result: unknown[] = [];
+      seen.set(value, result);
+      const itemSchema = EntityCfworkerCompiler.isPlainObject(schema) ? schema.items : undefined;
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        const normalized = EntityCfworkerCompiler.toJsonInstance(value[index], itemSchema, rootSchema, seen);
+        result.push(normalized === UNREPRESENTABLE ? null : normalized);
+      }
+      return result;
+    }
+    if (EntityCfworkerCompiler.isPlainObject(value)) {
+      const result: Record<string, unknown> = {};
+      seen.set(value, result);
+      const declaredProperties = EntityCfworkerCompiler.declaredProperties(schema, rootSchema);
+      const ownKeys = Object.keys(value);
+      const ownKeySet = new Set(ownKeys);
+      const ownKeyCount = ownKeys.length;
+      for (let index = 0; index < ownKeyCount; index += 1) {
+        const key = ownKeys[index]!;
+        const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), declaredProperties.get(key), rootSchema, seen);
+        if (normalized !== UNREPRESENTABLE) {
+          JsonObject.write(result, key, normalized);
+        }
+      }
+      const inheritedDeclared = [...declaredProperties.entries()].filter(([key]) => {
+        const isInherited = !ownKeySet.has(key);
+        return isInherited;
+      });
+      const inheritedCount = inheritedDeclared.length;
+      for (let index = 0; index < inheritedCount; index += 1) {
+        const [key, propertySchema] = inheritedDeclared[index]!;
+        const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), propertySchema, rootSchema, seen);
+        if (normalized !== UNREPRESENTABLE) {
+          EntityCfworkerCompiler.definePresentNotOwnEnumerable(result, key, normalized);
+        }
+      }
+      const undeclaredInheritedEnumerable = EntityCfworkerCompiler.inheritedEnumerableKeys(value, ownKeySet, declaredProperties);
+      const undeclaredCount = undeclaredInheritedEnumerable.length;
+      if (undeclaredCount > 0) {
+        const prototypeProjection: Record<string, unknown> = {};
+        for (let index = 0; index < undeclaredCount; index += 1) {
+          const key = undeclaredInheritedEnumerable[index]!;
+          const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), undefined, rootSchema, seen);
+          if (normalized !== UNREPRESENTABLE) {
+            JsonObject.write(prototypeProjection, key, normalized);
+          }
+        }
+        // on the prototype, not as own keys, so Object.keys/minProperties/maxProperties stay own-key-only like Ajv
+        Object.setPrototypeOf(result, prototypeProjection);
+      }
+      return result;
+    }
+    return UNREPRESENTABLE;
+  }
+
+  /** Every key `for...in` would visit: each prototype level's own enumerable keys, closest first, deduplicated (shadowing). */
+  private static forInVisibleKeys(value: object): readonly string[] {
+    const seenKeys = new Set<string>();
+    const result: string[] = [];
+    let level: object | null = value;
+    while (level !== null) {
+      const levelKeys = Object.keys(level);
+      const levelKeyCount = levelKeys.length;
+      for (let index = 0; index < levelKeyCount; index += 1) {
+        const key = levelKeys[index]!;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          result.push(key);
+        }
+      }
+      level = Object.getPrototypeOf(level) as object | null;
+    }
+    return result;
+  }
+
+  /** Undeclared keys `for...in` reaches but `Object.keys` misses on `value`: inherited and enumerable. */
+  private static inheritedEnumerableKeys(value: object, ownKeySet: ReadonlySet<string>, declaredProperties: ReadonlyMap<string, unknown>): readonly string[] {
+    const visibleKeys = EntityCfworkerCompiler.forInVisibleKeys(value);
+    const result: string[] = [];
+    const visibleKeyCount = visibleKeys.length;
+    for (let index = 0; index < visibleKeyCount; index += 1) {
+      const key = visibleKeys[index]!;
+      if (!ownKeySet.has(key) && !declaredProperties.has(key)) {
+        result.push(key);
+      }
+    }
+    return result;
+  }
+
+  /** Declared but not own-enumerable, matching the source: visible to `in`/access, invisible to `Object.keys`. */
+  private static definePresentNotOwnEnumerable(target: object, key: string, value: unknown): void {
+    Object.defineProperty(target, key, { 'configurable': true, 'enumerable': false, 'value': value, 'writable': true });
+  }
+
+  /** Renders the type failure for a root instance the JSON Schema data model cannot represent at all. */
+  private static unrepresentableInstanceError(schema: object): EntityValidationErrorInterface {
+    const declaredType = EntityCfworkerCompiler.isPlainObject(schema) ? Reflect.get(schema, 'type') : undefined;
+    const message = EntityDiagnostics.render({ 'keyword': 'type', 'keywordValue': declaredType }) ?? 'must be a valid JSON value';
+    const diagnostic: Record<string, unknown> = {
+      'instancePath': '',
+      'keyword': 'type',
+      'message': message,
+      'schemaPath': '#/type'
+    };
+    JsonObject.write(diagnostic, ENTITY_CFWORKER_CONSTANTS.errorDiagnosticParametersKey, {});
+    const result = diagnostic as unknown as EntityValidationErrorInterface;
+    return result;
+  }
+
+  /** Resolves a JSON Pointer, rooted at `#`, against `rootSchema`. */
+  private static resolveSchemaPointer(rootSchema: object, pointer: string): unknown {
+    if (pointer === '#') {
+      return rootSchema;
+    }
+    if (!pointer.startsWith('#/')) {
+      return undefined;
+    }
+    const segments = pointer.slice(2).split('/');
+    let target: unknown = rootSchema;
+    const segmentCount = segments.length;
+    for (let index = 0; index < segmentCount; index += 1) {
+      const segment = decodeURIComponent(segments[index]!).replaceAll('~1', '/').replaceAll('~0', '~');
+      if (typeof target !== 'object' || target === null) {
+        return undefined;
+      }
+      target = Reflect.get(target, segment);
+    }
+    return target;
   }
 
   /** Resolves a local `$ref` pointer within the same schema document. */
@@ -80,23 +269,7 @@ class EntityCfworkerCompiler {
     if (typeof reference !== 'string' || !reference.startsWith('#')) {
       return undefined;
     }
-    if (reference === '#') {
-      const result = EntityCfworkerCompiler.isPlainObject(rootSchema) ? rootSchema : undefined;
-      return result;
-    }
-    if (!reference.startsWith('#/')) {
-      return undefined;
-    }
-    const segments = reference.slice(2).split('/');
-    let target: unknown = rootSchema;
-    const segmentCount = segments.length;
-    for (let index = 0; index < segmentCount; index += 1) {
-      const segment = segments[index]!.replaceAll('~1', '/').replaceAll('~0', '~');
-      if (!EntityCfworkerCompiler.isPlainObject(target)) {
-        return undefined;
-      }
-      target = Reflect.get(target, segment);
-    }
+    const target = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, reference);
     const result = EntityCfworkerCompiler.isPlainObject(target) ? target : undefined;
     return result;
   }
@@ -152,7 +325,7 @@ class EntityCfworkerCompiler {
         }
         const hasKey = Reflect.has(value, key);
         if (!hasKey && Reflect.has(propertySchema, 'default')) {
-          Reflect.set(value, key, structuredClone(propertySchema.default));
+          JsonObject.write(value, key, structuredClone(propertySchema.default));
         }
         if (Reflect.has(value, key)) {
           EntityCfworkerCompiler.applyDefaults(Reflect.get(value, key), propertySchema, rootSchema);
@@ -161,23 +334,66 @@ class EntityCfworkerCompiler {
     }
   }
 
-  /**
-   * Drops composite-keyword summary units (`properties`, `items`, `dependentSchemas`, …) that only
-   * announce a nested failure exists. `allErrors` mode reports only the leaf diagnostic; a summary
-   * unit is redundant once a more specific descendant unit — one whose `keywordLocation` extends
-   * its own — is present in the same result.
-   */
-  private static leafErrors(errors: readonly OutputUnit[]): readonly OutputUnit[] {
-    const errorCount = errors.length;
+  /** Whether `propertyName` is declared in `properties` or matched by `patternProperties`, across composition. */
+  private static accountsForProperty(schema: Record<string, unknown>, rootSchema: object, propertyName: string): boolean {
+    const composed = EntityCfworkerCompiler.compositionSchemas(schema, rootSchema, new Set());
+    const composedCount = composed.length;
+    for (let index = 0; index < composedCount; index += 1) {
+      const fragment = composed[index]!;
+      const properties = fragment.properties;
+      if (EntityCfworkerCompiler.isPlainObject(properties) && Reflect.has(properties, propertyName)) {
+        return true;
+      }
+      const patternProperties = fragment.patternProperties;
+      if (EntityCfworkerCompiler.isPlainObject(patternProperties)) {
+        const patterns = Object.keys(patternProperties);
+        const patternCount = patterns.length;
+        for (let patternIndex = 0; patternIndex < patternCount; patternIndex += 1) {
+          if (new RegExp(patterns[patternIndex]!, 'u').test(propertyName)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /** `additionalProperties` re-fires on a key whose own `properties`/`patternProperties` failure already reported it. */
+  private static isRedundantAdditionalPropertiesUnit(unit: OutputUnit, rootSchema: object): boolean {
+    const suffix = '/additionalProperties';
+    if (unit.keyword !== 'additionalProperties' || !unit.keywordLocation.endsWith(suffix)) {
+      return false;
+    }
+    const propertyName = QUOTED_VALUE_PATTERN.exec(unit.error)?.[1];
+    if (propertyName === undefined) {
+      return false;
+    }
+    const schemaPath = unit.keywordLocation.slice(0, -suffix.length);
+    const fragment = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, schemaPath);
+    if (!EntityCfworkerCompiler.isPlainObject(fragment)) {
+      return false;
+    }
+    const result = EntityCfworkerCompiler.accountsForProperty(fragment, rootSchema, propertyName);
+    return result;
+  }
+
+  /** Keeps only the most specific failure per branch; drops summary wrappers a descendant unit already explains. */
+  private static leafErrors(errors: readonly OutputUnit[], rootSchema: object): readonly OutputUnit[] {
+    const meaningful = errors.filter((unit) => {
+      const isMeaningful = unit.keywordLocation !== unit.instanceLocation
+        && !EntityCfworkerCompiler.isRedundantAdditionalPropertiesUnit(unit, rootSchema);
+      return isMeaningful;
+    });
+    const errorCount = meaningful.length;
     const result: OutputUnit[] = [];
     for (let candidateIndex = 0; candidateIndex < errorCount; candidateIndex += 1) {
-      const candidate = errors[candidateIndex]!;
+      const candidate = meaningful[candidateIndex]!;
       let hasMoreSpecificDescendant = false;
       for (let otherIndex = 0; otherIndex < errorCount; otherIndex += 1) {
         if (otherIndex === candidateIndex) {
           continue;
         }
-        if (errors[otherIndex]!.keywordLocation.startsWith(`${candidate.keywordLocation}/`)) {
+        if (meaningful[otherIndex]!.keywordLocation.startsWith(`${candidate.keywordLocation}/`)) {
           hasMoreSpecificDescendant = true;
           break;
         }
@@ -207,15 +423,23 @@ class EntityCfworkerCompiler {
   }
 
   /** Converts a cfworker output unit into the diagnostic entity consumers expect. */
-  private static toEntityError(unit: OutputUnit): EntityValidationErrorInterface {
+  private static toEntityError(unit: OutputUnit, rootSchema: object): EntityValidationErrorInterface {
     const instancePath = unit.instanceLocation === '#' ? '' : decodeURIComponent(unit.instanceLocation.slice(1));
+    const diagnosticParameters = EntityCfworkerCompiler.diagnosticParameters(unit);
+    const keywordValue = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation);
+    const canonicalMessage = EntityDiagnostics.render({
+      'additionalProperty': typeof diagnosticParameters.additionalProperty === 'string' ? diagnosticParameters.additionalProperty : undefined,
+      'keyword': unit.keyword,
+      'keywordValue': keywordValue,
+      'missingProperty': typeof diagnosticParameters.missingProperty === 'string' ? diagnosticParameters.missingProperty : undefined
+    });
     const diagnostic: Record<string, unknown> = {
       'instancePath': instancePath,
       'keyword': unit.keyword,
-      'message': unit.error,
+      'message': canonicalMessage ?? unit.error,
       'schemaPath': unit.keywordLocation
     };
-    Reflect.set(diagnostic, ENTITY_CFWORKER_CONSTANTS.errorDiagnosticParametersKey, EntityCfworkerCompiler.diagnosticParameters(unit));
+    JsonObject.write(diagnostic, ENTITY_CFWORKER_CONSTANTS.errorDiagnosticParametersKey, diagnosticParameters);
     const result = diagnostic as unknown as EntityValidationErrorInterface;
     return result;
   }

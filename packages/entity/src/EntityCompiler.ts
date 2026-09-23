@@ -28,6 +28,7 @@ import type { EntityValidationErrorInterface } from './interfaces/EntityValidati
 import type { SchemaCompilerInterface } from './interfaces/SchemaCompilerInterface.js';
 import type { SchemaRegistrySetInterface } from './interfaces/SchemaRegistrySetInterface.js';
 
+import { SchemaId } from './SchemaId.js';
 import { SchemaIntakeError } from './SchemaIntakeError.js';
 
 export class EntityCompiler {
@@ -46,7 +47,7 @@ export class EntityCompiler {
    * Compile once at module load and reuse; compilation is the expensive step.
    */
   public static compile<TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> {
-    const id = EntityCompiler.schemaId(schema);
+    const id = SchemaId.of(schema);
     if (id !== undefined) {
       const existing = this.registries.assert.getSchema<TValidated>(id);
       if (existing !== undefined) {
@@ -573,7 +574,7 @@ export class EntityCompiler {
     registry: SchemaCompilerInterface,
     schema: object
   ): EntityValidateFunctionInterface<TValidated> {
-    const id = EntityCompiler.schemaId(schema);
+    const id = SchemaId.of(schema);
     if (id !== undefined) {
       const existing = registry.getSchema<TValidated>(id);
       if (existing !== undefined) {
@@ -581,12 +582,6 @@ export class EntityCompiler {
       }
     }
     const result = registry.compile<TValidated>(schema);
-    return result;
-  }
-
-  private static schemaId(schema: object): string | undefined {
-    const id: unknown = Reflect.get(schema, '$id');
-    const result = Predicates.isString(id) ? id : undefined;
     return result;
   }
 }
