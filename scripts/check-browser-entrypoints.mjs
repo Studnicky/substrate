@@ -20,6 +20,10 @@ const packageDirectories = (await readdir(packageRoot, { "withFileTypes": true }
   .toSorted();
 const errors = [];
 const browserEntrypoints = [];
+const packageManifests = new Map();
+const visitedBrowserFiles = new Set();
+// Ajv compiles validator functions via `new Function()` at runtime.
+const dynamicCodeConstructionPackages = new Set(["ajv"]);
 
 function executableTarget(exportEntry, packageName, subpath) {
   if (typeof exportEntry !== "object" || exportEntry === null || Array.isArray(exportEntry)) {
@@ -87,40 +91,157 @@ function reportBarePackageSpecifier(sourceFile, node, specifier) {
   errors.push(`${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)} imports ${specifier} without /node or /browser`);
 }
 
+function collectImportSpecifiers(sourceFile) {
+  const specifiers = [];
+
+  const visit = (node) => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+      specifiers.push({ "specifier": node.moduleSpecifier.text, "node": node.moduleSpecifier });
+    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
+      specifiers.push({ "specifier": node.moduleReference.expression.text, "node": node.moduleReference.expression });
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      specifiers.push({ "specifier": node.argument.literal.text, "node": node.argument.literal });
+    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
+      specifiers.push({ "specifier": node.arguments[0].text, "node": node.arguments[0] });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return specifiers;
+}
+
 function inspectEmittedModuleSpecifiers(sourceFile, packageName) {
-  const reportNodeBuiltinSpecifier = (specifier) => {
+  for (const { specifier } of collectImportSpecifiers(sourceFile)) {
     if (specifier.startsWith("node:")) {
       throw new Error(`${packageName} browser entrypoint includes Node builtin ${specifier}`);
     }
-  };
-
-  const visit = (node) => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
-      reportNodeBuiltinSpecifier(node.moduleSpecifier.text);
-    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
-      reportNodeBuiltinSpecifier(node.arguments[0].text);
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(sourceFile);
+  }
 }
 
 function inspectStaticSpecifiers(sourceFile) {
-  const visit = (node) => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
-      reportBarePackageSpecifier(sourceFile, node.moduleSpecifier, node.moduleSpecifier.text);
-    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
-      reportBarePackageSpecifier(sourceFile, node.moduleReference.expression, node.moduleReference.expression.text);
-    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-      reportBarePackageSpecifier(sourceFile, node.argument.literal, node.argument.literal.text);
+  for (const { specifier, node } of collectImportSpecifiers(sourceFile)) {
+    reportBarePackageSpecifier(sourceFile, node, specifier);
+  }
+}
+
+function describeChain(chain) {
+  return chain.map((filePath) => relative(repositoryRoot, filePath)).join(" -> ");
+}
+
+function parseWorkspaceSpecifier(specifier) {
+  const match = /^(@studnicky\/[^/]+)(\/.*)?$/u.exec(specifier);
+  if (match === null) {
+    return undefined;
+  }
+
+  return { "packageName": match[1], "subpath": match[2] ?? "" };
+}
+
+function resolveWorkspaceTarget(packageName, subpath) {
+  const manifestEntry = packageManifests.get(packageName);
+  if (manifestEntry === undefined) {
+    return undefined;
+  }
+
+  const exportKey = `.${subpath}`;
+  const exportEntry = manifestEntry.exportsMap[exportKey];
+  if (typeof exportEntry !== "object" || exportEntry === null || Array.isArray(exportEntry)) {
+    return undefined;
+  }
+
+  const importTarget = exportEntry.import;
+  if (typeof importTarget !== "string" || !importTarget.startsWith("./dist/") || !importTarget.endsWith(".js")) {
+    return undefined;
+  }
+
+  const sourcePath = join(manifestEntry.packageDirectory, "src", `${importTarget.slice("./dist/".length, -".js".length)}.ts`);
+  return { exportKey, sourcePath };
+}
+
+function isNodeRuntimeExport(exportKey) {
+  return exportKey === "./node" || exportKey.startsWith("./node/");
+}
+
+function resolveRelativeImport(fromFile, specifier) {
+  const target = resolve(dirname(fromFile), specifier);
+  if (target.endsWith(".ts")) {
+    return target;
+  }
+
+  return target.endsWith(".js") ? `${target.slice(0, -".js".length)}.ts` : `${target}.ts`;
+}
+
+function thirdPartyPackageName(specifier) {
+  const segments = specifier.split("/");
+  return specifier.startsWith("@") ? `${segments[0]}/${segments[1]}` : segments[0];
+}
+
+async function inspectReachableSpecifier(specifier, node, sourceFile, packageName, chain) {
+  const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+  const location = `${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)}`;
+
+  if (specifier.startsWith(".") || specifier.startsWith("/")) {
+    await inspectBrowserReachableFile(resolveRelativeImport(sourceFile.fileName, specifier), packageName, chain);
+    return;
+  }
+
+  const workspaceSpecifier = parseWorkspaceSpecifier(specifier);
+  if (workspaceSpecifier !== undefined) {
+    if (workspaceSpecifier.subpath === "") {
+      return;
     }
 
-    ts.forEachChild(node, visit);
-  };
+    const resolved = resolveWorkspaceTarget(workspaceSpecifier.packageName, workspaceSpecifier.subpath);
+    if (resolved === undefined) {
+      return;
+    }
 
-  visit(sourceFile);
+    if (isNodeRuntimeExport(resolved.exportKey)) {
+      errors.push(`${packageName} browser graph imports ${specifier} (a Node-only export) at ${location} via ${describeChain(chain)}`);
+      return;
+    }
+
+    await inspectBrowserReachableFile(resolved.sourcePath, packageName, chain);
+    return;
+  }
+
+  if (specifier.startsWith("node:")) {
+    return;
+  }
+
+  if (dynamicCodeConstructionPackages.has(thirdPartyPackageName(specifier))) {
+    errors.push(`${packageName} browser graph imports ${specifier} (constructs code at runtime) at ${location} via ${describeChain(chain)}`);
+  }
+}
+
+async function inspectBrowserReachableFile(filePath, packageName, chain) {
+  if (visitedBrowserFiles.has(filePath)) {
+    return;
+  }
+
+  visitedBrowserFiles.add(filePath);
+
+  let sourceText;
+  try {
+    sourceText = await readFile(filePath, "utf8");
+  } catch {
+    return;
+  }
+
+  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const nextChain = [...chain, filePath];
+
+  for (const { specifier, node } of collectImportSpecifiers(sourceFile)) {
+    await inspectReachableSpecifier(specifier, node, sourceFile, packageName, nextChain);
+  }
+}
+
+async function walkBrowserGraph() {
+  for (const { entrypoint, packageName } of browserEntrypoints) {
+    await inspectBrowserReachableFile(entrypoint, packageName, []);
+  }
 }
 
 for (const directoryName of packageDirectories) {
@@ -147,6 +268,8 @@ for (const directoryName of packageDirectories) {
     errors.push(`${packageName} must declare an exports map with ./node`);
     continue;
   }
+
+  packageManifests.set(packageName, { packageDirectory, exportsMap });
 
   if (Object.hasOwn(exportsMap, ".")) {
     errors.push(`${packageName} must not declare a root export; use ./node or ./browser`);
@@ -259,6 +382,8 @@ for (const { entrypoint, packageName } of browserEntrypoints) {
     errors.push(`${packageName} browser export does not resolve to ${relative(repositoryRoot, entrypoint)}`);
   }
 }
+
+await walkBrowserGraph();
 
 if (errors.length > 0) {
   throw new AggregateError(errors, `runtime export contract failed with ${String(errors.length)} violation(s)`);

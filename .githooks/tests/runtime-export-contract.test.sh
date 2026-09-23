@@ -104,3 +104,29 @@ if out=$(node "$CHECKER" --root "$repo" 2>&1); then
   fail "browser entrypoint with node builtin fails" "checker exited successfully"
 fi
 assert_contains "emitted node builtin is identified" "@studnicky/alpha browser entrypoint includes Node builtin node:fs" "$out"
+
+mkdir -p "$repo/packages/beta/src"
+printf "%s\n" "{\"name\":\"@studnicky/beta\",\"exports\":{\"./node\":{\"types\":\"./dist/index.d.ts\",\"import\":\"./dist/index.js\"},\"./browser\":{\"types\":\"./dist/index.d.ts\",\"import\":\"./dist/index.js\"}}}" > "$repo/packages/beta/package.json"
+printf "%s\n" "export const X = 1;" > "$repo/packages/beta/src/index.ts"
+
+write_valid_manifest
+printf "%s\n" "import { X } from \"@studnicky/beta/node\";" "export const y = X;" > "$repo/packages/alpha/src/index.ts"
+if out=$(node "$CHECKER" --root "$repo" --validate-only 2>&1); then
+  fail "browser-reachable /node import fails" "checker exited successfully"
+fi
+assert_contains "browser-reachable /node import names the specifier and importing file" "@studnicky/alpha browser graph imports @studnicky/beta/node (a Node-only export) at packages/alpha/src/index.ts:1:19" "$out"
+
+rm -rf "$repo/packages/alpha/src/interfaces"
+mkdir -p "$repo/packages/alpha/src/node" "$repo/packages/alpha/src/browser"
+printf "%s\n" "{\"name\":\"@studnicky/alpha\",\"exports\":{\"./node\":{\"types\":\"./dist/node/index.d.ts\",\"import\":\"./dist/node/index.js\"},\"./browser\":{\"types\":\"./dist/browser/index.d.ts\",\"import\":\"./dist/browser/index.js\"}}}" > "$repo/packages/alpha/package.json"
+printf "%s\n" "import { X } from \"@studnicky/beta/node\";" "export const y = X;" > "$repo/packages/alpha/src/node/index.ts"
+printf "%s\n" "export const y = 1;" > "$repo/packages/alpha/src/browser/index.ts"
+out=$(node "$CHECKER" --root "$repo" --validate-only)
+assert_contains "node-only-reachable /node import passes" "runtime-exports: OK (2 package(s), 2 browser entrypoint(s))" "$out"
+
+write_valid_manifest
+printf "%s\n" "import { Ajv2020 } from \"ajv/dist/2020.js\";" "export const y = new Ajv2020({});" > "$repo/packages/alpha/src/index.ts"
+if out=$(node "$CHECKER" --root "$repo" --validate-only 2>&1); then
+  fail "browser-reachable runtime code construction fails" "checker exited successfully"
+fi
+assert_contains "runtime code construction names the specifier and importing file" "@studnicky/alpha browser graph imports ajv/dist/2020.js (constructs code at runtime) at packages/alpha/src/index.ts:1:25" "$out"
