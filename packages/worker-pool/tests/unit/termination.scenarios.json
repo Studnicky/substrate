@@ -62,7 +62,24 @@
           { "index": 0, "message": "error termination rejected" }
         ],
         "rejectionEvents": [],
-        "terminateCalls": 3
+        "terminateCalls": 2
+      }
+    },
+    {
+      "name": "task-timeout-after-startup",
+      "description": "rejects the run without an unhandled rejection when a short task deadline expires after the worker has already started",
+      "shape": "task-timeout-after-startup",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "timeoutMs": 1,
+          "workerPath": "../fixtures/terminationWorker.mjs"
+        },
+        "item": { "ms": 5000, "value": "slow-task" }
+      },
+      "expected": {
+        "rejectionEvents": [],
+        "runRejectedMessageIncludes": "exceeded its timeout"
       }
     }
   ]

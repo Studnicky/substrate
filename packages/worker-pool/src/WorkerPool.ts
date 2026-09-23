@@ -370,7 +370,8 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
         return;
       }
       const record = workerRecords.get(worker);
-      if (record?.lifecycleState.variant === 'busy') {
+      if (record === undefined) { return; }
+      if (record.lifecycleState.variant === 'busy') {
         const step = workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'free' });
         record.lifecycleState = step.state;
       }
@@ -388,7 +389,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
           : RuntimeError.create('WorkerPool: worker termination failed', { 'cause': cause });
         reportWorkerError(terminationError, entry.index);
       });
-      if (shuttingDown) { return; }
+      if (shuttingDown || pendingQueue.length === 0) { return; }
       const replacement = createWorker(entry.index);
       await freeWorker(replacement);
     };
@@ -626,6 +627,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       worker.on('error', (error: Error) => {
         const record = workerRecords.get(worker);
         const workerIndex2 = record?.lastIndex ?? -1;
+        // An errored worker must never be handed a later task: without this, a worker that
+        // errors while idle stays listed as assignable until its 'exit' event lands.
+        killWorker(worker);
         rejectUnbootedFailure(RuntimeError.create(`WorkerPool: worker at index ${String(workerIndex2)} emitted an error before finishing startup`, { 'cause': error }));
         settleTask(worker, (context) => {
           reportWorkerError(error, context.index);
@@ -648,7 +652,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
         const context = currentTaskByWorker.get(worker);
 
         if (context === undefined || context.settlementState.variant === 'settled') {
-          if (!shuttingDown) {
+          // Replacing this worker only matters when queued work is waiting for it — spawning one
+          // regardless races run()'s shutdown finally over `shuttingDown`: an idle replacement
+          // with nothing to do just adds an extra, non-deterministic terminate() call.
+          if (!shuttingDown && pendingQueue.length > 0) {
             const replacement = createWorker(workerIndex3);
             freeWorker(replacement).catch((cause: Error) => {
               reportOperationFailure(cause, workerIndex3);
@@ -691,7 +698,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
         context.reject(RuntimeError.create(`WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`));
 
-        if (!shuttingDown) {
+        if (!shuttingDown && pendingQueue.length > 0) {
           const replacement = createWorker(context.index);
           freeWorker(replacement).catch((cause: Error) => {
             reportOperationFailure(cause, context.index);
