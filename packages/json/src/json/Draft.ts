@@ -22,7 +22,8 @@ export class Draft {
   /** Copy an array or plain object without copying its child references. */
   protected static shallowCopy<T extends object>(value: T): T;
   protected static shallowCopy(value: object): object {
-    const result = Array.isArray(value) ? Array.from(value) : { ...value };
+    // `Array.from` densifies holes with `undefined`; `slice` preserves them.
+    const result = Array.isArray(value) ? value.slice() : { ...value };
     return result;
   }
 
