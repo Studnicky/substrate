@@ -10,6 +10,7 @@ import type { FetchOptionsInterface } from '../../interfaces/FetchOptionsInterfa
 import { ConfigurationError, TimeoutError } from '../../errors/index.js';
 import { BodySerializer } from '../BodySerializer.js';
 import { FetchClientConfiguration } from '../FetchClientConfiguration.js';
+import { RequestInitEncoder } from '../RequestInitEncoder.js';
 import { UrlQueryString } from '../UrlQueryString.js';
 import { FetchTransport } from './FetchTransport.js';
 
@@ -132,16 +133,9 @@ export class BrowserFetchClient implements FetchClientInterface {
   async #request(path: string, options: FetchOptionsInterface): Promise<Response> {
     const url = this.#buildUrl(path);
     const merged = this.#mergeOptions(options);
-    const {
-      'dispatcher': _dispatcher,
-      'json': _json,
-      'metadata': _metadata,
-      'requestId': _requestId,
-      'signal': externalSignal,
-      timeout,
-      ...requestInit
-    } = merged;
-    const init: Record<string, unknown> = { ...requestInit };
+    const encoded = RequestInitEncoder.encode(merged);
+    const { 'signal': externalSignal, timeout } = encoded;
+    const init: Record<string, unknown> = { ...encoded.requestInit };
     let requestSignal: AbortSignal | undefined;
 
     const normalizedSignal = externalSignal ?? undefined;

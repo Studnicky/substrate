@@ -3,26 +3,13 @@
  */
 
 import type { FetchRequestOptionsEntity } from '../entities/FetchRequestOptionsEntity.js';
+import type { RequestInitFieldNameEntity } from '../entities/RequestInitFieldNameEntity.js';
 
 /**
  * Request options accepted by Fetch client operations.
  */
 export interface FetchOptionsInterface
-  extends Omit<
-    RequestInit,
-    | 'body'
-    | 'cache'
-    | 'credentials'
-    | 'dispatcher'
-    | 'headers'
-    | 'integrity'
-    | 'keepalive'
-    | 'method'
-    | 'mode'
-    | 'redirect'
-    | 'referrer'
-    | 'referrerPolicy'
-  >,
+  extends Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'>,
   FetchRequestOptionsEntity.Type {
   /**
    * Request body, using the native Fetch body contract.
