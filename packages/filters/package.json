@@ -65,7 +65,6 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "@types/json-schema": "^7.0.15",
-    "json-schema-to-ts": "^3.1.1"
+    "@types/json-schema": "^7.0.15"
   }
 }

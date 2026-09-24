@@ -71,8 +71,7 @@
     "@studnicky/fsm": "workspace:*",
     "@studnicky/sample-buffer": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/batch": "workspace:*",

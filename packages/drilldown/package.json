@@ -67,7 +67,6 @@
   "dependencies": {
     "@studnicky/cache": "workspace:*",
     "@studnicky/entity": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
   }
 }

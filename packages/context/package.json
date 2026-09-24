@@ -75,7 +75,6 @@
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1",
     "rollup": "^4.63.1",
     "typescript": "^6.0.3"
   }
