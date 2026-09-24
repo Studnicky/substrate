@@ -273,75 +273,97 @@ export class TimeOperatorsPlugin extends Plugin {
 
     // Handle numeric timestamps
     if (typeof value === 'number') {
-      // Distinguish between Unix timestamps (seconds) and epoch timestamps (milliseconds)
-      // Unix timestamps are typically 10 digits (until year 2286)
-      // Epoch milliseconds are typically 13 digits (until year 2286)
-      // We'll consider anything less than 10000000000 as Unix timestamp (seconds)
-      // This covers dates from 1970-01-01 to 2286-11-20
-      let timestamp = value;
-
-      // Convert Unix timestamp (seconds) to milliseconds
-      if (value < 10000000000) {
-        timestamp = value * 1000;
-      }
-
-      const date = new Date(timestamp);
-      const result = isNaN(date.getTime()) ? null : date;
+      const result = this.parseNumericTimeValue(value);
 
       return result;
     }
 
     // Handle string values
     if (typeof value === 'string') {
-      const trimmed = value.trim();
-
-      // Check if it's a numeric string (potential timestamp)
-      if (WHOLE_NUMBER_PATTERN.test(trimmed)) {
-        const numericValue = parseInt(trimmed, 10);
-
-        // Recursively call with numeric value to handle Unix/epoch logic
-        const result = this.parseTimeValue(numericValue);
-
-        return result;
-      }
-
-      // Check for time-only format (HH:MM or HH:MM:SS)
-      const timeMatch = TIME_ONLY_PATTERN.exec(trimmed);
-
-      if (timeMatch !== null) {
-        const hours = parseInt(timeMatch[1] ?? '0', 10);
-        const minutes = parseInt(timeMatch[2] ?? '0', 10);
-        const seconds = timeMatch[3] === undefined ? 0 : parseInt(timeMatch[3], 10);
-
-        // Validate time components
-        if (hours >= 0 && hours <= 23
-            && minutes >= 0 && minutes <= 59
-            && seconds >= 0 && seconds <= 59) {
-          // Use TODAY's date for time-only comparisons
-          const today = new Date();
-
-          return new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            today.getDate(),
-            hours,
-            minutes,
-            seconds,
-            0 // milliseconds
-          );
-        }
-
-        // If it looks like a time string but has invalid values, reject it
-        return null;
-      }
-
-      // Try standard Date parsing for full datetime strings
-      const date = new Date(trimmed);
-      const result = isNaN(date.getTime()) ? null : date;
+      const result = this.parseStringTimeValue(value);
 
       return result;
     }
 
     return null;
+  }
+
+  private parseNumericTimeValue(value: number): Date | null {
+    // Distinguish between Unix timestamps (seconds) and epoch timestamps (milliseconds)
+    // Unix timestamps are typically 10 digits (until year 2286)
+    // Epoch milliseconds are typically 13 digits (until year 2286)
+    // We'll consider anything less than 10000000000 as Unix timestamp (seconds)
+    // This covers dates from 1970-01-01 to 2286-11-20
+    const timestamp = value < 10000000000 ? value * 1000 : value;
+    const date = new Date(timestamp);
+    const result = isNaN(date.getTime()) ? null : date;
+
+    return result;
+  }
+
+  private parseStringTimeValue(value: string): Date | null {
+    const trimmed = value.trim();
+
+    // Check if it's a numeric string (potential timestamp)
+    if (WHOLE_NUMBER_PATTERN.test(trimmed)) {
+      const numericValue = parseInt(trimmed, 10);
+
+      // Recursively call with numeric value to handle Unix/epoch logic
+      const result = this.parseTimeValue(numericValue);
+
+      return result;
+    }
+
+    const timeOnlyResult = TimeOperatorsPlugin.parseTimeOnlyString(trimmed);
+
+    if (timeOnlyResult !== undefined) {
+      return timeOnlyResult;
+    }
+
+    // Try standard Date parsing for full datetime strings
+    const date = new Date(trimmed);
+    const result = isNaN(date.getTime()) ? null : date;
+
+    return result;
+  }
+
+  /** `undefined` means `trimmed` isn't a time-only string, so the caller falls through to general date parsing. */
+  private static parseTimeOnlyString(trimmed: string): Date | null | undefined {
+    // Check for time-only format (HH:MM or HH:MM:SS)
+    const timeMatch = TIME_ONLY_PATTERN.exec(trimmed);
+
+    if (timeMatch === null) {
+      return undefined;
+    }
+
+    const hours = parseInt(timeMatch[1] ?? '0', 10);
+    const minutes = parseInt(timeMatch[2] ?? '0', 10);
+    const seconds = timeMatch[3] === undefined ? 0 : parseInt(timeMatch[3], 10);
+
+    // Validate time components
+    if (TimeOperatorsPlugin.isValidTimeComponents(hours, minutes, seconds)) {
+      // Use TODAY's date for time-only comparisons
+      const today = new Date();
+      const result = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        hours,
+        minutes,
+        seconds,
+        0 // milliseconds
+      );
+
+      return result;
+    }
+
+    // If it looks like a time string but has invalid values, reject it
+    return null;
+  }
+
+  private static isValidTimeComponents(hours: number, minutes: number, seconds: number): boolean {
+    const result = hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59;
+
+    return result;
   }
 }

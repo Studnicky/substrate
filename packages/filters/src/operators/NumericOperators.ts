@@ -41,40 +41,57 @@ export class NumericOperators {
 
     // Handle date values first
     if (Predicates.isDateLike(value) || Predicates.isDateLike(firstFilterValue)) {
-      const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
-
-      if (dateInfo === null) {
-        return false;
-      }
-
-      const {
-        dateTime,
-        maximum,
-        minimum
-      } = dateInfo;
-      const result = inclusive
-        ? IsInRange.isInRange(dateTime, [
-          minimum,
-          maximum
-        ])
-        : (dateTime > minimum && dateTime < maximum);
+      const result = NumericOperators.handleDateBetween(value, filterValue, inclusive);
 
       return result;
     }
 
     // Handle numeric values
+    const result = NumericOperators.handleNumericBetween(value, filterValue, options?.condition, inclusive);
+
+    return result;
+  }
+
+  private static handleDateBetween(value: unknown, filterValue: FilterValueEntity.Type, inclusive: boolean): boolean {
+    const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
+
+    if (dateInfo === null) {
+      return false;
+    }
+
+    const {
+      dateTime,
+      maximum,
+      minimum
+    } = dateInfo;
+    const result = NumericOperators.isWithinRange(dateTime, minimum, maximum, inclusive);
+
+    return result;
+  }
+
+  private static handleNumericBetween(
+    value: unknown,
+    filterValue: FilterValueEntity.Type,
+    condition: FilterConditionInterface | undefined,
+    inclusive: boolean
+  ): boolean {
     const {
       maximum,
       minimum,
       numberValue
-    } = NumericRangeProcessor.processNumericRange(value, filterValue, options?.condition);
+    } = NumericRangeProcessor.processNumericRange(value, filterValue, condition);
+    const result = NumericOperators.isWithinRange(numberValue, minimum, maximum, inclusive);
 
+    return result;
+  }
+
+  private static isWithinRange(value: number, minimum: number, maximum: number, inclusive: boolean): boolean {
     const result = inclusive
-      ? IsInRange.isInRange(numberValue, [
+      ? IsInRange.isInRange(value, [
         minimum,
         maximum
       ])
-      : (numberValue > minimum && numberValue < maximum);
+      : (value > minimum && value < maximum);
 
     return result;
   }
@@ -267,9 +284,25 @@ export class NumericOperators {
       return false;
     }
 
+    const parsed = NumericOperators.parseModuloOperands(value, filterValue);
+
+    if (parsed === null) {
+      return false;
+    }
+
+    const { divisor, remainder } = parsed;
+    // Optimized modulo for power-of-2 divisors
+    const result = NumericOperators.isPowerOfTwo(divisor)
+      ? (value & (divisor - 1)) === remainder
+      : value % divisor === remainder;
+
+    return result;
+  }
+
+  private static parseModuloOperands(value: number, filterValue: FilterValueEntity.Type): { 'divisor': number, 'remainder': number } | null {
     // Only accept object format { divisor, remainder }
     if (!Predicates.isPlainObject(filterValue)) {
-      return false;
+      return null;
     }
 
     const {
@@ -278,21 +311,18 @@ export class NumericOperators {
 
     // Both must be numbers
     if (typeof divisor !== 'number' || typeof remainder !== 'number') {
-      return false;
+      return null;
     }
 
     if (isNaN(value) || isNaN(divisor) || isNaN(remainder) || divisor === 0) {
-      return false;
+      return null;
     }
 
-    // Optimized modulo for power-of-2 divisors
-    if (divisor > 0 && (divisor & (divisor - 1)) === 0) {
-      const result = (value & (divisor - 1)) === remainder;
+    return { 'divisor': divisor, 'remainder': remainder };
+  }
 
-      return result;
-    }
-
-    const result = value % divisor === remainder;
+  private static isPowerOfTwo(divisor: number): boolean {
+    const result = divisor > 0 && (divisor & (divisor - 1)) === 0;
 
     return result;
   }
@@ -356,41 +386,58 @@ export class NumericOperators {
 
     // Handle date values first
     if (Predicates.isDateLike(value) || Predicates.isDateLike(firstFilterValue)) {
-      const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
-
-      if (dateInfo === null) {
-        // Invalid dates are considered "outside"
-        return true;
-      }
-
-      const {
-        dateTime,
-        maximum,
-        minimum
-      } = dateInfo;
-      const result = inclusive
-        ? IsOutsideRange.isOutsideRange(dateTime, [
-          minimum,
-          maximum
-        ])
-        : (dateTime < minimum || dateTime > maximum);
+      const result = NumericOperators.handleDateOutside(value, filterValue, inclusive);
 
       return result;
     }
 
     // Handle numeric values
+    const result = NumericOperators.handleNumericOutside(value, filterValue, options?.condition, inclusive);
+
+    return result;
+  }
+
+  private static handleDateOutside(value: unknown, filterValue: FilterValueEntity.Type, inclusive: boolean): boolean {
+    const dateInfo = DateRangeProcessor.processDateRange(value, filterValue);
+
+    if (dateInfo === null) {
+      // Invalid dates are considered "outside"
+      return true;
+    }
+
+    const {
+      dateTime,
+      maximum,
+      minimum
+    } = dateInfo;
+    const result = NumericOperators.isOutsideRange(dateTime, minimum, maximum, inclusive);
+
+    return result;
+  }
+
+  private static handleNumericOutside(
+    value: unknown,
+    filterValue: FilterValueEntity.Type,
+    condition: FilterConditionInterface | undefined,
+    inclusive: boolean
+  ): boolean {
     const {
       maximum,
       minimum,
       numberValue
-    } = NumericRangeProcessor.processNumericRange(value, filterValue, options?.condition);
+    } = NumericRangeProcessor.processNumericRange(value, filterValue, condition);
+    const result = NumericOperators.isOutsideRange(numberValue, minimum, maximum, inclusive);
 
+    return result;
+  }
+
+  private static isOutsideRange(value: number, minimum: number, maximum: number, inclusive: boolean): boolean {
     const result = inclusive
-      ? IsOutsideRange.isOutsideRange(numberValue, [
+      ? IsOutsideRange.isOutsideRange(value, [
         minimum,
         maximum
       ])
-      : (numberValue < minimum || numberValue > maximum);
+      : (value < minimum || value > maximum);
 
     return result;
   }

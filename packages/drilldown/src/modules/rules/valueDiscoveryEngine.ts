@@ -2,6 +2,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { DateGranularityValueEntity } from '../../entities/DateGranularityValueEntity.js';
 import type { DiscoverValuesOptionsEntity } from '../../entities/DiscoverValuesOptionsEntity.js';
+import type { DiscoveryStrategyEntity } from '../../entities/DiscoveryStrategyEntity.js';
 import type { SequentialPatternResultEntity } from '../../entities/SequentialPatternResultEntity.js';
 import type { MatcherHandlerInterface } from '../../interfaces/index.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
@@ -174,6 +175,37 @@ class NumericValues {
   static generate(values: unknown[], options?: { 'count'?: number, 'strategy'?: GroupingStrategy }): DrilldownRulesEntity.RangeGroupValueEntity.Type[] {
     const count = options?.count ?? 5;
     const strategy = options?.strategy ?? GroupingStrategy.DISTRIBUTIVE;
+    const numericValues = NumericValues.collectFinite(values);
+
+    if (numericValues.length === 0) {
+      return [];
+    }
+
+    const sorted = numericValues.toSorted((first, second) => { const result = first - second;
+      return result; });
+    const minimum = sorted[0]!;
+    const maximum = sorted[sorted.length - 1]!;
+
+    if (minimum === maximum) {
+      return [{
+        'maximum': maximum + 1,
+        'minimum': minimum,
+        'type': 'range'
+      }];
+    }
+
+    if (strategy === GroupingStrategy.QUANTILE) {
+      const result = NumericValues.buildQuantileRanges(sorted, count);
+
+      return result;
+    }
+
+    const result = NumericValues.buildEqualWidthRanges(minimum, maximum, count);
+
+    return result;
+  }
+
+  private static collectFinite(values: unknown[]): number[] {
     const numericValues: number[] = [];
 
     for (let index = 0; index < values.length; index++) {
@@ -185,44 +217,30 @@ class NumericValues {
       }
     }
 
-    if (numericValues.length === 0) {
-      return [];
-    }
+    return numericValues;
+  }
 
-    const sorted = numericValues.toSorted((first, second) => { const result = first - second;
-      return result; });
-    const itemCount = sorted.length;
-    const minimum = sorted[0]!;
-    const maximum = sorted[itemCount - 1]!;
+  private static buildQuantileRanges(sorted: number[], count: number): DrilldownRulesEntity.RangeGroupValueEntity.Type[] {
+    const indices = DrilldownUtilities.calculateRangeIndices(sorted.length, count);
 
-    if (minimum === maximum) {
-      return [{
-        'maximum': maximum + 1,
-        'minimum': minimum,
+    const result = indices.map((range, index): DrilldownRulesEntity.RangeGroupValueEntity.Type => {
+      const rangeMinimum = sorted[range.start]!;
+      const rangeMaximum = index === indices.length - 1
+        ? (sorted[range.end]!) + 0.001
+        : sorted[range.end + 1]!;
+
+      return {
+        'maximum': rangeMaximum,
+        'minimum': rangeMinimum,
         'type': 'range'
-      }];
-    }
+      };
+    });
 
-    if (strategy === GroupingStrategy.QUANTILE) {
-      const indices = DrilldownUtilities.calculateRangeIndices(itemCount, count);
+    return result;
+  }
 
-      const result = indices.map((range, index): DrilldownRulesEntity.RangeGroupValueEntity.Type => {
-        const rangeMinimum = sorted[range.start]!;
-        const rangeMaximum = index === indices.length - 1
-          ? (sorted[range.end]!) + 0.001
-          : sorted[range.end + 1]!;
-
-        return {
-          'maximum': rangeMaximum,
-          'minimum': rangeMinimum,
-          'type': 'range'
-        };
-      });
-      return result;
-    }
-
+  private static buildEqualWidthRanges(minimum: number, maximum: number, count: number): DrilldownRulesEntity.RangeGroupValueEntity.Type[] {
     const rangeSize = (maximum - minimum) / count;
-
     const result: DrilldownRulesEntity.RangeGroupValueEntity.Type[] = [];
 
     for (let index = 0; index < count; index++) {
@@ -232,6 +250,7 @@ class NumericValues {
         'type': 'range'
       });
     }
+
     return result;
   }
 }
@@ -259,6 +278,14 @@ class PropertyTypeDetector {
     }
 
     const sample = values.slice(0, Math.min(DRILLDOWN_DEFAULTS.typeDetectionSampleSize, values.length));
+    const counts = PropertyTypeDetector.classifySample(sample);
+    const threshold = sample.length * DRILLDOWN_DEFAULTS.typeDetectionThreshold;
+    const result = PropertyTypeDetector.pickType(counts, threshold);
+
+    return result;
+  }
+
+  private static classifySample(sample: unknown[]): { 'ipCount': number, 'numberCount': number, 'semverCount': number } {
     let numberCount = 0;
     let semverCount = 0;
     let ipCount = 0;
@@ -286,15 +313,17 @@ class PropertyTypeDetector {
       }
     }
 
-    const threshold = sample.length * DRILLDOWN_DEFAULTS.typeDetectionThreshold;
+    return { 'ipCount': ipCount, 'numberCount': numberCount, 'semverCount': semverCount };
+  }
 
-    if (ipCount >= threshold) {
+  private static pickType(counts: { 'ipCount': number, 'numberCount': number, 'semverCount': number }, threshold: number): PropertyType {
+    if (counts.ipCount >= threshold) {
       return PropertyType.IP;
     }
-    if (semverCount >= threshold) {
+    if (counts.semverCount >= threshold) {
       return PropertyType.SEMVER;
     }
-    if (numberCount >= threshold) {
+    if (counts.numberCount >= threshold) {
       return PropertyType.NUMBER;
     }
 
@@ -456,107 +485,159 @@ class SequentialValues {
     count: number,
     strategy: GroupingStrategy
   ): DrilldownRulesEntity.SequentialGroupValueEntity.Type[] {
-    const {
-      maximum, minimum, padding, prefix, suffix
-    } = pattern;
+    const { maximum, minimum, padding, prefix, suffix } = pattern;
 
     if (minimum === maximum || count <= 1) {
-      return [{
-        'sequential': {
-          'maximum': maximum,
-          'minimum': minimum,
-          'padding': padding,
-          'prefix': prefix,
-          ...(suffix !== '' && { 'suffix': suffix })
-        },
-        'type': 'sequential'
-      }];
+      return [SequentialValues.toSequentialValue(minimum, maximum, padding, prefix, suffix)];
     }
 
-    const handler = matcherRegistry.byType.sequential as MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type>;
-
     if (strategy === GroupingStrategy.QUANTILE) {
-      const numbers: number[] = [];
+      const result = SequentialValues.buildQuantileSequential(values, pattern, count);
 
-      for (let index = 0; index < values.length; index++) {
-        const string = String(values[index]);
-
-        if (string.length < prefix.length + suffix.length || !string.startsWith(prefix) || !string.endsWith(suffix)) {
-          continue;
-        }
-
-        const digits = string.slice(prefix.length, string.length - suffix.length);
-
-        if (DRILLDOWN_DEFAULTS.allDigitsPattern.test(digits)) {
-          numbers.push(parseInt(digits, 10));
-        }
-      }
-
-      if (numbers.length === 0) {
-        return [];
-      }
-
-      const sortedNumbers = numbers.toSorted((first, second) => { const result = first - second;
-        return result; });
-
-      const indices = DrilldownUtilities.calculateRangeIndices(sortedNumbers.length, count);
-      const ranges: DrilldownRulesEntity.SequentialGroupValueEntity.Type[] = indices.map((range) => {
-        return {
-          'sequential': {
-            'maximum': sortedNumbers[range.end]!,
-            'minimum': sortedNumbers[range.start]!,
-            'padding': padding,
-            'prefix': prefix,
-            ...(suffix !== '' && { 'suffix': suffix })
-          },
-          'type': 'sequential'
-        };
-      });
-
-      const result = MatcherHandlerLookup.mergeOverlappingValues(ranges, handler);
       return result;
     }
 
+    const result = SequentialValues.buildEqualWidthSequential(pattern, count);
+
+    return result;
+  }
+
+  private static toSequentialValue(
+    minimum: number,
+    maximum: number,
+    padding: number,
+    prefix: string,
+    suffix: string
+  ): DrilldownRulesEntity.SequentialGroupValueEntity.Type {
+    return {
+      'sequential': {
+        'maximum': maximum,
+        'minimum': minimum,
+        'padding': padding,
+        'prefix': prefix,
+        ...(suffix !== '' && { 'suffix': suffix })
+      },
+      'type': 'sequential'
+    };
+  }
+
+  private static collectMatchingNumbers(values: unknown[], prefix: string, suffix: string): number[] {
+    const numbers: number[] = [];
+
+    for (let index = 0; index < values.length; index++) {
+      const string = String(values[index]);
+
+      if (string.length < prefix.length + suffix.length || !string.startsWith(prefix) || !string.endsWith(suffix)) {
+        continue;
+      }
+
+      const digits = string.slice(prefix.length, string.length - suffix.length);
+
+      if (DRILLDOWN_DEFAULTS.allDigitsPattern.test(digits)) {
+        numbers.push(parseInt(digits, 10));
+      }
+    }
+
+    return numbers;
+  }
+
+  private static buildQuantileSequential(
+    values: unknown[],
+    pattern: SequentialPatternResultEntity.Type,
+    count: number
+  ): DrilldownRulesEntity.SequentialGroupValueEntity.Type[] {
+    const { padding, prefix, suffix } = pattern;
+    const numbers = SequentialValues.collectMatchingNumbers(values, prefix, suffix);
+
+    if (numbers.length === 0) {
+      return [];
+    }
+
+    const sortedNumbers = numbers.toSorted((first, second) => { const result = first - second;
+      return result; });
+    const indices = DrilldownUtilities.calculateRangeIndices(sortedNumbers.length, count);
+    const ranges: DrilldownRulesEntity.SequentialGroupValueEntity.Type[] = indices.map((range) => {
+      const result = SequentialValues.toSequentialValue(sortedNumbers[range.start]!, sortedNumbers[range.end]!, padding, prefix, suffix);
+
+      return result;
+    });
+    const handler = matcherRegistry.byType.sequential as MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type>;
+    const result = MatcherHandlerLookup.mergeOverlappingValues(ranges, handler);
+
+    return result;
+  }
+
+  private static buildEqualWidthSequential(
+    pattern: SequentialPatternResultEntity.Type,
+    count: number
+  ): DrilldownRulesEntity.SequentialGroupValueEntity.Type[] {
+    const { maximum, minimum, padding, prefix, suffix } = pattern;
     const totalRange = maximum - minimum + 1;
     const indices = DrilldownUtilities.calculateRangeIndices(totalRange, count);
 
     const result = indices.map((range): DrilldownRulesEntity.SequentialGroupValueEntity.Type => {
-      return {
-        'sequential': {
-          'maximum': minimum + range.end,
-          'minimum': minimum + range.start,
-          'padding': padding,
-          'prefix': prefix,
-          ...(suffix !== '' && { 'suffix': suffix })
-        },
-        'type': 'sequential'
-      };
+      const rangeResult = SequentialValues.toSequentialValue(minimum + range.start, minimum + range.end, padding, prefix, suffix);
+
+      return rangeResult;
     });
+
     return result;
   }
 }
 
 class StringValues {
   static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[] {
-    const strategy = options.strategy ?? 'sequential';
-    const maximumValues = options.maximumValues ?? DRILLDOWN_DEFAULTS.defaultMaximumStringValues;
-    const count = options.granularity?.count ?? DRILLDOWN_DEFAULTS.defaultGroupCount;
-    const density = options.granularity?.density ?? DRILLDOWN_DEFAULTS.defaultDensityThreshold;
-    const prefix = options.granularity?.prefix;
-    const groupingStrategy = strategy === 'quantile'
-      ? GroupingStrategy.QUANTILE
-      : GroupingStrategy.DISTRIBUTIVE;
+    const resolved = StringValues.resolveOptions(options);
+    const sequentialResult = StringValues.trySequential(values, resolved);
 
-    if (strategy !== 'alphabetic') {
-      const detectedPattern = SequentialPattern.detect(values);
-
-      if (detectedPattern !== null && detectedPattern.density >= density) {
-        const sequentialResult = SequentialValues.generate(detectedPattern, values, count, groupingStrategy);
-
-        return sequentialResult;
-      }
+    if (sequentialResult !== null) {
+      return sequentialResult;
     }
 
+    const valueCounts = StringValues.countValues(values);
+
+    if (resolved.strategy === 'alphabetic' && valueCounts.size > resolved.maximumValues) {
+      const alphabeticResult = AlphabeticValues.generate(values, resolved.count, resolved.prefix, resolved.groupingStrategy);
+
+      return alphabeticResult;
+    }
+
+    const result = StringValues.topByFrequency(valueCounts, resolved.maximumValues);
+
+    return result;
+  }
+
+  private static resolveOptions(options: DiscoverValuesOptionsEntity.Type): { 'count': number, 'density': number, 'groupingStrategy': GroupingStrategy, 'maximumValues': number, 'prefix': number | undefined, 'strategy': DiscoveryStrategyEntity.Type } {
+    const strategy = options.strategy ?? 'sequential';
+    const groupingStrategy = strategy === 'quantile' ? GroupingStrategy.QUANTILE : GroupingStrategy.DISTRIBUTIVE;
+
+    return {
+      'count': options.granularity?.count ?? DRILLDOWN_DEFAULTS.defaultGroupCount,
+      'density': options.granularity?.density ?? DRILLDOWN_DEFAULTS.defaultDensityThreshold,
+      'groupingStrategy': groupingStrategy,
+      'maximumValues': options.maximumValues ?? DRILLDOWN_DEFAULTS.defaultMaximumStringValues,
+      'prefix': options.granularity?.prefix,
+      'strategy': strategy
+    };
+  }
+
+  private static trySequential(values: unknown[], resolved: { 'count': number, 'density': number, 'groupingStrategy': GroupingStrategy, 'maximumValues': number, 'prefix': number | undefined, 'strategy': DiscoveryStrategyEntity.Type }): DrilldownRulesEntity.GroupValueEntity.Type[] | null {
+    if (resolved.strategy === 'alphabetic') {
+      return null;
+    }
+
+    const detectedPattern = SequentialPattern.detect(values);
+
+    if (detectedPattern === null || detectedPattern.density < resolved.density) {
+      return null;
+    }
+
+    const result = SequentialValues.generate(detectedPattern, values, resolved.count, resolved.groupingStrategy);
+
+    return result;
+  }
+
+  private static countValues(values: unknown[]): Map<string, number> {
     const valueCounts = new Map<string, number>();
 
     for (let index = 0; index < values.length; index++) {
@@ -565,14 +646,10 @@ class StringValues {
       valueCounts.set(string, (valueCounts.get(string) ?? 0) + 1);
     }
 
-    const uniqueCount = valueCounts.size;
+    return valueCounts;
+  }
 
-    if (strategy === 'alphabetic' && uniqueCount > maximumValues) {
-      const alphabeticResult = AlphabeticValues.generate(values, count, prefix, groupingStrategy);
-
-      return alphabeticResult;
-    }
-
+  private static topByFrequency(valueCounts: Map<string, number>, maximumValues: number): DrilldownRulesEntity.StringGroupValueEntity.Type[] {
     const sorted = Array.from(valueCounts.entries())
       .toSorted((first, second) => { const result = second[1] - first[1];
         return result; })
@@ -584,6 +661,7 @@ class StringValues {
         'type': 'string'
       };
     });
+
     return result;
   }
 }

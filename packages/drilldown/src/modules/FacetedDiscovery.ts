@@ -5,6 +5,13 @@ import type {
   FacetFilterStateType
 } from '../types/index.js';
 
+/** Bundled row/dimension/accessor triple threaded through facet-narrowing helpers. */
+interface FacetLookupContextInterface<TRecord, TDimension extends string> {
+  'accessors': FacetAccessorMapType<TRecord, TDimension>
+  'dimensions': readonly TDimension[]
+  'rows': readonly TRecord[]
+}
+
 class FacetFilterState {
   static checkActive<TDimension extends string>(filter: FacetFilterStateType<TDimension>, dimension: TDimension): boolean {
     const result = !Predicates.isNullish(filter[dimension]);
@@ -102,7 +109,9 @@ export class FacetedDiscovery {
     filter: FacetFilterStateType<TDimension>,
     skip: ReadonlySet<TDimension>
   ): FacetFilterStateType<TDimension> {
+    const context: FacetLookupContextInterface<TRecord, TDimension> = { 'accessors': accessors, 'dimensions': dimensions, 'rows': rows };
     let current = filter;
+
     for (let index = 0; index < dimensions.length; index++) {
       const dimension = dimensions[index]!;
 
@@ -110,26 +119,49 @@ export class FacetedDiscovery {
       const validValues = FacetedDiscovery.facetOptions(rows, dimensions, current, accessors, dimension);
       if (validValues.size === 0) { continue; }
 
-      if (!FacetFilterState.checkActive(current, dimension)) {
-        const universe = FacetedDiscovery.facetOptions(rows, dimensions, {}, accessors, dimension);
-        if (validValues.size < universe.size) { current = FacetFilterState.withDimension(current, dimension, validValues); }
-        continue;
-      }
-
-      const currentSelection = FacetFilterState.getSelectionSet(current, dimension);
-      const currentSelectionValues = Array.from(currentSelection);
-      const intersection = new Set<string>();
-
-      for (let valueIndex = 0; valueIndex < currentSelectionValues.length; valueIndex++) {
-        const value = currentSelectionValues[valueIndex]!;
-
-        if (validValues.has(value)) {
-          intersection.add(value);
-        }
-      }
-      if (intersection.size < currentSelection.size) { current = FacetFilterState.withDimension(current, dimension, intersection); }
+      current = FacetFilterState.checkActive(current, dimension)
+        ? FacetedDiscovery.narrowActiveDimension(current, dimension, validValues)
+        : FacetedDiscovery.narrowInactiveDimension(context, current, dimension, validValues);
     }
+
     return current;
+  }
+
+  private static narrowInactiveDimension<TRecord, TDimension extends string>(
+    context: FacetLookupContextInterface<TRecord, TDimension>,
+    current: FacetFilterStateType<TDimension>,
+    dimension: TDimension,
+    validValues: ReadonlySet<string>
+  ): FacetFilterStateType<TDimension> {
+    const universe = FacetedDiscovery.facetOptions(context.rows, context.dimensions, {}, context.accessors, dimension);
+    const result = validValues.size < universe.size ? FacetFilterState.withDimension(current, dimension, validValues) : current;
+    return result;
+  }
+
+  private static narrowActiveDimension<TDimension extends string>(
+    current: FacetFilterStateType<TDimension>,
+    dimension: TDimension,
+    validValues: ReadonlySet<string>
+  ): FacetFilterStateType<TDimension> {
+    const currentSelection = FacetFilterState.getSelectionSet(current, dimension);
+    const intersection = FacetedDiscovery.intersectValues(currentSelection, validValues);
+    const result = intersection.size < currentSelection.size ? FacetFilterState.withDimension(current, dimension, intersection) : current;
+    return result;
+  }
+
+  private static intersectValues(selection: ReadonlySet<string>, validValues: ReadonlySet<string>): Set<string> {
+    const values = Array.from(selection);
+    const intersection = new Set<string>();
+
+    for (let index = 0; index < values.length; index++) {
+      const value = values[index]!;
+
+      if (validValues.has(value)) {
+        intersection.add(value);
+      }
+    }
+
+    return intersection;
   }
 
   private static isEmptyResult<TRecord, TDimension extends string>(

@@ -8,6 +8,20 @@ import { MatcherHandlerLookup } from '../matchers/index.js';
 
 class ValueComparer {
   static compare(firstValue: unknown, secondValue: unknown, direction: SortRuleEntity.Type['direction']): number {
+    const nullOrdering = ValueComparer.compareNullish(firstValue, secondValue);
+
+    if (nullOrdering !== null) {
+      return nullOrdering;
+    }
+
+    const result = ValueComparer.compareDefined(firstValue, secondValue);
+    const computedResult = direction === 'asc' ? result : -result;
+
+    return computedResult;
+  }
+
+  /** Orders nullish operands; `null` when neither is nullish so the caller falls through to value comparison. */
+  private static compareNullish(firstValue: unknown, secondValue: unknown): number | null {
     if (firstValue === null && secondValue === null) {
       return 0;
     }
@@ -19,27 +33,31 @@ class ValueComparer {
     }
     if (Predicates.isNullish(secondValue)) {
       const computedResult = -1;
+
       return computedResult;
     }
 
-    let result: number;
+    return null;
+  }
 
+  private static compareDefined(firstValue: unknown, secondValue: unknown): number {
     if (Predicates.isNumberType(firstValue) && Predicates.isNumberType(secondValue)) {
-      result = firstValue - secondValue;
-    }
-    else {
-      const handler = MatcherHandlerLookup.findNodeValueHandler(firstValue);
+      const result = firstValue - secondValue;
 
-      if (handler !== null && handler.isNodeValue(firstValue) && handler.isNodeValue(secondValue)) {
-        result = handler.compare(firstValue, secondValue);
-      }
-      else {
-        result = String(firstValue).localeCompare(String(secondValue));
-      }
+      return result;
     }
 
-    const computedResult = direction === 'asc' ? result : -result;
-    return computedResult;
+    const handler = MatcherHandlerLookup.findNodeValueHandler(firstValue);
+
+    if (handler !== null && handler.isNodeValue(firstValue) && handler.isNodeValue(secondValue)) {
+      const result = handler.compare(firstValue, secondValue);
+
+      return result;
+    }
+
+    const result = String(firstValue).localeCompare(String(secondValue));
+
+    return result;
   }
 }
 
