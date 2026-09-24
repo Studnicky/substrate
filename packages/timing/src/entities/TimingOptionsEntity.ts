@@ -34,7 +34,7 @@ export namespace TimingOptionsEntity {
         SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
         SchemaNode.defineNull({ 'type': 'null' } as const)
       ]),
-      'precision': TimingPrecisionEntity.Node
+      'precision': SchemaNode.defineDecorated({ 'default': DEFAULT_DECIMAL_PRECISION } as const, TimingPrecisionEntity.Node)
     },
     [] as const,
     { 'additionalProperties': false }

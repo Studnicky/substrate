@@ -300,21 +300,34 @@ export class SchemaNode {
   }
 
   /**
-   * `$ref`/`$defs` resolution: `pointer` is carried into the schema literal for the runtime
-   * compiler; the derived type reads `target`'s own precomputed `static`/`input` directly,
-   * the same indexed-access rule every other constructor follows. Passing `self` from
+   * Wraps an already-built node with sibling schema keys, without restating its shape:
+   * the derived type reads `target`'s own precomputed `static`/`input` directly, the same
+   * indexed-access rule every other constructor follows — only `schema` is new.
+   */
+  public static defineDecorated<const TSchema extends Record<string, unknown>, TTarget extends SchemaNodeInterface<unknown, unknown>>(
+    schema: TSchema,
+    _target: TTarget
+  ): SchemaNodeInterface<TSchema, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
+    return { 'schema': schema };
+  }
+
+  /**
+   * `$ref`/`$defs` resolution, as a `defineDecorated` specialisation: `pointer`/`title`
+   * are the decoration, `target` supplies the derived `static`/`input`. Passing `self` from
    * `defineRecursive` makes this the self-referential case — no schema walk, so no
    * recursion budget is spent.
    */
   public static defineReference<TTarget extends SchemaNodeInterface<unknown, unknown>>(
     pointer: string,
-    _target: TTarget,
+    target: TTarget,
     title?: string
   ): SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
     const schema: JSONSchema7 = { '$ref': pointer, 'title': title };
 
-    // Runtime shape proven correct by the JSONSchema7-typed literal above; the cast restores the portable, self-contained return type.
-    return { 'schema': schema } as unknown as SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>>;
+    // `JSONSchema7` has no index signature, so it does not structurally satisfy `defineDecorated`'s `Record<string, unknown>` constraint; the cast bridges that, and the outer cast restores the portable, `$ref`-specific return type.
+    const result = SchemaNode.defineDecorated(schema as Record<string, unknown>, target) as unknown as SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>>;
+
+    return result;
   }
 
   /** Self-reference for a recursive schema: `build` receives the node it is defining, TypeBox `Type.Recursive`-style. */
