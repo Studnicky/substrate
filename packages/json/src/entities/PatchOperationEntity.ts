@@ -1,8 +1,10 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { JSONSchema7Type } from 'json-schema';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
+import { JsonValueNode } from '../schema/JsonValueNode.js';
 import { JsonValueSchema } from '../schema/JsonValueSchema.js';
 
 /** One fully specified RFC-6902 operation with the operands its opcode requires. */
@@ -42,15 +44,70 @@ export namespace PatchOperationEntity {
     'type': 'object'
   } as const;
 
-  // Hand-authored: the schema's `allOf` of `anyOf`/`not` branches encodes a conditional
-  // discriminant (which fields `op` requires) that no structural derivation expresses.
-  export type Type =
-    | { 'op': 'add'; 'path': string; 'value': JSONSchema7Type }
-    | { 'from': string; 'op': 'copy'; 'path': string }
-    | { 'from': string; 'op': 'move'; 'path': string }
-    | { 'op': 'remove'; 'path': string }
-    | { 'op': 'replace'; 'path': string; 'value': JSONSchema7Type }
-    | { 'op': 'test'; 'path': string; 'value': JSONSchema7Type };
+  // Each branch restates every field it needs (no sibling-schema defineAnyOf overload —
+  // its static type is InferUnionOfStaticType alone, with no path to intersect a sibling).
+  export const Node = SchemaNode.defineAnyOf([
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'op': SchemaNode.defineConst('add' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const),
+        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+      },
+      ['op', 'path', 'value'] as const,
+      { 'additionalProperties': false }
+    ),
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'from': SchemaNode.defineString({ 'type': 'string' } as const),
+        'op': SchemaNode.defineConst('copy' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const)
+      },
+      ['from', 'op', 'path'] as const,
+      { 'additionalProperties': false }
+    ),
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'from': SchemaNode.defineString({ 'type': 'string' } as const),
+        'op': SchemaNode.defineConst('move' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const)
+      },
+      ['from', 'op', 'path'] as const,
+      { 'additionalProperties': false }
+    ),
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'op': SchemaNode.defineConst('remove' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const)
+      },
+      ['op', 'path'] as const,
+      { 'additionalProperties': false }
+    ),
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'op': SchemaNode.defineConst('replace' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const),
+        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+      },
+      ['op', 'path', 'value'] as const,
+      { 'additionalProperties': false }
+    ),
+    SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'op': SchemaNode.defineConst('test' as const),
+        'path': SchemaNode.defineString({ 'type': 'string' } as const),
+        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+      },
+      ['op', 'path', 'value'] as const,
+      { 'additionalProperties': false }
+    )
+  ] as const);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
