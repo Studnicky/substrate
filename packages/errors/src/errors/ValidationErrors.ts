@@ -2,15 +2,15 @@
 
 import { Predicates } from '@studnicky/types/browser';
 
-import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
-import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
 import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 
 import {
   PROBLEM_TITLE_VALIDATION,
   PROBLEM_TYPE_VALIDATION
 } from '../constants/ProblemConstants.js';
+import { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
+import { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
 import { RuntimeError } from './RuntimeError.js';
 import { ValidationError } from './ValidationError.js';
 
@@ -149,16 +149,17 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
    * occurrence's violations, per 3.1.4. The individual violations ride in the `errors`
    * extension member (3.2) rather than displacing any registered member.
    */
-  public report(options?: ValidationReportOptionsEntity.Type): ProblemDetailsEntity.Type {
+  public report(options?: unknown): ProblemDetailsEntity.Type {
+    const validated = options === undefined ? undefined : ValidationReportOptionsEntity.intake(options);
     const count = this.#items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
-    const result: ProblemDetailsEntity.Type = {
+    const result = ProblemDetailsEntity.intake({
       'detail': detail,
       'errors': [...this.items],
-      'status': options?.status ?? UNPROCESSABLE_ENTITY_STATUS,
-      'title': options?.title ?? PROBLEM_TITLE_VALIDATION,
-      'type': options?.type ?? PROBLEM_TYPE_VALIDATION
-    };
+      'status': validated?.status ?? UNPROCESSABLE_ENTITY_STATUS,
+      'title': validated?.title ?? PROBLEM_TITLE_VALIDATION,
+      'type': validated?.type ?? PROBLEM_TYPE_VALIDATION
+    });
     return result;
   }
 

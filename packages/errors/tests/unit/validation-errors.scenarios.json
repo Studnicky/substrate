@@ -192,6 +192,26 @@
       "shape": "construction-invalid",
       "input": { "shape": "not-array" },
       "expected": { "messageIncludes": ["items must be an array"] }
+    },
+    {
+      "name": "report-status-below-minimum",
+      "description": "throws when the status override is below the RFC 9457 minimum",
+      "shape": "report-invalid-status",
+      "input": {
+        "options": { "status": -5 },
+        "violations": [{ "keyword": "required", "message": "required", "path": "/x" }]
+      },
+      "expected": {}
+    },
+    {
+      "name": "report-status-above-maximum",
+      "description": "throws when the status override is above the RFC 9457 maximum",
+      "shape": "report-invalid-status",
+      "input": {
+        "options": { "status": 99999 },
+        "violations": [{ "keyword": "required", "message": "required", "path": "/x" }]
+      },
+      "expected": {}
     }
   ]
 }

@@ -3,6 +3,8 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
+import { PROBLEM_STATUS_MAXIMUM, PROBLEM_STATUS_MINIMUM } from '../constants/ProblemConstants.js';
+
 /** Overrides applied when generating an RFC 9457 Problem Details payload. */
 export namespace ValidationReportOptionsEntity {
   export const Schema = {
@@ -12,6 +14,8 @@ export namespace ValidationReportOptionsEntity {
     'properties': {
       'status': {
         'description': "HTTP status code (defaults to '422').",
+        'maximum': PROBLEM_STATUS_MAXIMUM,
+        'minimum': PROBLEM_STATUS_MINIMUM,
         'type': 'number'
       },
       'title': {
@@ -29,6 +33,8 @@ export namespace ValidationReportOptionsEntity {
 
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationReportOptions', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationReportOptions', 'type': 'object' } as const, { 'status': SchemaNode.defineNumber({
     'description': "HTTP status code (defaults to '422').",
+    'maximum': PROBLEM_STATUS_MAXIMUM,
+    'minimum': PROBLEM_STATUS_MINIMUM,
     'type': 'number'
   } as const), 'title': SchemaNode.defineString({
     'description': "Human-readable title (defaults to 'Validation failed').",
