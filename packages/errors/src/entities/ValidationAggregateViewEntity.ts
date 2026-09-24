@@ -1,6 +1,7 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Compact rollup of deduplicated paths and keywords with a total error count. */
 export namespace ValidationAggregateViewEntity {
@@ -22,9 +23,10 @@ export namespace ValidationAggregateViewEntity {
     'required': ['count', 'keywords', 'paths'],
     'title': 'ValidationAggregateView',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationAggregateView', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationAggregateView', 'type': 'object' } as const, { 'count': SchemaNode.defineNumber({ 'type': 'number' } as const), 'keywords': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)), 'paths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) }, ['count', 'keywords', 'paths'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

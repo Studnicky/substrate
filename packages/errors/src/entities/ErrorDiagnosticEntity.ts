@@ -1,6 +1,7 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Human-readable diagnostic fields exposed by Error-compatible contracts. */
 export namespace ErrorDiagnosticEntity {
@@ -16,9 +17,10 @@ export namespace ErrorDiagnosticEntity {
     'required': ['message', 'name'],
     'title': 'ErrorDiagnostic',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorDiagnostic', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorDiagnostic', 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'stack': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message', 'name'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

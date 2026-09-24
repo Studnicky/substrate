@@ -1,6 +1,7 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Error with HTTP status code (alternative property name). */
 export namespace ErrorWithStatusCodeEntity {
@@ -14,9 +15,10 @@ export namespace ErrorWithStatusCodeEntity {
     'required': ['statusCode'],
     'title': 'ErrorWithStatusCode',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithStatusCode', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorWithStatusCode', 'type': 'object' } as const, { 'statusCode': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['statusCode'] as const, { 'additionalProperties': true });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
