@@ -24,6 +24,7 @@ export class SchemaNodePlanBuilder {
       'exclusiveMaximum': Predicates.isNumberType(schema.exclusiveMaximum) ? schema.exclusiveMaximum : undefined,
       'exclusiveMinimum': Predicates.isNumberType(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined,
       'format': Predicates.isString(schema.format) ? schema.format : undefined,
+      'id': Predicates.isString(schema.$id) ? schema.$id : undefined,
       'if': schema.if,
       'items': schema.items,
       'maximum': Predicates.isNumberType(schema.maximum) ? schema.maximum : undefined,
