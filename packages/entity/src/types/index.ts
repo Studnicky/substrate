@@ -1,4 +1,3 @@
-export type { ContainsBrandType } from './brands/ContainsBrandType.js';
 export type { ContentEncodingBrandType } from './brands/ContentEncodingBrandType.js';
 export type { ContentMediaTypeBrandType } from './brands/ContentMediaTypeBrandType.js';
 export type { DialectBrandType } from './brands/DialectBrandType.js';
@@ -6,23 +5,17 @@ export type { ExclusiveMaximumBrandType } from './brands/ExclusiveMaximumBrandTy
 export type { ExclusiveMinimumBrandType } from './brands/ExclusiveMinimumBrandType.js';
 export type { FormatBrandType } from './brands/FormatBrandType.js';
 export type { MaximumBrandType } from './brands/MaximumBrandType.js';
-export type { MaximumContainsBrandType } from './brands/MaximumContainsBrandType.js';
-export type { MaximumItemsBrandType } from './brands/MaximumItemsBrandType.js';
 export type { MaximumLengthBrandType } from './brands/MaximumLengthBrandType.js';
-export type { MaximumPropertiesBrandType } from './brands/MaximumPropertiesBrandType.js';
 export type { MinimumBrandType } from './brands/MinimumBrandType.js';
-export type { MinimumContainsBrandType } from './brands/MinimumContainsBrandType.js';
-export type { MinimumItemsBrandType } from './brands/MinimumItemsBrandType.js';
 export type { MinimumLengthBrandType } from './brands/MinimumLengthBrandType.js';
-export type { MinimumPropertiesBrandType } from './brands/MinimumPropertiesBrandType.js';
 export type { MultipleOfBrandType } from './brands/MultipleOfBrandType.js';
 export type { PatternBrandType } from './brands/PatternBrandType.js';
 export type { SchemaIdBrandType } from './brands/SchemaIdBrandType.js';
-
 export { Compose } from './Compose.js';
 export type { CheckAdditionalPropertiesType } from './diagnostics/CheckAdditionalPropertiesType.js';
 export type { CheckRequiredPropertiesType } from './diagnostics/CheckRequiredPropertiesType.js';
 export type { ConstraintViolationType } from './diagnostics/ConstraintViolationType.js';
+
 export type { DiagnoseBrandConstraintType } from './diagnostics/DiagnoseBrandConstraintType.js';
 export type { ExcessPropertyType } from './diagnostics/ExcessPropertyType.js';
 export type { MissingRequiredPropertyType } from './diagnostics/MissingRequiredPropertyType.js';
@@ -30,8 +23,14 @@ export type { ExtendSchemaType } from './ExtendSchemaType.js';
 export type { ExtractPropertiesType } from './ExtractPropertiesType.js';
 export type { ExtractRequiredType } from './ExtractRequiredType.js';
 export type { IdentityType } from './IdentityType.js';
+export type { ApplyArrayConstraintBrandsType } from './infer/ApplyArrayConstraintBrandsType.js';
+export type { ApplyNumberConstraintBrandsType } from './infer/ApplyNumberConstraintBrandsType.js';
+export type { ApplyObjectConstraintBrandsType } from './infer/ApplyObjectConstraintBrandsType.js';
+export type { ApplyStringConstraintBrandsType } from './infer/ApplyStringConstraintBrandsType.js';
+export { SchemaNode } from './infer/SchemaNode.js';
 export { Invariant } from './Invariant.js';
 export type { InvariantType } from './InvariantType.js';
+export type { NodeInputType } from './NodeInputType.js';
 export type { NodeStaticType } from './NodeStaticType.js';
 export type { OmitSchemaType } from './OmitSchemaType.js';
 export type { PartialSchemaType } from './PartialSchemaType.js';

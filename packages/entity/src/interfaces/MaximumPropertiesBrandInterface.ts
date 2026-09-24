@@ -4,8 +4,8 @@
  *
  * @module
  */
-import type { IdentityType } from '../IdentityType.js';
-
 declare const MAXIMUM_PROPERTIES: unique symbol;
 
-export type MaximumPropertiesBrandType<N extends number> = IdentityType<{ [MAXIMUM_PROPERTIES]: N }> & object;
+export interface MaximumPropertiesBrandInterface<N extends number> {
+  readonly [MAXIMUM_PROPERTIES]: N;
+}
