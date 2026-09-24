@@ -17,7 +17,7 @@ export namespace JsonObjectEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
+    { 'title': 'JsonObject', 'type': 'object' } as const,
     {},
     [] as const,
     { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode) }

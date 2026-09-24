@@ -15,7 +15,7 @@ export namespace JsonValueEntity {
     'title': 'JsonValue'
   } as const;
 
-  export const Node = SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode);
+  export const Node = SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode, 'JsonValue');
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

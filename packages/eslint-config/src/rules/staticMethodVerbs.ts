@@ -33,7 +33,7 @@ namespace StaticMethodVerbsOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mode': SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mode': SchemaNode.defineEnum({ 'default': 'structural' } as const, [
     'any',
     'structural',
     'typed'
