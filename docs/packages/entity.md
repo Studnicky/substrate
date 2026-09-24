@@ -79,9 +79,16 @@ Run strict entity intake and creation, then check an acyclic and cyclic value gr
 | `EntityCompiler` | Compiles JSON Schema into validation, intake, and creation functions. | `@studnicky/entity/browser` |
 | `EntityClone` | Deeply clones a boundary value and rejects cycles through its callback. | `@studnicky/entity/node` |
 | `EntityClone` | Deeply clones a boundary value and rejects cycles through its callback. | `@studnicky/entity/browser` |
+| `EntityCompilerInterface` | The schema-compilation API every entity module derives its `validate`/`intake`/`create` from. | `@studnicky/entity/interfaces` |
 | `EntityCreateFunctionInterface` | Contract for a compiled `create` function. | `@studnicky/entity/interfaces` |
 | `EntityIntakeFunctionInterface` | Contract for a compiled `intake` function. | `@studnicky/entity/interfaces` |
+| `EntityReferenceRegistryInterface` | Consumer-augmentable registry mapping a schema `$id` to its derived type for `$ref` resolution. | `@studnicky/entity/interfaces` |
 | `EntityValidateFunctionInterface` | Contract for a compiled `validate` function. | `@studnicky/entity/interfaces` |
 | `EntityValidationErrorInterface` | Contract for validation diagnostics. | `@studnicky/entity/interfaces` |
+| `InvariantFunctionInterface` | A caller-supplied cross-field invariant check, returning an error message or `undefined`. | `@studnicky/entity/interfaces` |
+| `ObjectSchemaShapeInterface` | The runtime shape every JSON Schema object node carries, regardless of its branded schema type. | `@studnicky/entity/interfaces` |
+| `SchemaCompilerInterface` | One schema-keyed compilation backend that compiles a schema once and caches it by `$id`. | `@studnicky/entity/interfaces` |
+| `SchemaNodeInterface` | Pairs a schema literal with its own precomputed derived type. | `@studnicky/entity/interfaces` |
+| `SchemaRegistrySetInterface` | The three isolated compilation backends `EntityCompiler` dispatches to. | `@studnicky/entity/interfaces` |
 | `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/node` |
 | `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/browser` |
