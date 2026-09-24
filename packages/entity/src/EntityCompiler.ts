@@ -46,7 +46,7 @@ export class EntityCompiler {
    *
    * Compile once at module load and reuse; compilation is the expensive step.
    */
-  public static compile<TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> {
+  public static compile<TValidated>(schema: object | boolean): EntityValidateFunctionInterface<TValidated> {
     const id = SchemaId.of(schema);
     if (id !== undefined) {
       const existing = this.registries.assert.getSchema<TValidated>(id);
@@ -66,7 +66,7 @@ export class EntityCompiler {
    * trees rather than object graphs. Scalar values are never coerced — a `"true"`
    * string for a `boolean` field is rejected, not silently accepted as `true`.
    */
-  public static compileIntake<TValidated>(schema: object): EntityIntakeFunctionInterface<TValidated> {
+  public static compileIntake<TValidated>(schema: object | boolean): EntityIntakeFunctionInterface<TValidated> {
     const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.intake, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
@@ -190,8 +190,11 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Finds the schema label carried by intake errors. */
-  private static schemaIdentifier(schema: object): string | undefined {
+  /** Finds the schema label carried by intake errors; a boolean schema has none. */
+  private static schemaIdentifier(schema: object | boolean): string | undefined {
+    if (typeof schema !== 'object') {
+      return undefined;
+    }
     const id: unknown = Reflect.get(schema, '$id');
     if (Predicates.isString(id)) {
       return id;
@@ -202,12 +205,15 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Omits explicit undefined values only for optional properties the schema declares. */
+  /** Omits explicit undefined values only for optional properties the schema declares; a boolean schema declares none. */
   private static omitUndefinedDeclaredProperties(
     value: unknown,
-    schema: object,
-    rootSchema: object = schema
+    schema: object | boolean,
+    rootSchema: object | boolean = schema
   ): unknown {
+    if (typeof schema !== 'object' || typeof rootSchema !== 'object') {
+      return value;
+    }
     if (Predicates.isArray(value)) {
       const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
       if (itemSchemas.length === 0) {
@@ -572,7 +578,7 @@ export class EntityCompiler {
   /** Compiles or reuses the cached validator a registry keeps for a schema's `$id`. */
   private static schemaValidator<TValidated>(
     registry: SchemaCompilerInterface,
-    schema: object
+    schema: object | boolean
   ): EntityValidateFunctionInterface<TValidated> {
     const id = SchemaId.of(schema);
     if (id !== undefined) {

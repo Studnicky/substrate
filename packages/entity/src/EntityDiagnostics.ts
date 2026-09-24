@@ -53,6 +53,10 @@ export class EntityDiagnostics {
       const result = EntityDiagnostics.renderKeywordValue(context, (value) => {return `must be > ${value}`;});
       return result;
     }],
+    ['false schema', () => {
+      const result = 'boolean schema is false';
+      return result;
+    }],
     ['format', (context) => {
       const result = EntityDiagnostics.renderKeywordValue(context, (value) => {return `must match format "${value}"`;});
       return result;
