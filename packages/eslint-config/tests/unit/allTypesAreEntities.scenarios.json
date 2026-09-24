@@ -2,12 +2,12 @@
   "valid": [
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
-      "filename": "packages/retry/src/entities/TypePlacementRuleFixtureEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/TypePlacementRuleFixtureEntity.ts",
       "name": "exact schema-derived entity namespace Type form is valid"
     },
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
-      "filename": "packages/retry/tests/unit/entity-form.test.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/tests/unit/entity-form.test.ts",
       "name": "the exact entity form remains valid in a test because semantics, not path, decide"
     },
     {
@@ -27,7 +27,7 @@
     },
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}\ntype RenameType = CanonicalEntity.Type;",
-      "filename": "packages/retry/src/models/Rename.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/Rename.ts",
       "name": "naked canonical rename is left to the aliasing rule"
     },
     {
@@ -64,7 +64,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "entities path does not exempt a top-level canonical alias"
     },
     {
@@ -74,7 +74,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/types/Foo.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/types/Foo.ts",
       "name": "src types path does not exempt a top-level canonical alias"
     },
     {
@@ -84,7 +84,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/tests/unit/foo.test.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/tests/unit/foo.test.ts",
       "name": "test path does not exempt a top-level canonical alias"
     },
     {
@@ -104,7 +104,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/eslint.config.mjs",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/eslint.config.mjs",
       "name": "config path does not exempt a top-level canonical alias"
     },
     {
@@ -114,7 +114,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/NonEntityNamespace.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/NonEntityNamespace.ts",
       "name": "an arbitrary namespace does not exempt a canonical alias"
     },
     {
@@ -124,7 +124,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/WrongEntityMember.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/WrongEntityMember.ts",
       "name": "an entity namespace accepts only its Type member"
     },
     {
@@ -134,7 +134,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/CompositionEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/CompositionEntity.ts",
       "name": "canonical composition is not a direct schema-derived entity Type"
     },
     {
@@ -144,7 +144,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/BorrowedSchemaEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/BorrowedSchemaEntity.ts",
       "name": "entity Type must derive from the Schema owned by its namespace"
     },
     {
@@ -154,7 +154,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/FooComment.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/FooComment.ts",
       "name": "comment before a canonical alias is inert"
     },
     {
@@ -164,7 +164,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "a trivial distributive-identity conditional wrapper does not hide a canonical alias"
     },
     {
@@ -174,7 +174,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "an interface extending a schema-derived type is the same canonical-derivation pattern as a type alias"
     },
     {
