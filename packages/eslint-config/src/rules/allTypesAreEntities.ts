@@ -21,7 +21,8 @@ import {
   type VariableStatement
 } from 'typescript';
 
-import { ACCEPTED_SCHEMA_VALUE_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { ACCEPTED_SCHEMA_VALUE_NAMES, CANONICAL_ENTITY_MEMBER_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -54,7 +55,7 @@ class ParserServices {
 
 class EntityTypeDeclaration {
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (declaration.name.text !== 'Type') {
+    if (!CANONICAL_ENTITY_MEMBER_NAMES.has(declaration.name.text)) {
       return false;
     }
     if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {
@@ -167,7 +168,7 @@ export const allTypesAreEntities: Rule.RuleModule = {
       }
       if (
         analysis.reason === 'fromSchema'
-        && (EntityTypeDeclaration.isCanonical(declaration) || classification.isJustifiedHandWrittenTypeAlias(declaration))
+        && (EntityTypeDeclaration.isCanonical(declaration) || SchemaMemberGuards.isJustifiedHandWrittenEntityType(node))
       ) {
         return;
       }

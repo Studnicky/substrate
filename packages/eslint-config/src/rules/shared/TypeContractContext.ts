@@ -818,9 +818,9 @@ export class TypeContractContext {
       return;
     }
 
-    const derivingTypeName = TypeContractContext.derivingTypeNameForModule(moduleSpecifier.text);
+    const derivingTypeNames = TypeContractContext.derivingTypeNamesForModule(moduleSpecifier.text);
 
-    if (derivingTypeName === undefined) {
+    if (derivingTypeNames.length === 0) {
       return;
     }
 
@@ -831,6 +831,14 @@ export class TypeContractContext {
     }
 
     const exportedSymbols = this.checker.getExportsOfModule(moduleSymbol);
+    const derivingTypeCount = derivingTypeNames.length;
+
+    for (let index = 0; index < derivingTypeCount; index += 1) {
+      this.addExportedDerivingSymbol(exportedSymbols, derivingTypeNames[index]!);
+    }
+  }
+
+  private addExportedDerivingSymbol(exportedSymbols: readonly Symbol[], derivingTypeName: string): void {
     const exportedDerivingType = exportedSymbols.find((symbol) => {
       const result = symbol.getName() === derivingTypeName;
 
@@ -843,14 +851,18 @@ export class TypeContractContext {
     }
   }
 
-  private static derivingTypeNameForModule(moduleSpecifierText: string): string | undefined {
+  // A module can back more than one deriving-type name (`NodeStaticType` and `NodeInputType`
+  // both resolve to `@studnicky/entity/types`), so every matching name is collected here.
+  private static derivingTypeNamesForModule(moduleSpecifierText: string): readonly string[] {
+    const result: string[] = [];
+
     for (const [derivingTypeName, moduleSpecifier] of SCHEMA_DERIVING_TYPE_MODULES) {
       if (moduleSpecifier === moduleSpecifierText) {
-        return derivingTypeName;
+        result.push(derivingTypeName);
       }
     }
 
-    return undefined;
+    return result;
   }
 
   private isSchemaDerivingFunction(derivingNameNode: Node, builderCallee: Symbol | undefined): boolean {

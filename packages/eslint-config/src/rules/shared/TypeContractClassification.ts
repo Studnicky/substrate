@@ -10,6 +10,7 @@ import {
   isParenthesizedTypeNode,
   isPropertySignature,
   isRestTypeNode,
+  isTypeAliasDeclaration,
   isTypeLiteralNode,
   isTypeOperatorNode,
   isTypeReferenceNode,
@@ -72,12 +73,6 @@ export class TypeContractClassification {
    */
   public isCanonicalEntityTypeAlias(declaration: TypeAliasDeclaration): boolean {
     const result = this.context.aliasResolution.isCanonicalEntityTypeAlias(declaration);
-
-    return result;
-  }
-
-  public isJustifiedHandWrittenTypeAlias(declaration: TypeAliasDeclaration): boolean {
-    const result = this.context.aliasResolution.isJustifiedHandWrittenTypeAlias(declaration);
 
     return result;
   }
@@ -277,18 +272,18 @@ export class TypeContractClassification {
   }
 
   /**
-   * A top-level union where every constituent is a reference to an interface that classifies as
-   * a pure-data contract (readonly-evidenced, not callable/constructor/brand) has no interface
-   * remedy either: TypeScript cannot express a union of interfaces as itself one interface, the
-   * same limitation {@link isTopLevelMixedCallableData} documents for a callable+data mix. Each
-   * constituent is already a legitimate, independently-declared contract interface — the union
-   * exists only to name "one of these shapes" for a discriminated-union call site — so there is
-   * no schema-derived-data remedy available either when a constituent (like a matcher holding a
-   * live in-memory record) is not itself JSON-representable.
+   * A top-level union where every constituent is a NAMED reference — to a pure-data contract
+   * interface, or to a schema-derived canonical `Type` alias — has no interface remedy: TypeScript
+   * cannot express a union as itself one interface, the same limitation
+   * {@link isTopLevelMixedCallableData} documents for a callable+data mix. Each constituent is
+   * already a legitimate, independently-declared shape — the union exists only to name "one of
+   * these shapes" for a discriminated-union call site. An inline object-literal constituent is a
+   * different case and is never exempted here: a codebase-owned shape hiding inside the union
+   * still belongs in a named type, so at least one non-reference member fails this check.
    */
-  public isTopLevelUnionOfDataContractInterfaces(node: TypeNode): boolean {
+  public isTopLevelUnionOfNamedSchemaDerivedConstituents(node: TypeNode): boolean {
     if (isParenthesizedTypeNode(node)) {
-      const result = this.isTopLevelUnionOfDataContractInterfaces(node.type);
+      const result = this.isTopLevelUnionOfNamedSchemaDerivedConstituents(node.type);
 
       return result;
     }
@@ -305,12 +300,42 @@ export class TypeContractClassification {
     for (let index = 0; index < members.length; index++) {
       const member = members.at(index);
 
-      if (member === undefined || !this.context.interfaceContract.isDataContractInterfaceReference(member, new Set(), 0)) {
+      if (member === undefined || !this.isNamedSchemaDerivedConstituent(member)) {
         return false;
       }
     }
 
     return true;
+  }
+
+  private isNamedSchemaDerivedConstituent(member: TypeNode): boolean {
+    const result = this.context.interfaceContract.isDataContractInterfaceReference(member, new Set(), 0)
+      || this.isCanonicalTypeAliasReference(member);
+
+    return result;
+  }
+
+  // The type-alias counterpart to `isDataContractInterfaceReference` — a bare named reference,
+  // e.g. `SomeEntity.Type`, resolving to a type alias whose own body is schema-derived. Unlike
+  // that method, this never unwraps an inline object literal: only a reference counts.
+  private isCanonicalTypeAliasReference(node: TypeNode): boolean {
+    if (!isTypeReferenceNode(node)) {
+      return false;
+    }
+
+    const symbol = this.context.resolveSymbol(this.context.checker.getSymbolAtLocation(node.typeName));
+    const declarations = symbol?.getDeclarations() ?? [];
+    const declarationCount = declarations.length;
+
+    for (let index = 0; index < declarationCount; index++) {
+      const declaration = declarations.at(index);
+
+      if (declaration !== undefined && isTypeAliasDeclaration(declaration) && this.context.isSchemaDerivedApplication(declaration.type)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
