@@ -50,7 +50,7 @@ class EntityAjvCompiler {
   public static wrap(instance: Ajv2020): SchemaCompilerInterface {
     const cache = new Map<string, MutableValidateFunctionInterface<unknown>>();
 
-    const compile = <TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> => {
+    const compile = <TValidated>(schema: object | boolean): EntityValidateFunctionInterface<TValidated> => {
       const id = SchemaId.of(schema);
       if (id !== undefined) {
         const existing = cache.get(id);

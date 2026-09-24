@@ -21,6 +21,7 @@ import type { SchemaRegistrySetInterface } from '../interfaces/SchemaRegistrySet
 
 import { EntityDiagnostics } from '../EntityDiagnostics.js';
 import { SchemaId } from '../SchemaId.js';
+import { ARRAY_INDEX_SEGMENT_PATTERN } from './constants/ArrayIndexSegmentPattern.js';
 import { ENTITY_CFWORKER_CONSTANTS } from './constants/EntityCfworkerConstants.js';
 import { QUOTED_VALUE_PATTERN } from './constants/QuotedValuePattern.js';
 
@@ -36,7 +37,7 @@ class EntityCfworkerCompiler {
   public static createCompiler(fillDefaults: boolean): SchemaCompilerInterface {
     const cache = new Map<string, MutableValidateFunctionInterface<unknown>>();
 
-    const compile = <TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> => {
+    const compile = <TValidated>(schema: object | boolean): EntityValidateFunctionInterface<TValidated> => {
       const id = SchemaId.of(schema);
       if (id !== undefined) {
         const existing = cache.get(id);
@@ -85,7 +86,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Declared properties across `$ref`/`allOf` composition; a `required`-only key maps to `undefined` (no subschema). */
-  private static declaredProperties(schema: unknown, rootSchema: object): ReadonlyMap<string, unknown> {
+  private static declaredProperties(schema: unknown, rootSchema: object | boolean): ReadonlyMap<string, unknown> {
     const result = new Map<string, unknown>();
     if (!EntityCfworkerCompiler.isPlainObject(schema)) {
       return result;
@@ -120,7 +121,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Projects onto the JSON Schema data model so cfworker fails instead of throwing; `seen` memoizes copies against cyclic input. */
-  private static toJsonInstance(value: unknown, schema: unknown, rootSchema: object, seen: Map<object, unknown> = new Map()): unknown {
+  private static toJsonInstance(value: unknown, schema: unknown, rootSchema: object | boolean, seen: Map<object, unknown> = new Map()): unknown {
     if (value === null || typeof value === 'boolean' || typeof value === 'string') {
       return value;
     }
@@ -228,7 +229,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Renders the type failure for a root instance the JSON Schema data model cannot represent at all. */
-  private static unrepresentableInstanceError(schema: object): EntityValidationErrorInterface {
+  private static unrepresentableInstanceError(schema: object | boolean): EntityValidationErrorInterface {
     const declaredType = EntityCfworkerCompiler.isPlainObject(schema) ? Reflect.get(schema, 'type') : undefined;
     const message = EntityDiagnostics.render({ 'keyword': 'type', 'keywordValue': declaredType }) ?? 'must be a valid JSON value';
     const diagnostic: Record<string, unknown> = {
@@ -243,7 +244,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Resolves a JSON Pointer, rooted at `#`, against `rootSchema`. */
-  private static resolveSchemaPointer(rootSchema: object, pointer: string): unknown {
+  private static resolveSchemaPointer(rootSchema: object | boolean, pointer: string): unknown {
     if (pointer === '#') {
       return rootSchema;
     }
@@ -264,7 +265,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Resolves a local `$ref` pointer within the same schema document. */
-  private static resolveLocalReference(schema: Record<string, unknown>, rootSchema: object): Record<string, unknown> | undefined {
+  private static resolveLocalReference(schema: Record<string, unknown>, rootSchema: object | boolean): Record<string, unknown> | undefined {
     const reference = schema.$ref;
     if (typeof reference !== 'string' || !reference.startsWith('#')) {
       return undefined;
@@ -277,7 +278,7 @@ class EntityCfworkerCompiler {
   /** Collects every properties-bearing schema fragment reachable through `$ref` and `allOf`. */
   private static compositionSchemas(
     schema: Record<string, unknown>,
-    rootSchema: object,
+    rootSchema: object | boolean,
     seen: ReadonlySet<object>
   ): readonly Record<string, unknown>[] {
     if (seen.has(schema)) {
@@ -304,7 +305,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Fills declared `properties` defaults onto missing keys, mirroring the Node registry's `useDefaults` timing. */
-  private static applyDefaults(value: unknown, schema: object, rootSchema: object): void {
+  private static applyDefaults(value: unknown, schema: object | boolean, rootSchema: object | boolean): void {
     if (!EntityCfworkerCompiler.isPlainObject(value) || !EntityCfworkerCompiler.isPlainObject(schema)) {
       return;
     }
@@ -335,7 +336,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Whether `propertyName` is declared in `properties` or matched by `patternProperties`, across composition. */
-  private static accountsForProperty(schema: Record<string, unknown>, rootSchema: object, propertyName: string): boolean {
+  private static accountsForProperty(schema: Record<string, unknown>, rootSchema: object | boolean, propertyName: string): boolean {
     const composed = EntityCfworkerCompiler.compositionSchemas(schema, rootSchema, new Set());
     const composedCount = composed.length;
     for (let index = 0; index < composedCount; index += 1) {
@@ -359,7 +360,7 @@ class EntityCfworkerCompiler {
   }
 
   /** `additionalProperties` re-fires on a key whose own `properties`/`patternProperties` failure already reported it. */
-  private static isRedundantAdditionalPropertiesUnit(unit: OutputUnit, rootSchema: object): boolean {
+  private static isRedundantAdditionalPropertiesUnit(unit: OutputUnit, rootSchema: object | boolean): boolean {
     const suffix = '/additionalProperties';
     if (unit.keyword !== 'additionalProperties' || !unit.keywordLocation.endsWith(suffix)) {
       return false;
@@ -377,11 +378,97 @@ class EntityCfworkerCompiler {
     return result;
   }
 
+  /** Resolves the schema fragment actually declared at an instance path (`properties`/`items`, through `$ref`/`allOf`), to tell a real `false` failure apart from cfworker's phantom duplicate. */
+  private static declaredSchemaAtInstancePath(rootSchema: object | boolean, instanceLocation: string): unknown {
+    if (instanceLocation === '#') {
+      return rootSchema;
+    }
+    const segments = instanceLocation.slice(2).split('/');
+    let schema: unknown = rootSchema;
+    const segmentCount = segments.length;
+    for (let index = 0; index < segmentCount; index += 1) {
+      if (!EntityCfworkerCompiler.isPlainObject(schema)) {
+        return undefined;
+      }
+      const segment = decodeURIComponent(segments[index]!).replaceAll('~1', '/').replaceAll('~0', '~');
+      schema = ARRAY_INDEX_SEGMENT_PATTERN.test(segment) ? schema.items : EntityCfworkerCompiler.declaredProperties(schema, rootSchema).get(segment);
+    }
+    return schema;
+  }
+
+  /** `additionalProperties: false` makes cfworker re-fire a `false` unit at a property's instance path even when the property is declared, not additional; the co-occurring `additionalProperties` unit naming it is the tell. */
+  private static correlatesWithAdditionalProperties(unit: OutputUnit, errors: readonly OutputUnit[]): boolean {
+    if (unit.keyword !== 'false' || unit.instanceLocation === '#') {
+      return false;
+    }
+    const propertyName = decodeURIComponent(unit.instanceLocation.split('/').at(-1) ?? '');
+    const result = errors.some((other) => {
+      const isMatch = other.keyword === 'additionalProperties' && QUOTED_VALUE_PATTERN.exec(other.error)?.[1] === propertyName;
+      return isMatch;
+    });
+    return result;
+  }
+
+  /** A `false` unit correlated with `additionalProperties: false` is phantom when the schema doesn't actually declare `false` at that position; otherwise it is a genuine failure cfworker double-fires and one copy is kept. */
+  private static isPhantomFalseUnit(unit: OutputUnit, rootSchema: object | boolean): boolean {
+    const declared = EntityCfworkerCompiler.declaredSchemaAtInstancePath(rootSchema, unit.instanceLocation);
+    const result = declared !== false;
+    return result;
+  }
+
+  /** Keywords whose own canonical message already describes the failure when their value is `false`; the `false` unit they trigger duplicates rather than refines it. */
+  private static readonly OWN_MESSAGE_WRAPPER_KEYWORDS = new Set(['unevaluatedItems', 'unevaluatedProperties']);
+
+  /** A `false` unit nested under an `unevaluatedItems`/`unevaluatedProperties: false` failure is a duplicate of that keyword's own diagnostic, not a more specific one. */
+  private static isCoveredByOwnMessageWrapper(unit: OutputUnit, errors: readonly OutputUnit[]): boolean {
+    if (unit.keyword !== 'false') {
+      return false;
+    }
+    const result = errors.some((other) => {
+      const isNested = other.instanceLocation === '#'
+        ? unit.instanceLocation !== '#'
+        : unit.instanceLocation.startsWith(`${other.instanceLocation}/`);
+      const isMatch = EntityCfworkerCompiler.OWN_MESSAGE_WRAPPER_KEYWORDS.has(other.keyword) && isNested;
+      return isMatch;
+    });
+    return result;
+  }
+
+  /** Keywords whose unit is a pass-through summary at the same instance position as the schema it delegates to, never a sibling branch result. */
+  private static readonly INSTANCE_PASSTHROUGH_KEYWORDS = new Set(['$ref', 'anyOf', 'if', 'not', 'oneOf']);
+
+  /** A `false`-unit's `keywordLocation` mirrors its instance path rather than its schema path, so nesting through either unit is judged by instance location instead. A pass-through wrapper (`$ref`, `anyOf`, ...) at the exact same instance position as a `false` failure is explained by it, matching how a non-boolean composition summary is already dropped in favor of its branch failures; an ordinary sibling branch unit sharing that position is not. */
+  private static isDescendantUnit(candidate: OutputUnit, other: OutputUnit): boolean {
+    if (other.keyword === 'false' && other.instanceLocation === candidate.instanceLocation
+      && EntityCfworkerCompiler.INSTANCE_PASSTHROUGH_KEYWORDS.has(candidate.keyword)) {
+      return true;
+    }
+    if (candidate.keyword === 'false' || other.keyword === 'false') {
+      const result = candidate.instanceLocation === '#'
+        ? other.instanceLocation !== '#'
+        : other.instanceLocation.startsWith(`${candidate.instanceLocation}/`);
+      return result;
+    }
+    const result = other.keywordLocation.startsWith(`${candidate.keywordLocation}/`);
+    return result;
+  }
+
   /** Keeps only the most specific failure per branch; drops summary wrappers a descendant unit already explains. */
-  private static leafErrors(errors: readonly OutputUnit[], rootSchema: object): readonly OutputUnit[] {
+  private static leafErrors(errors: readonly OutputUnit[], rootSchema: object | boolean): readonly OutputUnit[] {
+    const seenAdditionalPropertiesFalseLocations = new Set<string>();
     const meaningful = errors.filter((unit) => {
-      const isMeaningful = unit.keywordLocation !== unit.instanceLocation
+      const correlatesWithAdditionalProperties = EntityCfworkerCompiler.correlatesWithAdditionalProperties(unit, errors);
+      const isPhantom = correlatesWithAdditionalProperties && EntityCfworkerCompiler.isPhantomFalseUnit(unit, rootSchema);
+      const isDuplicateClone = correlatesWithAdditionalProperties && !isPhantom
+        && seenAdditionalPropertiesFalseLocations.has(unit.instanceLocation);
+      const isMeaningful = (unit.keyword === 'false' || unit.keywordLocation !== unit.instanceLocation)
+        && !isPhantom
+        && !isDuplicateClone
+        && !EntityCfworkerCompiler.isCoveredByOwnMessageWrapper(unit, errors)
         && !EntityCfworkerCompiler.isRedundantAdditionalPropertiesUnit(unit, rootSchema);
+      if (isMeaningful && correlatesWithAdditionalProperties) {
+        seenAdditionalPropertiesFalseLocations.add(unit.instanceLocation);
+      }
       return isMeaningful;
     });
     const errorCount = meaningful.length;
@@ -393,7 +480,7 @@ class EntityCfworkerCompiler {
         if (otherIndex === candidateIndex) {
           continue;
         }
-        if (meaningful[otherIndex]!.keywordLocation.startsWith(`${candidate.keywordLocation}/`)) {
+        if (EntityCfworkerCompiler.isDescendantUnit(candidate, meaningful[otherIndex]!)) {
           hasMoreSpecificDescendant = true;
           break;
         }
@@ -413,7 +500,7 @@ class EntityCfworkerCompiler {
   ]);
 
   /** The `minimum`/`maximum` Ajv would use for a `contains`/`minContains`/`maxContains` unit: declared `minContains` (default 1) and `maxContains`. */
-  private static containsParameters(unit: OutputUnit, rootSchema: object): { 'maximum': number | undefined; 'minimum': number } | undefined {
+  private static containsParameters(unit: OutputUnit, rootSchema: object | boolean): { 'maximum': number | undefined; 'minimum': number } | undefined {
     const suffix = EntityCfworkerCompiler.CONTAINS_FAMILY_SUFFIXES.get(unit.keyword);
     if (suffix === undefined || !unit.keywordLocation.endsWith(suffix)) {
       return undefined;
@@ -429,7 +516,7 @@ class EntityCfworkerCompiler {
   }
 
   /** Ajv reports the full declared `dependentRequired[property]` array, not only the currently-missing keys. */
-  private static dependentRequiredParameters(unit: OutputUnit, rootSchema: object): { 'deps': readonly string[]; 'property': string } | undefined {
+  private static dependentRequiredParameters(unit: OutputUnit, rootSchema: object | boolean): { 'deps': readonly string[]; 'property': string } | undefined {
     if (unit.keyword !== 'dependentRequired') {
       return undefined;
     }
@@ -456,7 +543,7 @@ class EntityCfworkerCompiler {
   }
 
   /** The schema-declared value a keyword's message renders, computed rather than pointer-resolved for `unevaluatedItems`. */
-  private static keywordValue(unit: OutputUnit, rootSchema: object): unknown {
+  private static keywordValue(unit: OutputUnit, rootSchema: object | boolean): unknown {
     if (unit.keyword !== 'unevaluatedItems') {
       const result = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, unit.keywordLocation);
       return result;
@@ -470,8 +557,17 @@ class EntityCfworkerCompiler {
     return result;
   }
 
+  /** Maps a cfworker keyword onto the render key Ajv uses for the same failure, so both engines share one message. */
+  private static renderKeyword(unit: OutputUnit, diagnosticParameters: Readonly<Record<string, unknown>>): string {
+    if (diagnosticParameters.containsMinimum !== undefined) {
+      return 'contains';
+    }
+    const result = unit.keyword === 'false' ? 'false schema' : unit.keyword;
+    return result;
+  }
+
   /** Extracts the structured diagnostic parameters the Node registry reports for the same keywords. */
-  private static diagnosticParameters(unit: OutputUnit, rootSchema: object): Readonly<Record<string, unknown>> {
+  private static diagnosticParameters(unit: OutputUnit, rootSchema: object | boolean): Readonly<Record<string, unknown>> {
     if (unit.keyword === 'required') {
       const match = QUOTED_VALUE_PATTERN.exec(unit.error);
       if (match?.[1] !== undefined) {
@@ -496,11 +592,11 @@ class EntityCfworkerCompiler {
   }
 
   /** Converts a cfworker output unit into the diagnostic entity consumers expect. */
-  private static toEntityError(unit: OutputUnit, rootSchema: object): EntityValidationErrorInterface {
+  private static toEntityError(unit: OutputUnit, rootSchema: object | boolean): EntityValidationErrorInterface {
     const instancePath = unit.instanceLocation === '#' ? '' : decodeURIComponent(unit.instanceLocation.slice(1));
     const diagnosticParameters = EntityCfworkerCompiler.diagnosticParameters(unit, rootSchema);
     const keywordValue = EntityCfworkerCompiler.keywordValue(unit, rootSchema);
-    const renderKeyword = diagnosticParameters.containsMinimum === undefined ? unit.keyword : 'contains';
+    const renderKeyword = EntityCfworkerCompiler.renderKeyword(unit, diagnosticParameters);
     const canonicalMessage = EntityDiagnostics.render({
       'additionalProperty': typeof diagnosticParameters.additionalProperty === 'string' ? diagnosticParameters.additionalProperty : undefined,
       'containsMaximum': typeof diagnosticParameters.containsMaximum === 'number' ? diagnosticParameters.containsMaximum : undefined,
