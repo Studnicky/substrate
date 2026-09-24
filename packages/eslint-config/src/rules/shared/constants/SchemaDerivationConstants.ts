@@ -7,10 +7,18 @@ export const ACCEPTED_SCHEMA_VALUE_NAMES: ReadonlySet<string> = new Set([
   'Schema'
 ]);
 
+/** The member name of an entity namespace's own canonical schema-derived export — the
+ * validated `Type` and its unvalidated `InputType` counterpart. */
+export const CANONICAL_ENTITY_MEMBER_NAMES: ReadonlySet<string> = new Set([
+  'InputType',
+  'Type'
+]);
+
 /** Deriving-type name mapped to the module it must resolve to, proving provenance.
  * Its key set is the accepted deriving-type-name set. */
 export const SCHEMA_DERIVING_TYPE_MODULES: ReadonlyMap<string, string> = new Map([
   ['FromSchema', 'json-schema-to-ts'],
+  ['NodeInputType', '@studnicky/entity/types'],
   ['NodeStaticType', '@studnicky/entity/types']
 ]);
 

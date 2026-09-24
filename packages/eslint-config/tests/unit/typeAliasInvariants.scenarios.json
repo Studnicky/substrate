@@ -99,6 +99,16 @@
         "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
         "filename": "packages/eslint-config/ValidatedAdaptiveConfigEntity.ts",
         "name": "an entity Type composing an anyOf value discriminant (co-occurring with properties/required) is accepted as canonical pure data"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = readonly PatchOperationEntity.Type[];\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/PatchOperationsEntity.ts",
+        "name": "regression: a schema composing an external reference permits a Type composing that entity's .Type \u2014 entity-file-shape and type-alias-invariants agree on this file"
+      },
+      {
+        "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nnamespace GroupValueEntities {\n  export namespace AlphabeticGroupValueEntity {\n    export const Node = defineNode<{ type: 'alphabetic' }>({ type: 'object' } as const);\n    export type Type = NodeStaticType<typeof Node>;\n  }\n  export namespace CidrGroupValueEntity {\n    export const Node = defineNode<{ type: 'cidr' }>({ type: 'object' } as const);\n    export type Type = NodeStaticType<typeof Node>;\n  }\n}\nexport type DrilldownGroupValueStaticType =\n  | GroupValueEntities.AlphabeticGroupValueEntity.Type\n  | GroupValueEntities.CidrGroupValueEntity.Type;",
+        "filename": "packages/eslint-config/DrilldownGroupValueUnion.ts",
+        "name": "a top-level union of named, schema-derived Type-alias references has no interface remedy and is retained"
       }
     ],
     "invalid": [
@@ -431,6 +441,16 @@
         ],
         "filename": "packages/eslint-config/FooEntity.ts",
         "name": "an entity Type hand-written for a schema that derives structurally on its own is still rejected"
+      },
+      {
+        "code": "import type { EntityCreateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nnamespace GroupValueEntities {\n  export namespace AlphabeticGroupValueEntity {\n    export const Schema = { additionalProperties: false, properties: { type: { const: 'alphabetic' } }, required: ['type'], type: 'object' } as const satisfies JSONSchema;\n    export interface Type extends FromSchema<typeof Schema> {}\n  }\n}\nexport type DrilldownGroupValueStaticType =\n  | GroupValueEntities.AlphabeticGroupValueEntity.Type\n  | { 'type': 'inline'; 'value': string };",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/DrilldownGroupValueUnionInline.ts",
+        "name": "a union with an inline object-literal constituent is still rejected even alongside a named schema-derived member"
       }
     ]
   },

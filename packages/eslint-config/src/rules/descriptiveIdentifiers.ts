@@ -133,34 +133,7 @@ class BannedToken {
 // project. Report its key only when the checker proves that its contextual declaration
 // belongs to this package; absent provenance is not safe evidence for a rename.
 class ExternalPropertyProvenance {
-  // A JSON Schema literal passed to a `SchemaNode.defineX(...)` builder call carries the
-  // same externally-dictated vocabulary a `satisfies JSONSchema` literal does — walk up
-  // to find one before falling back to the type-checker-driven external-provenance check.
-  static #isWithinSchemaNodeBuilderCall(node: Rule.Node): boolean {
-    let current: unknown = AstHelpers.getNodeProperty(node, 'parent');
-
-    while (Predicates.isRecord(current)) {
-      if (AstHelpers.getNodeType(current) === 'CallExpression') {
-        const callee: unknown = AstHelpers.getNodeProperty(current, 'callee');
-
-        if (AstHelpers.getNodeType(callee) === 'MemberExpression') {
-          const object: unknown = AstHelpers.getNodeProperty(callee, 'object');
-
-          if (AstHelpers.getIdentifierName(object) === 'SchemaNode') {
-            return true;
-          }
-        }
-      }
-      current = AstHelpers.getNodeProperty(current, 'parent');
-    }
-
-    return false;
-  }
-
   public static shouldSkip(node: Rule.Node, name: string, context: Rule.RuleContext): boolean {
-    if (ExternalPropertyProvenance.#isWithinSchemaNodeBuilderCall(node)) {
-      return true;
-    }
     const services: unknown = context.sourceCode.parserServices;
 
     if (!AstHelpers.hasTypeServices(services)) {

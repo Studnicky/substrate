@@ -5,12 +5,14 @@ description: "Requires canonical pure-data declarations to use the exact schema-
 
 # @studnicky/all-types-are-entities
 
-Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`, and the declaration must derive directly from `typeof Schema`.
+Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` or `InputType` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`/`Node`, and the declaration must derive directly from that value.
 
 The rule accepts both canonical spellings:
 
 - `export type Type = F<typeof Schema>`
 - `export interface Type extends F<typeof Schema> {}`
+
+`InputType` is held to the same ownership terms as `Type` — it must be the entity's own `InputType` member, deriving from that same namespace's own `Schema`/`Node`. The constraint-carrying entity engine (`packages/entity/src/types/`) derives two types from one `Node`: `Type` (`NodeStaticType<typeof Node>`, validated, brand-carrying) and `InputType` (`NodeInputType<typeof Node>`, the unvalidated shape a public factory accepts). Both are canonical schema-derived members of the same entity.
 
 `F` must have verified schema-derived provenance. A pure-data declaration that does not meet the exact entity ownership and derivation shape is reported. The rule does nothing when TypeScript parser services are unavailable.
 
