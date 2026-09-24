@@ -14,7 +14,7 @@ const languageOptions = {
   parser: tseslint.parser,
   parserOptions: {
     projectService: {
-      allowDefaultProject: ['*.ts', 'packages/retry/src/models/*.ts'],
+      allowDefaultProject: ['*.ts', 'packages/eslint-config/tests/fixtures/relocated/src/models/*.ts', 'packages/retry/src/models/*.ts'],
       maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
     },
     tsconfigRootDir: repoRoot

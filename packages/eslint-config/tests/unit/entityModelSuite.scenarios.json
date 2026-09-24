@@ -94,7 +94,7 @@
           },
           {
             "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst ValueSchema = { 'type': 'string' } as const satisfies JSONSchema;\ntype ValueType = FromSchema<typeof ValueSchema>;",
-            "filename": "packages/retry/src/models/MisplacedCanonical.ts"
+            "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/MisplacedCanonical.ts"
           },
           {
             "code": "type InvalidDataType = { value: string };",
@@ -162,7 +162,7 @@
             ]
           },
           {
-            "filename": "packages/retry/src/models/MisplacedCanonical.ts",
+            "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/MisplacedCanonical.ts",
             "messages": [
               {
                 "messageId": "forbidden-type-alias",
