@@ -64,5 +64,8 @@
   "dependencies": {
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "json-schema-to-ts": "^3.1.1"
   }
 }
