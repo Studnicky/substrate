@@ -322,10 +322,12 @@ export class SchemaNode {
     target: TTarget,
     title?: string
   ): SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
-    const schema: JSONSchema7 = { '$ref': pointer, 'title': title };
+    if (title === undefined) {
+      const result = SchemaNode.defineDecorated({ '$ref': pointer } satisfies JSONSchema7, target);
 
-    // `JSONSchema7` has no index signature, so it does not structurally satisfy `defineDecorated`'s `Record<string, unknown>` constraint; the cast bridges that, and the outer cast restores the portable, `$ref`-specific return type.
-    const result = SchemaNode.defineDecorated(schema as Record<string, unknown>, target) as unknown as SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>>;
+      return result;
+    }
+    const result = SchemaNode.defineDecorated({ '$ref': pointer, 'title': title } satisfies JSONSchema7, target);
 
     return result;
   }
