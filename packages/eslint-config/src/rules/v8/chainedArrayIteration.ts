@@ -1,8 +1,7 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
@@ -53,9 +52,10 @@ class IterationCall {
 }
 
 namespace StatementIndexEntity {
-  export const Schema = { 'type': 'integer' } as const satisfies JSONSchema;
+  export const Schema = { 'type': 'integer' } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineNumber({ 'type': 'integer' } as const);
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface StatementLocationInterface {
