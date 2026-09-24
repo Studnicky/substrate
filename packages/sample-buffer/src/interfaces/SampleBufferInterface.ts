@@ -15,9 +15,9 @@ export interface SampleBufferInterface {
   readonly 'isFull': SampleBufferStateEntity.Type['isFull'];
 
   /**
-   * Number of samples in the buffer
+   * Number of samples in the buffer. Computed internally, never externally validated.
    */
-  readonly 'length': SampleBufferStateEntity.Type['length'];
+  readonly 'length': number;
 
   /**
    * Calculate a percentile from the buffered samples

@@ -32,11 +32,11 @@ export namespace TimingPrecisionEntity {
   export const Node = SchemaNode.defineObject(
     { 'type': 'object' } as const,
     {
-      'h': SchemaNode.defineNumber({ 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
-      'm': SchemaNode.defineNumber({ 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
-      'ms': SchemaNode.defineNumber({ 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
-      'ns': SchemaNode.defineNumber({ 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
-      's': SchemaNode.defineNumber({ 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const)
+      'h': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.h, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'm': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.m, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'ms': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.ms, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'ns': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.ns, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      's': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.s, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const)
     },
     [] as const,
     { 'additionalProperties': false }

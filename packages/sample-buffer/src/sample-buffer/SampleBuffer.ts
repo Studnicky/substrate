@@ -62,7 +62,7 @@ interface SampleBufferConstructorInterface<
 export class SampleBuffer implements SampleBufferInterface {
   static create<TInstance extends SampleBuffer = SampleBuffer>(
     this: SampleBufferConstructorInterface<TInstance>,
-    options: SampleBufferOptionsEntity.Type
+    options: SampleBufferOptionsEntity.InputType
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [options]);
     if (!Predicates.isObjectLike(constructed)) {
@@ -78,7 +78,7 @@ export class SampleBuffer implements SampleBufferInterface {
     return constructed;
   }
 
-  static #validate(options: SampleBufferOptionsEntity.Type): void {
+  static #validate(options: SampleBufferOptionsEntity.InputType): void {
     if (!SampleBufferOptionsEntity.validate(options)) {
       const errors = SampleBufferOptionsEntity.validate.errors ?? [];
       const parts = errors.map((e) => {
@@ -106,7 +106,7 @@ export class SampleBuffer implements SampleBufferInterface {
    *
    * @param options - Construction options including capacity
    */
-  protected constructor(options: SampleBufferOptionsEntity.Type) {
+  protected constructor(options: SampleBufferOptionsEntity.InputType) {
     SampleBuffer.#validate(options);
     this.capacity = options.capacity;
     this.#samples = Array.from<number>({ 'length': options.capacity });

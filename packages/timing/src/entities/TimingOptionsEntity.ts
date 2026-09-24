@@ -34,7 +34,18 @@ export namespace TimingOptionsEntity {
         SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
         SchemaNode.defineNull({ 'type': 'null' } as const)
       ]),
-      'precision': TimingPrecisionEntity.Node
+      'precision': SchemaNode.defineObject(
+        { 'default': DEFAULT_DECIMAL_PRECISION, 'type': 'object' } as const,
+        {
+          'h': TimingPrecisionEntity.Node.schema.properties.h,
+          'm': TimingPrecisionEntity.Node.schema.properties.m,
+          'ms': TimingPrecisionEntity.Node.schema.properties.ms,
+          'ns': TimingPrecisionEntity.Node.schema.properties.ns,
+          's': TimingPrecisionEntity.Node.schema.properties.s
+        },
+        [] as const,
+        { 'additionalProperties': false }
+      )
     },
     [] as const,
     { 'additionalProperties': false }

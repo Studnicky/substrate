@@ -30,7 +30,7 @@ interface SemaphoreSubclassInterface<TInstance> extends Function {
 export class Semaphore {
   static create<TInstance extends Semaphore = Semaphore>(
     this: SemaphoreSubclassInterface<TInstance>,
-    options: SemaphoreOptionsEntity.Type
+    options: SemaphoreOptionsEntity.InputType
   ): TInstance {
     const resolveSubclassConstructor = (): SemaphoreSubclassInterface<TInstance> => {
       return this;
@@ -44,7 +44,7 @@ export class Semaphore {
     return instance;
   }
 
-  static #validate(options: SemaphoreOptionsEntity.Type): void {
+  static #validate(options: SemaphoreOptionsEntity.InputType): void {
     if (!SemaphoreOptionsEntity.validate(options)) {
       throw new SemaphoreError('Semaphore options must contain a positive integer permits value and a non-negative integer maximumQueueSize when provided.');
     }
@@ -63,7 +63,7 @@ export class Semaphore {
   #tailWaiter: SemaphoreWaiterInterface | undefined;
   readonly #waiterMachine = new SemaphoreWaiterMachine();
 
-  protected constructor(options: SemaphoreOptionsEntity.Type) {
+  protected constructor(options: SemaphoreOptionsEntity.InputType) {
     Semaphore.#validate(options);
     this.#activeCount = 0;
     this.#available = options.permits;
