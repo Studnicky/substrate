@@ -1,10 +1,9 @@
 /**
  * EntityDiagnostics — canonical, engine-neutral schema-validation messages.
  *
- * Ajv and `@cfworker/json-schema` each emit their own prose for a validation
- * failure. Both registries route their normalized diagnostics through this
- * module so the rendered `message` is substrate's own text and is
- * byte-identical regardless of which backend compiled the schema.
+ * The specialised-closure engine routes every normalized diagnostic through
+ * this module, so the rendered `message` is substrate's own text rather than
+ * a compiler-generated one.
  *
  * @module
  */

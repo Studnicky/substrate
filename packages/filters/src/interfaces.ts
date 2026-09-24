@@ -207,19 +207,11 @@ export class FilterTypeGuards {
   }
 
   static isValidFilterConfig<T>(config: T): config is FilterConfigInterface & T {
-    if (!Predicates.isPlainObject(config)
-      || !Object.hasOwn(config, 'conditions')
-      || !Object.hasOwn(config, 'gate')
-      || !Object.hasOwn(config, 'mode')) {
+    if (!FilterTypeGuards.hasRequiredFilterConfigShape(config)) {
       return false;
     }
 
-    const conditions = Reflect.get(config, 'conditions');
-    const gate = Reflect.get(config, 'gate');
-    const mode = Reflect.get(config, 'mode');
-    if (!FilterTypeGuards.isFilterConditionArray(conditions)
-      || !Predicates.isString(gate)
-      || !FilterTypeGuards.isFilterModeFunction(mode)) {
+    if (!FilterTypeGuards.hasValidFilterConfigCore(config)) {
       return false;
     }
 
@@ -232,6 +224,26 @@ export class FilterTypeGuards {
       && FilterTypeGuards.hasOptionalStringMembers(config, ['includeErrors', 'name'])
       && FilterTypeGuards.hasOptionalNumberMembers(config, ['maximumDepth', 'maximumPathDepth'])
       && FilterTypeGuards.hasOptionalPlugins(config);
+
+    return result;
+  }
+
+  private static hasRequiredFilterConfigShape<T>(config: T): config is Record<string, unknown> & T {
+    const result = Predicates.isPlainObject(config)
+      && Object.hasOwn(config, 'conditions')
+      && Object.hasOwn(config, 'gate')
+      && Object.hasOwn(config, 'mode');
+
+    return result;
+  }
+
+  private static hasValidFilterConfigCore(config: Record<string, unknown>): boolean {
+    const conditions = Reflect.get(config, 'conditions');
+    const gate = Reflect.get(config, 'gate');
+    const mode = Reflect.get(config, 'mode');
+    const result = FilterTypeGuards.isFilterConditionArray(conditions)
+      && Predicates.isString(gate)
+      && FilterTypeGuards.isFilterModeFunction(mode);
 
     return result;
   }
@@ -318,27 +330,32 @@ export class FilterTypeGuards {
     return result;
   }
 
+  private static readonly OPTIONAL_CONDITION_MEMBER_GUARDS: readonly (readonly [string, (value: unknown) => boolean])[] = [
+    ['compiledPath', FilterTypeGuards.isStringArray],
+    ['filterValue', FilterTypeGuards.isFilterValue],
+    ['groupGates', FilterTypeGuards.isGroupGateNames],
+    ['numericValue', FilterTypeGuards.isNumericValue],
+    ['options', Predicates.isPlainObject],
+    ['value', FilterTypeGuards.isFilterValue]
+  ];
+
   private static hasOptionalFilterConditionMembers(record: Record<string, unknown>, ancestors: Set<object>): boolean {
-    if (Object.hasOwn(record, 'compiledPath') && !FilterTypeGuards.isStringArray(Reflect.get(record, 'compiledPath'))) {
-      return false;
-    }
     if (Object.hasOwn(record, 'conditions') && !FilterTypeGuards.isFilterConditionArrayWithAncestors(Reflect.get(record, 'conditions'), ancestors)) {
       return false;
     }
-    if (Object.hasOwn(record, 'filterValue') && !FilterTypeGuards.isFilterValue(Reflect.get(record, 'filterValue'))) {
-      return false;
-    }
-    if (Object.hasOwn(record, 'groupGates') && !FilterTypeGuards.isGroupGateNames(Reflect.get(record, 'groupGates'))) {
-      return false;
-    }
-    if (Object.hasOwn(record, 'numericValue') && !FilterTypeGuards.isNumericValue(Reflect.get(record, 'numericValue'))) {
-      return false;
-    }
-    if (Object.hasOwn(record, 'options') && !Predicates.isPlainObject(Reflect.get(record, 'options'))) {
-      return false;
-    }
-    if (Object.hasOwn(record, 'value') && !FilterTypeGuards.isFilterValue(Reflect.get(record, 'value'))) {
-      return false;
+
+    const result = FilterTypeGuards.hasValidOptionalMembers(record, FilterTypeGuards.OPTIONAL_CONDITION_MEMBER_GUARDS);
+
+    return result;
+  }
+
+  private static hasValidOptionalMembers(record: Record<string, unknown>, guards: readonly (readonly [string, (value: unknown) => boolean])[]): boolean {
+    for (let index = 0; index < guards.length; index++) {
+      const [key, guard] = guards[index]!;
+
+      if (Object.hasOwn(record, key) && !guard(Reflect.get(record, key))) {
+        return false;
+      }
     }
 
     return true;

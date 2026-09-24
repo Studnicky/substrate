@@ -4,7 +4,6 @@ import type { EntityValidationErrorInterface } from '../interfaces/EntityValidat
 import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
-import { FormatValidators } from './FormatValidators.js';
 import { SchemaPointer } from './SchemaPointer.js';
 import { ValidationErrorFactory } from './ValidationErrorFactory.js';
 
@@ -109,8 +108,9 @@ export class ScalarNodeCompiler {
     assertions.push({ 'check': check, 'error': error });
   }
 
+  /** `format`, `contentEncoding`, `contentMediaType` are annotations in 2020-12; they never assert. */
   private static pushStringKeywords(assertions: ScalarAssertionInterface[], plan: SchemaNodePlanInterface): void {
-    const { contentEncoding, contentMediaType, format, 'maximumLength': maximumLengthValue, 'minimumLength': minimumLengthValue, pattern } = plan;
+    const { 'maximumLength': maximumLengthValue, 'minimumLength': minimumLengthValue, pattern } = plan;
     const compiledPattern = pattern === undefined ? undefined : new RegExp(pattern, 'u');
     if (minimumLengthValue !== undefined) {
       const predicate = (value: string): boolean => { const result = Predicates.satisfiesMinimumLength(value, minimumLengthValue); return result; };
@@ -123,18 +123,6 @@ export class ScalarNodeCompiler {
     if (compiledPattern !== undefined) {
       const predicate = (value: string): boolean => { const result = Predicates.checkPattern(value, compiledPattern); return result; };
       assertions.push(ScalarNodeCompiler.stringAssertion('pattern', pattern!, predicate));
-    }
-    if (format !== undefined) {
-      const predicate = (value: string): boolean => { const result = FormatValidators.test(format, value); return result; };
-      assertions.push(ScalarNodeCompiler.stringAssertion('format', format, predicate));
-    }
-    if (contentEncoding !== undefined) {
-      const predicate = (value: string): boolean => { const result = Predicates.satisfiesContentEncoding(value, contentEncoding); return result; };
-      assertions.push(ScalarNodeCompiler.stringAssertion('contentEncoding', contentEncoding, predicate));
-    }
-    if (contentMediaType !== undefined) {
-      const predicate = (value: string): boolean => { const result = Predicates.satisfiesContentMediaType(value, contentMediaType, contentEncoding); return result; };
-      assertions.push(ScalarNodeCompiler.stringAssertion('contentMediaType', contentMediaType, predicate));
     }
   }
 

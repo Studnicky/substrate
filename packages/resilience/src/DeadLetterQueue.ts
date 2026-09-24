@@ -68,19 +68,24 @@ export class DeadLetterQueue<T> {
   protected constructor(options?: DeadLetterQueueOptionsInterface) {
     this.hooks = new DeadLetterQueue.#OwnedHookInvoker();
     this.#entries = CircularBuffer.create<DeadLetterQueueEntryInterface<T>>({ 'overflow': 'grow' });
-    const capacity = options?.capacity ?? Infinity;
+    this.#capacity = DeadLetterQueue.#resolveCapacity(options?.capacity);
+    this.#clock = options?.clock ?? Date.now;
+    this.#aborted = this.#wireAbortSignal(options?.signal);
+  }
+
+  static #resolveCapacity(rawCapacity: number | undefined): number {
+    const capacity = rawCapacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');
     }
-    this.#capacity = capacity;
-    this.#clock = options?.clock ?? Date.now;
-    const signal = options?.signal;
-    let aborted = false;
-    if (signal !== undefined) {
-      if (signal.aborted) { aborted = true; }
-      else { signal.addEventListener('abort', () => { this.#abort(); }, { 'once': true }); }
-    }
-    this.#aborted = aborted;
+    return capacity;
+  }
+
+  #wireAbortSignal(signal: AbortSignal | undefined): boolean {
+    if (signal === undefined) { return false; }
+    if (signal.aborted) { return true; }
+    signal.addEventListener('abort', () => { this.#abort(); }, { 'once': true });
+    return false;
   }
 
   get size(): number { const result = this.#entries.length;

@@ -5,7 +5,10 @@ import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.j
 import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
 
 import { SchemaId } from '../SchemaId.js';
+import { KnownMetaschemaRegistry } from './KnownMetaschemaRegistry.js';
 import { SchemaNodeCompiler } from './SchemaNodeCompiler.js';
+import { SchemaResourceIndex } from './SchemaResourceIndex.js';
+import { SchemaVocabularyResolver } from './SchemaVocabularyResolver.js';
 
 interface MutableValidateFunctionInterface<TValidated> {
   (data: unknown): data is TValidated;
@@ -19,10 +22,14 @@ interface MutableValidateFunctionInterface<TValidated> {
  * building or evaluating source text. Serves node and browser identically since it has no runtime split.
  */
 export class EntityClosureRegistry {
+  private static readonly NO_REMOTES: ReadonlyMap<string, object | boolean> = new Map();
+
   public static create(fillDefaults: boolean): SchemaCompilerInterface {
     const cache = new Map<string, MutableValidateFunctionInterface<unknown>>();
 
-    const compile = <TValidated>(schema: object | boolean): EntityValidateFunctionInterface<TValidated> => {
+    const compile = <TValidated>(
+      schema: object | boolean, remoteSchemas: ReadonlyMap<string, object | boolean> = EntityClosureRegistry.NO_REMOTES
+    ): EntityValidateFunctionInterface<TValidated> => {
       const id = SchemaId.of(schema);
       if (id !== undefined) {
         const existing = cache.get(id);
@@ -31,7 +38,11 @@ export class EntityClosureRegistry {
           return result;
         }
       }
-      const node = SchemaNodeCompiler.compile(schema, { 'referenceCache': new Map(), 'rootSchema': schema }, '#');
+      const knownRemotes = EntityClosureRegistry.withKnownMetaschemas(remoteSchemas);
+      const resourceIndex = SchemaResourceIndex.build(schema, knownRemotes);
+      const validationVocabularyEnabled = SchemaVocabularyResolver.isValidationEnabled(schema, knownRemotes);
+      const compileContext = { 'referenceCache': new Map(), 'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled };
+      const node = SchemaNodeCompiler.compileRoot(schema, compileContext, '#', '');
       const predicate = EntityClosureRegistry.toPredicate<TValidated>(node, fillDefaults);
       if (id !== undefined) {
         cache.set(id, predicate);
@@ -48,10 +59,17 @@ export class EntityClosureRegistry {
     return result;
   }
 
+  /** A caller's remote registration for the same URI shadows the built-in metaschema. */
+  private static withKnownMetaschemas(remoteSchemas: ReadonlyMap<string, object | boolean>): ReadonlyMap<string, object | boolean> {
+    const merged = new Map<string, object | boolean>(KnownMetaschemaRegistry.remoteSchemas);
+    remoteSchemas.forEach((value, key) => { merged.set(key, value); });
+    return merged;
+  }
+
   private static toPredicate<TValidated>(node: CompiledNodeInterface, fillDefaults: boolean): MutableValidateFunctionInterface<TValidated> {
     const predicate = ((data: unknown): data is TValidated => {
       const context: ValidationExecutionContextInterface = {
-        'dynamicScope': [], 'options': { 'fillDefaults': fillDefaults }, 'referenceGuard': new Set<object>()
+        'dynamicScope': [], 'options': { 'fillDefaults': fillDefaults }
       };
       const valid = node.check(data, context);
       predicate.errors = valid ? null : node.collect(data, context, '', '');

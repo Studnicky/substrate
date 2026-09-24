@@ -1,8 +1,9 @@
 import type { DiscoverValuesOptionsEntity } from '../entities/DiscoverValuesOptionsEntity.js';
 import type { EngineContextEntity } from '../entities/EngineContextEntity.js';
 import type { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
+import type { PropertyPathEntity } from '../entities/PropertyPathEntity.js';
 import type { SortRuleEntity } from '../entities/SortRuleEntity.js';
-import type { DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface } from '../interfaces/index.js';
+import type { DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface, PartitionGroupInterface } from '../interfaces/index.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
 import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
 import type { FacetAccessorMapType, FacetFilterStateType } from '../types/index.js';
@@ -16,6 +17,16 @@ import {
   sortEngine,
   valueDiscoveryEngine
 } from './rules/index.js';
+
+/** Bundled recursion state for one `groupLevel` descent, including its child-branch overrides. */
+interface GroupLevelDescentInterface {
+  'context': EngineContextEntity.Type
+  'depth': number
+  'explicitGroupRules'?: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined
+  'filter': FilterRuleEntity.Type[]
+  'propertyOrder': PropertyPathEntity.Type[]
+  'sort'?: SortRuleEntity.Type[] | undefined
+}
 
 /**
  * Unified recursive multi-level grouping engine.
@@ -73,16 +84,26 @@ export class DrillDown implements DrillDownInterface {
     }
 
     const propertyOrder = this.resolvePropertyOrder(data, config);
-
     const rules = config.rules;
-
     const topFilter: FilterRuleEntity.Type[] = [
       ...(config.filter ?? []),
       ...(rules?.filter ?? [])
     ];
-
     const topSort = config.sort ?? rules?.sort;
+    const context = this.buildEngineContext(config);
 
+    const result = this.groupLevel(data, {
+      'context': context,
+      'depth': 0,
+      'explicitGroupRules': rules?.group,
+      'filter': topFilter,
+      'propertyOrder': propertyOrder,
+      'sort': topSort
+    });
+    return result;
+  }
+
+  private buildEngineContext(config: DrillDownConfigEntity.Type): EngineContextEntity.Type {
     const context: EngineContextEntity.Type = {
       'budget': { 'count': 0 },
       'minimumGroupSize': config.minimumGroupSize ?? 1
@@ -98,15 +119,7 @@ export class DrillDown implements DrillDownInterface {
       context.granularity = config.granularity;
     }
 
-    const result = this.groupLevel(
-      data,
-      topFilter,
-      propertyOrder,
-      0,
-      context,
-      { 'explicitGroupRules': rules?.group, 'sort': topSort }
-    );
-    return result;
+    return context;
   }
 
   resolveFilterState<TRecord, TDimension extends string>(
@@ -136,29 +149,11 @@ export class DrillDown implements DrillDownInterface {
     return result;
   }
 
-  private groupLevel(
-    subset: Record<string, unknown>[],
-    filter: FilterRuleEntity.Type[],
-    propertyOrder: string[],
-    depth: number,
-    context: EngineContextEntity.Type,
-    options?: { 'explicitGroupRules'?: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined, 'sort'?: SortRuleEntity.Type[] | undefined }
-  ): GroupNodeInterface {
-    const sort = options?.sort;
-    const explicitGroupRules = options?.explicitGroupRules;
+  private groupLevel(subset: Record<string, unknown>[], descent: GroupLevelDescentInterface): GroupNodeInterface {
+    const { context, depth, explicitGroupRules, filter, propertyOrder, sort } = descent;
     const filteredData = filterEngine.applyFilters(subset, filter);
 
-    if (filteredData.length === 0) {
-      const result = this.makeLeaf(filteredData, sort);
-      return result;
-    }
-
-    if (context.maximumNodes !== undefined && context.budget.count >= context.maximumNodes) {
-      const result = this.makeLeaf(filteredData, sort);
-      return result;
-    }
-
-    if (context.maximumDepth !== undefined && depth >= context.maximumDepth) {
+    if (this.isImmediateLeaf(filteredData, context, depth)) {
       const result = this.makeLeaf(filteredData, sort);
       return result;
     }
@@ -190,9 +185,30 @@ export class DrillDown implements DrillDownInterface {
 
     context.budget.count++;
 
-    // In EXPLICIT mode the propertyOrder is preserved for fallback at deeper depths.
-    // In AUTO mode the current property is consumed by advancing the slice.
-    const nextPropertyOrder = wasExplicit ? propertyOrder : propertyOrder.slice(1);
+    node.grouped = this.buildGroupedChildren(matched, currentRule, wasExplicit, descent);
+    this.finalizeGroupedChildren(node, sort);
+    this.attachUngroupable(node, ungroupable, hasGroupOutliers, sort);
+
+    return node;
+  }
+
+  private isImmediateLeaf(filteredData: Record<string, unknown>[], context: EngineContextEntity.Type, depth: number): boolean {
+    const result = filteredData.length === 0
+      || (context.maximumNodes !== undefined && context.budget.count >= context.maximumNodes)
+      || (context.maximumDepth !== undefined && depth >= context.maximumDepth);
+    return result;
+  }
+
+  // In EXPLICIT mode the propertyOrder is preserved for fallback at deeper depths.
+  // In AUTO mode the current property is consumed by advancing the slice.
+  private buildGroupedChildren(
+    matched: PartitionGroupInterface[],
+    currentRule: DrilldownRulesEntity.GroupRuleEntity.Type,
+    wasExplicit: boolean,
+    descent: GroupLevelDescentInterface
+  ): GroupNodeInterface[] {
+    const nextPropertyOrder = wasExplicit ? descent.propertyOrder : descent.propertyOrder.slice(1);
+    const children: GroupNodeInterface[] = [];
 
     for (let matchedIndex = 0; matchedIndex < matched.length; matchedIndex++) {
       const group = matched[matchedIndex]!;
@@ -201,49 +217,50 @@ export class DrillDown implements DrillDownInterface {
         continue;
       }
 
-      const perValueRules = group.groupValue.rules;
-
-      let childExplicit: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined;
-      let childDepth: number;
-      let childPropertyOrder: string[];
-      let childFilter: FilterRuleEntity.Type[];
-      let childSort: SortRuleEntity.Type[] | undefined;
-
-      if (perValueRules !== undefined) {
-        // Per-value nested rules: subtree is self-contained — restart explicit rules at depth 0.
-        childExplicit = perValueRules.group;
-        childDepth = 0;
-        childPropertyOrder = [];
-        childFilter = perValueRules.filter !== undefined
-          ? [...filter, ...perValueRules.filter]
-          : filter;
-        childSort = perValueRules.sort ?? sort;
-      } else {
-        // Standard descent: advance depth; AUTO mode also advances propertyOrder.
-        childExplicit = explicitGroupRules;
-        childDepth = depth + 1;
-        childPropertyOrder = nextPropertyOrder;
-        childFilter = filter;
-        childSort = sort;
-      }
-
-      const childNode = this.groupLevel(
-        group.nodes,
-        childFilter,
-        childPropertyOrder,
-        childDepth,
-        context,
-        { 'explicitGroupRules': childExplicit, 'sort': childSort }
-      );
-
-      childNode.value = group.nodeValue;
-      childNode.property = currentRule.property;
-
-      if (node.grouped !== null) {
-        node.grouped.push(childNode);
-      }
+      const childNode = this.buildChildNode(group, currentRule, nextPropertyOrder, descent);
+      children.push(childNode);
     }
 
+    return children;
+  }
+
+  private buildChildNode(
+    group: PartitionGroupInterface,
+    currentRule: DrilldownRulesEntity.GroupRuleEntity.Type,
+    nextPropertyOrder: string[],
+    descent: GroupLevelDescentInterface
+  ): GroupNodeInterface {
+    const perValueRules = group.groupValue.rules;
+
+    // Per-value nested rules: subtree is self-contained — restart explicit rules at depth 0.
+    // Otherwise, standard descent: advance depth; AUTO mode also advances propertyOrder.
+    const childDescent: GroupLevelDescentInterface = perValueRules !== undefined
+      ? {
+        'context': descent.context,
+        'depth': 0,
+        'explicitGroupRules': perValueRules.group,
+        'filter': perValueRules.filter !== undefined ? [...descent.filter, ...perValueRules.filter] : descent.filter,
+        'propertyOrder': [],
+        'sort': perValueRules.sort ?? descent.sort
+      }
+      : {
+        'context': descent.context,
+        'depth': descent.depth + 1,
+        'explicitGroupRules': descent.explicitGroupRules,
+        'filter': descent.filter,
+        'propertyOrder': nextPropertyOrder,
+        'sort': descent.sort
+      };
+
+    const childNode = this.groupLevel(group.nodes, childDescent);
+
+    childNode.value = group.nodeValue;
+    childNode.property = currentRule.property;
+
+    return childNode;
+  }
+
+  private finalizeGroupedChildren(node: GroupNodeInterface, sort: SortRuleEntity.Type[] | undefined): void {
     if (node.grouped !== null && node.grouped.length > 0) {
       sortEngine.sortChildren(
         node.grouped,
@@ -254,26 +271,34 @@ export class DrillDown implements DrillDownInterface {
     } else {
       node.grouped = null;
     }
+  }
 
-    if (ungroupable.length > 0) {
-      if (hasGroupOutliers) {
-        const outlierNode: GroupNodeInterface = {
-          'grouped': null,
-          'property': null,
-          'ungrouped': ungroupable,
-          'value': { 'outliers': true }
-        };
-
-        sortEngine.sortNodes(ungroupable, sort);
-        node.grouped ??= [];
-        node.grouped.push(outlierNode);
-      } else {
-        node.ungrouped = ungroupable;
-        sortEngine.sortNodes(node.ungrouped, sort);
-      }
+  private attachUngroupable(
+    node: GroupNodeInterface,
+    ungroupable: Record<string, unknown>[],
+    hasGroupOutliers: boolean,
+    sort: SortRuleEntity.Type[] | undefined
+  ): void {
+    if (ungroupable.length === 0) {
+      return;
     }
 
-    return node;
+    if (hasGroupOutliers) {
+      const outlierNode: GroupNodeInterface = {
+        'grouped': null,
+        'property': null,
+        'ungrouped': ungroupable,
+        'value': { 'outliers': true }
+      };
+
+      sortEngine.sortNodes(ungroupable, sort);
+      node.grouped ??= [];
+      node.grouped.push(outlierNode);
+      return;
+    }
+
+    node.ungrouped = ungroupable;
+    sortEngine.sortNodes(node.ungrouped, sort);
   }
 
   private resolveGroupRule(

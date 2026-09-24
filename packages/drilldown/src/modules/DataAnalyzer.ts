@@ -148,30 +148,28 @@ export class DataAnalyzer {
   }
 
   private static collectPaths(object: unknown, prefix: string, paths: Set<string>, depth = 0): void {
-    if (depth > 3 || Predicates.isNullish(object)) {
+    if (depth > 3 || Predicates.isNullish(object) || Predicates.isArray(object) || typeof object !== 'object') {
       return;
     }
 
-    if (Predicates.isArray(object)) {
-      return;
+    const record = object as Record<string, unknown>;
+    const keys = Object.keys(record);
+
+    for (let index = 0; index < keys.length; index++) {
+      const key = keys[index]!;
+      DataAnalyzer.collectPathAtKey(record, key, prefix, paths, depth);
     }
+  }
 
-    if (typeof object === 'object') {
-      const record = object as Record<string, unknown>;
-      const keys = Object.keys(record);
+  private static collectPathAtKey(record: Record<string, unknown>, key: string, prefix: string, paths: Set<string>, depth: number): void {
+    const path = prefix !== '' ? `${prefix}.${key}` : key;
+    const value = record[key];
 
-      for (let index = 0; index < keys.length; index++) {
-        const key = keys[index]!;
-        const path = prefix !== '' ? `${prefix}.${key}` : key;
-        const value = record[key];
-
-        if (!Predicates.isNullish(value) && !Predicates.isArray(value) && typeof value !== 'object') {
-          paths.add(path);
-        }
-        else if (typeof value === 'object' && !Predicates.isArray(value)) {
-          DataAnalyzer.collectPaths(value, path, paths, depth + 1);
-        }
-      }
+    if (!Predicates.isNullish(value) && !Predicates.isArray(value) && typeof value !== 'object') {
+      paths.add(path);
+    }
+    else if (typeof value === 'object' && !Predicates.isArray(value)) {
+      DataAnalyzer.collectPaths(value, path, paths, depth + 1);
     }
   }
 

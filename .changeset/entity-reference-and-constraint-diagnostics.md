@@ -1,0 +1,13 @@
+---
+"@studnicky/entity": major
+---
+
+`$ref` resolution follows RFC 3986: a reference merges against the base URI in effect at the node that declares it, dot segments removed, and a nested `$id` shifts the base beneath it. A resource index walks the document once, recording every resource by base URI and every anchor against the base in scope, so a fragment resolves relative to its own resource root. `EntityCompiler.compile` and `compileIntake` take an optional map of externally identified schemas, resolved per call rather than through a mutable registry; the eight 2020-12 metaschema documents ship with the package, so `$schema` resolves without network access. A `$dynamicRef` whose target declares no matching anchor behaves as a plain reference, `$dynamicAnchor` frames resolve per resource rather than per node, the reference cycle guard tracks resolution path rather than value identity, and pointer resolution accepts array indices and composite segments.
+
+Both entrypoints accept a bare boolean schema — `true` accepts every instance, `false` rejects every instance — through `compile`, `compileIntake`, and `compileCreate`.
+
+A rejected constraint reports the constraint, the expected and actual values, and the JSON Pointer where it applies, rather than only the brand name. Missing required properties and excess properties under a closed object report the same way. A constraint keyword carries a compile-time brand on its derived type, so a value constrained one way is not assignable to a type constrained another — `format: 'email'` and `format: 'uri'` derive as different types rather than both as `string`. A `$ref` to another entity's `$id` derives its type through `EntityReferenceRegistryInterface`, an interface consumers augment by declaration merging; an unregistered identifier derives as `ReferenceNotFoundType` rather than `unknown`. Schema-level `Pick`, `Omit`, `Partial`, `Required`, and `Extend` produce a new schema and its derived type together. Named cross-field invariants carry a JSON Pointer location through `InvariantFunctionInterface`.
+
+`EntityCompilerInterface`, `SchemaCompilerInterface`, `SchemaRegistrySetInterface`, `SchemaNodeInterface`, and `ObjectSchemaShapeInterface` are exported from `@studnicky/entity/interfaces`.
+
+The `contains` recheck follows a resolved `$ref` on both entrypoints, guarded against a repeated reference; an array reached through a reference and declaring `contains`, `minContains`, or `maxContains` is checked against the specified defaults rather than the backing engine's own result. A keyword location that crosses a `$ref` resolves the keyword's declared value from the referenced schema instead of returning `undefined` and falling back to engine prose.

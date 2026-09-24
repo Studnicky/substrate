@@ -204,30 +204,46 @@ export class ObjectOperators {
    * @throws {Error} If values are not plain objects
    */
   static handleSimilarity(value: unknown, filterValue: FilterValueEntity.Type, options?: { 'condition'?: FilterConditionInterface; 'data'?: unknown }): boolean {
-    if (!ObjectOperators.isPlainObjectValue(value)) {
-      throw new FilterOperatorError(`OBJECT.SIMILARITY requires value to be a plain object, got ${typeof value}`, { 'operator': 'OBJECT.SIMILARITY' });
-    }
-    if (!ObjectOperators.isPlainObjectValue(filterValue)) {
-      throw new FilterOperatorError(`OBJECT.SIMILARITY requires filter value to be a plain object, got ${typeof filterValue}`, { 'operator': 'OBJECT.SIMILARITY' });
+    ObjectOperators.assertPlainObjectOperand(value, 'value');
+    ObjectOperators.assertPlainObjectOperand(filterValue, 'filter value');
+
+    const threshold = ObjectOperators.resolveSimilarityThreshold(options?.condition);
+    const { matches, total } = ObjectOperators.countMatchingKeys(value, filterValue);
+
+    if (total === 0) {
+      // Both empty objects are 100% similar
+      return true;
     }
 
-    const threshold = options?.condition?.threshold ?? ObjectOperators.DEFAULT_SIMILARITY_THRESHOLD;
+    const similarity = matches / total;
+    const result = similarity >= threshold;
+
+    return result;
+  }
+
+  private static assertPlainObjectOperand(input: unknown, label: string): asserts input is Record<string, unknown> {
+    if (!ObjectOperators.isPlainObjectValue(input)) {
+      throw new FilterOperatorError(`OBJECT.SIMILARITY requires ${label} to be a plain object, got ${typeof input}`, { 'operator': 'OBJECT.SIMILARITY' });
+    }
+  }
+
+  private static resolveSimilarityThreshold(condition: FilterConditionInterface | undefined): number {
+    const threshold = condition?.threshold ?? ObjectOperators.DEFAULT_SIMILARITY_THRESHOLD;
 
     if (typeof threshold !== 'number' || threshold < 0 || threshold > 1) {
       throw new FilterOperatorError('OBJECT.SIMILARITY threshold must be a number between 0 and 1', { 'operator': 'OBJECT.SIMILARITY' });
     }
 
+    return threshold;
+  }
+
+  private static countMatchingKeys(value: Record<string, unknown>, filterValue: Record<string, unknown>): { 'matches': number, 'total': number } {
     const keysA = Object.keys(value);
     const keysB = Object.keys(filterValue);
     const allKeys = new Set([
       ...keysA,
       ...keysB
     ]);
-
-    if (allKeys.size === 0) {
-      // Both empty objects are 100% similar
-      return true;
-    }
 
     let matches = 0;
 
@@ -239,9 +255,6 @@ export class ObjectOperators {
       }
     }
 
-    const similarity = matches / allKeys.size;
-    const result = similarity >= threshold;
-
-    return result;
+    return { 'matches': matches, 'total': allKeys.size };
   }
 }

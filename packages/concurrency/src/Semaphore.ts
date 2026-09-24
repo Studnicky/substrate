@@ -105,27 +105,33 @@ export class Semaphore {
     if (Semaphore.#isAborted(signal)) {
       throw RuntimeError.create('Semaphore acquisition was aborted');
     }
-
     if (this.#available > 0 && this.#headWaiter === undefined) {
-      const permitsBefore = this.#available;
-      this.#available -= 1;
-      this.#activeCount += 1;
-      try {
-        await this.hooks.invokeAsync('onAcquire', () => {
-          const result = this.onAcquire(permitsBefore);
-          return result;
-        });
-      } catch (error) {
-        this.#activeCount -= 1;
-        this.#available += 1;
-        await this.#grantReadyWaiters();
-        this.#notifyIdleWaiters();
-        throw error;
-      }
-      const release = this.#buildRelease();
-      return release;
+      return await this.#acquireImmediate();
     }
+    return await this.#acquireQueued(signal);
+  }
 
+  async #acquireImmediate(): Promise<() => Promise<void>> {
+    const permitsBefore = this.#available;
+    this.#available -= 1;
+    this.#activeCount += 1;
+    try {
+      await this.hooks.invokeAsync('onAcquire', () => {
+        const result = this.onAcquire(permitsBefore);
+        return result;
+      });
+    } catch (error) {
+      this.#activeCount -= 1;
+      this.#available += 1;
+      await this.#grantReadyWaiters();
+      this.#notifyIdleWaiters();
+      throw error;
+    }
+    const release = this.#buildRelease();
+    return release;
+  }
+
+  async #acquireQueued(signal: AbortSignal | undefined): Promise<() => Promise<void>> {
     if (this.#maximumQueueSize > 0 && this.#queuedCount >= this.#maximumQueueSize) {
       throw new SemaphoreQueueFullError(this.#maximumQueueSize);
     }

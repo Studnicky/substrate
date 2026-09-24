@@ -38,6 +38,11 @@ interface MemberReadResultInterface {
   readonly 'value': unknown;
 }
 
+interface CauseAdvanceResultInterface {
+  readonly 'continue': boolean;
+  readonly 'next': unknown;
+}
+
 /** Reads arbitrary object members without allowing hostile accessors to escape the projection boundary. */
 class MemberReader {
   public static read(source: object, key: string): MemberReadResultInterface {
@@ -101,6 +106,28 @@ class Classifier {
   public static ofPrimitive(value: bigint | boolean | number | symbol): ThrownValueEntity.Type {
     return { 'detail': String(value), 'title': PROBLEM_TITLE_THROWN_PRIMITIVE, 'type': PROBLEM_TYPE_THROWN_PRIMITIVE };
   }
+
+  /** Classifies a single non-null, non-undefined value. AggregateError is checked before Error since it extends Error. */
+  public static classify(value: object | string | bigint | boolean | number | symbol): ThrownValueEntity.Type {
+    if (value instanceof AggregateError) {
+      const result = Classifier.ofAggregate(value);
+      return result;
+    }
+    if (Predicates.isError(value)) {
+      const result = Classifier.ofError(value);
+      return result;
+    }
+    if (Predicates.isString(value)) {
+      const result = Classifier.ofString(value);
+      return result;
+    }
+    if (typeof value === 'object' || typeof value === 'function') {
+      const result = Classifier.ofObject(value);
+      return result;
+    }
+    const result = Classifier.ofPrimitive(value);
+    return result;
+  }
 }
 
 
@@ -132,35 +159,39 @@ export class ThrownValueProjection {
         nodes.push(Classifier.ofNullish());
         break;
       }
-      if (current instanceof AggregateError) {
-        nodes.push(Classifier.ofAggregate(current));
-      } else if (Predicates.isError(current)) {
-        nodes.push(Classifier.ofError(current));
-      } else if (Predicates.isString(current)) {
-        nodes.push(Classifier.ofString(current));
-      } else if (typeof current === 'object' || typeof current === 'function') {
-        nodes.push(Classifier.ofObject(current));
-      } else if (typeof current === 'bigint' || typeof current === 'boolean' || typeof current === 'number' || typeof current === 'symbol') {
-        nodes.push(Classifier.ofPrimitive(current));
-      }
+      nodes.push(Classifier.classify(current));
 
-      if (!Predicates.isError(current)) { break; }
-      if (visited.has(current)) { break; }
-      visited.add(current);
-
-      const causeRead = MemberReader.read(current, 'cause');
-      if (!causeRead.readable) { break; }
-      const nextCause = causeRead.value;
-      if (nextCause === undefined || nextCause === null) { break; }
-      if (typeof nextCause === 'object' && visited.has(nextCause)) { break; }
-
-      current = nextCause;
+      const advance = ThrownValueProjection.advanceCause(current, visited);
+      if (!advance.continue) { break; }
+      current = advance.next;
       hopCount += 1;
     }
 
+    const result = ThrownValueProjection.assemble(nodes);
+    return result;
+  }
+
+  /** Determines the next `cause` hop, tracking visited objects so a cyclic chain stops immediately. */
+  private static advanceCause(current: unknown, visited: WeakSet<object>): CauseAdvanceResultInterface {
+    if (!Predicates.isError(current)) { return { 'continue': false, 'next': undefined }; }
+    if (visited.has(current)) { return { 'continue': false, 'next': undefined }; }
+    visited.add(current);
+
+    const causeRead = MemberReader.read(current, 'cause');
+    if (!causeRead.readable) { return { 'continue': false, 'next': undefined }; }
+    const nextCause = causeRead.value;
+    if (nextCause === undefined || nextCause === null) { return { 'continue': false, 'next': undefined }; }
+    if (typeof nextCause === 'object' && visited.has(nextCause)) { return { 'continue': false, 'next': undefined }; }
+
+    return { 'continue': true, 'next': nextCause };
+  }
+
+  /**
+   * Only the head keeps its stack: a cause node is a summary, and CauseNodeEntity
+   * declares no `stack` member, so carrying one would emit an off-schema node.
+   */
+  private static assemble(nodes: ThrownValueEntity.Type[]): ThrownValueEntity.Type {
     const head = nodes.at(0) ?? Classifier.ofNullish();
-    // Only the head keeps its stack: a cause node is a summary, and CauseNodeEntity
-    // declares no `stack` member, so carrying one would emit an off-schema node.
     const causes = nodes.slice(1).map((node) => {
       const { 'causes': _causes, 'stack': _stack, ...rest } = node;
 

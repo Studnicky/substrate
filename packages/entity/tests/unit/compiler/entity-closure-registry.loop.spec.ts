@@ -122,17 +122,17 @@ void describe('EntityClosureRegistry — scalar keywords', () => {
     assert.equal(validate('c'), false);
   });
 
-  void it('format', () => {
+  void it('format is annotation-only, never asserts', () => {
     const validate = compile({ 'format': 'email', 'type': 'string' });
     assert.equal(validate('a@b.com'), true);
-    assert.equal(validate('not-an-email'), false);
+    assert.equal(validate('not-an-email'), true);
   });
 
-  void it('contentEncoding, contentMediaType', () => {
+  void it('contentEncoding, contentMediaType are annotation-only, never assert', () => {
     const validate = compile({ 'contentEncoding': 'base64', 'contentMediaType': 'application/json', 'type': 'string' });
     const encoded = Buffer.from('{"a":1}').toString('base64');
     assert.equal(validate(encoded), true);
-    assert.equal(validate('not base64!!'), false);
+    assert.equal(validate('not base64!!'), true);
   });
 });
 

@@ -255,6 +255,21 @@ export class DrilldownUtilities {
       return null;
     }
 
+    const numbers = DrilldownUtilities.parseSemverNumbers(parts);
+
+    if (numbers === null) {
+      return null;
+    }
+
+    return {
+      'major': numbers.major,
+      'minor': numbers.minor,
+      'patch': numbers.patch,
+      'prerelease': prerelease
+    };
+  }
+
+  private static parseSemverNumbers(parts: string[]): { 'major': number, 'minor': number, 'patch': number } | null {
     const majorPart = parts[0];
     const minorPart = parts[1];
     const patchPart = parts[2];
@@ -267,20 +282,16 @@ export class DrilldownUtilities {
     const minor = minorPart !== undefined ? parseInt(minorPart, 10) : 0;
     const patch = patchPart !== undefined ? parseInt(patchPart, 10) : 0;
 
-    if (isNaN(major) || isNaN(minor) || isNaN(patch)) {
+    if (!DrilldownUtilities.isValidSemverTriple(major, minor, patch)) {
       return null;
     }
 
-    if (major < 0 || minor < 0 || patch < 0) {
-      return null;
-    }
+    return { 'major': major, 'minor': minor, 'patch': patch };
+  }
 
-    return {
-      'major': major,
-      'minor': minor,
-      'patch': patch,
-      'prerelease': prerelease
-    };
+  private static isValidSemverTriple(major: number, minor: number, patch: number): boolean {
+    const result = !isNaN(major) && !isNaN(minor) && !isNaN(patch) && major >= 0 && minor >= 0 && patch >= 0;
+    return result;
   }
 
   private static civilFromDays(days: number): { 'day': number, 'month': number, 'year': number } {
@@ -311,30 +322,12 @@ export class DrilldownUtilities {
       const char = path[i];
 
       if (char === '.') {
-        if (current !== '') {
-          parts.push(current);
-          current = '';
-        }
+        current = DrilldownUtilities.flushPathSegment(current, parts);
         i++;
       }
       else if (char === '[') {
-        if (current !== '') {
-          parts.push(current);
-          current = '';
-        }
-        i++;
-        let indexString = '';
-
-        while (i < path.length && path[i] !== ']') {
-          indexString += path[i];
-          i++;
-        }
-        const index = parseInt(indexString, 10);
-
-        if (!isNaN(index)) {
-          parts.push(index);
-        }
-        i++;
+        current = DrilldownUtilities.flushPathSegment(current, parts);
+        i = DrilldownUtilities.parseBracketIndex(path, i + 1, parts);
       }
       else {
         current += char;
@@ -347,6 +340,34 @@ export class DrilldownUtilities {
     }
 
     return parts;
+  }
+
+  /** Pushes a non-empty accumulated segment and returns the reset accumulator. */
+  private static flushPathSegment(current: string, parts: (number | string)[]): string {
+    if (current !== '') {
+      parts.push(current);
+    }
+    return '';
+  }
+
+  /** Parses a `[n]` index starting after the `[`; pushes `n` when numeric and returns the index past `]`. */
+  private static parseBracketIndex(path: string, start: number, parts: (number | string)[]): number {
+    let i = start;
+    let indexString = '';
+
+    while (i < path.length && path[i] !== ']') {
+      indexString += path[i];
+      i++;
+    }
+
+    const index = parseInt(indexString, 10);
+
+    if (!isNaN(index)) {
+      parts.push(index);
+    }
+
+    const result = i + 1;
+    return result;
   }
 
   private static roundToPrecision(value: number, precision: number): number {

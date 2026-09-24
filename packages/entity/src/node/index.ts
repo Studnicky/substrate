@@ -1,15 +1,15 @@
 /**
  * @studnicky/entity/node
- * Entity construction primitives for strict creation and intake boundaries, Ajv-backed.
+ * Entity construction primitives for strict creation and intake boundaries, specialised-closure engine backed.
  */
 import type { SchemaRegistrySetInterface } from '../interfaces/SchemaRegistrySetInterface.js';
 
+import { EntityClosureRegistrySet } from '../compiler/EntityClosureRegistrySet.js';
 import * as EntityCompilerModule from '../EntityCompiler.js';
-import { EntityAjvRegistry } from './EntityAjvRegistry.js';
 
 export class EntityCompiler extends EntityCompilerModule.EntityCompiler {
   protected static override get registries(): SchemaRegistrySetInterface {
-    return EntityAjvRegistry;
+    return EntityClosureRegistrySet;
   }
 }
 

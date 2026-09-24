@@ -68,22 +68,32 @@ export class ContextAsyncTransform {
     return result;
   }
 
+  static #isRuntimeImportDeclaration(statement: TypeScript.Statement, contextRuntimeModule: string): statement is TypeScript.ImportDeclaration {
+    const result = TypeScript.isImportDeclaration(statement)
+      && TypeScript.isStringLiteral(statement.moduleSpecifier)
+      && statement.moduleSpecifier.text === contextRuntimeModule;
+    return result;
+  }
+
+  static #findRuntimeIdentifierInNamedBindings(namedBindings: TypeScript.NamedImports): TypeScript.Identifier | undefined {
+    for (const element of namedBindings.elements) {
+      const importedName = element.propertyName?.text ?? element.name.text;
+      if (importedName === 'ContextAsyncRuntime') {
+        return element.name;
+      }
+    }
+    return undefined;
+  }
+
   static #findImportedRuntimeIdentifier(sourceFile: TypeScript.SourceFile, contextRuntimeModule: string): TypeScript.Identifier | undefined {
     for (const statement of sourceFile.statements) {
-      if (!TypeScript.isImportDeclaration(statement) || !TypeScript.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== contextRuntimeModule) {
-        continue;
-      }
-
-      const namedBindings = statement.importClause?.namedBindings;
-      if (namedBindings === undefined || !TypeScript.isNamedImports(namedBindings)) {
-        continue;
-      }
-
-      for (const element of namedBindings.elements) {
-        const importedName = element.propertyName?.text ?? element.name.text;
-        if (importedName === 'ContextAsyncRuntime') {
-          const result = element.name;
-          return result;
+      if (ContextAsyncTransform.#isRuntimeImportDeclaration(statement, contextRuntimeModule)) {
+        const namedBindings = statement.importClause?.namedBindings;
+        if (namedBindings !== undefined && TypeScript.isNamedImports(namedBindings)) {
+          const identifier = ContextAsyncTransform.#findRuntimeIdentifierInNamedBindings(namedBindings);
+          if (identifier !== undefined) {
+            return identifier;
+          }
         }
       }
     }

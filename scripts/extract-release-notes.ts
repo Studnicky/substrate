@@ -43,6 +43,16 @@ interface ReleasedPackageEntryInterface {
   readonly 'section': string;
 }
 
+function isValidRepositoryField(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if ('url' in value && value.url !== undefined && typeof value.url !== 'string') {
+    return false;
+  }
+  return true;
+}
+
 function isRootPackageManifest(value: unknown): value is RootPackageManifestInterface {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -50,14 +60,8 @@ function isRootPackageManifest(value: unknown): value is RootPackageManifestInte
   if (!('version' in value) || typeof value.version !== 'string') {
     return false;
   }
-  if ('repository' in value && value.repository !== undefined) {
-    const repository = value.repository;
-    if (typeof repository !== 'object' || repository === null) {
-      return false;
-    }
-    if ('url' in repository && repository.url !== undefined && typeof repository.url !== 'string') {
-      return false;
-    }
+  if ('repository' in value && value.repository !== undefined && !isValidRepositoryField(value.repository)) {
+    return false;
   }
   return true;
 }

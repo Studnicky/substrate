@@ -82,23 +82,39 @@ export class Logger implements LoggerInterface {
   protected readonly hooks: HookInvoker = new HookInvoker();
 
   protected constructor(options: LoggerOptionsInterface = {}) {
-    if (options.clock !== undefined && (!Predicates.isFunction(options.clock.hrtime) || !Predicates.isFunction(options.clock.now))) {
-      throw new ConfigurationError('clock must implement ClockProviderInterface');
-    }
-    if (options.metadata !== undefined && !Predicates.isObject(options.metadata)) {
-      throw new ConfigurationError('metadata must be a plain object');
-    }
-    const suppliedTransports: unknown = options.transports;
-    if (suppliedTransports !== undefined && !Predicates.isArray(suppliedTransports)) {
-      throw new ConfigurationError('transports must be an array');
-    }
-    const transportInputs: unknown[] = Predicates.isArray(suppliedTransports) ? [...suppliedTransports] : [];
+    Logger.#validateClockOption(options.clock);
+    Logger.#validateMetadataOption(options.metadata);
+    const transportInputs = Logger.#validateTransportsOption(options.transports);
 
     this.#level = options.level !== undefined
       ? ParseLogLevel.parse(options.level)
       : LOG_LEVEL.INFO;
     this.#clock = Clock.create(options.clock ?? RealTimeClockProvider.create());
     this.#metadata = ImmutableSnapshot.from(options.metadata ?? {});
+    this.#transports = Object.freeze(Logger.#buildTransports(transportInputs));
+  }
+
+  static #validateClockOption(clock: LoggerOptionsInterface['clock']): void {
+    if (clock !== undefined && (!Predicates.isFunction(clock.hrtime) || !Predicates.isFunction(clock.now))) {
+      throw new ConfigurationError('clock must implement ClockProviderInterface');
+    }
+  }
+
+  static #validateMetadataOption(metadata: LoggerOptionsInterface['metadata']): void {
+    if (metadata !== undefined && !Predicates.isObject(metadata)) {
+      throw new ConfigurationError('metadata must be a plain object');
+    }
+  }
+
+  static #validateTransportsOption(suppliedTransports: unknown): unknown[] {
+    if (suppliedTransports !== undefined && !Predicates.isArray(suppliedTransports)) {
+      throw new ConfigurationError('transports must be an array');
+    }
+    const result: unknown[] = Predicates.isArray(suppliedTransports) ? [...suppliedTransports] : [];
+    return result;
+  }
+
+  static #buildTransports(transportInputs: unknown[]): TransportInterface[] {
     const transports: TransportInterface[] = [];
     const transportCount = transportInputs.length;
     for (let index = 0; index < transportCount; index += 1) {
@@ -108,7 +124,7 @@ export class Logger implements LoggerInterface {
       }
       transports.push(candidate);
     }
-    this.#transports = Object.freeze(transports);
+    return transports;
   }
 
   /**

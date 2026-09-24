@@ -10,7 +10,8 @@ export class ConformanceRunner {
   public static run(
     engineName: string,
     files: readonly ConformanceSuiteFileInterface[],
-    compile: ConformanceCompileFunctionInterface
+    compile: ConformanceCompileFunctionInterface,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): ConformanceReportInterface {
     const failures: ConformanceFailureInterface[] = [];
     let total = 0;
@@ -22,7 +23,7 @@ export class ConformanceRunner {
       const groupCount = file.groups.length;
       for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
         const group = file.groups[groupIndex]!;
-        const validate = ConformanceRunner.compileGroup(compile, group.schema);
+        const validate = ConformanceRunner.compileGroup(compile, group.schema, remoteSchemas);
         const caseCount = group.tests.length;
         for (let caseIndex = 0; caseIndex < caseCount; caseIndex += 1) {
           const testCase = group.tests[caseIndex]!;
@@ -56,10 +57,11 @@ export class ConformanceRunner {
   /** Compiles a group's schema, wrapping a synchronous compile-time throw as an always-failing validator. */
   private static compileGroup(
     compile: ConformanceCompileFunctionInterface,
-    schema: unknown
+    schema: unknown,
+    remoteSchemas: ReadonlyMap<string, object | boolean> | undefined
   ): EntityValidateFunctionInterface<unknown> | { readonly 'compileError': string } {
     try {
-      const result = compile(schema as object);
+      const result = compile(schema as object, remoteSchemas);
       return result;
     } catch (error) {
       const result = { 'compileError': ConformanceRunner.describeError(error) };

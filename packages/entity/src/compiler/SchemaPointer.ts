@@ -15,7 +15,7 @@ export class SchemaPointer {
     const count = segments.length;
     for (let index = 0; index < count; index += 1) {
       const segment = segments[index]!.replaceAll('~1', '/').replaceAll('~0', '~');
-      if (!Predicates.isRecord(target)) {
+      if (!Predicates.isObjectLike(target)) {
         return undefined;
       }
       target = Reflect.get(target, segment);

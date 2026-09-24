@@ -40,6 +40,32 @@ interface RetryCallFsmInterface {
   transition(to: RetryCallStateEntity.Type): void;
 }
 
+interface RetryConfigOverridesInterface {
+  readonly 'backoffStrategy': RetryConfigInterface['backoffStrategy'];
+  readonly 'clockProvider': RetryConfigInterface['clock'];
+  readonly 'errorClassifier': RetryConfigInterface['errorClassifier'];
+  readonly 'eventSink': RetryConfigInterface['eventSink'];
+}
+
+interface RetryErrorHandlingOptionsInterface {
+  readonly 'attempt': number;
+  readonly 'callFsm': RetryCallFsmInterface;
+  readonly 'error': Error;
+  readonly 'errors': Error[];
+  readonly 'startTime': number;
+  readonly 'state': Record<string, unknown>;
+}
+
+interface RetryPerformOptionsInterface {
+  readonly 'attempt': number;
+  readonly 'callFsm': RetryCallFsmInterface;
+  readonly 'classification': ErrorClassificationEntity.Type;
+  readonly 'error': Error;
+  readonly 'errors': Error[];
+  readonly 'startTime': number;
+  readonly 'state': Record<string, unknown>;
+}
+
 /**
  * Composes the shared invoker with Retry's swallow disposition. Synchronous
  * hooks stay synchronous; asynchronous failures and configured timeouts are
@@ -180,49 +206,18 @@ export class Retry implements RetryInterface {
         ...configData
       } = config;
 
-      if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
-        throw ConfigurationError.create('clock must implement ClockProviderInterface');
-      }
-
-      if (backoffStrategy !== undefined) {
-        if (!Predicates.isObject(backoffStrategy)) {
-          throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
-        }
-
-        const strategy: unknown = Reflect.get(backoffStrategy, 'strategy');
-        if (!Predicates.isFunction(strategy)) {
-          throw ConfigurationError.create('backoffStrategy.strategy must be a function');
-        }
-
-        const baseDelayMs: unknown = Reflect.get(backoffStrategy, 'baseDelayMs');
-        BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
-      }
-
-      if (eventSink !== undefined) {
-        if (!Predicates.isObject(eventSink) || !Predicates.isFunction(Reflect.get(eventSink, 'publish'))) {
-          throw ConfigurationError.create('eventSink must implement EventSinkInterface');
-        }
-      }
-
-      if (errorClassifier !== undefined && !Predicates.isFunction(errorClassifier)) {
-        if (!Predicates.isObject(errorClassifier)) {
-          throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
-        }
-
-        const classify: unknown = Reflect.get(errorClassifier, 'classify');
-        if (!Predicates.isFunction(classify)) {
-          throw ConfigurationError.create('errorClassifier.classify must be a function');
-        }
-      }
+      Retry.validateClockProvider(clockProvider);
+      Retry.validateBackoffStrategy(backoffStrategy);
+      Retry.validateEventSink(eventSink);
+      Retry.validateErrorClassifier(errorClassifier);
 
       const parsed = RetryConfigEntity.intake(configData);
-      const result: RetryConfigInterface = {
-        ...parsed,
-        ...(backoffStrategy === undefined ? {} : { 'backoffStrategy': backoffStrategy }),
-        ...(clockProvider === undefined ? {} : { 'clock': clockProvider }),
-        ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier }),
-        ...(eventSink === undefined ? {} : { 'eventSink': eventSink })
-      };
+      const result = Retry.mergeValidatedConfig(parsed, {
+        'backoffStrategy': backoffStrategy,
+        'clockProvider': clockProvider,
+        'errorClassifier': errorClassifier,
+        'eventSink': eventSink
+      });
       return result;
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
@@ -230,6 +225,59 @@ export class Retry implements RetryInterface {
       }
       throw error;
     }
+  }
+
+  private static validateClockProvider(clockProvider: RetryConfigInterface['clock']): void {
+    if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+      throw ConfigurationError.create('clock must implement ClockProviderInterface');
+    }
+  }
+
+  private static validateBackoffStrategy(backoffStrategy: RetryConfigInterface['backoffStrategy']): void {
+    if (backoffStrategy === undefined) {
+      return;
+    }
+    if (!Predicates.isObject(backoffStrategy)) {
+      throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
+    }
+
+    const strategy: unknown = Reflect.get(backoffStrategy, 'strategy');
+    if (!Predicates.isFunction(strategy)) {
+      throw ConfigurationError.create('backoffStrategy.strategy must be a function');
+    }
+
+    const baseDelayMs: unknown = Reflect.get(backoffStrategy, 'baseDelayMs');
+    BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
+  }
+
+  private static validateEventSink(eventSink: RetryConfigInterface['eventSink']): void {
+    if (eventSink !== undefined && (!Predicates.isObject(eventSink) || !Predicates.isFunction(Reflect.get(eventSink, 'publish')))) {
+      throw ConfigurationError.create('eventSink must implement EventSinkInterface');
+    }
+  }
+
+  private static validateErrorClassifier(errorClassifier: RetryConfigInterface['errorClassifier']): void {
+    if (errorClassifier === undefined || Predicates.isFunction(errorClassifier)) {
+      return;
+    }
+    if (!Predicates.isObject(errorClassifier)) {
+      throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
+    }
+
+    const classify: unknown = Reflect.get(errorClassifier, 'classify');
+    if (!Predicates.isFunction(classify)) {
+      throw ConfigurationError.create('errorClassifier.classify must be a function');
+    }
+  }
+
+  private static mergeValidatedConfig(parsed: RetryConfigInterface, overrides: RetryConfigOverridesInterface): RetryConfigInterface {
+    return {
+      ...parsed,
+      ...(overrides.backoffStrategy === undefined ? {} : { 'backoffStrategy': overrides.backoffStrategy }),
+      ...(overrides.clockProvider === undefined ? {} : { 'clock': overrides.clockProvider }),
+      ...(overrides.errorClassifier === undefined ? {} : { 'errorClassifier': overrides.errorClassifier }),
+      ...(overrides.eventSink === undefined ? {} : { 'eventSink': overrides.eventSink })
+    };
   }
 
   /**
@@ -375,7 +423,14 @@ export class Retry implements RetryInterface {
       }
 
       errors.push(outcome.error);
-      await this.handleError(callFsm, attempt, outcome.error, errors, startTime, state);
+      await this.handleError({
+        'attempt': attempt,
+        'callFsm': callFsm,
+        'error': outcome.error,
+        'errors': errors,
+        'startTime': startTime,
+        'state': state
+      });
     }
   }
 
@@ -419,14 +474,8 @@ export class Retry implements RetryInterface {
   /**
    * Handle error during execution.
    */
-  private async handleError(
-    callFsm: RetryCallFsmInterface,
-    attempt: number,
-    error: Error,
-    errors: Error[],
-    startTime: number,
-    state: Record<string, unknown>
-  ): Promise<void> {
+  private async handleError(options: RetryErrorHandlingOptionsInterface): Promise<void> {
+    const { attempt, callFsm, error, errors, startTime, state } = options;
     const classification = this.classifierCallback(error, attempt);
 
     if (!classification.retryable) {
@@ -440,7 +489,15 @@ export class Retry implements RetryInterface {
 
     // performRetry transitions FSM: attempting → waiting, then checks budget,
     // then (if budget remains) sleeps and transitions waiting → attempting.
-    await this.performRetry(callFsm, attempt, error, classification, errors, startTime, state);
+    await this.performRetry({
+      'attempt': attempt,
+      'callFsm': callFsm,
+      'classification': classification,
+      'error': error,
+      'errors': errors,
+      'startTime': startTime,
+      'state': state
+    });
   }
 
   /**
@@ -538,15 +595,9 @@ export class Retry implements RetryInterface {
    * (waiting → exhausted) and lifecycle hook abort (waiting → aborted) before
    * sleeping and transitioning waiting → attempting for the next loop iteration.
    */
-  private async performRetry(
-    callFsm: RetryCallFsmInterface,
-    attempt: number,
-    error: Error,
-    classification: ErrorClassificationEntity.Type,
-    errors: Error[],
-    startTime: number,
-    state: Record<string, unknown>
-  ): Promise<void> {
+  private async performRetry(options: RetryPerformOptionsInterface): Promise<void> {
+    const { attempt, callFsm, classification, error, errors, startTime, state } = options;
+
     // Enter waiting state before any budget or abort checks so that terminal
     // transitions (exhausted, aborted) always come from 'waiting'.
     callFsm.transition({ 'variant': 'waiting' });

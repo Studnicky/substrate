@@ -4,12 +4,12 @@
  */
 import type { SchemaRegistrySetInterface } from '../interfaces/SchemaRegistrySetInterface.js';
 
+import { EntityClosureRegistrySet } from '../compiler/EntityClosureRegistrySet.js';
 import * as EntityCompilerModule from '../EntityCompiler.js';
-import { EntityCfworkerRegistry } from './EntityCfworkerRegistry.js';
 
 export class EntityCompiler extends EntityCompilerModule.EntityCompiler {
   protected static override get registries(): SchemaRegistrySetInterface {
-    return EntityCfworkerRegistry;
+    return EntityClosureRegistrySet;
   }
 }
 

@@ -5,6 +5,4 @@ import type { ValidationExecutionOptionsInterface } from './ValidationExecutionO
 export interface ValidationExecutionContextInterface {
   readonly 'dynamicScope': DynamicScopeFrameInterface[];
   readonly 'options': ValidationExecutionOptionsInterface;
-  /** Object-identity guard: values currently being walked through an in-flight `$ref`, catching cyclic data. */
-  readonly 'referenceGuard': Set<object>;
 }

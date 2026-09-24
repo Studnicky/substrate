@@ -121,20 +121,54 @@ function reportBarePackageSpecifier(sourceFile: ts.SourceFile, node: ts.Node, sp
   errors.push(`${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)} imports ${specifier} without /node or /browser`);
 }
 
+function extractImportExportSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
+  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+    return { 'node': node.moduleSpecifier, 'specifier': node.moduleSpecifier.text };
+  }
+  return undefined;
+}
+
+function extractImportEqualsSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
+    return { 'node': node.moduleReference.expression, 'specifier': node.moduleReference.expression.text };
+  }
+  return undefined;
+}
+
+function extractImportTypeSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
+  if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+    return { 'node': node.argument.literal, 'specifier': node.argument.literal.text };
+  }
+  return undefined;
+}
+
+function extractDynamicImportSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
+  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
+    const [firstArgument] = node.arguments;
+    if (firstArgument !== undefined && ts.isStringLiteral(firstArgument)) {
+      return { 'node': firstArgument, 'specifier': firstArgument.text };
+    }
+  }
+  return undefined;
+}
+
+// Each extractor guards a disjoint ts.Node shape; at most one matches per node.
+const specifierExtractors: readonly ((node: ts.Node) => ImportSpecifierEntryInterface | undefined)[] = [
+  extractImportExportSpecifier,
+  extractImportEqualsSpecifier,
+  extractImportTypeSpecifier,
+  extractDynamicImportSpecifier
+];
+
 function collectImportSpecifiers(sourceFile: ts.SourceFile): ImportSpecifierEntryInterface[] {
   const specifiers: ImportSpecifierEntryInterface[] = [];
 
   const visit = (node: ts.Node): void => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
-      specifiers.push({ 'node': node.moduleSpecifier, 'specifier': node.moduleSpecifier.text });
-    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
-      specifiers.push({ 'node': node.moduleReference.expression, 'specifier': node.moduleReference.expression.text });
-    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-      specifiers.push({ 'node': node.argument.literal, 'specifier': node.argument.literal.text });
-    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
-      const [firstArgument] = node.arguments;
-      if (firstArgument !== undefined && ts.isStringLiteral(firstArgument)) {
-        specifiers.push({ 'node': firstArgument, 'specifier': firstArgument.text });
+    for (const extractor of specifierExtractors) {
+      const found = extractor(node);
+      if (found !== undefined) {
+        specifiers.push(found);
+        break;
       }
     }
 
@@ -150,6 +184,23 @@ function inspectEmittedModuleSpecifiers(sourceFile: ts.SourceFile, packageName: 
     if (specifier.startsWith('node:')) {
       throw new Error(`${packageName} browser entrypoint includes Node builtin ${specifier}`);
     }
+  }
+}
+
+async function inspectBrowserBuildOutput(outputDirectory: string, packageName: string): Promise<void> {
+  const outputFiles = await readdir(outputDirectory);
+
+  for (const outputFile of outputFiles) {
+    if (!outputFile.endsWith('.js')) {
+      continue;
+    }
+
+    const outputPath = join(outputDirectory, outputFile);
+    const code = await readFile(outputPath, 'utf8');
+    inspectEmittedModuleSpecifiers(
+      ts.createSourceFile(outputPath, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS),
+      packageName
+    );
   }
 }
 
@@ -448,20 +499,7 @@ if (!validateOnly) {
         ].join('\n')
       );
       await executeFile('pnpm', ['exec', 'vite', 'build', '--config', configPath], { 'cwd': checkerRoot });
-      const outputFiles = await readdir(outputDirectory);
-
-      for (const outputFile of outputFiles) {
-        if (!outputFile.endsWith('.js')) {
-          continue;
-        }
-
-        const outputPath = join(outputDirectory, outputFile);
-        const code = await readFile(outputPath, 'utf8');
-        inspectEmittedModuleSpecifiers(
-          ts.createSourceFile(outputPath, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS),
-          packageName
-        );
-      }
+      await inspectBrowserBuildOutput(outputDirectory, packageName);
     } finally {
       await rm(temporaryDirectory, { 'force': true, 'recursive': true });
     }
