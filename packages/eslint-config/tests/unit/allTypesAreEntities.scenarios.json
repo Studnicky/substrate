@@ -34,6 +34,11 @@
       "code": "type ForwardingType<T> = Array<T>;",
       "filename": "packages/retry/src/models/Forwarding.ts",
       "name": "generic forwarding alias is left to the aliasing rule"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n}",
+      "filename": "packages/retry/src/entities/NodeStaticTypeFixtureEntity.ts",
+      "name": "NodeStaticType<typeof Node>-derived entity namespace Type form is valid (constraint-carrying engine)"
     }
   ],
   "invalid": [
@@ -156,6 +161,16 @@
       ],
       "filename": "packages/retry/src/entities/FooEntity.ts",
       "name": "an interface extending a schema-derived type is the same canonical-derivation pattern as a type alias"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport const ExternalNode = defineNode<string>({ type: 'string' } as const);\nexport namespace CanonicalEntity {\n  export type Type = NodeStaticType<typeof ExternalNode>;\n}",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/ExternalNodeFixtureEntity.ts",
+      "name": "NodeStaticType referencing a Node the namespace does not itself own is still rejected"
     }
   ]
 }

@@ -42,6 +42,7 @@ import {
 } from 'typescript';
 
 import { type AliasClassificationResultInterface } from './AliasClassificationResultInterface.js';
+import { SCHEMA_DERIVING_TYPE_MODULES } from './constants/SchemaDerivationConstants.js';
 import { type ContractEvidenceInterface } from './ContractEvidenceInterface.js';
 import { type DataNodeResultInterface } from './DataNodeResultInterface.js';
 import { type InterfaceClassificationResultInterface } from './InterfaceClassificationResultInterface.js';
@@ -623,7 +624,7 @@ export class TypeContractContext {
   public isCanonicalFromSchemaReference(derivingNameNode: Node): boolean {
     const resolvedSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(derivingNameNode));
 
-    if (resolvedSymbol?.getName() !== 'FromSchema') {
+    if (resolvedSymbol === undefined || !SCHEMA_DERIVING_TYPE_MODULES.has(resolvedSymbol.getName())) {
       return false;
     }
 
@@ -664,8 +665,13 @@ export class TypeContractContext {
 
     const moduleSpecifier = statement.moduleSpecifier;
 
-    if (moduleSpecifier === undefined || !isStringLiteral(moduleSpecifier)
-      || moduleSpecifier.text !== 'json-schema-to-ts') {
+    if (moduleSpecifier === undefined || !isStringLiteral(moduleSpecifier)) {
+      return;
+    }
+
+    const derivingTypeName = TypeContractContext.derivingTypeNameForModule(moduleSpecifier.text);
+
+    if (derivingTypeName === undefined) {
       return;
     }
 
@@ -676,16 +682,26 @@ export class TypeContractContext {
     }
 
     const exportedSymbols = this.checker.getExportsOfModule(moduleSymbol);
-    const exportedFromSchema = exportedSymbols.find((symbol) => {
-      const result = symbol.getName() === 'FromSchema';
+    const exportedDerivingType = exportedSymbols.find((symbol) => {
+      const result = symbol.getName() === derivingTypeName;
 
       return result;
     });
-    const resolvedSymbol = this.resolveSymbol(exportedFromSchema);
+    const resolvedSymbol = this.resolveSymbol(exportedDerivingType);
 
     if (resolvedSymbol !== undefined) {
       this.canonicalFromSchemaSymbols.add(resolvedSymbol);
     }
+  }
+
+  private static derivingTypeNameForModule(moduleSpecifierText: string): string | undefined {
+    for (const [derivingTypeName, moduleSpecifier] of SCHEMA_DERIVING_TYPE_MODULES) {
+      if (moduleSpecifier === moduleSpecifierText) {
+        return derivingTypeName;
+      }
+    }
+
+    return undefined;
   }
 
   private isSchemaDerivingFunction(derivingNameNode: Node, builderCallee: Symbol | undefined): boolean {
@@ -695,7 +711,7 @@ export class TypeContractContext {
       return false;
     }
 
-    if (derivingSymbol.getName() === 'FromSchema') {
+    if (SCHEMA_DERIVING_TYPE_MODULES.has(derivingSymbol.getName())) {
       const result = this.isCanonicalFromSchemaReference(derivingNameNode);
 
       return result;

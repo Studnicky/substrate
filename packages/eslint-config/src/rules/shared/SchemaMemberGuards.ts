@@ -1,6 +1,7 @@
 import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from './astHelpers.js';
+import { ACCEPTED_SCHEMA_VALUE_NAMES, DISCRIMINANT_DEFEATING_SCHEMA_KEYS } from './constants/SchemaDerivationConstants.js';
 
 // Shared between `entity-file-shape`, which REQUIRES an entity namespace to expose a
 // `validate` type guard, and `static-method-verbs`, which would otherwise report that same
@@ -126,12 +127,89 @@ export class SchemaMemberGuards {
       }
       const { exprName } = argument;
 
-      if (Predicates.isRecord(exprName) && exprName.name === 'Schema') {
+      if (Predicates.isRecord(exprName) && typeof exprName.name === 'string' && ACCEPTED_SCHEMA_VALUE_NAMES.has(exprName.name)) {
         return true;
       }
     }
 
     return false;
+  }
+
+  // True when a deriving-type reference carries a schema-owning `typeof` argument AND at least
+  // one further argument — `json-schema-to-ts`'s `deserialize` override slot, which REPLACES the
+  // structurally-derived type with a hand-written one. A single clean `typeof Schema`/`typeof
+  // Node` argument has nothing to override; only the presence of a second argument alongside it
+  // is suspect.
+  private static parametersHaveOverride(parameters: readonly unknown[]): boolean {
+    const result = parameters.length > 1 && SchemaMemberGuards.hasSchemaTypeQueryArgument(parameters);
+
+    return result;
+  }
+
+  static derivedTypeHasOverride(decl: unknown): boolean {
+    if (!Predicates.isRecord(decl)) {
+      return false;
+    }
+    const { typeAnnotation } = decl;
+
+    if (!Predicates.isRecord(typeAnnotation)) {
+      return false;
+    }
+
+    const result = SchemaMemberGuards.typeAnnotationHasOverride(typeAnnotation);
+
+    return result;
+  }
+
+  private static typeAnnotationHasOverride(typeAnnotation: Record<string, unknown>): boolean {
+    const nodeType = AstHelpers.getNodeType(typeAnnotation);
+
+    if (nodeType === 'TSTypeReference') {
+      const parameters = SchemaMemberGuards.typeReferenceParameterList(typeAnnotation);
+      const result = parameters !== undefined && SchemaMemberGuards.parametersHaveOverride(parameters);
+
+      return result;
+    }
+    if (nodeType === 'TSIntersectionType') {
+      const { types } = typeAnnotation;
+      const first: unknown = Array.isArray(types) ? types.at(0) : undefined;
+      const result = Predicates.isRecord(first) && SchemaMemberGuards.typeAnnotationHasOverride(first);
+
+      return result;
+    }
+
+    return false;
+  }
+
+  // Interface-heritage counterpart to `derivedTypeHasOverride` — same override-slot check,
+  // adapted to the heritage-clause shape `isInterfaceSchemaDerived` already adapts.
+  static interfaceDerivedTypeHasOverride(declaration: unknown): boolean {
+    if (!Predicates.isRecord(declaration)) {
+      return false;
+    }
+    const heritageClauses: unknown = Reflect.get(declaration, 'extends');
+
+    if (!Array.isArray(heritageClauses)) {
+      return false;
+    }
+
+    const result = heritageClauses.some(SchemaMemberGuards.heritageHasOverride);
+
+    return result;
+  }
+
+  private static heritageHasOverride(heritage: unknown): boolean {
+    if (!Predicates.isRecord(heritage)) {
+      return false;
+    }
+    const adapted: Record<string, unknown> = {
+      ...heritage,
+      'type': 'TSTypeReference',
+      'typeName': Reflect.get(heritage, 'expression')
+    };
+    const result = SchemaMemberGuards.typeAnnotationHasOverride(adapted);
+
+    return result;
   }
 
   // `interface Type extends FromSchema<typeof Schema, {...}> {}` — the only way to make `Type`
@@ -424,5 +502,90 @@ export class SchemaMemberGuards {
     const result = (typeName).name === 'Type';
 
     return result;
+  }
+
+  // Walks the `Schema` declarator's own literal value for a `not`/`if`/`then`/`else` key at any
+  // depth — the only proof, from the schema itself, that no structural derivation exists.
+  static schemaDefeatsStructuralDerivation(declarator: unknown): boolean {
+    if (!Predicates.isRecord(declarator)) {
+      return false;
+    }
+
+    const literal = SchemaMemberGuards.unwrapToObjectLiteral(declarator.init);
+    const result = literal !== undefined && SchemaMemberGuards.containsDiscriminantDefeatingKey(literal);
+
+    return result;
+  }
+
+  private static unwrapToObjectLiteral(node: unknown): Record<string, unknown> | undefined {
+    if (!Predicates.isRecord(node)) {
+      return undefined;
+    }
+    const nodeType = AstHelpers.getNodeType(node);
+
+    if (nodeType === 'TSAsExpression' || nodeType === 'TSSatisfiesExpression') {
+      const result = SchemaMemberGuards.unwrapToObjectLiteral(node.expression);
+
+      return result;
+    }
+    if (nodeType === 'ObjectExpression') {
+      return node;
+    }
+
+    return undefined;
+  }
+
+  private static containsDiscriminantDefeatingKey(node: unknown): boolean {
+    if (!Predicates.isRecord(node)) {
+      return false;
+    }
+    const nodeType = AstHelpers.getNodeType(node);
+
+    if (nodeType === 'ObjectExpression') {
+      const properties = Array.isArray(node.properties) ? node.properties : [];
+      const result = properties.some(SchemaMemberGuards.propertyDefeatsDerivation);
+
+      return result;
+    }
+    if (nodeType === 'ArrayExpression') {
+      const elements = Array.isArray(node.elements) ? node.elements : [];
+      const result = elements.some(SchemaMemberGuards.containsDiscriminantDefeatingKey);
+
+      return result;
+    }
+
+    return false;
+  }
+
+  private static propertyDefeatsDerivation(property: unknown): boolean {
+    if (!Predicates.isRecord(property)) {
+      return false;
+    }
+
+    const keyName = SchemaMemberGuards.staticKeyName(property.key);
+
+    if (keyName !== undefined && DISCRIMINANT_DEFEATING_SCHEMA_KEYS.has(keyName)) {
+      return true;
+    }
+
+    const result = SchemaMemberGuards.containsDiscriminantDefeatingKey(property.value);
+
+    return result;
+  }
+
+  private static staticKeyName(key: unknown): string | undefined {
+    if (!Predicates.isRecord(key)) {
+      return undefined;
+    }
+    const keyType = AstHelpers.getNodeType(key);
+
+    if (keyType === 'Identifier' && typeof key.name === 'string') {
+      return key.name;
+    }
+    if (keyType === 'Literal' && typeof key.value === 'string') {
+      return key.value;
+    }
+
+    return undefined;
   }
 }

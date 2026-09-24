@@ -236,9 +236,19 @@
       "name": "[entities] valid entity: Zod Schema builder call, Type from z.infer<typeof Schema>"
     },
     {
-      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace RecursiveEntity {\n  const selfPointerKey = '$ref';\n  const nested = { title: 'RecursiveNested' } as { title: 'RecursiveNested' };\n  Object.defineProperty(nested, selfPointerKey, { enumerable: true, value: '#' });\n  export const Schema = { $id: 'urn:test:recursive', properties: { child: nested }, type: 'object' } as const;\n  export interface Type extends FromSchema<typeof Schema, { deserialize: [{ output: Type; pattern: { title: 'RecursiveNested' } }] }> {}\n  export const validate = EntityCompiler.compile<Type>(Schema);\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace RecursiveEntity {\n  const selfPointerKey = '$ref';\n  const nested = { title: 'RecursiveNested' } as { title: 'RecursiveNested' };\n  Object.defineProperty(nested, selfPointerKey, { enumerable: true, value: '#' });\n  export const Schema = { $id: 'urn:test:recursive', properties: { child: nested }, type: 'object' } as const;\n  export interface Type extends FromSchema<typeof Schema> {}\n  export const validate = EntityCompiler.compile<Type>(Schema);\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
       "filename": "/project/src/entities/RecursiveEntity.ts",
       "name": "[entities] self-referential entity: interface Type extends FromSchema<typeof Schema> {} recognized as the Type member"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { NodeStaticType } from '@studnicky/entity/types';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export const Node = SchemaNode.defineObject(Schema, {});\n  export type Type = NodeStaticType<typeof Node>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "filename": "/project/src/FooEntity.ts",
+      "name": "[entities] valid entity: Type from NodeStaticType<typeof Node> (constraint-carrying engine)"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace PatchOperationEntity {\n  export const Schema = {\n    additionalProperties: false,\n    allOf: [\n      { anyOf: [{ not: { properties: { op: { const: 'add' } } } }, { properties: { value: {} }, required: ['value'] }] }\n    ],\n    properties: { op: { enum: ['add', 'remove'] }, path: { type: 'string' }, value: {} },\n    required: ['op', 'path'],\n    type: 'object'\n  } as const;\n  export type Type =\n    | { op: 'add'; path: string; value: unknown }\n    | { op: 'remove'; path: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).path === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "filename": "/project/src/entities/PatchOperationEntity.ts",
+      "name": "[entities] a schema containing `not` (a conditional discriminant allOf/anyOf/not shape) permits a hand-written Type"
     }
   ],
   "invalid": [
@@ -787,6 +797,36 @@
       ],
       "filename": "/project/src/FooEntity.ts",
       "name": "[entities] namespace name BarEntity does not match filename base FooEntity"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "typeNotFromSchema"
+        }
+      ],
+      "filename": "/project/src/FooEntity.ts",
+      "name": "[entities] invalid entity: Type is a bare hand-written object shape, not derived from Schema or Node"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "typeNotFromSchema"
+        }
+      ],
+      "filename": "/project/src/entities/FooEntity.ts",
+      "name": "[entities] a hand-written Type is rejected when the schema itself derives structurally (no not/if/then/else anywhere)"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { FromSchema } from 'json-schema-to-ts';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = FromSchema<typeof Schema, { deserialize: [{ output: { id: string }; pattern: { type: 'object' } }] }>;\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "typeNotFromSchema"
+        }
+      ],
+      "filename": "/project/src/entities/FooEntity.ts",
+      "name": "[entities] the deserialize override no longer disguises a hand-written Type when the schema derives structurally on its own"
     }
   ]
 }
