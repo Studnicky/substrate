@@ -293,15 +293,20 @@ export class Throttle implements ThrottleInterface {
    * - draining → idle     (drained: all ops complete)
    * - *        → aborted  (abort() called from any state except aborted itself)
    */
+  // Legal `from:to` edges other than the terminal/aborted rules `guard()` checks first.
+  static readonly #legalEdges = new Set<string>([
+    'active:draining',
+    'active:idle',
+    'draining:idle',
+    'idle:active',
+    'idle:draining'
+  ]);
+
   protected guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
-    if (from === 'aborted') {return false;}          // aborted is terminal
-    if (to === 'aborted') {return true;}             // any non-aborted → aborted
-    if (from === 'idle' && to === 'active') {return true;}
-    if (from === 'active' && to === 'idle') {return true;}
-    if (from === 'idle' && to === 'draining') {return true;}
-    if (from === 'active' && to === 'draining') {return true;}
-    if (from === 'draining' && to === 'idle') {return true;}
-    return false;
+    if (from === 'aborted') { return false; }          // aborted is terminal
+    if (to === 'aborted') { return true; }              // any non-aborted → aborted
+    const result = Throttle.#legalEdges.has(`${from}:${to}`);
+    return result;
   }
 
   /**

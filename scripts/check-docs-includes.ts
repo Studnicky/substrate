@@ -60,12 +60,60 @@ const collectMarkdown = async (dir: string): Promise<string[]> => {
   return files;
 };
 
+interface FenceStateInterface {
+  'inFence': boolean;
+  'inGroup': boolean;
+  'pendingExemption': boolean;
+}
+
+// Each consumer handles one line-classification and reports whether it claimed the line.
+const consumeCodeGroupMarker = (trimmed: string, state: FenceStateInterface): boolean => {
+  if (trimmed.startsWith('::: code-group')) {
+    state.inGroup = true;
+    return true;
+  }
+  if (trimmed === ':::' && state.inGroup) {
+    state.inGroup = false;
+    return true;
+  }
+  return false;
+};
+
+const consumeExemptionMarker = (trimmed: string, state: FenceStateInterface): boolean => {
+  if (INLINE_TS_OK_PATTERN.test(trimmed)) {
+    state.pendingExemption = true;
+    return true;
+  }
+  return false;
+};
+
+const consumeFenceBoundary = (
+  trimmed: string,
+  state: FenceStateInterface,
+  lineNo: number,
+  offenders: OffenderInterface[]
+): boolean => {
+  const fenceMatch = TS_FENCE_PATTERN.exec(trimmed);
+  const lang = fenceMatch?.[1];
+  if (fenceMatch !== null && lang !== undefined && !state.inFence) {
+    state.inFence = true;
+    if (!state.inGroup && !state.pendingExemption) {
+      offenders.push({ 'lang': lang, 'line': lineNo });
+    }
+    state.pendingExemption = false;
+    return true;
+  }
+  if (trimmed === '```' && state.inFence) {
+    state.inFence = false;
+    return true;
+  }
+  return false;
+};
+
 const countNonGroupTsBlocks = (content: string): OffenderInterface[] => {
   const lines = content.split('\n');
   const offenders: OffenderInterface[] = [];
-  let inGroup = false;
-  let inFence = false;
-  let pendingExemption = false;
+  const state: FenceStateInterface = { 'inFence': false, 'inGroup': false, 'pendingExemption': false };
   let lineNo = 0;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -74,34 +122,17 @@ const countNonGroupTsBlocks = (content: string): OffenderInterface[] => {
     }
     lineNo += 1;
     const trimmed = line.trim();
-    if (trimmed.startsWith('::: code-group')) {
-      inGroup = true;
+    if (consumeCodeGroupMarker(trimmed, state)) {
       continue;
     }
-    if (trimmed === ':::' && inGroup) {
-      inGroup = false;
+    if (consumeExemptionMarker(trimmed, state)) {
       continue;
     }
-    if (INLINE_TS_OK_PATTERN.test(trimmed)) {
-      pendingExemption = true;
+    if (consumeFenceBoundary(trimmed, state, lineNo, offenders)) {
       continue;
     }
-    const fenceMatch = TS_FENCE_PATTERN.exec(trimmed);
-    const lang = fenceMatch?.[1];
-    if (fenceMatch !== null && lang !== undefined && !inFence) {
-      inFence = true;
-      if (!inGroup && !pendingExemption) {
-        offenders.push({ 'lang': lang, 'line': lineNo });
-      }
-      pendingExemption = false;
-      continue;
-    }
-    if (trimmed === '```' && inFence) {
-      inFence = false;
-      continue;
-    }
-    if (trimmed !== '' && !inFence) {
-      pendingExemption = false;
+    if (trimmed !== '' && !state.inFence) {
+      state.pendingExemption = false;
     }
   }
   return offenders;

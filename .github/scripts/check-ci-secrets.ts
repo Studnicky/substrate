@@ -37,6 +37,35 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return result;
 };
 
+const validateRequiredByKeys = (requiredBy: Record<string, unknown>, requiredPrefix: string): string[] => {
+  const keyErrors: string[] = [];
+  const requiredByKeys = Object.keys(requiredBy);
+  for (let rbKeyIndex = 0; rbKeyIndex < requiredByKeys.length; rbKeyIndex += 1) {
+    const key = requiredByKeys[rbKeyIndex];
+    if (key !== undefined && !REQUIRED_BY_KEYS.has(key)) {
+      keyErrors.push(`${requiredPrefix}: unknown key "${key}"`);
+    }
+  }
+  return keyErrors;
+};
+
+const validateRequiredByEntries = (requiredByEntries: unknown[], prefix: string): string[] => {
+  const entryErrors: string[] = [];
+  for (let requiredIndex = 0; requiredIndex < requiredByEntries.length; requiredIndex += 1) {
+    const requiredBy = requiredByEntries[requiredIndex];
+    const requiredPrefix = `${prefix}.requiredBy[${requiredIndex}]`;
+    if (!isPlainObject(requiredBy)) {
+      entryErrors.push(`${requiredPrefix}: must be an object`);
+      continue;
+    }
+    entryErrors.push(...validateRequiredByKeys(requiredBy, requiredPrefix));
+    if (typeof requiredBy.workflow !== 'string' || typeof requiredBy.job !== 'string') {
+      entryErrors.push(`${requiredPrefix}: "workflow" and "job" must be strings`);
+    }
+  }
+  return entryErrors;
+};
+
 if (!Array.isArray(manifest)) {
   errors.push('ci-secrets.json must be a JSON array of secret entries.');
 }
@@ -74,24 +103,7 @@ if (Array.isArray(manifest)) {
     }
 
     const requiredByEntries = entry.requiredBy as unknown[];
-    for (let requiredIndex = 0; requiredIndex < requiredByEntries.length; requiredIndex += 1) {
-      const requiredBy = requiredByEntries[requiredIndex];
-      const requiredPrefix = `${prefix}.requiredBy[${requiredIndex}]`;
-      if (!isPlainObject(requiredBy)) {
-        errors.push(`${requiredPrefix}: must be an object`);
-        continue;
-      }
-      const requiredByKeys = Object.keys(requiredBy);
-      for (let rbKeyIndex = 0; rbKeyIndex < requiredByKeys.length; rbKeyIndex += 1) {
-        const key = requiredByKeys[rbKeyIndex];
-        if (key !== undefined && !REQUIRED_BY_KEYS.has(key)) {
-          errors.push(`${requiredPrefix}: unknown key "${key}"`);
-        }
-      }
-      if (typeof requiredBy.workflow !== 'string' || typeof requiredBy.job !== 'string') {
-        errors.push(`${requiredPrefix}: "workflow" and "job" must be strings`);
-      }
-    }
+    errors.push(...validateRequiredByEntries(requiredByEntries, prefix));
   }
 }
 

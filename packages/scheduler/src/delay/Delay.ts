@@ -78,23 +78,12 @@ export class Delay {
       }
 
       try {
-        const scheduler = options.scheduler ?? RealTimeScheduler.create();
-        const clock = options.clock ?? RealTimeClockProvider.create();
-        const atMs = clock.now() + ms;
-
-        if (outcome !== 'pending') {
-          return;
-        }
-
-        const scheduledTask = scheduler.scheduleAt(atMs, () => {
-          if (finish('complete')) {
-            resolve();
-          }
-        });
-        task = scheduledTask;
-
-        if (signal?.aborted === true) {
-          scheduledTask.cancel();
+        const scheduledTask = Delay.#scheduleSleep(ms, options, () => {
+          const isPending = outcome === 'pending';
+          return isPending;
+        }, finish, resolve);
+        if (scheduledTask !== undefined) {
+          task = scheduledTask;
         }
       } catch (error: unknown) {
         if (finish('complete')) {
@@ -103,5 +92,33 @@ export class Delay {
       }
     });
     return result;
+  }
+
+  static #scheduleSleep(
+    ms: number,
+    options: DelayOptionsInterface,
+    isPending: () => boolean,
+    finish: (nextOutcome: 'aborted' | 'complete') => boolean,
+    resolve: () => void
+  ): ScheduledTaskInterface | undefined {
+    const scheduler = options.scheduler ?? RealTimeScheduler.create();
+    const clock = options.clock ?? RealTimeClockProvider.create();
+    const atMs = clock.now() + ms;
+
+    if (!isPending()) {
+      return undefined;
+    }
+
+    const scheduledTask = scheduler.scheduleAt(atMs, () => {
+      if (finish('complete')) {
+        resolve();
+      }
+    });
+
+    if (options.signal?.aborted === true) {
+      scheduledTask.cancel();
+    }
+
+    return scheduledTask;
   }
 }

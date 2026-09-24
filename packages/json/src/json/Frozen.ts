@@ -68,26 +68,9 @@ export class Frozen {
 
     frozenValues.set(value, value);
     if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index += 1) {
-        const item: unknown = value[index];
-        const frozenItem = this.freezeValue(item, frozenValues);
-        if (!Object.is(item, frozenItem)) {
-          Reflect.set(value, index, frozenItem);
-        }
-      }
+      this.freezeArrayItems(value, frozenValues);
     } else {
-      const keys = Object.keys(value);
-      for (let index = 0; index < keys.length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
-        }
-        const child: unknown = Reflect.get(value, key);
-        const frozenChild = this.freezeValue(child, frozenValues);
-        if (!Object.is(child, frozenChild)) {
-          JsonObject.write(value, key, frozenChild);
-        }
-      }
+      this.freezeObjectFields(value, frozenValues);
     }
 
     if (this.shouldFreeze(value)) {
@@ -95,6 +78,33 @@ export class Frozen {
     }
 
     return value;
+  }
+
+  /** Recurses through the same `freezeValue` entry point so cycle tracking and freeze rules stay uniform. */
+  protected static freezeArrayItems(value: unknown[], frozenValues: WeakMap<object, object>): void {
+    for (let index = 0; index < value.length; index += 1) {
+      const item: unknown = value[index];
+      const frozenItem = this.freezeValue(item, frozenValues);
+      if (!Object.is(item, frozenItem)) {
+        Reflect.set(value, index, frozenItem);
+      }
+    }
+  }
+
+  /** Recurses through the same `freezeValue` entry point so cycle tracking and freeze rules stay uniform. */
+  protected static freezeObjectFields(value: object, frozenValues: WeakMap<object, object>): void {
+    const keys = Object.keys(value);
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
+      const child: unknown = Reflect.get(value, key);
+      const frozenChild = this.freezeValue(child, frozenValues);
+      if (!Object.is(child, frozenChild)) {
+        JsonObject.write(value, key, frozenChild);
+      }
+    }
   }
 
   protected static freezeMap(value: Map<unknown, unknown>, frozenValues: WeakMap<object, object>): Map<unknown, unknown> {

@@ -36,6 +36,12 @@ export class Hash {
       const result = `s:${this.toHex32(this.fnv1a32(value))}`;
       return result;
     }
+    const result = this.hashObjectValue(value);
+    return result;
+  }
+
+  /** Structural hashing for non-primitive values, including containers and their fallback `typeof` tag. */
+  protected static hashObjectValue(value: unknown): string {
     if (value instanceof Date) {
       const result = `date:${value.getTime()}`;
       return result;

@@ -48,33 +48,47 @@ export class JsonValue {
       return result;
     }
     if (Array.isArray(value)) {
-      if (ancestors.has(value)) { return null; }
-      ancestors.add(value);
-      const result: JSONSchema7Type[] = [];
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const item: unknown = value[index];
-        result.push(JsonValue.coerce(item, ancestors));
-      }
-      ancestors.delete(value);
+      const result = JsonValue.coerceArray(value, ancestors);
       return result;
     }
     if (JsonObject.is(value)) {
-      if (ancestors.has(value)) { return null; }
-      ancestors.add(value);
-      const keys = Object.keys(value);
-      const length = keys.length;
-      const entries = new Map<string, JSONSchema7Type>();
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index]!;
-        const item: unknown = Reflect.get(value, key);
-        entries.set(key, JsonValue.coerce(item, ancestors));
-      }
-      ancestors.delete(value);
-      const result = JsonObject.fromEntries(entries);
+      const result = JsonValue.coerceRecord(value, ancestors);
       return result;
     }
     return null;
+  }
+
+  private static coerceArray(value: readonly unknown[], ancestors: Set<object>): JSONSchema7Type {
+    if (ancestors.has(value)) {
+      return null;
+    }
+    ancestors.add(value);
+    const result: JSONSchema7Type[] = [];
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item: unknown = value[index];
+      result.push(JsonValue.coerce(item, ancestors));
+    }
+    ancestors.delete(value);
+    return result;
+  }
+
+  private static coerceRecord(value: Record<string, unknown>, ancestors: Set<object>): JSONSchema7Type {
+    if (ancestors.has(value)) {
+      return null;
+    }
+    ancestors.add(value);
+    const keys = Object.keys(value);
+    const length = keys.length;
+    const entries = new Map<string, JSONSchema7Type>();
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index]!;
+      const item: unknown = Reflect.get(value, key);
+      entries.set(key, JsonValue.coerce(item, ancestors));
+    }
+    ancestors.delete(value);
+    const result = JsonObject.fromEntries(entries);
+    return result;
   }
 
   private static isValue(value: unknown, ancestors: Set<object>): boolean {
@@ -86,35 +100,49 @@ export class JsonValue {
       return result;
     }
     if (Array.isArray(value)) {
-      if (ancestors.has(value)) { return false; }
-      ancestors.add(value);
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const item: unknown = value[index];
-        if (!JsonValue.isValue(item, ancestors)) {
-          ancestors.delete(value);
-          return false;
-        }
-      }
-      ancestors.delete(value);
-      return true;
+      const result = JsonValue.isValueArray(value, ancestors);
+      return result;
     }
     if (JsonObject.is(value)) {
-      if (ancestors.has(value)) { return false; }
-      ancestors.add(value);
-      const keys = Object.keys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index]!;
-        const item: unknown = Reflect.get(value, key);
-        if (!JsonValue.isValue(item, ancestors)) {
-          ancestors.delete(value);
-          return false;
-        }
-      }
-      ancestors.delete(value);
-      return true;
+      const result = JsonValue.isValueRecord(value, ancestors);
+      return result;
     }
     return false;
+  }
+
+  private static isValueArray(value: readonly unknown[], ancestors: Set<object>): boolean {
+    if (ancestors.has(value)) {
+      return false;
+    }
+    ancestors.add(value);
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item: unknown = value[index];
+      if (!JsonValue.isValue(item, ancestors)) {
+        ancestors.delete(value);
+        return false;
+      }
+    }
+    ancestors.delete(value);
+    return true;
+  }
+
+  private static isValueRecord(value: Record<string, unknown>, ancestors: Set<object>): boolean {
+    if (ancestors.has(value)) {
+      return false;
+    }
+    ancestors.add(value);
+    const keys = Object.keys(value);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index]!;
+      const item: unknown = Reflect.get(value, key);
+      if (!JsonValue.isValue(item, ancestors)) {
+        ancestors.delete(value);
+        return false;
+      }
+    }
+    ancestors.delete(value);
+    return true;
   }
 }

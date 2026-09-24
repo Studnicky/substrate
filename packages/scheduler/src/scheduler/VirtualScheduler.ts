@@ -325,38 +325,50 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         continue;
       }
 
-      if (this.#cancelledIds.has(task.id)) {
-        this.#cancelledIds.delete(task.id);
-        continue;
-      }
-
-      if (task.variant === 'timeout') {
-        this.#tasks.get(task.id)?.complete();
-        this.#tasks.delete(task.id);
-      }
-
-      this.#invokeOnFire(task.id);
-      const succeeded = this.#invokeTask(task);
-
-      if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
-        const nextAtMs = task.atMs + task.intervalMs;
-        const rescheduled: PendingTaskInterface = {
-          'atMs': nextAtMs,
-          'fire': task.fire,
-          'id': task.id,
-          'intervalMs': task.intervalMs,
-          'variant': 'interval'
-        };
-
-        this.#heap.insert(rescheduled);
-        this.#invokeOnReschedule(task.id, nextAtMs);
-      } else if (task.variant === 'interval') {
-        this.#cancelledIds.delete(task.id);
-        this.#tasks.get(task.id)?.complete();
-        this.#tasks.delete(task.id);
-      }
+      this.#fireDueTask(task);
     }
 
+    this.#notifyIdleIfEmpty();
+  }
+
+  #fireDueTask(task: PendingTaskInterface): void {
+    if (this.#cancelledIds.has(task.id)) {
+      this.#cancelledIds.delete(task.id);
+      return;
+    }
+
+    if (task.variant === 'timeout') {
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
+    }
+
+    this.#invokeOnFire(task.id);
+    const succeeded = this.#invokeTask(task);
+
+    if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
+      this.#rescheduleInterval(task);
+    } else if (task.variant === 'interval') {
+      this.#cancelledIds.delete(task.id);
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
+    }
+  }
+
+  #rescheduleInterval(task: PendingTaskInterface): void {
+    const nextAtMs = task.atMs + task.intervalMs;
+    const rescheduled: PendingTaskInterface = {
+      'atMs': nextAtMs,
+      'fire': task.fire,
+      'id': task.id,
+      'intervalMs': task.intervalMs,
+      'variant': 'interval'
+    };
+
+    this.#heap.insert(rescheduled);
+    this.#invokeOnReschedule(task.id, nextAtMs);
+  }
+
+  #notifyIdleIfEmpty(): void {
     if (this.#heap.peekAtMs() === undefined) {
       this.hooks.invoke('onIdle', () => {
         const result = this.onIdle();

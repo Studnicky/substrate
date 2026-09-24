@@ -192,9 +192,7 @@ export class VisibleRange {
    * offset depends only on the sizes of items `[0, i)`.
    */
   private ensureOffsets(): Float64Array {
-    if (this.config.mode !== 'variable') {
-      throw new VisibleRangeError('ensureOffsets() called outside variable mode');
-    }
+    this.#assertVariableMode();
     if (this.offsets !== null && this.dirtyFrom === null) {
       return this.offsets;
     }
@@ -209,14 +207,24 @@ export class VisibleRange {
     if (this.offsets === null) {
       offsets[0] = 0;
     }
-    for (let i = startIndex; i < count; i++) {
-      const size = this.measuredSizes.get(i) ?? estimateSize(i);
-      offsets[i + 1] = offsets[i]! + size;
-    }
+    this.#fillOffsets(offsets, startIndex, count, estimateSize);
 
     this.offsets = offsets;
     this.dirtyFrom = null;
     return offsets;
+  }
+
+  #assertVariableMode(): void {
+    if (this.config.mode !== 'variable') {
+      throw new VisibleRangeError('ensureOffsets() called outside variable mode');
+    }
+  }
+
+  #fillOffsets(offsets: Float64Array, startIndex: number, count: number, estimateSize: (index: number) => number): void {
+    for (let i = startIndex; i < count; i++) {
+      const size = this.measuredSizes.get(i) ?? estimateSize(i);
+      offsets[i + 1] = offsets[i]! + size;
+    }
   }
 
   /** Binary search for the item index whose `[offsets[i], offsets[i+1])` span contains `target`. */

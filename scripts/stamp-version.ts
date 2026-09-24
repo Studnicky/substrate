@@ -124,6 +124,49 @@ class StampedTargetReader {
   }
 }
 
+async function runRasterCheck(rsvgPath: string, targets: readonly RasterTargetInterface[]): Promise<number> {
+  let targetDrift = 0;
+  const rasterTmp = await promises.mkdtemp(join(tmpdir(), 'substrate-raster-check.'));
+  try {
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      if (target === undefined) {
+        continue;
+      }
+      targetDrift += await checkRasterTarget(target, rsvgPath, rasterTmp);
+    }
+  } finally {
+    await promises.rm(rasterTmp, { 'force': true, 'recursive': true });
+  }
+  return targetDrift;
+}
+
+async function checkRasterTarget(target: RasterTargetInterface, rsvgPath: string, rasterTmp: string): Promise<number> {
+  const { height, png, svg, width } = target;
+  const rendered = join(rasterTmp, `${relative(PUBLIC_ROOT, png).replaceAll('/', '-')}.check.png`);
+  const result = spawnSync(rsvgPath, ['-w', String(width), '-h', String(height), svg, '-o', rendered], { 'encoding': 'utf8' });
+
+  if (result.status !== 0) {
+    console.error(`rsvg-convert failed for ${relative(REPO_ROOT, svg)}: ${result.stderr}`);
+    return 1;
+  }
+
+  const currentPng = await PngFileReader.readOrNull(png);
+  if (currentPng === null) {
+    console.error(`✗ ${relative(REPO_ROOT, png)} is missing`);
+    return 1;
+  }
+
+  const dimensions = readPngDimensions(currentPng);
+  if (dimensions?.width !== width || dimensions?.height !== height) {
+    console.error(`✗ ${relative(REPO_ROOT, png)} is not a ${width}×${height} PNG`);
+    return 1;
+  }
+
+  console.log(`✓ ${relative(REPO_ROOT, png)} is ${width}×${height}; ${relative(REPO_ROOT, svg)} renders`);
+  return 0;
+}
+
 for (let index = 0; index < templates.length; index += 1) {
   const template = templates[index];
   if (template === undefined) {
@@ -161,41 +204,7 @@ if (CHECK_MODE) {
     }
     console.warn(message);
   } else {
-    const rasterTmp = await promises.mkdtemp(join(tmpdir(), 'substrate-raster-check.'));
-    try {
-      for (let index = 0; index < rasterTargets.length; index += 1) {
-        const target = rasterTargets[index];
-        if (target === undefined) {
-          continue;
-        }
-        const { height, png, svg, width } = target;
-        const rendered = join(rasterTmp, `${relative(PUBLIC_ROOT, png).replaceAll('/', '-')}.check.png`);
-        const result = spawnSync(rsvgPath, ['-w', String(width), '-h', String(height), svg, '-o', rendered], { 'encoding': 'utf8' });
-
-        if (result.status !== 0) {
-          console.error(`rsvg-convert failed for ${relative(REPO_ROOT, svg)}: ${result.stderr}`);
-          drift += 1;
-          continue;
-        }
-
-        const currentPng = await PngFileReader.readOrNull(png);
-        if (currentPng === null) {
-          console.error(`✗ ${relative(REPO_ROOT, png)} is missing`);
-          drift += 1;
-          continue;
-        }
-
-        const dimensions = readPngDimensions(currentPng);
-        if (dimensions?.width !== width || dimensions?.height !== height) {
-          console.error(`✗ ${relative(REPO_ROOT, png)} is not a ${width}×${height} PNG`);
-          drift += 1;
-        } else {
-          console.log(`✓ ${relative(REPO_ROOT, png)} is ${width}×${height}; ${relative(REPO_ROOT, svg)} renders`);
-        }
-      }
-    } finally {
-      await promises.rm(rasterTmp, { 'force': true, 'recursive': true });
-    }
+    drift += await runRasterCheck(rsvgPath, rasterTargets);
   }
 
   if (drift > 0) {

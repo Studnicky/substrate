@@ -66,8 +66,45 @@ function isTier(value: string): value is (typeof TIER_NAMES)[number] {
   return result;
 }
 
+interface CliOptionsDraftInterface {
+  'base': string;
+  'coverage': boolean;
+  'dryRun': boolean;
+  'failIfEmpty': boolean;
+  'mode': string;
+  'packageFilter': string;
+  'watch': boolean;
+}
+
+// Each key is a distinct CLI flag string; at most one matches a given arg.
+const BOOLEAN_FLAG_SETTERS: Readonly<Record<string, (result: CliOptionsDraftInterface) => void>> = {
+  '--coverage': (result) => { result.coverage = true; },
+  '--dry-run': (result) => { result.dryRun = true; },
+  '--fail-if-empty': (result) => { result.failIfEmpty = true; },
+  '--watch': (result) => { result.watch = true; }
+};
+
+const VALUE_FLAG_SETTERS: Readonly<Record<string, (result: CliOptionsDraftInterface, value: string) => void>> = {
+  '--base': (result, value) => { result.base = value; },
+  '--package': (result, value) => { result.packageFilter = value; }
+};
+
+function validateParsedArgs(result: CliOptionsDraftInterface): void {
+  if (result.mode === '') {
+    result.mode = 'all';
+  }
+
+  if (!(MODE_NAMES as readonly string[]).includes(result.mode)) {
+    throw new Error(`Unknown test suite mode: ${result.mode}`);
+  }
+
+  if (result.coverage && result.watch) {
+    throw new Error('test-suite: --coverage cannot be combined with --watch');
+  }
+}
+
 function parseArgs(argv: readonly string[]): CliOptionsInterface {
-  const result = {
+  const result: CliOptionsDraftInterface = {
     'base': '',
     'coverage': false,
     'dryRun': false,
@@ -83,30 +120,17 @@ function parseArgs(argv: readonly string[]): CliOptionsInterface {
     if (arg === '--') {
       continue;
     }
-    if (arg === '--dry-run') {
-      result.dryRun = true;
+
+    const booleanSetter = arg === undefined ? undefined : BOOLEAN_FLAG_SETTERS[arg];
+    if (booleanSetter !== undefined) {
+      booleanSetter(result);
       continue;
     }
-    if (arg === '--coverage') {
-      result.coverage = true;
-      continue;
-    }
-    if (arg === '--fail-if-empty') {
-      result.failIfEmpty = true;
-      continue;
-    }
-    if (arg === '--watch') {
-      result.watch = true;
-      continue;
-    }
-    if (arg === '--base') {
+
+    const valueSetter = arg === undefined ? undefined : VALUE_FLAG_SETTERS[arg];
+    if (valueSetter !== undefined) {
       index += 1;
-      result.base = argv[index] ?? '';
-      continue;
-    }
-    if (arg === '--package') {
-      index += 1;
-      result.packageFilter = argv[index] ?? '';
+      valueSetter(result, argv[index] ?? '');
       continue;
     }
 
@@ -118,18 +142,7 @@ function parseArgs(argv: readonly string[]): CliOptionsInterface {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (result.mode === '') {
-    result.mode = 'all';
-  }
-
-  if (!(MODE_NAMES as readonly string[]).includes(result.mode)) {
-    throw new Error(`Unknown test suite mode: ${result.mode}`);
-  }
-
-  if (result.coverage && result.watch) {
-    throw new Error('test-suite: --coverage cannot be combined with --watch');
-  }
-
+  validateParsedArgs(result);
   return result;
 }
 
@@ -150,6 +163,27 @@ function loadWorkspacePackages(): WorkspacePackageInterface[] {
   return workspacePackages;
 }
 
+function packageFilterCandidates(workspacePackage: WorkspacePackageInterface, packageFilter: string): boolean[] {
+  const normalizedFilter = packageFilter.split('\\').join('/').replace(/\/+$/, '');
+  const packageDirName = basename(workspacePackage.dir);
+  const rootRelativeFilter = relative(ROOT_DIR, resolve(ROOT_DIR, packageFilter)).split('\\').join('/');
+  const cwdRelativeFilter = relative(ROOT_DIR, resolve(process.cwd(), packageFilter)).split('\\').join('/');
+  const absoluteFilter = resolve(process.cwd(), packageFilter);
+  const rootAbsoluteFilter = resolve(ROOT_DIR, packageFilter);
+
+  return [
+    workspacePackage.name === packageFilter,
+    workspacePackage.name === normalizedFilter,
+    workspacePackage.relativeDir === normalizedFilter,
+    workspacePackage.relativeDir === rootRelativeFilter,
+    workspacePackage.relativeDir === cwdRelativeFilter,
+    workspacePackage.dir === absoluteFilter,
+    workspacePackage.dir === rootAbsoluteFilter,
+    packageDirName === packageFilter,
+    packageDirName === normalizedFilter
+  ];
+}
+
 function packageMatchesFilter(workspacePackage: WorkspacePackageInterface, packageFilter: string): boolean {
   if (packageFilter === '') {
     return true;
@@ -159,25 +193,7 @@ function packageMatchesFilter(workspacePackage: WorkspacePackageInterface, packa
     return isCwd;
   }
 
-  const normalizedFilter = packageFilter.split('\\').join('/').replace(/\/+$/, '');
-  const packageDirName = basename(workspacePackage.dir);
-  const rootRelativeFilter = relative(ROOT_DIR, resolve(ROOT_DIR, packageFilter)).split('\\').join('/');
-  const cwdRelativeFilter = relative(ROOT_DIR, resolve(process.cwd(), packageFilter)).split('\\').join('/');
-  const absoluteFilter = resolve(process.cwd(), packageFilter);
-  const rootAbsoluteFilter = resolve(ROOT_DIR, packageFilter);
-
-  const matches = (
-    workspacePackage.name === packageFilter ||
-    workspacePackage.name === normalizedFilter ||
-    workspacePackage.relativeDir === normalizedFilter ||
-    workspacePackage.relativeDir === rootRelativeFilter ||
-    workspacePackage.relativeDir === cwdRelativeFilter ||
-    workspacePackage.dir === absoluteFilter ||
-    workspacePackage.dir === rootAbsoluteFilter ||
-    packageDirName === packageFilter ||
-    packageDirName === normalizedFilter
-  );
-  return matches;
+  return packageFilterCandidates(workspacePackage, packageFilter).some((matches) => {return matches;});
 }
 
 function filterFilesByPackage(files: readonly string[], workspacePackages: readonly WorkspacePackageInterface[], packageFilter: string): string[] {
@@ -282,6 +298,36 @@ const UNIT_TEST_DIR_RE = /\/tests\/unit\//;
 const INTEGRATION_TEST_DIR_RE = /\/tests\/integration\//;
 const SMOKE_TEST_DIR_RE = /\/tests\/smoke\//;
 
+function collectPackageTestFiles(packageRoot: string, selected: Set<string>): void {
+  const allFiles = discoverAllFiles();
+  for (let fileIndex = 0; fileIndex < allFiles.length; fileIndex += 1) {
+    const testFile = allFiles[fileIndex];
+    if (testFile?.split('\\').join('/').startsWith(`${packageRoot}/`) === true) {
+      selected.add(testFile);
+    }
+  }
+}
+
+/** Returns true when the changed file lies outside packages/ (a root-level change). */
+function processChangedFile(file: string, selected: Set<string>): boolean {
+  if (!file.startsWith('packages/')) {
+    return true;
+  }
+
+  const unitMatch = UNIT_TEST_DIR_RE.test(file);
+  const integrationMatch = INTEGRATION_TEST_DIR_RE.test(file);
+  const smokeMatch = SMOKE_TEST_DIR_RE.test(file);
+
+  if (unitMatch || integrationMatch || smokeMatch) {
+    selected.add(file);
+    return false;
+  }
+
+  const packageRoot = file.split('/').slice(0, 2).join('/');
+  collectPackageTestFiles(packageRoot, selected);
+  return false;
+}
+
 function selectChangedFiles(base: string, workspacePackages: readonly WorkspacePackageInterface[], packageFilter: string): string[] {
   const changed = runGitDiff(base);
 
@@ -297,27 +343,8 @@ function selectChangedFiles(base: string, workspacePackages: readonly WorkspaceP
     if (file === undefined) {
       continue;
     }
-    if (!file.startsWith('packages/')) {
+    if (processChangedFile(file, selected)) {
       changedRoot = true;
-      continue;
-    }
-
-    const unitMatch = UNIT_TEST_DIR_RE.test(file);
-    const integrationMatch = INTEGRATION_TEST_DIR_RE.test(file);
-    const smokeMatch = SMOKE_TEST_DIR_RE.test(file);
-
-    if (unitMatch || integrationMatch || smokeMatch) {
-      selected.add(file);
-      continue;
-    }
-
-    const packageRoot = file.split('/').slice(0, 2).join('/');
-    const allFiles = discoverAllFiles();
-    for (let fileIndex = 0; fileIndex < allFiles.length; fileIndex += 1) {
-      const testFile = allFiles[fileIndex];
-      if (testFile?.split('\\').join('/').startsWith(`${packageRoot}/`) === true) {
-        selected.add(testFile);
-      }
     }
   }
 
