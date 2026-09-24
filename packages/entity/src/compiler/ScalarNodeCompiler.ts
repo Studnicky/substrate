@@ -4,6 +4,7 @@ import type { EntityValidationErrorInterface } from '../interfaces/EntityValidat
 import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
+import { FormatValidators } from './FormatValidators.js';
 import { SchemaPointer } from './SchemaPointer.js';
 import { ValidationErrorFactory } from './ValidationErrorFactory.js';
 
@@ -14,8 +15,10 @@ interface ScalarAssertionInterface {
 
 /** Compiles `type`, `const`, `enum`, and every string/number-only keyword into one specialised closure pair. */
 export class ScalarNodeCompiler {
-  public static compile(plan: SchemaNodePlanInterface): CompiledNodeInterface | undefined {
-    const assertions = ScalarNodeCompiler.buildAssertions(plan);
+  public static compile(
+    plan: SchemaNodePlanInterface, validationVocabularyEnabled: boolean, formatAssertionVocabularyEnabled: boolean
+  ): CompiledNodeInterface | undefined {
+    const assertions = ScalarNodeCompiler.buildAssertions(plan, validationVocabularyEnabled, formatAssertionVocabularyEnabled);
     if (assertions.length === 0) {
       return undefined;
     }
@@ -43,13 +46,20 @@ export class ScalarNodeCompiler {
     return result;
   }
 
-  private static buildAssertions(plan: SchemaNodePlanInterface): readonly ScalarAssertionInterface[] {
+  private static buildAssertions(
+    plan: SchemaNodePlanInterface, validationVocabularyEnabled: boolean, formatAssertionVocabularyEnabled: boolean
+  ): readonly ScalarAssertionInterface[] {
     const assertions: ScalarAssertionInterface[] = [];
-    ScalarNodeCompiler.pushType(assertions, plan);
-    ScalarNodeCompiler.pushConst(assertions, plan);
-    ScalarNodeCompiler.pushEnum(assertions, plan);
-    ScalarNodeCompiler.pushStringKeywords(assertions, plan);
-    ScalarNodeCompiler.pushNumberKeywords(assertions, plan);
+    if (validationVocabularyEnabled) {
+      ScalarNodeCompiler.pushType(assertions, plan);
+      ScalarNodeCompiler.pushConst(assertions, plan);
+      ScalarNodeCompiler.pushEnum(assertions, plan);
+      ScalarNodeCompiler.pushStringKeywords(assertions, plan);
+      ScalarNodeCompiler.pushNumberKeywords(assertions, plan);
+    }
+    if (formatAssertionVocabularyEnabled) {
+      ScalarNodeCompiler.pushFormat(assertions, plan);
+    }
     return assertions;
   }
 
@@ -108,7 +118,7 @@ export class ScalarNodeCompiler {
     assertions.push({ 'check': check, 'error': error });
   }
 
-  /** `format`, `contentEncoding`, `contentMediaType` are annotations in 2020-12; they never assert. */
+  /** `contentEncoding` and `contentMediaType` are annotations in 2020-12; they never assert. */
   private static pushStringKeywords(assertions: ScalarAssertionInterface[], plan: SchemaNodePlanInterface): void {
     const { 'maximumLength': maximumLengthValue, 'minimumLength': minimumLengthValue, pattern } = plan;
     const compiledPattern = pattern === undefined ? undefined : new RegExp(pattern, 'u');
@@ -124,6 +134,16 @@ export class ScalarNodeCompiler {
       const predicate = (value: string): boolean => { const result = Predicates.checkPattern(value, compiledPattern); return result; };
       assertions.push(ScalarNodeCompiler.stringAssertion('pattern', pattern!, predicate));
     }
+  }
+
+  /** Applies only when the Format-Assertion vocabulary is enabled for this compilation; an unrecognised format name is not a failure. */
+  private static pushFormat(assertions: ScalarAssertionInterface[], plan: SchemaNodePlanInterface): void {
+    const format = plan.format;
+    if (format === undefined) {
+      return;
+    }
+    const predicate = (value: string): boolean => { const result = FormatValidators.test(format, value); return result; };
+    assertions.push(ScalarNodeCompiler.stringAssertion('format', format, predicate));
   }
 
   private static stringAssertion(

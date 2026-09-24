@@ -54,7 +54,7 @@ export class SchemaNodeCompiler {
     };
 
     const clauses = SchemaNodeCompiler.compactClauses([
-      compileContext.validationVocabularyEnabled ? ScalarNodeCompiler.compile(plan) : undefined,
+      ScalarNodeCompiler.compile(plan, compileContext.validationVocabularyEnabled, compileContext.formatAssertionVocabularyEnabled),
       StructuralNodeCompiler.compile(plan, compileChild),
       ArrayNodeCompiler.compile(plan, compileChild),
       CompositionNodeCompiler.compile(plan, compileChild),

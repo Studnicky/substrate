@@ -26,6 +26,20 @@ const CONFORMANCE_DIR = dirname(fileURLToPath(import.meta.url));
 const SUITE_ROOT = resolve(CONFORMANCE_DIR, 'vendor/json-schema-test-suite');
 const BASELINE_DIR = resolve(CONFORMANCE_DIR, 'baselines');
 const UPDATE_BASELINE = process.argv.includes('--update-baseline');
+const DEFAULT_DIALECT_URI = 'https://json-schema.org/draft/2020-12/schema';
+const FORMAT_ASSERTION_VOCABULARY_URI = 'https://json-schema.org/draft/2020-12/vocab/format-assertion';
+
+/**
+ * `optional/format/*` fixtures declare the plain default dialect, which is annotation-only. The suite intends
+ * those cases for implementations that assert formats, so this shadows the default dialect's own `$id` with a
+ * minimal metaschema naming the Format-Assertion vocabulary — driving `SchemaVocabularyResolver` down the
+ * assert path for this measurement alone, without touching the default dialect used everywhere else.
+ */
+function withFormatAssertionDialect(remotes: ReadonlyMap<string, object | boolean>): ReadonlyMap<string, object | boolean> {
+  const result = new Map(remotes);
+  result.set(DEFAULT_DIALECT_URI, { '$vocabulary': { [FORMAT_ASSERTION_VOCABULARY_URI]: true } });
+  return result;
+}
 
 function readBaseline(engineName: string): readonly ConformanceBaselineEntryInterface[] {
   const path = resolve(BASELINE_DIR, `${engineName}-known-failures.json`);
@@ -96,9 +110,11 @@ function main(): void {
     'optional/* (excluding format, format-assertion)',
     ConformanceRunner.run('node', optionalCoreFiles, nodeCompile, remotes), ConformanceRunner.run('browser', optionalCoreFiles, browserCompile, remotes)
   );
+  const formatAssertionRemotes = withFormatAssertionDialect(remotes);
   reportOptional(
     'optional/format/*',
-    ConformanceRunner.run('node', optionalFormatFiles, nodeCompile, remotes), ConformanceRunner.run('browser', optionalFormatFiles, browserCompile, remotes)
+    ConformanceRunner.run('node', optionalFormatFiles, nodeCompile, formatAssertionRemotes),
+    ConformanceRunner.run('browser', optionalFormatFiles, browserCompile, formatAssertionRemotes)
   );
   reportOptional(
     'optional/format-assertion.json',
