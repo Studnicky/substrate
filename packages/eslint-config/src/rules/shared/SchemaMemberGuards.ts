@@ -573,6 +573,118 @@ export class SchemaMemberGuards {
     return result;
   }
 
+  // True when the `Schema` declarator's literal composes another file's schema — a spread of an
+  // identifier, or a property whose value is a member reference — rather than declaring the
+  // whole shape inline. The walk cannot see across that reference, so it can prove neither
+  // presence nor absence of a defeating keyword on the far side.
+  static schemaComposesExternalReference(declarator: unknown): boolean {
+    if (!Predicates.isRecord(declarator)) {
+      return false;
+    }
+
+    const literal = SchemaMemberGuards.unwrapToObjectLiteral(declarator.init);
+    const result = literal !== undefined && SchemaMemberGuards.containsExternalReference(literal);
+
+    return result;
+  }
+
+  private static containsExternalReference(node: unknown): boolean {
+    if (!Predicates.isRecord(node)) {
+      return false;
+    }
+    const nodeType = AstHelpers.getNodeType(node);
+
+    if (nodeType === 'ObjectExpression') {
+      const properties = Array.isArray(node.properties) ? node.properties : [];
+      const result = properties.some(SchemaMemberGuards.propertyReferencesExternalSchema);
+
+      return result;
+    }
+    if (nodeType === 'ArrayExpression') {
+      const elements = Array.isArray(node.elements) ? node.elements : [];
+      const result = elements.some(SchemaMemberGuards.containsExternalReference);
+
+      return result;
+    }
+
+    return false;
+  }
+
+  private static propertyReferencesExternalSchema(property: unknown): boolean {
+    if (!Predicates.isRecord(property)) {
+      return false;
+    }
+    const propertyType = AstHelpers.getNodeType(property);
+
+    if (propertyType === 'SpreadElement') {
+      const result = Predicates.isRecord(property.argument) && AstHelpers.getNodeType(property.argument) === 'Identifier';
+
+      return result;
+    }
+    if (AstHelpers.getNodeType(property.value) === 'MemberExpression') {
+      return true;
+    }
+
+    const result = SchemaMemberGuards.containsExternalReference(property.value);
+
+    return result;
+  }
+
+  // True when `Type` bottoms out in a `SomeOtherEntity.Type` reference — composing a shape
+  // another file already had to justify — rather than declaring one inline. Unwraps an array,
+  // a `readonly` operator, and a union of such forms; a bare inline object or a non-entity
+  // imported alias does not qualify.
+  static typeIsComposedFromEntityType(decl: unknown): boolean {
+    if (!Predicates.isRecord(decl)) {
+      return false;
+    }
+
+    const result = SchemaMemberGuards.typeNodeIsEntityTypeComposition(decl.typeAnnotation);
+
+    return result;
+  }
+
+  private static typeNodeIsEntityTypeComposition(node: unknown): boolean {
+    if (!Predicates.isRecord(node)) {
+      return false;
+    }
+    const nodeType = AstHelpers.getNodeType(node);
+
+    if (nodeType === 'TSArrayType') {
+      const result = SchemaMemberGuards.typeNodeIsEntityTypeComposition(node.elementType);
+
+      return result;
+    }
+    if (nodeType === 'TSTypeOperator' && node.operator === 'readonly') {
+      const result = SchemaMemberGuards.typeNodeIsEntityTypeComposition(node.typeAnnotation);
+
+      return result;
+    }
+    if (nodeType === 'TSUnionType') {
+      const members = Array.isArray(node.types) ? node.types : [];
+      const result = members.length > 0 && members.every(SchemaMemberGuards.typeNodeIsEntityTypeComposition);
+
+      return result;
+    }
+    if (nodeType === 'TSTypeReference') {
+      const result = SchemaMemberGuards.isQualifiedEntityTypeName(node.typeName);
+
+      return result;
+    }
+
+    return false;
+  }
+
+  private static isQualifiedEntityTypeName(typeName: unknown): boolean {
+    if (!Predicates.isRecord(typeName) || AstHelpers.getNodeType(typeName) !== 'TSQualifiedName') {
+      return false;
+    }
+    const right = typeName.right;
+    const result = Predicates.isRecord(right) && AstHelpers.getNodeType(right) === 'Identifier' && right.name === 'Type';
+
+    return result;
+  }
+
   private static staticKeyName(key: unknown): string | undefined {
     if (!Predicates.isRecord(key)) {
       return undefined;
