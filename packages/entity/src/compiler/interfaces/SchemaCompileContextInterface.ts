@@ -7,6 +7,8 @@ export interface SchemaCompileContextInterface {
   readonly 'formatAssertionVocabularyEnabled': boolean;
   /** Keyed by `${resolvedBaseUri}#${fragment}`, global across the root document and every registered remote. */
   readonly 'referenceCache': Map<string, CompiledNodeInterface>;
+  /** Every known dialect metaschema, keyed by its `$id` — the vocabulary source for per-resource dialect checks. */
+  readonly 'remoteSchemas': ReadonlyMap<string, object | boolean>;
   readonly 'resourceIndex': SchemaResourceIndexInterface;
   /** `false` when the root schema's own `$schema` dialect declares the Validation vocabulary excluded. */
   readonly 'validationVocabularyEnabled': boolean;

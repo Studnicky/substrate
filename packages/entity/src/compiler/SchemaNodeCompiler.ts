@@ -6,6 +6,7 @@ import type { DynamicScopeFrameInterface } from './interfaces/DynamicScopeFrameI
 import type { ReferenceTargetResolverFunctionInterface } from './interfaces/ReferenceTargetResolverFunctionInterface.js';
 import type { ResolvedUriReferenceInterface } from './interfaces/ResolvedUriReferenceInterface.js';
 import type { SchemaCompileContextInterface } from './interfaces/SchemaCompileContextInterface.js';
+import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
 import { ArrayNodeCompiler } from './ArrayNodeCompiler.js';
 import { CompositionNodeCompiler } from './CompositionNodeCompiler.js';
@@ -14,8 +15,10 @@ import { FormatAssertionNodeCompiler } from './FormatAssertionNodeCompiler.js';
 import { LazyCompiledNode } from './LazyCompiledNode.js';
 import { ReferenceNodeCompiler } from './ReferenceNodeCompiler.js';
 import { ScalarNodeCompiler } from './ScalarNodeCompiler.js';
+import { SchemaDialectResolver } from './SchemaDialectResolver.js';
 import { SchemaNodePlanBuilder } from './SchemaNodePlanBuilder.js';
 import { SchemaPointer } from './SchemaPointer.js';
+import { SchemaVocabularyResolver } from './SchemaVocabularyResolver.js';
 import { StructuralNodeCompiler } from './StructuralNodeCompiler.js';
 import { UnevaluatedNodeCompiler } from './UnevaluatedNodeCompiler.js';
 import { UriReference } from './UriReference.js';
@@ -53,11 +56,12 @@ export class SchemaNodeCompiler {
       const result = compileContext.resourceIndex.dynamicAnchors.has(`${resolved.base}#${resolved.fragment}`);
       return result;
     };
+    const arrayPlan = SchemaNodeCompiler.withDialectAwareArrayKeywords(plan, effectiveBase, compileContext);
 
     const clauses = SchemaNodeCompiler.compactClauses([
       compileContext.validationVocabularyEnabled ? ScalarNodeCompiler.compile(plan) : undefined,
       StructuralNodeCompiler.compile(plan, compileChild),
-      ArrayNodeCompiler.compile(plan, compileChild),
+      ArrayNodeCompiler.compile(arrayPlan, compileChild),
       CompositionNodeCompiler.compile(plan, compileChild),
       ReferenceNodeCompiler.compile(plan, resolveReference, isDynamicAnchorTarget),
       FormatAssertionNodeCompiler.compile(plan, compileContext.formatAssertionVocabularyEnabled)
@@ -114,6 +118,17 @@ export class SchemaNodeCompiler {
       anchors.set(name, target);
     });
     return { 'anchors': anchors };
+  }
+
+  /** `prefixItems` is a 2020-12 Applicator keyword; a resource whose declared dialect doesn't recognize Applicator ignores it, as an unknown keyword. */
+  private static withDialectAwareArrayKeywords(
+    plan: SchemaNodePlanInterface, effectiveBase: string, compileContext: SchemaCompileContextInterface
+  ): SchemaNodePlanInterface {
+    if (plan.prefixItems === undefined) { return plan; }
+    const dialect = SchemaDialectResolver.resolve(effectiveBase, compileContext.resourceIndex.resources);
+    if (SchemaVocabularyResolver.isApplicatorRecognized(dialect, compileContext.remoteSchemas)) { return plan; }
+    const result = { ...plan, 'prefixItems': undefined };
+    return result;
   }
 
   /** A caller's `segment` may be `keyword/name` (e.g. `properties/${name}`); only the first `/` is the pointer separator, the rest belongs to `name` and gets escaped. */

@@ -44,7 +44,7 @@ export class EntityClosureRegistry {
       const formatAssertionVocabularyEnabled = SchemaVocabularyResolver.isFormatAssertionEnabled(schema, knownRemotes);
       const compileContext = {
         'formatAssertionVocabularyEnabled': formatAssertionVocabularyEnabled, 'referenceCache': new Map(),
-        'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled
+        'remoteSchemas': knownRemotes, 'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled
       };
       const node = SchemaNodeCompiler.compileRoot(schema, compileContext, '#', '');
       const predicate = EntityClosureRegistry.toPredicate<TValidated>(node, fillDefaults);

@@ -21,7 +21,9 @@ export class SchemaResourceIndex {
     remoteSchemas.forEach((remoteDocument, registrationUri) => {
       SchemaResourceIndex.registerEntryDocument(remoteDocument, registrationUri, accumulator);
       if (!accumulator.resources.has(registrationUri)) {
-        accumulator.resources.set(registrationUri, { 'document': remoteDocument, 'parentBase': registrationUri, 'pointerPrefix': '#' });
+        accumulator.resources.set(registrationUri, {
+          'declaredDialect': SchemaResourceIndex.declaredDialect(remoteDocument), 'document': remoteDocument, 'parentBase': registrationUri, 'pointerPrefix': '#'
+        });
       }
     });
 
@@ -31,7 +33,9 @@ export class SchemaResourceIndex {
   /** A document's own `$id`, if declared, is resolved (once, by `walk`) against `parentBase` — the URI it was retrieved by. */
   private static registerEntryDocument(document: unknown, parentBase: string, accumulator: WalkAccumulatorInterface): void {
     if (SchemaResourceIndex.declaredId(document) === undefined) {
-      accumulator.resources.set(parentBase, { 'document': document, 'parentBase': parentBase, 'pointerPrefix': '#' });
+      accumulator.resources.set(parentBase, {
+        'declaredDialect': SchemaResourceIndex.declaredDialect(document), 'document': document, 'parentBase': parentBase, 'pointerPrefix': '#'
+      });
     }
     SchemaResourceIndex.walk(document, '#', parentBase, document, accumulator);
   }
@@ -43,12 +47,21 @@ export class SchemaResourceIndex {
     return result;
   }
 
+  private static declaredDialect(node: unknown): string | undefined {
+    if (!Predicates.isRecord(node)) { return undefined; }
+    const dialect = Reflect.get(node, '$schema');
+    const result = Predicates.isString(dialect) ? dialect : undefined;
+    return result;
+  }
+
   private static walk(node: unknown, pointer: string, currentBase: string, document: unknown, accumulator: WalkAccumulatorInterface): void {
     if (!Predicates.isRecord(node)) { return; }
     const declaredId = SchemaResourceIndex.declaredId(node);
     const effectiveBase = declaredId === undefined ? currentBase : UriReference.resolve(declaredId, currentBase).base;
     if (declaredId !== undefined) {
-      accumulator.resources.set(effectiveBase, { 'document': document, 'parentBase': currentBase, 'pointerPrefix': pointer });
+      accumulator.resources.set(effectiveBase, {
+        'declaredDialect': SchemaResourceIndex.declaredDialect(node), 'document': document, 'parentBase': currentBase, 'pointerPrefix': pointer
+      });
     }
 
     const anchor = Reflect.get(node, '$anchor');
