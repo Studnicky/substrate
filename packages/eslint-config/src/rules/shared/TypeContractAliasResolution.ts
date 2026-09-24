@@ -110,6 +110,38 @@ export class TypeContractAliasResolution {
     return result;
   }
 
+  // A hand-written `Type` in an entity namespace is canonical pure data — not a contract, not
+  // invalid — when the namespace's own Schema/Node value proves no structural derivation
+  // exists. Same gates as `isCanonicalEntityTypeAlias` (exported `Type` in an `*Entity`
+  // namespace); the only difference is what proves the classification.
+  public isJustifiedHandWrittenTypeAlias(declaration: TypeAliasDeclaration): boolean {
+    if (
+      declaration.name.text !== 'Type'
+      || (getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0
+    ) {
+      return false;
+    }
+
+    const namespaceBlock = declaration.parent;
+
+    if (!isModuleBlock(namespaceBlock)) {
+      return false;
+    }
+
+    const namespaceDeclaration = namespaceBlock.parent;
+    const isEntityNamespace = isModuleDeclaration(namespaceDeclaration)
+      && isIdentifier(namespaceDeclaration.name)
+      && namespaceDeclaration.name.text.endsWith('Entity');
+
+    if (!isEntityNamespace) {
+      return false;
+    }
+
+    const result = this.context.namespaceHandWrittenTypeIsJustified(declaration);
+
+    return result;
+  }
+
   private moduleBlockDeclaresSymbol(namespaceBlock: ModuleBlock, target: Symbol): boolean {
     const statements = namespaceBlock.statements;
     const statementCount = statements.length;
@@ -177,7 +209,7 @@ export class TypeContractAliasResolution {
 
     const nextVisiting = new Set(visiting);
 
-    if (this.isCanonicalEntityTypeAlias(declaration)) {
+    if (this.isCanonicalEntityTypeAlias(declaration) || this.isJustifiedHandWrittenTypeAlias(declaration)) {
       return {
         'classification': 'pureDataCanonical',
         'evidence': declaration.type,

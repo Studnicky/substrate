@@ -42,6 +42,10 @@ Recognition is library-agnostic: it inspects what a schema derivation produced, 
 
 Provenance resolution follows TypeScript symbols through local declarations and imports with deterministic cycle and depth protection. An unresolved source is non-canonical; matching field shapes do not substitute for verified provenance.
 
+## Hand-written `Type` in an entity namespace
+
+An exported `Type` in an `*Entity` namespace with no schema-deriving shape at all is still retained as canonical pure data — not rejected as inline object data — when the namespace's own `Schema`/`Node` value proves no structural derivation exists: it contains `not`/`if`/`then`/`else` anywhere, is an empty object (`{}`), or refines with `anyOf` alongside `properties`/`required` in the same object. This checks the schema itself, never a marker on `Type`; a schema that derives structurally still reports through the normal diagnostic paths below.
+
 ## Diagnostic order
 
 The rule has no subchecks or internal severity settings. ESLint's configured severity is the sole severity.

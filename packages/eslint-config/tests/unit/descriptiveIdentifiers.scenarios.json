@@ -44,6 +44,10 @@
       {
         "code": "function isURLSearchParams(value) { return value instanceof URLSearchParams; }",
         "name": "identifier ending in a real global class name (URLSearchParams) is not a banned shortening"
+      },
+      {
+        "code": "const Schema = { minLength: 3, maxLength: 10, type: 'string' };",
+        "name": "JSON Schema vocabulary keys minLength/maxLength are never flagged, with no satisfies clause or external contextual type in scope"
       }
     ],
     "invalid": [
@@ -88,6 +92,15 @@
           }
         ],
         "name": "bare parameters of a named FunctionDeclaration - all three flagged (not exempted by the function's own id exemption)"
+      },
+      {
+        "code": "const cfg = { minVal: 3 };",
+        "errors": [
+          {
+            "messageId": "banned-shortening"
+          }
+        ],
+        "name": "a non-vocabulary key containing the banned 'min' token is still flagged \u2014 the exemption is exact-name, not prefix"
       }
     ]
   },
