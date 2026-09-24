@@ -50,6 +50,8 @@
     "stamp-version": "tsx scripts/stamp-version.ts",
     "stamp-version:check": "tsx scripts/stamp-version.ts --check",
     "test": "pnpm run test:unit",
+    "test:conformance": "tsx packages/entity/tests/conformance/run-conformance.ts",
+    "test:conformance:update-baseline": "tsx packages/entity/tests/conformance/run-conformance.ts --update-baseline",
     "test:unit": "tsx scripts/test-suite.ts unit --fail-if-empty",
     "test:integration": "tsx scripts/test-suite.ts integration --fail-if-empty",
     "test:smoke": "tsx scripts/test-suite.ts smoke --fail-if-empty",
