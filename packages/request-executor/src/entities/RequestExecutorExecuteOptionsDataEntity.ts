@@ -24,7 +24,7 @@ export namespace RequestExecutorExecuteOptionsDataEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
+    { 'title': 'RequestExecutorExecuteOptionsData', 'type': 'object' } as const,
     {
       'deadlineMs': RequestDeadlineEntity.Node.schema.properties.deadlineMs,
       'scopeInitial': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true })

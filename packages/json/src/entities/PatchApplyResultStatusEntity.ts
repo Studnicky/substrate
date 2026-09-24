@@ -19,7 +19,8 @@ export namespace PatchApplyResultStatusEntity {
   export const Node = SchemaNode.defineObject(
     { 'type': 'object' } as const,
     { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'success': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['success'] as const
+    ['success'] as const,
+    { 'additionalProperties': false }
   );
   export type Type = NodeStaticType<typeof Node>;
 

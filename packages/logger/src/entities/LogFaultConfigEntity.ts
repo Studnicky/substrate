@@ -34,7 +34,7 @@ export namespace LogFaultConfigEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
+    { 'title': 'LogFaultConfig', 'type': 'object' } as const,
     {
       ...LogBodyConfigEntity.Node.schema.properties,
       'cause': SchemaNode.defineString({ 'description': 'Underlying cause message.', 'type': 'string' } as const),

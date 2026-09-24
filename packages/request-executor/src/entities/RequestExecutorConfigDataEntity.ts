@@ -20,7 +20,7 @@ export namespace RequestExecutorConfigDataEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
+    { 'title': 'RequestExecutorConfigData', 'type': 'object' } as const,
     { 'deadlineMs': RequestDeadlineEntity.Node.schema.properties.deadlineMs },
     [] as const,
     { 'additionalProperties': false }
