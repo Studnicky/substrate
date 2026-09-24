@@ -30,7 +30,7 @@ export namespace TimingOptionsEntity {
   export const Node = SchemaNode.defineObject(
     { 'type': 'object' } as const,
     {
-      'maximumEvents': SchemaNode.defineOneOf([
+      'maximumEvents': SchemaNode.defineOneOf({ 'default': DEFAULT_MAXIMUM_EVENTS } as const, [
         SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
         SchemaNode.defineNull({ 'type': 'null' } as const)
       ]),

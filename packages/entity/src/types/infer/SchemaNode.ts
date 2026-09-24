@@ -60,13 +60,37 @@ export class SchemaNode {
     return { 'schema': schema };
   }
 
-  public static defineConst<const TValue>(value: TValue): SchemaNodeInterface<{ readonly 'const': TValue }, TValue> {
+  public static defineConst<const TValue>(value: TValue): SchemaNodeInterface<{ readonly 'const': TValue }, TValue>;
+  public static defineConst<const TSchema extends Record<string, unknown>, const TValue>(
+    schema: TSchema,
+    value: TValue
+  ): SchemaNodeInterface<TSchema & { readonly 'const': TValue }, TValue>;
+  public static defineConst(...argumentList: [value: unknown] | [schema: Record<string, unknown>, value: unknown]): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, value] = argumentList;
+
+      return { 'schema': { ...schema, 'const': value } };
+    }
+    const [value] = argumentList;
+
     return { 'schema': { 'const': value } };
   }
 
   public static defineEnum<const TValues extends readonly unknown[]>(
     values: TValues
-  ): SchemaNodeInterface<{ readonly 'enum': TValues }, TValues[number]> {
+  ): SchemaNodeInterface<{ readonly 'enum': TValues }, TValues[number]>;
+  public static defineEnum<const TSchema extends Record<string, unknown>, const TValues extends readonly unknown[]>(
+    schema: TSchema,
+    values: TValues
+  ): SchemaNodeInterface<TSchema & { readonly 'enum': TValues }, TValues[number]>;
+  public static defineEnum(...argumentList: [values: readonly unknown[]] | [schema: Record<string, unknown>, values: readonly unknown[]]): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, values] = argumentList;
+
+      return { 'schema': { ...schema, 'enum': values } };
+    }
+    const [values] = argumentList;
+
     return { 'schema': { 'enum': values } };
   }
 
@@ -174,26 +198,82 @@ export class SchemaNode {
 
   public static defineAllOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     branches: TItems
-  ): SchemaNodeInterface<{ readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>> {
+  ): SchemaNodeInterface<{ readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>;
+  public static defineAllOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    schema: TSchema,
+    branches: TItems
+  ): SchemaNodeInterface<TSchema & { readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>;
+  public static defineAllOf(
+    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
+  ): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, branches] = argumentList;
+
+      return { 'schema': { ...schema, 'allOf': branches } };
+    }
+    const [branches] = argumentList;
+
     return { 'schema': { 'allOf': branches } };
   }
 
   public static defineAnyOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     branches: TItems
-  ): SchemaNodeInterface<{ readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
+  ): SchemaNodeInterface<{ readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
+  public static defineAnyOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    schema: TSchema,
+    branches: TItems
+  ): SchemaNodeInterface<TSchema & { readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
+  public static defineAnyOf(
+    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
+  ): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, branches] = argumentList;
+
+      return { 'schema': { ...schema, 'anyOf': branches } };
+    }
+    const [branches] = argumentList;
+
     return { 'schema': { 'anyOf': branches } };
   }
 
   public static defineOneOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     branches: TItems
-  ): SchemaNodeInterface<{ readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
+  ): SchemaNodeInterface<{ readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
+  public static defineOneOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    schema: TSchema,
+    branches: TItems
+  ): SchemaNodeInterface<TSchema & { readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
+  public static defineOneOf(
+    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
+  ): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, branches] = argumentList;
+
+      return { 'schema': { ...schema, 'oneOf': branches } };
+    }
+    const [branches] = argumentList;
+
     return { 'schema': { 'oneOf': branches } };
   }
 
   /** `not` has no sound positive representation: TypeScript's type system has no negation operator. */
   public static defineNot<const TInner extends SchemaNodeInterface<unknown, unknown>>(
     inner: TInner
-  ): SchemaNodeInterface<{ readonly 'not': TInner }, unknown> {
+  ): SchemaNodeInterface<{ readonly 'not': TInner }, unknown>;
+  public static defineNot<const TSchema extends Record<string, unknown>, const TInner extends SchemaNodeInterface<unknown, unknown>>(
+    schema: TSchema,
+    inner: TInner
+  ): SchemaNodeInterface<TSchema & { readonly 'not': TInner }, unknown>;
+  public static defineNot(
+    ...argumentList: [inner: SchemaNodeInterface<unknown, unknown>] | [schema: Record<string, unknown>, inner: SchemaNodeInterface<unknown, unknown>]
+  ): SchemaNodeInterface<unknown, unknown> {
+    if (argumentList.length === 2) {
+      const [schema, inner] = argumentList;
+
+      return { 'schema': { ...schema, 'not': inner } };
+    }
+    const [inner] = argumentList;
+
     return { 'schema': { 'not': inner } };
   }
 
@@ -228,10 +308,13 @@ export class SchemaNode {
    */
   public static defineReference<TTarget extends SchemaNodeInterface<unknown, unknown>>(
     pointer: string,
-    _target: TTarget
-  ): SchemaNodeInterface<Pick<JSONSchema7, '$ref'>, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
-    const schema: JSONSchema7 = { '$ref': pointer };
-    return { 'schema': schema };
+    _target: TTarget,
+    title?: string
+  ): SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
+    const schema: JSONSchema7 = { '$ref': pointer, 'title': title };
+
+    // Runtime shape proven correct by the JSONSchema7-typed literal above; the cast restores the portable, self-contained return type.
+    return { 'schema': schema } as unknown as SchemaNodeInterface<Readonly<Partial<Record<'title', string>> & Record<'$ref', string>>, NodeStaticType<TTarget>, NodeInputType<TTarget>>;
   }
 
   /** Self-reference for a recursive schema: `build` receives the node it is defining, TypeBox `Type.Recursive`-style. */
