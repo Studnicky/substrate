@@ -127,7 +127,7 @@ export class CompositionNodeCompiler {
     return result;
   }
 
-  /** Runs every branch on its own tracker (so a losing branch's annotations still count) and merges into `evaluated`. */
+  /** Runs every branch on its own tracker; only a branch that validates successfully contributes its annotations. */
   private static evaluateEveryBranch(
     branches: readonly CompiledNodeInterface[], value: unknown, context: ValidationExecutionContextInterface,
     evaluated: EvaluatedTrackerInterface | undefined
@@ -136,10 +136,11 @@ export class CompositionNodeCompiler {
     const count = branches.length;
     for (let index = 0; index < count; index += 1) {
       const branchTracker = evaluated === undefined ? undefined : EvaluatedTracker.create();
-      if (branches[index]!.check(value, context, branchTracker)) {
+      const branchPassed = branches[index]!.check(value, context, branchTracker);
+      if (branchPassed) {
         passCount += 1;
       }
-      if (evaluated !== undefined && branchTracker !== undefined) {
+      if (branchPassed && evaluated !== undefined && branchTracker !== undefined) {
         EvaluatedTracker.mergeInto(evaluated, branchTracker);
       }
     }
@@ -171,7 +172,8 @@ export class CompositionNodeCompiler {
     const thenNode = plan.thenSchema === undefined ? undefined : compileChild(plan.thenSchema, 'then');
     const elseNode = plan.else === undefined ? undefined : compileChild(plan.else, 'else');
     const check = (value: unknown, context: ValidationExecutionContextInterface, evaluated?: EvaluatedTrackerInterface): boolean => {
-      const branch = ifNode.check(value, context) ? thenNode : elseNode;
+      const conditionPassed = CompositionNodeCompiler.evaluateCondition(ifNode, value, context, evaluated);
+      const branch = conditionPassed ? thenNode : elseNode;
       const result = branch === undefined || branch.check(value, context, evaluated);
       return result;
     };
@@ -179,7 +181,7 @@ export class CompositionNodeCompiler {
       value: unknown, context: ValidationExecutionContextInterface, instancePath: string, schemaPath: string,
       evaluated?: EvaluatedTrackerInterface
     ): EntityValidationErrorInterface[] => {
-      const conditionPassed = ifNode.check(value, context);
+      const conditionPassed = CompositionNodeCompiler.evaluateCondition(ifNode, value, context, evaluated);
       const branch = conditionPassed ? thenNode : elseNode;
       if (branch === undefined) { return []; }
       const branchKeyword = conditionPassed ? 'then' : 'else';
@@ -188,5 +190,18 @@ export class CompositionNodeCompiler {
     };
     const result = { 'check': check, 'collect': collect };
     return result;
+  }
+
+  /** Runs `if` on its own tracker; only a successful `if` contributes its evaluated properties/items. */
+  private static evaluateCondition(
+    ifNode: CompiledNodeInterface, value: unknown, context: ValidationExecutionContextInterface,
+    evaluated: EvaluatedTrackerInterface | undefined
+  ): boolean {
+    const ifTracker = evaluated === undefined ? undefined : EvaluatedTracker.create();
+    const conditionPassed = ifNode.check(value, context, ifTracker);
+    if (conditionPassed && evaluated !== undefined && ifTracker !== undefined) {
+      EvaluatedTracker.mergeInto(evaluated, ifTracker);
+    }
+    return conditionPassed;
   }
 }
