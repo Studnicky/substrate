@@ -810,7 +810,7 @@ void describe("LruCache", () => {
   void it("uses an injected clock for expiration", () => {
     const counter = VirtualTimeCounter.create({ startMs: 0 });
     const clock = VirtualClockProvider.create(counter);
-    const cache = LruCache.create<string, number>({ capacity: 1, clock, ttlMs: 10 });
+    const cache = LruCache.create<string, number>({ capacity: 1, ttlMs: 10 }, { clock });
 
     cache.set("entry", 1);
     counter.advance(11);
