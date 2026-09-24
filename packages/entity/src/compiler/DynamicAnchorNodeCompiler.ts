@@ -4,12 +4,9 @@ import type { DynamicScopeFrameInterface } from './interfaces/DynamicScopeFrameI
 import type { EvaluatedTrackerInterface } from './interfaces/EvaluatedTrackerInterface.js';
 import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
 
-/** Wraps a node declaring `$dynamicAnchor`: pushes itself onto the dynamic scope stack on entry, pops on exit. */
+/** Wraps a schema resource's compiled node: pushes its `$dynamicAnchor` bookending frame on entry, pops on exit. */
 export class DynamicAnchorNodeCompiler {
-  public static wrap(anchorName: string, node: CompiledNodeInterface): CompiledNodeInterface {
-    const anchors = new Map<string, CompiledNodeInterface>();
-    const frame: DynamicScopeFrameInterface = { 'anchors': anchors };
-
+  public static wrap(frame: DynamicScopeFrameInterface, node: CompiledNodeInterface): CompiledNodeInterface {
     const check = (value: unknown, context: ValidationExecutionContextInterface, evaluated?: EvaluatedTrackerInterface): boolean => {
       context.dynamicScope.push(frame);
       try {
@@ -31,8 +28,7 @@ export class DynamicAnchorNodeCompiler {
         context.dynamicScope.pop();
       }
     };
-    const wrapped: CompiledNodeInterface = { 'check': check, 'collect': collect };
-    anchors.set(anchorName, wrapped);
-    return wrapped;
+    const result: CompiledNodeInterface = { 'check': check, 'collect': collect };
+    return result;
   }
 }

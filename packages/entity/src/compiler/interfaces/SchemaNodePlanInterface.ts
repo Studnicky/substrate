@@ -18,6 +18,7 @@ export interface SchemaNodePlanInterface {
   readonly 'exclusiveMaximum': number | undefined;
   readonly 'exclusiveMinimum': number | undefined;
   readonly 'format': string | undefined;
+  readonly 'id': string | undefined;
   readonly 'if': unknown;
   readonly 'items': unknown;
   readonly 'maximum': number | undefined;

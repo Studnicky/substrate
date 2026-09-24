@@ -1,5 +1,5 @@
 import { globSync, readFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { relative, resolve, sep } from 'node:path';
 
 import type { ConformanceGroupInterface } from './interfaces/ConformanceGroupInterface.js';
 import type { ConformanceSuiteFileInterface } from './interfaces/ConformanceSuiteFileInterface.js';
@@ -28,6 +28,21 @@ export class ConformanceSuiteLoader {
   /** `optional/format-assertion.json` alone. */
   public static loadOptionalFormatAssertion(suiteRoot: string): readonly ConformanceSuiteFileInterface[] {
     const result = ConformanceSuiteLoader.loadPattern(suiteRoot, 'tests/draft2020-12/optional/format-assertion.json');
+    return result;
+  }
+
+  /** Every vendored `remotes/**` file, keyed by the `http://localhost:1234/...` URI the suite's own tests address it by. */
+  public static loadRemotes(suiteRoot: string): ReadonlyMap<string, unknown> {
+    const remotesRoot = resolve(suiteRoot, 'remotes');
+    const matches = globSync('**/*.json', { 'cwd': remotesRoot }).toSorted();
+    const result = new Map<string, unknown>();
+    const matchCount = matches.length;
+    for (let index = 0; index < matchCount; index += 1) {
+      const relativePath = matches[index]!;
+      const absolutePath = resolve(remotesRoot, relativePath);
+      const uri = `http://localhost:1234/${relativePath.split(sep).join('/')}`;
+      result.set(uri, JSON.parse(readFileSync(absolutePath, 'utf8')) as unknown);
+    }
     return result;
   }
 
