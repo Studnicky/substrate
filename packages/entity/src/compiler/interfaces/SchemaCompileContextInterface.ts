@@ -3,6 +3,8 @@ import type { SchemaResourceIndexInterface } from './SchemaResourceIndexInterfac
 
 /** Compile-time state shared across one schema document's whole compilation. */
 export interface SchemaCompileContextInterface {
+  /** `true` only when the root schema's own `$schema` dialect declares the format-assertion vocabulary at all. */
+  readonly 'formatAssertionVocabularyEnabled': boolean;
   /** Keyed by `${resolvedBaseUri}#${fragment}`, global across the root document and every registered remote. */
   readonly 'referenceCache': Map<string, CompiledNodeInterface>;
   readonly 'resourceIndex': SchemaResourceIndexInterface;

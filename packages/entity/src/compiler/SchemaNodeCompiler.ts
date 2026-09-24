@@ -10,6 +10,7 @@ import type { SchemaCompileContextInterface } from './interfaces/SchemaCompileCo
 import { ArrayNodeCompiler } from './ArrayNodeCompiler.js';
 import { CompositionNodeCompiler } from './CompositionNodeCompiler.js';
 import { DynamicAnchorNodeCompiler } from './DynamicAnchorNodeCompiler.js';
+import { FormatAssertionNodeCompiler } from './FormatAssertionNodeCompiler.js';
 import { LazyCompiledNode } from './LazyCompiledNode.js';
 import { ReferenceNodeCompiler } from './ReferenceNodeCompiler.js';
 import { ScalarNodeCompiler } from './ScalarNodeCompiler.js';
@@ -58,7 +59,8 @@ export class SchemaNodeCompiler {
       StructuralNodeCompiler.compile(plan, compileChild),
       ArrayNodeCompiler.compile(plan, compileChild),
       CompositionNodeCompiler.compile(plan, compileChild),
-      ReferenceNodeCompiler.compile(plan, resolveReference, isDynamicAnchorTarget)
+      ReferenceNodeCompiler.compile(plan, resolveReference, isDynamicAnchorTarget),
+      FormatAssertionNodeCompiler.compile(plan, compileContext.formatAssertionVocabularyEnabled)
     ]);
 
     const combined = SchemaNodeCompiler.combine(clauses);
@@ -142,9 +144,10 @@ export class SchemaNodeCompiler {
   }
 
   /**
-   * `mergeBase` feeds `compile()`'s own `$id` re-merge (the parent base, so a resource-root target's own relative
-   * `$id` merges exactly once); `frameBase` is the resource's true resolved base — always used for bookending,
-   * since re-deriving it from `mergeBase` a second time would double the merge.
+   * `mergeBase` feeds `compile()`'s own `$id` re-merge. A pointer target that redeclares its own `$id` is a
+   * new resource: `compile()` already bookends it against its own base, so `frameBase` (the traversed-through
+   * resource, not the target's) must not also be entered — that would smuggle an untraversed resource's
+   * `$dynamicAnchor`s onto the dynamic scope.
    */
   private static compileResolvedReference(resolved: ResolvedUriReferenceInterface, compileContext: SchemaCompileContextInterface): CompiledNodeInterface {
     const target = SchemaNodeCompiler.locateReferenceTarget(resolved, compileContext);
@@ -152,7 +155,13 @@ export class SchemaNodeCompiler {
       throw new Error(`Unresolvable reference: ${resolved.base}#${resolved.fragment}`);
     }
     const node = SchemaNodeCompiler.compile(target.schema, compileContext, target.pointer, target.mergeBase);
+    if (SchemaNodeCompiler.declaresOwnResource(target.schema)) { return node; }
     const result = SchemaNodeCompiler.withResourceEntry(target.frameBase, compileContext, node);
+    return result;
+  }
+
+  private static declaresOwnResource(schema: unknown): boolean {
+    const result = Predicates.isRecord(schema) && Predicates.isString(Reflect.get(schema, '$id'));
     return result;
   }
 

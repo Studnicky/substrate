@@ -41,7 +41,11 @@ export class EntityClosureRegistry {
       const knownRemotes = EntityClosureRegistry.withKnownMetaschemas(remoteSchemas);
       const resourceIndex = SchemaResourceIndex.build(schema, knownRemotes);
       const validationVocabularyEnabled = SchemaVocabularyResolver.isValidationEnabled(schema, knownRemotes);
-      const compileContext = { 'referenceCache': new Map(), 'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled };
+      const formatAssertionVocabularyEnabled = SchemaVocabularyResolver.isFormatAssertionEnabled(schema, knownRemotes);
+      const compileContext = {
+        'formatAssertionVocabularyEnabled': formatAssertionVocabularyEnabled, 'referenceCache': new Map(),
+        'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled
+      };
       const node = SchemaNodeCompiler.compileRoot(schema, compileContext, '#', '');
       const predicate = EntityClosureRegistry.toPredicate<TValidated>(node, fillDefaults);
       if (id !== undefined) {
