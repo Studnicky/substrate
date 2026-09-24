@@ -1,21 +1,24 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { APPLICATOR_METASCHEMA } from './metaschema/ApplicatorMetaschema.js';
+import { CONTENT_METASCHEMA } from './metaschema/ContentMetaschema.js';
+import { CORE_METASCHEMA } from './metaschema/CoreMetaschema.js';
+import { FORMAT_ANNOTATION_METASCHEMA } from './metaschema/FormatAnnotationMetaschema.js';
+import { META_DATA_METASCHEMA } from './metaschema/MetaDataMetaschema.js';
+import { SCHEMA_METASCHEMA } from './metaschema/SchemaMetaschema.js';
+import { UNEVALUATED_METASCHEMA } from './metaschema/UnevaluatedMetaschema.js';
+import { VALIDATION_METASCHEMA } from './metaschema/ValidationMetaschema.js';
 
-const METASCHEMA_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), 'metaschema');
-const METASCHEMA_FILENAMES = Object.freeze([
-  'schema.json', 'core.json', 'applicator.json', 'unevaluated.json',
-  'validation.json', 'meta-data.json', 'format-annotation.json', 'content.json'
-]);
+const METASCHEMA_DOCUMENTS: readonly { readonly '$id': string }[] = [
+  SCHEMA_METASCHEMA, CORE_METASCHEMA, APPLICATOR_METASCHEMA, UNEVALUATED_METASCHEMA,
+  VALIDATION_METASCHEMA, META_DATA_METASCHEMA, FORMAT_ANNOTATION_METASCHEMA, CONTENT_METASCHEMA
+];
 
-/** The official draft 2020-12 metaschema documents, resolvable by their own `$id` without network I/O. */
+/** The official draft 2020-12 metaschema documents, resolvable by their own `$id` without network I/O or filesystem reads. */
 export class KnownMetaschemaRegistry {
   public static readonly remoteSchemas: ReadonlyMap<string, object> = KnownMetaschemaRegistry.load();
 
   private static load(): ReadonlyMap<string, object> {
     const result = new Map<string, object>();
-    METASCHEMA_FILENAMES.forEach((filename) => {
-      const document = JSON.parse(readFileSync(resolve(METASCHEMA_DIRECTORY, filename), 'utf8')) as { readonly '$id': string };
+    METASCHEMA_DOCUMENTS.forEach((document) => {
       result.set(document.$id, document);
     });
     return result;

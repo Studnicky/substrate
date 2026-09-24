@@ -44,9 +44,12 @@ export class EntityCompiler {
    * narrows `unknown` to `TValidated` and carries the backend's `.errors` array
    * after each call, so callers needing detail can pair it with {@link EntityCompiler.formatErrors}.
    *
-   * Compile once at module load and reuse; compilation is the expensive step.
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O. Compile once at module load and reuse; compilation is the expensive step.
    */
-  public static compile<TValidated>(schema: object | boolean): EntityValidateFunctionInterface<TValidated> {
+  public static compile<TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<TValidated> {
     const id = SchemaId.of(schema);
     if (id !== undefined) {
       const existing = this.registries.assert.getSchema<TValidated>(id);
@@ -54,7 +57,7 @@ export class EntityCompiler {
         return existing;
       }
     }
-    const result = this.registries.assert.compile<TValidated>(schema);
+    const result = this.registries.assert.compile<TValidated>(schema, remoteSchemas);
     return result;
   }
 

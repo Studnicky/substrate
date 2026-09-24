@@ -51,6 +51,16 @@ void describe('EntityCompiler browser CSP safety', () => {
     assert.equal(constructions, 0);
   });
 
+  void it('compiles and validates through the node path without constructing dynamic code', () => {
+    const constructions = countDynamicCodeConstructions(() => {
+      const validate = NodeEntityCompiler.compile<{ host: string; port: number }>(SCHEMA);
+      validate({ 'host': 'localhost', 'port': 8080 });
+      validate({ 'port': 'not-a-number' });
+    });
+
+    assert.equal(constructions, 0);
+  });
+
   void it('rejects the same payload the node path rejects, with the same error shape', () => {
     const browserValidate = BrowserEntityCompiler.compile<{ port: number }>(SCHEMA);
     const nodeValidate = NodeEntityCompiler.compile<{ port: number }>(SCHEMA);

@@ -128,7 +128,7 @@ export class StructuralNodeCompiler {
   private static fillDefaults(value: Record<string, unknown>, defaults: ReadonlyMap<string, unknown>, context: ValidationExecutionContextInterface): void {
     if (!context.options.fillDefaults || defaults.size === 0) { return; }
     defaults.forEach((defaultValue, key) => {
-      if (!Object.hasOwn(value, key)) {
+      if (!StructuralNodeCompiler.isPresent(value, key)) {
         JsonObject.write(value, key, structuredClone(defaultValue));
       }
     });
@@ -175,11 +175,17 @@ export class StructuralNodeCompiler {
     };
   }
 
+  /** A key counts as present only with an own, defined value — matching `JSON.stringify`'s own-enumerable, undefined-dropping projection. */
+  private static isPresent(value: Record<string, unknown>, key: string): boolean {
+    const result = Object.hasOwn(value, key) && Reflect.get(value, key) !== undefined;
+    return result;
+  }
+
   private static makeRequiredChecker(plan: SchemaNodePlanInterface): (value: Record<string, unknown>) => boolean {
     return (value) => {
       const count = plan.required.length;
       for (let index = 0; index < count; index += 1) {
-        if (!Object.hasOwn(value, plan.required[index]!)) { return false; }
+        if (!StructuralNodeCompiler.isPresent(value, plan.required[index]!)) { return false; }
       }
       return true;
     };
@@ -193,7 +199,7 @@ export class StructuralNodeCompiler {
       const count = plan.required.length;
       for (let index = 0; index < count; index += 1) {
         const key = plan.required[index]!;
-        if (!Object.hasOwn(value, key)) {
+        if (!StructuralNodeCompiler.isPresent(value, key)) {
           errors.push(ValidationErrorFactory.build(
             instancePath, SchemaPointer.append(schemaPathPrefix, 'required'), { 'keyword': 'required', 'missingProperty': key }, { 'missingProperty': key }
           ));
@@ -208,10 +214,10 @@ export class StructuralNodeCompiler {
     return (value) => {
       let allSatisfied = true;
       plan.dependentRequired.forEach((siblings, trigger) => {
-        if (!Object.hasOwn(value, trigger)) { return; }
+        if (!StructuralNodeCompiler.isPresent(value, trigger)) { return; }
         const siblingCount = siblings.length;
         for (let siblingIndex = 0; siblingIndex < siblingCount; siblingIndex += 1) {
-          if (!Object.hasOwn(value, siblings[siblingIndex]!)) { allSatisfied = false; }
+          if (!StructuralNodeCompiler.isPresent(value, siblings[siblingIndex]!)) { allSatisfied = false; }
         }
       });
       return allSatisfied;
@@ -224,12 +230,12 @@ export class StructuralNodeCompiler {
     return (value, instancePath, schemaPathPrefix) => {
       const errors: EntityValidationErrorInterface[] = [];
       plan.dependentRequired.forEach((siblings, trigger) => {
-        if (!Object.hasOwn(value, trigger)) { return; }
+        if (!StructuralNodeCompiler.isPresent(value, trigger)) { return; }
         const missing: string[] = [];
         const siblingCount = siblings.length;
         for (let siblingIndex = 0; siblingIndex < siblingCount; siblingIndex += 1) {
           const sibling = siblings[siblingIndex]!;
-          if (!Object.hasOwn(value, sibling)) { missing.push(sibling); }
+          if (!StructuralNodeCompiler.isPresent(value, sibling)) { missing.push(sibling); }
         }
         if (missing.length === 0) { return; }
         errors.push(ValidationErrorFactory.build(
@@ -342,7 +348,7 @@ export class StructuralNodeCompiler {
     return (value, context, evaluated) => {
       let allSatisfied = true;
       dependentSchemas.forEach((node, trigger) => {
-        if (!Object.hasOwn(value, trigger)) { return; }
+        if (!StructuralNodeCompiler.isPresent(value, trigger)) { return; }
         if (!node.check(value, context, evaluated)) { allSatisfied = false; }
       });
       return allSatisfied;
@@ -356,7 +362,7 @@ export class StructuralNodeCompiler {
     return (value, context, instancePath, schemaPathPrefix, evaluated) => {
       const errors: EntityValidationErrorInterface[] = [];
       dependentSchemas.forEach((node, trigger) => {
-        if (!Object.hasOwn(value, trigger)) { return; }
+        if (!StructuralNodeCompiler.isPresent(value, trigger)) { return; }
         errors.push(...node.collect(value, context, instancePath, SchemaPointer.append(schemaPathPrefix, `dependentSchemas/${trigger}`), evaluated));
       });
       return errors;

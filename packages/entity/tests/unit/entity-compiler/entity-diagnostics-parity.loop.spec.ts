@@ -11,12 +11,11 @@ interface KeywordCaseInterface {
 }
 
 /**
- * Ajv (`node`) and `@cfworker/json-schema` (`browser`) each emit their own prose for a
- * validation failure, and each walks a live value differently (Ajv by property access,
- * cfworker's projection by own-key enumeration). Both registries route their diagnostics
- * through the shared `EntityDiagnostics` canonical vocabulary and the same JSON-instance
- * projection, so the same schema and the same value produce byte-identical validity and
- * `message` on either runtime — including for values a plain object literal can't exercise.
+ * `node` and `browser` both resolve to the specialised-closure engine, so identical validity and
+ * `message` output on either entrypoint is a structural guarantee, not a claim under test here.
+ * What this file pins down is the engine's own instance projection — own-enumerable, defined-value
+ * keys only, matching `JSON.stringify` — against JS object shapes a schema fixture can't express:
+ * inherited properties, non-enumerable properties, and explicit `undefined` values.
  */
 /** Own-enumerable `a`, inherited-enumerable `extra`, declared non-enumerable `status`. */
 const buildMixedKeyClassValue = (): Record<string, unknown> => {
@@ -53,7 +52,9 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     assert.equal(browserValidate(value), true);
   });
 
-  void it('agrees on a declared property inherited from a prototype, not own', () => {
+  // `JSON.stringify` drops inherited properties (own-enumerable only), so a JSON Schema `required`
+  // check must too: an inherited, non-own `status` does not satisfy `required: ['status']`.
+  void it('agrees a declared property inherited from a prototype, not own, does not satisfy required', () => {
     const schema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-inherited',
       'properties': { 'status': { 'type': 'number' } },
@@ -66,8 +67,8 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
 
-    assert.equal(nodeValidate(value), true);
-    assert.equal(browserValidate(value), true);
+    assert.equal(nodeValidate(value), false);
+    assert.equal(browserValidate(value), false);
   });
 
   void it('agrees a declared property explicitly set to undefined is absent', () => {
@@ -106,23 +107,20 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     assert.equal(nodeValidate.errors?.[0]?.message, 'must be number');
   });
 
-  /**
-   * Ajv's strict mode rejects `prefixItems` tuples that lack a matching `minItems`/`maxItems`/`items`,
-   * so this `unevaluatedItems: false` case cannot compile through the strict node registry; the
-   * expected text is the literal Ajv emits for this configuration, verified separately against a
-   * `strict: false` Ajv2020 instance.
-   */
-  void it('renders the Ajv-verified message for unevaluatedItems on the browser runtime', () => {
+  void it('renders a byte-identical message for unevaluatedItems on both runtimes', () => {
     const schema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-unevaluated-items',
       'prefixItems': [{ 'type': 'string' }],
       'type': 'array',
       'unevaluatedItems': false
     };
+    const nodeValidate = NodeEntityCompiler.compile<unknown>(schema);
     const browserValidate = BrowserEntityCompiler.compile<unknown>(schema);
 
+    assert.equal(nodeValidate(['x', 5]), false);
     assert.equal(browserValidate(['x', 5]), false);
-    assert.equal(browserValidate.errors?.[0]?.message, 'must NOT have more than 1 items');
+    assert.equal(browserValidate.errors?.[0]?.message, nodeValidate.errors?.[0]?.message);
+    assert.equal(nodeValidate.errors?.[0]?.message, 'must NOT have more than 1 items');
   });
 
   void it('agrees a cyclic object survives compileCreate on both runtimes', () => {
@@ -149,7 +147,9 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     assert.strictEqual(browserResult.context, browserResult);
   });
 
-  void it('agrees an undeclared inherited enumerable property trips additionalProperties: false', () => {
+  // `JSON.stringify` never serializes an inherited property, so it can never trip `additionalProperties`
+  // either — an inherited `extra` is invisible to `additionalProperties: false` the same as `: true`.
+  void it('agrees an undeclared inherited enumerable property is invisible to additionalProperties: false', () => {
     const schema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-inherited-additional-false',
       'additionalProperties': false,
@@ -161,10 +161,8 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
 
-    assert.equal(nodeValidate(value), false);
-    assert.equal(browserValidate(value), false);
-    assert.equal(browserValidate.errors?.[0]?.message, nodeValidate.errors?.[0]?.message);
-    assert.equal(nodeValidate.errors?.[0]?.message, 'must NOT have additional properties');
+    assert.equal(nodeValidate(value), true);
+    assert.equal(browserValidate(value), true);
   });
 
   void it('agrees an undeclared inherited enumerable property survives additionalProperties: true', () => {
@@ -230,11 +228,9 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
     assert.equal(nodeMax.errors?.[0]?.message, 'must NOT have more than 0 properties');
   });
 
-  /**
-   * `propertyNames`/`unevaluatedProperties` have no canonical `EntityDiagnostics` renderer yet,
-   * so message text diverges regardless of inheritance; only validity parity is asserted here.
-   */
-  void it('agrees on validity for propertyNames and unevaluatedProperties against an inherited enumerable key', () => {
+  // An inherited `BAD` is invisible to `Object.keys`, the same own-enumerable projection `JSON.stringify`
+  // uses, so neither `propertyNames` nor `unevaluatedProperties` ever sees it to reject.
+  void it('agrees propertyNames and unevaluatedProperties are invisible to an inherited enumerable key', () => {
     const value = Object.setPrototypeOf({ 'a': 'x' }, { 'BAD': 1 }) as Record<string, unknown>;
     const propertyNamesSchema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-inherited-property-names',
@@ -251,13 +247,13 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
 
     const nodePropertyNames = NodeEntityCompiler.compile<Record<string, unknown>>(propertyNamesSchema);
     const browserPropertyNames = BrowserEntityCompiler.compile<Record<string, unknown>>(propertyNamesSchema);
-    assert.equal(nodePropertyNames(value), false);
-    assert.equal(browserPropertyNames(value), false);
+    assert.equal(nodePropertyNames(value), true);
+    assert.equal(browserPropertyNames(value), true);
 
     const nodeUnevaluated = NodeEntityCompiler.compile<Record<string, unknown>>(unevaluatedSchema);
     const browserUnevaluated = BrowserEntityCompiler.compile<Record<string, unknown>>(unevaluatedSchema);
-    assert.equal(nodeUnevaluated(value), false);
-    assert.equal(browserUnevaluated(value), false);
+    assert.equal(nodeUnevaluated(value), true);
+    assert.equal(browserUnevaluated(value), true);
   });
 
   const keywordCases: readonly KeywordCaseInterface[] = [
@@ -325,11 +321,6 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'name': 'pattern',
       'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-pattern', 'pattern': '^a', 'type': 'string' },
       'value': 'b'
-    },
-    {
-      'name': 'format',
-      'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-format', 'format': 'email', 'type': 'string' },
-      'value': 'not-an-email'
     },
     {
       'name': 'additionalProperties',

@@ -62,10 +62,7 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@cfworker/json-schema": "^4.1.1",
     "@studnicky/types": "workspace:*",
-    "@types/json-schema": "^7.0.15",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1"
+    "@types/json-schema": "^7.0.15"
   }
 }

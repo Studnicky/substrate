@@ -32,16 +32,16 @@ export class ConformanceSuiteLoader {
   }
 
   /** Every vendored `remotes/**` file, keyed by the `http://localhost:1234/...` URI the suite's own tests address it by. */
-  public static loadRemotes(suiteRoot: string): ReadonlyMap<string, unknown> {
+  public static loadRemotes(suiteRoot: string): ReadonlyMap<string, object | boolean> {
     const remotesRoot = resolve(suiteRoot, 'remotes');
     const matches = globSync('**/*.json', { 'cwd': remotesRoot }).toSorted();
-    const result = new Map<string, unknown>();
+    const result = new Map<string, object | boolean>();
     const matchCount = matches.length;
     for (let index = 0; index < matchCount; index += 1) {
       const relativePath = matches[index]!;
       const absolutePath = resolve(remotesRoot, relativePath);
       const uri = `http://localhost:1234/${relativePath.split(sep).join('/')}`;
-      result.set(uri, JSON.parse(readFileSync(absolutePath, 'utf8')) as unknown);
+      result.set(uri, JSON.parse(readFileSync(absolutePath, 'utf8')) as object | boolean);
     }
     return result;
   }

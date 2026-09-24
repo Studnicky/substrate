@@ -3,11 +3,11 @@
  * The JSON Schema Test Suite correctness gate for `@studnicky/entity`.
  *
  * Runs the vendored draft2020-12 required suite against both shipped entrypoints
- * (`@studnicky/entity/node`, Ajv-backed; `@studnicky/entity/browser`, cfworker-backed),
- * compares each engine's failing-case set against its recorded baseline, and fails
- * when a case regresses (a new failure) or the baseline goes stale (a recorded
- * failure now passes and the baseline was not updated to drop it). Optional-directory
- * suites are measured and reported but not gated; see `optional-decision.md`.
+ * (`@studnicky/entity/node` and `@studnicky/entity/browser`, both specialised-closure
+ * engine backed), compares each entrypoint's failing-case set against its recorded
+ * baseline, and fails when a case regresses (a new failure) or the baseline goes
+ * stale (a recorded failure now passes and the baseline was not updated to drop it).
+ * Optional-directory suites are measured and reported but not gated; see `optional-decision.md`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -80,20 +80,30 @@ function main(): void {
   const optionalCoreFiles = ConformanceSuiteLoader.loadOptionalCore(SUITE_ROOT);
   const optionalFormatFiles = ConformanceSuiteLoader.loadOptionalFormat(SUITE_ROOT);
   const optionalFormatAssertionFiles = ConformanceSuiteLoader.loadOptionalFormatAssertion(SUITE_ROOT);
+  const remotes = ConformanceSuiteLoader.loadRemotes(SUITE_ROOT);
 
   const nodeCompile = NodeEntityCompiler.compile.bind(NodeEntityCompiler);
   const browserCompile = BrowserEntityCompiler.compile.bind(BrowserEntityCompiler);
 
   process.stdout.write('=== required suite (gated) ===\n');
-  const nodeRequired = ConformanceRunner.run('node', requiredFiles, nodeCompile);
-  const browserRequired = ConformanceRunner.run('browser', requiredFiles, browserCompile);
+  const nodeRequired = ConformanceRunner.run('node', requiredFiles, nodeCompile, remotes);
+  const browserRequired = ConformanceRunner.run('browser', requiredFiles, browserCompile, remotes);
   const nodeGatePassed = gateEngine(nodeRequired);
   const browserGatePassed = gateEngine(browserRequired);
 
   process.stdout.write('\n=== optional suites (measured, not gated) ===\n');
-  reportOptional('optional/* (excluding format, format-assertion)', ConformanceRunner.run('node', optionalCoreFiles, nodeCompile), ConformanceRunner.run('browser', optionalCoreFiles, browserCompile));
-  reportOptional('optional/format/*', ConformanceRunner.run('node', optionalFormatFiles, nodeCompile), ConformanceRunner.run('browser', optionalFormatFiles, browserCompile));
-  reportOptional('optional/format-assertion.json', ConformanceRunner.run('node', optionalFormatAssertionFiles, nodeCompile), ConformanceRunner.run('browser', optionalFormatAssertionFiles, browserCompile));
+  reportOptional(
+    'optional/* (excluding format, format-assertion)',
+    ConformanceRunner.run('node', optionalCoreFiles, nodeCompile, remotes), ConformanceRunner.run('browser', optionalCoreFiles, browserCompile, remotes)
+  );
+  reportOptional(
+    'optional/format/*',
+    ConformanceRunner.run('node', optionalFormatFiles, nodeCompile, remotes), ConformanceRunner.run('browser', optionalFormatFiles, browserCompile, remotes)
+  );
+  reportOptional(
+    'optional/format-assertion.json',
+    ConformanceRunner.run('node', optionalFormatAssertionFiles, nodeCompile, remotes), ConformanceRunner.run('browser', optionalFormatAssertionFiles, browserCompile, remotes)
+  );
 
   if (UPDATE_BASELINE) {
     process.stdout.write('\nbaselines updated.\n');
