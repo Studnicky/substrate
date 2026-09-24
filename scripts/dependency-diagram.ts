@@ -123,6 +123,34 @@ function sourceFilesFromGraph(graph: Record<string, string[]>, sourceDir: string
   return [...sourceFiles].toSorted();
 }
 
+function importExportSpecifierText(node: ts.Node): string | undefined {
+  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+    return node.moduleSpecifier.text;
+  }
+  return undefined;
+}
+
+function importEqualsSpecifierText(node: ts.Node): string | undefined {
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
+    return node.moduleReference.expression.text;
+  }
+  return undefined;
+}
+
+function importTypeSpecifierText(node: ts.Node): string | undefined {
+  if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+    return node.argument.literal.text;
+  }
+  return undefined;
+}
+
+// Each extractor guards a disjoint ts.Node shape; at most one matches per node.
+const moduleSpecifierExtractors: readonly ((node: ts.Node) => string | undefined)[] = [
+  importExportSpecifierText,
+  importEqualsSpecifierText,
+  importTypeSpecifierText
+];
+
 function staticModuleSpecifiers(sourcePath: string): Set<string> {
   const sourceFile = ts.createSourceFile(
     sourcePath,
@@ -134,12 +162,12 @@ function staticModuleSpecifiers(sourcePath: string): Set<string> {
   const specifiers = new Set<string>();
 
   const visit = (node: ts.Node): void => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
-      specifiers.add(node.moduleSpecifier.text);
-    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
-      specifiers.add(node.moduleReference.expression.text);
-    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-      specifiers.add(node.argument.literal.text);
+    for (const extractor of moduleSpecifierExtractors) {
+      const specifier = extractor(node);
+      if (specifier !== undefined) {
+        specifiers.add(specifier);
+        break;
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -157,10 +185,7 @@ function workspacePackageFromSpecifier(specifier: string, workspacePackages: Set
   return workspacePackages.has(packageName) ? packageName : null;
 }
 
-function buildGraph(): DependencyGraphInterface {
-  const packageDirs = listPackageDirs();
-  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
-  const workspacePackages = new Set(packageByDir.values());
+function buildPackageToFiles(packageDirs: string[], packageByDir: Map<string, string>): Map<string, PackagePayloadInterface> {
   const packageToFiles = new Map<string, PackagePayloadInterface>();
 
   for (const dir of packageDirs) {
@@ -188,35 +213,68 @@ function buildGraph(): DependencyGraphInterface {
     });
   }
 
+  return packageToFiles;
+}
+
+interface PackageResolutionContextInterface {
+  readonly 'packageByDir': Map<string, string>;
+  readonly 'packageDirs': string[];
+}
+
+function collectGraphEdges(
+  packageName: string,
+  payload: PackagePayloadInterface,
+  resolutionContext: PackageResolutionContextInterface,
+  edges: Set<string>
+): void {
+  for (const [file, dependencies] of Object.entries(payload.graph)) {
+    const fromPackage = resolvePackage(file, resolutionContext.packageDirs, resolutionContext.packageByDir, payload.rootDir);
+    if (fromPackage !== packageName) {
+      continue;
+    }
+
+    for (const dependency of dependencies) {
+      const toPackage = resolvePackage(dependency, resolutionContext.packageDirs, resolutionContext.packageByDir, payload.rootDir);
+      if (toPackage !== null && toPackage !== fromPackage) {
+        edges.add([fromPackage, toPackage].join(' -> '));
+      }
+    }
+  }
+}
+
+function collectStaticImportEdges(
+  packageName: string,
+  payload: PackagePayloadInterface,
+  resolutionContext: PackageResolutionContextInterface,
+  workspacePackages: Set<string>,
+  edges: Set<string>
+): void {
+  for (const sourcePath of payload.sourceFiles) {
+    const fromPackage = resolvePackage(sourcePath, resolutionContext.packageDirs, resolutionContext.packageByDir, payload.rootDir);
+    if (fromPackage !== packageName) {
+      continue;
+    }
+
+    for (const specifier of staticModuleSpecifiers(sourcePath)) {
+      const toPackage = workspacePackageFromSpecifier(specifier, workspacePackages);
+      if (toPackage !== null && toPackage !== fromPackage) {
+        edges.add([fromPackage, toPackage].join(' -> '));
+      }
+    }
+  }
+}
+
+function buildGraph(): DependencyGraphInterface {
+  const packageDirs = listPackageDirs();
+  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
+  const workspacePackages = new Set(packageByDir.values());
+  const packageToFiles = buildPackageToFiles(packageDirs, packageByDir);
+  const resolutionContext: PackageResolutionContextInterface = { 'packageByDir': packageByDir, 'packageDirs': packageDirs };
+
   const edges = new Set<string>();
   for (const [packageName, payload] of packageToFiles.entries()) {
-    for (const [file, dependencies] of Object.entries(payload.graph)) {
-      const fromPackage = resolvePackage(file, packageDirs, packageByDir, payload.rootDir);
-      if (fromPackage !== packageName) {
-        continue;
-      }
-
-      for (const dependency of dependencies) {
-        const toPackage = resolvePackage(dependency, packageDirs, packageByDir, payload.rootDir);
-        if (toPackage !== null && toPackage !== fromPackage) {
-          edges.add([fromPackage, toPackage].join(' -> '));
-        }
-      }
-    }
-
-    for (const sourcePath of payload.sourceFiles) {
-      const fromPackage = resolvePackage(sourcePath, packageDirs, packageByDir, payload.rootDir);
-      if (fromPackage !== packageName) {
-        continue;
-      }
-
-      for (const specifier of staticModuleSpecifiers(sourcePath)) {
-        const toPackage = workspacePackageFromSpecifier(specifier, workspacePackages);
-        if (toPackage !== null && toPackage !== fromPackage) {
-          edges.add([fromPackage, toPackage].join(' -> '));
-        }
-      }
-    }
+    collectGraphEdges(packageName, payload, resolutionContext, edges);
+    collectStaticImportEdges(packageName, payload, resolutionContext, workspacePackages, edges);
   }
 
   return {
@@ -261,11 +319,23 @@ function collectNodeIds(lines: string[]): Set<string> {
   return nodeIds;
 }
 
-function buildMermaid(packages: string[], edges: string[], highlights: MermaidHighlightsInterface = {}): string {
-  const packageSet = new Set(packages);
-  const statuses = highlights.statuses ?? new Map<string, Set<string>>();
-  const impactedHops = highlights.impactedHops ?? new Map<string, number>();
-  const missingTests = highlights.missingTests ?? new Set<string>();
+interface GraphLinesResultInterface {
+  readonly 'graphLines': string[];
+  readonly 'keptNodeIds': Set<string>;
+}
+
+interface ClassAssignmentsResultInterface {
+  readonly 'classLines': string[];
+  readonly 'presentHops': Set<number>;
+  readonly 'presentStatuses': Set<string>;
+}
+
+interface MissingTestNotesResultInterface {
+  readonly 'missingTestNoteCount': number;
+  readonly 'noteLines': string[];
+}
+
+function computeGraphLines(packages: string[], edges: string[], packageSet: Set<string>): GraphLinesResultInterface {
   const nodeLines = packages.map((name) => {return `${sanitizeNodeId(name)}["${name}"]`;}).toSorted();
   const mermaidEdges = edges.filter((edge) => {
     const [from, to] = edge.split(' -> ');
@@ -276,10 +346,17 @@ function buildMermaid(packages: string[], edges: string[], highlights: MermaidHi
   }).toSorted();
 
   const graphLines = [...nodeLines, ...mermaidEdges];
-  const keptNodeIds = collectNodeIds(graphLines);
+  return { 'graphLines': graphLines, 'keptNodeIds': collectNodeIds(graphLines) };
+}
+
+function computeClassAssignments(
+  packages: string[],
+  keptNodeIds: Set<string>,
+  statuses: Map<string, Set<string>>,
+  impactedHops: Map<string, number>
+): ClassAssignmentsResultInterface {
   const presentStatuses = new Set<string>();
   const presentHops = new Set<number>();
-  const classDefinitions: string[] = [];
   const classLines: string[] = [];
 
   for (const name of packages) {
@@ -302,6 +379,11 @@ function buildMermaid(packages: string[], edges: string[], highlights: MermaidHi
     }
   }
 
+  return { 'classLines': classLines, 'presentHops': presentHops, 'presentStatuses': presentStatuses };
+}
+
+function computeClassDefinitions(presentStatuses: Set<string>, presentHops: Set<number>): string[] {
+  const classDefinitions: string[] = [];
   const statusStyles = new Map([
     ['added', 'fill:#d4edda,stroke:#28a745,color:#155724'],
     ['deleted', 'fill:#f8d7da,stroke:#dc3545,color:#842029,stroke-dasharray:5 5'],
@@ -319,6 +401,10 @@ function buildMermaid(packages: string[], edges: string[], highlights: MermaidHi
     classDefinitions.push(`classDef impacted_${hop} fill:${fill},stroke:${BLAST_STROKE},color:${contrastText(fill)}`);
   }
 
+  return classDefinitions;
+}
+
+function computeMissingTestNotes(missingTests: Set<string>, keptNodeIds: Set<string>): MissingTestNotesResultInterface {
   const noteLines: string[] = [];
   let missingTestNoteCount = 0;
   for (const name of [...missingTests].toSorted()) {
@@ -331,10 +417,10 @@ function buildMermaid(packages: string[], edges: string[], highlights: MermaidHi
     noteLines.push(`${noteId} -.-> ${nodeId}`);
     missingTestNoteCount += 1;
   }
-  if (missingTestNoteCount > 0) {
-    classDefinitions.push('classDef notest fill:#fdecea,stroke:#c0392b,color:#7a1f1f,stroke-dasharray:3 3');
-  }
+  return { 'missingTestNoteCount': missingTestNoteCount, 'noteLines': noteLines };
+}
 
+function computeLegendLines(presentStatuses: Set<string>, presentHops: Set<number>, missingTestNoteCount: number): string[] {
   const legendLines: string[] = [];
   const legendLabels = new Map([
     ['added', 'Package contains added files'],
@@ -352,6 +438,23 @@ function buildMermaid(packages: string[], edges: string[], highlights: MermaidHi
   if (missingTestNoteCount > 0) {
     legendLines.push('legend_notest["No package tests detected"]:::notest');
   }
+  return legendLines;
+}
+
+function buildMermaid(packages: string[], edges: string[], highlights: MermaidHighlightsInterface = {}): string {
+  const packageSet = new Set(packages);
+  const statuses = highlights.statuses ?? new Map<string, Set<string>>();
+  const impactedHops = highlights.impactedHops ?? new Map<string, number>();
+  const missingTests = highlights.missingTests ?? new Set<string>();
+
+  const { graphLines, keptNodeIds } = computeGraphLines(packages, edges, packageSet);
+  const { classLines, presentHops, presentStatuses } = computeClassAssignments(packages, keptNodeIds, statuses, impactedHops);
+  const classDefinitions = computeClassDefinitions(presentStatuses, presentHops);
+  const { missingTestNoteCount, noteLines } = computeMissingTestNotes(missingTests, keptNodeIds);
+  if (missingTestNoteCount > 0) {
+    classDefinitions.push('classDef notest fill:#fdecea,stroke:#c0392b,color:#7a1f1f,stroke-dasharray:3 3');
+  }
+  const legendLines = computeLegendLines(presentStatuses, presentHops, missingTestNoteCount);
 
   return [
     'flowchart LR',
@@ -553,13 +656,27 @@ function packageTestCounts(packageDirs: string[], packageByDir: Map<string, stri
   return counts;
 }
 
-function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): BlastRadiusAnalysisInterface {
-  const packageDirs = listPackageDirs();
-  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
+function buildReverseEdges(edges: string[]): Map<string, string[]> {
   const reverseEdges = new Map<string, string[]>();
-  const statuses = new Map<string, Set<string>>();
-  const touched = new Set<string>();
+  for (const edge of edges) {
+    const [from, to] = edge.split(' -> ');
+    if (from === undefined || to === undefined) {
+      continue;
+    }
+    const list = reverseEdges.get(to) ?? [];
+    list.push(from);
+    reverseEdges.set(to, list);
+  }
+  return reverseEdges;
+}
 
+function markTouchedStatuses(
+  baseRef: string,
+  packageDirs: string[],
+  packageByDir: Map<string, string>,
+  statuses: Map<string, Set<string>>,
+  touched: Set<string>
+): void {
   const addStatus = (status: string, file: string): void => {
     const pkg = packageForPath(file, packageDirs, packageByDir);
     if (pkg === null) {
@@ -571,16 +688,6 @@ function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): B
     statuses.set(pkg, packageStatuses);
   };
 
-  for (const edge of graph.edges) {
-    const [from, to] = edge.split(' -> ');
-    if (from === undefined || to === undefined) {
-      continue;
-    }
-    const list = reverseEdges.get(to) ?? [];
-    list.push(from);
-    reverseEdges.set(to, list);
-  }
-
   for (const file of changedFiles(baseRef, 'A')) {
     addStatus('added', file);
   }
@@ -590,7 +697,14 @@ function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): B
   for (const file of changedFiles(baseRef, 'D')) {
     addStatus('deleted', file);
   }
+}
 
+interface ImpactedHopsResultInterface {
+  readonly 'impacted': Set<string>;
+  readonly 'impactedHops': Map<string, number>;
+}
+
+function computeImpactedHops(touched: Set<string>, reverseEdges: Map<string, string[]>): ImpactedHopsResultInterface {
   const impacted = new Set(touched);
   const impactedHops = new Map<string, number>();
   const queue: [string, number][] = [...touched].map((pkg) => {return [pkg, 0];});
@@ -611,6 +725,19 @@ function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): B
       queue.push([parent, hop + 1]);
     }
   }
+
+  return { 'impacted': impacted, 'impactedHops': impactedHops };
+}
+
+function computeBlastRadius(graph: DependencyGraphInterface, baseRef: string): BlastRadiusAnalysisInterface {
+  const packageDirs = listPackageDirs();
+  const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
+  const statuses = new Map<string, Set<string>>();
+  const touched = new Set<string>();
+
+  const reverseEdges = buildReverseEdges(graph.edges);
+  markTouchedStatuses(baseRef, packageDirs, packageByDir, statuses, touched);
+  const { impacted, impactedHops } = computeImpactedHops(touched, reverseEdges);
 
   const testCounts = packageTestCounts(packageDirs, packageByDir);
   const missingTests = new Set(

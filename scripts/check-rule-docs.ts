@@ -99,6 +99,37 @@ function findPluginDeclaration(sourceFile: ts.SourceFile, pluginName: string): t
   return undefined;
 }
 
+const collectRuleRegistrations = (
+  properties: readonly ts.ObjectLiteralElementLike[],
+  pluginInfo: PluginInfoInterface,
+  pluginFile: string,
+  sourceFile: ts.SourceFile,
+  violations: ViolationInterface[]
+): RuleRegistrationInterface[] => {
+  const rules: RuleRegistrationInterface[] = [];
+  for (let index = 0; index < properties.length; index += 1) {
+    const property = properties[index];
+    if (property === undefined) {
+      continue;
+    }
+    const name = propertyName(property);
+    if (name === undefined) {
+      violations.push({
+        'file': pluginFile,
+        'line': lineAt(sourceFile, property.getStart(sourceFile)),
+        'message': 'rule registrations must use string-literal names.'
+      });
+      continue;
+    }
+    rules.push({
+      'file': pluginFile,
+      'line': lineAt(sourceFile, property.getStart(sourceFile)),
+      'page': pluginInfo.docsPrefix === '' ? name : `${pluginInfo.docsPrefix}/${name}`
+    });
+  }
+  return rules;
+};
+
 const registeredRules = async (pluginInfo: PluginInfoInterface, violations: ViolationInterface[]): Promise<RuleRegistrationInterface[]> => {
   const content = await readFile(pluginInfo.file, 'utf8');
   const sourceFile = ts.createSourceFile(pluginInfo.file, content, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
@@ -128,29 +159,7 @@ const registeredRules = async (pluginInfo: PluginInfoInterface, violations: Viol
     return [];
   }
 
-  const rules: RuleRegistrationInterface[] = [];
-  const properties = rulesProperty.initializer.properties;
-  for (let index = 0; index < properties.length; index += 1) {
-    const property = properties[index];
-    if (property === undefined) {
-      continue;
-    }
-    const name = propertyName(property);
-    if (name === undefined) {
-      violations.push({
-        'file': pluginFile,
-        'line': lineAt(sourceFile, property.getStart(sourceFile)),
-        'message': 'rule registrations must use string-literal names.'
-      });
-      continue;
-    }
-    rules.push({
-      'file': pluginFile,
-      'line': lineAt(sourceFile, property.getStart(sourceFile)),
-      'page': pluginInfo.docsPrefix === '' ? name : `${pluginInfo.docsPrefix}/${name}`
-    });
-  }
-  return rules;
+  return collectRuleRegistrations(rulesProperty.initializer.properties, pluginInfo, pluginFile, sourceFile, violations);
 };
 
 interface SectionFenceResultInterface {
@@ -182,9 +191,22 @@ const sectionHasFence = (lines: readonly string[], heading: string): SectionFenc
 
 const REQUIRED_FRONTMATTER_FIELDS = ['title', 'description'];
 
-const checkPage = (page: DocPageInterface, violations: ViolationInterface[]): void => {
-  const lines = page.content.split('\n');
-  const file = path.relative(repoRoot, page.file).split(path.sep).join('/');
+const collectFrontmatterFields = (frontmatter: readonly string[]): Set<string> => {
+  const foundFields = new Set<string>();
+  for (let index = 0; index < frontmatter.length; index += 1) {
+    const line = frontmatter[index];
+    if (line === undefined) {
+      continue;
+    }
+    const match = FRONTMATTER_FIELD_RE.exec(line);
+    if (match?.[1] !== undefined) {
+      foundFields.add(match[1]);
+    }
+  }
+  return foundFields;
+};
+
+const checkFrontmatter = (lines: readonly string[], file: string, violations: ViolationInterface[]): void => {
   const frontmatterEnd = lines.findIndex((line, index) => {
     const isDelimiter = index > 0 && line.trim() === '---';
     return isDelimiter;
@@ -192,32 +214,24 @@ const checkPage = (page: DocPageInterface, violations: ViolationInterface[]): vo
 
   if (lines[0]?.trim() !== '---' || frontmatterEnd === -1) {
     violations.push({ 'file': file, 'line': 1, 'message': 'missing frontmatter.' });
-  } else {
-    const frontmatter = lines.slice(1, frontmatterEnd);
-    const foundFields = new Set<string>();
-    for (let index = 0; index < frontmatter.length; index += 1) {
-      const line = frontmatter[index];
-      if (line === undefined) {
-        continue;
-      }
-      const match = FRONTMATTER_FIELD_RE.exec(line);
-      if (match?.[1] !== undefined) {
-        foundFields.add(match[1]);
-      }
-    }
-    for (let index = 0; index < REQUIRED_FRONTMATTER_FIELDS.length; index += 1) {
-      const field = REQUIRED_FRONTMATTER_FIELDS[index];
-      if (field === undefined || foundFields.has(field)) {
-        continue;
-      }
-      violations.push({
-        'file': file,
-        'line': frontmatterEnd + 1,
-        'message': `frontmatter is missing ${field}.`
-      });
-    }
+    return;
   }
 
+  const foundFields = collectFrontmatterFields(lines.slice(1, frontmatterEnd));
+  for (let index = 0; index < REQUIRED_FRONTMATTER_FIELDS.length; index += 1) {
+    const field = REQUIRED_FRONTMATTER_FIELDS[index];
+    if (field === undefined || foundFields.has(field)) {
+      continue;
+    }
+    violations.push({
+      'file': file,
+      'line': frontmatterEnd + 1,
+      'message': `frontmatter is missing ${field}.`
+    });
+  }
+};
+
+const checkRequiredSections = (lines: readonly string[], file: string, violations: ViolationInterface[]): void => {
   const requiredSections = ['## ✗ Incorrect', '## ✓ Correct'];
   for (let index = 0; index < requiredSections.length; index += 1) {
     const heading = requiredSections[index];
@@ -231,6 +245,13 @@ const checkPage = (page: DocPageInterface, violations: ViolationInterface[]): vo
       violations.push({ 'file': file, 'line': section.line, 'message': `${heading} must contain a fenced code block.` });
     }
   }
+};
+
+const checkPage = (page: DocPageInterface, violations: ViolationInterface[]): void => {
+  const lines = page.content.split('\n');
+  const file = path.relative(repoRoot, page.file).split(path.sep).join('/');
+  checkFrontmatter(lines, file, violations);
+  checkRequiredSections(lines, file, violations);
 };
 
 const violations: ViolationInterface[] = [];

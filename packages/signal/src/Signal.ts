@@ -4,6 +4,11 @@ import { Predicates } from '@studnicky/types/browser';
 
 import { SignalError } from './errors/SignalError.js';
 
+interface SignalResolveOptionsInterface {
+  readonly 'callerSignal': AbortSignal | undefined;
+  readonly 'timeoutSignal': AbortSignal | undefined;
+}
+
 class SignalInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
@@ -36,30 +41,10 @@ export class Signal {
   }
 
   async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
-    const callerSignal = options.signal;
-    const deadlineMs = options.deadlineMs;
+    Signal.#validateDeadline(options.deadlineMs);
 
-    if (deadlineMs !== undefined && (!Predicates.isFiniteNumber(deadlineMs) || !Number.isInteger(deadlineMs) || deadlineMs < 0 || deadlineMs > 2_147_483_647)) {
-      throw new SignalError('deadlineMs must be an integer between 0 and 2147483647');
-    }
-
-    const timeoutSignal = deadlineMs !== undefined ? AbortSignal.timeout(deadlineMs) : undefined;
-
-    let result: AbortSignal;
-
-    if (callerSignal !== undefined && timeoutSignal !== undefined) {
-      result = AbortSignal.any([
-        callerSignal,
-        timeoutSignal
-      ]);
-    } else if (callerSignal !== undefined) {
-      result = callerSignal;
-    } else if (timeoutSignal !== undefined) {
-      result = timeoutSignal;
-    } else {
-      // When neither supplied, return the never-aborting sentinel
-      result = Signal.never();
-    }
+    const timeoutSignal = options.deadlineMs !== undefined ? AbortSignal.timeout(options.deadlineMs) : undefined;
+    const result = Signal.#resolveSignal({ 'callerSignal': options.signal, 'timeoutSignal': timeoutSignal });
 
     await this.hooks.invokeAsync('onCompose', async () => {
       const hookResult = this.onCompose(options, result);
@@ -67,6 +52,32 @@ export class Signal {
       await hookResult;
     });
 
+    return result;
+  }
+
+  static #validateDeadline(deadlineMs: number | undefined): void {
+    if (deadlineMs !== undefined && (!Predicates.isFiniteNumber(deadlineMs) || !Number.isInteger(deadlineMs) || deadlineMs < 0 || deadlineMs > 2_147_483_647)) {
+      throw new SignalError('deadlineMs must be an integer between 0 and 2147483647');
+    }
+  }
+
+  /** Prefers the caller signal combined with the deadline timeout; falls back to whichever is supplied, then the never-aborting sentinel. */
+  static #resolveSignal(options: SignalResolveOptionsInterface): AbortSignal {
+    const { callerSignal, timeoutSignal } = options;
+    if (callerSignal !== undefined && timeoutSignal !== undefined) {
+      const result = AbortSignal.any([
+        callerSignal,
+        timeoutSignal
+      ]);
+      return result;
+    }
+    if (callerSignal !== undefined) {
+      return callerSignal;
+    }
+    if (timeoutSignal !== undefined) {
+      return timeoutSignal;
+    }
+    const result = Signal.never();
     return result;
   }
 

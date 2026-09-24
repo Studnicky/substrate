@@ -1,3 +1,9 @@
+import { CycleDetectionPredicates } from './CycleDetectionPredicates.js';
+import { DateSemverPredicates } from './DateSemverPredicates.js';
+import { RuntimeValuePredicates } from './RuntimeValuePredicates.js';
+import { SchemaPredicates } from './SchemaPredicates.js';
+import { TypeGuardPredicates } from './TypeGuardPredicates.js';
+
 /**
  * Type-safe accessors, type guards, atomic value comparators, and JSON Schema
  * draft 2020-12 predicates, unified on one static class.
@@ -8,123 +14,23 @@
  * dynamically-typed payload where the shape is not yet known, comparator/operator
  * logic, or schema validation.
  *
+ * Every method below is declared directly on `Predicates` (not inherited) so its
+ * signature stays portable in downstream `.d.ts` emit; the body delegates to a
+ * cohesive internal implementation class (`TypeGuardPredicates`, `DateSemverPredicates`,
+ * `RuntimeValuePredicates`, `CycleDetectionPredicates`, `SchemaPredicates`).
+ *
  * Extend `Predicates` and `static override isObject` to customise record detection;
  * `asRecordArray` delegates through `this.isObject` so overrides propagate.
  */
-
-import {
-  ALL_DIGITS_PATTERN,
-  ALPHANUMERIC_PATTERN,
-  DATE_LIKE_TIMESTAMP_RANGE,
-  MULTIPLE_OF_EPSILON_FACTOR,
-  REDOS_VULNERABLE_PATTERNS,
-  SEMVER_LEADING_V_PATTERN,
-  SUPPORTED_CONTENT_ENCODINGS,
-  SUPPORTED_CONTENT_MEDIA_TYPES,
-  TIME_ONLY_PATTERN
-} from './constants/index.js';
-
-interface ParsedSemverInterface {
-  readonly 'hasExplicitMinor': boolean
-  readonly 'major': number
-  readonly 'minor': number
-  readonly 'patch': number
-  readonly 'prerelease': string
-}
-
-interface Uint32RangeInterface {
-  readonly 'end': number
-  readonly 'start': number
-}
-
-interface DeepEqualityStateInterface {
-  readonly 'leftToRight': Map<object, object>
-  readonly 'rightToLeft': Map<object, object>
-}
-
 export class Predicates {
-  private static readonly typeMatchers = new Map<string, (value: unknown) => boolean>([
-    [
-      'array',
-      Array.isArray
-    ],
-    [
-      'integer',
-      (value: unknown): boolean => {
-        const result = Predicates.isIntegerValue(value);
-        return result;
-      }
-    ],
-    [
-      'null',
-      (value: unknown): boolean => {
-        const result = value === null;
-        return result;
-      }
-    ],
-    [
-      'number',
-      (value: unknown): boolean => {
-        const result = Predicates.isFiniteNumber(value);
-        return result;
-      }
-    ],
-    [
-      'object',
-      (value: unknown): boolean => {
-        const result = Predicates.inferValueType(value) === 'object';
-        return result;
-      }
-    ]
-  ]);
+  /** Returns the value as `number` when it is a number, otherwise returns `undefined`. */
+  public static readonly asNumber: (value: unknown) => number | undefined = TypeGuardPredicates.asNumber;
 
-  /**
-   * Returns the value as `number` when it is a number, otherwise returns
-   * `undefined`.
-   */
-  public static asNumber(value: unknown): number | undefined {
-    const result = typeof value === 'number' ? value : undefined;
-    return result;
-  }
+  /** Returns the value as a finite `number`, coercing a non-empty numeric string. */
+  public static readonly asStrictNumber: (value: unknown) => number | undefined = TypeGuardPredicates.asStrictNumber;
 
-  /**
-   * Returns the value as a finite `number`, coercing a non-empty numeric
-   * string. Returns `undefined` for `NaN`, an empty/whitespace-only string,
-   * or any other non-numeric input.
-   */
-  public static asStrictNumber(value: unknown): number | undefined {
-    if (typeof value === 'number') {
-      const result = Number.isNaN(value) ? undefined : value;
-      return result;
-    }
-
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-
-      if (trimmed === '') {
-        return undefined;
-      }
-
-      const parsed = Number(trimmed);
-
-      const result = Number.isNaN(parsed) ? undefined : parsed;
-      return result;
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Returns the value as `string | null` when it is a string or `null`,
-   * otherwise returns `undefined`.
-   */
-  public static asStringOrNull(value: unknown): string | null | undefined {
-    if (value === null) {
-      return null;
-    }
-    const result = typeof value === 'string' ? value : undefined;
-    return result;
-  }
+  /** Returns the value as `string | null` when it is a string or `null`, otherwise `undefined`. */
+  public static readonly asStringOrNull: (value: unknown) => string | null | undefined = TypeGuardPredicates.asStringOrNull;
 
   /**
    * Returns an array of `Record<string, unknown>` entries from an array
@@ -153,63 +59,33 @@ export class Predicates {
     return recordArray;
   }
 
-  public static isString<T>(value: T): value is string & T {
-    if (typeof value === 'string') {
-      return true;
-    }
-    return false;
-  }
+  public static readonly isString: <T>(value: T) => value is string & T = TypeGuardPredicates.isString;
 
-  public static isNumber<T>(value: T): value is number & T {
-    if (typeof value === 'number' && !Number.isNaN(value)) {
-      return true;
-    }
-    return false;
-  }
+  public static readonly isNumber: <T>(value: T) => value is number & T = TypeGuardPredicates.isNumber;
 
   /**
    * Type guard for the `number` primitive, including `NaN` and `±Infinity`.
    * Use this over `isNumber` when the caller needs to route those values to
-   * a more specific downstream check (e.g. a separate "must be finite" or
-   * "must not be NaN" error) rather than reject them at the type gate.
+   * a more specific downstream check rather than reject them at the type gate.
    */
-  public static isNumberType<T>(value: T): value is number & T {
-    const result = typeof value === 'number';
-    return result;
-  }
+  public static readonly isNumberType: <T>(value: T) => value is number & T = TypeGuardPredicates.isNumberType;
 
-  public static isBoolean<T>(value: T): value is boolean & T {
-    if (typeof value === 'boolean') {
-      return true;
-    }
-    return false;
-  }
+  public static readonly isBoolean: <T>(value: T) => value is boolean & T = TypeGuardPredicates.isBoolean;
 
-  public static isFunction<T extends (...argumentList: unknown[]) => unknown>(value: T): value is T;
-  public static isFunction(value: unknown): value is (...argumentList: unknown[]) => unknown;
-  public static isFunction(value: unknown): boolean {
-    if (typeof value === 'function') {
-      return true;
-    }
-    return false;
-  }
+  public static readonly isFunction: {
+    <T extends (...argumentList: unknown[]) => unknown>(value: T): value is T;
+    (value: unknown): value is (...argumentList: unknown[]) => unknown;
+  } = TypeGuardPredicates.isFunction;
 
   /** `isObjectLike` or `isFunction` — the shape a `WeakMap`-tracked reference cycle guard accepts. */
-  public static isObjectLikeOrFunction<T>(value: T): value is object & T {
-    const result = Predicates.isObjectLike(value) || Predicates.isFunction(value);
-    return result;
-  }
+  public static readonly isObjectLikeOrFunction: <T>(value: T) => value is object & T = TypeGuardPredicates.isObjectLikeOrFunction;
 
   /**
    * Returns `true` when `value` is any non-null object — including an array, `Map`, `Set`, or a
-   * class instance of unknown provenance. This is the check for "did `Reflect.construct` produce
-   * an object at all," not "is this a plain record"; use `isObject` instead when the code goes on
-   * to do bracket-property access and genuinely needs to exclude `Array`/`Map`/`Set`.
+   * class instance of unknown provenance. Use `isObject` instead when the code goes on to do
+   * bracket-property access and genuinely needs to exclude `Array`/`Map`/`Set`.
    */
-  public static isObjectLike<T>(value: T): value is object & T {
-    const result = typeof value === 'object' && value !== null;
-    return result;
-  }
+  public static readonly isObjectLike: <T>(value: T) => value is object & T = TypeGuardPredicates.isObjectLike;
 
   /**
    * Returns `true` when `value` is a plain, non-null, non-array object.
@@ -229,1661 +105,355 @@ export class Predicates {
   }
 
   /** Type guard for a `Map` instance. */
-  public static isMap<T>(value: T): value is Map<unknown, unknown> & T {
-    const result = value instanceof Map;
-    return result;
-  }
+  public static readonly isMap: <T>(value: T) => value is Map<unknown, unknown> & T = TypeGuardPredicates.isMap;
 
   /** Type guard for a `Set` instance. */
-  public static isSet<T>(value: T): value is Set<unknown> & T {
-    const result = value instanceof Set;
-    return result;
-  }
+  public static readonly isSet: <T>(value: T) => value is Set<unknown> & T = TypeGuardPredicates.isSet;
 
   /** Type guard for a `Date` instance. */
-  public static isDate<T>(value: T): value is Date & T {
-    const result = value instanceof Date;
-    return result;
-  }
+  public static readonly isDate: <T>(value: T) => value is Date & T = TypeGuardPredicates.isDate;
 
   /** Type guard for an array — `Array.isArray` narrowed to `readonly unknown[]`. */
-  public static isArray<T>(value: T): value is readonly unknown[] & T {
-    const result = Array.isArray(value);
-    return result;
-  }
+  public static readonly isArray: <T>(value: T) => value is readonly unknown[] & T = TypeGuardPredicates.isArray;
 
   /**
    * Returns `true` when `value` is a non-null, non-array object of ANY prototype — a `Map`, a
-   * `Set`, or a class instance all pass. This is `isObjectLike` minus arrays: broader than
-   * `isObject` (which additionally excludes `Map`/`Set`) and looser than `isPlainObject` (which
-   * additionally requires `Object.prototype`/`null` as the prototype).
+   * `Set`, or a class instance all pass. Broader than `isObject` (which additionally excludes
+   * `Map`/`Set`) and looser than `isPlainObject` (which additionally requires
+   * `Object.prototype`/`null` as the prototype).
    */
-  public static isRecord<T>(value: T): value is Record<string, unknown> & T {
-    const result = Predicates.isObjectLike(value) && !Array.isArray(value);
-    return result;
-  }
+  public static readonly isRecord: <T>(value: T) => value is Record<string, unknown> & T = TypeGuardPredicates.isRecord;
 
   /**
    * Returns `true` when `value` is a plain object — non-null, non-array, and its prototype is
-   * exactly `Object.prototype` or `null` (`Object.create(null)`). Stricter than `isObject`: a
-   * class instance (custom prototype) fails this even though it passes `isObject`.
+   * exactly `Object.prototype` or `null`. Stricter than `isObject`: a class instance (custom
+   * prototype) fails this even though it passes `isObject`.
    */
-  public static isPlainObject<T>(value: T): value is Record<string, unknown> & T {
-    if (!Predicates.isRecord(value)) {
-      return false;
-    }
-    const prototype: unknown = Object.getPrototypeOf(value);
-    const result = prototype === Object.prototype || prototype === null;
-    return result;
-  }
+  public static readonly isPlainObject: <T>(value: T) => value is Record<string, unknown> & T = TypeGuardPredicates.isPlainObject;
 
   /** Type guard for `null` or `undefined`. */
-  public static isNullish<T>(value: T): value is (null | undefined) & T {
-    const result = value === null || value === undefined;
-    return result;
-  }
+  public static readonly isNullish: <T>(value: T) => value is (null | undefined) & T = TypeGuardPredicates.isNullish;
 
   /** Type guard for a `RegExp` instance. */
-  public static isRegExp<T>(value: T): value is RegExp & T {
-    const result = value instanceof RegExp;
-    return result;
-  }
+  public static readonly isRegExp: <T>(value: T) => value is RegExp & T = TypeGuardPredicates.isRegExp;
 
   /** Type guard for a `symbol`. */
-  public static isSymbol<T>(value: T): value is symbol & T {
-    const result = typeof value === 'symbol';
-    return result;
-  }
+  public static readonly isSymbol: <T>(value: T) => value is symbol & T = TypeGuardPredicates.isSymbol;
 
   /** Type guard for a `bigint`. */
-  public static isBigInt<T>(value: T): value is bigint & T {
-    const result = typeof value === 'bigint';
-    return result;
-  }
+  public static readonly isBigInt: <T>(value: T) => value is bigint & T = TypeGuardPredicates.isBigInt;
 
   /**
    * Type guard for a thenable — an object or function exposing a callable `.then`. Node's own
    * `Promise.resolve` uses exactly this duck-type check (not `instanceof Promise`) to decide
    * whether to adopt a value's resolution, which is why this checks structure rather than class.
    */
-  public static isThenable<T>(value: T): value is PromiseLike<unknown> & T {
-    if (!Predicates.isObjectLike(value) && !Predicates.isFunction(value)) {
-      return false;
-    }
-    const result = 'then' in value && typeof value.then === 'function';
-    return result;
-  }
+  public static readonly isThenable: <T>(value: T) => value is PromiseLike<unknown> & T = TypeGuardPredicates.isThenable;
 
   /** Type guard for a value implementing the iterable protocol (`Symbol.iterator`). */
-  public static isIterable<T>(value: T): value is Iterable<unknown> & T {
-    if (typeof value === 'string') {
-      return true;
-    }
-    if (!Predicates.isObjectLike(value)) {
-      return false;
-    }
-    const result = typeof Reflect.get(value, Symbol.iterator) === 'function';
-    return result;
-  }
+  public static readonly isIterable: <T>(value: T) => value is Iterable<unknown> & T = TypeGuardPredicates.isIterable;
 
   /** Type guard for a value implementing the async-iterable protocol (`Symbol.asyncIterator`). */
-  public static isAsyncIterable<T>(value: T): value is AsyncIterable<unknown> & T {
-    if (!Predicates.isObjectLike(value)) {
-      return false;
-    }
-    const result = typeof Reflect.get(value, Symbol.asyncIterator) === 'function';
-    return result;
-  }
+  public static readonly isAsyncIterable: <T>(value: T) => value is AsyncIterable<unknown> & T = TypeGuardPredicates.isAsyncIterable;
 
   /** Type guard for a typed array or `DataView` over an `ArrayBuffer`. */
-  public static isArrayBufferView<T>(value: T): value is ArrayBufferView & T {
-    const result = ArrayBuffer.isView(value);
-    return result;
-  }
-
-  // WEB-STANDARD API GUARDS. `Blob`, `FormData`, `URL`, `URLSearchParams`, `Headers`, `Request`,
-  // `Response`, `AbortSignal`, and `ReadableStream` are WHATWG-standard classes implemented
-  // natively in both browsers and Node (Node's `undici`-backed fetch since v18) — not DOM-only
-  // globals this package needs to guard the existence of before referencing.
+  public static readonly isArrayBufferView: <T>(value: T) => value is ArrayBufferView & T = TypeGuardPredicates.isArrayBufferView;
 
   /** Type guard for a `Blob` instance (a `File` is a `Blob`, so this accepts both). */
-  public static isBlob<T>(value: T): value is Blob & T {
-    const result = value instanceof Blob;
-    return result;
-  }
+  public static readonly isBlob: <T>(value: T) => value is Blob & T = TypeGuardPredicates.isBlob;
 
   /** Type guard for a `FormData` instance. */
-  public static isFormData<T>(value: T): value is FormData & T {
-    const result = value instanceof FormData;
-    return result;
-  }
+  public static readonly isFormData: <T>(value: T) => value is FormData & T = TypeGuardPredicates.isFormData;
 
   /** Type guard for a `URL` instance. */
-  public static isURL<T>(value: T): value is T & URL {
-    const result = value instanceof URL;
-    return result;
-  }
+  public static readonly isURL: <T>(value: T) => value is T & URL = TypeGuardPredicates.isURL;
 
   /** Type guard for a `URLSearchParams` instance. */
-  public static isURLSearchParams<T>(value: T): value is T & URLSearchParams {
-    const result = value instanceof URLSearchParams;
-    return result;
-  }
+  public static readonly isURLSearchParams: <T>(value: T) => value is T & URLSearchParams = TypeGuardPredicates.isURLSearchParams;
 
   /** Type guard for a `Headers` instance. */
-  public static isHeaders<T>(value: T): value is Headers & T {
-    const result = value instanceof Headers;
-    return result;
-  }
+  public static readonly isHeaders: <T>(value: T) => value is Headers & T = TypeGuardPredicates.isHeaders;
 
   /** Type guard for a `Request` instance. */
-  public static isRequest<T>(value: T): value is Request & T {
-    const result = value instanceof Request;
-    return result;
-  }
+  public static readonly isRequest: <T>(value: T) => value is Request & T = TypeGuardPredicates.isRequest;
 
   /** Type guard for a `Response` instance. */
-  public static isResponse<T>(value: T): value is Response & T {
-    const result = value instanceof Response;
-    return result;
-  }
+  public static readonly isResponse: <T>(value: T) => value is Response & T = TypeGuardPredicates.isResponse;
 
   /** Type guard for an `AbortSignal` instance. */
-  public static isAbortSignal<T>(value: T): value is AbortSignal & T {
-    const result = value instanceof AbortSignal;
-    return result;
-  }
+  public static readonly isAbortSignal: <T>(value: T) => value is AbortSignal & T = TypeGuardPredicates.isAbortSignal;
 
   /** Type guard for a `ReadableStream` instance. */
-  public static isReadableStream<T>(value: T): value is ReadableStream & T {
-    const result = value instanceof ReadableStream;
-    return result;
-  }
+  public static readonly isReadableStream: <T>(value: T) => value is ReadableStream & T = TypeGuardPredicates.isReadableStream;
 
   /**
-   * Type guard for a real `Error` instance, including cross-realm errors (an `Error` constructed
-   * in a different `vm.Context`/iframe, which fails `instanceof Error` but is still a genuine
-   * error object). Delegates to `Error.isError`, the runtime's own answer to that question, rather
-   * than a hand-rolled `instanceof Error` check.
+   * Type guard for a real `Error` instance, including cross-realm errors. Delegates to
+   * `Error.isError`, the runtime's own answer to that question, rather than a hand-rolled
+   * `instanceof Error` check.
    */
-  public static isError<T>(value: T): value is Error & T {
-    const result = Error.isError(value);
-    return result;
-  }
+  public static readonly isError: <T>(value: T) => value is Error & T = TypeGuardPredicates.isError;
+
+  /** Type guard for non-negative integers (>= 0). */
+  public static readonly isNonNegativeInteger: <T>(value: T) => value is number & T = TypeGuardPredicates.isNonNegativeInteger;
+
+  /** Type guard for positive integers (> 0). */
+  public static readonly isPositiveInteger: <T>(value: T) => value is number & T = TypeGuardPredicates.isPositiveInteger;
 
   /**
-   * Type guard for non-negative integers (>= 0).
-   */
-  public static isNonNegativeInteger<T>(value: T): value is number & T {
-    const result = typeof value === 'number' && Number.isInteger(value) && value >= 0;
-    return result;
-  }
-
-  /**
-   * Type guard for positive integers (> 0).
-   */
-  public static isPositiveInteger<T>(value: T): value is number & T {
-    const result = typeof value === 'number' && Number.isInteger(value) && value > 0;
-    return result;
-  }
-
-  /**
-   * Returns true when two supported runtime values have the same structure.
-   *
-   * Primitive values use Object.is semantics, so NaN equals NaN and -0 differs
-   * from +0. Dates compare their timestamps, regular expressions compare source
-   * and flags, arrays preserve order, and Map and Set entries compare
-   * structurally without depending on insertion order. Object graphs retain
+   * Returns true when two supported runtime values have the same structure. Primitive values
+   * use Object.is semantics, so NaN equals NaN and -0 differs from +0. Object graphs retain
    * reference topology: a self-reference does not equal a two-node cycle.
    */
-  public static areDeeplyEqual(value: unknown, filterValue: unknown): boolean {
-    const state: DeepEqualityStateInterface = { 'leftToRight': new Map(), 'rightToLeft': new Map() };
-    const result = Predicates.compareRuntimeValues(value, filterValue, state);
-    return result;
-  }
+  public static readonly areDeeplyEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areDeeplyEqual;
 
   /**
    * Returns true when an object graph contains a reference cycle.
    * Arrays, Maps (keys and values), Sets, and the enumerable own properties of every other
    * object-like value are traversed recursively.
    */
-  public static hasCycle(value: unknown): boolean {
-    const result = Predicates.valueHasCycle(value, new Set());
-    return result;
-  }
+  public static readonly hasCycle: (value: unknown) => boolean = CycleDetectionPredicates.hasCycle;
 
   /** `NaN` comparison for deep equality — `NaN` is considered equal to `NaN`. */
-  public static areNaNEqual(value: unknown, filterValue: unknown): boolean {
-    if (Number.isNaN(value) && Number.isNaN(filterValue)) {
-      return true;
-    }
-    if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-      return false;
-    }
-
-    return false;
-  }
+  public static readonly areNaNEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areNaNEqual;
 
   /** `NaN` comparison for strict equality — `NaN` is never equal to anything, including itself. */
-  public static areNaNStrict(value: unknown, filterValue: unknown): boolean {
-    if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-      return false;
-    }
-
-    const result = value === filterValue;
-    return result;
-  }
+  public static readonly areNaNStrict: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areNaNStrict;
 
   /** Checks two values are not strictly equal using `Object.is` semantics. */
-  public static areNotStrictlyEqual(value: unknown, filterValue: unknown): boolean {
-    const result = !Object.is(value, filterValue);
-    return result;
-  }
+  public static readonly areNotStrictlyEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areNotStrictlyEqual;
 
   /** Checks null/undefined equality — `null`/`undefined` are only equal to themselves. */
-  public static areNullUndefinedEqual(value: unknown, filterValue: unknown): boolean {
-    if (value === null || value === undefined || filterValue === null || filterValue === undefined) {
-      const result = value === filterValue;
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly areNullUndefinedEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areNullUndefinedEqual;
 
   /** Object comparison using reference equality — `Date`/`RegExp`/array instances included. */
-  public static areObjectsReferenceEqual(value: unknown, filterValue: unknown): boolean {
-    if ((typeof value === 'object' && value !== null) || (typeof filterValue === 'object' && filterValue !== null)) {
-      if (typeof value !== 'object' || typeof filterValue !== 'object' || value === null || filterValue === null) {
-        return false;
-      }
-
-      const result = value === filterValue;
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly areObjectsReferenceEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areObjectsReferenceEqual;
 
   /** Reference equality using `Object.is` semantics — correct for `NaN` and `-0`/`+0`. */
-  public static areReferenceEqual(value: unknown, filterValue: unknown): boolean {
-    if (value === filterValue) {
-      const result = value !== 0 || 1 / (value as number) === 1 / (filterValue as number);
-      return result;
-    }
-
-    const result = value !== value && filterValue !== filterValue;
-    return result;
-  }
+  public static readonly areReferenceEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areReferenceEqual;
 
   /** Case-sensitive or case-insensitive string comparison via a supplied `operation`. */
-  public static areStringsMatching(
+  public static readonly areStringsMatching: (
     value: string,
     filterValue: string,
     options: Readonly<{ 'caseSensitive'?: boolean; 'lowerValue'?: string }>,
     operation: (firstValue: string, secondValue: string) => boolean
-  ): boolean {
-    if (options.caseSensitive === false) {
-      const lowerCaseFilterValue = options.lowerValue ?? filterValue.toLowerCase();
-
-      const result = operation(value.toLowerCase(), lowerCaseFilterValue);
-      return result;
-    }
-
-    const result = operation(value, filterValue);
-    return result;
-  }
+  ) => boolean = RuntimeValuePredicates.areStringsMatching;
 
   /** Validates that both values are strings. */
-  public static areStringsValid<T>(value: T, filterValue: unknown): value is string & T {
-    const result = typeof value === 'string' && typeof filterValue === 'string';
-    return result;
-  }
+  public static readonly areStringsValid: <T>(value: T, filterValue: unknown) => value is string & T = RuntimeValuePredicates.areStringsValid;
 
   /** Checks two values share the same `typeof` result. */
-  public static areTypesSame(value: unknown, filterValue: unknown): boolean {
-    const result = typeof value === typeof filterValue;
-    return result;
-  }
+  public static readonly areTypesSame: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areTypesSame;
 
   /** Checks two values are instances of the same constructor. */
-  public static areInstancesOf<T>(
+  public static readonly areInstancesOf: <T>(
     value: unknown,
     filterValue: unknown,
     constructor: new (...constructorArguments: unknown[]) => T
-  ): value is T {
-    const result = value instanceof constructor && filterValue instanceof constructor;
-    return result;
-  }
+  ) => value is T = RuntimeValuePredicates.areInstancesOf;
 
   /** Checks whether a record has a specific own property. */
-  public static doesObjectContainProperty(candidate: unknown, propertyName: string): boolean {
-    if (!Predicates.isRecord(candidate)) {
-      return false;
-    }
-
-    const result = Object.hasOwn(candidate, propertyName);
-    return result;
-  }
+  public static readonly doesObjectContainProperty: (candidate: unknown, propertyName: string) => boolean = TypeGuardPredicates.doesObjectContainProperty;
 
   /** Checks whether a value is a string containing only letters and numbers. */
-  public static isAlphanumeric(value: unknown): boolean {
-    const result = typeof value === 'string' && ALPHANUMERIC_PATTERN.test(value);
-    return result;
-  }
+  public static readonly isAlphanumeric: (value: unknown) => boolean = TypeGuardPredicates.isAlphanumeric;
 
   /** Checks whether an array has a specific length. */
-  public static isArrayLength(array: unknown, expectedLength: unknown): boolean {
-    if (!Array.isArray(array) || typeof expectedLength !== 'number') {
-      return false;
-    }
-
-    const result = array.length === expectedLength;
-    return result;
-  }
-
+  public static readonly isArrayLength: (array: unknown, expectedLength: unknown) => boolean = TypeGuardPredicates.isArrayLength;
 
   /** Checks whether a numeric value is close to another within a decimal precision (default 2). */
-  public static isCloseTo(value: unknown, expected: unknown, precision = 2): boolean {
-    if (typeof value !== 'number' || typeof expected !== 'number') {
-      return false;
-    }
-
-    if (!Number.isFinite(value) || !Number.isFinite(expected)) {
-      const result = value === expected;
-      return result;
-    }
-
-    const pass = Math.abs(expected - value) < Math.pow(10, -precision) / 2;
-
-    return pass;
-  }
+  public static readonly isCloseTo: (value: unknown, expected: unknown, precision?: number) => boolean = TypeGuardPredicates.isCloseTo;
 
   /**
    * Checks whether a value is date-like: a `Date` instance (even an invalid one), a numeric
    * timestamp within 1990-2100, a time-only string (`HH:MM`/`HH:MM:SS`), or a parseable date string.
    */
-  public static isDateLike(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return false;
-    }
-
-    if (value instanceof Date) {
-      return true;
-    }
-
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      return false;
-    }
-
-    if (typeof value === 'number') {
-      if (!Number.isFinite(value)) {
-        return false;
-      }
-
-      const result = value >= DATE_LIKE_TIMESTAMP_RANGE.MINIMUM && value <= DATE_LIKE_TIMESTAMP_RANGE.MAXIMUM;
-      return result;
-    }
-
-    if (typeof value === 'string') {
-      if (value.trim() === '') {
-        return false;
-      }
-
-      const trimmedValue = value.trim();
-
-      const timeMatch = TIME_ONLY_PATTERN.exec(trimmedValue);
-
-      if (timeMatch !== null) {
-        const hours = parseInt(timeMatch[1] ?? '0', 10);
-        const minutes = parseInt(timeMatch[2] ?? '0', 10);
-        const seconds = timeMatch[3] === undefined ? 0 : parseInt(timeMatch[3], 10);
-
-        const result = hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59;
-        return result;
-      }
-
-      try {
-        const parsed = Date.parse(trimmedValue);
-
-        const result = !isNaN(parsed);
-        return result;
-      } catch {
-        return false;
-      }
-    }
-
-    return false;
-  }
+  public static readonly isDateLike: (value: unknown) => boolean = DateSemverPredicates.isDateLike;
 
   /** Checks whether a value is defined (not `undefined`). */
-  public static isDefined(value: unknown): boolean {
-    const result = value !== undefined;
-    return result;
-  }
+  public static readonly isDefined: (value: unknown) => boolean = TypeGuardPredicates.isDefined;
 
   /** Checks whether an array is empty. */
-  public static isEmptyArray(value: unknown): boolean {
-    const result = Predicates.isArray(value) && value.length === 0;
-    return result;
-  }
+  public static readonly isEmptyArray: (value: unknown) => boolean = TypeGuardPredicates.isEmptyArray;
 
   /** Checks whether a `Map` is empty. */
-  public static isEmptyMap(value: unknown): boolean {
-    const result = Predicates.isMap(value) && value.size === 0;
-    return result;
-  }
+  public static readonly isEmptyMap: (value: unknown) => boolean = TypeGuardPredicates.isEmptyMap;
 
   /** Checks whether a value is a plain object with no enumerable properties. */
-  public static isEmptyPlainObject(value: unknown): boolean {
-    if (!Predicates.isPlainObject(value)) {
-      return false;
-    }
-    const result = Object.keys(value).length === 0;
-    return result;
-  }
+  public static readonly isEmptyPlainObject: (value: unknown) => boolean = TypeGuardPredicates.isEmptyPlainObject;
 
   /** Checks whether a `RegExp` has an empty pattern (`(?:)`). */
-  public static isEmptyRegExp(value: unknown): boolean {
-    const result = Predicates.isRegExp(value) && value.source === '(?:)';
-    return result;
-  }
+  public static readonly isEmptyRegExp: (value: unknown) => boolean = TypeGuardPredicates.isEmptyRegExp;
 
   /** Checks whether a `Set` is empty. */
-  public static isEmptySet(value: unknown): boolean {
-    const result = Predicates.isSet(value) && value.size === 0;
-    return result;
-  }
+  public static readonly isEmptySet: (value: unknown) => boolean = TypeGuardPredicates.isEmptySet;
 
   /** Checks whether a string is empty. */
-  public static isEmptyString(value: unknown): boolean {
-    const result = Predicates.isString(value) && value.length === 0;
-    return result;
-  }
+  public static readonly isEmptyString: (value: unknown) => boolean = TypeGuardPredicates.isEmptyString;
 
   /** Checks whether a typed array has length 0. */
-  public static isEmptyTypedArray(value: unknown): boolean {
-    const result = Predicates.isArrayBufferView(value) && (value as Uint8Array).length === 0;
-    return result;
-  }
+  public static readonly isEmptyTypedArray: (value: unknown) => boolean = TypeGuardPredicates.isEmptyTypedArray;
 
   /** Checks whether a number is even. */
-  public static isEven(value: unknown): boolean {
-    const result = typeof value === 'number' && Number.isFinite(value) && value % 2 === 0;
-    return result;
-  }
+  public static readonly isEven: (value: unknown) => boolean = TypeGuardPredicates.isEven;
 
   /** Checks whether a value is strictly `false`. */
-  public static isFalse(value: unknown): boolean {
-    const result = value === false;
-    return result;
-  }
+  public static readonly isFalse: (value: unknown) => boolean = TypeGuardPredicates.isFalse;
 
   /** Checks whether a value is falsy in boolean context. */
-  public static isFalsy(value: unknown): boolean {
-    const result = Boolean(value) === false;
-    return result;
-  }
+  public static readonly isFalsy: (value: unknown) => boolean = TypeGuardPredicates.isFalsy;
 
   /** Checks whether a value is a finite number (not `Infinity`, `-Infinity`, or `NaN`). */
-  public static isFiniteNumber<T>(value: T): value is number & T {
-    const result = typeof value === 'number' && Number.isFinite(value);
-    return result;
-  }
+  public static readonly isFiniteNumber: <T>(value: T) => value is number & T = TypeGuardPredicates.isFiniteNumber;
 
   /** Checks whether a value is greater than another — supports numbers, strings, and `Date`. */
-  public static isGreaterThan(value: unknown, comparison: unknown): boolean {
-    if (typeof value === 'number' && typeof comparison === 'number') {
-      const result = value > comparison;
-      return result;
-    }
-
-    if (typeof value === 'string' && typeof comparison === 'string') {
-      const result = value > comparison;
-      return result;
-    }
-
-    if (value instanceof Date && comparison instanceof Date) {
-      const result = value.getTime() > comparison.getTime();
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly isGreaterThan: (value: unknown, comparison: unknown) => boolean = TypeGuardPredicates.isGreaterThan;
 
   /** Checks whether a value is greater than or equal to another — numbers, strings, `Date`. */
-  public static isGreaterThanOrEqual(value: unknown, comparison: unknown): boolean {
-    if (typeof value === 'number' && typeof comparison === 'number') {
-      const result = value >= comparison;
-      return result;
-    }
-
-    if (typeof value === 'string' && typeof comparison === 'string') {
-      const result = value >= comparison;
-      return result;
-    }
-
-    if (value instanceof Date && comparison instanceof Date) {
-      const result = value.getTime() >= comparison.getTime();
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly isGreaterThanOrEqual: (value: unknown, comparison: unknown) => boolean = TypeGuardPredicates.isGreaterThanOrEqual;
 
   /** Checks whether a value is an instance of the given constructor. */
   public static isInstanceOf<Instance>(value: unknown, constructor: Function & { readonly 'prototype': Instance }): value is Instance {
-    try {
-      const result = value instanceof constructor;
-      return result;
-    } catch {
-      return false;
-    }
+    const result = TypeGuardPredicates.isInstanceOf(value, constructor);
+    return result;
   }
 
   /** Checks whether a value is an integer. */
-  public static isIntegerValue(value: unknown): boolean {
-    const result = typeof value === 'number' && Number.isInteger(value);
-    return result;
-  }
+  public static readonly isIntegerValue: (value: unknown) => boolean = TypeGuardPredicates.isIntegerValue;
 
   /** Checks whether a value is less than another — supports numbers, strings, and `Date`. */
-  public static isLessThan(value: unknown, comparison: unknown): boolean {
-    if (typeof value === 'number' && typeof comparison === 'number') {
-      const result = value < comparison;
-      return result;
-    }
-
-    if (typeof value === 'string' && typeof comparison === 'string') {
-      const result = value < comparison;
-      return result;
-    }
-
-    if (value instanceof Date && comparison instanceof Date) {
-      const result = value.getTime() < comparison.getTime();
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly isLessThan: (value: unknown, comparison: unknown) => boolean = TypeGuardPredicates.isLessThan;
 
   /** Checks whether a value is less than or equal to another — numbers, strings, `Date`. */
-  public static isLessThanOrEqual(value: unknown, comparison: unknown): boolean {
-    if (typeof value === 'number' && typeof comparison === 'number') {
-      const result = value <= comparison;
-      return result;
-    }
-
-    if (typeof value === 'string' && typeof comparison === 'string') {
-      const result = value <= comparison;
-      return result;
-    }
-
-    if (value instanceof Date && comparison instanceof Date) {
-      const result = value.getTime() <= comparison.getTime();
-      return result;
-    }
-
-    return false;
-  }
+  public static readonly isLessThanOrEqual: (value: unknown, comparison: unknown) => boolean = TypeGuardPredicates.isLessThanOrEqual;
 
   /** Checks whether a number is negative (< 0). */
-  public static isNegative(value: unknown): boolean {
-    const result = typeof value === 'number' && value < 0;
-    return result;
-  }
+  public static readonly isNegative: (value: unknown) => boolean = TypeGuardPredicates.isNegative;
 
   /** Checks whether a value is not `null`. */
-  public static isNotNull(value: unknown): boolean {
-    const result = value !== null;
-    return result;
-  }
+  public static readonly isNotNull: (value: unknown) => boolean = TypeGuardPredicates.isNotNull;
 
   /** Checks whether a value is `null`. */
-  public static isNull(value: unknown): boolean {
-    const result = value === null;
-    return result;
-  }
+  public static readonly isNull: (value: unknown) => boolean = TypeGuardPredicates.isNull;
 
   /** Checks whether an object has exactly the specified number of own enumerable properties. */
-  public static isObjectPropertyCount(object: unknown, expectedCount: unknown): boolean {
-    if (typeof object !== 'object' || object === null || typeof expectedCount !== 'number') {
-      return false;
-    }
-
-    const result = Object.keys(object).length === expectedCount;
-    return result;
-  }
+  public static readonly isObjectPropertyCount: (object: unknown, expectedCount: unknown) => boolean = TypeGuardPredicates.isObjectPropertyCount;
 
   /** Checks whether a number is odd. */
-  public static isOdd(value: unknown): boolean {
-    const result = typeof value === 'number' && Number.isFinite(value) && Math.abs(value % 2) === 1;
-    return result;
-  }
+  public static readonly isOdd: (value: unknown) => boolean = TypeGuardPredicates.isOdd;
 
   /** Checks whether a number is positive (> 0). */
-  public static isPositive(value: unknown): boolean {
-    const result = typeof value === 'number' && value > 0;
-    return result;
-  }
+  public static readonly isPositive: (value: unknown) => boolean = TypeGuardPredicates.isPositive;
 
   /** Checks whether a value is a `Promise` or a thenable object — plain `boolean`. */
-  public static isPromise(value: unknown): boolean {
-    const result = value instanceof Promise
-      || (value !== null
-       && value !== undefined
-       && typeof value === 'object'
-       && typeof (value as Record<string, unknown>).then === 'function');
-    return result;
-  }
+  public static readonly isPromise: (value: unknown) => boolean = TypeGuardPredicates.isPromise;
 
   /** Checks whether a value is a two-element array (a `[minimum, maximum]` range tuple). */
-  public static isRangeValid<T>(range: T): range is readonly unknown[] & T {
-    const result = Predicates.isArray(range) && range.length === 2;
-    return result;
-  }
+  public static readonly isRangeValid: <T>(range: T) => range is readonly unknown[] & T = TypeGuardPredicates.isRangeValid;
 
   /** Checks whether a value is a string of the specified length. */
-  public static isStringLength(value: unknown, length: number): boolean {
-    const result = typeof value === 'string' && value.length === length;
-    return result;
-  }
+  public static readonly isStringLength: (value: unknown, length: number) => boolean = TypeGuardPredicates.isStringLength;
 
   /** Checks whether a value is strictly `true`. */
-  public static isTrue(value: unknown): boolean {
-    const result = value === true;
-    return result;
-  }
+  public static readonly isTrue: (value: unknown) => boolean = TypeGuardPredicates.isTrue;
 
   /** Checks whether a value is truthy in boolean context. */
-  public static isTruthy(value: unknown): boolean {
-    const result = Boolean(value) === true;
-    return result;
-  }
+  public static readonly isTruthy: (value: unknown) => boolean = TypeGuardPredicates.isTruthy;
 
   /** Checks whether `typeof value` equals the given type string. */
-  public static isTypeOf(value: unknown, type: string): boolean {
-    const result = typeof value === type;
-    return result;
-  }
+  public static readonly isTypeOf: (value: unknown, type: string) => boolean = TypeGuardPredicates.isTypeOf;
 
   /** Checks whether a value is `undefined`. */
-  public static isUndefined(value: unknown): boolean {
-    const result = value === undefined;
-    return result;
-  }
+  public static readonly isUndefined: (value: unknown) => boolean = TypeGuardPredicates.isUndefined;
 
   /**
-   * Compares two semantic version strings by major, minor, patch, then
-   * prerelease (a prerelease version sorts before its release, per semver
-   * precedence; two prereleases compare lexicographically). A malformed
-   * version sorts after a well-formed one; two malformed versions compare
-   * equal.
+   * Compares two semantic version strings by major, minor, patch, then prerelease. A malformed
+   * version sorts after a well-formed one; two malformed versions compare equal.
    */
-  public static compareSemverVersions(first: string, second: string): number {
-    const parsedFirst = Predicates.parseSemverVersion(first);
-    const parsedSecond = Predicates.parseSemverVersion(second);
-
-    if (parsedFirst === undefined && parsedSecond === undefined) {
-      return 0;
-    }
-    if (parsedFirst === undefined) {
-      return 1;
-    }
-    if (parsedSecond === undefined) {
-      const result = -1;
-      return result;
-    }
-
-    const coreResult = Predicates.compareParsedSemver(parsedFirst, parsedSecond);
-
-    if (coreResult !== 0) {
-      return coreResult;
-    }
-
-    if (parsedFirst.prerelease !== '' && parsedSecond.prerelease === '') {
-      const result = -1;
-      return result;
-    }
-    if (parsedFirst.prerelease === '' && parsedSecond.prerelease !== '') {
-      return 1;
-    }
-    if (parsedFirst.prerelease !== '' && parsedSecond.prerelease !== '') {
-      const result = Predicates.comparePrereleaseIdentifiers(parsedFirst.prerelease, parsedSecond.prerelease);
-      return result;
-    }
-
-    return 0;
-  }
+  public static readonly compareSemverVersions: (first: string, second: string) => number = DateSemverPredicates.compareSemverVersions;
 
   /** Checks whether an IPv4 address falls within a CIDR range. Malformed input returns `false`. */
-  public static isIpInCidr(ip: string, cidr: string): boolean {
-    const ipNumber = Predicates.ipv4ToUint32(ip);
-
-    if (ipNumber === undefined) {
-      return false;
-    }
-
-    const range = Predicates.parseCidrRange(cidr);
-
-    if (range === undefined) {
-      return false;
-    }
-
-    const result = ipNumber >= range.start && ipNumber <= range.end;
-    return result;
-  }
+  public static readonly isIpInCidr: (ip: string, cidr: string) => boolean = SchemaPredicates.isIpInCidr;
 
   /** Checks whether a regex pattern is vulnerable to ReDoS via known-catastrophic constructs. */
-  public static isVulnerablePattern(pattern: string | RegExp): boolean {
-    const patternSource = pattern instanceof RegExp ? pattern.source : String(pattern);
-
-    const result = REDOS_VULNERABLE_PATTERNS.some((vulnerablePattern) => {
-      const matched = vulnerablePattern.test(patternSource);
-      return matched;
-    });
-
-    return result;
-  }
+  public static readonly isVulnerablePattern: (pattern: string | RegExp) => boolean = SchemaPredicates.isVulnerablePattern;
 
   /**
    * Range comparison with type checking across numbers, `Date`, and strings.
    * `inclusive` selects `>=`/`<=` (in-range) vs `<`/`>` (out-of-range) semantics.
    */
-  public static performRangeComparison(
+  public static readonly performRangeComparison: (
     value: unknown,
     minimum: unknown,
     maximum: unknown,
     inclusive: boolean,
-    options: Readonly<{ 'boundary'?: 'closed' | 'half-open', 'caseSensitive'?: boolean }> = {}
-  ): boolean {
-    const { boundary = 'closed', caseSensitive = true } = options;
-
-    const numericResult = Predicates.compareNumericRange(value, minimum, maximum, inclusive, boundary);
-
-    if (numericResult !== null) {
-      return numericResult;
-    }
-
-    const dateResult = Predicates.compareDateRange(value, minimum, maximum, inclusive, boundary);
-
-    if (dateResult !== null) {
-      return dateResult;
-    }
-
-    const stringResult = Predicates.compareStringRange(value, minimum, maximum, inclusive, caseSensitive);
-
-    if (stringResult !== null) {
-      return stringResult;
-    }
-
-    const result = inclusive ? false : true;
-
-    return result;
-  }
+    options?: Readonly<{ 'boundary'?: 'closed' | 'half-open', 'caseSensitive'?: boolean }>
+  ) => boolean = SchemaPredicates.performRangeComparison;
 
   /** Count Unicode code points without allocating an intermediate array. */
-  public static codePointLength(string: string): number {
-    let length = 0;
-    const stringLength = string.length;
-
-    for (let index = 0; index < stringLength; index++) {
-      length++;
-      const code = string.codePointAt(index);
-
-      if (code !== undefined && code > 0xFF_FF) {
-        index++;
-      }
-    }
-
-    return length;
-  }
+  public static readonly codePointLength: (string: string) => number = SchemaPredicates.codePointLength;
 
   /** Infer the JSON Schema type name of a value. */
-  public static inferValueType(value: unknown): string {
-    if (value === null) {
-      return 'null';
-    }
-    if (Array.isArray(value)) {
-      return 'array';
-    }
+  public static readonly inferValueType: (value: unknown) => string = SchemaPredicates.inferValueType;
 
-    const result = typeof value;
-    return result;
-  }
+  public static readonly matchesAnyType: (schemaTypes: string[], value: unknown) => boolean = SchemaPredicates.matchesAnyType;
 
-  public static matchesAnyType(schemaTypes: string[], value: unknown): boolean {
-    const schemaTypeCount = schemaTypes.length;
-    for (let index = 0; index < schemaTypeCount; index += 1) {
-      const schemaType = schemaTypes[index]!;
-      if (Predicates.matchesType(schemaType, value)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  public static readonly matchesType: (schemaType: string, value: unknown) => boolean = SchemaPredicates.matchesType;
 
-  public static matchesType(schemaType: string, value: unknown): boolean {
-    const matcher = Predicates.typeMatchers.get(schemaType);
-
-    const result = matcher === undefined ? Predicates.inferValueType(value) === schemaType : matcher(value);
-    return result;
-  }
-
-  public static satisfiesEnum(value: unknown, enumValues: unknown[]): boolean {
-    const enumValueCount = enumValues.length;
-    for (let index = 0; index < enumValueCount; index += 1) {
-      const enumValue = enumValues[index];
-      if (Predicates.areDeeplyEqual(value, enumValue)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  public static readonly satisfiesEnum: (value: unknown, enumValues: unknown[]) => boolean = RuntimeValuePredicates.satisfiesEnum;
 
   /**
    * Checks whether a semantic version string satisfies a range expression
    * (`*`, `^1.2.3`, `~1.2.3`, `>=`, `<=`, `>`, `<`, `=`, or a bare version for
    * exact match). Malformed version or range input returns `false`.
    */
-  public static satisfiesSemverRange(version: string, range: string): boolean {
-    const parsed = Predicates.parseSemverVersion(version);
+  public static readonly satisfiesSemverRange: (version: string, range: string) => boolean = DateSemverPredicates.satisfiesSemverRange;
 
-    if (parsed === undefined) {
-      return false;
-    }
+  public static readonly checkMinimum: (value: number, minimum: number, exclusive: boolean) => boolean = SchemaPredicates.checkMinimum;
 
-    const trimmedRange = range.trim();
-
-    if (trimmedRange === '*') {
-      return true;
-    }
-
-    if (trimmedRange.startsWith('^')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(1));
-
-      if (target === undefined) {
-        return false;
-      }
-      if (parsed.major !== target.major) {
-        return false;
-      }
-      if (target.major === 0 && parsed.minor !== target.minor) {
-        return false;
-      }
-      if (target.major === 0 && target.minor === 0 && parsed.patch !== target.patch) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('~')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(1));
-
-      if (target === undefined) {
-        return false;
-      }
-      if (parsed.major !== target.major) {
-        return false;
-      }
-      if (target.hasExplicitMinor && parsed.minor !== target.minor) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('>=')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(2).trim());
-
-      if (target === undefined) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) >= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('<=')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(2).trim());
-
-      if (target === undefined) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) <= 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('>')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
-
-      if (target === undefined) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) > 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('<')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
-
-      if (target === undefined) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) < 0;
-      return result;
-    }
-
-    if (trimmedRange.startsWith('=')) {
-      const target = Predicates.parseSemverVersion(trimmedRange.slice(1).trim());
-
-      if (target === undefined) {
-        return false;
-      }
-
-      const result = Predicates.compareParsedSemver(parsed, target) === 0;
-      return result;
-    }
-
-    const target = Predicates.parseSemverVersion(trimmedRange);
-
-    if (target === undefined) {
-      return false;
-    }
-
-    const result = Predicates.compareParsedSemver(parsed, target) === 0;
-    return result;
-  }
-
-  public static checkMinimum(value: number, minimum: number, exclusive: boolean): boolean {
-    const result = exclusive ? value > minimum : value >= minimum;
-    return result;
-  }
-
-  public static checkMaximum(value: number, maximum: number, exclusive: boolean): boolean {
-    const result = exclusive ? value < maximum : value <= maximum;
-    return result;
-  }
+  public static readonly checkMaximum: (value: number, maximum: number, exclusive: boolean) => boolean = SchemaPredicates.checkMaximum;
 
   /** Uses epsilon tolerance for floating-point rounding errors. */
-  public static checkMultipleOf(value: number, divisor: number): boolean {
-    if (divisor === 0) {
-      return false;
-    }
-    const quotient = value / divisor;
+  public static readonly checkMultipleOf: (value: number, divisor: number) => boolean = SchemaPredicates.checkMultipleOf;
 
-    const result = Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * MULTIPLE_OF_EPSILON_FACTOR;
-    return result;
-  }
-
-  public static checkPattern(value: string, pattern: RegExp): boolean {
-    pattern.lastIndex = 0;
-    const result = pattern.test(value);
-    pattern.lastIndex = 0;
-
-    return result;
-  }
+  public static readonly checkPattern: (value: string, pattern: RegExp) => boolean = SchemaPredicates.checkPattern;
 
   /** Fast-paths: len<min→false, len>=2*min→true; walks code points only in residual band. */
-  public static satisfiesMinimumLength(value: string, minimum: number): boolean {
-    const length = value.length;
-
-    if (length < minimum) {
-      return false;
-    }
-    if (length >= minimum * 2) {
-      return true;
-    }
-
-    const result = Predicates.codePointLengthAtLeast(value, minimum);
-    return result;
-  }
+  public static readonly satisfiesMinimumLength: (value: string, minimum: number) => boolean = SchemaPredicates.satisfiesMinimumLength;
 
   /** Fast-path: code_points <= utf16_length, so value.length<=max is definitely true. */
-  public static satisfiesMaximumLength(value: string, maximum: number): boolean {
-    if (value.length <= maximum) {
-      return true;
-    }
-
-    const result = Predicates.codePointLengthAtMost(value, maximum);
-    return result;
-  }
+  public static readonly satisfiesMaximumLength: (value: string, maximum: number) => boolean = SchemaPredicates.satisfiesMaximumLength;
 
   /** Only base64/base64url are actively checked; unknown encodings return true per spec. */
-  public static satisfiesContentEncoding(value: string, encoding: string): boolean {
-    if (!SUPPORTED_CONTENT_ENCODINGS.has(encoding)) {
-      return true;
-    }
-
-    const result = Predicates.decodeBase64Safe(value, encoding === 'base64url') !== null;
-    return result;
-  }
+  public static readonly satisfiesContentEncoding: (value: string, encoding: string) => boolean = SchemaPredicates.satisfiesContentEncoding;
 
   /** Only application/json is actively checked; unknown media types return true per spec. */
-  public static satisfiesContentMediaType(value: string, mediaType: string, encoding?: string): boolean {
-    if (!SUPPORTED_CONTENT_MEDIA_TYPES.has(mediaType)) {
-      return true;
-    }
-
-    let content = value;
-
-    if (encoding !== undefined && SUPPORTED_CONTENT_ENCODINGS.has(encoding)) {
-      const decoded = Predicates.decodeBase64Safe(value, encoding === 'base64url');
-
-      if (decoded === null) {
-        return false;
-      }
-
-      content = decoded;
-    }
-
-    if (mediaType === 'application/json') {
-      const result = Predicates.isValidJson(content);
-      return result;
-    }
-
-    return true;
-  }
+  public static readonly satisfiesContentMediaType: (value: string, mediaType: string, encoding?: string) => boolean = SchemaPredicates.satisfiesContentMediaType;
 
   /** Validates minContains/maxContains bounds against match count from a contains schema. */
-  public static satisfiesContains(
+  public static readonly satisfiesContains: (
     matchCount: number,
-    options: Readonly<{ 'maximumContains'?: number | undefined; 'minimumContains'?: number | undefined }> = {}
-  ): boolean {
-    const { maximumContains, minimumContains } = options;
-    const minimum = minimumContains ?? (maximumContains === undefined ? 1 : 0);
+    options?: Readonly<{ 'maximumContains'?: number | undefined; 'minimumContains'?: number | undefined }>
+  ) => boolean = SchemaPredicates.satisfiesContains;
 
-    if (matchCount < minimum) {
-      return false;
-    }
-    if (maximumContains !== undefined && matchCount > maximumContains) {
-      return false;
-    }
+  public static readonly satisfiesMinimumItems: (value: unknown[], minimum: number) => boolean = SchemaPredicates.satisfiesMinimumItems;
 
-    return true;
-  }
+  public static readonly satisfiesMaximumItems: (value: unknown[], maximum: number) => boolean = SchemaPredicates.satisfiesMaximumItems;
 
-  public static satisfiesMinimumItems(value: unknown[], minimum: number): boolean {
-    const result = value.length >= minimum;
-    return result;
-  }
-
-  public static satisfiesMaximumItems(value: unknown[], maximum: number): boolean {
-    const result = value.length <= maximum;
-    return result;
-  }
-
-  public static satisfiesUniqueItems(value: unknown[]): boolean {
-    const valueLength = value.length;
-
-    for (let index = 0; index < valueLength; index++) {
-      for (let other = index + 1; other < valueLength; other++) {
-        if (Predicates.areDeeplyEqual(value[index], value[other])) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
+  public static readonly satisfiesUniqueItems: (value: unknown[]) => boolean = RuntimeValuePredicates.satisfiesUniqueItems;
 
   /** Checks own properties only; inherited keys (e.g. from the prototype chain) never satisfy `required`. */
-  public static hasAllRequiredProperties(value: Record<string, unknown>, required: string[]): boolean {
-    const requiredCount = required.length;
-    for (let index = 0; index < requiredCount; index += 1) {
-      const key = required[index]!;
-      if (!Object.hasOwn(value, key)) {
-        return false;
-      }
-    }
-    return true;
-  }
+  public static readonly hasAllRequiredProperties: (value: Record<string, unknown>, required: string[]) => boolean = SchemaPredicates.hasAllRequiredProperties;
 
-  public static hasNoAdditionalProperties(value: Record<string, unknown>, allowedKeys: Set<string>): boolean {
-    const keys = Object.keys(value);
-    const keyCount = keys.length;
-    for (let index = 0; index < keyCount; index += 1) {
-      const key = keys[index]!;
-      if (!allowedKeys.has(key)) {
-        return false;
-      }
-    }
-    return true;
-  }
+  public static readonly hasNoAdditionalProperties: (value: Record<string, unknown>, allowedKeys: Set<string>) => boolean = SchemaPredicates.hasNoAdditionalProperties;
 
-  public static satisfiesMinimumProperties(value: Record<string, unknown>, minimum: number): boolean {
-    const result = Object.keys(value).length >= minimum;
-    return result;
-  }
+  public static readonly satisfiesMinimumProperties: (value: Record<string, unknown>, minimum: number) => boolean = SchemaPredicates.satisfiesMinimumProperties;
 
-  public static satisfiesMaximumProperties(value: Record<string, unknown>, maximum: number): boolean {
-    const result = Object.keys(value).length <= maximum;
-    return result;
-  }
-
-  private static compareArray(value: readonly unknown[], filterValue: readonly unknown[], state: DeepEqualityStateInterface): boolean {
-    if (value.length !== filterValue.length) {
-      return false;
-    }
-
-    for (let index = 0; index < value.length; index += 1) {
-      if (!Predicates.compareRuntimeValues(value[index], filterValue[index], state)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private static compareMap(value: Map<unknown, unknown>, filterValue: Map<unknown, unknown>, state: DeepEqualityStateInterface): boolean {
-    if (value.size !== filterValue.size) {
-      return false;
-    }
-
-    const filterEntries: [unknown, unknown][] = Array.from(filterValue.entries());
-    const matchedIndexes = new Set<number>();
-    for (const [valueKey, valueEntry] of value.entries()) {
-      let matched = false;
-      for (let index = 0; index < filterEntries.length; index += 1) {
-        if (matchedIndexes.has(index)) {
-          continue;
-        }
-        const filterEntry = filterEntries[index];
-        if (filterEntry === undefined) {
-          continue;
-        }
-        const candidateState = Predicates.copyDeepEqualityState(state);
-        if (Predicates.compareRuntimeValues(valueKey, filterEntry[0], candidateState)
-          && Predicates.compareRuntimeValues(valueEntry, filterEntry[1], candidateState)) {
-          Predicates.replaceDeepEqualityState(state, candidateState);
-          matchedIndexes.add(index);
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private static compareRecord(value: Record<string, unknown>, filterValue: Record<string, unknown>, state: DeepEqualityStateInterface): boolean {
-    const valueKeys = Object.keys(value);
-    if (valueKeys.length !== Object.keys(filterValue).length) {
-      return false;
-    }
-
-    for (let index = 0; index < valueKeys.length; index += 1) {
-      const key = valueKeys[index];
-      if (key === undefined || !Object.hasOwn(filterValue, key) || !Predicates.compareRuntimeValues(value[key], filterValue[key], state)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private static compareRuntimeValues(value: unknown, filterValue: unknown, state: DeepEqualityStateInterface): boolean {
-    if (Object.is(value, filterValue)) {
-      return true;
-    }
-    if (!Predicates.isObjectLike(value) || !Predicates.isObjectLike(filterValue)) {
-      return false;
-    }
-
-    if (value instanceof Date || filterValue instanceof Date) {
-      const result = value instanceof Date && filterValue instanceof Date && Object.is(value.getTime(), filterValue.getTime());
-      return result;
-    }
-    if (value instanceof RegExp || filterValue instanceof RegExp) {
-      const result = value instanceof RegExp && filterValue instanceof RegExp && value.source === filterValue.source && value.flags === filterValue.flags;
-      return result;
-    }
-
-    const existingPair = Predicates.existingDeepEqualityPair(value, filterValue, state);
-    if (existingPair !== undefined) {
-      return existingPair;
-    }
-    if (Array.isArray(value) || Array.isArray(filterValue)) {
-      if (!Array.isArray(value) || !Array.isArray(filterValue) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
-        return false;
-      }
-      const result = Predicates.compareArray(value, filterValue, state);
-      return result;
-    }
-    if (value instanceof Map || filterValue instanceof Map) {
-      if (!(value instanceof Map) || !(filterValue instanceof Map) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
-        return false;
-      }
-      const result = Predicates.compareMap(value, filterValue, state);
-      return result;
-    }
-    if (value instanceof Set || filterValue instanceof Set) {
-      if (!(value instanceof Set) || !(filterValue instanceof Set) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
-        return false;
-      }
-      const result = Predicates.compareSet(value, filterValue, state);
-      return result;
-    }
-    if (!Predicates.isRecord(value) || !Predicates.isRecord(filterValue) || !Predicates.linkDeepEqualityPair(value, filterValue, state)) {
-      return false;
-    }
-
-    const result = Predicates.compareRecord(value, filterValue, state);
-    return result;
-  }
-
-  private static compareSet(value: ReadonlySet<unknown>, filterValue: ReadonlySet<unknown>, state: DeepEqualityStateInterface): boolean {
-    if (value.size !== filterValue.size) {
-      return false;
-    }
-
-    const filterValues: unknown[] = Array.from(filterValue.values());
-    const matchedIndexes = new Set<number>();
-    for (const valueItem of value.values()) {
-      let matched = false;
-      for (let index = 0; index < filterValues.length; index += 1) {
-        if (matchedIndexes.has(index)) {
-          continue;
-        }
-        const candidateState = Predicates.copyDeepEqualityState(state);
-        if (Predicates.compareRuntimeValues(valueItem, filterValues[index], candidateState)) {
-          Predicates.replaceDeepEqualityState(state, candidateState);
-          matchedIndexes.add(index);
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private static copyDeepEqualityState(state: DeepEqualityStateInterface): DeepEqualityStateInterface {
-    const result: DeepEqualityStateInterface = {
-      'leftToRight': new Map(state.leftToRight),
-      'rightToLeft': new Map(state.rightToLeft)
-    };
-    return result;
-  }
-
-  private static existingDeepEqualityPair(value: object, filterValue: object, state: DeepEqualityStateInterface): boolean | undefined {
-    const mappedFilterValue = state.leftToRight.get(value);
-    if (mappedFilterValue !== undefined) {
-      const result = mappedFilterValue === filterValue;
-      return result;
-    }
-    const mappedValue = state.rightToLeft.get(filterValue);
-    if (mappedValue !== undefined) {
-      const result = mappedValue === value;
-      return result;
-    }
-
-    return undefined;
-  }
-
-  private static linkDeepEqualityPair(value: object, filterValue: object, state: DeepEqualityStateInterface): boolean {
-    state.leftToRight.set(value, filterValue);
-    state.rightToLeft.set(filterValue, value);
-    return true;
-  }
-
-  private static replaceDeepEqualityState(target: DeepEqualityStateInterface, source: DeepEqualityStateInterface): void {
-    target.leftToRight.clear();
-    target.rightToLeft.clear();
-    for (const [value, filterValue] of source.leftToRight.entries()) {
-      target.leftToRight.set(value, filterValue);
-    }
-    for (const [filterValue, value] of source.rightToLeft.entries()) {
-      target.rightToLeft.set(filterValue, value);
-    }
-  }
-
-  private static valueHasCycle(value: unknown, ancestors: Set<object>): boolean {
-    if (!Predicates.isObjectLike(value)) {
-      return false;
-    }
-    if (ancestors.has(value)) {
-      return true;
-    }
-
-    ancestors.add(value);
-    let hasCycle = false;
-    if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index += 1) {
-        if (Predicates.valueHasCycle(value[index], ancestors)) {
-          hasCycle = true;
-          break;
-        }
-      }
-    } else if (value instanceof Map) {
-      for (const [key, item] of value.entries()) {
-        if (Predicates.valueHasCycle(key, ancestors) || Predicates.valueHasCycle(item, ancestors)) {
-          hasCycle = true;
-          break;
-        }
-      }
-    } else if (value instanceof Set) {
-      for (const item of value.values()) {
-        if (Predicates.valueHasCycle(item, ancestors)) {
-          hasCycle = true;
-          break;
-        }
-      }
-    } else if (Predicates.isRecord(value)) {
-      const values = Object.values(value);
-      for (let index = 0; index < values.length; index += 1) {
-        if (Predicates.valueHasCycle(values[index], ancestors)) {
-          hasCycle = true;
-          break;
-        }
-      }
-    }
-
-    ancestors.delete(value);
-    return hasCycle;
-  }
-
-  /** Checks if all values are numbers and performs numeric range comparison. */
-  private static compareNumericRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, boundary: 'closed' | 'half-open'): boolean | null {
-    if (typeof value === 'number' && typeof minimum === 'number' && typeof maximum === 'number') {
-      const inRange = boundary === 'half-open'
-        ? value >= minimum && value < maximum
-        : value >= minimum && value <= maximum;
-
-      const result = inclusive ? inRange : !inRange;
-      return result;
-    }
-
-    return null;
-  }
-
-  /** Checks if all values are Dates and performs date range comparison. */
-  private static compareDateRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, boundary: 'closed' | 'half-open'): boolean | null {
-    if (value instanceof Date && minimum instanceof Date && maximum instanceof Date) {
-      const valueTime = value.getTime();
-      const minimumTime = minimum.getTime();
-      const maximumTime = maximum.getTime();
-
-      const inRange = boundary === 'half-open'
-        ? valueTime >= minimumTime && valueTime < maximumTime
-        : valueTime >= minimumTime && valueTime <= maximumTime;
-
-      const result = inclusive ? inRange : !inRange;
-      return result;
-    }
-
-    return null;
-  }
-
-  /** Checks if all values are strings and performs lexicographic range comparison. */
-  private static compareStringRange(value: unknown, minimum: unknown, maximum: unknown, inclusive: boolean, caseSensitive: boolean): boolean | null {
-    if (typeof value === 'string' && typeof minimum === 'string' && typeof maximum === 'string') {
-      const comparisonValue = caseSensitive ? value : value.toLowerCase();
-      const comparisonMinimum = caseSensitive ? minimum : minimum.toLowerCase();
-      const comparisonMaximum = caseSensitive ? maximum : maximum.toLowerCase();
-
-      const result = inclusive
-        ? comparisonValue >= comparisonMinimum && comparisonValue <= comparisonMaximum
-        : comparisonValue < comparisonMinimum || comparisonValue > comparisonMaximum;
-
-      return result;
-    }
-
-    return null;
-  }
-
-  /** Compares two parsed semantic versions by major, minor, then patch. */
-  private static compareParsedSemver(first: ParsedSemverInterface, second: ParsedSemverInterface): number {
-    if (first.major !== second.major) {
-      const result = first.major - second.major;
-      return result;
-    }
-    if (first.minor !== second.minor) {
-      const result = first.minor - second.minor;
-      return result;
-    }
-    if (first.patch !== second.patch) {
-      const result = first.patch - second.patch;
-      return result;
-    }
-
-    return 0;
-  }
-
-  /**
-   * Compares two dot-separated semver prerelease strings per semver precedence rules: identifiers
-   * are compared pairwise, numeric identifiers compare numerically and always precede alphanumeric
-   * ones, alphanumeric identifiers compare lexicographically (ASCII), and a prerelease with fewer
-   * fields has lower precedence when all preceding fields are equal.
-   */
-  private static comparePrereleaseIdentifiers(first: string, second: string): number {
-    const firstFields = first.split('.');
-    const secondFields = second.split('.');
-    const fieldCount = Math.max(firstFields.length, secondFields.length);
-
-    for (let index = 0; index < fieldCount; index++) {
-      const firstField = firstFields[index];
-      const secondField = secondFields[index];
-
-      if (firstField === undefined) {
-        const result = -1;
-        return result;
-      }
-      if (secondField === undefined) {
-        const result = 1;
-        return result;
-      }
-      if (firstField === secondField) {
-        continue;
-      }
-
-      const firstIsNumeric = ALL_DIGITS_PATTERN.test(firstField);
-      const secondIsNumeric = ALL_DIGITS_PATTERN.test(secondField);
-
-      if (firstIsNumeric && secondIsNumeric) {
-        const result = Number.parseInt(firstField, 10) - Number.parseInt(secondField, 10);
-        return result;
-      }
-      if (firstIsNumeric) {
-        const result = -1;
-        return result;
-      }
-      if (secondIsNumeric) {
-        const result = 1;
-        return result;
-      }
-
-      const result = firstField < secondField ? -1 : 1;
-      return result;
-    }
-
-    return 0;
-  }
+  public static readonly satisfiesMaximumProperties: (value: Record<string, unknown>, maximum: number) => boolean = SchemaPredicates.satisfiesMaximumProperties;
 
   /** Converts an IPv4 dotted-decimal string to its 32-bit unsigned integer representation, or `undefined` when malformed. */
-  public static ipv4ToUint32(ip: string): number | undefined {
-    const parts = ip.trim().split('.');
-
-    if (parts.length !== 4) {
-      return undefined;
-    }
-
-    let accumulator = 0;
-
-    for (let index = 0; index < parts.length; index++) {
-      const octet = parts[index]!;
-
-      if (!ALL_DIGITS_PATTERN.test(octet)) {
-        return undefined;
-      }
-
-      const number = Number.parseInt(octet, 10);
-
-      if (number > 255) {
-        return undefined;
-      }
-      accumulator = (accumulator << 8) + number;
-    }
-
-    const result = accumulator >>> 0;
-    return result;
-  }
+  public static readonly ipv4ToUint32: (ip: string) => number | undefined = SchemaPredicates.ipv4ToUint32;
 
   /** Parses CIDR notation into its inclusive `[start, end]` IPv4 range, or `undefined` when malformed. */
-  public static parseCidrRange(cidr: string): Uint32RangeInterface | undefined {
-    const parts = cidr.trim().split('/');
-
-    if (parts.length !== 2) {
-      return undefined;
-    }
-
-    const ipPart = parts[0];
-    const prefixPart = parts[1];
-
-    if (ipPart === undefined || prefixPart === undefined) {
-      return undefined;
-    }
-
-    const ip = Predicates.ipv4ToUint32(ipPart);
-
-    if (ip === undefined) {
-      return undefined;
-    }
-
-    if (!ALL_DIGITS_PATTERN.test(prefixPart)) {
-      return undefined;
-    }
-
-    const prefix = Number.parseInt(prefixPart, 10);
-
-    if (prefix > 32) {
-      return undefined;
-    }
-
-    const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
-    const start = (ip & mask) >>> 0;
-    const end = (start | (~mask >>> 0)) >>> 0;
-
-    return {
-      'end': end,
-      'start': start
-    };
-  }
-
-  /** Parses a semantic version string into its major, minor, patch, and prerelease components, or `undefined` when malformed. Build metadata (`+...`) is stripped and ignored per semver precedence rules. */
-  private static parseSemverVersion(version: string): ParsedSemverInterface | undefined {
-    const withoutV = version.trim().replace(SEMVER_LEADING_V_PATTERN, '');
-    const buildIndex = withoutV.indexOf('+');
-    const trimmed = buildIndex >= 0 ? withoutV.slice(0, buildIndex) : withoutV;
-    const prereleaseIndex = trimmed.indexOf('-');
-    const versionPart = prereleaseIndex >= 0 ? trimmed.slice(0, prereleaseIndex) : trimmed;
-    const prerelease = prereleaseIndex >= 0 ? trimmed.slice(prereleaseIndex + 1) : '';
-    const parts = versionPart.split('.');
-
-    if (parts.length < 1 || parts.length > 3) {
-      return undefined;
-    }
-
-    const majorPart = parts[0];
-    const minorPart = parts[1];
-    const patchPart = parts[2];
-
-    if (majorPart === undefined || !ALL_DIGITS_PATTERN.test(majorPart)) {
-      return undefined;
-    }
-    if (minorPart !== undefined && !ALL_DIGITS_PATTERN.test(minorPart)) {
-      return undefined;
-    }
-    if (patchPart !== undefined && !ALL_DIGITS_PATTERN.test(patchPart)) {
-      return undefined;
-    }
-
-    const major = Number.parseInt(majorPart, 10);
-    const minor = minorPart !== undefined ? Number.parseInt(minorPart, 10) : 0;
-    const patch = patchPart !== undefined ? Number.parseInt(patchPart, 10) : 0;
-
-    return {
-      'hasExplicitMinor': minorPart !== undefined,
-      'major': major,
-      'minor': minor,
-      'patch': patch,
-      'prerelease': prerelease
-    };
-  }
-
-  /** Returns true as soon as `target` code points have been counted; stops early. */
-  private static codePointLengthAtLeast(string: string, target: number): boolean {
-    let count = 0;
-    const stringLength = string.length;
-
-    for (let index = 0; index < stringLength; index++) {
-      count++;
-      if (count >= target) {
-        return true;
-      }
-      const code = string.codePointAt(index);
-
-      if (code !== undefined && code > 0xFF_FF) {
-        index++;
-      }
-    }
-
-    const result = count >= target;
-    return result;
-  }
-
-  /** Returns false as soon as code-point count exceeds `limit`; stops early. */
-  private static codePointLengthAtMost(string: string, limit: number): boolean {
-    let count = 0;
-    const stringLength = string.length;
-
-    for (let index = 0; index < stringLength; index++) {
-      count++;
-      if (count > limit) {
-        return false;
-      }
-      const code = string.codePointAt(index);
-
-      if (code !== undefined && code > 0xFF_FF) {
-        index++;
-      }
-    }
-
-    return true;
-  }
-
-  private static decodeBase64Safe(value: string, urlSafe: boolean): null | string {
-    try {
-      const normalised = urlSafe
-        ? value.replaceAll('-', '+').replaceAll('_', '/')
-        : value;
-      const decoded = atob(normalised);
-
-      const result = decoded;
-      return result;
-    } catch {
-      return null;
-    }
-  }
-
-  private static isValidJson(content: string): boolean {
-    try {
-      JSON.parse(content);
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  public static readonly parseCidrRange: (cidr: string) => { readonly 'end': number; readonly 'start': number } | undefined = SchemaPredicates.parseCidrRange;
 }

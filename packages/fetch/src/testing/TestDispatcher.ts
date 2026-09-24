@@ -40,6 +40,17 @@ class QueueEntry {
   }
 }
 
+interface TestRequestOptionsInterface {
+  readonly 'body': string;
+  readonly 'headers': Record<string, string>;
+  readonly 'method': string;
+  readonly 'origin': string;
+  readonly 'path': string;
+  readonly 'searchParameters': URL['searchParams'];
+  readonly 'signal': AbortSignal | undefined;
+  readonly 'url': string;
+}
+
 class TestRequest {
   public readonly 'body': string;
   public readonly 'headers': Record<string, string>;
@@ -50,24 +61,15 @@ class TestRequest {
   public readonly 'signal': AbortSignal | undefined;
   public readonly 'url': string;
 
-  public constructor(
-    body: string,
-    headers: Record<string, string>,
-    method: string,
-    origin: string,
-    path: string,
-    searchParameters: URL['searchParams'],
-    signal: AbortSignal | undefined,
-    url: string
-  ) {
-    this.body = body;
-    this.headers = headers;
-    this.method = method;
-    this.origin = origin;
-    this.path = path;
-    this.searchParameters = searchParameters;
-    this.signal = signal;
-    this.url = url;
+  public constructor(options: TestRequestOptionsInterface) {
+    this.body = options.body;
+    this.headers = options.headers;
+    this.method = options.method;
+    this.origin = options.origin;
+    this.path = options.path;
+    this.searchParameters = options.searchParameters;
+    this.signal = options.signal;
+    this.url = options.url;
   }
 }
 
@@ -247,6 +249,192 @@ export class TestDispatcher {
     state.stats.size = state.active + state.stats.queued;
   }
 
+  static #isBlockedLocalhost(originUrl: URL): boolean {
+    const result = (
+      originUrl.hostname === '127.0.0.1'
+      || originUrl.hostname === 'localhost'
+      || originUrl.hostname === '::1'
+      || originUrl.hostname === '[::1]'
+    ) && originUrl.port !== '41234';
+    return result;
+  }
+
+  /** Throws the network failure a real socket would raise before any route is dispatched. */
+  static #assertReachable(request: TestRequest): void {
+    const originUrl = new URL(request.origin);
+
+    if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') {
+      throw TestDispatcher.#networkError('ERR_INVALID_PROTOCOL', `unsupported protocol ${originUrl.protocol}`);
+    }
+
+    if (TestDispatcher.#isBlockedLocalhost(originUrl)) {
+      throw TestDispatcher.#networkError('ECONNREFUSED', `connect ECONNREFUSED ${request.origin}`);
+    }
+
+    if (originUrl.hostname.includes(':') || originUrl.hostname.startsWith('192.0.2.')) {
+      throw TestDispatcher.#networkError('ENETUNREACH', `connect ENETUNREACH ${request.origin}`);
+    }
+
+    if (request.origin.includes('does-not-exist') || request.origin.includes('invalid-domain')) {
+      throw TestDispatcher.#networkError('ENOTFOUND', `getaddrinfo ENOTFOUND ${request.origin}`);
+    }
+  }
+
+  static #handleNotFoundResponse(): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleGetEcho(request: TestRequest): Promise<Response> {
+    const query = JsonObject.fromEntries(request.searchParameters.entries());
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, { 'query': query });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static async #handleGetDelay(request: TestRequest): Promise<Response> {
+    const delayMs = Number(request.searchParameters.get('ms') ?? '5000');
+    const effectiveDelay = Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 5000;
+
+    await TestDispatcher.#delay(effectiveDelay, request.signal);
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, { 'message': `delayed ${effectiveDelay}ms` });
+    return result;
+  }
+
+  static #handleGetPosts(): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, [
+      { 'id': 1, 'title': 'Post 1' },
+      { 'id': 2, 'title': 'Post 2' }
+    ]);
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static async #handleGetPost1(request: TestRequest): Promise<Response> {
+    await TestDispatcher.#delay(5, request.signal);
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      'headers': request.headers,
+      'id': 1,
+      'title': 'Test Post',
+      'userId': 1
+    });
+    return result;
+  }
+
+  static #handleGetPost2(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      'headers': request.headers,
+      'id': 2,
+      'title': 'Test Post 2',
+      'userId': 1
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleGetPost3(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      'headers': request.headers,
+      'id': 3,
+      'title': 'Test Post 3',
+      'userId': 1
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleHeadPost1(): Promise<Response> {
+    const result = new Response(null, {
+      'headers': {
+        'Content-Length': '100',
+        'Content-Type': 'application/json'
+      },
+      'status': HTTP_STATUS_OK
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleDeletePost1(): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {});
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handlePatchPost1(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      ...TestDispatcher.#parseJsonBody(request.body),
+      'id': 1,
+      'title': 'Test Post'
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handlePutPost1(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      ...TestDispatcher.#parseJsonBody(request.body),
+      'id': 1
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handlePostPosts(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(201, {
+      ...TestDispatcher.#parseJsonBody(request.body),
+      'id': 101
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handlePostEcho(request: TestRequest): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
+      'body': TestDispatcher.#parseJsonBody(request.body),
+      'headers': request.headers
+    });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleGetOk(): Promise<Response> {
+    const result = TestDispatcher.#textResponse(HTTP_STATUS_OK, 'ok');
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #handleGetNotFound(): Promise<Response> {
+    const result = TestDispatcher.#jsonResponse(404, { 'error': 'Not Found' });
+    const response = Promise.resolve(result);
+    return response;
+  }
+
+  static #routeHandlersCache: ReadonlyMap<string, (request: TestRequest) => Promise<Response>> | undefined;
+
+  /** Keyed by `${method} ${path}` — every route is a unique exact pair, so lookup order never matters. */
+  static #routeHandlers(): ReadonlyMap<string, (request: TestRequest) => Promise<Response>> {
+    TestDispatcher.#routeHandlersCache ??= new Map([
+      ['DELETE /posts/1', TestDispatcher.#handleDeletePost1],
+      ['GET /404', TestDispatcher.#handleNotFoundResponse],
+      ['GET /delay', TestDispatcher.#handleGetDelay],
+      ['GET /echo', TestDispatcher.#handleGetEcho],
+      ['GET /not-found', TestDispatcher.#handleGetNotFound],
+      ['GET /ok', TestDispatcher.#handleGetOk],
+      ['GET /posts', TestDispatcher.#handleGetPosts],
+      ['GET /posts/1', TestDispatcher.#handleGetPost1],
+      ['GET /posts/2', TestDispatcher.#handleGetPost2],
+      ['GET /posts/3', TestDispatcher.#handleGetPost3],
+      ['HEAD /posts/1', TestDispatcher.#handleHeadPost1],
+      ['PATCH /posts/1', TestDispatcher.#handlePatchPost1],
+      ['POST /echo', TestDispatcher.#handlePostEcho],
+      ['POST /posts', TestDispatcher.#handlePostPosts],
+      ['PUT /posts/1', TestDispatcher.#handlePutPost1]
+    ]);
+    return TestDispatcher.#routeHandlersCache;
+  }
+
   protected constructor(config: Partial<DispatcherConfigEntity.Type>) {
     const connections = config.connections ?? 1;
     const pipelining = config.pipelining ?? 1;
@@ -340,16 +528,16 @@ export class TestDispatcher {
       || rawBody instanceof Blob
       ? rawBody
       : String(rawBody);
-    return new TestRequest(
-      TestDispatcher.#readBodyValue(body),
-      TestDispatcher.#toPlainHeaders(init.headers as ConstructorParameters<typeof Headers>[0] | undefined),
-      Predicates.isString(init.method) ? init.method.toUpperCase() : 'GET',
-      parsedUrl.origin,
-      parsedUrl.pathname,
-      parsedUrl.searchParams,
-      Predicates.isAbortSignal(init.signal) ? init.signal : undefined,
-      url
-    );
+    return new TestRequest({
+      'body': TestDispatcher.#readBodyValue(body),
+      'headers': TestDispatcher.#toPlainHeaders(init.headers as ConstructorParameters<typeof Headers>[0] | undefined),
+      'method': Predicates.isString(init.method) ? init.method.toUpperCase() : 'GET',
+      'origin': parsedUrl.origin,
+      'path': parsedUrl.pathname,
+      'searchParameters': parsedUrl.searchParams,
+      'signal': Predicates.isAbortSignal(init.signal) ? init.signal : undefined,
+      'url': url
+    });
   }
 
   #stateFor(origin: string): OriginState {
@@ -462,154 +650,14 @@ export class TestDispatcher {
   }
 
   async #performRequest(request: TestRequest): Promise<Response> {
-    const originUrl = new URL(request.origin);
-
-    if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') {
-      throw TestDispatcher.#networkError('ERR_INVALID_PROTOCOL', `unsupported protocol ${originUrl.protocol}`);
-    }
-
-    if (
-      (
-        originUrl.hostname === '127.0.0.1' ||
-        originUrl.hostname === 'localhost' ||
-        originUrl.hostname === '::1' ||
-        originUrl.hostname === '[::1]'
-      )
-      && originUrl.port !== '41234'
-    ) {
-      throw TestDispatcher.#networkError('ECONNREFUSED', `connect ECONNREFUSED ${request.origin}`);
-    }
-
-    if (originUrl.hostname.includes(':') || originUrl.hostname.startsWith('192.0.2.')) {
-      throw TestDispatcher.#networkError('ENETUNREACH', `connect ENETUNREACH ${request.origin}`);
-    }
-
-    if (request.origin.includes('does-not-exist') || request.origin.includes('invalid-domain')) {
-      throw TestDispatcher.#networkError('ENOTFOUND', `getaddrinfo ENOTFOUND ${request.origin}`);
-    }
+    TestDispatcher.#assertReachable(request);
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { 'status': HTTP_STATUS_OK });
     }
 
-    if (request.method === 'GET' && request.path === '/404') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/echo') {
-      const query = JsonObject.fromEntries(request.searchParameters.entries());
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, { 'query': query });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/delay') {
-      const delayMs = Number(request.searchParameters.get('ms') ?? '5000');
-      await TestDispatcher.#delay(Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 5000, request.signal);
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'message': `delayed ${Number.isFinite(delayMs) && delayMs >= 0 ? delayMs : 5000}ms`
-      });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/posts') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, [
-        { 'id': 1, 'title': 'Post 1' },
-        { 'id': 2, 'title': 'Post 2' }
-      ]);
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/posts/1') {
-      await TestDispatcher.#delay(5, request.signal);
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'headers': request.headers,
-        'id': 1,
-        'title': 'Test Post',
-        'userId': 1
-      });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/posts/2') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'headers': request.headers,
-        'id': 2,
-        'title': 'Test Post 2',
-        'userId': 1
-      });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/posts/3') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'headers': request.headers,
-        'id': 3,
-        'title': 'Test Post 3',
-        'userId': 1
-      });
-      return result;
-    }
-
-    if (request.method === 'HEAD' && request.path === '/posts/1') {
-      return new Response(null, {
-        'headers': {
-          'Content-Length': '100',
-          'Content-Type': 'application/json'
-        },
-        'status': HTTP_STATUS_OK
-      });
-    }
-
-    if (request.method === 'DELETE' && request.path === '/posts/1') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {});
-      return result;
-    }
-
-    if (request.method === 'PATCH' && request.path === '/posts/1') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        ...TestDispatcher.#parseJsonBody(request.body),
-        'id': 1,
-        'title': 'Test Post'
-      });
-      return result;
-    }
-
-    if (request.method === 'PUT' && request.path === '/posts/1') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        ...TestDispatcher.#parseJsonBody(request.body),
-        'id': 1
-      });
-      return result;
-    }
-
-    if (request.method === 'POST' && request.path === '/posts') {
-      const result = TestDispatcher.#jsonResponse(201, {
-        ...TestDispatcher.#parseJsonBody(request.body),
-        'id': 101
-      });
-      return result;
-    }
-
-    if (request.method === 'POST' && request.path === '/echo') {
-      const result = TestDispatcher.#jsonResponse(HTTP_STATUS_OK, {
-        'body': TestDispatcher.#parseJsonBody(request.body),
-        'headers': request.headers
-      });
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/ok') {
-      const result = TestDispatcher.#textResponse(HTTP_STATUS_OK, 'ok');
-      return result;
-    }
-
-    if (request.method === 'GET' && request.path === '/not-found') {
-      const result = TestDispatcher.#jsonResponse(404, { 'error': 'Not Found' });
-      return result;
-    }
-
-    const result = TestDispatcher.#jsonResponse(HTTP_STATUS_NOT_FOUND, { 'error': 'Not Found' });
+    const handler = TestDispatcher.#routeHandlers().get(`${request.method} ${request.path}`) ?? TestDispatcher.#handleNotFoundResponse;
+    const result = await handler(request);
     return result;
   }
 }

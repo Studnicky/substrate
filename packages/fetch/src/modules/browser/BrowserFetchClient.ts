@@ -14,6 +14,17 @@ import { RequestInitEncoder } from '../RequestInitEncoder.js';
 import { UrlQueryString } from '../UrlQueryString.js';
 import { FetchTransport } from './FetchTransport.js';
 
+interface ComposeBrowserRequestSignalOptionsInterface {
+  readonly 'normalizedSignal': AbortSignal | undefined;
+  readonly 'timeout': number | undefined;
+}
+
+interface RequestErrorClassificationOptionsInterface {
+  readonly 'externalSignal': AbortSignal | null | undefined;
+  readonly 'requestSignal': AbortSignal | undefined;
+  readonly 'timeout': number | undefined;
+}
+
 /** Browser-native HTTP client that uses the platform `fetch` implementation. */
 export class BrowserFetchClient implements FetchClientInterface {
   readonly #config: ClientConfigInterface;
@@ -93,14 +104,10 @@ export class BrowserFetchClient implements FetchClientInterface {
   #mergeOptions(options: FetchOptionsInterface): FetchOptionsInterface {
     const configured = this.#config.options ?? {};
     const dispatcher = options.dispatcher ?? configured.dispatcher;
-    if (dispatcher !== undefined) {
-      throw new ConfigurationError('undici connection pooling requires a Node.js runtime; the browser uses native fetch');
-    }
+    this.#assertNoDispatcher(dispatcher);
 
     const timeout = options.timeout ?? configured.timeout ?? this.#config.timeout;
-    if (timeout !== undefined && (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0 || !Number.isInteger(timeout))) {
-      throw new ConfigurationError('timeout must be a positive number and integer');
-    }
+    this.#assertValidTimeout(timeout);
 
     return {
       ...configured,
@@ -112,6 +119,18 @@ export class BrowserFetchClient implements FetchClientInterface {
       },
       ...(timeout === undefined ? {} : { 'timeout': timeout })
     };
+  }
+
+  #assertNoDispatcher(dispatcher: FetchOptionsInterface['dispatcher']): void {
+    if (dispatcher !== undefined) {
+      throw new ConfigurationError('undici connection pooling requires a Node.js runtime; the browser uses native fetch');
+    }
+  }
+
+  #assertValidTimeout(timeout: number | undefined): void {
+    if (timeout !== undefined && (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0 || !Number.isInteger(timeout))) {
+      throw new ConfigurationError('timeout must be a positive number and integer');
+    }
   }
 
   #prepareBodyRequest(method: 'PATCH' | 'POST' | 'PUT', options?: BodyRequestOptionsInterface): FetchOptionsInterface {
@@ -136,29 +155,42 @@ export class BrowserFetchClient implements FetchClientInterface {
     const encoded = RequestInitEncoder.encode(merged);
     const { 'signal': externalSignal, timeout } = encoded;
     const init: Record<string, unknown> = { ...encoded.requestInit };
-    let requestSignal: AbortSignal | undefined;
-
     const normalizedSignal = externalSignal ?? undefined;
-    if (timeout !== undefined || normalizedSignal !== undefined) {
-      const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
-      if (timeout !== undefined) {
-        composeOptions.deadlineMs = timeout;
-      }
-      if (normalizedSignal !== undefined) {
-        composeOptions.signal = normalizedSignal;
-      }
-      requestSignal = await this.#signal.compose(composeOptions);
-      init.signal = requestSignal;
-    }
+    const requestSignal = await this.#composeRequestSignal(init, { 'normalizedSignal': normalizedSignal, 'timeout': timeout });
 
     try {
       return await FetchTransport.fetch(url, init);
     } catch (error) {
-      if (requestSignal?.aborted === true && timeout !== undefined && externalSignal?.aborted !== true) {
-        throw new TimeoutError(url, timeout);
-      }
-
-      throw error;
+      throw this.#classifyRequestError(error, url, { 'externalSignal': externalSignal, 'requestSignal': requestSignal, 'timeout': timeout });
     }
+  }
+
+  /** Composes the deadline/abort signal and writes it onto `init` in place, matching undici's fetch(url, init) contract. */
+  async #composeRequestSignal(
+    init: Record<string, unknown>,
+    options: ComposeBrowserRequestSignalOptionsInterface
+  ): Promise<AbortSignal | undefined> {
+    if (options.timeout === undefined && options.normalizedSignal === undefined) {
+      return undefined;
+    }
+
+    const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
+    if (options.timeout !== undefined) {
+      composeOptions.deadlineMs = options.timeout;
+    }
+    if (options.normalizedSignal !== undefined) {
+      composeOptions.signal = options.normalizedSignal;
+    }
+    const requestSignal = await this.#signal.compose(composeOptions);
+    init.signal = requestSignal;
+    return requestSignal;
+  }
+
+  #classifyRequestError(error: unknown, url: string, options: RequestErrorClassificationOptionsInterface): unknown {
+    if (options.requestSignal?.aborted === true && options.timeout !== undefined && options.externalSignal?.aborted !== true) {
+      const result = new TimeoutError(url, options.timeout);
+      return result;
+    }
+    return error;
   }
 }

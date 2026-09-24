@@ -58,44 +58,14 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
    * ```
    */
   classify(error: Error, attemptNumber: number): ErrorClassificationEntity.Type {
-    if (ErrorWithStatusEntity.validate(error)) {
-      const status = error.status;
-
-      if (status === HttpStatus.TOO_MANY_REQUESTS) {
-        const result = this.retryable('Rate limited');
-        return result;
-      }
-
-      if (matchers.http.isGatewayError(status)) {
-        const result = this.retryable(`Gateway error (${status})`);
-        return result;
-      }
-
-      if (matchers.http.isServerError(status)) {
-        const result = this.retryable(`Server error (${status})`);
-        return result;
-      }
-
-      if (status === HTTP_REQUEST_TIMEOUT) {
-        const result = this.retryable('Request timeout');
-        return result;
-      }
-
-      if (matchers.http.isClientError(status)) {
-        const result = this.nonRetryable(`Client error (${status})`);
-        return result;
-      }
+    const byStatus = ErrorWithStatusEntity.validate(error) ? this.classifyByStatus(error.status) : undefined;
+    if (byStatus !== undefined) {
+      return byStatus;
     }
 
-    if (ErrorWithCodeEntity.validate(error)
-        && (matchers.network.isConnectionError(error.code) || matchers.network.isTimeout(error.code))) {
-      const result = this.retryable('Network error');
-      return result;
-    }
-
-    if (this.messageContains(error, 'timeout', 'network', 'connection refused', 'socket hang up')) {
-      const result = this.retryable('Network error');
-      return result;
+    const byNetwork = this.classifyNetworkError(error);
+    if (byNetwork !== undefined) {
+      return byNetwork;
     }
 
     if (attemptNumber < EARLY_RETRY_THRESHOLD) {
@@ -105,5 +75,44 @@ export class DefaultHttpErrorClassifier extends ErrorClassifier implements Error
 
     const result = this.nonRetryable('Unknown error');
     return result;
+  }
+
+  /** HTTP-status-driven classification. Returns `undefined` when no status rule matches. */
+  private classifyByStatus(status: number): ErrorClassificationEntity.Type | undefined {
+    if (status === HttpStatus.TOO_MANY_REQUESTS) {
+      const result = this.retryable('Rate limited');
+      return result;
+    }
+    if (matchers.http.isGatewayError(status)) {
+      const result = this.retryable(`Gateway error (${status})`);
+      return result;
+    }
+    if (matchers.http.isServerError(status)) {
+      const result = this.retryable(`Server error (${status})`);
+      return result;
+    }
+    if (status === HTTP_REQUEST_TIMEOUT) {
+      const result = this.retryable('Request timeout');
+      return result;
+    }
+    if (matchers.http.isClientError(status)) {
+      const result = this.nonRetryable(`Client error (${status})`);
+      return result;
+    }
+    return undefined;
+  }
+
+  /** Network-code and network-message classification. Returns `undefined` when neither matches. */
+  private classifyNetworkError(error: Error): ErrorClassificationEntity.Type | undefined {
+    if (ErrorWithCodeEntity.validate(error)
+        && (matchers.network.isConnectionError(error.code) || matchers.network.isTimeout(error.code))) {
+      const result = this.retryable('Network error');
+      return result;
+    }
+    if (this.messageContains(error, 'timeout', 'network', 'connection refused', 'socket hang up')) {
+      const result = this.retryable('Network error');
+      return result;
+    }
+    return undefined;
   }
 }

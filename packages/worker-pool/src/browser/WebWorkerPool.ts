@@ -19,6 +19,17 @@ interface WebWorkerPoolConstructorInterface<
   readonly 'prototype': TInstance;
 }
 
+/** The task's only listener on the caller-derived signal; both the startup and request deadlines derive from `controller.signal`. */
+interface TaskCancellationBindingInterface {
+  readonly 'controller': AbortController;
+  readonly 'release': () => void;
+}
+
+interface TaskFailureClassificationInterface {
+  readonly 'error': Error;
+  readonly 'terminate': boolean;
+}
+
 /** Browser Worker pool with bounded, liveness-aware leases. */
 export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInput, TOutput> {
   readonly #activeRuns = new Set<Promise<TOutput[]>>();
@@ -266,54 +277,74 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     }
   }
 
-  async #runItem(item: TInput): Promise<TOutput> {
-    // The caller's cancellation source is composed once per item; both the startup deadline and
-    // the task deadline derive from `taskCancelController.signal` below.
+  /** The caller's cancellation source is composed once per item; both deadlines below derive from `controller.signal`. */
+  async #composeTaskCancellation(): Promise<TaskCancellationBindingInterface> {
     const composeOptions: { 'signal'?: AbortSignal; } = {};
     if (this.#abortSignal !== undefined) {
       composeOptions.signal = this.#abortSignal;
     }
     const cancellationSignal = await this.#signal.compose(composeOptions);
 
-    const taskCancelController = new AbortController();
+    const controller = new AbortController();
     const onCancellationAbort = (): void => {
-      taskCancelController.abort(cancellationSignal.reason);
+      controller.abort(cancellationSignal.reason);
     };
     if (cancellationSignal.aborted) {
       onCancellationAbort();
     } else {
       cancellationSignal.addEventListener('abort', onCancellationAbort, { 'once': true });
     }
+    const release = (): void => {
+      cancellationSignal.removeEventListener('abort', onCancellationAbort);
+    };
 
+    return { 'controller': controller, 'release': release };
+  }
+
+  #classifyRequestFailure(cause: unknown): TaskFailureClassificationInterface {
+    const error = WebWorkerPool.#toWorkerPoolError(cause);
+    const terminate = error instanceof WorkerPoolError
+      && (error.code === 'workerPool.cancelled' || error.code === 'workerPool.timedOut' || error.code === 'workerPool.startupTimedOut' || error.code === 'workerPool.startupAborted');
+    return { 'error': error, 'terminate': terminate };
+  }
+
+  #reportRequestFailure(error: Error): void {
+    if (error instanceof WorkerPoolError && error.code === 'workerPool.timedOut') {
+      this.onWorkerTimeout();
+    } else {
+      this.onWorkerError(error);
+    }
+  }
+
+  async #releaseLease(lease: WorkerLeaseInterface<WebWorkerInterface> | undefined, terminate: boolean): Promise<void> {
+    if (lease === undefined) { return; }
+    if (terminate) {
+      await lease.terminate();
+    } else {
+      await lease.release();
+    }
+  }
+
+  async #runItem(item: TInput): Promise<TOutput> {
+    const cancellation = await this.#composeTaskCancellation();
     let lease: WorkerLeaseInterface<WebWorkerInterface> | undefined;
     let terminate = false;
 
     try {
-      lease = await this.#acquire(taskCancelController.signal);
+      lease = await this.#acquire(cancellation.controller.signal);
       if (!this.#knownWorkers.has(lease.worker)) {
         this.#knownWorkers.add(lease.worker);
         this.onWorkerCreated(lease.worker);
       }
-      return await this.#request(lease, item, taskCancelController.signal);
+      return await this.#request(lease, item, cancellation.controller.signal);
     } catch (cause) {
-      const error = WebWorkerPool.#toWorkerPoolError(cause);
-      terminate = error instanceof WorkerPoolError
-        && (error.code === 'workerPool.cancelled' || error.code === 'workerPool.timedOut' || error.code === 'workerPool.startupTimedOut' || error.code === 'workerPool.startupAborted');
-      if (error instanceof WorkerPoolError && error.code === 'workerPool.timedOut') {
-        this.onWorkerTimeout();
-      } else {
-        this.onWorkerError(error);
-      }
-      throw error;
+      const classification = this.#classifyRequestFailure(cause);
+      terminate = classification.terminate;
+      this.#reportRequestFailure(classification.error);
+      throw classification.error;
     } finally {
-      cancellationSignal.removeEventListener('abort', onCancellationAbort);
-      if (lease !== undefined) {
-        if (terminate) {
-          await lease.terminate();
-        } else {
-          await lease.release();
-        }
-      }
+      cancellation.release();
+      await this.#releaseLease(lease, terminate);
     }
   }
 

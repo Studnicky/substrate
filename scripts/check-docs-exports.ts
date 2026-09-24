@@ -212,15 +212,13 @@ const getPackages = async (): Promise<PackageInfoInterface[]> => {
   return sortedPackages;
 };
 
-const getExportSurface = (packageInfo: PackageInfoInterface, violations: ViolationInterface[]): Map<string, Set<string>> => {
-  const exportsMap = packageInfo.manifest.exports;
+const collectExportSubpaths = (
+  packageInfo: PackageInfoInterface,
+  exportsMap: Record<string, unknown>,
+  packageFile: string,
+  violations: ViolationInterface[]
+): Map<string, string> => {
   const subpaths = new Map<string, string>();
-  const packageFile = path.relative(repoRoot, packageInfo.packageFile).split(path.sep).join('/');
-
-  if (!isPlainRecord(exportsMap)) {
-    return new Map();
-  }
-
   const exportEntries = Object.entries(exportsMap);
   for (let index = 0; index < exportEntries.length; index += 1) {
     const entry = exportEntries[index];
@@ -260,12 +258,19 @@ const getExportSurface = (packageInfo: PackageInfoInterface, violations: Violati
     }
     subpaths.set(subpath, sourcePath);
   }
+  return subpaths;
+};
 
-  const rootNames = [...new Set(subpaths.values())];
-  if (rootNames.length === 0) {
-    return new Map();
-  }
+interface TypeCheckerContextInterface {
+  readonly 'checker': ts.TypeChecker;
+  readonly 'program': ts.Program;
+}
 
+const buildTypeCheckerContext = (
+  packageInfo: PackageInfoInterface,
+  rootNames: string[],
+  violations: ViolationInterface[]
+): TypeCheckerContextInterface | undefined => {
   const configFile = path.join(packageInfo.directory, 'tsconfig.json');
   const config = ts.readConfigFile(configFile, ts.sys.readFile);
   if (config.error !== undefined) {
@@ -274,16 +279,23 @@ const getExportSurface = (packageInfo: PackageInfoInterface, violations: Violati
       'line': 1,
       'message': ts.flattenDiagnosticMessageText(config.error.messageText, ' ')
     });
-    return new Map();
+    return undefined;
   }
   const parsedConfig = ts.parseJsonConfigFileContent(config.config, ts.sys, packageInfo.directory);
   const program = ts.createProgram({ 'options': parsedConfig.options, 'rootNames': rootNames });
-  const checker = program.getTypeChecker();
-  const surface = new Map<string, Set<string>>();
+  return { 'checker': program.getTypeChecker(), 'program': program };
+};
 
+const collectExportedNamesBySubpath = (
+  context: TypeCheckerContextInterface,
+  subpaths: Map<string, string>,
+  packageFile: string,
+  violations: ViolationInterface[]
+): Map<string, Set<string>> => {
+  const surface = new Map<string, Set<string>>();
   for (const [subpath, sourcePath] of subpaths) {
-    const sourceFile = program.getSourceFile(sourcePath);
-    const moduleSymbol = sourceFile === undefined ? undefined : checker.getSymbolAtLocation(sourceFile);
+    const sourceFile = context.program.getSourceFile(sourcePath);
+    const moduleSymbol = sourceFile === undefined ? undefined : context.checker.getSymbolAtLocation(sourceFile);
     if (moduleSymbol === undefined) {
       violations.push({
         'file': packageFile,
@@ -292,13 +304,35 @@ const getExportSurface = (packageInfo: PackageInfoInterface, violations: Violati
       });
       continue;
     }
-    const exportedNames = checker.getExportsOfModule(moduleSymbol).map((symbol) => {
+    const exportedNames = context.checker.getExportsOfModule(moduleSymbol).map((symbol) => {
       const name = symbol.getName();
       return name;
     });
     surface.set(subpath, new Set(exportedNames));
   }
   return surface;
+};
+
+const getExportSurface = (packageInfo: PackageInfoInterface, violations: ViolationInterface[]): Map<string, Set<string>> => {
+  const exportsMap = packageInfo.manifest.exports;
+  const packageFile = path.relative(repoRoot, packageInfo.packageFile).split(path.sep).join('/');
+
+  if (!isPlainRecord(exportsMap)) {
+    return new Map();
+  }
+
+  const subpaths = collectExportSubpaths(packageInfo, exportsMap, packageFile, violations);
+  const rootNames = [...new Set(subpaths.values())];
+  if (rootNames.length === 0) {
+    return new Map();
+  }
+
+  const context = buildTypeCheckerContext(packageInfo, rootNames, violations);
+  if (context === undefined) {
+    return new Map();
+  }
+
+  return collectExportedNamesBySubpath(context, subpaths, packageFile, violations);
 };
 
 const getExportsTableRows = (content: string): ExportsTableRowInterface[] => {
@@ -393,6 +427,75 @@ const getNeutralCanonicalSubpath = (surface: Map<string, Set<string>>, symbol: s
   return canonicalSubpath;
 };
 
+interface FenceBindingCheckContextInterface {
+  readonly 'fenceLine': number;
+  readonly 'file': string;
+  readonly 'specifier': string;
+}
+
+const checkNamedBindingsAgainstSurface = (
+  namedBindings: string[],
+  symbols: Set<string>,
+  context: FenceBindingCheckContextInterface,
+  violationsOut: ViolationInterface[]
+): number => {
+  let bindingsChecked = 0;
+  for (let bindingIndex = 0; bindingIndex < namedBindings.length; bindingIndex += 1) {
+    const binding = namedBindings[bindingIndex];
+    if (binding === undefined) {
+      continue;
+    }
+    bindingsChecked += 1;
+    if (!symbols.has(binding)) {
+      violationsOut.push({ 'file': context.file, 'line': context.fenceLine, 'message': `${binding} is not exported by ${context.specifier}.` });
+    }
+  }
+  return bindingsChecked;
+};
+
+interface RowImportResolutionInterface {
+  readonly 'packageSurface': Map<string, Set<string>> | undefined;
+  readonly 'resolved': ResolvedImportInterface | undefined;
+  readonly 'symbols': Set<string> | undefined;
+}
+
+const resolveRowImportPath = (importPath: string): RowImportResolutionInterface => {
+  const resolved = resolveImport(importPath);
+  if (resolved === undefined) {
+    return { 'packageSurface': undefined, 'resolved': undefined, 'symbols': undefined };
+  }
+  const packageSurface = packageSurfaces.get(resolved.packageName)?.surface;
+  const symbols = packageSurface?.get(resolved.subpath);
+  return { 'packageSurface': packageSurface, 'resolved': resolved, 'symbols': symbols };
+};
+
+const checkTableRowImportPath = (
+  importPath: string,
+  row: ExportsTableRowInterface,
+  file: string,
+  violationsOut: ViolationInterface[]
+): void => {
+  const { packageSurface, resolved, symbols } = resolveRowImportPath(importPath);
+  if (symbols === undefined || resolved === undefined) {
+    violationsOut.push({ 'file': file, 'line': row.line, 'message': `${importPath} is not a published export entrypoint.` });
+    return;
+  }
+  if (!symbols.has(row.symbol)) {
+    violationsOut.push({ 'file': file, 'line': row.line, 'message': `${row.symbol} is not exported by ${importPath}.` });
+    return;
+  }
+  if (resolved.subpath === './node' && packageSurface !== undefined) {
+    const canonicalSubpath = getNeutralCanonicalSubpath(packageSurface, row.symbol);
+    if (canonicalSubpath !== undefined) {
+      violationsOut.push({
+        'file': file,
+        'line': row.line,
+        'message': `${row.symbol} must use ${resolved.packageName}${canonicalSubpath.slice(1)} in the Exports table.`
+      });
+    }
+  }
+};
+
 for (const doc of docs.values()) {
   const file = path.relative(repoRoot, doc.file).split(path.sep).join('/');
   const fences = getTypeScriptFences(doc.content);
@@ -423,16 +526,7 @@ for (const doc of docs.values()) {
         continue;
       }
       const namedBindings = getNamedBindings(declaration);
-      for (let bindingIndex = 0; bindingIndex < namedBindings.length; bindingIndex += 1) {
-        const binding = namedBindings[bindingIndex];
-        if (binding === undefined) {
-          continue;
-        }
-        checked += 1;
-        if (!symbols.has(binding)) {
-          violations.push({ 'file': file, 'line': fence.line, 'message': `${binding} is not exported by ${specifier}.` });
-        }
-      }
+      checked += checkNamedBindingsAgainstSurface(namedBindings, symbols, { 'fenceLine': fence.line, 'file': file, 'specifier': specifier }, violations);
     }
   }
 
@@ -444,23 +538,7 @@ for (const doc of docs.values()) {
     }
     for (const importPath of row.importPaths) {
       checked += 1;
-      const resolved = resolveImport(importPath);
-      const packageSurface = resolved === undefined ? undefined : packageSurfaces.get(resolved.packageName)?.surface;
-      const symbols = resolved === undefined ? undefined : packageSurface?.get(resolved.subpath);
-      if (symbols === undefined || resolved === undefined) {
-        violations.push({ 'file': file, 'line': row.line, 'message': `${importPath} is not a published export entrypoint.` });
-      } else if (!symbols.has(row.symbol)) {
-        violations.push({ 'file': file, 'line': row.line, 'message': `${row.symbol} is not exported by ${importPath}.` });
-      } else if (resolved.subpath === './node' && packageSurface !== undefined) {
-        const canonicalSubpath = getNeutralCanonicalSubpath(packageSurface, row.symbol);
-        if (canonicalSubpath !== undefined) {
-          violations.push({
-            'file': file,
-            'line': row.line,
-            'message': `${row.symbol} must use ${resolved.packageName}${canonicalSubpath.slice(1)} in the Exports table.`
-          });
-        }
-      }
+      checkTableRowImportPath(importPath, row, file, violations);
     }
   }
 }

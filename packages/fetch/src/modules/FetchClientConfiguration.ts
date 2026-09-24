@@ -48,24 +48,43 @@ export class FetchClientConfiguration {
       ? configData
       : { ...configData, 'options': optionValues.data };
     const parsed = FetchClientConfiguration.intakeData(data);
-    const options = parsed.options === undefined
-      ? undefined
-      : FetchClientConfiguration.snapshotOptions({
-        ...parsed.options,
-        ...(optionValues.runtime.body === undefined ? {} : { 'body': optionValues.runtime.body }),
-        ...(optionValues.runtime.dispatcher === undefined ? {} : { 'dispatcher': optionValues.runtime.dispatcher }),
-        ...(optionValues.runtime.json === undefined ? {} : { 'json': optionValues.runtime.json }),
-        ...(optionValues.runtime.signal === undefined ? {} : { 'signal': optionValues.runtime.signal })
-      });
-    const normalized: ClientConfigInterface = {
+    const options = FetchClientConfiguration.buildRuntimeOptions(parsed.options, optionValues.runtime);
+    const normalized = FetchClientConfiguration.buildNormalizedConfig(parsed, options, clock, requestIdGenerator, signalComposer);
+
+    return { 'config': normalized, 'queryParameters': queryParameters };
+  }
+
+  private static buildRuntimeOptions(
+    parsedOptions: FetchOptionsInterface | undefined,
+    runtime: RuntimeOptionValuesInterface
+  ): FetchOptionsInterface | undefined {
+    if (parsedOptions === undefined) {
+      return undefined;
+    }
+    const result = FetchClientConfiguration.snapshotOptions({
+      ...parsedOptions,
+      ...(runtime.body === undefined ? {} : { 'body': runtime.body }),
+      ...(runtime.dispatcher === undefined ? {} : { 'dispatcher': runtime.dispatcher }),
+      ...(runtime.json === undefined ? {} : { 'json': runtime.json }),
+      ...(runtime.signal === undefined ? {} : { 'signal': runtime.signal })
+    });
+    return result;
+  }
+
+  private static buildNormalizedConfig(
+    parsed: ClientConfigDataEntity.Type,
+    options: FetchOptionsInterface | undefined,
+    clock: ClientConfigInterface['clock'],
+    requestIdGenerator: ClientConfigInterface['requestIdGenerator'],
+    signalComposer: ClientConfigInterface['signal']
+  ): ClientConfigInterface {
+    return {
       ...parsed,
       ...(clock === undefined ? {} : { 'clock': clock }),
       ...(options === undefined ? {} : { 'options': options }),
       ...(requestIdGenerator === undefined ? {} : { 'requestIdGenerator': requestIdGenerator }),
       ...(signalComposer === undefined ? {} : { 'signal': signalComposer })
     };
-
-    return { 'config': normalized, 'queryParameters': queryParameters };
   }
 
   private static assertTimeout(value: unknown, name: string, requiresInteger: boolean): void {
