@@ -28,7 +28,7 @@ export namespace ValidationViolationDetailEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationViolationDetail', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationViolationDetail', 'type': 'object' } as const, { 'details': SchemaNode.defineObject({ 'description': 'Additional structured details about the violation.', 'type': 'object' } as const, {  }, [] as const), 'message': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationViolationDetail', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationViolationDetail', 'type': 'object' } as const, { 'details': SchemaNode.defineObject({ 'description': 'Additional structured details about the violation.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': true }), 'message': SchemaNode.defineString({
     'description': 'Human-readable description of the failure.',
     'type': 'string'
   } as const), 'path': SchemaNode.defineString({
