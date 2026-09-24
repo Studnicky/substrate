@@ -21,7 +21,7 @@ import {
   type VariableStatement
 } from 'typescript';
 
-import { ACCEPTED_SCHEMA_VALUE_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { ACCEPTED_SCHEMA_VALUE_NAMES, CANONICAL_ENTITY_MEMBER_NAMES } from './shared/constants/SchemaDerivationConstants.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
@@ -54,10 +54,8 @@ class ParserServices {
 }
 
 class EntityTypeDeclaration {
-  private static readonly CANONICAL_MEMBER_NAMES: ReadonlySet<string> = new Set(['InputType', 'Type']);
-
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (!EntityTypeDeclaration.CANONICAL_MEMBER_NAMES.has(declaration.name.text)) {
+    if (!CANONICAL_ENTITY_MEMBER_NAMES.has(declaration.name.text)) {
       return false;
     }
     if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {

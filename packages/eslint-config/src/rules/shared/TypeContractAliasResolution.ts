@@ -47,6 +47,7 @@ import type { TypeContractContext } from './TypeContractContext.js';
 import type { TypeContractMetadataEntity } from './TypeContractMetadataEntity.js';
 
 import { type AliasClassificationResultInterface } from './AliasClassificationResultInterface.js';
+import { CANONICAL_ENTITY_MEMBER_NAMES } from './constants/SchemaDerivationConstants.js';
 import { type ContractEvidenceInterface } from './ContractEvidenceInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
 import { type ReadonlyOutputEvidenceInterface } from './ReadonlyOutputEvidenceInterface.js';
@@ -66,7 +67,7 @@ export class TypeContractAliasResolution {
 
   private entityTypeAliasSchemaArgument(declaration: TypeAliasDeclaration): TypeQueryNode | undefined {
     if (
-      declaration.name.text !== 'Type'
+      !CANONICAL_ENTITY_MEMBER_NAMES.has(declaration.name.text)
       || (getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0
       || !isTypeReferenceNode(declaration.type)
     ) {
