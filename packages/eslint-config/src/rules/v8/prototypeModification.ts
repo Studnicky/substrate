@@ -6,11 +6,10 @@ import { CallIdentity } from '../shared/CallIdentity.js';
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
-  MESSAGE, OBJECT_PROTOTYPE_API_METHODS, OBJECT_PROTOTYPE_API_OWNERS, REFLECT_CALLEE_NAMES, RULE_NAME
+  MESSAGE, OBJECT_PROTOTYPE_API_METHODS, OBJECT_PROTOTYPE_API_OWNERS, REFLECT_PROTOTYPE_API_METHODS, REFLECT_PROTOTYPE_API_OWNERS, RULE_NAME
 } from './constants/PrototypeModificationConstants.js';
 
-// Exemption rationale, the Reflect resolution limitation, and the %GetOptimizationStatus
-// proof: docs/eslint/rules/v8/prototype-modification.md.
+// Exemption rationale and the %GetOptimizationStatus proof: docs/eslint/rules/v8/prototype-modification.md.
 
 class NodeAccess {
   public static asObject(value: unknown): Record<string, unknown> | undefined {
@@ -91,27 +90,6 @@ class PrototypeShape {
 }
 
 class CalleeShape {
-  // `Reflect.set` / `Reflect.setPrototypeOf` — see the module comment for why this stays
-  // syntactic rather than `CallIdentity`-resolved.
-  public static isReflectPrototypeApi(callee: Record<string, unknown>): boolean {
-    if (NodeAccess.typeOf(callee) !== 'MemberExpression' || callee.computed === true) {
-      return false;
-    }
-    const object = NodeAccess.asObject(callee.object);
-    const property = NodeAccess.asObject(callee.property);
-
-    if (object === undefined || property === undefined) {
-      return false;
-    }
-    if (object.type !== 'Identifier' || object.name !== 'Reflect') {
-      return false;
-    }
-
-    const result = property.type === 'Identifier' && typeof property.name === 'string' && REFLECT_CALLEE_NAMES.has(property.name);
-
-    return result;
-  }
-
   // Any argument that resolves to `<X>.prototype` shaped access.
   public static hasPrototypeArgument(argumentList: unknown): boolean {
     if (!Array.isArray(argumentList)) {
@@ -175,14 +153,9 @@ export const prototypeModification: Rule.RuleModule = {
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
       const raw = node as unknown as Record<string, unknown>;
-      const callee = NodeAccess.asObject(raw.callee);
-
-      if (callee === undefined) {
-        return;
-      }
 
       const isForbiddenApi = CallIdentity.isBuiltinCall(node, context, OBJECT_PROTOTYPE_API_METHODS, OBJECT_PROTOTYPE_API_OWNERS)
-        || CalleeShape.isReflectPrototypeApi(callee);
+        || CallIdentity.isBuiltinCall(node, context, REFLECT_PROTOTYPE_API_METHODS, REFLECT_PROTOTYPE_API_OWNERS);
 
       if (!isForbiddenApi) {
         return;
