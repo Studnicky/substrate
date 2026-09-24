@@ -50,6 +50,12 @@ The same acceptance extends to a schema that composes another entity's schema by
 
 This predicate is shared, not reimplemented per rule: [`entity-file-shape`](./entity-file-shape.md) and this rule consult the same syntax-only classification for a `Type` declaration in the file being linted, so a file cannot be accepted by one and rejected by the other on this question.
 
+## Union of named, schema-derived constituents
+
+A top-level union where every constituent is a NAMED reference — a pure-data contract interface, or a schema-derived canonical `Type`/`InputType` alias — has no interface remedy: TypeScript has no syntax for a union-shaped interface, so `aliasMustBeInterface` cannot direct one. Each constituent is already a legitimate, independently-declared shape; the union exists only to name "one of these shapes" for a discriminated-union call site, and is retained as a type alias.
+
+An inline object-literal constituent is a different case and is never exempted this way: a codebase-owned shape hiding inside the union still belongs in a named type, so a union with even one non-reference member is not retained by this exemption — it reports through the normal diagnostic paths, same as any other unverified data shape.
+
 ## Diagnostic order
 
 The rule has no subchecks or internal severity settings. ESLint's configured severity is the sole severity.

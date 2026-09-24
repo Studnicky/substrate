@@ -49,6 +49,11 @@
       "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
       "filename": "packages/retry/src/entities/ValidatedAdaptiveConfigEntity.ts",
       "name": "an entity Type composing an anyOf value discriminant does not trigger the canonical-entity-alias mismatch"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';\ndeclare module '@studnicky/entity/types' {\n  export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = TNode extends SchemaNodeInterface<unknown, infer S> ? S : never;\n}\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n  export type InputType = NodeInputType<typeof Node>;\n}",
+      "filename": "packages/retry/src/entities/NodeInputTypeFixtureEntity.ts",
+      "name": "NodeInputType<typeof Node>-derived entity namespace InputType form is valid, on the same terms as Type"
     }
   ],
   "invalid": [
@@ -181,6 +186,16 @@
       ],
       "filename": "packages/retry/src/entities/ExternalNodeFixtureEntity.ts",
       "name": "NodeStaticType referencing a Node the namespace does not itself own is still rejected"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';\ndeclare module '@studnicky/entity/types' {\n  export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = TNode extends SchemaNodeInterface<unknown, infer S> ? S : never;\n}\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace OtherEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n}\nexport namespace CanonicalEntity {\n  export const Node = defineNode<number>({ type: 'number' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n  export type InputType = NodeInputType<typeof OtherEntity.Node>;\n}",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/CrossEntityInputTypeFixtureEntity.ts",
+      "name": "InputType deriving from a different namespace own Node is rejected"
     }
   ]
 }

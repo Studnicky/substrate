@@ -54,8 +54,10 @@ class ParserServices {
 }
 
 class EntityTypeDeclaration {
+  private static readonly CANONICAL_MEMBER_NAMES: ReadonlySet<string> = new Set(['InputType', 'Type']);
+
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (declaration.name.text !== 'Type') {
+    if (!EntityTypeDeclaration.CANONICAL_MEMBER_NAMES.has(declaration.name.text)) {
       return false;
     }
     if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {

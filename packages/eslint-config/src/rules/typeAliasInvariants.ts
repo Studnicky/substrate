@@ -920,12 +920,11 @@ class TypeAliasDeclarationCheck {
       return;
     }
 
-    // A top-level union of independently-declared, pure-data contract interfaces (every
-    // constituent readonly-evidenced, none callable) has no interface remedy either — the
-    // same "TypeScript cannot express a union as one interface" limitation above, just
-    // without a callable constituent to name it after. See
-    // `isTopLevelUnionOfDataContractInterfaces`'s doc comment.
-    if (classification.isTopLevelUnionOfDataContractInterfaces(declaration.type)) {
+    // A top-level union of independently-declared, named schema-derived constituents (every
+    // member a pure-data contract interface or a canonical Type-alias reference) has no
+    // interface remedy either — the same "TypeScript cannot express a union as one interface"
+    // limitation above. See `isTopLevelUnionOfNamedSchemaDerivedConstituents`'s doc comment.
+    if (classification.isTopLevelUnionOfNamedSchemaDerivedConstituents(declaration.type)) {
       return;
     }
 
