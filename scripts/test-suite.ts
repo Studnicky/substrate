@@ -554,8 +554,25 @@ async function runMode(mode: string, options: CliOptionsInterface, workspacePack
   await runNodeTests(files, options.watch, options.coverage);
 }
 
+class OrphanedSpecCheck {
+  /** A spec file no tier pattern matches never runs; the runner refuses to start rather than report a silent pass. */
+  public static assertNone(): void {
+    const tiered = new Set(discoverAllFiles());
+    const present = globSync('packages/*/tests/**/*.spec.ts', { 'cwd': ROOT_DIR }).map((file) => {
+      return file.split('\\').join('/');
+    });
+    const orphans = present.filter((file) => {
+      return tiered.has(file) === false;
+    });
+    if (orphans.length > 0) {
+      throw new Error(`spec files matched by no tier pattern, so they never run: ${orphans.toSorted().join(', ')}`);
+    }
+  }
+}
+
 export async function main(argv: readonly string[] = process.argv.slice(2)): Promise<void> {
   const options = parseArgs(argv);
+  OrphanedSpecCheck.assertNone();
   const workspacePackages = loadWorkspacePackages();
 
   await runMode(options.mode, options, workspacePackages);

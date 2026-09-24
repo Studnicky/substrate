@@ -5,8 +5,14 @@ import type { EntityValidationErrorInterface } from './EntityValidationErrorInte
 
 /** The schema-compilation API every entity module derives its `validate`/`intake`/`create` from. */
 export interface EntityCompilerInterface {
-  readonly 'compile': <TValidated>(schema: object | boolean) => EntityValidateFunctionInterface<TValidated>;
-  readonly 'compileCreate': <TValidated extends object>(schema: object) => EntityCreateFunctionInterface<TValidated>;
-  readonly 'compileIntake': <TValidated>(schema: object | boolean) => EntityIntakeFunctionInterface<TValidated>;
+  readonly 'compile': <TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ) => EntityValidateFunctionInterface<TValidated>;
+  readonly 'compileCreate': <TValidated extends object>(
+    schema: object, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ) => EntityCreateFunctionInterface<TValidated>;
+  readonly 'compileIntake': <TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ) => EntityIntakeFunctionInterface<TValidated>;
   readonly 'formatErrors': (errors: Readonly<readonly EntityValidationErrorInterface[]> | null | undefined) => string;
 }

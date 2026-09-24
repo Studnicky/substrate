@@ -68,9 +68,14 @@ export class EntityCompiler {
    * Cyclic values are rejected before cloning because JSON Schema models JSON
    * trees rather than object graphs. Scalar values are never coerced — a `"true"`
    * string for a `boolean` field is rejected, not silently accepted as `true`.
+   *
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O.
    */
-  public static compileIntake<TValidated>(schema: object | boolean): EntityIntakeFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.intake, schema);
+  public static compileIntake<TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityIntakeFunctionInterface<TValidated> {
+    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.intake, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
       if (Predicates.hasCycle(input)) {
@@ -98,11 +103,14 @@ export class EntityCompiler {
   /**
    * Compiles `schema` into a trusted-data factory that fills schema defaults
    * without coercing values or removing properties.
+   *
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O.
    */
   public static compileCreate<TStatic extends object, TInput extends object = TStatic>(
-    schema: object
+    schema: object, remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityCreateFunctionInterface<TStatic, TInput> {
-    const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema);
+    const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
       const cloned = structuredClone(partial);
@@ -590,7 +598,8 @@ export class EntityCompiler {
   /** Compiles or reuses the cached validator a registry keeps for a schema's `$id`. */
   private static schemaValidator<TValidated>(
     registry: SchemaCompilerInterface,
-    schema: object | boolean
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityValidateFunctionInterface<TValidated> {
     const id = SchemaId.of(schema);
     if (id !== undefined) {
@@ -599,7 +608,7 @@ export class EntityCompiler {
         return existing;
       }
     }
-    const result = registry.compile<TValidated>(schema);
+    const result = registry.compile<TValidated>(schema, remoteSchemas);
     return result;
   }
 }
