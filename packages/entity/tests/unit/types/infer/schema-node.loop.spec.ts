@@ -88,6 +88,11 @@ void describe('SchemaNode object constructor', () => {
     assertAssignable<NodeStaticType<typeof bagNode>>({ 'id': 'x' as NodeStaticType<typeof nameNode>, 'extra': 5 });
   });
 
+  void it('additionalProperties defaults to false at runtime, matching its closed type default', () => {
+    const closedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const);
+    assert.equal(closedNode.schema.additionalProperties, false);
+  });
+
   void it('minProperties/maxProperties brand the object', () => {
     const boundedNode = SchemaNode.defineObject(
       { 'type': 'object', 'minProperties': 1, 'maxProperties': 3 } as const,

@@ -173,7 +173,7 @@ export class SchemaNode {
   > {
     const combinedSchema = {
       ...schema,
-      'additionalProperties': options?.additionalProperties,
+      'additionalProperties': options?.additionalProperties ?? false,
       'patternProperties': options?.patternProperties,
       'properties': properties,
       'required': required
