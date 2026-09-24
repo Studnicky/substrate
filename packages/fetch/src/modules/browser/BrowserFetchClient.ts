@@ -38,12 +38,6 @@ export class BrowserFetchClient implements FetchClientInterface {
     if (validated.config.dispatcher !== undefined) {
       throw new ConfigurationError('undici connection pooling requires a Node.js runtime; the browser uses native fetch');
     }
-    if (validated.config.signal !== undefined && !(validated.config.signal instanceof Signal)) {
-      throw new ConfigurationError('signal must be a Signal instance');
-    }
-    if (validated.config.clock !== undefined && (typeof validated.config.clock.hrtime !== 'function' || typeof validated.config.clock.now !== 'function')) {
-      throw new ConfigurationError('clock must implement ClockProviderInterface');
-    }
 
     this.#config = validated.config;
     this.#queryParameters = validated.queryParameters;

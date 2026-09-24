@@ -28,9 +28,6 @@ type ScenarioShape =
   | 'invalid-timeout-non-numeric'
   | 'invalid-headers-object'
   | 'invalid-unknown-keys'
-  | 'invalid-requestIdGenerator'
-  | 'invalid-requestIdGenerator-return-type'
-  | 'invalid-requestIdGenerator-throws'
   | 'behavior-baseURL'
   | 'behavior-default-timeout'
   | 'behavior-custom-requestIdGenerator'
@@ -410,9 +407,6 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'behavior-preserve-null-prototype-json': runPreserveNullPrototypeJsonBehavior,
   'invalid-baseURL': runInvalidConfig,
   'invalid-headers-object': runInvalidConfig,
-  'invalid-requestIdGenerator': runInvalidConfig,
-  'invalid-requestIdGenerator-return-type': runInvalidConfig,
-  'invalid-requestIdGenerator-throws': runInvalidConfig,
   'invalid-timeout-negative': runInvalidConfig,
   'invalid-timeout-non-numeric': runInvalidConfig,
   'invalid-unknown-keys': runInvalidConfig,
