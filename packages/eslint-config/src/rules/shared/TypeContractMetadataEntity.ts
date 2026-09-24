@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace TypeContractMetadataEntity {
   export const Schema = {
@@ -121,9 +122,95 @@ export namespace TypeContractMetadataEntity {
       'valid'
     ],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'aliasClassification': SchemaNode.defineEnum([
+    'interfaceContract',
+    'pureDataCanonical',
+    'pureDataInvalid',
+    'typeFunction'
+  ] as const), 'aliasReason': SchemaNode.defineEnum([
+    'any',
+    'bigint',
+    'brand',
+    'callable',
+    'canonicalComposition',
+    'classInstance',
+    'conditional',
+    'constructor',
+    'cycle',
+    'depth',
+    'fromSchema',
+    'indexedAccess',
+    'inlineObject',
+    'interfaceReference',
+    'mapped',
+    'nakedRename',
+    'never',
+    'nonJson',
+    'primitiveForwarding',
+    'symbol',
+    'typeParameter',
+    'undefined',
+    'unknown',
+    'unresolvedReference'
+  ] as const), 'canonicalRoot': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'contractReason': SchemaNode.defineEnum([
+    'any',
+    'bigint',
+    'brand',
+    'callable',
+    'classInstance',
+    'conditional',
+    'constructor',
+    'indexedAccess',
+    'interfaceReference',
+    'mapped',
+    'never',
+    'nonJson',
+    'symbol',
+    'undefined',
+    'unknown'
+  ] as const), 'fixable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasCallable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasData': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceClassification': SchemaNode.defineEnum([
+    'contract',
+    'pureData'
+  ] as const), 'interfaceContractReason': SchemaNode.defineEnum([
+    'brand',
+    'callable',
+    'classInstance',
+    'constructor',
+    'nonJson',
+    'readonly'
+  ] as const), 'interfaceReason': SchemaNode.defineEnum([
+    'brand',
+    'callable',
+    'classInstance',
+    'constructor',
+    'nonJson',
+    'pureData',
+    'readonly'
+  ] as const), 'readonlyReason': SchemaNode.defineEnum([
+    'exposedDefault',
+    'intrinsicReadonly',
+    'readonlyAlias',
+    'readonlyArray',
+    'readonlyIndex',
+    'readonlyMapped',
+    'readonlyProperty'
+  ] as const), 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [
+    'aliasClassification',
+    'aliasReason',
+    'canonicalRoot',
+    'contractReason',
+    'fixable',
+    'hasCallable',
+    'hasData',
+    'interfaceClassification',
+    'interfaceContractReason',
+    'interfaceReason',
+    'readonlyReason',
+    'valid'
+  ] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

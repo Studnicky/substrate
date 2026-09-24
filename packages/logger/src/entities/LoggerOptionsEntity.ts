@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace LoggerOptionsEntity {
   export const Schema = {
@@ -20,9 +21,10 @@ export namespace LoggerOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'level': SchemaNode.defineOneOf([SchemaNode.defineEnum(['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const), SchemaNode.defineEnum([0, 1, 2, 3, 4, 5] as const)]), 'metadata': SchemaNode.defineObject({ 'description': 'Base metadata attached to every record.', 'type': 'object' } as const, {  }, [] as const) }, [] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

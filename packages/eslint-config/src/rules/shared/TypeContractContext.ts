@@ -1,6 +1,4 @@
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type * as ts from 'typescript';
 
 import {
@@ -64,9 +62,10 @@ namespace SchemaDerivationMetadataEntity {
     'properties': { 'valid': { 'type': 'boolean' } },
     'required': ['valid'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['valid'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface SchemaDerivationShapeInterface {
@@ -78,6 +77,8 @@ interface SchemaValueAuthoringInterface {
   readonly 'builderCallee': Symbol | undefined;
   readonly 'valid': SchemaDerivationMetadataEntity.Type['valid'];
 }
+
+import { SchemaNode } from '@studnicky/entity/types';
 
 import type { TypeContractAliasResolution } from './TypeContractAliasResolution.js';
 import type { TypeContractCallabilityClassification } from './TypeContractCallabilityClassification.js';

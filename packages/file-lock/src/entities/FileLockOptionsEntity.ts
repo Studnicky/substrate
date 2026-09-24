@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { DEFAULT_POLL_MS, DEFAULT_TIMEOUT_MS } from '../constants/FileLockDefaults.js';
 
@@ -15,9 +16,10 @@ export namespace FileLockOptionsEntity {
     },
     'required': ['path'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'pollMs': SchemaNode.defineNumber({ 'default': DEFAULT_POLL_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'default': DEFAULT_TIMEOUT_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['path'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

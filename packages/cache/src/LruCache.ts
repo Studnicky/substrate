@@ -2,20 +2,21 @@ import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@stud
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
 import type { LruCacheCreateOptionsInterface } from './interfaces/LruCacheCreateOptionsInterface.js';
 
 import { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 import { CacheConfigError } from './errors/index.js';
 
+// Timing fields are computed internally (never externally validated), so they carry
+// plain `number`, not LruCacheNodeTimingEntity.Type's schema-validated brand.
 interface LruCacheNodeInterface<K, V> {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
-  'expiresAt': LruCacheNodeTimingEntity.Type['expiresAt'];
+  'expiresAt': number;
   'key': K;
   'next': LruCacheNodeInterface<K, V> | undefined;
   'previous': LruCacheNodeInterface<K, V> | undefined;
   /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
-  'staleAt': LruCacheNodeTimingEntity.Type['staleAt'];
+  'staleAt': number;
   'value': V;
 }
 

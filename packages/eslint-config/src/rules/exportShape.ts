@@ -1,9 +1,8 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 import type * as ts from 'typescript';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 import {
   type Program, type Symbol, SymbolFlags
@@ -265,9 +264,22 @@ namespace ExportShapeEntity {
       'type-reexport'
     ],
     'type': 'string'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineEnum([
+    'const-function',
+    'const-value',
+    'enum',
+    'error-class',
+    'function',
+    'interface',
+    'namespace',
+    'other',
+    'other-class',
+    'type',
+    'type-reexport'
+  ] as const);
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 const ExportShapeKind = {

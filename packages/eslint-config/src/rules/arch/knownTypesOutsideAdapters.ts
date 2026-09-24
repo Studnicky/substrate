@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 import { isTypeReferenceNode, type Node, type Program, TypeFlags } from 'typescript';
 
@@ -20,9 +21,21 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
         'type': 'string'
       }
     }
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      ...LayerOptionsEntity.Node.schema.properties,
+      'adapterLayerName': SchemaNode.defineString({
+        'default': 'adapters',
+        'description': 'Name of the layer exempted from this ban — the layer responsible for converting untyped intake data into known shapes. Defaults to "adapters".',
+        'type': 'string'
+      } as const)
+    },
+    LayerOptionsEntity.Node.schema.required
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);

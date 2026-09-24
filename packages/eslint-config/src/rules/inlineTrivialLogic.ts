@@ -1,10 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from './shared/astHelpers.js';
@@ -31,9 +30,18 @@ namespace InlineTrivialLogicOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'allowLiterals': SchemaNode.defineBoolean({
+    'default': true,
+    'description': 'Allow functions that return a constant literal or template literal (string, number, boolean). Default true — such a function is the value, not a forward to one. Set false for the stricter posture of also flagging literal returns.',
+    'type': 'boolean'
+  } as const), 'allowMemberExpressions': SchemaNode.defineBoolean({
+    'default': false,
+    'description': 'Allow functions that return a non-this member expression (e.g. obj.prop).',
+    'type': 'boolean'
+  } as const) }, [] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);

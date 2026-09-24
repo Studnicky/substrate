@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace LatencyStatsEntity {
   export const Schema = {
@@ -34,9 +35,26 @@ export namespace LatencyStatsEntity {
     'required': ['sampleCount'],
     'title': 'LatencyStats',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LatencyStats', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Latency statistics from the sliding window buffer.', 'title': 'LatencyStats', 'type': 'object' } as const, { 'p50': SchemaNode.defineNumber({
+    'description': '50th percentile (median) latency in milliseconds. Absent when the buffer has no samples yet.',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'p95': SchemaNode.defineNumber({
+    'description': '95th percentile latency in milliseconds. Absent when the buffer has no samples yet.',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'p99': SchemaNode.defineNumber({
+    'description': '99th percentile latency in milliseconds. Absent when the buffer has no samples yet.',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'sampleCount': SchemaNode.defineNumber({
+    'description': 'Number of samples in the buffer.',
+    'minimum': 0,
+    'type': 'integer'
+  } as const) }, ['sampleCount'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

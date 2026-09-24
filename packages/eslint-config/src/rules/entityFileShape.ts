@@ -1,8 +1,7 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import {
@@ -960,34 +959,21 @@ class ConstantsCountCheck {
 }
 
 namespace FileCategorySchema {
-  export const Schema = {
-    'additionalProperties': false,
-    'properties': {
-      'expectedName': { 'type': 'string' },
-      'shape': {
-        'enum': [
-          'constants',
-          'declaration',
-          'entity',
-          'none'
-        ]
-      },
-      'underInterfacesFolder': { 'type': 'boolean' },
-      'underTypesFolder': { 'type': 'boolean' }
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineEnum(['constants', 'declaration', 'entity', 'none'] as const),
+      'underInterfacesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+      'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
     },
-    'required': [
-      'expectedName',
-      'shape',
-      'underInterfacesFolder',
-      'underTypesFolder'
-    ],
-    'type': 'object'
-  } as const satisfies JSONSchema;
-
+    ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const,
+    { 'additionalProperties': false }
+  );
 }
 
 class FileCategoryResolver {
-  static resolve(filename: string): FromSchema<typeof FileCategorySchema.Schema> {
+  static resolve(filename: string): NodeStaticType<typeof FileCategorySchema.Node> {
     if (FolderCategory.isEmptyFilename(filename)) {
       return {
         'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false

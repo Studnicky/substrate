@@ -1,12 +1,11 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type {
   Rule, Scope
 } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
@@ -38,9 +37,38 @@ namespace DomainPurityOptionsEntity {
     },
     'required': LayerOptionsEntity.Schema.required,
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      ...LayerOptionsEntity.Node.schema.properties,
+      'domainLayerName': SchemaNode.defineString({
+        'default': 'domain',
+        'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
+        'type': 'string'
+      } as const),
+      'forbiddenCalls': SchemaNode.defineArray(
+        {
+          'default': [],
+          'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
+          'type': 'array'
+        } as const,
+        SchemaNode.defineString({ 'type': 'string' } as const)
+      ),
+      'forbiddenImports': SchemaNode.defineArray(
+        {
+          'default': [],
+          'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
+          'type': 'array'
+        } as const,
+        SchemaNode.defineString({ 'type': 'string' } as const)
+      )
+    },
+    LayerOptionsEntity.Node.schema.required,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);

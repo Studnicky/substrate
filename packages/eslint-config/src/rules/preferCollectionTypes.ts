@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule, Scope } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import { ITERATION_METHODS } from './constants/PreferCollectionTypesConstants.js';
@@ -29,9 +30,31 @@ namespace PreferCollectionTypesOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'checkArrayLiterals': SchemaNode.defineBoolean({
+        'default': true,
+        'description': 'Flag inline array literals used with .includes() (Pattern A) and .includes() inside iteration callbacks (Pattern D).',
+        'type': 'boolean'
+      } as const),
+      'checkFromEntries': SchemaNode.defineBoolean({
+        'default': true,
+        'description': 'Flag Object.fromEntries() results accessed with computed bracket notation (Pattern B).',
+        'type': 'boolean'
+      } as const),
+      'checkModuleScopeArrays': SchemaNode.defineBoolean({
+        'default': true,
+        'description': 'Flag module-scope const arrays used exclusively for .includes() membership tests (Pattern C).',
+        'type': 'boolean'
+      } as const)
+    },
+    [] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
@@ -48,9 +71,20 @@ namespace PreferCollectionTypesInternalEntity {
     },
     'required': ['found', 'method', 'name', 'reported'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+      'method': SchemaNode.defineString({ 'type': 'string' } as const),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'reported': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
+    },
+    ['found', 'method', 'name', 'reported'] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface ModuleScopeArrayEntryInterface {

@@ -1,6 +1,7 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 import {
   type IndexSignatureDeclaration,
@@ -140,9 +141,10 @@ namespace AncestorInfoEntity {
     },
     'required': ['hasTypeParameterConstraintAncestor', 'interfaceName'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hasTypeParameterConstraintAncestor': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['hasTypeParameterConstraintAncestor', 'interfaceName'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface AncestorInfoInterface {

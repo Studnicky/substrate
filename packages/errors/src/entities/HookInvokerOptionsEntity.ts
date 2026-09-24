@@ -1,6 +1,7 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Options accepted by the `HookInvoker` constructor. */
 export namespace HookInvokerOptionsEntity {
@@ -21,9 +22,17 @@ export namespace HookInvokerOptionsEntity {
     },
     'title': 'HookInvokerOptions',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/HookInvokerOptions', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'HookInvokerOptions', 'type': 'object' } as const, { 'detectReentrancy': SchemaNode.defineBoolean({
+    'description': 'When true, a synchronous, same-call-stack reentrant call to invoke throws ReentrantHookInvocationError instead of recursing.',
+    'type': 'boolean'
+  } as const), 'timeoutMs': SchemaNode.defineNumber({
+    'description': 'When set, an asynchronous hook result races against this timeout in milliseconds.',
+    'exclusiveMinimum': 0,
+    'type': 'number'
+  } as const) }, [] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Mutable schema-validatable fields carried by a retry lifecycle context. */
 export namespace RetryContextDataEntity {
@@ -18,9 +19,10 @@ export namespace RetryContextDataEntity {
     'required': ['attemptNumber', 'delayMs', 'elapsedMs'],
     'title': 'RetryContextData',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RetryContextData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'RetryContextData', 'type': 'object' } as const, { 'abort': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'attemptNumber': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'elapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['attemptNumber', 'delayMs', 'elapsedMs'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

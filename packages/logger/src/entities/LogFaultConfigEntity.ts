@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { LogBodyConfigEntity } from './LogBodyConfigEntity.js';
 
@@ -30,9 +31,20 @@ export namespace LogFaultConfigEntity {
     'required': [...LogBodyConfigEntity.Schema.required, 'name'],
     'title': 'LogFaultConfig',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      ...LogBodyConfigEntity.Node.schema.properties,
+      'cause': SchemaNode.defineString({ 'description': 'Underlying cause message.', 'type': 'string' } as const),
+      'name': SchemaNode.defineString({ 'description': 'Error name or type.', 'type': 'string' } as const),
+      'stack': SchemaNode.defineString({ 'description': 'Error stack trace.', 'type': 'string' } as const)
+    },
+    [...LogBodyConfigEntity.Node.schema.required, 'name'] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
