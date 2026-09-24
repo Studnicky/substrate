@@ -5,7 +5,7 @@ import { isObjectLiteralExpression, type Program, type SourceFile, type Symbol, 
 
 import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import {
-  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, IDENTIFIER_NAME_PATTERN
+  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, IDENTIFIER_NAME_PATTERN, JSON_SCHEMA_VOCABULARY_KEYS
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { PackageBoundary } from './shared/PackageBoundary.js';
@@ -133,7 +133,34 @@ class BannedToken {
 // project. Report its key only when the checker proves that its contextual declaration
 // belongs to this package; absent provenance is not safe evidence for a rename.
 class ExternalPropertyProvenance {
+  // A JSON Schema literal passed to a `SchemaNode.defineX(...)` builder call carries the
+  // same externally-dictated vocabulary a `satisfies JSONSchema` literal does — walk up
+  // to find one before falling back to the type-checker-driven external-provenance check.
+  static #isWithinSchemaNodeBuilderCall(node: Rule.Node): boolean {
+    let current: unknown = AstHelpers.getNodeProperty(node, 'parent');
+
+    while (Predicates.isRecord(current)) {
+      if (AstHelpers.getNodeType(current) === 'CallExpression') {
+        const callee: unknown = AstHelpers.getNodeProperty(current, 'callee');
+
+        if (AstHelpers.getNodeType(callee) === 'MemberExpression') {
+          const object: unknown = AstHelpers.getNodeProperty(callee, 'object');
+
+          if (AstHelpers.getIdentifierName(object) === 'SchemaNode') {
+            return true;
+          }
+        }
+      }
+      current = AstHelpers.getNodeProperty(current, 'parent');
+    }
+
+    return false;
+  }
+
   public static shouldSkip(node: Rule.Node, name: string, context: Rule.RuleContext): boolean {
+    if (ExternalPropertyProvenance.#isWithinSchemaNodeBuilderCall(node)) {
+      return true;
+    }
     const services: unknown = context.sourceCode.parserServices;
 
     if (!AstHelpers.hasTypeServices(services)) {
@@ -245,7 +272,7 @@ class KeyName {
     const identifierName = AstHelpers.getIdentifierName(key);
 
     if (identifierName !== undefined) {
-      const result = ExternalPropertyProvenance.shouldSkip(node, identifierName, context) ? undefined : identifierName;
+      const result = KeyName.checked(node, identifierName, context);
 
       return result;
     }
@@ -259,7 +286,20 @@ class KeyName {
       return undefined;
     }
 
-    const result = ExternalPropertyProvenance.shouldSkip(node, value, context) ? undefined : value;
+    const result = KeyName.checked(node, value, context);
+
+    return result;
+  }
+
+  // JSON Schema's own keyword vocabulary is exempt regardless of provenance — a project cannot
+  // rename a specification's terms, and the exemption must not depend on resolving a contextual
+  // type from any particular schema-authoring package.
+  private static checked(node: Rule.Node, name: string, context: Rule.RuleContext): string | undefined {
+    if (JSON_SCHEMA_VOCABULARY_KEYS.has(name)) {
+      return undefined;
+    }
+
+    const result = ExternalPropertyProvenance.shouldSkip(node, name, context) ? undefined : name;
 
     return result;
   }

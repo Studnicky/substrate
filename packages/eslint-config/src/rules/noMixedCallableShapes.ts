@@ -1,6 +1,7 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 import {
   isIndexSignatureDeclaration,
@@ -53,9 +54,10 @@ namespace DeclarationLocationEntity {
     },
     'required': ['location', 'name'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'location': SchemaNode.defineString({ 'type': 'string' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const) }, ['location', 'name'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface DeclarationLocationInterface {

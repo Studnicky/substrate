@@ -25,7 +25,7 @@ interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
 export class RealTimeClockProvider implements ClockProviderInterface {
   static create<TInstance extends RealTimeClockProvider = RealTimeClockProvider>(
     this: RealTimeClockProviderSubclassInterface<TInstance>,
-    options: Partial<RealTimeClockProviderOptionsEntity.Type> = {}
+    options: RealTimeClockProviderOptionsEntity.Type = {}
   ): TInstance {
     const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
@@ -47,7 +47,8 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * Property write order: #offsetMs.
    */
   protected constructor(options: RealTimeClockProviderOptionsEntity.Type) {
-    this.#offsetMs = options.offsetMs;
+    // `offsetMs` is optional pre-intake; `.intake()` (called by `create()`) always fills its schema default.
+    this.#offsetMs = options.offsetMs ?? 0;
   }
 
   /**
