@@ -9,9 +9,9 @@
  *
  * @module
  */
-import type { OutputUnit } from '@cfworker/json-schema';
+import type { OutputUnit, Schema } from '@cfworker/json-schema';
 
-import { Validator } from '@cfworker/json-schema';
+import { dereference, validate, Validator } from '@cfworker/json-schema';
 import { JsonObject } from '@studnicky/types/browser';
 
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
@@ -45,6 +45,8 @@ class EntityCfworkerCompiler {
         }
       }
       const validator = new Validator(schema, ENTITY_CFWORKER_CONSTANTS.schemaDraft, false);
+      const lookup = dereference(schema);
+      const hasContainsFamilyKeyword = EntityCfworkerCompiler.hasContainsFamilyKeyword(lookup);
       const predicate = ((data: unknown): data is TValidated => {
         if (fillDefaults) {
           EntityCfworkerCompiler.applyDefaults(data, schema, schema);
@@ -55,13 +57,17 @@ class EntityCfworkerCompiler {
           return false;
         }
         const outcome = validator.validate(instance);
-        predicate.errors = outcome.valid
+        const errors = hasContainsFamilyKeyword
+          ? EntityCfworkerCompiler.correctContainsErrors(instance, schema, lookup, outcome.errors)
+          : outcome.errors;
+        const valid = errors.length === 0;
+        predicate.errors = valid
           ? null
-          : EntityCfworkerCompiler.leafErrors(outcome.errors, schema).map((unit) => {
+          : EntityCfworkerCompiler.leafErrors(errors, schema).map((unit) => {
             const entityError = EntityCfworkerCompiler.toEntityError(unit, schema);
             return entityError;
           });
-        return outcome.valid;
+        return valid;
       }) as MutableValidateFunctionInterface<TValidated>;
       predicate.errors = null;
       if (id !== undefined) {
@@ -242,8 +248,8 @@ class EntityCfworkerCompiler {
     return result;
   }
 
-  /** Resolves a JSON Pointer, rooted at `#`, against `rootSchema`. */
-  private static resolveSchemaPointer(rootSchema: object, pointer: string): unknown {
+  /** Resolves a JSON Pointer, rooted at `#`, against `rootSchema`; a `$ref`/`$recursiveRef` segment hops to its target instead of reading the keyword's own string value. */
+  private static resolveSchemaPointer(rootSchema: object, pointer: string, seenReferences: ReadonlySet<string> = new Set()): unknown {
     if (pointer === '#') {
       return rootSchema;
     }
@@ -258,9 +264,32 @@ class EntityCfworkerCompiler {
       if (typeof target !== 'object' || target === null) {
         return undefined;
       }
+      if (segment === '$ref' || segment === '$recursiveRef') {
+        const hop = EntityCfworkerCompiler.hopReferenceSegment(target, segment, rootSchema, seenReferences);
+        if (hop === undefined) {
+          return undefined;
+        }
+        target = hop;
+        continue;
+      }
       target = Reflect.get(target, segment);
     }
     return target;
+  }
+
+  /**
+   * Follows a `$ref`/`$recursiveRef` keywordLocation segment to the schema it points at; a repeated reference terminates the walk rather than recursing forever.
+   * `$recursiveRef` always resolves to the document root rather than a dynamically established recursive anchor; no schema here declares one.
+   */
+  private static hopReferenceSegment(schema: object, segment: '$ref' | '$recursiveRef', rootSchema: object, seenReferences: ReadonlySet<string>): unknown {
+    const reference: unknown = segment === '$ref' ? Reflect.get(schema, '$ref') : '#';
+    if (typeof reference !== 'string' || seenReferences.has(reference)) {
+      return undefined;
+    }
+    const nextSeenReferences = new Set(seenReferences);
+    nextSeenReferences.add(reference);
+    const result = EntityCfworkerCompiler.resolveSchemaPointer(rootSchema, reference, nextSeenReferences);
+    return result;
   }
 
   /** Resolves a local `$ref` pointer within the same schema document. */
@@ -403,6 +432,119 @@ class EntityCfworkerCompiler {
       }
     }
     return result;
+  }
+
+  /** Whether any fragment `dereference` reached through `$ref`, `$defs`, or composition declares `contains`/`minContains`/`maxContains` — computed once at compile time so validation skips the correction walk (and its instance traversal) entirely for the schemas, the vast majority, that never use `contains`. */
+  private static hasContainsFamilyKeyword(lookup: Record<string, Schema | boolean>): boolean {
+    const fragments = Object.values(lookup);
+    const result = fragments.some((fragment) => {
+      const declaresContainsFamily = EntityCfworkerCompiler.isPlainObject(fragment)
+        && (fragment.contains !== undefined || fragment.minContains !== undefined || fragment.maxContains !== undefined);
+      return declaresContainsFamily;
+    });
+    return result;
+  }
+
+  /** cfworker's own `contains` handling treats an undeclared `minContains` as threshold 0 instead of the spec/Ajv default of 1, so a non-empty array matching nothing is wrongly truncated to a bare summary or reported valid; this replaces cfworker's raw units for every `contains`-bearing array with a re-validated, Ajv-equivalent result. */
+  private static correctContainsErrors(instance: unknown, rootSchema: object, lookup: Record<string, Schema | boolean>, rawErrors: readonly OutputUnit[]): readonly OutputUnit[] {
+    const ownedSchemaLocations: string[] = [];
+    const correctedUnits: OutputUnit[] = [];
+    EntityCfworkerCompiler.walkContainsCorrections(instance, rootSchema, lookup, '#', '#', new Set(), ownedSchemaLocations, correctedUnits);
+    if (ownedSchemaLocations.length === 0) {
+      return rawErrors;
+    }
+    const isOwnedContainsUnit = (unit: OutputUnit): boolean => {
+      const owned = ownedSchemaLocations.some((location) => {
+        const result = unit.keywordLocation === `${location}/contains`
+          || unit.keywordLocation === `${location}/minContains`
+          || unit.keywordLocation === `${location}/maxContains`
+          || unit.keywordLocation.startsWith(`${location}/contains/`);
+        return result;
+      });
+      return owned;
+    };
+    const result = [...rawErrors.filter((unit) => {
+      const isUnowned = !isOwnedContainsUnit(unit);
+      return isUnowned;
+    }), ...correctedUnits];
+    return result;
+  }
+
+  /** Walks `value` alongside `schema`'s literal `properties`/`items` shape, re-validating every array that declares `contains` directly against that subschema. */
+  private static walkContainsCorrections(
+    value: unknown,
+    schema: Schema | boolean | undefined,
+    lookup: Record<string, Schema | boolean>,
+    instanceLocation: string,
+    schemaLocation: string,
+    seenValues: Set<object>,
+    ownedSchemaLocations: string[],
+    units: OutputUnit[]
+  ): void {
+    if (typeof value !== 'object' || value === null || seenValues.has(value) || typeof schema !== 'object' || schema === null) {
+      return;
+    }
+    seenValues.add(value);
+    if (Array.isArray(value)) {
+      EntityCfworkerCompiler.checkContains(value, schema, lookup, instanceLocation, schemaLocation, ownedSchemaLocations, units);
+      const itemSchema = Array.isArray(schema.items) ? undefined : schema.items;
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        EntityCfworkerCompiler.walkContainsCorrections(value[index], itemSchema, lookup, `${instanceLocation}/${index}`, `${schemaLocation}/items`, seenValues, ownedSchemaLocations, units);
+      }
+      return;
+    }
+    const properties = schema.properties;
+    const keys = Object.keys(value);
+    const keyCount = keys.length;
+    for (let index = 0; index < keyCount; index += 1) {
+      const key = keys[index]!;
+      const propertySchema = properties === undefined ? undefined : properties[key];
+      EntityCfworkerCompiler.walkContainsCorrections(Reflect.get(value, key), propertySchema, lookup, `${instanceLocation}/${key}`, `${schemaLocation}/properties/${key}`, seenValues, ownedSchemaLocations, units);
+    }
+  }
+
+  /** Re-validates each item against a declared `contains` subschema and appends Ajv-equivalent leaf and summary units when the match count violates `minContains` (default 1) or `maxContains`. */
+  private static checkContains(
+    value: readonly unknown[],
+    schema: Schema,
+    lookup: Record<string, Schema | boolean>,
+    instanceLocation: string,
+    schemaLocation: string,
+    ownedSchemaLocations: string[],
+    units: OutputUnit[]
+  ): void {
+    const containsSchema = schema.contains;
+    if (containsSchema === undefined) {
+      return;
+    }
+    ownedSchemaLocations.push(schemaLocation);
+    const containsLocation = `${schemaLocation}/contains`;
+    const minimum = typeof schema.minContains === 'number' ? schema.minContains : 1;
+    const maximum = typeof schema.maxContains === 'number' ? schema.maxContains : undefined;
+    const itemUnits: OutputUnit[] = [];
+    let contained = 0;
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const result = validate(value[index], containsSchema, ENTITY_CFWORKER_CONSTANTS.schemaDraft, lookup, false, null, `${instanceLocation}/${index}`, containsLocation);
+      if (result.valid) {
+        contained += 1;
+      } else {
+        itemUnits.push(...result.errors);
+      }
+    }
+    if (contained >= minimum && (maximum === undefined || contained <= maximum)) {
+      return;
+    }
+    if (contained === 0) {
+      units.push(...itemUnits);
+    }
+    units.push({
+      'error': `Array must contain between ${minimum} and ${maximum ?? 'unbounded'} matching item(s); ${contained} found.`,
+      'instanceLocation': instanceLocation,
+      'keyword': 'contains',
+      'keywordLocation': containsLocation
+    });
   }
 
   /** The `/contains`, `/minContains`, or `/maxContains` suffix a unit's `keywordLocation` carries, by keyword. */

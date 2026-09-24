@@ -428,6 +428,45 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
         'type': 'array'
       },
       'value': ['a', 'b']
+    },
+    {
+      'name': 'contains (non-empty unmatched array)',
+      'schema': { '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-contains-unmatched', 'contains': { 'type': 'string' }, 'type': 'array' },
+      'value': [1, 2, 3]
+    },
+    {
+      'name': '$ref property',
+      'schema': {
+        '$defs': { 'Str': { 'type': 'string' } },
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-ref-property',
+        'properties': { 'a': { '$ref': '#/$defs/Str' } },
+        'type': 'object'
+      },
+      'value': { 'a': 1 }
+    },
+    {
+      'name': '$ref property (chained)',
+      'schema': {
+        '$defs': { 'A': { '$ref': '#/$defs/B' }, 'B': { 'type': 'string' } },
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-ref-chained',
+        'properties': { 'a': { '$ref': '#/$defs/A' } },
+        'type': 'object'
+      },
+      'value': { 'a': 1 }
+    },
+    {
+      'name': '$ref property (self-referencing, terminates)',
+      'schema': {
+        '$defs': {
+          'Node': {
+            'properties': { 'next': { '$ref': '#/$defs/Node' }, 'value': { 'type': 'string' } },
+            'type': 'object'
+          }
+        },
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-ref-self',
+        '$ref': '#/$defs/Node'
+      },
+      'value': { 'value': 1 }
     }
   ];
 
