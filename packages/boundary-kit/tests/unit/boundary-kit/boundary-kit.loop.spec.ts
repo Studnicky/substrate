@@ -2,7 +2,9 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
+import type { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+
+import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/node';
 import { MaximumRetriesExceededError, Retry } from '@studnicky/retry/node';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 import { Throttle } from '@studnicky/throttle/node';
@@ -25,7 +27,7 @@ type RetryConfigDescriptor = {
 };
 
 type BoundaryKitConfigDescriptor = {
-  circuitBreaker?: CircuitBreakerOptionsInterface;
+  circuitBreaker?: CircuitBreakerOptionsEntity.InputType;
   retry?: RetryConfigDescriptor;
   throttle?: ThrottleConfigEntity.Type;
 };
@@ -122,8 +124,8 @@ class SubclassedThrottle extends Throttle {
 class SubclassedCircuitBreaker extends CircuitBreaker {
   successCount = 0;
 
-  constructor(options: CircuitBreakerOptionsInterface) {
-    super(options);
+  constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {}) {
+    super(config, collaborators);
   }
 
   protected override onSuccess(): void {

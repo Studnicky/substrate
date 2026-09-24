@@ -26,10 +26,11 @@ import {
   TokenBucketOptionsEntity
 } from '../../../src/entities/index.js';
 import type {
-  CircuitBreakerOptionsInterface,
+  CircuitBreakerCollaboratorsInterface,
   DeadLetterQueueOptionsInterface,
   TokenBucketOptionsInterface
 } from '../../../src/index.js';
+import type { CircuitBreakerOptionsEntity } from '../../../src/entities/index.js';
 
 import scenarioGroups from './resilience.scenarios.json' with { type: 'json' };
 
@@ -44,7 +45,7 @@ const fail = async (): Promise<never> => { throw RuntimeError.create('failure');
 
 class ObservedBreaker extends CircuitBreaker {
   readonly events: string[] = [];
-  constructor(options: CircuitBreakerOptionsInterface) { super(options); }
+  constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {}) { super(config, collaborators); }
   protected override onSuccess(): void { this.events.push('success'); }
   protected override onFailure(_error: Error): void { this.events.push('failure'); }
   protected override onTrip(): void { this.events.push('trip'); }
@@ -111,7 +112,7 @@ class ThrowingTripBreaker extends CircuitBreaker {
 
 class AsyncRejectingSuccessBreaker extends CircuitBreaker {
   readonly #cause: Error;
-  constructor(options: CircuitBreakerOptionsInterface, cause: Error) { super(options); this.#cause = cause; }
+  constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface, cause: Error) { super(config, collaborators); this.#cause = cause; }
   get recordedHookErrors(): readonly HookInvocationError[] { return this.hooks.getHookErrors(); }
   protected override async onSuccess(): Promise<void> { await Promise.resolve(); throw this.#cause; }
 }
@@ -321,12 +322,13 @@ function recordArrayInput(input: ScenarioInput, key: string): ScenarioInput[] {
 
 function circuitBreakerOptions(
   input: ScenarioInput,
-  extra: Partial<CircuitBreakerOptionsInterface> = {}
-): CircuitBreakerOptionsInterface {
-  const options: CircuitBreakerOptionsInterface = {
+  extra: Partial<CircuitBreakerCollaboratorsInterface & CircuitBreakerOptionsEntity.InputType> = {}
+): readonly [unknown, CircuitBreakerCollaboratorsInterface] {
+  const { clock, errorClassifier, ...schemaExtra } = extra;
+  const options: CircuitBreakerOptionsEntity.InputType = {
     failureThreshold: numberInput(input, 'failureThreshold'),
     resetTimeoutMs: numberInput(input, 'resetTimeoutMs'),
-    ...extra
+    ...schemaExtra
   };
   const name = input.name;
   if (typeof name === 'string') {
@@ -336,7 +338,13 @@ function circuitBreakerOptions(
   if (successThreshold !== undefined) {
     options.successThreshold = successThreshold;
   }
-  return options;
+  return [
+    options,
+    {
+      ...(clock === undefined ? {} : { clock }),
+      ...(errorClassifier === undefined ? {} : { errorClassifier })
+    }
+  ];
 }
 
 function tokenBucketOptions(
@@ -507,13 +515,13 @@ type ScenarioHandler = (scenarioCase: ScenarioCase, input: ScenarioInput) => Pro
 
 const scenarioHandlers = {
   'cb-invalid-failure-threshold': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    assert.throws(() => { CircuitBreaker.create(circuitBreakerOptions(input)); }, ResilienceConfigError);
+    assert.throws(() => { CircuitBreaker.create(...circuitBreakerOptions(input)); }, ResilienceConfigError);
   },
   'cb-invalid-reset-timeout': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    assert.throws(() => { CircuitBreaker.create(circuitBreakerOptions(input)); }, ResilienceConfigError);
+    assert.throws(() => { CircuitBreaker.create(...circuitBreakerOptions(input)); }, ResilienceConfigError);
   },
   'cb-starts-closed': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    assert.equal(CircuitBreaker.create(circuitBreakerOptions(input)).state, 'closed');
+    assert.equal(CircuitBreaker.create(...circuitBreakerOptions(input)).state, 'closed');
   },
   'cb-state-entity': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
@@ -524,7 +532,7 @@ const scenarioHandlers = {
     assert.equal(CircuitStateEntity.validate(stringInput(expected, 'invalidState')), false);
   },
   'cb-trips-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'closed');
     await assert.rejects(() => cb.execute(fail));
@@ -532,7 +540,7 @@ const scenarioHandlers = {
   },
   'cb-success-resets': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     const sequence = stringArrayInput(input, 'sequence');
     const finalAction = sequence[sequence.length - 1];
     if (finalAction === undefined) {
@@ -547,7 +555,7 @@ const scenarioHandlers = {
   },
   'cb-open-error': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
     if (booleanInput(expected, 'openError')) {
@@ -558,7 +566,7 @@ const scenarioHandlers = {
   },
   'cb-open-error-name': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     if (booleanInput(expected, 'openError')) {
       await assert.rejects(
@@ -572,7 +580,7 @@ const scenarioHandlers = {
   'cb-halfopen-transition': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
     time = clock[1] ?? time;
@@ -582,7 +590,7 @@ const scenarioHandlers = {
   'cb-stays-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     assert.equal(cb.state, 'open');
     time = clock[1] ?? time;
@@ -592,7 +600,7 @@ const scenarioHandlers = {
   'cb-close-on-success-threshold': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     time = clock[1] ?? time;
     await cb.execute(succeed);
@@ -603,7 +611,7 @@ const scenarioHandlers = {
   'cb-halfopen-reopen': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     time = clock[1] ?? time;
     await assert.rejects(() => cb.execute(fail));
@@ -611,35 +619,35 @@ const scenarioHandlers = {
   },
   'cb-reset-control': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.reset();
     assert.equal(cb.state, stringInput(expected, 'stateAfterReset'));
   },
   'cb-force-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     cb.forceOpen();
     assert.equal(cb.state, 'open');
   },
   'cb-reset-success': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.reset();
     assert.equal(await cb.execute(succeed), stringInput(expected, 'result'));
   },
   'cb-observed-success': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = new ObservedBreaker(circuitBreakerOptions(input));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input));
     await cb.execute(succeed);
     assert.deepEqual(cb.events, ['success']);
   },
   'cb-observed-failure': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = new ObservedBreaker(circuitBreakerOptions(input));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     assert.ok(cb.events.includes('failure'));
   },
   'cb-observed-trip-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = new ObservedBreaker(circuitBreakerOptions(input));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     await assert.rejects(() => cb.execute(fail));
     const tripIdx = cb.events.indexOf('trip');
@@ -649,7 +657,7 @@ const scenarioHandlers = {
     assert.ok(tripIdx < openIdx);
   },
   'cb-observed-reject': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = new ObservedBreaker(circuitBreakerOptions(input));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(fail));
     cb.events.length = 0;
     await assert.rejects(() => cb.execute(succeed), (e) => e instanceof CircuitBreakerOpenError);
@@ -658,7 +666,7 @@ const scenarioHandlers = {
   'cb-observed-halfopen': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     time = clock[1] ?? time;
     await cb.execute(succeed);
@@ -667,24 +675,24 @@ const scenarioHandlers = {
   'cb-observed-close': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => time }));
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input, { clock: () => time }));
     await assert.rejects(() => cb.execute(fail));
     time = clock[1] ?? time;
     await cb.execute(succeed);
     assert.ok(cb.events.includes('close'));
-    const resetBreaker = new ObservedBreaker(circuitBreakerOptions(input));
+    const resetBreaker = new ObservedBreaker(...circuitBreakerOptions(input));
     await assert.rejects(() => resetBreaker.execute(fail));
     resetBreaker.events.length = 0;
     resetBreaker.reset();
     assert.ok(resetBreaker.events.includes('close'));
   },
   'cb-observed-open': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const forceBreaker = new ObservedBreaker(circuitBreakerOptions(input));
+    const forceBreaker = new ObservedBreaker(...circuitBreakerOptions(input));
     forceBreaker.forceOpen();
     assert.ok(forceBreaker.events.includes('open'));
     const clock = numberArrayInput(input, 'clock');
     let time = clock[0] ?? 0;
-    const cb = new ObservedBreaker(circuitBreakerOptions(input, {
+    const cb = new ObservedBreaker(...circuitBreakerOptions(input, {
       clock: () => time,
       failureThreshold: numberInput(input, 'reopenFailureThreshold')
     }));
@@ -696,7 +704,7 @@ const scenarioHandlers = {
     assert.ok(!cb.events.includes('trip'));
   },
   'cb-default-classification': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'closed');
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
@@ -705,7 +713,7 @@ const scenarioHandlers = {
   'cb-config-classifier-retryable': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const classifier = (error: Error): ErrorClassificationEntity.Type => ({ 'retryable': error instanceof TransientError });
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { errorClassifier: classifier }));
     for (let count = 0; count < numberInput(expected, 'retryableFailures'); count += 1) {
       await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     }
@@ -713,7 +721,7 @@ const scenarioHandlers = {
   },
   'cb-config-classifier-failing': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const classifier = (error: Error): ErrorClassificationEntity.Type => ({ 'retryable': error instanceof TransientError });
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { errorClassifier: classifier }));
     await assert.rejects(() => cb.execute(async () => { throw new RealError('real'); }));
     assert.equal(cb.state, 'closed');
     await assert.rejects(() => cb.execute(async () => { throw new RealError('real'); }));
@@ -722,13 +730,13 @@ const scenarioHandlers = {
   'cb-config-classifier-throws-original': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const classifier = createErrorClassifier(true);
-    const cb = CircuitBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
+    const cb = CircuitBreaker.create(...circuitBreakerOptions(input, { errorClassifier: classifier }));
     const thrownType = resilienceErrorTypeInput(stringInput(expected, 'thrown'));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }), (err) => err instanceof thrownType);
     assert.equal(cb.state, 'closed');
   },
   'cb-subclass-classifier': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
-    const cb = ClassifyingBreaker.create(circuitBreakerOptions(input));
+    const cb = ClassifyingBreaker.create(...circuitBreakerOptions(input));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'closed');
@@ -739,22 +747,22 @@ const scenarioHandlers = {
   },
   'cb-config-overrides-subclass': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const classifier = createErrorClassifier(false);
-    const cb = ClassifyingBreaker.create(circuitBreakerOptions(input, { errorClassifier: classifier }));
+    const cb = ClassifyingBreaker.create(...circuitBreakerOptions(input, { errorClassifier: classifier }));
     await assert.rejects(() => cb.execute(async () => { throw new TransientError('transient'); }));
     assert.equal(cb.state, 'open');
   },
   'cb-hook-swallows': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
-    const successBreaker = ThrowingSuccessBreaker.create(circuitBreakerOptions(input));
+    const successBreaker = ThrowingSuccessBreaker.create(...circuitBreakerOptions(input));
     assert.equal(await successBreaker.execute(succeed), 'ok');
     assert.equal(successBreaker.state, 'closed');
-    const rejectBreaker = ThrowingRejectBreaker.create(circuitBreakerOptions(input, {
+    const rejectBreaker = ThrowingRejectBreaker.create(...circuitBreakerOptions(input, {
       failureThreshold: numberInput(input, 'rejectFailureThreshold'),
       resetTimeoutMs: numberInput(input, 'rejectResetTimeoutMs')
     }));
     await assert.rejects(() => rejectBreaker.execute(fail));
     await assert.rejects(() => rejectBreaker.execute(succeed), (error) => error instanceof CircuitBreakerOpenError);
-    const tripBreaker = ThrowingTripBreaker.create(circuitBreakerOptions(input, {
+    const tripBreaker = ThrowingTripBreaker.create(...circuitBreakerOptions(input, {
       failureThreshold: numberInput(input, 'tripFailureThreshold')
     }));
     await assert.rejects(() => tripBreaker.execute(fail), (error) => error instanceof Error && error.message === 'failure');
@@ -768,8 +776,8 @@ const scenarioHandlers = {
     try {
       const firstCause = RuntimeError.create(stringInput(input, 'first'));
       const secondCause = RuntimeError.create(stringInput(input, 'second'));
-      const first = new AsyncRejectingSuccessBreaker(circuitBreakerOptions(input), firstCause);
-      const second = new AsyncRejectingSuccessBreaker(circuitBreakerOptions(input), secondCause);
+      const first = new AsyncRejectingSuccessBreaker(...circuitBreakerOptions(input), firstCause);
+      const second = new AsyncRejectingSuccessBreaker(...circuitBreakerOptions(input), secondCause);
       const results = await Promise.all([first.execute(succeed), second.execute(succeed)]);
       assert.deepEqual(results, stringArrayInput(expected, 'results'));
       await new Promise((resolve) => { setImmediate(resolve); });
@@ -805,7 +813,7 @@ const scenarioHandlers = {
 
     // Reopen path: closed → open (trip) → halfOpen → open (reopen, no trip).
     let reopenTime = clock[0] ?? 0;
-    const reopenBreaker = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => reopenTime }));
+    const reopenBreaker = new ObservedBreaker(...circuitBreakerOptions(input, { clock: () => reopenTime }));
     await assert.rejects(() => reopenBreaker.execute(fail));
     await assert.rejects(() => reopenBreaker.execute(fail));
     assert.equal(reopenBreaker.state, 'open');
@@ -822,7 +830,7 @@ const scenarioHandlers = {
 
     // Close path: closed → open (trip) → halfOpen → closed (trial successes).
     let closeTime = clock[0] ?? 0;
-    const closeBreaker = new ObservedBreaker(circuitBreakerOptions(input, { clock: () => closeTime }));
+    const closeBreaker = new ObservedBreaker(...circuitBreakerOptions(input, { clock: () => closeTime }));
     await assert.rejects(() => closeBreaker.execute(fail));
     await assert.rejects(() => closeBreaker.execute(fail));
     closeTime = clock[1] ?? closeTime;
