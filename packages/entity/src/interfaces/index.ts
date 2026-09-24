@@ -3,5 +3,8 @@ export type { EntityCreateFunctionInterface } from './EntityCreateFunctionInterf
 export type { EntityIntakeFunctionInterface } from './EntityIntakeFunctionInterface.js';
 export type { EntityValidateFunctionInterface } from './EntityValidateFunctionInterface.js';
 export type { EntityValidationErrorInterface } from './EntityValidationErrorInterface.js';
+export type { InvariantFunctionInterface } from './InvariantFunctionInterface.js';
+export type { ObjectSchemaShapeInterface } from './ObjectSchemaShapeInterface.js';
 export type { SchemaCompilerInterface } from './SchemaCompilerInterface.js';
+export type { SchemaNodeInterface } from './SchemaNodeInterface.js';
 export type { SchemaRegistrySetInterface } from './SchemaRegistrySetInterface.js';
