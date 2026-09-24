@@ -467,6 +467,25 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
         '$ref': '#/$defs/Node'
       },
       'value': { 'value': 1 }
+    },
+    {
+      'name': 'contains reached only through $ref (property)',
+      'schema': {
+        '$defs': { 'List': { 'contains': { 'type': 'string' }, 'type': 'array' } },
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-contains-ref-property',
+        'properties': { 'items': { '$ref': '#/$defs/List' } },
+        'type': 'object'
+      },
+      'value': { 'items': [1, 2, 3] }
+    },
+    {
+      'name': 'contains reached only through $ref (array schema itself)',
+      'schema': {
+        '$defs': { 'List': { 'contains': { 'type': 'string' }, 'type': 'array' } },
+        '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-contains-ref-array',
+        '$ref': '#/$defs/List'
+      },
+      'value': [1, 2, 3]
     }
   ];
 
