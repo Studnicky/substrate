@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Data structure for a normalized error log entry.
@@ -57,9 +58,33 @@ export namespace LogFaultDataEntity {
     'required': ['context', 'event', 'message', 'name', 'status'],
     'title': 'LogFaultData',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogFaultData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized error log entry.', 'title': 'LogFaultData', 'type': 'object' } as const, { 'cause': SchemaNode.defineString({
+    'description': 'Underlying cause message (for chained errors).',
+    'type': 'string'
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const), 'durationMs': SchemaNode.defineNumber({
+    'description': 'Duration in milliseconds.',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'event': SchemaNode.defineString({
+    'description': 'Hierarchical event identifier: component.operation',
+    'type': 'string'
+  } as const), 'message': SchemaNode.defineString({
+    'description': 'Human-readable log message.',
+    'type': 'string'
+  } as const), 'name': SchemaNode.defineString({
+    'description': 'Error name/type.',
+    'type': 'string'
+  } as const), 'stack': SchemaNode.defineString({
+    'description': 'Error stack trace.',
+    'type': 'string'
+  } as const), 'status': SchemaNode.defineEnum([
+    'cached', 'complete', 'failed', 'in_progress', 'invalid', 'not_found', 'partial',
+    'pending', 'rate_limited', 'retry_exhausted', 'retrying', 'skipped', 'success',
+    'timeout', 'unauthorized', 'unavailable'
+  ] as const) }, ['context', 'event', 'message', 'name', 'status'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

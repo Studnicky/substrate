@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Parsed JSON emitted by `rocm-smi --showmeminfo vram --json`. */
 export namespace GpuAmdProfileEntity {
@@ -19,9 +20,10 @@ export namespace GpuAmdProfileEntity {
     },
     'title': 'GpuAmdProfile',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'title': 'GpuAmdProfile', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': false, 'patternProperties': { '.*': SchemaNode.defineObject({ 'type': 'object' } as const, { 'VRAM Total Memory (B)': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false }) } });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

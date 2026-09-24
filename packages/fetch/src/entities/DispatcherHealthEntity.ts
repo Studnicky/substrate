@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { SocketDispatcherStatsEntity } from './SocketDispatcherStatsEntity.js';
 
@@ -33,9 +34,19 @@ export namespace DispatcherHealthEntity {
     'required': ['healthy'],
     'title': 'DispatcherHealth',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/DispatcherHealth', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Dispatcher health assessment result', 'title': 'DispatcherHealth', 'type': 'object' } as const, { 'healthy': SchemaNode.defineBoolean({
+    'description': 'Whether the dispatcher is healthy (not overloaded)',
+    'type': 'boolean'
+  } as const), 'queueRatio': SchemaNode.defineNumber({
+    'description': 'Queue ratio: pending requests / connected sockets. Undefined if no dispatcher exists for this origin.',
+    'type': 'number'
+  } as const), 'recommendation': SchemaNode.defineString({
+    'description': 'Recommendation for improving dispatcher health. Undefined if dispatcher is healthy or doesn\'t exist.',
+    'type': 'string'
+  } as const), 'stats': SocketDispatcherStatsEntity.Node }, ['healthy'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
