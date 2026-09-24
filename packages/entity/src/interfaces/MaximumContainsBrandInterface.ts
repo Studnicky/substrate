@@ -4,8 +4,8 @@
  *
  * @module
  */
-import type { IdentityType } from '../IdentityType.js';
-
 declare const MAXIMUM_CONTAINS: unique symbol;
 
-export type MaximumContainsBrandType<N extends number> = IdentityType<{ [MAXIMUM_CONTAINS]: N }> & unknown[];
+export interface MaximumContainsBrandInterface<N extends number> extends Array<unknown> {
+  readonly [MAXIMUM_CONTAINS]: N;
+}

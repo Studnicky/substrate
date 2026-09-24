@@ -165,7 +165,10 @@ export const allTypesAreEntities: Rule.RuleModule = {
       if (analysis.classification !== 'pureDataCanonical') {
         return;
       }
-      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) {
+      if (
+        analysis.reason === 'fromSchema'
+        && (EntityTypeDeclaration.isCanonical(declaration) || classification.isJustifiedHandWrittenTypeAlias(declaration))
+      ) {
         return;
       }
 

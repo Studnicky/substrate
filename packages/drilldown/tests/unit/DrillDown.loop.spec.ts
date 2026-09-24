@@ -3,9 +3,9 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { DrillDownConfigEntity, GroupNodeInterface } from '../../src/index.js';
+import type { GroupNodeInterface } from '../../src/index.js';
 
-import { DrillDown } from '../../src/index.js';
+import { DrillDown, DrillDownConfigEntity } from '../../src/index.js';
 import { valueDiscoveryEngine } from '../../src/modules/rules/valueDiscoveryEngine.js';
 import scenarioGroups from './DrillDown.scenarios.json' with { type: 'json' };
 
@@ -99,12 +99,17 @@ function parseConfig(value: unknown): DrillDownConfigEntity.Type {
   const record = requireRecord(value);
   const rules = requireRecord(requireValue(record, 'rules'));
   const group = requireArray(requireValue(rules, 'group')).map(parseGroupRule);
-  const parsed: DrillDownConfigEntity.Type = { 'minimumGroupSize': requireNumber(requireValue(record, 'minimumGroupSize')), 'rules': { 'group': group } };
+  const minimumGroupSize = requireNumber(requireValue(record, 'minimumGroupSize'));
+  // `rules` carries a cross-document `$ref` to `DrilldownRulesEntity` that intake's compiled
+  // validator cannot resolve (pre-existing gap in EntityCompiler.compileIntake, unrelated to
+  // this schema; see report to team-lead) — proved through intake without it, merged after.
   if (Object.hasOwn(record, 'filter')) {
     const filters = requireArray(requireValue(record, 'filter')).map(parseExcludeValueFilter);
-    return { ...parsed, 'filter': filters };
+    const proven = DrillDownConfigEntity.intake({ 'minimumGroupSize': minimumGroupSize, 'filter': filters });
+    return { ...proven, 'rules': { 'group': group } };
   }
-  return parsed;
+  const proven = DrillDownConfigEntity.intake({ 'minimumGroupSize': minimumGroupSize });
+  return { ...proven, 'rules': { 'group': group } };
 }
 
 function parseScenario(value: unknown): ScenarioCase {

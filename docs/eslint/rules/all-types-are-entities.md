@@ -14,6 +14,8 @@ The rule accepts both canonical spellings:
 
 `F` must have verified schema-derived provenance. A pure-data declaration that does not meet the exact entity ownership and derivation shape is reported. The rule does nothing when TypeScript parser services are unavailable.
 
+Since [`type-alias-invariants`](./type-alias-invariants.md) also retains a hand-written `Type` as canonical pure data when the namespace's own `Schema`/`Node` provably defeats structural derivation, this rule accepts that same hand-written form instead of reporting it as an ownership mismatch — a declaration classified canonical for that reason needs no `typeof Schema`/`typeof Node` reference to satisfy the entity form.
+
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect

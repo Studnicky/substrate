@@ -23,7 +23,7 @@ import { KeyedRateLimiterBoundaryError } from './errors/KeyedRateLimiterBoundary
 import { KeyedRateLimiterConfigError } from './errors/KeyedRateLimiterConfigError.js';
 
 interface KeyedRateLimiterDepsInterface<TStrategy extends RateLimiterStrategyInterface> {
-  'cacheOptions': LruCacheOptionsEntity.Type;
+  'cacheOptions': LruCacheOptionsEntity.InputType;
   'factory': (this: KeyedRateLimiter<TStrategy>, key: string) => TStrategy;
   'tokenBucketOptions': TokenBucketOptionsInterface | undefined;
 }
@@ -84,7 +84,7 @@ class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
  * ```
  */
 export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = TokenBucket> {
-  static #createCacheOptions(options: KeyedRateLimiterRegistryOptionsEntity.Type): LruCacheOptionsEntity.Type {
+  static #createCacheOptions(options: KeyedRateLimiterRegistryOptionsEntity.Type): LruCacheOptionsEntity.InputType {
     return {
       'capacity': options.maximumKeys ?? DEFAULT_MAXIMUM_KEYS,
       ...(options.keyIdleTtlMs === undefined ? {} : { 'ttlMs': options.keyIdleTtlMs })
@@ -100,7 +100,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     constructor(
       hookInvoker: HookInvoker,
       notifyKeyEviction: (key: string) => void,
-      options: LruCacheOptionsEntity.Type
+      options: LruCacheOptionsEntity.InputType
     ) {
       super(options);
       this.#hookInvoker = hookInvoker;

@@ -52,7 +52,7 @@ type ScenarioShape =
 type BaseScenarioCase<Shape extends ScenarioShape> = {
   description: string;
   expected: { sizes?: number[] } & Record<string, unknown>;
-  input: { cache: LruCacheOptionsEntity.Type } & Record<string, unknown>;
+  input: { cache: LruCacheOptionsEntity.InputType } & Record<string, unknown>;
   shape: Shape;
   name: string;
 };
@@ -80,7 +80,7 @@ class RecordingCache extends LruCache<string, number> {
     | { event: "update"; key: string }
   > = [];
 
-  constructor(config: LruCacheOptionsEntity.Type) {
+  constructor(config: LruCacheOptionsEntity.InputType) {
     super(config);
   }
 
@@ -674,7 +674,7 @@ const runnerMap = {
   },
   "throwing-on-expire": (scenarioCase) => {
     const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.Type;
+      cache: LruCacheOptionsEntity.InputType;
       key: string;
       ttlMs: number;
       value: number;
@@ -683,7 +683,7 @@ const runnerMap = {
     };
     const expected = scenarioCase.expected as { size: number; value: null };
     class ThrowingExpireCache extends LruCache<string, number> {
-      constructor(config: LruCacheOptionsEntity.Type) {
+      constructor(config: LruCacheOptionsEntity.InputType) {
         super(config);
       }
 
@@ -705,7 +705,7 @@ const runnerMap = {
   },
   "throwing-on-hit": (scenarioCase) => {
     const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.Type;
+      cache: LruCacheOptionsEntity.InputType;
       keyA: string;
       keyB: string;
       keyC: string;
@@ -724,7 +724,7 @@ const runnerMap = {
     class ThrowingHitCache extends LruCache<string, number> {
       hitCount = 0;
 
-      constructor(config: LruCacheOptionsEntity.Type) {
+      constructor(config: LruCacheOptionsEntity.InputType) {
         super(config);
       }
 
@@ -745,7 +745,7 @@ const runnerMap = {
   },
   "throwing-on-update": (scenarioCase) => {
     const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.Type;
+      cache: LruCacheOptionsEntity.InputType;
       key: string;
       firstValue: number;
       secondValue: number;
@@ -753,7 +753,7 @@ const runnerMap = {
     };
     const expected = scenarioCase.expected as { value: number };
     class ThrowingUpdateCache extends LruCache<string, number> {
-      constructor(config: LruCacheOptionsEntity.Type) {
+      constructor(config: LruCacheOptionsEntity.InputType) {
         super(config);
       }
 

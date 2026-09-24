@@ -39,6 +39,16 @@
       "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n}",
       "filename": "packages/retry/src/entities/NodeStaticTypeFixtureEntity.ts",
       "name": "NodeStaticType<typeof Node>-derived entity namespace Type form is valid (constraint-carrying engine)"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ContextLookupEntity {\n  export const Schema = {\n    additionalProperties: false,\n    properties: { found: { type: 'boolean' }, value: {} },\n    required: ['found', 'value'],\n    type: 'object'\n  } as const;\n  export type Type = { found: boolean; value: unknown };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).found === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "filename": "packages/retry/src/entities/ContextLookupEntity.ts",
+      "name": "an entity Type composing an empty schema (`{}`, matches any value) does not trigger the canonical-entity-alias mismatch"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+      "filename": "packages/retry/src/entities/ValidatedAdaptiveConfigEntity.ts",
+      "name": "an entity Type composing an anyOf value discriminant does not trigger the canonical-entity-alias mismatch"
     }
   ],
   "invalid": [

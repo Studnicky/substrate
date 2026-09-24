@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { MaximumItemsBrandType } from '../../../../src/types/brands/MaximumItemsBrandType.js';
-import type { MaximumPropertiesBrandType } from '../../../../src/types/brands/MaximumPropertiesBrandType.js';
+import type { MaximumItemsBrandInterface, MaximumPropertiesBrandInterface } from '../../../../src/interfaces/index.js';
 import type { MinimumBrandType } from '../../../../src/types/brands/MinimumBrandType.js';
 import type { MinimumLengthBrandType } from '../../../../src/types/brands/MinimumLengthBrandType.js';
 import type { PatternBrandType } from '../../../../src/types/brands/PatternBrandType.js';
@@ -18,8 +17,8 @@ type ExpectTrueType<T extends true> = T;
 type LengthFail = DiagnoseBrandConstraintType<'minLength', 5, MinimumLengthBrandType<5>, 'foo', '/name'>;
 type PatternFail = DiagnoseBrandConstraintType<'pattern', '^[a-z]+$', PatternBrandType<'^[a-z]+$'>, 'ABC', '/slug'>;
 type MinimumFail = DiagnoseBrandConstraintType<'minimum', 1, MinimumBrandType<1>, 0, '/count'>;
-type ItemsFail = DiagnoseBrandConstraintType<'maxItems', 5, MaximumItemsBrandType<5>, [], '/tags'>;
-type PropertiesFail = DiagnoseBrandConstraintType<'maxProperties', 3, MaximumPropertiesBrandType<3>, object, '/meta'>;
+type ItemsFail = DiagnoseBrandConstraintType<'maxItems', 5, MaximumItemsBrandInterface<5>, [], '/tags'>;
+type PropertiesFail = DiagnoseBrandConstraintType<'maxProperties', 3, MaximumPropertiesBrandInterface<3>, object, '/meta'>;
 
 type LengthCheck = ExpectTrueType<EqualType<LengthFail['constraint'], 'minLength'>>;
 type PatternCheck = ExpectTrueType<EqualType<PatternFail['constraint'], 'pattern'>>;

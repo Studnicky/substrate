@@ -6,7 +6,9 @@
  *
  * @module
  */
-export interface SchemaNodeInterface<TSchema, TStatic> {
+export interface SchemaNodeInterface<TSchema, TStatic, TInput = TStatic> {
+  /** Phantom — carries `TInput` for `NodeInputType` to read; never assigned at runtime. */
+  readonly 'input'?: TInput;
   readonly 'schema': TSchema;
   /** Phantom — carries `TStatic` for `NodeStaticType` to read; never assigned at runtime. */
   readonly 'static'?: TStatic;

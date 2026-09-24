@@ -27,7 +27,7 @@ const ruleTester = new RuleTester({
           'packages/retry/src/types/*.ts',
           'packages/retry/tests/unit/*.test.ts'
         ],
-        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
+        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30
       },
       tsconfigRootDir: repoRoot
     }

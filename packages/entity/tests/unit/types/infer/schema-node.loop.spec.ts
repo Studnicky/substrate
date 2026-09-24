@@ -129,13 +129,13 @@ void describe('SchemaNode array/tuple constructors', () => {
     assertAssignable<NodeStaticType<typeof tagsNode>>(['ABC' as NodeStaticType<typeof codeNode>] as NodeStaticType<typeof tagsNode>);
   });
 
-  void it('defineArray with uniqueItems: true carries the UniqueItemsBrandType', () => {
+  void it('defineArray with uniqueItems: true carries the UniqueItemsBrandInterface', () => {
     const uniqueTagsNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, codeNode);
     assert.equal(uniqueTagsNode.schema.uniqueItems, true);
     assertAssignable<NodeStaticType<typeof uniqueTagsNode>>(['ABC' as NodeStaticType<typeof codeNode>] as NodeStaticType<typeof uniqueTagsNode>);
   });
 
-  void it('defineArray with contains carries the ContainsBrandType', () => {
+  void it('defineArray with contains carries the ContainsBrandInterface', () => {
     const withContainsNode = SchemaNode.defineArray({ 'type': 'array' } as const, ageNode, versionNode);
     assert.deepEqual(withContainsNode.schema.contains, versionNode);
     assertAssignable<NodeStaticType<typeof withContainsNode>>([30 as NodeStaticType<typeof ageNode>] as NodeStaticType<typeof withContainsNode>);

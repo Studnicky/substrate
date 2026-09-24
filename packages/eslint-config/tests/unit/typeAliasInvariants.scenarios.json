@@ -89,6 +89,16 @@
         "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nconst ValueNode = defineNode<string>({ type: 'string' } as const);\nexport type ValueType = NodeStaticType<typeof ValueNode>;",
         "filename": "packages/eslint-config/CanonicalNode.ts",
         "name": "direct NodeStaticType-derived data is canonical (constraint-carrying engine)"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ContextLookupEntity {\n  export const Schema = {\n    additionalProperties: false,\n    properties: { found: { type: 'boolean' }, value: {} },\n    required: ['found', 'value'],\n    type: 'object'\n  } as const;\n  export type Type = { found: boolean; value: unknown };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).found === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/ContextLookupEntity.ts",
+        "name": "an entity Type composing an empty schema (`{}`, matches any value) is accepted as canonical pure data"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/ValidatedAdaptiveConfigEntity.ts",
+        "name": "an entity Type composing an anyOf value discriminant (co-occurring with properties/required) is accepted as canonical pure data"
       }
     ],
     "invalid": [
@@ -411,6 +421,16 @@
         ],
         "filename": "packages/eslint-config/MutableOwnerNodeBinding.ts",
         "name": "a let binding is not value-first authored even for an owner-direct Node (rejected via the interface-contract path, not derivedFromSchema \u2014 NodeStaticType structural fallback resolves differently than FromSchema does)"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/FooEntity.ts",
+        "name": "an entity Type hand-written for a schema that derives structurally on its own is still rejected"
       }
     ]
   },

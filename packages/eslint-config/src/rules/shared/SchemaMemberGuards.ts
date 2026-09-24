@@ -543,6 +543,16 @@ export class SchemaMemberGuards {
 
     if (nodeType === 'ObjectExpression') {
       const properties = Array.isArray(node.properties) ? node.properties : [];
+
+      // An empty schema (`{}`) has no constraining keyword at all — it matches any value,
+      // the same unprovable-otherwise shape `not`/`if`/`then`/`else` are.
+      if (properties.length === 0) {
+        return true;
+      }
+      if (SchemaMemberGuards.isAnyOfRefinement(properties)) {
+        return true;
+      }
+
       const result = properties.some(SchemaMemberGuards.propertyDefeatsDerivation);
 
       return result;
@@ -555,6 +565,23 @@ export class SchemaMemberGuards {
     }
 
     return false;
+  }
+
+  // `anyOf` co-occurring with `properties`/`required` in the SAME object is a refinement on an
+  // independently-declared base shape — a conditional discriminant, not a plain union. `anyOf`
+  // alone (no sibling base-shape keyword) is an ordinary union and derives structurally fine;
+  // only the refinement form is unprovable otherwise.
+  private static isAnyOfRefinement(properties: readonly unknown[]): boolean {
+    const keyNames = new Set(properties.map((property) => {
+      const record = Predicates.isRecord(property) ? property : undefined;
+      const result = record === undefined ? undefined : SchemaMemberGuards.staticKeyName(record.key);
+
+      return result;
+    }));
+
+    const result = keyNames.has('anyOf') && (keyNames.has('properties') || keyNames.has('required'));
+
+    return result;
   }
 
   private static propertyDefeatsDerivation(property: unknown): boolean {

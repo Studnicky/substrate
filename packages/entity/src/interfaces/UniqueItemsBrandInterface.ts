@@ -4,8 +4,8 @@
  *
  * @module
  */
-import type { IdentityType } from '../IdentityType.js';
-
 declare const UNIQUE_ITEMS: unique symbol;
 
-export type UniqueItemsBrandType<B extends true> = IdentityType<{ [UNIQUE_ITEMS]: B }> & unknown[];
+export interface UniqueItemsBrandInterface<B extends true> extends Array<unknown> {
+  readonly [UNIQUE_ITEMS]: B;
+}
