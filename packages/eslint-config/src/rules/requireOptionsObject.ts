@@ -124,19 +124,34 @@ class FunctionName {
   public static fromParent(node: Rule.Node): string {
     const parent: unknown = node.parent;
     if (!Predicates.isRecord(parent)) { return '(anonymous)'; }
-    if (parent.type === 'VariableDeclarator' && Predicates.isRecord(parent.id) && parent.id.type === 'Identifier') {
-      const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
-      return result;
-    }
-    if (
-      (parent.type === 'MethodDefinition' || parent.type === 'Property')
-      && Predicates.isRecord(parent.key)
-      && parent.key.type === 'Identifier'
-    ) {
-      const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
-      return result;
-    }
+
+    const variableName = FunctionName.variableDeclaratorName(parent);
+    if (variableName !== undefined) { return variableName; }
+
+    const memberName = FunctionName.memberKeyName(parent);
+    if (memberName !== undefined) { return memberName; }
+
     return '(anonymous)';
+  }
+
+  private static variableDeclaratorName(parent: Record<string, unknown>): string | undefined {
+    if (parent.type !== 'VariableDeclarator' || !Predicates.isRecord(parent.id) || parent.id.type !== 'Identifier') { return undefined; }
+
+    const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
+
+    return result;
+  }
+
+  private static memberKeyName(parent: Record<string, unknown>): string | undefined {
+    if (
+      (parent.type !== 'MethodDefinition' && parent.type !== 'Property')
+      || !Predicates.isRecord(parent.key)
+      || parent.key.type !== 'Identifier'
+    ) { return undefined; }
+
+    const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
+
+    return result;
   }
 }
 

@@ -1,0 +1,1 @@
+export const MAXIMUM_RECURSION_DEPTH = 100;

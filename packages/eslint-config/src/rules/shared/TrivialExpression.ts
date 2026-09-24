@@ -363,10 +363,15 @@ class IdentifierSelection {
   }
 }
 
+interface TrivialExpressionOptionsInterface {
+  readonly 'allowLiterals': boolean;
+  readonly 'allowMemberExpressions': boolean;
+}
+
 export class TrivialExpression {
   public static isTrivial(
     node: unknown,
-    options: { 'allowLiterals': boolean; 'allowMemberExpressions': boolean },
+    options: TrivialExpressionOptionsInterface,
     parameterNames: ReadonlySet<string>,
     context: Rule.RuleContext
   ): boolean {
@@ -376,12 +381,31 @@ export class TrivialExpression {
       return false;
     }
 
-    // Factories and constructors — creating new value, not forwarding one. Never a shim.
-    if (
-      type === 'ObjectExpression'
-      || type === 'ArrayExpression'
-      || type === 'NewExpression'
-    ) {
+    const memberOrLiteral = TrivialExpression.#classifyMemberOrLiteral(node, type, options);
+
+    if (memberOrLiteral !== undefined) {
+      return memberOrLiteral;
+    }
+
+    const passThrough = TrivialExpression.#classifyPassThrough(node, type, parameterNames, context);
+
+    if (passThrough !== undefined) {
+      return passThrough;
+    }
+
+    const recursed = TrivialExpression.#classifyRecursive(node, type, options, parameterNames, context);
+    const result = recursed ?? false;
+
+    return result;
+  }
+
+  // Factories/constructors create new value, never a shim; member/literal access is opt-in via options.
+  static #classifyMemberOrLiteral(
+    node: unknown,
+    type: string,
+    options: TrivialExpressionOptionsInterface
+  ): boolean | undefined {
+    if (type === 'ObjectExpression' || type === 'ArrayExpression' || type === 'NewExpression') {
       return false;
     }
 
@@ -403,44 +427,74 @@ export class TrivialExpression {
       return result;
     }
 
-    // Pure pass-through: forwarding an identifier, delegating a call, or chaining.
-    if (
-      type === 'Identifier'
+    return undefined;
+  }
+
+  // Pure pass-through: forwarding an identifier, delegating a call, or chaining.
+  static #classifyPassThrough(
+    node: unknown,
+    type: string,
+    parameterNames: ReadonlySet<string>,
+    context: Rule.RuleContext
+  ): boolean | undefined {
+    const isPassThroughType = type === 'Identifier'
       || type === 'CallExpression'
       || type === 'AwaitExpression'
-      || type === 'ChainExpression'
-    ) {
-      // A bare identifier that SELECTS among several of the function's own parameters is not
-      // identity forwarding — see the module comment above `IdentifierSelection`.
-      if (type === 'Identifier' && IdentifierSelection.isParameterSelection(node, parameterNames)) {
-        return false;
-      }
-      // A call passing instance state as an argument is doing work, not forwarding — see
-      // docs/eslint/rules/inline-trivial-logic.md "Exemptions".
-      if (ArgumentInspection.referencesInstanceState(node)) {
-        return false;
-      }
-      // Forwarding to a non-public receiver is exactly as unfixable as passing `this`/`#field`
-      // as an argument — see the module comment above `InaccessibleReceiverGuard`.
-      if (InaccessibleReceiverGuard.hasInaccessibleReceiver(node, context)) {
-        return false;
-      }
-      // A call preserving a runtime-injected receiver's binding is an adapter, not a shim —
-      // see the module comment above `ReceiverBindingAdapterGuard`.
-      if (type === 'CallExpression' && ReceiverBindingAdapterGuard.isReceiverBindingAdapter(node, context)) {
-        return false;
-      }
-      // A call must additionally forward its OWN arguments 1:1 — including calls wrapped by
-      // `await` or optional chaining. The shared unwrap preserves the call argument list.
-      const call = InaccessibleReceiverGuard.unwrapToCallExpression(node);
+      || type === 'ChainExpression';
 
-      if (call !== undefined && !CallArgumentForwarding.isPureForward(call, parameterNames)) {
-        return false;
-      }
-
-      return true;
+    if (!isPassThroughType) {
+      return undefined;
     }
 
+    if (TrivialExpression.#hasNonForwardingReason(node, type, parameterNames, context)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  static #hasNonForwardingReason(
+    node: unknown,
+    type: string,
+    parameterNames: ReadonlySet<string>,
+    context: Rule.RuleContext
+  ): boolean {
+    // A bare identifier that SELECTS among several of the function's own parameters is not
+    // identity forwarding — see the module comment above `IdentifierSelection`.
+    if (type === 'Identifier' && IdentifierSelection.isParameterSelection(node, parameterNames)) {
+      return true;
+    }
+    // A call passing instance state as an argument is doing work, not forwarding — see
+    // docs/eslint/rules/inline-trivial-logic.md "Exemptions".
+    if (ArgumentInspection.referencesInstanceState(node)) {
+      return true;
+    }
+    // Forwarding to a non-public receiver is exactly as unfixable as passing `this`/`#field`
+    // as an argument — see the module comment above `InaccessibleReceiverGuard`.
+    if (InaccessibleReceiverGuard.hasInaccessibleReceiver(node, context)) {
+      return true;
+    }
+    // A call preserving a runtime-injected receiver's binding is an adapter, not a shim —
+    // see the module comment above `ReceiverBindingAdapterGuard`.
+    if (type === 'CallExpression' && ReceiverBindingAdapterGuard.isReceiverBindingAdapter(node, context)) {
+      return true;
+    }
+    // A call must additionally forward its OWN arguments 1:1 — including calls wrapped by
+    // `await` or optional chaining. The shared unwrap preserves the call argument list.
+    const call = InaccessibleReceiverGuard.unwrapToCallExpression(node);
+    const result = call !== undefined && !CallArgumentForwarding.isPureForward(call, parameterNames);
+
+    return result;
+  }
+
+  // TS wrapper stripping and sequence-expression tail recursion.
+  static #classifyRecursive(
+    node: unknown,
+    type: string,
+    options: TrivialExpressionOptionsInterface,
+    parameterNames: ReadonlySet<string>,
+    context: Rule.RuleContext
+  ): boolean | undefined {
     // Strip TS wrappers and recurse.
     if (type === 'TSAsExpression' || type === 'TSNonNullExpression' || type === 'TSSatisfiesExpression') {
       const result = TrivialExpression.isTrivial(NodeExpressionAccess.getExpression(node), options, parameterNames, context);
@@ -462,6 +516,6 @@ export class TrivialExpression {
       return result;
     }
 
-    return false;
+    return undefined;
   }
 }

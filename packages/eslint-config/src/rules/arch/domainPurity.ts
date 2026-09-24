@@ -67,39 +67,51 @@ class CalleeDottedName {
     }
 
     if (nodeType === 'MemberExpression') {
-      const object: unknown = node.object;
-      const property: unknown = node.property;
-      const computed = node.computed === true;
-
-      const objectName = CalleeDottedName.resolveMemberChain(object);
-
-      if (objectName === undefined) {
-        return undefined;
-      }
-      if (!Predicates.isRecord(property)) {
-        return undefined;
-      }
-
-      if (computed) {
-        if (property.type !== 'Literal') {
-          return undefined;
-        }
-        const value = property.value;
-        const result = typeof value === 'string' ? `${objectName}.${value}` : undefined;
-
-        return result;
-      }
-
-      if (property.type !== 'Identifier') {
-        return undefined;
-      }
-      const propertyName = property.name;
-      const result = typeof propertyName === 'string' ? `${objectName}.${propertyName}` : undefined;
+      const result = CalleeDottedName.resolveMemberExpressionChain(node);
 
       return result;
     }
 
     return undefined;
+  }
+
+  private static resolveMemberExpressionChain(node: Record<string, unknown>): string | undefined {
+    const object: unknown = node.object;
+    const property: unknown = node.property;
+    const computed = node.computed === true;
+
+    const objectName = CalleeDottedName.resolveMemberChain(object);
+
+    if (objectName === undefined) {
+      return undefined;
+    }
+    if (!Predicates.isRecord(property)) {
+      return undefined;
+    }
+
+    if (computed) {
+      const result = CalleeDottedName.resolveComputedMemberName(objectName, property);
+
+      return result;
+    }
+
+    if (property.type !== 'Identifier') {
+      return undefined;
+    }
+    const propertyName = property.name;
+    const result = typeof propertyName === 'string' ? `${objectName}.${propertyName}` : undefined;
+
+    return result;
+  }
+
+  private static resolveComputedMemberName(objectName: string, property: Record<string, unknown>): string | undefined {
+    if (property.type !== 'Literal') {
+      return undefined;
+    }
+    const value = property.value;
+    const result = typeof value === 'string' ? `${objectName}.${value}` : undefined;
+
+    return result;
   }
 
   /**
@@ -117,6 +129,18 @@ class CalleeDottedName {
       return undefined;
     }
 
+    const source = CalleeDottedName.destructuringSource(variable);
+
+    if (source === undefined) {
+      return undefined;
+    }
+
+    const result = CalleeDottedName.matchingDestructuredKey(source.properties, source.objectName, name);
+
+    return result;
+  }
+
+  private static destructuringSource(variable: Scope.Variable): Readonly<{ 'objectName': string; 'properties': unknown[] }> | undefined {
     const def = variable.defs.at(0);
 
     if (def?.type !== 'Variable') {
@@ -151,6 +175,10 @@ class CalleeDottedName {
       return undefined;
     }
 
+    return { 'objectName': objectName, 'properties': properties };
+  }
+
+  private static matchingDestructuredKey(properties: readonly unknown[], objectName: string, name: string): string | undefined {
     const propertiesLength = properties.length;
 
     for (let index = 0; index < propertiesLength; index += 1) {

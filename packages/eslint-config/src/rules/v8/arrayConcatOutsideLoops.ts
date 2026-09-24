@@ -1,4 +1,4 @@
-import type { Rule } from 'eslint';
+import type { Rule, Scope } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
@@ -29,39 +29,45 @@ class HelperReachability {
       return false;
     }
 
+    const callSites = HelperReachability.#collectCallSites(variable.references);
+
+    if (callSites === undefined || callSites.length === 0) {
+      return false;
+    }
+
+    const result = HelperReachability.#allSitesPerIteration(callSites, context);
+    return result;
+  }
+
+  /** `undefined` means a reference was passed around as a value — where it runs is unprovable. */
+  static #collectCallSites(references: readonly Scope.Reference[]): Rule.Node[] | undefined {
     const callSites: Rule.Node[] = [];
-    const references = variable.references;
     const length = references.length;
 
     for (let index = 0; index < length; index += 1) {
       const reference = references.at(index);
 
-      if (reference === undefined) {
-        continue;
-      }
-      if (reference.init === true) {
+      if (reference === undefined || reference.init === true) {
         continue;
       }
 
       const identifier = reference.identifier as unknown as Rule.Node;
       const parent = identifier.parent;
 
-      // A reference that is not a callee means the helper is passed around as a
-      // value; where it ultimately runs is unprovable, so report nothing.
       if (parent === null || !Predicates.isRecord(parent)) {
-        return false;
+        return undefined;
       }
       if (parent.type !== 'CallExpression' || parent.callee !== identifier) {
-        return false;
+        return undefined;
       }
 
       callSites.push(identifier);
     }
 
-    if (callSites.length === 0) {
-      return false;
-    }
+    return callSites;
+  }
 
+  static #allSitesPerIteration(callSites: readonly Rule.Node[], context: Rule.RuleContext): boolean {
     const siteCount = callSites.length;
 
     for (let siteIndex = 0; siteIndex < siteCount; siteIndex += 1) {

@@ -175,70 +175,111 @@ class AstHelpers {
     }
 
     if (id.type === 'ObjectPattern' && Predicates.isRecord(init) && init.type === 'ObjectExpression') {
-      const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
-      const sourceEntriesByName = new Map(sourceEntries.map((entry) => {
-        return [
-          entry.name,
-          entry.node
-        ];
-      }));
-      const patternProperties = Predicates.isArray(id.properties) ? id.properties : [];
-      const result: { 'name': string; 'node': unknown }[] = [];
-
-      patternProperties.forEach((patternProperty) => {
-        if (!Predicates.isRecord(patternProperty) || patternProperty.type !== 'Property') {
-          return;
-        }
-        if (patternProperty.computed === true) {
-          return;
-        }
-        const key = patternProperty.key;
-        const value = patternProperty.value;
-
-        if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
-          return;
-        }
-        if (!Predicates.isRecord(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
-          return;
-        }
-        const sourceNode = sourceEntriesByName.get(key.name);
-
-        if (sourceNode !== undefined) {
-          result.push({
-            'name': value.name, 'node': sourceNode
-          });
-        }
-      });
+      const result = AstHelpers.#destructuredFunctionEntriesFromObjectPattern(id, init);
 
       return result;
     }
 
     if (id.type === 'ArrayPattern' && Predicates.isRecord(init) && init.type === 'ArrayExpression') {
-      const patternElements = Predicates.isArray(id.elements) ? id.elements : [];
-      const initElements = Predicates.isArray(init.elements) ? init.elements : [];
-      const result: { 'name': string; 'node': unknown }[] = [];
-
-      patternElements.forEach((patternElement, index) => {
-        if (!Predicates.isRecord(patternElement) || patternElement.type !== 'Identifier') {
-          return;
-        }
-        if (typeof patternElement.name !== 'string') {
-          return;
-        }
-        const initElement: unknown = initElements.at(index);
-
-        if (!AstHelpers.isFunctionInit(initElement)) {
-          return;
-        }
-        result.push({
-          'name': patternElement.name, 'node': initElement
-        });
-      });
+      const result = AstHelpers.#destructuredFunctionEntriesFromArrayPattern(id, init);
 
       return result;
     }
 
     return [];
+  }
+
+  static #destructuredFunctionEntriesFromObjectPattern(
+    id: Record<string, unknown>,
+    init: Record<string, unknown>
+  ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+    const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
+    const sourceEntriesByName = new Map(sourceEntries.map((entry) => {
+      return [
+        entry.name,
+        entry.node
+      ];
+    }));
+    const patternProperties = Predicates.isArray(id.properties) ? id.properties : [];
+    const result: { 'name': string; 'node': unknown }[] = [];
+
+    patternProperties.forEach((patternProperty) => {
+      const entry = AstHelpers.#destructuredObjectPropertyEntry(patternProperty, sourceEntriesByName);
+
+      if (entry !== undefined) {
+        result.push(entry);
+      }
+    });
+
+    return result;
+  }
+
+  static #destructuredObjectPropertyEntry(
+    patternProperty: unknown,
+    sourceEntriesByName: ReadonlyMap<string, unknown>
+  ): { readonly 'name': string; readonly 'node': unknown } | undefined {
+    const names = AstHelpers.#destructuredObjectPropertyNames(patternProperty);
+
+    if (names === undefined) {
+      return undefined;
+    }
+    const sourceNode = sourceEntriesByName.get(names.keyName);
+
+    if (sourceNode === undefined) {
+      return undefined;
+    }
+
+    return { 'name': names.valueName, 'node': sourceNode };
+  }
+
+  static #destructuredObjectPropertyNames(
+    patternProperty: unknown
+  ): { readonly 'keyName': string; readonly 'valueName': string } | undefined {
+    if (!Predicates.isRecord(patternProperty) || patternProperty.type !== 'Property') {
+      return undefined;
+    }
+    if (patternProperty.computed === true) {
+      return undefined;
+    }
+    const key = patternProperty.key;
+    const value = patternProperty.value;
+
+    if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
+      return undefined;
+    }
+    if (!Predicates.isRecord(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
+      return undefined;
+    }
+
+    return { 'keyName': key.name, 'valueName': value.name };
+  }
+
+  static #destructuredFunctionEntriesFromArrayPattern(
+    id: Record<string, unknown>,
+    init: Record<string, unknown>
+  ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+    const patternElements = Predicates.isArray(id.elements) ? id.elements : [];
+    const initElements = Predicates.isArray(init.elements) ? init.elements : [];
+    const result: { 'name': string; 'node': unknown }[] = [];
+
+    patternElements.forEach((patternElement, index) => {
+      if (!Predicates.isRecord(patternElement) || patternElement.type !== 'Identifier') {
+        return;
+      }
+      if (typeof patternElement.name !== 'string') {
+        return;
+      }
+      const initElement: unknown = initElements.at(index);
+
+      if (!AstHelpers.isFunctionInit(initElement)) {
+        return;
+      }
+      result.push({
+        'name': patternElement.name, 'node': initElement
+      });
+    });
+
+    return result;
   }
 
   public static isNamedType(type: ts.Type): boolean {

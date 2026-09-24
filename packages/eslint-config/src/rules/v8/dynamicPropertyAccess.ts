@@ -117,7 +117,13 @@ class PropertyOperation {
       return result;
     }
 
-    // A destructuring target: `[o[k]] = xs` / `({ a: o[k] } = obj)`.
+    const result = PropertyOperation.#isDestructuringTarget(raw, node, parent);
+
+    return result;
+  }
+
+  // A destructuring target: `[o[k]] = xs` / `({ a: o[k] } = obj)`.
+  static #isDestructuringTarget(raw: Record<string, unknown>, node: Rule.Node, parent: Rule.Node): boolean {
     const result = raw.type === 'ArrayPattern' || raw.type === 'ObjectPattern' || raw.type === 'Property' && raw.value === node && PropertyOperation.#inPattern(parent);
 
     return result;

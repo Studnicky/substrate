@@ -6,16 +6,13 @@ import type {
 import { Predicates } from '@studnicky/types/browser';
 
 import {
-  BUILTIN_COLLECTION_CONSTRUCTOR_NAMES,
   ENTITY_DIR_REGEX,
   ENTITY_FILE_REGEX,
   FILE_EXTENSION_STRIP_PATTERN,
-  FUNCTION_LIKE_INIT_TYPES,
-  INDEX_FILES,
-  PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES,
-  TS_WRAPPER_EXPRESSION_TYPES
+  INDEX_FILES
 } from './constants/EntityFileShapeConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { DeclaratorName } from './shared/DeclaratorName.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 
 /**
@@ -188,329 +185,6 @@ class TopLevelScope {
   }
 }
 
-class DeclaratorName {
-  static collectPatternNames(patternNode: unknown, names: string[]): void {
-    if (!Predicates.isRecord(patternNode)) {
-      return;
-    }
-
-    const nodeType: unknown = patternNode.type;
-
-    if (nodeType === 'Identifier') {
-      const name: unknown = patternNode.name;
-
-      if (typeof name === 'string') {
-        names.push(name);
-      }
-
-      return;
-    }
-
-    if (nodeType === 'AssignmentPattern') {
-      DeclaratorName.collectPatternNames(patternNode.left, names);
-
-      return;
-    }
-
-    if (nodeType === 'RestElement') {
-      DeclaratorName.collectPatternNames(patternNode.argument, names);
-
-      return;
-    }
-
-    if (nodeType === 'ObjectPattern') {
-      const properties: unknown = patternNode.properties;
-
-      if (!Array.isArray(properties)) {
-        return;
-      }
-
-      const propertiesLength = properties.length;
-
-      for (let index = 0; index < propertiesLength; index += 1) {
-        const property: unknown = properties.at(index);
-
-        if (!Predicates.isRecord(property)) {
-          continue;
-        }
-
-        if (property.type === 'RestElement') {
-          DeclaratorName.collectPatternNames(property.argument, names);
-          continue;
-        }
-
-        DeclaratorName.collectPatternNames(property.value, names);
-      }
-
-      return;
-    }
-
-    if (nodeType === 'ArrayPattern') {
-      const elements: unknown = patternNode.elements;
-
-      if (!Array.isArray(elements)) {
-        return;
-      }
-
-      const elementsLength = elements.length;
-
-      for (let index = 0; index < elementsLength; index += 1) {
-        const element: unknown = elements.at(index);
-
-        if (element === null || element === undefined) {
-          continue;
-        }
-        DeclaratorName.collectPatternNames(element, names);
-      }
-    }
-  }
-
-  static getAll(declarator: unknown): string[] {
-    if (!Predicates.isRecord(declarator)) {
-      return [];
-    }
-
-    const names: string[] = [];
-
-    DeclaratorName.collectPatternNames(declarator.id, names);
-
-    return names;
-  }
-
-  // TS wrapper expressions (`as`, `satisfies`, `!`, `<T>x`) carry no data
-  // shape of their own — unwrap to the expression underneath before
-  // classifying it as function/reference-like or as data.
-  static unwrapTsExpression(node: unknown): unknown {
-    let current = node;
-
-    while (Predicates.isRecord(current) && typeof current.type === 'string' && TS_WRAPPER_EXPRESSION_TYPES.has(current.type)) {
-      current = current.expression;
-    }
-
-    return current;
-  }
-
-  // A call to a primitive-wrapper builtin (`Number(...)`, `String(...)`, `Boolean(...)`) with a
-  // single literal argument produces a plain primitive value, not a function/reference — a magic
-  // constant spelled `Number(3)` is still the magic constant `3`, not a factory or dispatch map.
-  static isPrimitiveWrapperLiteralCall(node: unknown): boolean {
-    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
-      return false;
-    }
-
-    const callee: unknown = node.callee;
-
-    if (!Predicates.isRecord(callee) || callee.type !== 'Identifier') {
-      return false;
-    }
-
-    const { name } = callee;
-
-    if (typeof name !== 'string' || !PRIMITIVE_WRAPPER_CONSTRUCTOR_NAMES.has(name)) {
-      return false;
-    }
-
-    const argumentList: unknown = node.arguments;
-
-    if (!Array.isArray(argumentList) || argumentList.length !== 1) {
-      return false;
-    }
-
-    const argument: unknown = argumentList.at(0);
-    const result = Predicates.isRecord(argument) && argument.type === 'Literal';
-
-    return result;
-  }
-
-  // `Object.freeze(<ObjectExpression|ArrayExpression>)` produces a frozen data constant, not
-  // a reference — the same reasoning as isPrimitiveWrapperLiteralCall, just for a
-  // MemberExpression callee instead of a bare-Identifier one. Frozen object and array
-  // literals keep function-valued members out of the data-constant category.
-  static isFrozenDataLiteralCall(node: unknown): boolean {
-    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
-      return false;
-    }
-
-    const callee: unknown = node.callee;
-
-    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
-      return false;
-    }
-
-    const calleeObject: unknown = callee.object;
-    const calleeProperty: unknown = callee.property;
-    const isObjectFreeze = Predicates.isRecord(calleeObject) && calleeObject.type === 'Identifier'
-      && calleeObject.name === 'Object'
-      && Predicates.isRecord(calleeProperty) && calleeProperty.type === 'Identifier'
-      && calleeProperty.name === 'freeze';
-
-    if (!isObjectFreeze) {
-      return false;
-    }
-
-    const argumentList: unknown = node.arguments;
-
-    if (!Array.isArray(argumentList) || argumentList.length !== 1) {
-      return false;
-    }
-
-    const argument: unknown = argumentList.at(0);
-
-    if (!Predicates.isRecord(argument)) {
-      return false;
-    }
-    if (argument.type === 'ArrayExpression') {
-      const result = !DeclaratorName.isFunctionValuedArrayExpression(argument);
-
-      return result;
-    }
-    if (argument.type === 'ObjectExpression') {
-      const result = !DeclaratorName.isFunctionValuedObjectExpression(argument);
-
-      return result;
-    }
-
-    return false;
-  }
-
-  // A value counts as function/reference-like — and therefore not inline
-  // data — when it is a function literal, a call result, a member-access
-  // reference (e.g. `Ns.method`, an interop-shim `.default` access), or a
-  // `??`/`||`/`&&` fallback chain composed of such values (e.g. the
-  // `(Mod as ...).default ?? (Mod as ...)` CJS/ESM interop pattern).
-  //
-  // A `CallExpression` is function/reference-like only when it is NOT a primitive-wrapper
-  // builtin call with a literal argument — `Number(3)`/`String("x")`/`Boolean(true)` construct a
-  // plain data value, not a reference, so they stay counted as data constants like any other
-  // literal. Every other call (a factory, a schema-builder, an arbitrary function invocation) is
-  // still treated as a reference/function-like value, unchanged.
-  static isFunctionOrReferenceValue(node: unknown): boolean {
-    const unwrapped = DeclaratorName.unwrapTsExpression(node);
-
-    if (!Predicates.isRecord(unwrapped)) {
-      return false;
-    }
-
-    const nodeType: unknown = unwrapped.type;
-
-    if (typeof nodeType !== 'string') {
-      return false;
-    }
-
-    if (FUNCTION_LIKE_INIT_TYPES.has(nodeType)) {
-      return true;
-    }
-    if (nodeType === 'MemberExpression') {
-      return true;
-    }
-    if (nodeType === 'CallExpression') {
-      const result = !DeclaratorName.isPrimitiveWrapperLiteralCall(unwrapped) && !DeclaratorName.isFrozenDataLiteralCall(unwrapped);
-
-      return result;
-    }
-
-    if (nodeType === 'LogicalExpression') {
-      const result = DeclaratorName.isFunctionOrReferenceValue(unwrapped.left) || DeclaratorName.isFunctionOrReferenceValue(unwrapped.right);
-
-      return result;
-    }
-
-    return false;
-  }
-
-  // A frozen array of functions is a callback collection, not data.
-  static isFunctionValuedArrayExpression(node: unknown): boolean {
-    if (!Predicates.isRecord(node) || !Array.isArray(node.elements)) {
-      return false;
-    }
-
-    const result = node.elements.some((element) => {
-      const isFunctionOrReference = DeclaratorName.isFunctionOrReferenceValue(element);
-
-      return isFunctionOrReference;
-    });
-
-    return result;
-  }
-
-  // An object literal is a function namespace (dispatch map / matcher set),
-  // not a data constant, when at least one of its properties is itself
-  // function- or reference-valued. An object literal with zero such
-  // properties is pure data and still counts as a data constant.
-  static isFunctionValuedObjectExpression(node: unknown): boolean {
-    if (!Predicates.isRecord(node)) {
-      return false;
-    }
-
-    const properties: unknown = node.properties;
-
-    if (!Array.isArray(properties)) {
-      return false;
-    }
-
-    const result = properties.some((property) => {
-      if (!Predicates.isRecord(property) || property.type !== 'Property') {
-        return false;
-      }
-
-      const isFunctionValued = DeclaratorName.isFunctionOrReferenceValue(property.value);
-
-      return isFunctionValued;
-    });
-
-    return result;
-  }
-
-  // `new Set(...)` / `new Map(...)` / `new WeakSet(...)` / `new WeakMap(...)`
-  // (unqualified global identifier callee) are conventional data-constant
-  // forms and remain data constants. Any other `new` expression (e.g.
-  // `new AjvClass(...)`) constructs a stateful instance, not data.
-  static isBuiltinCollectionConstructor(calleeNode: unknown): boolean {
-    if (!Predicates.isRecord(calleeNode) || calleeNode.type !== 'Identifier') {
-      return false;
-    }
-    const { name } = calleeNode;
-    const result = typeof name === 'string' && BUILTIN_COLLECTION_CONSTRUCTOR_NAMES.has(name);
-
-    return result;
-  }
-
-  static isNonDataConstantInit(declarator: unknown): boolean {
-    if (!Predicates.isRecord(declarator)) {
-      return false;
-    }
-
-    const initNode: unknown = declarator.init;
-
-    if (!Predicates.isRecord(initNode)) {
-      return false;
-    }
-
-    if (DeclaratorName.isFunctionOrReferenceValue(initNode)) {
-      return true;
-    }
-
-    const initType: unknown = initNode.type;
-
-    if (typeof initType !== 'string') {
-      return false;
-    }
-
-    if (initType === 'ObjectExpression') {
-      const result = DeclaratorName.isFunctionValuedObjectExpression(initNode);
-
-      return result;
-    }
-
-    if (initType === 'NewExpression') {
-      const result = !DeclaratorName.isBuiltinCollectionConstructor(initNode.callee);
-
-      return result;
-    }
-
-    return false;
-  }
-}
 
 class FolderShapeHelpers {
   public static getIdName(node: unknown): string | undefined {
@@ -559,6 +233,20 @@ class NamespaceScanner {
       return false;
     }
 
+    const result = NamespaceScanner.objectPropertiesHaveObjectTypeKey(properties);
+
+    return result;
+  }
+
+  private static isTypePropertyKey(key: unknown): boolean {
+    const result = Predicates.isRecord(key)
+      && ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type')
+        || (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
+
+    return result;
+  }
+
+  private static objectPropertiesHaveObjectTypeKey(properties: unknown[]): boolean {
     const propertiesLength = properties.length;
 
     for (let propertyIndex = 0; propertyIndex < propertiesLength; propertyIndex += 1) {
@@ -568,12 +256,7 @@ class NamespaceScanner {
         continue;
       }
 
-      const key: unknown = property.key;
-      const isTypeKey = Predicates.isRecord(key)
-        && ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type')
-          || (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
-
-      if (!isTypeKey) {
+      if (!NamespaceScanner.isTypePropertyKey(property.key)) {
         continue;
       }
 
@@ -587,6 +270,13 @@ class NamespaceScanner {
 
     return false;
   }
+
+  private static readonly DECLARATION_SCANNERS = new Map<string, (decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>) => void>([
+    ['FunctionDeclaration', NamespaceScanner.scanFunctionDeclaration],
+    ['TSInterfaceDeclaration', NamespaceScanner.scanInterfaceDeclaration],
+    ['TSTypeAliasDeclaration', NamespaceScanner.scanTypeAliasDeclaration],
+    ['VariableDeclaration', NamespaceScanner.scanVariableDeclaration]
+  ]);
 
   static scanBody(bodyNode: unknown) {
     const result = {
@@ -620,61 +310,72 @@ class NamespaceScanner {
       }
       const decl = FolderShapeHelpers.getDeclaration(stmt);
       const declType = AstHelpers.getNodeType(decl);
+      const scanner = typeof declType === 'string' ? NamespaceScanner.DECLARATION_SCANNERS.get(declType) : undefined;
 
-      if (declType === 'VariableDeclaration') {
-        if (!Predicates.isRecord(decl)) {
-          continue;
-        }
-        const { declarations } = decl;
-
-        if (!Array.isArray(declarations)) {
-          continue;
-        }
-        const declarationsLength = declarations.length;
-
-        for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
-          const d: unknown = declarations.at(declIndex);
-
-          if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
-            continue;
-          }
-          const { name } = d.id;
-
-          if (name === 'Schema') {
-            result.hasSchema = true;
-            result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
-            result.hasObjectRootSchema = NamespaceScanner.hasObjectRootType(d);
-          }
-          if (name === 'intake') {
-            result.hasIntake = true;
-          }
-          if (name === 'create') {
-            result.hasCreate = true;
-          }
-          if (name === 'validate') {
-            result.hasValidate = true;
-            result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
-          }
-        }
-      } else if (declType === 'TSTypeAliasDeclaration') {
-        if (FolderShapeHelpers.getIdName(decl) === 'Type') {
-          result.hasType = true;
-          result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
-        }
-      } else if (declType === 'TSInterfaceDeclaration') {
-        if (FolderShapeHelpers.getIdName(decl) === 'Type') {
-          result.hasType = true;
-          result.hasTypeFromSchema = SchemaMemberGuards.isInterfaceSchemaDerived(decl);
-        }
-      } else if (declType === 'FunctionDeclaration') {
-        if (FolderShapeHelpers.getIdName(decl) === 'validate') {
-          result.hasValidate = true;
-          result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
-        }
-      }
+      scanner?.(decl, result);
     }
 
     return result;
+  }
+
+  private static scanVariableDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+    if (!Predicates.isRecord(decl)) {
+      return;
+    }
+    const { declarations } = decl;
+
+    if (!Array.isArray(declarations)) {
+      return;
+    }
+    const declarationsLength = declarations.length;
+
+    for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
+      NamespaceScanner.scanVariableDeclarator(declarations.at(declIndex), decl, result);
+    }
+  }
+
+  private static scanVariableDeclarator(d: unknown, decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+    if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
+      return;
+    }
+    const { name } = d.id;
+
+    if (name === 'Schema') {
+      result.hasSchema = true;
+      result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
+      result.hasObjectRootSchema = NamespaceScanner.hasObjectRootType(d);
+    }
+    if (name === 'intake') {
+      result.hasIntake = true;
+    }
+    if (name === 'create') {
+      result.hasCreate = true;
+    }
+    if (name === 'validate') {
+      result.hasValidate = true;
+      result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
+    }
+  }
+
+  private static scanTypeAliasDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+    if (FolderShapeHelpers.getIdName(decl) === 'Type') {
+      result.hasType = true;
+      result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
+    }
+  }
+
+  private static scanInterfaceDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+    if (FolderShapeHelpers.getIdName(decl) === 'Type') {
+      result.hasType = true;
+      result.hasTypeFromSchema = SchemaMemberGuards.isInterfaceSchemaDerived(decl);
+    }
+  }
+
+  private static scanFunctionDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+    if (FolderShapeHelpers.getIdName(decl) === 'validate') {
+      result.hasValidate = true;
+      result.hasValidateTypeGuard = SchemaMemberGuards.isValidateTypeGuard(decl);
+    }
   }
 }
 
@@ -682,16 +383,7 @@ class EntityNamespaceCheck {
   static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], expectedName: string): void {
     const rawProgram: unknown = program;
     const body = Predicates.isRecord(rawProgram) && Array.isArray(rawProgram.body) ? rawProgram.body : [];
-
-    const namespaceExports = body.filter((stmt) => {
-      if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') {
-        return false;
-      }
-
-      const result = AstHelpers.getNodeType(FolderShapeHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
-
-      return result;
-    });
+    const namespaceExports = EntityNamespaceCheck.getNamespaceExports(body);
 
     if (namespaceExports.length === 0) {
       context.report({
@@ -709,64 +401,90 @@ class EntityNamespaceCheck {
       if (exportStmt === undefined) {
         continue;
       }
-      const decl = FolderShapeHelpers.getDeclaration(exportStmt);
+      EntityNamespaceCheck.checkNamespaceExport(context, exportStmt, expectedName);
+    }
+  }
 
-      if (!Predicates.isRecord(decl)) {
-        continue;
-      }
-
-      const nsName = FolderShapeHelpers.getIdName(decl);
-
-      if (nsName !== expectedName) {
-        context.report({
-          'data': {
-            'expected': expectedName, 'found': nsName ?? '(unknown)'
-          },
-          'messageId': 'namespaceMismatch',
-          'node': exportStmt as Rule.Node
-        });
+  private static getNamespaceExports(body: unknown[]): unknown[] {
+    const result = body.filter((stmt) => {
+      if (AstHelpers.getNodeType(stmt) !== 'ExportNamedDeclaration') {
+        return false;
       }
 
-      const members = NamespaceScanner.scanBody(decl.body);
-      const reportNode = exportStmt as Rule.Node;
+      const isNamespace = AstHelpers.getNodeType(FolderShapeHelpers.getDeclaration(stmt)) === 'TSModuleDeclaration';
 
-      if (!members.hasSchema) {
-        context.report({
-          'messageId': 'missingSchema', 'node': reportNode
-        });
-      } else if (!members.hasSchemaValueAuthored) {
-        context.report({
-          'messageId': 'schemaNotConst', 'node': reportNode
-        });
-      }
-      if (!members.hasType) {
-        context.report({
-          'messageId': 'missingType', 'node': reportNode
-        });
-      } else if (!members.hasTypeFromSchema) {
-        context.report({
-          'messageId': 'typeNotFromSchema', 'node': reportNode
-        });
-      }
-      if (!members.hasValidate) {
-        context.report({
-          'messageId': 'missingValidate', 'node': reportNode
-        });
-      } else if (!members.hasValidateTypeGuard) {
-        context.report({
-          'messageId': 'validateNotTypeGuard', 'node': reportNode
-        });
-      }
-      if (!members.hasIntake) {
-        context.report({
-          'messageId': 'missingIntake', 'node': reportNode
-        });
-      }
-      if (members.hasObjectRootSchema && !members.hasCreate) {
-        context.report({
-          'messageId': 'missingCreate', 'node': reportNode
-        });
-      }
+      return isNamespace;
+    });
+
+    return result;
+  }
+
+  private static checkNamespaceExport(context: Rule.RuleContext, exportStmt: unknown, expectedName: string): void {
+    const decl = FolderShapeHelpers.getDeclaration(exportStmt);
+
+    if (!Predicates.isRecord(decl)) {
+      return;
+    }
+
+    const nsName = FolderShapeHelpers.getIdName(decl);
+
+    if (nsName !== expectedName) {
+      context.report({
+        'data': {
+          'expected': expectedName, 'found': nsName ?? '(unknown)'
+        },
+        'messageId': 'namespaceMismatch',
+        'node': exportStmt as Rule.Node
+      });
+    }
+
+    const members = NamespaceScanner.scanBody(decl.body);
+    const reportNode = exportStmt as Rule.Node;
+
+    EntityNamespaceCheck.reportMemberShapeIssues(context, members, reportNode);
+  }
+
+  private static reportMemberShapeIssues(
+    context: Rule.RuleContext,
+    members: ReturnType<typeof NamespaceScanner.scanBody>,
+    reportNode: Rule.Node
+  ): void {
+    if (!members.hasSchema) {
+      context.report({
+        'messageId': 'missingSchema', 'node': reportNode
+      });
+    } else if (!members.hasSchemaValueAuthored) {
+      context.report({
+        'messageId': 'schemaNotConst', 'node': reportNode
+      });
+    }
+    if (!members.hasType) {
+      context.report({
+        'messageId': 'missingType', 'node': reportNode
+      });
+    } else if (!members.hasTypeFromSchema) {
+      context.report({
+        'messageId': 'typeNotFromSchema', 'node': reportNode
+      });
+    }
+    if (!members.hasValidate) {
+      context.report({
+        'messageId': 'missingValidate', 'node': reportNode
+      });
+    } else if (!members.hasValidateTypeGuard) {
+      context.report({
+        'messageId': 'validateNotTypeGuard', 'node': reportNode
+      });
+    }
+    if (!members.hasIntake) {
+      context.report({
+        'messageId': 'missingIntake', 'node': reportNode
+      });
+    }
+    if (members.hasObjectRootSchema && !members.hasCreate) {
+      context.report({
+        'messageId': 'missingCreate', 'node': reportNode
+      });
     }
   }
 }
@@ -921,62 +639,83 @@ class ModuleShape {
     let hasConstDeclarator = false;
 
     const isPure = body.every((statement) => {
-      if (!Predicates.isRecord(statement)) {
-        return false;
-      }
-      const statementType: unknown = statement.type;
+      const classification = ModuleShape.classifyPureConstantsStatement(statement);
 
-      if (statementType === 'ImportDeclaration') {
-        return true;
-      }
-      if (ModuleShape.isTypeOnlyDeclaration(statementType)) {
-        return true;
+      if (classification.hasConstDeclarator) {
+        hasConstDeclarator = true;
       }
 
-      if (statementType === 'VariableDeclaration') {
-        const pure = ModuleShape.isPureConstDeclaration(statement);
-
-        if (pure) {
-          hasConstDeclarator = true;
-        }
-
-        return pure;
-      }
-
-      if (statementType === 'ExportNamedDeclaration') {
-        const decl: unknown = statement.declaration;
-
-        if (decl === null || decl === undefined) {
-          return false;
-        }
-        if (!Predicates.isRecord(decl)) {
-          return false;
-        }
-
-        const declType: unknown = decl.type;
-
-        if (ModuleShape.isTypeOnlyDeclaration(declType)) {
-          return true;
-        }
-        if (declType === 'VariableDeclaration') {
-          const pure = ModuleShape.isPureConstDeclaration(decl);
-
-          if (pure) {
-            hasConstDeclarator = true;
-          }
-
-          return pure;
-        }
-
-        return false;
-      }
-
-      return false;
+      return classification.isValid;
     });
 
     const result = isPure && hasConstDeclarator;
 
     return result;
+  }
+
+  private static classifyPureConstantsStatement(statement: unknown): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
+    if (!Predicates.isRecord(statement)) {
+      return {
+        'hasConstDeclarator': false, 'isValid': false
+      };
+    }
+    const statementType: unknown = statement.type;
+
+    if (statementType === 'ImportDeclaration') {
+      return {
+        'hasConstDeclarator': false, 'isValid': true
+      };
+    }
+    if (ModuleShape.isTypeOnlyDeclaration(statementType)) {
+      return {
+        'hasConstDeclarator': false, 'isValid': true
+      };
+    }
+
+    if (statementType === 'VariableDeclaration') {
+      const pure = ModuleShape.isPureConstDeclaration(statement);
+
+      return {
+        'hasConstDeclarator': pure, 'isValid': pure
+      };
+    }
+
+    if (statementType === 'ExportNamedDeclaration') {
+      const result = ModuleShape.classifyExportedPureConstantsStatement(statement.declaration);
+
+      return result;
+    }
+
+    return {
+      'hasConstDeclarator': false, 'isValid': false
+    };
+  }
+
+  private static classifyExportedPureConstantsStatement(decl: unknown): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
+    if (decl === null || decl === undefined || !Predicates.isRecord(decl)) {
+      return {
+        'hasConstDeclarator': false, 'isValid': false
+      };
+    }
+
+    const declType: unknown = decl.type;
+
+    if (ModuleShape.isTypeOnlyDeclaration(declType)) {
+      return {
+        'hasConstDeclarator': false, 'isValid': true
+      };
+    }
+    if (declType === 'VariableDeclaration') {
+      const pure = ModuleShape.isPureConstDeclaration(decl);
+
+      return {
+        'hasConstDeclarator': pure, 'isValid': pure
+      };
+    }
+
+    return {
+      'hasConstDeclarator': false, 'isValid': false
+    };
   }
 
   // An entity-namespace export (`export namespace XxxEntity { ... }`) is the
@@ -1094,65 +833,7 @@ class ConstantsCountCheck {
       return;
     }
 
-    const constNames: string[] = [];
-
-    const programBodyLength = programBody.length;
-
-    for (let bodyIndex = 0; bodyIndex < programBodyLength; bodyIndex += 1) {
-      const statement: unknown = programBody.at(bodyIndex);
-
-      if (!Predicates.isRecord(statement)) {
-        continue;
-      }
-
-      const statementType: unknown = statement.type;
-      let variableDeclaration: unknown = undefined;
-
-      if (statementType === 'VariableDeclaration') {
-        variableDeclaration = statement;
-      } else if (statementType === 'ExportNamedDeclaration') {
-        const decl: unknown = statement.declaration;
-
-        if (Predicates.isRecord(decl) && decl.type === 'VariableDeclaration') {
-          variableDeclaration = decl;
-        }
-      }
-
-      if (!Predicates.isRecord(variableDeclaration)) {
-        continue;
-      }
-      if (variableDeclaration.kind !== 'const') {
-        continue;
-      }
-
-      const declarations: unknown = variableDeclaration.declarations;
-
-      if (!Array.isArray(declarations)) {
-        continue;
-      }
-
-      const declarationsLength = declarations.length;
-
-      for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
-        const declarator: unknown = declarations.at(declIndex);
-
-        if (DeclaratorName.isNonDataConstantInit(declarator)) {
-          continue;
-        }
-
-        const declaratorNames = DeclaratorName.getAll(declarator);
-
-        const declaratorNamesLength = declaratorNames.length;
-
-        for (let nameIndex = 0; nameIndex < declaratorNamesLength; nameIndex += 1) {
-          const declaratorName = declaratorNames.at(nameIndex);
-
-          if (declaratorName !== undefined) {
-            constNames.push(declaratorName);
-          }
-        }
-      }
-    }
+    const constNames = ConstantsCountCheck.collectConstNames(programBody);
 
     if (constNames.length > 1) {
       context.report({
@@ -1164,6 +845,79 @@ class ConstantsCountCheck {
         'messageId': 'constantsNotIsolated',
         'node': program
       });
+    }
+  }
+
+  private static collectConstNames(programBody: unknown[]): string[] {
+    const constNames: string[] = [];
+    const programBodyLength = programBody.length;
+
+    for (let bodyIndex = 0; bodyIndex < programBodyLength; bodyIndex += 1) {
+      const statement: unknown = programBody.at(bodyIndex);
+
+      if (!Predicates.isRecord(statement)) {
+        continue;
+      }
+
+      const variableDeclaration = ConstantsCountCheck.constVariableDeclarationForStatement(statement);
+
+      if (variableDeclaration === undefined) {
+        continue;
+      }
+
+      ConstantsCountCheck.collectConstDeclaratorNames(variableDeclaration, constNames);
+    }
+
+    return constNames;
+  }
+
+  private static constVariableDeclarationForStatement(statement: Record<string, unknown>): Record<string, unknown> | undefined {
+    const statementType: unknown = statement.type;
+    let variableDeclaration: unknown;
+
+    if (statementType === 'VariableDeclaration') {
+      variableDeclaration = statement;
+    } else if (statementType === 'ExportNamedDeclaration') {
+      const decl: unknown = statement.declaration;
+
+      if (Predicates.isRecord(decl) && decl.type === 'VariableDeclaration') {
+        variableDeclaration = decl;
+      }
+    }
+
+    if (!Predicates.isRecord(variableDeclaration) || variableDeclaration.kind !== 'const') {
+      return undefined;
+    }
+
+    return variableDeclaration;
+  }
+
+  private static collectConstDeclaratorNames(variableDeclaration: Record<string, unknown>, constNames: string[]): void {
+    const declarations: unknown = variableDeclaration.declarations;
+
+    if (!Array.isArray(declarations)) {
+      return;
+    }
+
+    const declarationsLength = declarations.length;
+
+    for (let declIndex = 0; declIndex < declarationsLength; declIndex += 1) {
+      const declarator: unknown = declarations.at(declIndex);
+
+      if (DeclaratorName.isNonDataConstantInit(declarator)) {
+        continue;
+      }
+
+      const declaratorNames = DeclaratorName.getAll(declarator);
+      const declaratorNamesLength = declaratorNames.length;
+
+      for (let nameIndex = 0; nameIndex < declaratorNamesLength; nameIndex += 1) {
+        const declaratorName = declaratorNames.at(nameIndex);
+
+        if (declaratorName !== undefined) {
+          constNames.push(declaratorName);
+        }
+      }
     }
   }
 }

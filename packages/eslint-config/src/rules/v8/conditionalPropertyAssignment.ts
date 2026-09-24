@@ -72,14 +72,22 @@ class ThisAssignment {
       return undefined;
     }
 
-    const objectNode = left.object;
-
-    if (!Predicates.isRecord(objectNode) || objectNode.type !== 'ThisExpression') {
+    if (!ThisAssignment.isThisObject(left.object)) {
       return undefined;
     }
 
-    const propertyNode = left.property;
+    const result = ThisAssignment.identifierPropertyName(left.property);
 
+    return result;
+  }
+
+  private static isThisObject(objectNode: unknown): boolean {
+    const result = Predicates.isRecord(objectNode) && objectNode.type === 'ThisExpression';
+
+    return result;
+  }
+
+  private static identifierPropertyName(propertyNode: unknown): string | undefined {
     if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || typeof propertyNode.name !== 'string') {
       return undefined;
     }
@@ -133,17 +141,34 @@ class ClassMethodEligibility {
       return false;
     }
 
-    const keyNode = methodDef.key;
+    const methodName = ClassMethodEligibility.methodIdentifierName(methodDef.key);
 
-    if (!Predicates.isRecord(keyNode) || keyNode.type !== 'Identifier' || typeof keyNode.name !== 'string') {
+    if (methodName === undefined) {
       return false;
     }
-    const methodName = keyNode.name;
 
-    const classBody = methodDef.parent;
+    const constructorFunction = ClassMethodEligibility.siblingConstructorFunction(methodDef.parent);
 
-    if (!Predicates.isRecord(classBody) || classBody.type !== 'ClassBody' || !Array.isArray(classBody.body)) {
+    if (constructorFunction === undefined) {
       return false;
+    }
+
+    const result = ClassMethodEligibility.collectThisCallNames(constructorFunction.body).has(methodName);
+
+    return result;
+  }
+
+  private static methodIdentifierName(keyNode: unknown): string | undefined {
+    if (!Predicates.isRecord(keyNode) || keyNode.type !== 'Identifier' || typeof keyNode.name !== 'string') {
+      return undefined;
+    }
+
+    return keyNode.name;
+  }
+
+  private static siblingConstructorFunction(classBody: unknown): Record<string, unknown> | undefined {
+    if (!Predicates.isRecord(classBody) || classBody.type !== 'ClassBody' || !Array.isArray(classBody.body)) {
+      return undefined;
     }
 
     const constructorDef = (classBody.body as readonly unknown[]).find((member): member is AstNodeInterface => {
@@ -153,18 +178,16 @@ class ClassMethodEligibility {
     });
 
     if (constructorDef === undefined) {
-      return false;
+      return undefined;
     }
 
     const constructorFunction = constructorDef.value;
 
     if (!Predicates.isRecord(constructorFunction)) {
-      return false;
+      return undefined;
     }
 
-    const result = ClassMethodEligibility.collectThisCallNames(constructorFunction.body).has(methodName);
-
-    return result;
+    return constructorFunction;
   }
 
   private static collectThisCallNames(bodyNode: unknown): ReadonlySet<string> {
@@ -289,26 +312,7 @@ class ObjectExpressionKeys {
 
     for (let index = 0; index < propertiesLength; index += 1) {
       const property = properties.at(index);
-
-      if (!Predicates.isRecord(property) || property.type !== 'Property' || property.computed === true) {
-        return undefined;
-      }
-
-      const key = property.key;
-
-      // Accepts `Identifier` OR quoted `Literal`: the repo's `quote-props: always` convention
-      // makes every non-computed key a `Literal`, so an `Identifier`-only check would never resolve.
-      if (!Predicates.isRecord(key)) {
-        return undefined;
-      }
-
-      let keyName: string | undefined;
-
-      if (key.type === 'Identifier' && typeof key.name === 'string') {
-        keyName = key.name;
-      } else if (key.type === 'Literal' && typeof key.value === 'string') {
-        keyName = key.value;
-      }
+      const keyName = ObjectExpressionKeys.staticPropertyKeyName(property);
 
       if (keyName === undefined) {
         return undefined;
@@ -318,6 +322,29 @@ class ObjectExpressionKeys {
     }
 
     return names;
+  }
+
+  private static staticPropertyKeyName(property: unknown): string | undefined {
+    if (!Predicates.isRecord(property) || property.type !== 'Property' || property.computed === true) {
+      return undefined;
+    }
+
+    const key = property.key;
+
+    // Accepts `Identifier` OR quoted `Literal`: the repo's `quote-props: always` convention
+    // makes every non-computed key a `Literal`, so an `Identifier`-only check would never resolve.
+    if (!Predicates.isRecord(key)) {
+      return undefined;
+    }
+
+    if (key.type === 'Identifier' && typeof key.name === 'string') {
+      return key.name;
+    }
+    if (key.type === 'Literal' && typeof key.value === 'string') {
+      return key.value;
+    }
+
+    return undefined;
   }
 }
 
@@ -344,223 +371,329 @@ class CaseAssignments {
   }
 }
 
+interface AssignmentRecordInterface {
+  readonly 'assignmentNode': AstNodeInterface;
+  readonly 'propertyName': string;
+}
+
+interface ConditionalAncestryInterface {
+  readonly 'matchedConditional': AstNodeInterface | undefined;
+  readonly 'matchedConditionalOwnSide': 'alternate' | 'consequent' | undefined;
+  readonly 'matchedLogical': boolean;
+  readonly 'methodDef': AstNodeInterface | undefined;
+}
+
+class ConditionalAssignmentListeners {
+  public static reportEach(context: Rule.RuleContext, assignments: readonly AssignmentRecordInterface[]): void {
+    const assignmentsLength = assignments.length;
+
+    for (let index = 0; index < assignmentsLength; index += 1) {
+      const assignment = assignments.at(index);
+
+      if (assignment === undefined) {
+        continue;
+      }
+
+      context.report({
+        'messageId': 'forbidden', 'node': assignment.assignmentNode as unknown as Rule.Node
+      });
+    }
+  }
+
+  public static onIfStatement(
+    context: Rule.RuleContext,
+    eligibility: ClassMethodEligibility,
+    node: Parameters<NonNullable<Rule.RuleListener['IfStatement']>>[0]
+  ): void {
+    const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
+
+    if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
+      return;
+    }
+
+    const consequentAssignments = StatementAssignments.collectBranch(node.consequent);
+
+    if (consequentAssignments.length === 0) {
+      return;
+    }
+
+    const rawAlternate = node.alternate as unknown as AstNodeInterface | null;
+
+    if (rawAlternate === null || rawAlternate.type === 'IfStatement') {
+      ConditionalAssignmentListeners.reportEach(context, consequentAssignments);
+
+      return;
+    }
+
+    const alternateAssignments = StatementAssignments.collectBranch(rawAlternate);
+    const isUniform = PropertyNameSets.equal(StatementAssignments.namesOf(consequentAssignments), StatementAssignments.namesOf(alternateAssignments));
+
+    if (isUniform) {
+      return;
+    }
+
+    ConditionalAssignmentListeners.reportEach(context, consequentAssignments);
+    ConditionalAssignmentListeners.reportEach(context, alternateAssignments);
+  }
+
+  private static matchConditionalStep(
+    rawCurrent: AstNodeInterface,
+    previousChild: Rule.Node,
+    matched: { 'matchedConditional': AstNodeInterface | undefined; 'matchedConditionalOwnSide': 'alternate' | 'consequent' | undefined }
+  ): void {
+    if (matched.matchedConditional !== undefined || rawCurrent.type !== 'ConditionalExpression') {
+      return;
+    }
+    if (rawCurrent.consequent === previousChild) {
+      matched.matchedConditional = rawCurrent;
+      matched.matchedConditionalOwnSide = 'consequent';
+    } else if (rawCurrent.alternate === previousChild) {
+      matched.matchedConditional = rawCurrent;
+      matched.matchedConditionalOwnSide = 'alternate';
+    }
+  }
+
+  private static findConditionalOrLogicalAncestor(node: Rule.Node): ConditionalAncestryInterface {
+    let previousChild: Rule.Node = node;
+    let current: Rule.Node | null = node.parent;
+    let matchedLogical = false;
+    const matched: { 'matchedConditional': AstNodeInterface | undefined; 'matchedConditionalOwnSide': 'alternate' | 'consequent' | undefined } = {
+      'matchedConditional': undefined, 'matchedConditionalOwnSide': undefined
+    };
+
+    while (current !== null) {
+      const rawCurrent = current as unknown as AstNodeInterface;
+
+      ConditionalAssignmentListeners.matchConditionalStep(rawCurrent, previousChild, matched);
+
+      if (!matchedLogical && rawCurrent.type === 'LogicalExpression' && rawCurrent.right === previousChild) {
+        matchedLogical = true;
+      }
+      if (rawCurrent.type === 'MethodDefinition') {
+        break;
+      }
+
+      previousChild = current;
+      current = current.parent;
+    }
+
+    const methodDef = current === null ? undefined : (current as unknown as AstNodeInterface);
+
+    return {
+      'matchedConditional': matched.matchedConditional,
+      'matchedConditionalOwnSide': matched.matchedConditionalOwnSide,
+      'matchedLogical': matchedLogical,
+      'methodDef': methodDef
+    };
+  }
+
+  // `IfStatement` ancestry is deliberately not inspected here — `onIfStatement` owns that
+  // shape, so double-reporting the same assignment from both listeners cannot happen.
+  public static onAssignmentExpression(
+    context: Rule.RuleContext,
+    eligibility: ClassMethodEligibility,
+    node: Parameters<NonNullable<Rule.RuleListener['AssignmentExpression']>>[0]
+  ): void {
+    const ownPropertyName = ThisAssignment.getPropertyName(node);
+
+    if (ownPropertyName === undefined) {
+      return;
+    }
+
+    const ancestry = ConditionalAssignmentListeners.findConditionalOrLogicalAncestor(node);
+
+    if (ancestry.matchedConditional === undefined && !ancestry.matchedLogical) {
+      return;
+    }
+
+    const methodDef = ancestry.methodDef;
+
+    if (methodDef?.type !== 'MethodDefinition' || !eligibility.isEligible(methodDef)) {
+      return;
+    }
+
+    if (ancestry.matchedLogical) {
+      // No second branch exists to compare against — a `&&`-guarded assignment is the missing-else hazard by construction.
+      context.report({
+        'messageId': 'forbidden', 'node': node
+      });
+
+      return;
+    }
+
+    ConditionalAssignmentListeners.reportIfConditionalBranchesDiffer(context, node, ancestry, ownPropertyName);
+  }
+
+  private static reportIfConditionalBranchesDiffer(
+    context: Rule.RuleContext,
+    node: Parameters<NonNullable<Rule.RuleListener['AssignmentExpression']>>[0],
+    ancestry: ConditionalAncestryInterface,
+    ownPropertyName: string
+  ): void {
+    const otherSideNode = ancestry.matchedConditionalOwnSide === 'consequent' ? ancestry.matchedConditional?.alternate : ancestry.matchedConditional?.consequent;
+    const otherPropertyName = ThisAssignment.getPropertyName(otherSideNode);
+    const isUniform = otherPropertyName === ownPropertyName;
+
+    if (isUniform) {
+      return;
+    }
+
+    context.report({
+      'messageId': 'forbidden', 'node': node
+    });
+  }
+
+  private static isObjectAssignCall(node: Parameters<NonNullable<Rule.RuleListener['CallExpression']>>[0]): boolean {
+    const callee = node.callee;
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
+      return false;
+    }
+
+    const objectNode = callee.object;
+    const propertyNode = callee.property;
+
+    if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
+      return false;
+    }
+    if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'assign') {
+      return false;
+    }
+
+    return true;
+  }
+
+  private static isUniformObjectShape(branchNames: { 'alternate': ReadonlySet<string> | undefined; 'consequent': ReadonlySet<string> | undefined }): boolean {
+    const result = branchNames.consequent !== undefined && branchNames.alternate !== undefined
+      && PropertyNameSets.equal(branchNames.consequent, branchNames.alternate);
+
+    return result;
+  }
+
+  // Covers `Object.assign(this, cond ? {...} : {...})`. Flags unless both object-literal
+  // branches are PROVEN (static, non-spread, non-computed keys) to add the same key set.
+  public static onCallExpression(
+    context: Rule.RuleContext,
+    eligibility: ClassMethodEligibility,
+    node: Parameters<NonNullable<Rule.RuleListener['CallExpression']>>[0]
+  ): void {
+    if (!ConditionalAssignmentListeners.isObjectAssignCall(node)) {
+      return;
+    }
+
+    const [
+      firstArg,
+      secondArg
+    ] = node.arguments;
+
+    if (!Predicates.isRecord(firstArg) || firstArg.type !== 'ThisExpression') {
+      return;
+    }
+    if (!Predicates.isRecord(secondArg) || secondArg.type !== 'ConditionalExpression') {
+      return;
+    }
+
+    const consequentNames = ObjectExpressionKeys.namesOf(secondArg.consequent);
+    const alternateNames = ObjectExpressionKeys.namesOf(secondArg.alternate);
+
+    if (ConditionalAssignmentListeners.isUniformObjectShape({ 'alternate': alternateNames, 'consequent': consequentNames })) {
+      return;
+    }
+
+    const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
+
+    if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
+      return;
+    }
+
+    context.report({
+      'messageId': 'forbidden', 'node': node
+    });
+  }
+
+  private static collectPerCaseAssignments(cases: readonly unknown[]): (readonly AssignmentRecordInterface[])[] {
+    const perCaseLength = cases.length;
+    const perCase: (readonly AssignmentRecordInterface[])[] = [];
+
+    for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
+      const switchCase = cases.at(caseIndex);
+
+      perCase.push(switchCase === undefined ? [] : CaseAssignments.collect(switchCase));
+    }
+
+    return perCase;
+  }
+
+  private static distinctPropertyNames(perCase: readonly (readonly AssignmentRecordInterface[])[]): Set<string> {
+    const distinctPropertyNames = new Set<string>();
+    const perCaseLength = perCase.length;
+
+    for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
+      const assignments = perCase.at(caseIndex);
+
+      if (assignments === undefined) {
+        continue;
+      }
+      const assignmentsLength = assignments.length;
+
+      for (let assignmentIndex = 0; assignmentIndex < assignmentsLength; assignmentIndex += 1) {
+        const assignment = assignments.at(assignmentIndex);
+
+        if (assignment !== undefined) {
+          distinctPropertyNames.add(assignment.propertyName);
+        }
+      }
+    }
+
+    return distinctPropertyNames;
+  }
+
+  public static onSwitchStatement(
+    context: Rule.RuleContext,
+    eligibility: ClassMethodEligibility,
+    node: Parameters<NonNullable<Rule.RuleListener['SwitchStatement']>>[0]
+  ): void {
+    const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
+
+    if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
+      return;
+    }
+
+    const perCase = ConditionalAssignmentListeners.collectPerCaseAssignments(node.cases);
+    const distinctPropertyNames = ConditionalAssignmentListeners.distinctPropertyNames(perCase);
+
+    if (distinctPropertyNames.size < 2) {
+      return;
+    }
+
+    const perCaseLength = perCase.length;
+
+    for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
+      const assignments = perCase.at(caseIndex);
+
+      if (assignments === undefined) {
+        continue;
+      }
+      ConditionalAssignmentListeners.reportEach(context, assignments);
+    }
+  }
+}
+
 export const conditionalPropertyAssignment: Rule.RuleModule = {
   'create': (context) => {
     const eligibility = new ClassMethodEligibility();
 
-    const reportEach = (assignments: readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[]): void => {
-      const assignmentsLength = assignments.length;
-
-      for (let index = 0; index < assignmentsLength; index += 1) {
-        const assignment = assignments.at(index);
-
-        if (assignment === undefined) {
-          continue;
-        }
-
-        context.report({
-          'messageId': 'forbidden', 'node': assignment.assignmentNode as unknown as Rule.Node
-        });
-      }
-    };
-
-    const onIfStatement: NonNullable<Rule.RuleListener['IfStatement']> = (node) => {
-      const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
-
-      if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
-        return;
-      }
-
-      const consequentAssignments = StatementAssignments.collectBranch(node.consequent);
-
-      if (consequentAssignments.length === 0) {
-        return;
-      }
-
-      const rawAlternate = node.alternate as unknown as AstNodeInterface | null;
-
-      if (rawAlternate === null || rawAlternate.type === 'IfStatement') {
-        reportEach(consequentAssignments);
-
-        return;
-      }
-
-      const alternateAssignments = StatementAssignments.collectBranch(rawAlternate);
-      const isUniform = PropertyNameSets.equal(StatementAssignments.namesOf(consequentAssignments), StatementAssignments.namesOf(alternateAssignments));
-
-      if (isUniform) {
-        return;
-      }
-
-      reportEach(consequentAssignments);
-      reportEach(alternateAssignments);
-    };
-
-    // `IfStatement` ancestry is deliberately not inspected here — `onIfStatement` owns that
-    // shape, so double-reporting the same assignment from both listeners cannot happen.
     const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-      const ownPropertyName = ThisAssignment.getPropertyName(node);
-
-      if (ownPropertyName === undefined) {
-        return;
-      }
-
-      let previousChild: Rule.Node = node;
-      let current: Rule.Node | null = node.parent;
-      let matchedLogical = false;
-      let matchedConditional: AstNodeInterface | undefined;
-      let matchedConditionalOwnSide: 'alternate' | 'consequent' | undefined;
-
-      while (current !== null) {
-        const rawCurrent = current as unknown as AstNodeInterface;
-
-        if (matchedConditional === undefined && rawCurrent.type === 'ConditionalExpression') {
-          if (rawCurrent.consequent === previousChild) {
-            matchedConditional = rawCurrent; matchedConditionalOwnSide = 'consequent';
-          } else if (rawCurrent.alternate === previousChild) {
-            matchedConditional = rawCurrent; matchedConditionalOwnSide = 'alternate';
-          }
-        }
-        if (!matchedLogical && rawCurrent.type === 'LogicalExpression' && rawCurrent.right === previousChild) {
-          matchedLogical = true;
-        }
-        if (rawCurrent.type === 'MethodDefinition') {
-          break;
-        }
-
-        previousChild = current;
-        current = current.parent;
-      }
-
-      if (matchedConditional === undefined && !matchedLogical) {
-        return;
-      }
-
-      const methodDef = current === null ? undefined : (current as unknown as AstNodeInterface);
-
-      if (methodDef?.type !== 'MethodDefinition' || !eligibility.isEligible(methodDef)) {
-        return;
-      }
-
-      if (matchedLogical) {
-        // No second branch exists to compare against — a `&&`-guarded assignment is the missing-else hazard by construction.
-        context.report({
-          'messageId': 'forbidden', 'node': node
-        });
-
-        return;
-      }
-
-      const otherSideNode = matchedConditionalOwnSide === 'consequent' ? matchedConditional?.alternate : matchedConditional?.consequent;
-      const otherPropertyName = ThisAssignment.getPropertyName(otherSideNode);
-      const isUniform = otherPropertyName === ownPropertyName;
-
-      if (isUniform) {
-        return;
-      }
-
-      context.report({
-        'messageId': 'forbidden', 'node': node
-      });
+      ConditionalAssignmentListeners.onAssignmentExpression(context, eligibility, node);
     };
-
-    // Covers `Object.assign(this, cond ? {...} : {...})`. Flags unless both object-literal
-    // branches are PROVEN (static, non-spread, non-computed keys) to add the same key set.
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const callee = node.callee;
-
-      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
-        return;
-      }
-
-      const objectNode = callee.object;
-      const propertyNode = callee.property;
-
-      if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || objectNode.name !== 'Object') {
-        return;
-      }
-      if (!Predicates.isRecord(propertyNode) || propertyNode.type !== 'Identifier' || propertyNode.name !== 'assign') {
-        return;
-      }
-
-      const [
-        firstArg,
-        secondArg
-      ] = node.arguments;
-
-      if (!Predicates.isRecord(firstArg) || firstArg.type !== 'ThisExpression') {
-        return;
-      }
-      if (!Predicates.isRecord(secondArg) || secondArg.type !== 'ConditionalExpression') {
-        return;
-      }
-
-      const consequentNames = ObjectExpressionKeys.namesOf(secondArg.consequent);
-      const alternateNames = ObjectExpressionKeys.namesOf(secondArg.alternate);
-      const isUniform = consequentNames !== undefined && alternateNames !== undefined && PropertyNameSets.equal(consequentNames, alternateNames);
-
-      if (isUniform) {
-        return;
-      }
-
-      const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
-
-      if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
-        return;
-      }
-
-      context.report({
-        'messageId': 'forbidden', 'node': node
-      });
+      ConditionalAssignmentListeners.onCallExpression(context, eligibility, node);
     };
-
+    const onIfStatement: NonNullable<Rule.RuleListener['IfStatement']> = (node) => {
+      ConditionalAssignmentListeners.onIfStatement(context, eligibility, node);
+    };
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
-      const methodDef = ClassMethodEligibility.findEnclosingMethod(node);
-
-      if (methodDef === undefined || !eligibility.isEligible(methodDef)) {
-        return;
-      }
-
-      const cases = node.cases;
-      const perCaseLength = cases.length;
-      const perCase: (readonly { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[])[] = [];
-
-      for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
-        const switchCase = cases.at(caseIndex);
-
-        perCase.push(switchCase === undefined ? [] : CaseAssignments.collect(switchCase));
-      }
-      const distinctPropertyNames = new Set<string>();
-
-      for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
-        const assignments = perCase.at(caseIndex);
-
-        if (assignments === undefined) {
-          continue;
-        }
-        const assignmentsLength = assignments.length;
-
-        for (let assignmentIndex = 0; assignmentIndex < assignmentsLength; assignmentIndex += 1) {
-          const assignment = assignments.at(assignmentIndex);
-
-          if (assignment !== undefined) {
-            distinctPropertyNames.add(assignment.propertyName);
-          }
-        }
-      }
-
-      if (distinctPropertyNames.size < 2) {
-        return;
-      }
-
-      for (let caseIndex = 0; caseIndex < perCaseLength; caseIndex += 1) {
-        const assignments = perCase.at(caseIndex);
-
-        if (assignments === undefined) {
-          continue;
-        }
-        reportEach(assignments);
-      }
+      ConditionalAssignmentListeners.onSwitchStatement(context, eligibility, node);
     };
 
     return {

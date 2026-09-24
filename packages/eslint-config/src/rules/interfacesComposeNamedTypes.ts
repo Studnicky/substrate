@@ -3,6 +3,7 @@ import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { Predicates } from '@studnicky/types/browser';
 import {
+  type IndexSignatureDeclaration,
   type InterfaceDeclaration,
   isIndexedAccessTypeNode,
   isIndexSignatureDeclaration,
@@ -12,6 +13,7 @@ import {
   isUnionTypeNode,
   type Node,
   type Program,
+  type PropertySignature,
   type TypeChecker,
   type TypeNode
 } from 'typescript';
@@ -150,40 +152,30 @@ interface AncestorInfoInterface {
   readonly 'owningMember': unknown;
 }
 
+interface AncestorWalkStateInterface {
+  'hasTypeParameterConstraintAncestor': boolean;
+  'interfaceName': string;
+  'interfaceNode': unknown;
+  'owningMember': unknown;
+}
+
 class AncestorInfo {
   public static collect(rawNode: unknown): AncestorInfoInterface {
     let child = rawNode;
     let current = Parent.get(child);
-    let hasTypeParameterConstraintAncestor = false;
-    let interfaceName = '<unnamed>';
-    let interfaceNode: unknown = null;
-    let owningMember: unknown = null;
+    const state: AncestorWalkStateInterface = {
+      'hasTypeParameterConstraintAncestor': false,
+      'interfaceName': '<unnamed>',
+      'interfaceNode': null,
+      'owningMember': null
+    };
 
     while (Predicates.isRecord(current)) {
       const nodeType = NodeType.get(current);
 
-      if (nodeType === 'TSTypeParameter' && current.constraint === child) {
-        hasTypeParameterConstraintAncestor = true;
-      }
-
-      if (
-        owningMember === null
-        && (
-          nodeType === 'TSPropertySignature'
-          || nodeType === 'TSMethodSignature'
-          || nodeType === 'TSIndexSignature'
-        )
-      ) {
-        owningMember = current;
-      }
+      AncestorInfo.#updateState(state, current, child, nodeType);
 
       if (nodeType === 'TSInterfaceDeclaration') {
-        interfaceNode = current;
-        const idNode = current.id;
-        if (Predicates.isRecord(idNode)) {
-          const name = idNode.name;
-          if (typeof name === 'string') { interfaceName = name; }
-        }
         break;
       }
 
@@ -191,12 +183,149 @@ class AncestorInfo {
       current = Parent.get(current);
     }
 
-    return {
-      'hasTypeParameterConstraintAncestor': hasTypeParameterConstraintAncestor,
-      'interfaceName': interfaceName,
-      'interfaceNode': interfaceNode,
-      'owningMember': owningMember
-    };
+    return state;
+  }
+
+  static #updateState(state: AncestorWalkStateInterface, current: Record<string, unknown>, child: unknown, nodeType: unknown): void {
+    if (nodeType === 'TSTypeParameter' && current.constraint === child) {
+      state.hasTypeParameterConstraintAncestor = true;
+    }
+
+    if (
+      state.owningMember === null
+      && (
+        nodeType === 'TSPropertySignature'
+        || nodeType === 'TSMethodSignature'
+        || nodeType === 'TSIndexSignature'
+      )
+    ) {
+      state.owningMember = current;
+    }
+
+    if (nodeType === 'TSInterfaceDeclaration') {
+      state.interfaceNode = current;
+      AncestorInfo.#setInterfaceName(state, current);
+    }
+  }
+
+  static #setInterfaceName(state: AncestorWalkStateInterface, current: Record<string, unknown>): void {
+    const idNode = current.id;
+
+    if (!Predicates.isRecord(idNode)) {
+      return;
+    }
+    const name = idNode.name;
+
+    if (typeof name === 'string') {
+      state.interfaceName = name;
+    }
+  }
+}
+
+interface DataMemberVisitContextInterface {
+  readonly 'checker': TypeChecker;
+  readonly 'classification': TypeContractClassification;
+  readonly 'context': Rule.RuleContext;
+  readonly 'services': ParserServicesInterface;
+}
+
+class DataMemberVisitor {
+  public static visit(node: Rule.Node, visitContext: DataMemberVisitContextInterface): void {
+    const ancestor = AncestorInfo.collect(node);
+
+    if (ancestor.hasTypeParameterConstraintAncestor) { return; }
+
+    const interfaceDeclaration = visitContext.services.esTreeNodeToTSNodeMap.get(ancestor.interfaceNode);
+
+    if (interfaceDeclaration === undefined || !isInterfaceDeclaration(interfaceDeclaration)) { return; }
+    if (visitContext.classification.analyzeInterface(interfaceDeclaration).classification === 'pureData') { return; }
+
+    const resolved = DataMemberVisitor.#resolveDataMember(node, visitContext.services);
+
+    if (resolved === undefined) { return; }
+    if (visitContext.classification.isBrandDeclarationMember(resolved.member)) { return; }
+    if (visitContext.classification.isInlineContractPortion(resolved.member.parent)) { return; }
+    if (InlineDataPortion.hasAncestor(resolved.member, interfaceDeclaration, visitContext.classification)) { return; }
+
+    DataMemberVisitor.#reportForMemberType(node, resolved.memberType, ancestor, visitContext);
+  }
+
+  static #resolveDataMember(
+    node: Rule.Node,
+    services: ParserServicesInterface
+  ): { 'member': IndexSignatureDeclaration | PropertySignature; 'memberType': TypeNode } | undefined {
+    const member = services.esTreeNodeToTSNodeMap.get(node);
+
+    if (
+      member === undefined
+      || (!isPropertySignature(member) && !isIndexSignatureDeclaration(member))
+      || member.type === undefined
+    ) {
+      return undefined;
+    }
+
+    return { 'member': member, 'memberType': member.type };
+  }
+
+  static #reportForMemberType(
+    node: Rule.Node,
+    memberType: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    // T or Big['a'] would otherwise launder an inline pure-data shape past the checks below.
+    const resolvedConstraint = visitContext.classification.resolveTypeParameterConstraint(memberType);
+    const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
+      ? IndexedAccessResolution.resolveMemberTypeNode(memberType, visitContext.checker)
+      : undefined;
+    const substituted = resolvedConstraint ?? resolvedIndexedAccess;
+
+    if (substituted !== undefined) {
+      DataMemberVisitor.#reportIfSubstitutedRequiresNaming(node, substituted, ancestor, visitContext);
+
+      return;
+    }
+
+    DataMemberVisitor.#reportIfMemberTypeRequiresNaming(node, memberType, ancestor, visitContext);
+  }
+
+  // visitInlineData exempts a type parameter's own constraint literal from self-flagging;
+  // deferring to InlineDataPortion.contains here would silently drop this diagnostic.
+  static #reportIfSubstitutedRequiresNaming(
+    node: Rule.Node,
+    substituted: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    if (visitContext.classification.isInlinePureDataPortion(substituted) || visitContext.classification.requiresNamedDataComposition(substituted)) {
+      visitContext.context.report({
+        'data': {
+          'interfaceName': ancestor.interfaceName,
+          'memberName': Member.getName(node)
+        },
+        'messageId': 'inlineObjectInInterface',
+        'node': node
+      });
+    }
+  }
+
+  static #reportIfMemberTypeRequiresNaming(
+    node: Rule.Node,
+    memberType: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    if (InlineDataPortion.contains(memberType, visitContext.classification)) { return; }
+    if (!visitContext.classification.requiresNamedDataComposition(memberType)) { return; }
+
+    visitContext.context.report({
+      'data': {
+        'interfaceName': ancestor.interfaceName,
+        'memberName': Member.getName(node)
+      },
+      'messageId': 'inlineObjectInInterface',
+      'node': node
+    });
   }
 }
 
@@ -231,60 +360,8 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
     };
 
     const visitDataMember = (node: Rule.Node): void => {
-      const ancestor = AncestorInfo.collect(node);
-      if (ancestor.hasTypeParameterConstraintAncestor) { return; }
-
-      const interfaceDeclaration = servicesUnknown.esTreeNodeToTSNodeMap.get(ancestor.interfaceNode);
-      if (interfaceDeclaration === undefined || !isInterfaceDeclaration(interfaceDeclaration)) { return; }
-      if (classification.analyzeInterface(interfaceDeclaration).classification === 'pureData') { return; }
-
-      const member = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
-      if (
-        member === undefined
-        || (!isPropertySignature(member) && !isIndexSignatureDeclaration(member))
-        || member.type === undefined
-      ) {
-        return;
-      }
-
-      const memberType: TypeNode = member.type;
-      if (classification.isBrandDeclarationMember(member)) { return; }
-      if (classification.isInlineContractPortion(member.parent)) { return; }
-      if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
-
-      // T or Big['a'] would otherwise launder an inline pure-data shape past the checks below.
-      const resolvedConstraint = classification.resolveTypeParameterConstraint(memberType);
-      const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
-        ? IndexedAccessResolution.resolveMemberTypeNode(memberType, checker)
-        : undefined;
-      const substituted = resolvedConstraint ?? resolvedIndexedAccess;
-
-      if (substituted !== undefined) {
-        // visitInlineData exempts a type parameter's own constraint literal from self-flagging;
-        // deferring to InlineDataPortion.contains here would silently drop this diagnostic.
-        if (classification.isInlinePureDataPortion(substituted) || classification.requiresNamedDataComposition(substituted)) {
-          context.report({
-            'data': {
-              'interfaceName': ancestor.interfaceName,
-              'memberName': Member.getName(node)
-            },
-            'messageId': 'inlineObjectInInterface',
-            'node': node
-          });
-        }
-        return;
-      }
-
-      if (InlineDataPortion.contains(memberType, classification)) { return; }
-      if (!classification.requiresNamedDataComposition(memberType)) { return; }
-
-      context.report({
-        'data': {
-          'interfaceName': ancestor.interfaceName,
-          'memberName': Member.getName(node)
-        },
-        'messageId': 'inlineObjectInInterface',
-        'node': node
+      DataMemberVisitor.visit(node, {
+        'checker': checker, 'classification': classification, 'context': context, 'services': servicesUnknown
       });
     };
 

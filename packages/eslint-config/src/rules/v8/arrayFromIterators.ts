@@ -25,28 +25,32 @@ class ForOfBinding {
     }
 
     if (left.type === 'VariableDeclaration') {
-      const declarations = left.declarations;
-
-      if (!Predicates.isArray(declarations) || declarations.length !== 1) {
-        return undefined;
-      }
-      const [declarator] = declarations;
-
-      if (!Predicates.isRecord(declarator)) {
-        return undefined;
-      }
-      const id = declarator.id;
-
-      if (!Predicates.isRecord(id) || id.type !== 'Identifier') {
-        return undefined;
-      }
-
-      const result = typeof id.name === 'string' ? id.name : undefined;
+      const result = ForOfBinding.#nameFromDeclaration(left.declarations);
 
       return result;
     }
 
     return undefined;
+  }
+
+  static #nameFromDeclaration(declarations: unknown): string | undefined {
+    if (!Predicates.isArray(declarations) || declarations.length !== 1) {
+      return undefined;
+    }
+    const [declarator] = declarations;
+
+    if (!Predicates.isRecord(declarator)) {
+      return undefined;
+    }
+    const id = declarator.id;
+
+    if (!Predicates.isRecord(id) || id.type !== 'Identifier') {
+      return undefined;
+    }
+
+    const result = typeof id.name === 'string' ? id.name : undefined;
+
+    return result;
   }
 }
 
@@ -84,35 +88,46 @@ class SoleBodyPushCall {
 class AccumulatorBinding {
   /** True when `const <name> = [];`/`let <name> = [];` is the statement immediately preceding `forOfNode`. */
   public static isFreshEmptyArrayDeclaredBefore(forOfNode: Rule.Node, name: string): boolean {
-    // Cast through `unknown`: `Predicates.isRecord` doesn't erase `Rule.Node`'s declared
-    // `.body` type. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
+    const previous = AccumulatorBinding.#precedingStatement(forOfNode);
+
+    if (!Predicates.isRecord(previous) || previous.type !== 'VariableDeclaration') {
+      return false;
+    }
+
+    const result = AccumulatorBinding.#declaresFreshEmptyArray(previous.declarations, name);
+
+    return result;
+  }
+
+  // Cast through `unknown`: `Predicates.isRecord` doesn't erase `Rule.Node`'s declared
+  // `.body` type. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
+  static #precedingStatement(forOfNode: Rule.Node): unknown {
     const block = forOfNode.parent as unknown;
 
     if (!Predicates.isRecord(block)) {
-      return false;
+      return undefined;
     }
     if (block.type !== 'BlockStatement' && block.type !== 'Program') {
-      return false;
+      return undefined;
     }
 
     const body = block.body;
 
     if (!Predicates.isArray(body)) {
-      return false;
+      return undefined;
     }
     const index = body.indexOf(forOfNode);
 
     if (index <= 0) {
-      return false;
+      return undefined;
     }
 
-    const previous = body.at(index - 1);
+    const result = body.at(index - 1);
 
-    if (!Predicates.isRecord(previous) || previous.type !== 'VariableDeclaration') {
-      return false;
-    }
-    const declarations = previous.declarations;
+    return result;
+  }
 
+  static #declaresFreshEmptyArray(declarations: unknown, name: string): boolean {
     if (!Predicates.isArray(declarations) || declarations.length !== 1) {
       return false;
     }
@@ -165,6 +180,36 @@ class IterableProof {
   }
 }
 
+class PushDrainMatch {
+  /** The accumulator's identifier name when `pushCall` is provably `acc.push(bindingName)`. */
+  public static resolveAccumulatorName(pushCall: unknown, bindingName: string): string | undefined {
+    const rawPushCall = pushCall as { readonly 'arguments': readonly unknown[]; readonly 'callee': unknown };
+    const {
+      'arguments': pushArgumentList, callee
+    } = rawPushCall;
+
+    if (pushArgumentList.length !== 1) {
+      return undefined;
+    }
+    const [pushedValue] = pushArgumentList;
+
+    if (!Predicates.isRecord(pushedValue) || pushedValue.type !== 'Identifier' || pushedValue.name !== bindingName) {
+      return undefined;
+    }
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
+      return undefined;
+    }
+    const accumulator = callee.object;
+
+    if (!Predicates.isRecord(accumulator) || accumulator.type !== 'Identifier' || typeof accumulator.name !== 'string') {
+      return undefined;
+    }
+
+    return accumulator.name;
+  }
+}
+
 export const arrayFromIterators: Rule.RuleModule = {
   'create': (context) => {
     const onForOfStatement: NonNullable<Rule.RuleListener['ForOfStatement']> = (node) => {
@@ -183,30 +228,12 @@ export const arrayFromIterators: Rule.RuleModule = {
         return;
       }
 
-      const rawPushCall = pushCall as unknown as { readonly 'arguments': readonly unknown[]; readonly 'callee': unknown };
-      const {
-        'arguments': pushArgumentList, callee
-      } = rawPushCall;
+      const accumulatorName = PushDrainMatch.resolveAccumulatorName(pushCall, bindingName);
 
-      if (pushArgumentList.length !== 1) {
+      if (accumulatorName === undefined) {
         return;
       }
-      const [pushedValue] = pushArgumentList;
-
-      if (!Predicates.isRecord(pushedValue) || pushedValue.type !== 'Identifier' || pushedValue.name !== bindingName) {
-        return;
-      }
-
-      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
-        return;
-      }
-      const accumulator = callee.object;
-
-      if (!Predicates.isRecord(accumulator) || accumulator.type !== 'Identifier' || typeof accumulator.name !== 'string') {
-        return;
-      }
-
-      if (!AccumulatorBinding.isFreshEmptyArrayDeclaredBefore(node, accumulator.name)) {
+      if (!AccumulatorBinding.isFreshEmptyArrayDeclaredBefore(node, accumulatorName)) {
         return;
       }
       if (!IterableProof.isProvenNonArray(node.right, context)) {

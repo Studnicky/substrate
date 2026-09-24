@@ -25,7 +25,13 @@ class EvalAstHelpers {
     const property = node.property;
     if (!Predicates.isRecord(property)) { return false; }
 
-    if (node.computed === true) {
+    const result = EvalAstHelpers.isEvalPropertyName(property, node.computed === true);
+
+    return result;
+  }
+
+  private static isEvalPropertyName(property: Record<string, unknown>, computed: boolean): boolean {
+    if (computed) {
       const result = property.type === 'Literal' && property.value === 'eval';
       return result;
     }

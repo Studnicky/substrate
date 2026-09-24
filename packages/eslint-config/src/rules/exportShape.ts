@@ -25,6 +25,12 @@ import { AstHelpers } from './shared/astHelpers.js';
 // to calling `left.localeCompare(right)` with no arguments.
 const NAME_COLLATOR = new Intl.Collator();
 
+interface CaseConversionStateInterface {
+  readonly 'out': string;
+  readonly 'previousWasLowerOrDigit': boolean;
+  readonly 'previousWasSeparator': boolean;
+}
+
 class CaseConverter {
   public static basename(value: string): string {
     const normalized = CaseConverter.normalizePath(value);
@@ -106,9 +112,9 @@ class CaseConverter {
   }
 
   public static toScreamingSnakeCase(value: string): string {
-    let out = '';
-    let previousWasSeparator = true;
-    let previousWasLowerOrDigit = false;
+    let state: CaseConversionStateInterface = {
+      'out': '', 'previousWasLowerOrDigit': false, 'previousWasSeparator': true
+    };
     const valueLength = value.length;
 
     for (let index = 0; index < valueLength; index += 1) {
@@ -117,34 +123,43 @@ class CaseConverter {
       if (character === undefined) {
         continue;
       }
-      const isLowercase = character >= 'a' && character <= 'z';
-      const isUppercase = character >= 'A' && character <= 'Z';
-      const isDigit = character >= '0' && character <= '9';
-      const isAlphaNumeric = isLowercase || isUppercase || isDigit;
 
-      if (!isAlphaNumeric) {
-        if (!previousWasSeparator && out.length > 0) {
-          out += '_';
-        }
-        previousWasSeparator = true;
-        previousWasLowerOrDigit = false;
-        continue;
-      }
-
-      if (!previousWasSeparator && isUppercase && previousWasLowerOrDigit) {
-        out += '_';
-      }
-
-      out += character.toUpperCase();
-      previousWasSeparator = false;
-      previousWasLowerOrDigit = isLowercase || isDigit;
+      state = CaseConverter.nextScreamingSnakeCaseState(state, character);
     }
 
-    if (out.endsWith('_')) {
-      out = out.slice(0, -1);
+    const result = state.out.endsWith('_') ? state.out.slice(0, -1) : state.out;
+
+    return result;
+  }
+
+  private static classifyCharacter(character: string): Readonly<{ 'isAlphaNumeric': boolean; 'isDigit': boolean; 'isLowercase': boolean; 'isUppercase': boolean }> {
+    const isLowercase = character >= 'a' && character <= 'z';
+    const isUppercase = character >= 'A' && character <= 'Z';
+    const isDigit = character >= '0' && character <= '9';
+    const isAlphaNumeric = isLowercase || isUppercase || isDigit;
+
+    return {
+      'isAlphaNumeric': isAlphaNumeric, 'isDigit': isDigit, 'isLowercase': isLowercase, 'isUppercase': isUppercase
+    };
+  }
+
+  private static nextScreamingSnakeCaseState(state: CaseConversionStateInterface, character: string): CaseConversionStateInterface {
+    const classification = CaseConverter.classifyCharacter(character);
+
+    if (!classification.isAlphaNumeric) {
+      const out = !state.previousWasSeparator && state.out.length > 0 ? `${state.out}_` : state.out;
+
+      return {
+        'out': out, 'previousWasLowerOrDigit': false, 'previousWasSeparator': true
+      };
     }
 
-    return out;
+    const needsSeparator = !state.previousWasSeparator && classification.isUppercase && state.previousWasLowerOrDigit;
+    const out = `${needsSeparator ? `${state.out}_` : state.out}${character.toUpperCase()}`;
+
+    return {
+      'out': out, 'previousWasLowerOrDigit': classification.isLowercase || classification.isDigit, 'previousWasSeparator': false
+    };
   }
 
   public static getFileBase(fileName: string): string {
@@ -335,6 +350,14 @@ class TypeCheckerHelpers {
 }
 
 class ExportClassifier {
+  private static readonly SIMPLE_DECLARATION_SHAPES = new Map<string, ExportShapeEntity.Type>([
+    ['FunctionDeclaration', ExportShapeKind.Function],
+    ['TSEnumDeclaration', ExportShapeKind.Enum],
+    ['TSInterfaceDeclaration', ExportShapeKind.Interface],
+    ['TSModuleDeclaration', ExportShapeKind.Namespace],
+    ['TSTypeAliasDeclaration', ExportShapeKind.Type]
+  ]);
+
   public static classify(node: Rule.Node, services: ParserServicesInterface | undefined): ExportShapeEntity.Type {
     if (node.type !== 'ExportNamedDeclaration') {
       return ExportShapeKind.Other;
@@ -361,57 +384,55 @@ class ExportClassifier {
       return ExportShapeKind.Other;
     }
 
+    const result = ExportClassifier.classifyDeclaration(decl, services);
+
+    return result;
+  }
+
+  private static classifyDeclaration(
+    decl: Record<string, unknown>,
+    services: ParserServicesInterface | undefined
+  ): ExportShapeEntity.Type {
     const declType = decl.type ?? '';
+    const simpleShape = typeof declType === 'string' ? ExportClassifier.SIMPLE_DECLARATION_SHAPES.get(declType) : undefined;
 
-    if (declType === 'TSTypeAliasDeclaration') {
-      return ExportShapeKind.Type;
-    }
-
-    if (declType === 'TSInterfaceDeclaration') {
-      return ExportShapeKind.Interface;
-    }
-
-    if (declType === 'TSEnumDeclaration') {
-      return ExportShapeKind.Enum;
-    }
-
-    if (declType === 'TSModuleDeclaration') {
-      return ExportShapeKind.Namespace;
-    }
-
-    if (declType === 'FunctionDeclaration') {
-      return ExportShapeKind.Function;
+    if (simpleShape !== undefined) {
+      return simpleShape;
     }
 
     if (declType === 'ClassDeclaration') {
-      if (TypeCheckerHelpers.isErrorClass(decl, services)) {
-        return ExportShapeKind.ErrorClass;
-      }
+      const result = TypeCheckerHelpers.isErrorClass(decl, services) ? ExportShapeKind.ErrorClass : ExportShapeKind.OtherClass;
 
-      return ExportShapeKind.OtherClass;
+      return result;
     }
 
     if (declType === 'VariableDeclaration' && decl.kind === 'const') {
-      const declarations: readonly unknown[] = Array.isArray(decl.declarations) ? decl.declarations : [];
-      const declarationsLength = declarations.length;
+      const result = ExportClassifier.classifyConstDeclaration(decl);
 
-      for (let index = 0; index < declarationsLength; index += 1) {
-        const declarator = declarations.at(index);
-
-        if (!Predicates.isRecord(declarator) || !Predicates.isRecord(declarator.init)) {
-          continue;
-        }
-        const initType = declarator.init.type;
-
-        if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
-          return ExportShapeKind.ConstFunction;
-        }
-      }
-
-      return ExportShapeKind.ConstValue;
+      return result;
     }
 
     return ExportShapeKind.Other;
+  }
+
+  private static classifyConstDeclaration(decl: Record<string, unknown>): ExportShapeEntity.Type {
+    const declarations: readonly unknown[] = Array.isArray(decl.declarations) ? decl.declarations : [];
+    const declarationsLength = declarations.length;
+
+    for (let index = 0; index < declarationsLength; index += 1) {
+      const declarator = declarations.at(index);
+
+      if (!Predicates.isRecord(declarator) || !Predicates.isRecord(declarator.init)) {
+        continue;
+      }
+      const initType = declarator.init.type;
+
+      if (initType === 'ArrowFunctionExpression' || initType === 'FunctionExpression') {
+        return ExportShapeKind.ConstFunction;
+      }
+    }
+
+    return ExportShapeKind.ConstValue;
   }
 
   public static isEnumOrConstValueShape(shape: ExportShapeEntity.Type): boolean {
@@ -468,6 +489,15 @@ class ExportClassifier {
 }
 
 class ExportNames {
+  private static readonly SINGLE_NAME_DECLARATION_TYPES = new Set([
+    'ClassDeclaration',
+    'FunctionDeclaration',
+    'TSEnumDeclaration',
+    'TSInterfaceDeclaration',
+    'TSModuleDeclaration',
+    'TSTypeAliasDeclaration'
+  ]);
+
   public static extract(node: Rule.Node): string[] {
     const names: string[] = [];
 
@@ -476,66 +506,86 @@ class ExportNames {
     }
 
     if (node.declaration !== null && node.declaration !== undefined) {
-      const declaration = node.declaration as {
-        'declarations'?: { 'id'?: { 'name'?: string; 'type'?: string; }; }[];
-        'id'?: { 'name'?: string; 'type'?: string; };
-        'type'?: string;
-      };
-      const declarationType = declaration.type ?? '';
+      ExportNames.collectDeclarationNames(node.declaration, names);
+    }
 
-      if ((
-        declarationType === 'FunctionDeclaration'
-        || declarationType === 'ClassDeclaration'
-        || declarationType === 'TSInterfaceDeclaration'
-        || declarationType === 'TSTypeAliasDeclaration'
-        || declarationType === 'TSEnumDeclaration'
-        || declarationType === 'TSModuleDeclaration'
-      ) && declaration.id?.type === 'Identifier') {
-        const idName = declaration.id.name;
+    ExportNames.collectSpecifierNames(node, names);
+
+    return names;
+  }
+
+  private static collectSpecifierNames(node: Rule.Node, names: string[]): void {
+    if (node.type !== 'ExportNamedDeclaration') {
+      return;
+    }
+
+    const specifiersLength = node.specifiers.length;
+
+    for (let index = 0; index < specifiersLength; index += 1) {
+      const specifier = node.specifiers.at(index);
+
+      if (specifier === undefined) {
+        continue;
+      }
+      if (specifier.exported.type === 'Identifier') {
+        names.push(specifier.exported.name);
+      }
+      if (specifier.exported.type === 'Literal' && typeof specifier.exported.value === 'string') {
+        names.push(specifier.exported.value);
+      }
+    }
+  }
+
+  private static collectDeclarationNames(declarationNode: unknown, names: string[]): void {
+    const declaration = declarationNode as {
+      'declarations'?: { 'id'?: { 'name'?: string; 'type'?: string; }; }[];
+      'id'?: { 'name'?: string; 'type'?: string; };
+      'type'?: string;
+    };
+    const declarationType = declaration.type ?? '';
+
+    if (ExportNames.SINGLE_NAME_DECLARATION_TYPES.has(declarationType) && declaration.id?.type === 'Identifier') {
+      const idName = declaration.id.name;
+
+      if (typeof idName === 'string' && idName.length > 0) {
+        names.push(idName);
+      }
+    }
+
+    if (declarationType === 'VariableDeclaration') {
+      ExportNames.collectVariableDeclaratorNames(declaration.declarations ?? [], names);
+    }
+  }
+
+  private static collectVariableDeclaratorNames(
+    declarators: readonly { 'id'?: { 'name'?: string; 'type'?: string; }; }[],
+    names: string[]
+  ): void {
+    const declaratorsLength = declarators.length;
+
+    for (let index = 0; index < declaratorsLength; index += 1) {
+      const declarator = declarators.at(index);
+
+      if (declarator?.id?.type === 'Identifier') {
+        const idName = declarator.id.name;
 
         if (typeof idName === 'string' && idName.length > 0) {
           names.push(idName);
         }
       }
-
-      if (declarationType === 'VariableDeclaration') {
-        const declarators = declaration.declarations ?? [];
-        const declaratorsLength = declarators.length;
-
-        for (let index = 0; index < declaratorsLength; index += 1) {
-          const declarator = declarators.at(index);
-
-          if (declarator?.id?.type === 'Identifier') {
-            const idName = declarator.id.name;
-
-            if (typeof idName === 'string' && idName.length > 0) {
-              names.push(idName);
-            }
-          }
-        }
-      }
     }
-
-    if (node.specifiers.length > 0) {
-      const specifiersLength = node.specifiers.length;
-
-      for (let index = 0; index < specifiersLength; index += 1) {
-        const specifier = node.specifiers.at(index);
-
-        if (specifier === undefined) {
-          continue;
-        }
-        if (specifier.exported.type === 'Identifier') {
-          names.push(specifier.exported.name);
-        }
-        if (specifier.exported.type === 'Literal' && typeof specifier.exported.value === 'string') {
-          names.push(specifier.exported.value);
-        }
-      }
-    }
-
-    return names;
   }
+}
+
+interface ExportTrackingStateInterface {
+  readonly 'baseName': string;
+  readonly 'exportNames': readonly string[];
+  readonly 'exportRecords': readonly ExportRecordInterface[];
+  readonly 'exportShapes': readonly ExportShapeEntity.Type[];
+  readonly 'fileName': string;
+  readonly 'firstExportNode': Rule.Node | undefined;
+  readonly 'restrictedTopology': (typeof RESTRICTED_TOPOLOGY_NAMES)[number] | undefined;
+  readonly 'sawExportAll': boolean;
 }
 
 class RestrictedTopology {
@@ -714,118 +764,16 @@ class ExportCardinalityListeners {
     };
 
     const onProgramExit: NonNullable<Rule.RuleListener['Program:exit']> = (node) => {
-      if (sawExportAll) {
-        const reportNode = firstExportNode ?? node;
-
-        context.report({
-          'data': { 'file': baseName },
-          'messageId': 'exportAll',
-          'node': reportNode
-        });
-
-        return;
-      }
-
-      const unique = [...new Set(exportNames)].filter((name) => {
-        const result = name.length > 0;
-
-        return result;
+      ExportCardinalityListeners.checkExports(context, node, {
+        'baseName': baseName,
+        'exportNames': exportNames,
+        'exportRecords': exportRecords,
+        'exportShapes': exportShapes,
+        'fileName': fileName,
+        'firstExportNode': firstExportNode,
+        'restrictedTopology': restrictedTopology,
+        'sawExportAll': sawExportAll
       });
-
-      if (unique.length === 0) {
-        return;
-      }
-
-      if (restrictedTopology === 'constants') {
-        const invalidConstantNames = unique.filter((name) => {
-          const result = !SCREAMING_SNAKE_CASE_PATTERN.test(name);
-
-          return result;
-        });
-
-        if (invalidConstantNames.length > 0) {
-          const reportNode = firstExportNode ?? node;
-
-          context.report({
-            'data': {
-              'exports': invalidConstantNames.toSorted(NAME_COLLATOR.compare).join(', ')
-            },
-            'messageId': 'constantsCase',
-            'node': reportNode
-          });
-
-          return;
-        }
-      }
-
-      // `constants/` is already content-gated above (SCREAMING_SNAKE_CASE); every other
-      // restricted topology is exempt only once its own exports earn it — a blank/arbitrary-value
-      // file merely sitting under `errors/`/`entities/`/`interfaces/`/`types/` (or matching the
-      // filename-suffix convention) does not get a pass on path alone.
-      if (restrictedTopology !== undefined) {
-        const contentVerified = restrictedTopology === 'constants' || TopologyContentVerification.isSatisfied(restrictedTopology, exportRecords);
-
-        if (contentVerified) {
-          return;
-        }
-      }
-
-      if (exportShapes.includes(ExportShapeKind.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape)) {
-        return;
-      }
-
-      const companionEnumName = ExportClassifier.findCompanionEnumName(exportRecords);
-
-      if (companionEnumName !== undefined && exportShapes.every(ExportClassifier.isTypeOrConstValueShape)) {
-        if (!CaseConverter.matchesFilename(companionEnumName, fileName)) {
-          const reportNode = firstExportNode ?? node;
-          const base = CaseConverter.getFileBase(fileName);
-          const candidates = CaseConverter.getFilenameCandidates(companionEnumName, fileName);
-
-          context.report({
-            'data': {
-              'expected': candidates.join(', '),
-              'exportName': companionEnumName,
-              'fileBase': base
-            },
-            'messageId': 'mismatch',
-            'node': reportNode
-          });
-        }
-
-        return;
-      }
-
-      if (unique.length > 1) {
-        const reportNode = firstExportNode ?? node;
-
-        context.report({
-          'data': {
-            'exports': unique.toSorted(NAME_COLLATOR.compare).join(', ')
-          },
-          'messageId': 'tooMany',
-          'node': reportNode
-        });
-
-        return;
-      }
-      const [exportName = ''] = unique;
-
-      if (!CaseConverter.matchesFilename(exportName, fileName)) {
-        const reportNode = firstExportNode ?? node;
-        const base = CaseConverter.getFileBase(fileName);
-        const candidates = CaseConverter.getFilenameCandidates(exportName, fileName);
-
-        context.report({
-          'data': {
-            'expected': candidates.join(', '),
-            'exportName': exportName,
-            'fileBase': base
-          },
-          'messageId': 'mismatch',
-          'node': reportNode
-        });
-      }
     };
 
     return {
@@ -834,6 +782,183 @@ class ExportCardinalityListeners {
       'ExportNamedDeclaration': onExportNamedDeclaration,
       'Program:exit': onProgramExit
     };
+  }
+
+  private static checkExports(context: Rule.RuleContext, node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], state: ExportTrackingStateInterface): void {
+    if (ExportCardinalityListeners.reportExportAll(context, node, state)) {
+      return;
+    }
+
+    const unique = ExportCardinalityListeners.uniqueExportNames(state.exportNames);
+
+    if (unique.length === 0) {
+      return;
+    }
+
+    if (ExportCardinalityListeners.reportConstantsCaseViolation(context, node, unique, state)) {
+      return;
+    }
+
+    if (ExportCardinalityListeners.isTopologyContentExempt(state)) {
+      return;
+    }
+
+    if (ExportCardinalityListeners.isEnumOnlyExport(state.exportShapes)) {
+      return;
+    }
+
+    if (ExportCardinalityListeners.reportCompanionEnumIfApplicable(context, node, state)) {
+      return;
+    }
+
+    ExportCardinalityListeners.reportSingleExportShape(context, node, unique, state);
+  }
+
+  private static reportExportAll(context: Rule.RuleContext, node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], state: ExportTrackingStateInterface): boolean {
+    if (!state.sawExportAll) {
+      return false;
+    }
+
+    const reportNode = state.firstExportNode ?? node;
+
+    context.report({
+      'data': { 'file': state.baseName },
+      'messageId': 'exportAll',
+      'node': reportNode
+    });
+
+    return true;
+  }
+
+  private static uniqueExportNames(exportNames: readonly string[]): string[] {
+    const result = [...new Set(exportNames)].filter((name) => {
+      const isNonEmpty = name.length > 0;
+
+      return isNonEmpty;
+    });
+
+    return result;
+  }
+
+  private static reportConstantsCaseViolation(
+    context: Rule.RuleContext,
+    node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    unique: readonly string[],
+    state: ExportTrackingStateInterface
+  ): boolean {
+    if (state.restrictedTopology !== 'constants') {
+      return false;
+    }
+
+    const invalidConstantNames = unique.filter((name) => {
+      const result = !SCREAMING_SNAKE_CASE_PATTERN.test(name);
+
+      return result;
+    });
+
+    if (invalidConstantNames.length === 0) {
+      return false;
+    }
+
+    const reportNode = state.firstExportNode ?? node;
+
+    context.report({
+      'data': {
+        'exports': invalidConstantNames.toSorted(NAME_COLLATOR.compare).join(', ')
+      },
+      'messageId': 'constantsCase',
+      'node': reportNode
+    });
+
+    return true;
+  }
+
+  // `constants/` is already content-gated above (SCREAMING_SNAKE_CASE); every other
+  // restricted topology is exempt only once its own exports earn it — a blank/arbitrary-value
+  // file merely sitting under `errors/`/`entities/`/`interfaces/`/`types/` (or matching the
+  // filename-suffix convention) does not get a pass on path alone.
+  private static isTopologyContentExempt(state: ExportTrackingStateInterface): boolean {
+    if (state.restrictedTopology === undefined) {
+      return false;
+    }
+
+    const result = state.restrictedTopology === 'constants' || TopologyContentVerification.isSatisfied(state.restrictedTopology, state.exportRecords);
+
+    return result;
+  }
+
+  private static isEnumOnlyExport(exportShapes: readonly ExportShapeEntity.Type[]): boolean {
+    const result = exportShapes.includes(ExportShapeKind.Enum) && exportShapes.every(ExportClassifier.isEnumOrConstValueShape);
+
+    return result;
+  }
+
+  private static reportCompanionEnumIfApplicable(
+    context: Rule.RuleContext,
+    node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    state: ExportTrackingStateInterface
+  ): boolean {
+    const companionEnumName = ExportClassifier.findCompanionEnumName(state.exportRecords);
+
+    if (companionEnumName === undefined || !state.exportShapes.every(ExportClassifier.isTypeOrConstValueShape)) {
+      return false;
+    }
+
+    if (!CaseConverter.matchesFilename(companionEnumName, state.fileName)) {
+      const reportNode = state.firstExportNode ?? node;
+      const base = CaseConverter.getFileBase(state.fileName);
+      const candidates = CaseConverter.getFilenameCandidates(companionEnumName, state.fileName);
+
+      context.report({
+        'data': {
+          'expected': candidates.join(', '),
+          'exportName': companionEnumName,
+          'fileBase': base
+        },
+        'messageId': 'mismatch',
+        'node': reportNode
+      });
+    }
+
+    return true;
+  }
+
+  private static reportSingleExportShape(
+    context: Rule.RuleContext,
+    node: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    unique: readonly string[],
+    state: ExportTrackingStateInterface
+  ): void {
+    if (unique.length > 1) {
+      const reportNode = state.firstExportNode ?? node;
+
+      context.report({
+        'data': {
+          'exports': unique.toSorted(NAME_COLLATOR.compare).join(', ')
+        },
+        'messageId': 'tooMany',
+        'node': reportNode
+      });
+
+      return;
+    }
+    const [exportName = ''] = unique;
+
+    if (!CaseConverter.matchesFilename(exportName, state.fileName)) {
+      const reportNode = state.firstExportNode ?? node;
+      const base = CaseConverter.getFileBase(state.fileName);
+      const candidates = CaseConverter.getFilenameCandidates(exportName, state.fileName);
+
+      context.report({
+        'data': {
+          'expected': candidates.join(', '),
+          'exportName': exportName,
+          'fileBase': base
+        },
+        'messageId': 'mismatch',
+        'node': reportNode
+      });
+    }
   }
 }
 
@@ -916,44 +1041,7 @@ class ExportNamingListeners {
     };
 
     const onExportNamedDeclaration = (node: Rule.Node): void => {
-      const rawNode = node as unknown as {
-        'source': unknown;
-        'specifiers': { 'exported': { 'name': string }; 'local': { 'name': string }; }[];
-      };
-
-      if (!inIndex) {
-        if (rawNode.source !== null && rawNode.source !== undefined) {
-          const hasAliasedSpecifier = rawNode.specifiers.some((specifier) => {
-            const result = AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
-
-            return result;
-          });
-
-          if (!hasAliasedSpecifier) {
-            context.report({
-              'messageId': 'reExportOutsideIndex',
-              'node': node
-            });
-          }
-
-          return;
-        }
-
-        const exportsImportedBinding = rawNode.specifiers.some((specifier) => {
-          const localName = AstHelpers.getIdentifierName(specifier.local);
-
-          const result = localName !== undefined && importedBindings.has(localName);
-
-          return result;
-        });
-
-        if (exportsImportedBinding) {
-          context.report({
-            'messageId': 'exportImportedBindingOutsideIndex',
-            'node': node
-          });
-        }
-      }
+      ExportNamingListeners.checkExportNamedDeclaration(context, node, inIndex, importedBindings);
     };
 
     const onExportAllDeclaration = (node: Rule.Node): void => {
@@ -1000,6 +1088,71 @@ class ExportNamingListeners {
       'TSExportAssignment': onTSExportAssignment,
       'VariableDeclarator': onVariableDeclarator
     };
+  }
+
+  private static checkExportNamedDeclaration(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    inIndex: boolean,
+    importedBindings: ReadonlySet<string>
+  ): void {
+    if (inIndex) {
+      return;
+    }
+
+    const rawNode = node as unknown as {
+      'source': unknown;
+      'specifiers': { 'exported': { 'name': string }; 'local': { 'name': string }; }[];
+    };
+
+    if (rawNode.source !== null && rawNode.source !== undefined) {
+      ExportNamingListeners.checkReExportAliasing(context, node, rawNode.specifiers);
+
+      return;
+    }
+
+    ExportNamingListeners.checkExportsImportedBinding(context, node, rawNode.specifiers, importedBindings);
+  }
+
+  private static checkReExportAliasing(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    specifiers: readonly { 'exported': { 'name': string }; 'local': { 'name': string }; }[]
+  ): void {
+    const hasAliasedSpecifier = specifiers.some((specifier) => {
+      const result = AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
+
+      return result;
+    });
+
+    if (!hasAliasedSpecifier) {
+      context.report({
+        'messageId': 'reExportOutsideIndex',
+        'node': node
+      });
+    }
+  }
+
+  private static checkExportsImportedBinding(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    specifiers: readonly { 'exported': { 'name': string }; 'local': { 'name': string }; }[],
+    importedBindings: ReadonlySet<string>
+  ): void {
+    const exportsImportedBinding = specifiers.some((specifier) => {
+      const localName = AstHelpers.getIdentifierName(specifier.local);
+
+      const result = localName !== undefined && importedBindings.has(localName);
+
+      return result;
+    });
+
+    if (exportsImportedBinding) {
+      context.report({
+        'messageId': 'exportImportedBindingOutsideIndex',
+        'node': node
+      });
+    }
   }
 }
 

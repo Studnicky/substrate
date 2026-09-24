@@ -44,16 +44,8 @@ namespace InlineTrivialLogicOptionsEntity {
 class CallbackArgumentGuard {
   /** Reaches through literal (object/array) containers only — see inline-trivial-logic.md Exemptions. */
   public static isCallArgument(node: Rule.Node): boolean {
-    let current: Rule.Node = node;
-    let walker = current.parent;
-
-    while (walker !== null && Predicates.isRecord(walker)
-      && (walker.type === 'Property' || walker.type === 'ObjectExpression' || walker.type === 'ArrayExpression')) {
-      current = walker;
-      walker = current.parent;
-    }
-
-    const parent = walker;
+    const current = CallbackArgumentGuard.#walkPastContainers(node);
+    const parent = current.parent;
 
     if (parent === null || !Predicates.isRecord(parent)) {
       return false;
@@ -63,15 +55,22 @@ class CallbackArgumentGuard {
     }
 
     const argumentList: readonly unknown[] = Array.isArray(parent.arguments) ? parent.arguments : [];
-    const argumentCount = argumentList.length;
+    const result = argumentList.includes(current);
 
-    for (let index = 0; index < argumentCount; index += 1) {
-      if (argumentList.at(index) === current) {
-        return true;
-      }
+    return result;
+  }
+
+  static #walkPastContainers(node: Rule.Node): Rule.Node {
+    let current: Rule.Node = node;
+    let walker = current.parent;
+
+    while (walker !== null && Predicates.isRecord(walker)
+      && (walker.type === 'Property' || walker.type === 'ObjectExpression' || walker.type === 'ArrayExpression')) {
+      current = walker;
+      walker = current.parent;
     }
 
-    return false;
+    return current;
   }
 }
 

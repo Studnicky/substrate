@@ -57,6 +57,12 @@ class ExpressionWalk {
       return out;
     }
 
+    ExpressionWalk.#visitEntries(node, out);
+
+    return out;
+  }
+
+  static #visitEntries(node: Record<string, unknown>, out: Rule.Node[]): void {
     const entries = Object.entries(node);
     const entriesLength = entries.length;
 
@@ -85,8 +91,6 @@ class ExpressionWalk {
         ExpressionWalk.collectVariableReferences(value, out);
       }
     }
-
-    return out;
   }
 }
 

@@ -14,8 +14,11 @@ import {
   ModifierFlags,
   type Node,
   type Program,
+  type Statement,
   SyntaxKind,
-  type TypeAliasDeclaration
+  type TypeAliasDeclaration,
+  type TypeNode,
+  type VariableStatement
 } from 'typescript';
 
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
@@ -63,53 +66,11 @@ class EntityTypeDeclaration {
       return false;
     }
 
-    if (!isTypeReferenceNode(declaration.type)) {
-      return false;
-    }
-    const [schemaArgument] = declaration.type.typeArguments ?? [];
-
-    if (
-      schemaArgument === undefined
-      || !isTypeQueryNode(schemaArgument)
-      || !isIdentifier(schemaArgument.exprName)
-      || schemaArgument.exprName.text !== 'Schema'
-    ) {
+    if (!EntityTypeDeclaration.isSchemaDerivedTypeReference(declaration.type)) {
       return false;
     }
 
-    const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
-      if (!isVariableStatement(statement)) {
-        return false;
-      }
-
-      let exported = false;
-      const modifiers = statement.modifiers;
-
-      for (let modifierIndex = 0; modifierIndex < (modifiers?.length ?? 0); modifierIndex += 1) {
-        if (modifiers?.at(modifierIndex)?.kind === SyntaxKind.ExportKeyword) {
-          exported = true;
-          break;
-        }
-      }
-
-      if (!exported) {
-        return false;
-      }
-
-      const declarations = statement.declarationList.declarations;
-      let ownsSchema = false;
-
-      for (let declarationIndex = 0; declarationIndex < declarations.length; declarationIndex += 1) {
-        const schemaDeclaration = declarations.at(declarationIndex);
-
-        if (schemaDeclaration !== undefined && isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema') {
-          ownsSchema = true;
-          break;
-        }
-      }
-
-      return ownsSchema;
-    });
+    const ownsExportedSchema = namespaceBlock.statements.some(EntityTypeDeclaration.statementOwnsExportedSchema);
 
     if (!ownsExportedSchema) {
       return false;
@@ -120,6 +81,51 @@ class EntityTypeDeclaration {
     const result = isModuleDeclaration(namespaceDeclaration)
       && isIdentifier(namespaceDeclaration.name)
       && namespaceDeclaration.name.text.endsWith('Entity');
+
+    return result;
+  }
+
+  private static isSchemaDerivedTypeReference(typeNode: TypeNode): boolean {
+    if (!isTypeReferenceNode(typeNode)) {
+      return false;
+    }
+    const [schemaArgument] = typeNode.typeArguments ?? [];
+
+    const result = schemaArgument !== undefined
+      && isTypeQueryNode(schemaArgument)
+      && isIdentifier(schemaArgument.exprName)
+      && schemaArgument.exprName.text === 'Schema';
+
+    return result;
+  }
+
+  private static statementOwnsExportedSchema(statement: Statement): boolean {
+    if (!isVariableStatement(statement)) {
+      return false;
+    }
+
+    if (!EntityTypeDeclaration.statementIsExported(statement)) {
+      return false;
+    }
+
+    const declarations = statement.declarationList.declarations;
+    const result = declarations.some((schemaDeclaration) => {
+      const isSchema = isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
+
+      return isSchema;
+    });
+
+    return result;
+  }
+
+  private static statementIsExported(statement: VariableStatement): boolean {
+    const modifiers = statement.modifiers;
+    const isExported = modifiers?.some((modifier) => {
+      const isExportKeyword = modifier.kind === SyntaxKind.ExportKeyword;
+
+      return isExportKeyword;
+    });
+    const result = isExported ?? false;
 
     return result;
   }

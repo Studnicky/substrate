@@ -21,25 +21,16 @@ export class DeclareThenReturnShape {
       return undefined;
     }
 
-    const declarations = first.declarations;
+    const declarator = DeclareThenReturnShape.soleDeclarator(first);
 
-    if (!Predicates.isArray(declarations) || declarations.length !== 1) {
-      return undefined;
-    }
-
-    const declarator = declarations.at(0);
-
-    if (!Predicates.isRecord(declarator)) {
+    if (declarator === undefined) {
       return undefined;
     }
 
     const declaredName = AstHelpers.getIdentifierName(declarator.id);
     const returnedName = AstHelpers.getIdentifierName(second.argument);
 
-    if (declaredName === undefined || returnedName === undefined) {
-      return undefined;
-    }
-    if (declaredName !== returnedName) {
+    if (declaredName === undefined || returnedName === undefined || declaredName !== returnedName) {
       return undefined;
     }
 
@@ -53,5 +44,21 @@ export class DeclareThenReturnShape {
       'declarationKind': kind,
       'initializer': declarator.init
     };
+  }
+
+  private static soleDeclarator(declaration: Record<string, unknown>): Record<string, unknown> | undefined {
+    const declarations = declaration.declarations;
+
+    if (!Predicates.isArray(declarations) || declarations.length !== 1) {
+      return undefined;
+    }
+
+    const declarator = declarations.at(0);
+
+    if (!Predicates.isRecord(declarator)) {
+      return undefined;
+    }
+
+    return declarator;
   }
 }

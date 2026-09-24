@@ -57,20 +57,33 @@ export class EntityIntake {
     // `export const intake = ...`, and refusing to recognise it would report the very
     // trust boundary this rule exists to require.
     if (parent?.type === 'MethodDefinition' || parent?.type === 'PropertyDefinition') {
-      const memberRaw = parent as unknown as Record<string, unknown>;
-      const key: unknown = memberRaw.key;
-      const named = Predicates.isRecord(key) && key.name === INTAKE_MEMBER;
+      const result = EntityIntake.#isMemberNamedIntake(parent);
 
-      return named;
+      return result;
     }
 
     if (parent?.type !== 'VariableDeclarator') {
       return false;
     }
 
-    const parentRaw = parent as unknown as Record<string, unknown>;
+    const result = EntityIntake.#isDeclaratorNamedIntake(parent);
+
+    return result;
+  }
+
+  static #isDeclaratorNamedIntake(declarator: Rule.Node): boolean {
+    const parentRaw = declarator as unknown as Record<string, unknown>;
     const declaredId: unknown = parentRaw.id;
     const result = Predicates.isRecord(declaredId) && declaredId.name === INTAKE_MEMBER;
+
+    return result;
+  }
+
+  static #isMemberNamedIntake(member: Rule.Node): boolean {
+    const memberRaw = member as unknown as Record<string, unknown>;
+    const key: unknown = memberRaw.key;
+    const result = Predicates.isRecord(key) && key.name === INTAKE_MEMBER;
+
     return result;
   }
 
@@ -78,11 +91,8 @@ export class EntityIntake {
     const parent: Rule.Node | undefined = node.parent ?? undefined;
 
     if (parent?.type === 'MethodDefinition' || parent?.type === 'PropertyDefinition') {
-      if (EntityIntake.#isPrivateMember(parent)) {
-        return true;
-      }
-      const enclosingClass = EntityIntake.#enclosingClassDeclaration(parent);
-      const result = enclosingClass !== undefined && EntityIntake.#isUnexported(enclosingClass);
+      const result = EntityIntake.#isUnreachableMember(parent);
+
       return result;
     }
 
@@ -97,6 +107,16 @@ export class EntityIntake {
     }
 
     return false;
+  }
+
+  static #isUnreachableMember(parent: Rule.Node): boolean {
+    if (EntityIntake.#isPrivateMember(parent)) {
+      return true;
+    }
+    const enclosingClass = EntityIntake.#enclosingClassDeclaration(parent);
+    const result = enclosingClass !== undefined && EntityIntake.#isUnexported(enclosingClass);
+
+    return result;
   }
 
   static #isPrivateMember(memberDefinition: Rule.Node): boolean {

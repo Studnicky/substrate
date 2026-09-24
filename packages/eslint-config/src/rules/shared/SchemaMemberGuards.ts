@@ -81,8 +81,21 @@ export class SchemaMemberGuards {
     if (!Predicates.isRecord(typeAnnotation.typeName)) {
       return false;
     }
-    // The deriving type is whatever the package uses to turn a schema value into a type.
-    // Its identity carries no weight; the `typeof Schema` argument is what binds the type to the value.
+
+    const parameters = SchemaMemberGuards.typeReferenceParameterList(typeAnnotation);
+
+    if (parameters === undefined) {
+      return false;
+    }
+
+    const result = SchemaMemberGuards.hasSchemaTypeQueryArgument(parameters);
+
+    return result;
+  }
+
+  // The deriving type is whatever the package uses to turn a schema value into a type.
+  // Its identity carries no weight; the `typeof Schema` argument is what binds the type to the value.
+  private static typeReferenceParameterList(typeAnnotation: Record<string, unknown>): unknown[] | undefined {
     let typeParameters: Record<string, unknown> | undefined;
 
     if (Predicates.isRecord(typeAnnotation.typeParameters)) {
@@ -91,14 +104,18 @@ export class SchemaMemberGuards {
       typeParameters = typeAnnotation.typeArguments;
     }
     if (!Predicates.isRecord(typeParameters)) {
-      return false;
+      return undefined;
     }
     const parameters: unknown = Reflect.get(typeParameters, 'params');
 
     if (!Array.isArray(parameters)) {
-      return false;
+      return undefined;
     }
 
+    return parameters;
+  }
+
+  private static hasSchemaTypeQueryArgument(parameters: readonly unknown[]): boolean {
     const parameterCount = parameters.length;
 
     for (let index = 0; index < parameterCount; index++) {
@@ -194,8 +211,17 @@ export class SchemaMemberGuards {
     if (!Predicates.isRecord(init) || AstHelpers.getNodeType(init) !== 'CallExpression') {
       return false;
     }
-    const { callee } = init;
 
+    if (!SchemaMemberGuards.isEntityCompilerCompileCallee(init.callee)) {
+      return false;
+    }
+
+    const result = SchemaMemberGuards.hasSoleTypeArgument(init);
+
+    return result;
+  }
+
+  private static isEntityCompilerCompileCallee(callee: unknown): boolean {
     if (!Predicates.isRecord(callee) || AstHelpers.getNodeType(callee) !== 'MemberExpression') {
       return false;
     }
@@ -209,7 +235,12 @@ export class SchemaMemberGuards {
     if (!Predicates.isRecord(property) || (property).name !== 'compile') {
       return false;
     }
-    // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
+
+    return true;
+  }
+
+  // Require an explicit `<Type>` argument so the guard narrows to the entity Type.
+  private static hasSoleTypeArgument(init: Record<string, unknown>): boolean {
     let typeParameters: unknown = init.typeArguments;
 
     if (!Predicates.isRecord(typeParameters)) {
@@ -242,93 +273,134 @@ export class SchemaMemberGuards {
 
     // `export const validate = EntityCompiler.compile<Type>(Schema)` — the
     // schema-as-source-of-truth form. No explicit predicate annotation needed.
-    if (declType === 'VariableDeclaration') {
-      const { declarations } = decl;
-      const firstDeclarator: unknown = Array.isArray(declarations) ? declarations.at(0) : undefined;
-
-      if (Predicates.isRecord(firstDeclarator)) {
-        if (SchemaMemberGuards.isEntityCompilerCompile(firstDeclarator.init)) {
-          return true;
-        }
-      }
+    if (declType === 'VariableDeclaration' && SchemaMemberGuards.declaresEntityCompilerCompile(decl)) {
+      return true;
     }
 
-    let returnType: unknown;
-    let firstParamName: string | undefined;
+    const signature = SchemaMemberGuards.validatorSignature(declType, decl);
 
-    if (declType === 'FunctionDeclaration') {
-      returnType = decl.returnType;
-      const parameters: unknown = Reflect.get(decl, 'params');
-      const p: unknown = Array.isArray(parameters) ? parameters.at(0) : undefined;
-
-      if (Predicates.isRecord(p)) {
-        if (Predicates.isRecord(p.name)) {
-          firstParamName = (p.name).name as string | undefined;
-        } else {
-          firstParamName = p.name as string | undefined;
-        }
-      }
-    } else if (declType === 'VariableDeclaration') {
-      // const validate = (...): candidate is Type => { ... }
-      const { declarations } = decl;
-
-      if (!Array.isArray(declarations) || declarations.length === 0) {
-        return false;
-      }
-      const declarator: unknown = declarations.at(0);
-
-      if (!Predicates.isRecord(declarator)) {
-        return false;
-      }
-      const { init } = declarator;
-
-      if (!Predicates.isRecord(init)) {
-        return false;
-      }
-      const initType = AstHelpers.getNodeType(init);
-
-      // ArrowFunctionExpression or FunctionExpression
-      if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') {
-        return false;
-      }
-      returnType = init.returnType;
-      const parameters: unknown = Reflect.get(init, 'params');
-      const p: unknown = Array.isArray(parameters) ? parameters.at(0) : undefined;
-
-      if (Predicates.isRecord(p)) {
-        if (Predicates.isRecord(p.name)) {
-          firstParamName = (p.name).name as string | undefined;
-        } else {
-          firstParamName = p.name as string | undefined;
-        }
-      }
-    } else {
+    if (signature === undefined) {
       return false;
     }
 
-    // returnType may be wrapped in a TSTypeAnnotation node
+    const predicate = SchemaMemberGuards.typePredicateNode(signature.returnType);
+
+    if (predicate === undefined) {
+      return false;
+    }
+
+    if (!SchemaMemberGuards.predicateParameterNameMatches(predicate, signature.firstParamName)) {
+      return false;
+    }
+
+    const result = SchemaMemberGuards.predicateReferencesType(predicate);
+
+    return result;
+  }
+
+  private static declaresEntityCompilerCompile(decl: Record<string, unknown>): boolean {
+    const { declarations } = decl;
+    const firstDeclarator: unknown = Array.isArray(declarations) ? declarations.at(0) : undefined;
+
+    const result = Predicates.isRecord(firstDeclarator) && SchemaMemberGuards.isEntityCompilerCompile(firstDeclarator.init);
+
+    return result;
+  }
+
+  private static validatorSignature(
+    declType: string | undefined,
+    decl: Record<string, unknown>
+  ): Readonly<{ 'firstParamName': string | undefined; 'returnType': unknown }> | undefined {
+    if (declType === 'FunctionDeclaration') {
+      const returnType = decl.returnType;
+      const firstParamName = SchemaMemberGuards.firstParameterName(Reflect.get(decl, 'params'));
+
+      return { 'firstParamName': firstParamName, 'returnType': returnType };
+    }
+
+    if (declType === 'VariableDeclaration') {
+      const result = SchemaMemberGuards.arrowOrFunctionExpressionSignature(decl);
+
+      return result;
+    }
+
+    return undefined;
+  }
+
+  private static firstParameterName(parameters: unknown): string | undefined {
+    const p: unknown = Array.isArray(parameters) ? parameters.at(0) : undefined;
+
+    if (!Predicates.isRecord(p)) {
+      return undefined;
+    }
+
+    if (Predicates.isRecord(p.name)) {
+      return (p.name).name as string | undefined;
+    }
+
+    return p.name as string | undefined;
+  }
+
+  // const validate = (...): candidate is Type => { ... }
+  private static arrowOrFunctionExpressionSignature(
+    decl: Record<string, unknown>
+  ): Readonly<{ 'firstParamName': string | undefined; 'returnType': unknown }> | undefined {
+    const { declarations } = decl;
+
+    if (!Array.isArray(declarations) || declarations.length === 0) {
+      return undefined;
+    }
+    const declarator: unknown = declarations.at(0);
+
+    if (!Predicates.isRecord(declarator)) {
+      return undefined;
+    }
+    const { init } = declarator;
+
+    if (!Predicates.isRecord(init)) {
+      return undefined;
+    }
+    const initType = AstHelpers.getNodeType(init);
+
+    // ArrowFunctionExpression or FunctionExpression
+    if (initType !== 'ArrowFunctionExpression' && initType !== 'FunctionExpression') {
+      return undefined;
+    }
+
+    const returnType = init.returnType;
+    const firstParamName = SchemaMemberGuards.firstParameterName(Reflect.get(init, 'params'));
+
+    return { 'firstParamName': firstParamName, 'returnType': returnType };
+  }
+
+  // returnType may be wrapped in a TSTypeAnnotation node
+  private static typePredicateNode(returnType: unknown): Record<string, unknown> | undefined {
     let predicateNode: unknown = returnType;
 
     if (Predicates.isRecord(predicateNode) && AstHelpers.getNodeType(predicateNode) === 'TSTypeAnnotation') {
       predicateNode = (predicateNode).typeAnnotation;
     }
     if (!Predicates.isRecord(predicateNode) || AstHelpers.getNodeType(predicateNode) !== 'TSTypePredicate') {
-      return false;
+      return undefined;
     }
-    const predicate = predicateNode;
 
-    // parameterName must match firstParamName
-    if (Predicates.isRecord(predicate.parameterName)) {
-      const pName = (predicate.parameterName).name;
+    return predicateNode;
+  }
 
-      if (pName !== firstParamName) {
-        return false;
-      }
-    } else {
+  // parameterName must match firstParamName
+  private static predicateParameterNameMatches(predicate: Record<string, unknown>, firstParamName: string | undefined): boolean {
+    if (!Predicates.isRecord(predicate.parameterName)) {
       return false;
     }
 
-    // typeAnnotation of predicate must reference Type
+    const pName = (predicate.parameterName).name;
+    const result = pName === firstParamName;
+
+    return result;
+  }
+
+  // typeAnnotation of predicate must reference Type
+  private static predicateReferencesType(predicate: Record<string, unknown>): boolean {
     const predTypeAnnotation = predicate.typeAnnotation;
 
     if (!Predicates.isRecord(predTypeAnnotation)) {

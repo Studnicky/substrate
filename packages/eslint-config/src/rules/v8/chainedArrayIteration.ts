@@ -96,6 +96,36 @@ interface TrackedTempVariableInterface {
   readonly 'statementLocation': StatementLocationInterface;
 }
 
+class SplitStatementChain {
+  /** True when `node` is the next statement after `tracked`'s declaration, in the same block, and `tracked`'s only read. */
+  public static isSoleNextStatementRead(
+    node: Rule.Node,
+    tracked: TrackedTempVariableInterface,
+    context: Rule.RuleContext
+  ): boolean {
+    const readStatementLocation = StatementIndex.locate(node);
+
+    if (readStatementLocation === undefined) {
+      return false;
+    }
+
+    const isNextStatementInSameBlock = readStatementLocation.block === tracked.statementLocation.block
+      && readStatementLocation.index === tracked.statementLocation.index + 1;
+
+    if (!isNextStatementInSameBlock) {
+      return false;
+    }
+
+    // "used EXACTLY ONCE" — the declaring write plus this single read
+    // must be the temp variable's only references anywhere.
+    const [variable] = context.sourceCode.getDeclaredVariables(tracked.declaratorNode);
+
+    const result = variable?.references.length === 2;
+
+    return result;
+  }
+}
+
 export const chainedArrayIteration: Rule.RuleModule = {
   'create': (context) => {
     // `const tmp = arr.filter(...);` candidates, keyed by variable name, awaiting a
@@ -149,28 +179,7 @@ export const chainedArrayIteration: Rule.RuleModule = {
 
       const tracked = trackedTempVariables.get(callee.object.name);
 
-      if (tracked === undefined) {
-        return;
-      }
-
-      const readStatementLocation = StatementIndex.locate(node);
-
-      if (readStatementLocation === undefined) {
-        return;
-      }
-
-      const isNextStatementInSameBlock = readStatementLocation.block === tracked.statementLocation.block
-        && readStatementLocation.index === tracked.statementLocation.index + 1;
-
-      if (!isNextStatementInSameBlock) {
-        return;
-      }
-
-      // "used EXACTLY ONCE" — the declaring write plus this single read
-      // must be the temp variable's only references anywhere.
-      const [variable] = context.sourceCode.getDeclaredVariables(tracked.declaratorNode);
-
-      if (variable?.references.length !== 2) {
+      if (tracked === undefined || !SplitStatementChain.isSoleNextStatementRead(node, tracked, context)) {
         return;
       }
 

@@ -50,19 +50,9 @@ class AliasRegistry {
   public readonly destructuredMethodNames = new Map<string, string>();
 
   public observeDeclarator(node: unknown): void {
-    if (!Predicates.isRecord(node)) {
-      return;
-    }
-    const id = node.id;
-    const init = node.init;
+    const id = this.#resolveObjectAliasedId(node);
 
-    if (!Predicates.isRecord(id) || !Predicates.isRecord(init)) {
-      return;
-    }
-    if (init.type !== 'Identifier' || typeof init.name !== 'string') {
-      return;
-    }
-    if (!this.objectAliases.has(init.name)) {
+    if (id === undefined) {
       return;
     }
 
@@ -75,26 +65,50 @@ class AliasRegistry {
 
     if (id.type === 'ObjectPattern' && Array.isArray(id.properties)) {
       // `const { defineProperty } = Object;` / `const { defineProperty: dp } = O;`
-      const properties = id.properties as readonly unknown[];
-      const propertiesLength = properties.length;
+      this.#observeDestructuredMethodNames(id.properties as readonly unknown[]);
+    }
+  }
 
-      for (let index = 0; index < propertiesLength; index += 1) {
-        const property = properties.at(index);
+  /** The declarator's `id` node when `init` is a name already known to resolve to `Object`. */
+  #resolveObjectAliasedId(node: unknown): Record<string, unknown> | undefined {
+    if (!Predicates.isRecord(node)) {
+      return undefined;
+    }
+    const id = node.id;
+    const init = node.init;
 
-        if (!Predicates.isRecord(property) || property.type !== 'Property') {
-          continue;
-        }
-        const keyName = PropertyKeyName.resolve(property.key, property.computed === true);
+    if (!Predicates.isRecord(id) || !Predicates.isRecord(init)) {
+      return undefined;
+    }
+    if (init.type !== 'Identifier' || typeof init.name !== 'string') {
+      return undefined;
+    }
+    if (!this.objectAliases.has(init.name)) {
+      return undefined;
+    }
 
-        if (keyName === undefined || !TARGET_METHOD_NAMES.has(keyName)) {
-          continue;
-        }
+    return id;
+  }
 
-        const valueNode = property.value;
+  #observeDestructuredMethodNames(properties: readonly unknown[]): void {
+    const propertiesLength = properties.length;
 
-        if (Predicates.isRecord(valueNode) && valueNode.type === 'Identifier' && typeof valueNode.name === 'string') {
-          this.destructuredMethodNames.set(valueNode.name, keyName);
-        }
+    for (let index = 0; index < propertiesLength; index += 1) {
+      const property = properties.at(index);
+
+      if (!Predicates.isRecord(property) || property.type !== 'Property') {
+        continue;
+      }
+      const keyName = PropertyKeyName.resolve(property.key, property.computed === true);
+
+      if (keyName === undefined || !TARGET_METHOD_NAMES.has(keyName)) {
+        continue;
+      }
+
+      const valueNode = property.value;
+
+      if (Predicates.isRecord(valueNode) && valueNode.type === 'Identifier' && typeof valueNode.name === 'string') {
+        this.destructuredMethodNames.set(valueNode.name, keyName);
       }
     }
   }
@@ -236,6 +250,38 @@ class HazardEvaluator {
   }
 }
 
+class DescriptorMapScan {
+  /** True when any entry of a `defineProperties` descriptor map is a redefinition or an accessor. */
+  public static hasHazard(
+    node: Rule.Node,
+    targetArg: unknown,
+    properties: readonly unknown[],
+    tracker: EstablishmentTracker
+  ): boolean {
+    let anyHazard = false;
+    const propertiesLength = properties.length;
+
+    for (let index = 0; index < propertiesLength; index += 1) {
+      const prop = properties.at(index);
+
+      if (!Predicates.isRecord(prop) || prop.type !== 'Property') {
+        continue;
+      }
+      const key = PropertyKeyName.resolve(prop.key, prop.computed === true);
+
+      if (key === undefined) {
+        continue;
+      }
+
+      if (HazardEvaluator.evaluateEntry(node, targetArg, key, prop.value, tracker)) {
+        anyHazard = true;
+      }
+    }
+
+    return anyHazard;
+  }
+}
+
 export const defineProperty: Rule.RuleModule = {
   'create': (context) => {
     const aliases = new AliasRegistry();
@@ -299,25 +345,7 @@ export const defineProperty: Rule.RuleModule = {
         return;
       }
 
-      let anyHazard = false;
-      const propertiesLength = properties.length;
-
-      for (let index = 0; index < propertiesLength; index += 1) {
-        const prop = properties.at(index);
-
-        if (!Predicates.isRecord(prop) || prop.type !== 'Property') {
-          continue;
-        }
-        const key = PropertyKeyName.resolve(prop.key, prop.computed === true);
-
-        if (key === undefined) {
-          continue;
-        }
-
-        if (HazardEvaluator.evaluateEntry(node, targetArg, key, prop.value, tracker)) {
-          anyHazard = true;
-        }
-      }
+      const anyHazard = DescriptorMapScan.hasHazard(node, targetArg, properties, tracker);
 
       if (anyHazard) {
         context.report({
@@ -339,28 +367,10 @@ export const defineProperty: Rule.RuleModule = {
       evaluateMultiForm(node);
     };
 
-    const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const callee = node.callee as unknown;
-
-      if (!Predicates.isRecord(callee)) {
-        return;
-      }
-
-      if (callee.type === 'Identifier' && typeof callee.name === 'string') {
-        // Destructured form: `const { defineProperty } = Object; defineProperty(...)`.
-        const destructuredMethod = aliases.destructuredMethodNames.get(callee.name);
-
-        if (destructuredMethod !== undefined) {
-          dispatch(node, destructuredMethod);
-        }
-
-        return;
-      }
-
-      if (callee.type !== 'MemberExpression') {
-        return;
-      }
-
+    const dispatchMemberExpression = (
+      node: Rule.Node & { readonly 'arguments': readonly unknown[] },
+      callee: Record<string, unknown>
+    ): void => {
       const objectNode = callee.object;
 
       if (!Predicates.isRecord(objectNode) || objectNode.type !== 'Identifier' || typeof objectNode.name !== 'string') {
@@ -385,6 +395,31 @@ export const defineProperty: Rule.RuleModule = {
       if (aliases.objectAliases.has(objectNode.name) && TARGET_METHOD_NAMES.has(methodName)) {
         dispatch(node, methodName);
       }
+    };
+
+    const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
+      const callee = node.callee as unknown;
+
+      if (!Predicates.isRecord(callee)) {
+        return;
+      }
+
+      if (callee.type === 'Identifier' && typeof callee.name === 'string') {
+        // Destructured form: `const { defineProperty } = Object; defineProperty(...)`.
+        const destructuredMethod = aliases.destructuredMethodNames.get(callee.name);
+
+        if (destructuredMethod !== undefined) {
+          dispatch(node, destructuredMethod);
+        }
+
+        return;
+      }
+
+      if (callee.type !== 'MemberExpression') {
+        return;
+      }
+
+      dispatchMemberExpression(node, callee);
     };
 
     return {

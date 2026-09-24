@@ -94,32 +94,32 @@ class BindingResolution {
     for (let index = 0; index < bindingCount; index += 1) {
       const binding = bindings.at(index);
 
-      if (binding === undefined) {
-        continue;
-      }
-      if (!layerSet.has(binding.layer)) {
+      if (binding === undefined || !layerSet.has(binding.layer)) {
         continue;
       }
 
-      if (binding.unit === 'builtin') {
-        if (host?.isBuiltinSpecifier(specifier) === true) {
-          return binding.layer;
-        }
-
-        continue;
+      if (BindingResolution.matchesSpecifier(binding, specifier, host)) {
+        return binding.layer;
       }
-
-      if (binding.unit !== 'module' && binding.unit !== 'dependency') {
-        continue;
-      }
-      if (binding.pattern === undefined || !specifier.startsWith(binding.pattern)) {
-        continue;
-      }
-
-      return binding.layer;
     }
 
     return undefined;
+  }
+
+  private static matchesSpecifier(binding: LayerBindingEntity.Type, specifier: string, host: ProjectHostInterface | undefined): boolean {
+    if (binding.unit === 'builtin') {
+      const result = host?.isBuiltinSpecifier(specifier) === true;
+
+      return result;
+    }
+
+    if (binding.unit !== 'module' && binding.unit !== 'dependency') {
+      return false;
+    }
+
+    const result = binding.pattern !== undefined && specifier.startsWith(binding.pattern);
+
+    return result;
   }
 }
 

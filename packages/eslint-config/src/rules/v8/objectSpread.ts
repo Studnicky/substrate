@@ -132,29 +132,36 @@ class ClassMemberScope {
     }
 
     const result = NodeWalk.someDescendant(constructorNode, (candidate) => {
-      if (candidate.type !== 'CallExpression') {
-        return false;
-      }
-      const callee = candidate.callee;
+      const isMatch = ClassMemberScope.#isThisMethodCall(candidate, name);
 
-      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
-        return false;
-      }
-      const object = callee.object;
-
-      if (!Predicates.isRecord(object) || object.type !== 'ThisExpression') {
-        return false;
-      }
-      const property = callee.property;
-
-      if (!Predicates.isRecord(property) || property.type !== 'Identifier') {
-        return false;
-      }
-
-      const isNamedMatch = property.name === name;
-
-      return isNamedMatch;
+      return isMatch;
     });
+
+    return result;
+  }
+
+  // True when `candidate` is `this.<name>(...)` — a bare, non-computed member call.
+  static #isThisMethodCall(candidate: Record<string, unknown>, name: string): boolean {
+    if (candidate.type !== 'CallExpression') {
+      return false;
+    }
+    const callee = candidate.callee;
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+      return false;
+    }
+    const object = callee.object;
+
+    if (!Predicates.isRecord(object) || object.type !== 'ThisExpression') {
+      return false;
+    }
+    const property = callee.property;
+
+    if (!Predicates.isRecord(property) || property.type !== 'Identifier') {
+      return false;
+    }
+
+    const result = property.name === name;
 
     return result;
   }
@@ -194,23 +201,7 @@ class NodeWalk {
           continue;
         }
 
-        if (Array.isArray(value)) {
-          const items = value as readonly unknown[];
-          const itemsLength = items.length;
-          let matched = false;
-
-          for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {
-            if (visit(items.at(itemIndex))) {
-              matched = true; break;
-            }
-          }
-          if (matched) {
-            return true;
-          }
-          continue;
-        }
-
-        if (Predicates.isRecord(value) && visit(value)) {
+        if (NodeWalk.#visitValue(value, visit)) {
           return true;
         }
       }
@@ -219,6 +210,25 @@ class NodeWalk {
     };
 
     const result = visit(node);
+
+    return result;
+  }
+
+  static #visitValue(value: unknown, visit: (current: unknown) => boolean): boolean {
+    if (Array.isArray(value)) {
+      const items = value as readonly unknown[];
+      const itemsLength = items.length;
+
+      for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {
+        if (visit(items.at(itemIndex))) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    const result = Predicates.isRecord(value) && visit(value);
 
     return result;
   }
@@ -235,24 +245,25 @@ class ThisReaching {
     }
 
     if (parent.type === 'AssignmentExpression' && parent.right === node) {
-      const left = parent.left;
+      const result = ThisReaching.#isThisMemberAssignment(parent.left);
 
-      if (Predicates.isRecord(left) && left.type === 'MemberExpression' && !left.computed) {
-        const object = left.object;
+      return result;
+    }
 
-        if (Predicates.isRecord(object) && object.type === 'ThisExpression') {
-          return true;
-        }
-      }
+    const result = parent.type === 'PropertyDefinition' && parent.value === node && !parent.computed;
 
+    return result;
+  }
+
+  static #isThisMemberAssignment(left: unknown): boolean {
+    if (!Predicates.isRecord(left) || left.type !== 'MemberExpression' || left.computed === true) {
       return false;
     }
+    const object = left.object;
 
-    if (parent.type === 'PropertyDefinition' && parent.value === node && !parent.computed) {
-      return true;
-    }
+    const result = Predicates.isRecord(object) && object.type === 'ThisExpression';
 
-    return false;
+    return result;
   }
 }
 

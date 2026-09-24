@@ -92,6 +92,12 @@ class TypeReferenceName {
   }
 }
 
+interface VocabularyCollectorsInterface {
+  readonly 'aliases': Map<string, unknown>;
+  readonly 'bareCounts': Map<string, number>;
+  readonly 'enums': Set<string>;
+}
+
 /**
  * Same-file index of enum declarations and type aliases, so `mode: TransportMode`
  * resolves without type information when the vocabulary is declared alongside its use.
@@ -111,7 +117,7 @@ class LocalVocabularyIndex {
     const aliases = new Map<string, unknown>();
     const bareCounts = new Map<string, number>();
 
-    LocalVocabularyIndex.#collect(body, '', enums, aliases, bareCounts);
+    LocalVocabularyIndex.#collect(body, '', { 'aliases': aliases, 'bareCounts': bareCounts, 'enums': enums });
 
     // A namespace member is indexed by its qualified name so `Domain.Mode` cannot
     // resolve to an unrelated `Transport.Mode`. The bare name is added only when
@@ -141,51 +147,51 @@ class LocalVocabularyIndex {
     return result;
   }
 
-  static #collect(
-    body: unknown,
-    prefix: string,
-    enums: Set<string>,
-    aliases: Map<string, unknown>,
-    bareCounts: Map<string, number>
-  ): void {
+  static #collect(body: unknown, prefix: string, collectors: VocabularyCollectorsInterface): void {
     if (!Predicates.isArray(body)) { return; }
 
     for (let index = 0; index < body.length; index += 1) {
-      const declaration = LocalVocabularyIndex.#unwrapExport(body.at(index));
-      if (!Predicates.isRecord(declaration)) { continue; }
-
-      const identifier: unknown = declaration.id;
-      if (!Predicates.isRecord(identifier)) { continue; }
-
-      // `declare module 'pkg'` augments a third-party surface rather than declaring
-      // a frame in this architecture, so its contents are not indexed or reported.
-      if (declaration.type === 'TSModuleDeclaration') {
-        if (identifier.type !== 'Identifier' || typeof identifier.name !== 'string') { continue; }
-        LocalVocabularyIndex.#collect(
-          LocalVocabularyIndex.#moduleBody(declaration),
-          `${prefix}${identifier.name}.`,
-          enums,
-          aliases,
-          bareCounts
-        );
-        continue;
-      }
-
-      if (typeof identifier.name !== 'string') { continue; }
-
-      const bare = identifier.name;
-      const isVocabularyDeclaration = declaration.type === 'TSEnumDeclaration' || declaration.type === 'TSTypeAliasDeclaration';
-      const isNameHolder = isVocabularyDeclaration || declaration.type === 'TSInterfaceDeclaration' || declaration.type === 'ClassDeclaration';
-
-      if (isNameHolder) { bareCounts.set(bare, (bareCounts.get(bare) ?? 0) + 1); }
-      if (!isVocabularyDeclaration) { continue; }
-
-      if (declaration.type === 'TSEnumDeclaration') {
-        enums.add(`${prefix}${bare}`);
-        continue;
-      }
-      aliases.set(`${prefix}${bare}`, declaration.typeAnnotation);
+      LocalVocabularyIndex.#collectStatement(body.at(index), prefix, collectors);
     }
+  }
+
+  static #collectStatement(statement: unknown, prefix: string, collectors: VocabularyCollectorsInterface): void {
+    const declaration = LocalVocabularyIndex.#unwrapExport(statement);
+    if (!Predicates.isRecord(declaration)) { return; }
+
+    const identifier: unknown = declaration.id;
+    if (!Predicates.isRecord(identifier)) { return; }
+
+    // `declare module 'pkg'` augments a third-party surface rather than declaring
+    // a frame in this architecture, so its contents are not indexed or reported.
+    if (declaration.type === 'TSModuleDeclaration') {
+      if (identifier.type !== 'Identifier' || typeof identifier.name !== 'string') { return; }
+      LocalVocabularyIndex.#collect(LocalVocabularyIndex.#moduleBody(declaration), `${prefix}${identifier.name}.`, collectors);
+      return;
+    }
+
+    if (typeof identifier.name !== 'string') { return; }
+
+    LocalVocabularyIndex.#recordVocabularyDeclaration(declaration, identifier.name, prefix, collectors);
+  }
+
+  static #recordVocabularyDeclaration(
+    declaration: Record<string, unknown>,
+    bare: string,
+    prefix: string,
+    collectors: VocabularyCollectorsInterface
+  ): void {
+    const isVocabularyDeclaration = declaration.type === 'TSEnumDeclaration' || declaration.type === 'TSTypeAliasDeclaration';
+    const isNameHolder = isVocabularyDeclaration || declaration.type === 'TSInterfaceDeclaration' || declaration.type === 'ClassDeclaration';
+
+    if (isNameHolder) { collectors.bareCounts.set(bare, (collectors.bareCounts.get(bare) ?? 0) + 1); }
+    if (!isVocabularyDeclaration) { return; }
+
+    if (declaration.type === 'TSEnumDeclaration') {
+      collectors.enums.add(`${prefix}${bare}`);
+      return;
+    }
+    collectors.aliases.set(`${prefix}${bare}`, declaration.typeAnnotation);
   }
 
   static #unwrapExport(statement: unknown): unknown {
@@ -270,6 +276,18 @@ class VocabularyAnnotation {
   }
 
   #matchesSyntactic(typeNode: Record<string, unknown>, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
+    const primary = this.#matchesSyntacticPrimary(typeNode, seen, constraints);
+
+    if (primary !== undefined) {
+      return primary;
+    }
+
+    const result = this.#matchesSyntacticWrapper(typeNode, seen, constraints);
+
+    return result;
+  }
+
+  #matchesSyntacticPrimary(typeNode: Record<string, unknown>, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean | undefined {
     const nodeType = typeNode.type;
 
     if (nodeType === 'TSBooleanKeyword') { return true; }
@@ -283,6 +301,13 @@ class VocabularyAnnotation {
       const result = this.#matchesReference(typeNode, seen, constraints);
       return result;
     }
+
+    return undefined;
+  }
+
+  #matchesSyntacticWrapper(typeNode: Record<string, unknown>, seen: Set<string>, constraints: ReadonlyMap<string, unknown>): boolean {
+    const nodeType = typeNode.type;
+
     if (nodeType === 'TSArrayType') {
       const result = this.#matches(typeNode.elementType, seen, constraints);
       return result;

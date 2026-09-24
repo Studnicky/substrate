@@ -71,19 +71,12 @@ class DeclarationLocation {
     let current: Node | undefined = child.parent;
 
     while (current !== undefined) {
-      if (isPropertySignature(current) && current.type === child) {
-        segments.unshift(current.name.getText());
-      } else if (isIndexSignatureDeclaration(current) && current.type === child) {
-        segments.unshift('[index]');
-      }
+      DeclarationLocation.#pushSegment(current, child, segments);
 
-      if (isTypeAliasDeclaration(current)) {
-        const name = current.name.text;
-        return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
-      }
-      if (isInterfaceDeclaration(current)) {
-        const name = current.name.text;
-        return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+      const terminal = DeclarationLocation.#describeIfDeclaration(current, segments);
+
+      if (terminal !== undefined) {
+        return terminal;
       }
 
       child = current;
@@ -91,6 +84,29 @@ class DeclarationLocation {
     }
 
     return { 'location': 'inline type', 'name': 'inline type' };
+  }
+
+  static #pushSegment(current: Node, child: Node, segments: string[]): void {
+    if (isPropertySignature(current) && current.type === child) {
+      segments.unshift(current.name.getText());
+    } else if (isIndexSignatureDeclaration(current) && current.type === child) {
+      segments.unshift('[index]');
+    }
+  }
+
+  static #describeIfDeclaration(current: Node, segments: readonly string[]): DeclarationLocationInterface | undefined {
+    if (isTypeAliasDeclaration(current)) {
+      const name = current.name.text;
+
+      return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+    }
+    if (isInterfaceDeclaration(current)) {
+      const name = current.name.text;
+
+      return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+    }
+
+    return undefined;
   }
 }
 

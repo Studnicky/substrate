@@ -41,6 +41,33 @@ function lintWorkspaceSource(filename: string): readonly import('eslint').Linter
   return result;
 }
 
+// Real import-graph traversal, bounded to the rule's own relative-imported files — the set
+// this rule owns and must never build a second TS compiler program across.
+function collectLocalModuleClosure(entryPath: string, visited: Set<string> = new Set()): Set<string> {
+  if (visited.has(entryPath)) {
+    return visited;
+  }
+
+  visited.add(entryPath);
+
+  const source = ts.createSourceFile(entryPath, readFileSync(entryPath, "utf8"), ts.ScriptTarget.Latest, true);
+  const entryDir = resolve(entryPath, "..");
+
+  ts.forEachChild(source, (node) => {
+    const moduleSpecifier = (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) ? node.moduleSpecifier : undefined;
+
+    if (moduleSpecifier === undefined || !ts.isStringLiteral(moduleSpecifier) || !moduleSpecifier.text.startsWith(".")) {
+      return;
+    }
+
+    const resolvedPath = resolve(entryDir, moduleSpecifier.text.replace(/\.js$/, ".ts"));
+
+    collectLocalModuleClosure(resolvedPath, visited);
+  });
+
+  return visited;
+}
+
 function prepareFixtureProject(root: string, sources: ReadonlyMap<string, string>): void {
   for (const [entry, source] of sources) {
     writeFileSync(entry, source);
@@ -326,32 +353,40 @@ void describe('no-redefined-external-types', () => {
     }
   });
 
-  void it("does not construct compiler programs while cataloging dependency types", () => {
+  void it("does not construct compiler programs anywhere across its own files", () => {
     const rulePath = join(import.meta.dirname, "../../src/rules/noRedefinedExternalTypes.ts");
-    const source = ts.createSourceFile(rulePath, readFileSync(rulePath, "utf8"), ts.ScriptTarget.Latest, true);
+    const ruleFiles = collectLocalModuleClosure(rulePath);
+
     let constructsProgram = false;
     let accessesParserServices = false;
     let createsContextSourceAst = false;
 
-    const visit = (node: ts.Node): void => {
-      if (ts.isPropertyAccessExpression(node) && node.name.text === "parserServices") {
-        accessesParserServices = true;
-      }
-      if (ts.isCallExpression(node) && ((ts.isIdentifier(node.expression) && node.expression.text === "createSourceFile") || (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "createSourceFile"))) {
-        const sourceText = node.arguments.at(1);
+    for (const filePath of ruleFiles) {
+      const source = ts.createSourceFile(filePath, readFileSync(filePath, "utf8"), ts.ScriptTarget.Latest, true);
 
-        if (sourceText !== undefined && ts.isPropertyAccessExpression(sourceText) && sourceText.name.text === "text" && ts.isPropertyAccessExpression(sourceText.expression) && sourceText.expression.name.text === "sourceCode") {
-          createsContextSourceAst = true;
+      const visit = (node: ts.Node): void => {
+        if (ts.isPropertyAccessExpression(node) && node.name.text === "parserServices") {
+          accessesParserServices = true;
         }
-      }
-      if (ts.isCallExpression(node) && ((ts.isIdentifier(node.expression) && node.expression.text === "createProgram") || (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "createProgram"))) {
-        constructsProgram = true;
-        return;
-      }
-      ts.forEachChild(node, visit);
-    };
+        if (ts.isCallExpression(node) && ((ts.isIdentifier(node.expression) && node.expression.text === "createSourceFile") || (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "createSourceFile"))) {
+          const sourceText = node.arguments.at(1);
 
-    visit(source);
+          if (sourceText !== undefined && ts.isPropertyAccessExpression(sourceText) && sourceText.name.text === "text" && ts.isPropertyAccessExpression(sourceText.expression) && sourceText.expression.name.text === "sourceCode") {
+            createsContextSourceAst = true;
+          }
+        }
+        if (ts.isCallExpression(node) && ((ts.isIdentifier(node.expression) && node.expression.text === "createProgram") || (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "createProgram"))) {
+          constructsProgram = true;
+          return;
+        }
+        ts.forEachChild(node, visit);
+      };
+
+      visit(source);
+    }
+
+    // The real invariant: no file the rule owns ever builds a second TS compiler program —
+    // it relies exclusively on the linter-supplied `parserServices.program`.
     assert.equal(constructsProgram, false);
     assert.equal(accessesParserServices, true);
     assert.equal(createsContextSourceAst, false);

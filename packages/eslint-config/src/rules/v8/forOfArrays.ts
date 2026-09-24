@@ -1,4 +1,5 @@
 import type { Rule } from 'eslint';
+import type { Type, TypeChecker } from 'typescript';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
@@ -9,53 +10,77 @@ import {
 // Measured replacement costs and the CallIdentity signature-resolution rationale:
 // docs/eslint/rules/v8/for-of-arrays.md
 
+class ForOfIterationCheck {
+  public static run(node: Parameters<NonNullable<Rule.RuleListener['ForOfStatement']>>[0], context: Rule.RuleContext): void {
+    const servicesUnknown: unknown = context.sourceCode.parserServices;
+
+    if (AstHelpers.hasTypeServices(servicesUnknown)) {
+      ForOfIterationCheck.checkWithTypeServices(node, context, servicesUnknown);
+
+      return;
+    }
+
+    // No type services: only flag the one zero-ambiguity case — a literal array expression.
+    // Any identifier or call expression could be a Set, Map, or iterable — do not guess.
+    if (node.right.type === 'ArrayExpression') {
+      context.report({
+        'messageId': 'forOfArrays', 'node': node
+      });
+    }
+  }
+
+  private static checkWithTypeServices(
+    node: Parameters<NonNullable<Rule.RuleListener['ForOfStatement']>>[0],
+    context: Rule.RuleContext,
+    servicesUnknown: unknown
+  ): void {
+    if (!AstHelpers.hasTypeServices(servicesUnknown)) {
+      return;
+    }
+
+    const { right } = node;
+
+    if (right.type === 'CallExpression'
+      && CallIdentity.isBuiltinCall(right as unknown as Rule.Node, context, ARRAY_ITERATOR_METHODS, ARRAY_ITERATOR_OWNERS)) {
+      context.report({
+        'messageId': 'forOfArrays', 'node': node
+      });
+
+      return;
+    }
+
+    // Type-checker is authoritative — no name heuristics, no guessing.
+    const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(right);
+
+    if (tsNode === undefined) {
+      return;
+    }
+
+    const checker = servicesUnknown.program.getTypeChecker();
+    const type = checker.getTypeAtLocation(tsNode);
+
+    if (ForOfIterationCheck.isArrayOrTupleType(checker, type)) {
+      context.report({
+        'messageId': 'forOfArrays', 'node': node
+      });
+    }
+  }
+
+  private static isArrayOrTupleType(checker: TypeChecker, type: Type): boolean {
+    const isArray = 'isArrayType' in checker && typeof checker.isArrayType === 'function'
+      && checker.isArrayType(type);
+    const isTuple = 'isTupleType' in checker && typeof checker.isTupleType === 'function'
+      && checker.isTupleType(type);
+    const result = isArray || isTuple;
+
+    return result;
+  }
+}
+
 export const forOfArrays: Rule.RuleModule = {
   'create': (context) => {
     const onForOfStatement: NonNullable<Rule.RuleListener['ForOfStatement']> = (node) => {
-      const { right } = node;
-      const servicesUnknown: unknown = context.sourceCode.parserServices;
-
-      if (AstHelpers.hasTypeServices(servicesUnknown)) {
-        if (right.type === 'CallExpression'
-          && CallIdentity.isBuiltinCall(right as unknown as Rule.Node, context, ARRAY_ITERATOR_METHODS, ARRAY_ITERATOR_OWNERS)) {
-          context.report({
-            'messageId': 'forOfArrays', 'node': node
-          });
-
-          return;
-        }
-
-        // Type-checker is authoritative — no name heuristics, no guessing.
-        const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(right);
-
-        if (tsNode === undefined) {
-          return;
-        }
-
-        const checker = servicesUnknown.program.getTypeChecker();
-        const type = checker.getTypeAtLocation(tsNode);
-
-        const isArray = 'isArrayType' in checker && typeof checker.isArrayType === 'function'
-          && checker.isArrayType(type);
-        const isTuple = 'isTupleType' in checker && typeof checker.isTupleType === 'function'
-          && checker.isTupleType(type);
-
-        if (isArray || isTuple) {
-          context.report({
-            'messageId': 'forOfArrays', 'node': node
-          });
-        }
-
-        return;
-      }
-
-      // No type services: only flag the one zero-ambiguity case — a literal array expression.
-      // Any identifier or call expression could be a Set, Map, or iterable — do not guess.
-      if (right.type === 'ArrayExpression') {
-        context.report({
-          'messageId': 'forOfArrays', 'node': node
-        });
-      }
+      ForOfIterationCheck.run(node, context);
     };
 
     return { 'ForOfStatement': onForOfStatement };

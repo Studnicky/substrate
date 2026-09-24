@@ -180,11 +180,9 @@ export class CallIdentity {
     }
 
     const checker = servicesUnknown.program.getTypeChecker();
-    const symbol = checker.getSymbolAtLocation(tsNode);
-    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.at(0);
-    const declaredName = declaration === undefined ? undefined : DeclarationNames.of(declaration);
+    const declaration = CallIdentity.resolveMemberDeclaration(checker, tsNode, memberNames);
 
-    if (declaration === undefined || declaredName === undefined || !memberNames.has(declaredName)) {
+    if (declaration === undefined) {
       return false;
     }
 
@@ -197,5 +195,17 @@ export class CallIdentity {
     const result = declaration.getSourceFile().fileName.endsWith(sourceFileSuffix);
 
     return result;
+  }
+
+  private static resolveMemberDeclaration(checker: ts.TypeChecker, tsNode: ts.Node, memberNames: ReadonlySet<string>): ts.Declaration | undefined {
+    const symbol = checker.getSymbolAtLocation(tsNode);
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.at(0);
+    const declaredName = declaration === undefined ? undefined : DeclarationNames.of(declaration);
+
+    if (declaration === undefined || declaredName === undefined || !memberNames.has(declaredName)) {
+      return undefined;
+    }
+
+    return declaration;
   }
 }
