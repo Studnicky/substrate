@@ -1,9 +1,10 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { JSONSchema7Type } from 'json-schema';
-import type { FromSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
+import { JsonValueNode } from '../schema/JsonValueNode.js';
 import { JsonValueSchema } from '../schema/JsonValueSchema.js';
 
 /** Canonical finite, acyclic JSON data from an external boundary. */
@@ -14,10 +15,8 @@ export namespace JsonValueEntity {
     'title': 'JsonValue'
   } as const;
 
-  export type Type = FromSchema<
-    typeof Schema,
-    { 'deserialize': [{ 'output': JSONSchema7Type; 'pattern': { 'title': 'JsonValue' } }] }
-  >;
+  export const Node = SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
