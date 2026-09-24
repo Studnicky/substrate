@@ -12,9 +12,9 @@ export interface FetchOptionsInterface
   extends FetchRequestOptionsEntity.InputType,
   Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'> {
   /**
-   * Request body, using the native Fetch body contract.
+   * Request body. Native-opaque: `fetch()` itself validates the shape.
    */
-  'body'?: RequestInit['body'];
+  'body'?: unknown;
 
   /**
    * Custom undici dispatcher or agent for Node.js connection pooling.

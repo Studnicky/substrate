@@ -5,6 +5,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';
+import type { ConfigurationCollaboratorsInterface } from '../interfaces/ConfigurationCollaboratorsInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 
@@ -18,7 +19,7 @@ interface FetchClientConfigurationResultInterface {
 }
 
 interface RuntimeOptionValuesInterface {
-  readonly 'body': FetchOptionsInterface['body'] | undefined;
+  readonly 'body': unknown;
   readonly 'dispatcher': unknown;
   readonly 'json': unknown;
   readonly 'signal': AbortSignal | undefined;
@@ -26,19 +27,20 @@ interface RuntimeOptionValuesInterface {
 
 /** Normalizes schema data and snapshots runtime values for both fetch clients. */
 export class FetchClientConfiguration {
-  public static intake(config: ClientConfigInterface): FetchClientConfigurationResultInterface {
+  public static intake(config: unknown, collaborators: ConfigurationCollaboratorsInterface = {}): FetchClientConfigurationResultInterface {
     if (!Predicates.isRecord(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
     const {
-      clock,
+      'clock': _clock,
       'options': configuredOptions,
       'parameters': runtimeParameters,
-      requestIdGenerator,
-      'signal': signalComposer,
+      'requestIdGenerator': _requestIdGenerator,
+      'signal': _signal,
       ...configData
     } = config;
+    const { clock, requestIdGenerator, 'signal': signalComposer } = collaborators;
 
     FetchClientConfiguration.assertTimeout(configData.hookTimeoutMs, 'hookTimeoutMs', false);
     FetchClientConfiguration.assertTimeout(configData.timeout, 'timeout', true);
@@ -53,6 +55,15 @@ export class FetchClientConfiguration {
     const normalized = FetchClientConfiguration.buildNormalizedConfig(parsed, options, clock, requestIdGenerator, signalComposer);
 
     return { 'config': normalized, 'queryParameters': queryParameters };
+  }
+
+  /** Extracts the typed collaborators `ClientConfigInterface` carries alongside schema data. */
+  public static collaboratorsFrom(config: ClientConfigInterface): ConfigurationCollaboratorsInterface {
+    return {
+      ...(config.clock === undefined ? {} : { 'clock': config.clock }),
+      ...(config.requestIdGenerator === undefined ? {} : { 'requestIdGenerator': config.requestIdGenerator }),
+      ...(config.signal === undefined ? {} : { 'signal': config.signal })
+    };
   }
 
   private static buildRuntimeOptions(
@@ -75,9 +86,9 @@ export class FetchClientConfiguration {
   private static buildNormalizedConfig(
     parsed: ClientConfigDataEntity.Type,
     options: FetchOptionsInterface | undefined,
-    clock: ClientConfigInterface['clock'],
-    requestIdGenerator: ClientConfigInterface['requestIdGenerator'],
-    signalComposer: ClientConfigInterface['signal']
+    clock: ConfigurationCollaboratorsInterface['clock'],
+    requestIdGenerator: ConfigurationCollaboratorsInterface['requestIdGenerator'],
+    signalComposer: ConfigurationCollaboratorsInterface['signal']
   ): ResolvedClientConfigInterface {
     return {
       ...parsed,
@@ -121,7 +132,7 @@ export class FetchClientConfiguration {
     }
   }
 
-  private static partitionOptions(options: FetchOptionsInterface | undefined): {
+  private static partitionOptions(options: unknown): {
     readonly 'data': Record<string, unknown>;
     readonly 'runtime': RuntimeOptionValuesInterface;
   } {

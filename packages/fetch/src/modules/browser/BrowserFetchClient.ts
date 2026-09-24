@@ -33,7 +33,7 @@ export class BrowserFetchClient implements FetchClientInterface {
   readonly #signal: Signal;
 
   protected constructor(config: ClientConfigInterface) {
-    const validated = FetchClientConfiguration.intake(config);
+    const validated = FetchClientConfiguration.intake(config, FetchClientConfiguration.collaboratorsFrom(config));
 
     if (validated.config.dispatcher !== undefined) {
       throw new ConfigurationError('undici connection pooling requires a Node.js runtime; the browser uses native fetch');

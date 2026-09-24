@@ -127,7 +127,7 @@ export class FetchClient implements FetchClientInterface {
   private readonly signal: Signal;
 
   protected constructor(config: ClientConfigInterface = {}) {
-    const validated = FetchClientConfiguration.intake(config);
+    const validated = FetchClientConfiguration.intake(config, FetchClientConfiguration.collaboratorsFrom(config));
 
     this.config = validated.config;
     this.queryParameters = validated.queryParameters;
