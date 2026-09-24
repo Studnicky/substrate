@@ -1030,7 +1030,7 @@ export const typeAliasInvariants: Rule.RuleModule = {
     },
     'messages': {
       'aliasMustBeInterface': "Type alias '{{name}}' represents a contract or non-schema type computation. Declare the contract as an interface or redesign the type as schema-derived canonical data.",
-      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'FromSchema<typeof Schema>' and compose only verified canonical data types.",
+      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'NodeStaticType<typeof Node>' and compose only verified canonical data types.",
       'genericForwardingAlias': "Type alias '{{name}}' is a generic forwarding shim — '{{rhs}}<{{parameters}}>' renames '{{rhs}}' without transformation. Use '{{rhs}}' directly with the type arguments at each call site.",
       'importAlias': "Import alias '{{local}}' hides the canonical name '{{imported}}'. Use '{{imported}}' directly.",
       'mustEndType': "Exported type alias '{{name}}' must end in 'Type'. Rename to '{{name}}Type'.",
