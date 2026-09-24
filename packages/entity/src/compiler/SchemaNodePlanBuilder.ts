@@ -5,6 +5,7 @@ import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterfa
 /** Performs the one traversal per node that extracts typed keyword fields; the compiler never re-reads raw JSON. */
 export class SchemaNodePlanBuilder {
   public static build(schema: Record<string, unknown>, schemaPointer: string): SchemaNodePlanInterface {
+    const legacyDependencies = SchemaNodePlanBuilder.splitLegacyDependencies(schema.dependencies);
     return {
       'additionalProperties': Reflect.get(schema, 'additionalProperties'),
       'allOf': SchemaNodePlanBuilder.asArray(schema.allOf),
@@ -15,8 +16,10 @@ export class SchemaNodePlanBuilder {
       'contentMediaType': SchemaNodePlanBuilder.asString(schema.contentMediaType),
       'default': Reflect.has(schema, 'default') ? { 'value': schema.default } : undefined,
       'defs': SchemaNodePlanBuilder.asMap(schema.$defs),
-      'dependentRequired': SchemaNodePlanBuilder.asStringArrayMap(schema.dependentRequired),
-      'dependentSchemas': SchemaNodePlanBuilder.asMap(schema.dependentSchemas),
+      'dependentRequired': SchemaNodePlanBuilder.mergeStringArrayMap(
+        SchemaNodePlanBuilder.asStringArrayMap(schema.dependentRequired), legacyDependencies.required
+      ),
+      'dependentSchemas': SchemaNodePlanBuilder.mergeMap(SchemaNodePlanBuilder.asMap(schema.dependentSchemas), legacyDependencies.schemas),
       'dynamicAnchor': SchemaNodePlanBuilder.asString(schema.$dynamicAnchor),
       'dynamicReference': SchemaNodePlanBuilder.asString(schema.$dynamicRef),
       'else': schema.else,
@@ -116,6 +119,46 @@ export class SchemaNodePlanBuilder {
       const key = keys[index]!;
       result.set(key, SchemaNodePlanBuilder.asStringArray(Reflect.get(value, key)));
     }
+    return result;
+  }
+
+  /** Draft4-7 legacy `dependencies`: an array entry is a `dependentRequired` trigger, a schema/boolean entry is a `dependentSchemas` trigger. */
+  private static splitLegacyDependencies(
+    value: unknown
+  ): { readonly 'required': ReadonlyMap<string, readonly string[]>; readonly 'schemas': ReadonlyMap<string, unknown>; } {
+    const required = new Map<string, readonly string[]>();
+    const schemas = new Map<string, unknown>();
+    if (!Predicates.isRecord(value)) {
+      return { 'required': required, 'schemas': schemas };
+    }
+    const keys = Object.keys(value);
+    const count = keys.length;
+    for (let index = 0; index < count; index += 1) {
+      const key = keys[index]!;
+      const entry = Reflect.get(value, key);
+      if (Predicates.isArray(entry)) {
+        required.set(key, SchemaNodePlanBuilder.asStringArray(entry));
+        continue;
+      }
+      schemas.set(key, entry);
+    }
+    return { 'required': required, 'schemas': schemas };
+  }
+
+  /** `dependentRequired`/`dependentSchemas` win on key collision with legacy `dependencies`. */
+  private static mergeStringArrayMap(
+    base: ReadonlyMap<string, readonly string[]>, legacy: ReadonlyMap<string, readonly string[]>
+  ): ReadonlyMap<string, readonly string[]> {
+    if (legacy.size === 0) { return base; }
+    const result = new Map(legacy);
+    base.forEach((entryValue, key) => { result.set(key, entryValue); });
+    return result;
+  }
+
+  private static mergeMap(base: ReadonlyMap<string, unknown>, legacy: ReadonlyMap<string, unknown>): ReadonlyMap<string, unknown> {
+    if (legacy.size === 0) { return base; }
+    const result = new Map(legacy);
+    base.forEach((entryValue, key) => { result.set(key, entryValue); });
     return result;
   }
 }
