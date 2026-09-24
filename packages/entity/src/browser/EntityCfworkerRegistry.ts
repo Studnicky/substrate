@@ -101,98 +101,128 @@ class EntityCfworkerCompiler {
     const composedCount = composed.length;
     for (let index = 0; index < composedCount; index += 1) {
       const fragment = composed[index]!;
-      const properties = fragment.properties;
-      if (EntityCfworkerCompiler.isPlainObject(properties)) {
-        const keys = Object.keys(properties);
-        const keyCount = keys.length;
-        for (let keyIndex = 0; keyIndex < keyCount; keyIndex += 1) {
-          const key = keys[keyIndex]!;
-          if (!result.has(key)) {
-            result.set(key, Reflect.get(properties, key));
-          }
-        }
-      }
-      const required = fragment.required;
-      if (Array.isArray(required)) {
-        const requiredCount = required.length;
-        for (let requiredIndex = 0; requiredIndex < requiredCount; requiredIndex += 1) {
-          const key: unknown = required[requiredIndex];
-          if (typeof key === 'string' && !result.has(key)) {
-            result.set(key, undefined);
-          }
-        }
-      }
+      EntityCfworkerCompiler.mergeDeclaredProperties(result, fragment);
+      EntityCfworkerCompiler.mergeRequiredOnlyProperties(result, fragment);
     }
     return result;
   }
 
+  /** Merges `fragment.properties` into `result`, keeping the first (outermost) declaration per key. */
+  private static mergeDeclaredProperties(result: Map<string, unknown>, fragment: Record<string, unknown>): void {
+    const properties = fragment.properties;
+    if (!EntityCfworkerCompiler.isPlainObject(properties)) { return; }
+    const keys = Object.keys(properties);
+    const keyCount = keys.length;
+    for (let keyIndex = 0; keyIndex < keyCount; keyIndex += 1) {
+      const key = keys[keyIndex]!;
+      if (!result.has(key)) { result.set(key, Reflect.get(properties, key)); }
+    }
+  }
+
+  /** Merges `fragment.required` keys with no declared subschema into `result` as `undefined`. */
+  private static mergeRequiredOnlyProperties(result: Map<string, unknown>, fragment: Record<string, unknown>): void {
+    const required = fragment.required;
+    if (!Array.isArray(required)) { return; }
+    const requiredCount = required.length;
+    for (let requiredIndex = 0; requiredIndex < requiredCount; requiredIndex += 1) {
+      const key: unknown = required[requiredIndex];
+      if (typeof key === 'string' && !result.has(key)) { result.set(key, undefined); }
+    }
+  }
+
   /** Projects onto the JSON Schema data model so cfworker fails instead of throwing; `seen` memoizes copies against cyclic input. */
   private static toJsonInstance(value: unknown, schema: unknown, rootSchema: object | boolean, seen: Map<object, unknown> = new Map()): unknown {
-    if (value === null || typeof value === 'boolean' || typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'number') {
-      const result = Number.isFinite(value) ? value : null;
-      return result;
-    }
+    if (EntityCfworkerCompiler.isPrimitivePassthrough(value)) { return value; }
+    if (typeof value === 'number') { const result = EntityCfworkerCompiler.toJsonNumberInstance(value); return result; }
     const cached = typeof value === 'object' ? seen.get(value) : undefined;
-    if (cached !== undefined) {
-      return cached;
-    }
-    if (Array.isArray(value)) {
-      const result: unknown[] = [];
-      seen.set(value, result);
-      const itemSchema = EntityCfworkerCompiler.isPlainObject(schema) ? schema.items : undefined;
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const normalized = EntityCfworkerCompiler.toJsonInstance(value[index], itemSchema, rootSchema, seen);
-        result.push(normalized === UNREPRESENTABLE ? null : normalized);
-      }
-      return result;
-    }
-    if (EntityCfworkerCompiler.isPlainObject(value)) {
-      const result: Record<string, unknown> = {};
-      seen.set(value, result);
-      const declaredProperties = EntityCfworkerCompiler.declaredProperties(schema, rootSchema);
-      const ownKeys = Object.keys(value);
-      const ownKeySet = new Set(ownKeys);
-      const ownKeyCount = ownKeys.length;
-      for (let index = 0; index < ownKeyCount; index += 1) {
-        const key = ownKeys[index]!;
-        const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), declaredProperties.get(key), rootSchema, seen);
-        if (normalized !== UNREPRESENTABLE) {
-          JsonObject.write(result, key, normalized);
-        }
-      }
-      const inheritedDeclared = [...declaredProperties.entries()].filter(([key]) => {
-        const isInherited = !ownKeySet.has(key);
-        return isInherited;
-      });
-      const inheritedCount = inheritedDeclared.length;
-      for (let index = 0; index < inheritedCount; index += 1) {
-        const [key, propertySchema] = inheritedDeclared[index]!;
-        const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), propertySchema, rootSchema, seen);
-        if (normalized !== UNREPRESENTABLE) {
-          EntityCfworkerCompiler.definePresentNotOwnEnumerable(result, key, normalized);
-        }
-      }
-      const undeclaredInheritedEnumerable = EntityCfworkerCompiler.inheritedEnumerableKeys(value, ownKeySet, declaredProperties);
-      const undeclaredCount = undeclaredInheritedEnumerable.length;
-      if (undeclaredCount > 0) {
-        const prototypeProjection: Record<string, unknown> = {};
-        for (let index = 0; index < undeclaredCount; index += 1) {
-          const key = undeclaredInheritedEnumerable[index]!;
-          const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), undefined, rootSchema, seen);
-          if (normalized !== UNREPRESENTABLE) {
-            JsonObject.write(prototypeProjection, key, normalized);
-          }
-        }
-        // on the prototype, not as own keys, so Object.keys/minProperties/maxProperties stay own-key-only like Ajv
-        Object.setPrototypeOf(result, prototypeProjection);
-      }
-      return result;
-    }
+    if (cached !== undefined) { return cached; }
+    if (Array.isArray(value)) { const result = EntityCfworkerCompiler.toJsonArrayInstance(value, schema, rootSchema, seen); return result; }
+    if (EntityCfworkerCompiler.isPlainObject(value)) { const result = EntityCfworkerCompiler.toJsonObjectInstance(value, schema, rootSchema, seen); return result; }
     return UNREPRESENTABLE;
+  }
+
+  private static isPrimitivePassthrough(value: unknown): value is null | boolean | string {
+    const result = value === null || typeof value === 'boolean' || typeof value === 'string';
+    return result;
+  }
+
+  private static toJsonNumberInstance(value: number): number | null {
+    const result = Number.isFinite(value) ? value : null;
+    return result;
+  }
+
+  private static toJsonArrayInstance(value: readonly unknown[], schema: unknown, rootSchema: object | boolean, seen: Map<object, unknown>): unknown[] {
+    const result: unknown[] = [];
+    seen.set(value, result);
+    const itemSchema = EntityCfworkerCompiler.isPlainObject(schema) ? schema.items : undefined;
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const normalized = EntityCfworkerCompiler.toJsonInstance(value[index], itemSchema, rootSchema, seen);
+      result.push(normalized === UNREPRESENTABLE ? null : normalized);
+    }
+    return result;
+  }
+
+  private static toJsonObjectInstance(
+    value: Record<string, unknown>, schema: unknown, rootSchema: object | boolean, seen: Map<object, unknown>
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    seen.set(value, result);
+    const declaredProperties = EntityCfworkerCompiler.declaredProperties(schema, rootSchema);
+    EntityCfworkerCompiler.projectOwnKeys(result, value, declaredProperties, rootSchema, seen);
+    EntityCfworkerCompiler.projectInheritedDeclaredKeys(result, value, declaredProperties, rootSchema, seen);
+    EntityCfworkerCompiler.projectUndeclaredInheritedEnumerableKeys(result, value, declaredProperties, rootSchema, seen);
+    return result;
+  }
+
+  /** Own-enumerable keys, normalized in place under their own declared subschema. */
+  private static projectOwnKeys(
+    result: Record<string, unknown>, value: Record<string, unknown>,
+    declaredProperties: ReadonlyMap<string, unknown>, rootSchema: object | boolean, seen: Map<object, unknown>
+  ): void {
+    const ownKeys = Object.keys(value);
+    const ownKeyCount = ownKeys.length;
+    for (let index = 0; index < ownKeyCount; index += 1) {
+      const key = ownKeys[index]!;
+      const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), declaredProperties.get(key), rootSchema, seen);
+      if (normalized !== UNREPRESENTABLE) { JsonObject.write(result, key, normalized); }
+    }
+  }
+
+  /** Declared but not own — inherited from a prototype — projected as present-but-not-own-enumerable, matching the source. */
+  private static projectInheritedDeclaredKeys(
+    result: Record<string, unknown>, value: Record<string, unknown>,
+    declaredProperties: ReadonlyMap<string, unknown>, rootSchema: object | boolean, seen: Map<object, unknown>
+  ): void {
+    const ownKeySet = new Set(Object.keys(value));
+    const inheritedDeclared = [...declaredProperties.entries()].filter(([key]) => {
+      const isInherited = !ownKeySet.has(key);
+      return isInherited;
+    });
+    const inheritedCount = inheritedDeclared.length;
+    for (let index = 0; index < inheritedCount; index += 1) {
+      const [key, propertySchema] = inheritedDeclared[index]!;
+      const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), propertySchema, rootSchema, seen);
+      if (normalized !== UNREPRESENTABLE) { EntityCfworkerCompiler.definePresentNotOwnEnumerable(result, key, normalized); }
+    }
+  }
+
+  /** Undeclared but `for...in`-visible inherited keys, projected onto the result's prototype so `Object.keys` stays own-key-only, like Ajv. */
+  private static projectUndeclaredInheritedEnumerableKeys(
+    result: Record<string, unknown>, value: Record<string, unknown>,
+    declaredProperties: ReadonlyMap<string, unknown>, rootSchema: object | boolean, seen: Map<object, unknown>
+  ): void {
+    const ownKeySet = new Set(Object.keys(value));
+    const undeclaredInheritedEnumerable = EntityCfworkerCompiler.inheritedEnumerableKeys(value, ownKeySet, declaredProperties);
+    const undeclaredCount = undeclaredInheritedEnumerable.length;
+    if (undeclaredCount === 0) { return; }
+    const prototypeProjection: Record<string, unknown> = {};
+    for (let index = 0; index < undeclaredCount; index += 1) {
+      const key = undeclaredInheritedEnumerable[index]!;
+      const normalized = EntityCfworkerCompiler.toJsonInstance(Reflect.get(value, key), undefined, rootSchema, seen);
+      if (normalized !== UNREPRESENTABLE) { JsonObject.write(prototypeProjection, key, normalized); }
+    }
+    Object.setPrototypeOf(result, prototypeProjection);
   }
 
   /** Every key `for...in` would visit: each prototype level's own enumerable keys, closest first, deduplicated (shadowing). */
@@ -335,32 +365,33 @@ class EntityCfworkerCompiler {
 
   /** Fills declared `properties` defaults onto missing keys, mirroring the Node registry's `useDefaults` timing. */
   private static applyDefaults(value: unknown, schema: object | boolean, rootSchema: object | boolean): void {
-    if (!EntityCfworkerCompiler.isPlainObject(value) || !EntityCfworkerCompiler.isPlainObject(schema)) {
-      return;
-    }
+    if (!EntityCfworkerCompiler.isPlainObject(value) || !EntityCfworkerCompiler.isPlainObject(schema)) { return; }
     const fragments = EntityCfworkerCompiler.compositionSchemas(schema, rootSchema, new Set());
     const fragmentCount = fragments.length;
     for (let fragmentIndex = 0; fragmentIndex < fragmentCount; fragmentIndex += 1) {
-      const properties = fragments[fragmentIndex]!.properties;
-      if (!EntityCfworkerCompiler.isPlainObject(properties)) {
-        continue;
-      }
-      const propertyNames = Object.keys(properties);
-      const propertyCount = propertyNames.length;
-      for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
-        const key = propertyNames[propertyIndex]!;
-        const propertySchema = Reflect.get(properties, key);
-        if (!EntityCfworkerCompiler.isPlainObject(propertySchema)) {
-          continue;
-        }
-        const hasKey = Reflect.has(value, key);
-        if (!hasKey && Reflect.has(propertySchema, 'default')) {
-          JsonObject.write(value, key, structuredClone(propertySchema.default));
-        }
-        if (Reflect.has(value, key)) {
-          EntityCfworkerCompiler.applyDefaults(Reflect.get(value, key), propertySchema, rootSchema);
-        }
-      }
+      EntityCfworkerCompiler.applyDefaultsFromFragment(value, fragments[fragmentIndex]!, rootSchema);
+    }
+  }
+
+  private static applyDefaultsFromFragment(value: Record<string, unknown>, fragment: Record<string, unknown>, rootSchema: object | boolean): void {
+    const properties = fragment.properties;
+    if (!EntityCfworkerCompiler.isPlainObject(properties)) { return; }
+    const propertyNames = Object.keys(properties);
+    const propertyCount = propertyNames.length;
+    for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
+      const key = propertyNames[propertyIndex]!;
+      EntityCfworkerCompiler.applyDefaultToProperty(value, properties, key, rootSchema);
+    }
+  }
+
+  private static applyDefaultToProperty(value: Record<string, unknown>, properties: Record<string, unknown>, key: string, rootSchema: object | boolean): void {
+    const propertySchema = Reflect.get(properties, key);
+    if (!EntityCfworkerCompiler.isPlainObject(propertySchema)) { return; }
+    if (!Reflect.has(value, key) && Reflect.has(propertySchema, 'default')) {
+      JsonObject.write(value, key, structuredClone(propertySchema.default));
+    }
+    if (Reflect.has(value, key)) {
+      EntityCfworkerCompiler.applyDefaults(Reflect.get(value, key), propertySchema, rootSchema);
     }
   }
 
@@ -486,19 +517,8 @@ class EntityCfworkerCompiler {
   private static leafErrors(errors: readonly OutputUnit[], rootSchema: object | boolean): readonly OutputUnit[] {
     const seenAdditionalPropertiesFalseLocations = new Set<string>();
     const meaningful = errors.filter((unit) => {
-      const correlatesWithAdditionalProperties = EntityCfworkerCompiler.correlatesWithAdditionalProperties(unit, errors);
-      const isPhantom = correlatesWithAdditionalProperties && EntityCfworkerCompiler.isPhantomFalseUnit(unit, rootSchema);
-      const isDuplicateClone = correlatesWithAdditionalProperties && !isPhantom
-        && seenAdditionalPropertiesFalseLocations.has(unit.instanceLocation);
-      const isMeaningful = (unit.keyword === 'false' || unit.keywordLocation !== unit.instanceLocation)
-        && !isPhantom
-        && !isDuplicateClone
-        && !EntityCfworkerCompiler.isCoveredByOwnMessageWrapper(unit, errors)
-        && !EntityCfworkerCompiler.isRedundantAdditionalPropertiesUnit(unit, rootSchema);
-      if (isMeaningful && correlatesWithAdditionalProperties) {
-        seenAdditionalPropertiesFalseLocations.add(unit.instanceLocation);
-      }
-      return isMeaningful;
+      const result = EntityCfworkerCompiler.isMeaningfulUnit(unit, errors, rootSchema, seenAdditionalPropertiesFalseLocations);
+      return result;
     });
     const errorCount = meaningful.length;
     const result: OutputUnit[] = [];
@@ -521,6 +541,37 @@ class EntityCfworkerCompiler {
     return result;
   }
 
+  /**
+   * Whether `unit` survives leaf-error filtering: not a phantom/duplicate `additionalProperties`-correlated
+   * unit, not a summary a more specific sibling already covers. Marks `unit`'s location as seen when it is
+   * a kept, additionalProperties-correlated unit, so a later duplicate at the same location is dropped.
+   */
+  private static isMeaningfulUnit(
+    unit: OutputUnit, errors: readonly OutputUnit[], rootSchema: object | boolean, seenAdditionalPropertiesFalseLocations: Set<string>
+  ): boolean {
+    const correlatesWithAdditionalProperties = EntityCfworkerCompiler.correlatesWithAdditionalProperties(unit, errors);
+    const suppressed = correlatesWithAdditionalProperties
+      && EntityCfworkerCompiler.isSuppressedAdditionalPropertiesUnit(unit, rootSchema, seenAdditionalPropertiesFalseLocations);
+    const isMeaningful = EntityCfworkerCompiler.isStructurallyMeaningfulUnit(unit, errors, rootSchema) && !suppressed;
+    if (isMeaningful && correlatesWithAdditionalProperties) {
+      seenAdditionalPropertiesFalseLocations.add(unit.instanceLocation);
+    }
+    return isMeaningful;
+  }
+
+  /** A phantom `false` unit, or a second `additionalProperties`-correlated unit at an already-seen location. */
+  private static isSuppressedAdditionalPropertiesUnit(unit: OutputUnit, rootSchema: object | boolean, seenLocations: ReadonlySet<string>): boolean {
+    const result = EntityCfworkerCompiler.isPhantomFalseUnit(unit, rootSchema) || seenLocations.has(unit.instanceLocation);
+    return result;
+  }
+
+  private static isStructurallyMeaningfulUnit(unit: OutputUnit, errors: readonly OutputUnit[], rootSchema: object | boolean): boolean {
+    const result = (unit.keyword === 'false' || unit.keywordLocation !== unit.instanceLocation)
+      && !EntityCfworkerCompiler.isCoveredByOwnMessageWrapper(unit, errors)
+      && !EntityCfworkerCompiler.isRedundantAdditionalPropertiesUnit(unit, rootSchema);
+    return result;
+  }
+
   /** Whether any fragment `dereference` reached through `$ref`, `$defs`, or composition declares `contains`/`minContains`/`maxContains` — computed once at compile time so validation skips the correction walk (and its instance traversal) entirely for the schemas, the vast majority, that never use `contains`. */
   private static hasContainsFamilyKeyword(lookup: Record<string, Schema | boolean>): boolean {
     const fragments = Object.values(lookup);
@@ -536,62 +587,83 @@ class EntityCfworkerCompiler {
   private static correctContainsErrors(instance: unknown, rootSchema: object | boolean, lookup: Record<string, Schema | boolean>, rawErrors: readonly OutputUnit[]): readonly OutputUnit[] {
     const ownedSchemaLocations: string[] = [];
     const correctedUnits: OutputUnit[] = [];
-    EntityCfworkerCompiler.walkContainsCorrections(instance, rootSchema, lookup, '#', '#', new Set(), ownedSchemaLocations, correctedUnits);
-    if (ownedSchemaLocations.length === 0) {
-      return rawErrors;
-    }
-    const isOwnedContainsUnit = (unit: OutputUnit): boolean => {
-      const owned = ownedSchemaLocations.some((location) => {
-        const result = unit.keywordLocation === `${location}/contains`
-          || unit.keywordLocation === `${location}/minContains`
-          || unit.keywordLocation === `${location}/maxContains`
-          || unit.keywordLocation.startsWith(`${location}/contains/`);
-        return result;
-      });
-      return owned;
-    };
-    const result = [...rawErrors.filter((unit) => {
-      const isUnowned = !isOwnedContainsUnit(unit);
-      return isUnowned;
-    }), ...correctedUnits];
-    return result;
-  }
+    const seenValues = new Set<object>();
 
-  /** Walks `value` alongside `schema`'s `properties`/`items` shape — following `$ref` first — re-validating every array that declares `contains` directly against that subschema. */
-  private static walkContainsCorrections(
-    value: unknown,
-    schema: Schema | boolean | undefined,
-    lookup: Record<string, Schema | boolean>,
-    instanceLocation: string,
-    schemaLocation: string,
-    seenValues: Set<object>,
-    ownedSchemaLocations: string[],
-    units: OutputUnit[]
-  ): void {
-    if (typeof value !== 'object' || value === null || seenValues.has(value) || typeof schema !== 'object' || schema === null) {
-      return;
-    }
-    seenValues.add(value);
-    const resolved = EntityCfworkerCompiler.resolveContainsSchema(schema, schemaLocation, lookup, new Set());
-    const effectiveSchema = resolved.schema;
-    const effectiveLocation = resolved.schemaLocation;
-    if (Array.isArray(value)) {
-      EntityCfworkerCompiler.checkContains(value, effectiveSchema, lookup, instanceLocation, effectiveLocation, ownedSchemaLocations, units);
+    const checkContains = (value: readonly unknown[], schema: Schema, instanceLocation: string, schemaLocation: string): void => {
+      const containsSchema = schema.contains;
+      if (containsSchema === undefined) { return; }
+      ownedSchemaLocations.push(schemaLocation);
+      const containsLocation = `${schemaLocation}/contains`;
+      const minimum = typeof schema.minContains === 'number' ? schema.minContains : 1;
+      const maximum = typeof schema.maxContains === 'number' ? schema.maxContains : undefined;
+      const { contained, itemUnits } = EntityCfworkerCompiler.matchContainsItems(value, containsSchema, lookup, instanceLocation, containsLocation);
+      if (contained >= minimum && (maximum === undefined || contained <= maximum)) { return; }
+      if (contained === 0) { correctedUnits.push(...itemUnits); }
+      correctedUnits.push({
+        'error': `Array must contain between ${minimum} and ${maximum ?? 'unbounded'} matching item(s); ${contained} found.`,
+        'instanceLocation': instanceLocation,
+        'keyword': 'contains',
+        'keywordLocation': containsLocation
+      });
+    };
+
+    const walkArray = (value: readonly unknown[], effectiveSchema: Schema, instanceLocation: string, effectiveLocation: string): void => {
+      checkContains(value, effectiveSchema, instanceLocation, effectiveLocation);
       const itemSchema = Array.isArray(effectiveSchema.items) ? undefined : effectiveSchema.items;
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        EntityCfworkerCompiler.walkContainsCorrections(value[index], itemSchema, lookup, `${instanceLocation}/${index}`, `${effectiveLocation}/items`, seenValues, ownedSchemaLocations, units);
+        walk(value[index], itemSchema, `${instanceLocation}/${index}`, `${effectiveLocation}/items`);
       }
-      return;
+    };
+
+    const walkProperties = (value: Record<string, unknown>, effectiveSchema: Schema, instanceLocation: string, effectiveLocation: string): void => {
+      const properties = effectiveSchema.properties;
+      const keys = Object.keys(value);
+      const keyCount = keys.length;
+      for (let index = 0; index < keyCount; index += 1) {
+        const key = keys[index]!;
+        const propertySchema = properties === undefined ? undefined : properties[key];
+        walk(Reflect.get(value, key), propertySchema, `${instanceLocation}/${key}`, `${effectiveLocation}/properties/${key}`);
+      }
+    };
+
+    const walk = (value: unknown, schema: Schema | boolean | undefined, instanceLocation: string, schemaLocation: string): void => {
+      if (!EntityCfworkerCompiler.canWalkContainsCorrections(value, schema, seenValues)) { return; }
+      seenValues.add(value);
+      const resolved = EntityCfworkerCompiler.resolveContainsSchema(schema as Schema, schemaLocation, lookup, new Set());
+      if (Array.isArray(value)) {
+        walkArray(value, resolved.schema, instanceLocation, resolved.schemaLocation);
+        return;
+      }
+      walkProperties(value as Record<string, unknown>, resolved.schema, instanceLocation, resolved.schemaLocation);
+    };
+
+    walk(instance, rootSchema, '#', '#');
+    if (ownedSchemaLocations.length === 0) {
+      return rawErrors;
     }
-    const properties = effectiveSchema.properties;
-    const keys = Object.keys(value);
-    const keyCount = keys.length;
-    for (let index = 0; index < keyCount; index += 1) {
-      const key = keys[index]!;
-      const propertySchema = properties === undefined ? undefined : properties[key];
-      EntityCfworkerCompiler.walkContainsCorrections(Reflect.get(value, key), propertySchema, lookup, `${instanceLocation}/${key}`, `${effectiveLocation}/properties/${key}`, seenValues, ownedSchemaLocations, units);
-    }
+    const unownedErrors = rawErrors.filter((unit) => {
+      const isUnowned = !EntityCfworkerCompiler.isOwnedContainsUnit(unit, ownedSchemaLocations);
+      return isUnowned;
+    });
+    const result = [...unownedErrors, ...correctedUnits];
+    return result;
+  }
+
+  private static isOwnedContainsUnit(unit: OutputUnit, ownedSchemaLocations: readonly string[]): boolean {
+    const result = ownedSchemaLocations.some((location) => {
+      const isOwned = unit.keywordLocation === `${location}/contains`
+        || unit.keywordLocation === `${location}/minContains`
+        || unit.keywordLocation === `${location}/maxContains`
+        || unit.keywordLocation.startsWith(`${location}/contains/`);
+      return isOwned;
+    });
+    return result;
+  }
+
+  private static canWalkContainsCorrections(value: unknown, schema: Schema | boolean | undefined, seenValues: ReadonlySet<object>): value is object {
+    const result = typeof value === 'object' && value !== null && !seenValues.has(value) && typeof schema === 'object' && schema !== null;
+    return result;
   }
 
   /** Follows `$ref` via the `__absolute_ref__`/`lookup` pair `dereference` already computed, mirroring the `/$ref` suffix cfworker's own runtime appends, so a `contains` declared only behind a reference is still found. */
@@ -610,24 +682,9 @@ class EntityCfworkerCompiler {
     return result;
   }
 
-  /** Re-validates each item against a declared `contains` subschema and appends Ajv-equivalent leaf and summary units when the match count violates `minContains` (default 1) or `maxContains`. */
-  private static checkContains(
-    value: readonly unknown[],
-    schema: Schema,
-    lookup: Record<string, Schema | boolean>,
-    instanceLocation: string,
-    schemaLocation: string,
-    ownedSchemaLocations: string[],
-    units: OutputUnit[]
-  ): void {
-    const containsSchema = schema.contains;
-    if (containsSchema === undefined) {
-      return;
-    }
-    ownedSchemaLocations.push(schemaLocation);
-    const containsLocation = `${schemaLocation}/contains`;
-    const minimum = typeof schema.minContains === 'number' ? schema.minContains : 1;
-    const maximum = typeof schema.maxContains === 'number' ? schema.maxContains : undefined;
+  private static matchContainsItems(
+    value: readonly unknown[], containsSchema: Schema | boolean, lookup: Record<string, Schema | boolean>, instanceLocation: string, containsLocation: string
+  ): { 'contained': number; 'itemUnits': OutputUnit[] } {
     const itemUnits: OutputUnit[] = [];
     let contained = 0;
     const length = value.length;
@@ -639,18 +696,7 @@ class EntityCfworkerCompiler {
         itemUnits.push(...result.errors);
       }
     }
-    if (contained >= minimum && (maximum === undefined || contained <= maximum)) {
-      return;
-    }
-    if (contained === 0) {
-      units.push(...itemUnits);
-    }
-    units.push({
-      'error': `Array must contain between ${minimum} and ${maximum ?? 'unbounded'} matching item(s); ${contained} found.`,
-      'instanceLocation': instanceLocation,
-      'keyword': 'contains',
-      'keywordLocation': containsLocation
-    });
+    return { 'contained': contained, 'itemUnits': itemUnits };
   }
 
   /** The `/contains`, `/minContains`, or `/maxContains` suffix a unit's `keywordLocation` carries, by keyword. */

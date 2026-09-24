@@ -11,41 +11,41 @@ export class SchemaNodePlanBuilder {
       'anyOf': SchemaNodePlanBuilder.asArray(schema.anyOf),
       'const': Reflect.has(schema, 'const') ? { 'value': schema.const } : undefined,
       'contains': schema.contains,
-      'contentEncoding': Predicates.isString(schema.contentEncoding) ? schema.contentEncoding : undefined,
-      'contentMediaType': Predicates.isString(schema.contentMediaType) ? schema.contentMediaType : undefined,
+      'contentEncoding': SchemaNodePlanBuilder.asString(schema.contentEncoding),
+      'contentMediaType': SchemaNodePlanBuilder.asString(schema.contentMediaType),
       'default': Reflect.has(schema, 'default') ? { 'value': schema.default } : undefined,
       'defs': SchemaNodePlanBuilder.asMap(schema.$defs),
       'dependentRequired': SchemaNodePlanBuilder.asStringArrayMap(schema.dependentRequired),
       'dependentSchemas': SchemaNodePlanBuilder.asMap(schema.dependentSchemas),
-      'dynamicAnchor': Predicates.isString(schema.$dynamicAnchor) ? schema.$dynamicAnchor : undefined,
-      'dynamicReference': Predicates.isString(schema.$dynamicRef) ? schema.$dynamicRef : undefined,
+      'dynamicAnchor': SchemaNodePlanBuilder.asString(schema.$dynamicAnchor),
+      'dynamicReference': SchemaNodePlanBuilder.asString(schema.$dynamicRef),
       'else': schema.else,
       'enum': SchemaNodePlanBuilder.asArray(schema.enum),
-      'exclusiveMaximum': Predicates.isNumberType(schema.exclusiveMaximum) ? schema.exclusiveMaximum : undefined,
-      'exclusiveMinimum': Predicates.isNumberType(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined,
-      'format': Predicates.isString(schema.format) ? schema.format : undefined,
-      'id': Predicates.isString(schema.$id) ? schema.$id : undefined,
+      'exclusiveMaximum': SchemaNodePlanBuilder.asNumber(schema.exclusiveMaximum),
+      'exclusiveMinimum': SchemaNodePlanBuilder.asNumber(schema.exclusiveMinimum),
+      'format': SchemaNodePlanBuilder.asString(schema.format),
+      'id': SchemaNodePlanBuilder.asString(schema.$id),
       'if': schema.if,
       'items': schema.items,
-      'maximum': Predicates.isNumberType(schema.maximum) ? schema.maximum : undefined,
-      'maximumContains': Predicates.isNumberType(schema.maxContains) ? schema.maxContains : undefined,
-      'maximumItems': Predicates.isNumberType(schema.maxItems) ? schema.maxItems : undefined,
-      'maximumLength': Predicates.isNumberType(schema.maxLength) ? schema.maxLength : undefined,
-      'maximumProperties': Predicates.isNumberType(schema.maxProperties) ? schema.maxProperties : undefined,
-      'minimum': Predicates.isNumberType(schema.minimum) ? schema.minimum : undefined,
-      'minimumContains': Predicates.isNumberType(schema.minContains) ? schema.minContains : undefined,
-      'minimumItems': Predicates.isNumberType(schema.minItems) ? schema.minItems : undefined,
-      'minimumLength': Predicates.isNumberType(schema.minLength) ? schema.minLength : undefined,
-      'minimumProperties': Predicates.isNumberType(schema.minProperties) ? schema.minProperties : undefined,
-      'multipleOf': Predicates.isNumberType(schema.multipleOf) ? schema.multipleOf : undefined,
+      'maximum': SchemaNodePlanBuilder.asNumber(schema.maximum),
+      'maximumContains': SchemaNodePlanBuilder.asNumber(schema.maxContains),
+      'maximumItems': SchemaNodePlanBuilder.asNumber(schema.maxItems),
+      'maximumLength': SchemaNodePlanBuilder.asNumber(schema.maxLength),
+      'maximumProperties': SchemaNodePlanBuilder.asNumber(schema.maxProperties),
+      'minimum': SchemaNodePlanBuilder.asNumber(schema.minimum),
+      'minimumContains': SchemaNodePlanBuilder.asNumber(schema.minContains),
+      'minimumItems': SchemaNodePlanBuilder.asNumber(schema.minItems),
+      'minimumLength': SchemaNodePlanBuilder.asNumber(schema.minLength),
+      'minimumProperties': SchemaNodePlanBuilder.asNumber(schema.minProperties),
+      'multipleOf': SchemaNodePlanBuilder.asNumber(schema.multipleOf),
       'not': schema.not,
       'oneOf': SchemaNodePlanBuilder.asArray(schema.oneOf),
-      'pattern': Predicates.isString(schema.pattern) ? schema.pattern : undefined,
+      'pattern': SchemaNodePlanBuilder.asString(schema.pattern),
       'patternProperties': SchemaNodePlanBuilder.asMap(schema.patternProperties),
       'prefixItems': SchemaNodePlanBuilder.asArray(schema.prefixItems),
       'properties': SchemaNodePlanBuilder.asMap(schema.properties),
       'propertyNames': schema.propertyNames,
-      'reference': Predicates.isString(schema.$ref) ? schema.$ref : undefined,
+      'reference': SchemaNodePlanBuilder.asString(schema.$ref),
       'required': SchemaNodePlanBuilder.asStringArray(schema.required),
       'schemaPointer': schemaPointer,
       'thenSchema': schema.then,
@@ -54,6 +54,16 @@ export class SchemaNodePlanBuilder {
       'unevaluatedProperties': schema.unevaluatedProperties,
       'uniqueItems': schema.uniqueItems === true
     };
+  }
+
+  private static asString(value: unknown): string | undefined {
+    const result = Predicates.isString(value) ? value : undefined;
+    return result;
+  }
+
+  private static asNumber(value: unknown): number | undefined {
+    const result = Predicates.isNumberType(value) ? value : undefined;
+    return result;
   }
 
   private static asArray(value: unknown): readonly unknown[] | undefined {
