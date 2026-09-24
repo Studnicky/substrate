@@ -76,12 +76,6 @@ export class TypeContractClassification {
     return result;
   }
 
-  public isJustifiedHandWrittenTypeAlias(declaration: TypeAliasDeclaration): boolean {
-    const result = this.context.aliasResolution.isJustifiedHandWrittenTypeAlias(declaration);
-
-    return result;
-  }
-
   public isSchemaDerivedHeritageType(node: ExpressionWithTypeArguments): boolean {
     const result = this.context.interfaceType.isSchemaDerivedHeritageType(node);
 

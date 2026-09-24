@@ -99,6 +99,11 @@
         "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
         "filename": "packages/eslint-config/ValidatedAdaptiveConfigEntity.ts",
         "name": "an entity Type composing an anyOf value discriminant (co-occurring with properties/required) is accepted as canonical pure data"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = readonly PatchOperationEntity.Type[];\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/PatchOperationsEntity.ts",
+        "name": "regression: a schema composing an external reference permits a Type composing that entity's .Type — entity-file-shape and type-alias-invariants agree on this file"
       }
     ],
     "invalid": [

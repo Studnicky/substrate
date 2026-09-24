@@ -46,6 +46,10 @@ Provenance resolution follows TypeScript symbols through local declarations and 
 
 An exported `Type` in an `*Entity` namespace with no schema-deriving shape at all is still retained as canonical pure data — not rejected as inline object data — when the namespace's own `Schema`/`Node` value proves no structural derivation exists: it contains `not`/`if`/`then`/`else` anywhere, is an empty object (`{}`), or refines with `anyOf` alongside `properties`/`required` in the same object. This checks the schema itself, never a marker on `Type`; a schema that derives structurally still reports through the normal diagnostic paths below.
 
+The same acceptance extends to a schema that composes another entity's schema by reference (`items: OtherEntity.Schema`, a spread, or an equivalent member reference this walk cannot derive into): the hand-written `Type` is justified only when it itself composes that other entity's already-justified `.Type` — through array, `readonly`, or union wrapping. A bare inline object literal or a non-entity imported alias in that position is still rejected; composing the referenced schema is not itself proof that any arbitrary hand-written shape is correct.
+
+This predicate is shared, not reimplemented per rule: [`entity-file-shape`](./entity-file-shape.md) and this rule consult the same syntax-only classification for a `Type` declaration in the file being linted, so a file cannot be accepted by one and rejected by the other on this question.
+
 ## Diagnostic order
 
 The rule has no subchecks or internal severity settings. ESLint's configured severity is the sole severity.

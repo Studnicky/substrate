@@ -22,6 +22,7 @@ import {
 } from 'typescript';
 
 import { ACCEPTED_SCHEMA_VALUE_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -167,7 +168,7 @@ export const allTypesAreEntities: Rule.RuleModule = {
       }
       if (
         analysis.reason === 'fromSchema'
-        && (EntityTypeDeclaration.isCanonical(declaration) || classification.isJustifiedHandWrittenTypeAlias(declaration))
+        && (EntityTypeDeclaration.isCanonical(declaration) || SchemaMemberGuards.isJustifiedHandWrittenEntityType(node))
       ) {
         return;
       }

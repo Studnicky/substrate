@@ -29,6 +29,7 @@ import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES
 } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 /**
@@ -982,6 +983,12 @@ export const typeAliasInvariants: Rule.RuleModule = {
         : classification.analyzeAlias(declaration);
 
       if (analysis === undefined || declaration === undefined || classification === undefined) {
+        return;
+      }
+      // entity-file-shape consults the same predicate on this file's own AST; consulting it
+      // here too keeps both rules agreeing on the same declaration rather than each running
+      // its own derivation-legitimacy judgment.
+      if (SchemaMemberGuards.isJustifiedHandWrittenEntityType(node)) {
         return;
       }
 

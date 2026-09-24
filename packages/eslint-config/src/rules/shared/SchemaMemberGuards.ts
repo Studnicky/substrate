@@ -712,6 +712,113 @@ export class SchemaMemberGuards {
     return result;
   }
 
+  // The single entry point every rule that classifies a hand-written entity `Type` consults —
+  // entity-file-shape calls it directly on the raw AST; type-alias-invariants and
+  // all-types-are-entities call it on the same raw AST node obtained from
+  // `context.sourceCode`/the ESLint listener, never through a second, type-aware
+  // reimplementation of this judgment. A hand-written `Type` is justified when its own
+  // namespace's Schema/Node proves no structural derivation exists, or — when that schema
+  // composes another file's schema this walk cannot see into — when `Type` itself composes
+  // that other file's already-justified `.Type`.
+  static isJustifiedHandWrittenEntityType(declaration: unknown): boolean {
+    const schemaDeclarator = SchemaMemberGuards.namespaceSchemaDeclarator(declaration);
+
+    if (schemaDeclarator === undefined) {
+      return false;
+    }
+    if (SchemaMemberGuards.schemaDefeatsStructuralDerivation(schemaDeclarator)) {
+      return true;
+    }
+
+    const result = SchemaMemberGuards.schemaComposesExternalReference(schemaDeclarator)
+      && SchemaMemberGuards.typeIsComposedFromEntityType(declaration);
+
+    return result;
+  }
+
+  // Resolves the exported `Schema`/`Node` declarator in the same `*Entity` namespace as an
+  // exported `Type` alias — `undefined` for anything that is not that exact shape.
+  private static namespaceSchemaDeclarator(declaration: unknown): unknown {
+    if (!Predicates.isRecord(declaration) || AstHelpers.getIdentifierName(declaration.id) !== 'Type') {
+      return undefined;
+    }
+
+    const namespaceBlock = SchemaMemberGuards.entityNamespaceBlock(declaration);
+
+    if (namespaceBlock === undefined) {
+      return undefined;
+    }
+
+    const result = SchemaMemberGuards.findSchemaDeclarator(namespaceBlock);
+
+    return result;
+  }
+
+  private static entityNamespaceBlock(declaration: Record<string, unknown>): Record<string, unknown> | undefined {
+    const exportDeclaration = declaration.parent;
+
+    if (!Predicates.isRecord(exportDeclaration) || AstHelpers.getNodeType(exportDeclaration) !== 'ExportNamedDeclaration') {
+      return undefined;
+    }
+
+    const namespaceBlock = exportDeclaration.parent;
+
+    if (!Predicates.isRecord(namespaceBlock) || AstHelpers.getNodeType(namespaceBlock) !== 'TSModuleBlock') {
+      return undefined;
+    }
+
+    const namespaceName = SchemaMemberGuards.moduleDeclarationName(namespaceBlock.parent);
+
+    if (namespaceName?.endsWith('Entity') !== true) {
+      return undefined;
+    }
+
+    return namespaceBlock;
+  }
+
+  private static moduleDeclarationName(namespaceDeclaration: unknown): string | undefined {
+    const result = Predicates.isRecord(namespaceDeclaration) ? AstHelpers.getIdentifierName(namespaceDeclaration.id) : undefined;
+
+    return result;
+  }
+
+  private static findSchemaDeclarator(namespaceBlock: Record<string, unknown>): unknown {
+    const body: unknown[] = Array.isArray(namespaceBlock.body) ? namespaceBlock.body : [];
+    const bodyLength = body.length;
+
+    for (let index = 0; index < bodyLength; index += 1) {
+      const declaration = SchemaMemberGuards.unwrapExportedDeclaration(body.at(index));
+
+      if (!Predicates.isRecord(declaration) || AstHelpers.getNodeType(declaration) !== 'VariableDeclaration') {
+        continue;
+      }
+
+      const declarators: unknown[] = Array.isArray(declaration.declarations) ? declaration.declarations : [];
+      const schemaDeclarator = declarators.find(SchemaMemberGuards.isSchemaValueDeclarator);
+
+      if (schemaDeclarator !== undefined) {
+        return schemaDeclarator;
+      }
+    }
+
+    return undefined;
+  }
+
+  private static isSchemaValueDeclarator(declarator: unknown): boolean {
+    const name = Predicates.isRecord(declarator) ? AstHelpers.getIdentifierName(declarator.id) : undefined;
+    const result = name !== undefined && ACCEPTED_SCHEMA_VALUE_NAMES.has(name);
+
+    return result;
+  }
+
+  private static unwrapExportedDeclaration(statement: unknown): unknown {
+    if (!Predicates.isRecord(statement) || AstHelpers.getNodeType(statement) !== 'ExportNamedDeclaration') {
+      return undefined;
+    }
+
+    return statement.declaration;
+  }
+
   private static staticKeyName(key: unknown): string | undefined {
     if (!Predicates.isRecord(key)) {
       return undefined;
