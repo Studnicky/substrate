@@ -134,7 +134,7 @@ export class SchemaNode {
     required: readonly TRequired[],
     options?: DefineObjectOptionsInterface<TAdditional, TPatternProps>
   ): SchemaNodeInterface<
-    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps },
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
     IdentityType<
       ApplyObjectConstraintBrandsType<TSchema>
       & InferAdditionalPropertiesStaticType<TAdditional>
@@ -157,7 +157,7 @@ export class SchemaNode {
 
     // Runtime shape proven correct by the spread above; the cast restores the branded generic return type.
     return { 'schema': combinedSchema } as unknown as SchemaNodeInterface<
-      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps },
+      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
       IdentityType<
         ApplyObjectConstraintBrandsType<TSchema>
         & InferAdditionalPropertiesStaticType<TAdditional>
