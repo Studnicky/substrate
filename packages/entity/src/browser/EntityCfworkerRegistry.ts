@@ -470,7 +470,7 @@ class EntityCfworkerCompiler {
     return result;
   }
 
-  /** Walks `value` alongside `schema`'s literal `properties`/`items` shape, re-validating every array that declares `contains` directly against that subschema. */
+  /** Walks `value` alongside `schema`'s `properties`/`items` shape — following `$ref` first — re-validating every array that declares `contains` directly against that subschema. */
   private static walkContainsCorrections(
     value: unknown,
     schema: Schema | boolean | undefined,
@@ -485,23 +485,42 @@ class EntityCfworkerCompiler {
       return;
     }
     seenValues.add(value);
+    const resolved = EntityCfworkerCompiler.resolveContainsSchema(schema, schemaLocation, lookup, new Set());
+    const effectiveSchema = resolved.schema;
+    const effectiveLocation = resolved.schemaLocation;
     if (Array.isArray(value)) {
-      EntityCfworkerCompiler.checkContains(value, schema, lookup, instanceLocation, schemaLocation, ownedSchemaLocations, units);
-      const itemSchema = Array.isArray(schema.items) ? undefined : schema.items;
+      EntityCfworkerCompiler.checkContains(value, effectiveSchema, lookup, instanceLocation, effectiveLocation, ownedSchemaLocations, units);
+      const itemSchema = Array.isArray(effectiveSchema.items) ? undefined : effectiveSchema.items;
       const length = value.length;
       for (let index = 0; index < length; index += 1) {
-        EntityCfworkerCompiler.walkContainsCorrections(value[index], itemSchema, lookup, `${instanceLocation}/${index}`, `${schemaLocation}/items`, seenValues, ownedSchemaLocations, units);
+        EntityCfworkerCompiler.walkContainsCorrections(value[index], itemSchema, lookup, `${instanceLocation}/${index}`, `${effectiveLocation}/items`, seenValues, ownedSchemaLocations, units);
       }
       return;
     }
-    const properties = schema.properties;
+    const properties = effectiveSchema.properties;
     const keys = Object.keys(value);
     const keyCount = keys.length;
     for (let index = 0; index < keyCount; index += 1) {
       const key = keys[index]!;
       const propertySchema = properties === undefined ? undefined : properties[key];
-      EntityCfworkerCompiler.walkContainsCorrections(Reflect.get(value, key), propertySchema, lookup, `${instanceLocation}/${key}`, `${schemaLocation}/properties/${key}`, seenValues, ownedSchemaLocations, units);
+      EntityCfworkerCompiler.walkContainsCorrections(Reflect.get(value, key), propertySchema, lookup, `${instanceLocation}/${key}`, `${effectiveLocation}/properties/${key}`, seenValues, ownedSchemaLocations, units);
     }
+  }
+
+  /** Follows `$ref` via the `__absolute_ref__`/`lookup` pair `dereference` already computed, mirroring the `/$ref` suffix cfworker's own runtime appends, so a `contains` declared only behind a reference is still found. */
+  private static resolveContainsSchema(schema: Schema, schemaLocation: string, lookup: Record<string, Schema | boolean>, seenReferences: ReadonlySet<string>): { 'schema': Schema; 'schemaLocation': string } {
+    const absoluteReference: unknown = Reflect.get(schema, '__absolute_ref__');
+    if (typeof absoluteReference !== 'string' || seenReferences.has(absoluteReference)) {
+      return { 'schema': schema, 'schemaLocation': schemaLocation };
+    }
+    const target = lookup[absoluteReference];
+    if (typeof target !== 'object' || target === null) {
+      return { 'schema': schema, 'schemaLocation': schemaLocation };
+    }
+    const nextSeenReferences = new Set(seenReferences);
+    nextSeenReferences.add(absoluteReference);
+    const result = EntityCfworkerCompiler.resolveContainsSchema(target, `${schemaLocation}/$ref`, lookup, nextSeenReferences);
+    return result;
   }
 
   /** Re-validates each item against a declared `contains` subschema and appends Ajv-equivalent leaf and summary units when the match count violates `minContains` (default 1) or `maxContains`. */
