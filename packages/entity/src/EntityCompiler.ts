@@ -99,12 +99,12 @@ export class EntityCompiler {
    * Compiles `schema` into a trusted-data factory that fills schema defaults
    * without coercing values or removing properties.
    */
-  public static compileCreate<TValidated extends object>(
+  public static compileCreate<TStatic extends object, TInput extends object = TStatic>(
     schema: object
-  ): EntityCreateFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.create, schema);
+  ): EntityCreateFunctionInterface<TStatic, TInput> {
+    const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
-    const create: EntityCreateFunctionInterface<TValidated> = (partial = {}) => {
+    const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
       const cloned = structuredClone(partial);
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
