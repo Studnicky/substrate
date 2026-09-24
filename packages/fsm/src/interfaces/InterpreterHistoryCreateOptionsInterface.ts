@@ -10,7 +10,7 @@ export interface InterpreterHistoryCreateOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'capacity': NonNullable<CircularBufferOptionsEntity.Type['capacity']>;
+  readonly 'capacity': NonNullable<CircularBufferOptionsEntity.InputType['capacity']>;
   readonly 'clock'?: ClockProviderInterface;
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;

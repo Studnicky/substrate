@@ -23,8 +23,10 @@ export namespace KeyedRateLimiterDefaultOptionsEntity {
   export const Node = SchemaNode.defineObject(
     { 'type': 'object' } as const,
     {
-      ...TokenBucketOptionsEntity.Node.schema.properties,
-      ...KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties
+      'burstSize': TokenBucketOptionsEntity.Node.schema.properties.burstSize,
+      'keyIdleTtlMs': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.keyIdleTtlMs,
+      'maximumKeys': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.maximumKeys,
+      'requestsPerSecond': TokenBucketOptionsEntity.Node.schema.properties.requestsPerSecond
     },
     TokenBucketOptionsEntity.Node.schema.required,
     { 'additionalProperties': false }

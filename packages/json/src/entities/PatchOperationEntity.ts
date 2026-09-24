@@ -1,6 +1,5 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { JSONSchema7Type } from 'json-schema';
-import type { FromSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 
@@ -43,21 +42,15 @@ export namespace PatchOperationEntity {
     'type': 'object'
   } as const;
 
-  export type Type = FromSchema<
-    typeof Schema,
-    {
-      'deserialize': [{
-        'output':
-          | { 'op': 'add'; 'path': string; 'value': JSONSchema7Type }
-          | { 'from': string; 'op': 'copy'; 'path': string }
-          | { 'from': string; 'op': 'move'; 'path': string }
-          | { 'op': 'remove'; 'path': string }
-          | { 'op': 'replace'; 'path': string; 'value': JSONSchema7Type }
-          | { 'op': 'test'; 'path': string; 'value': JSONSchema7Type };
-        'pattern': { 'title': 'PatchOperation' };
-      }]
-    }
-  >;
+  // Hand-authored: the schema's `allOf` of `anyOf`/`not` branches encodes a conditional
+  // discriminant (which fields `op` requires) that no structural derivation expresses.
+  export type Type =
+    | { 'op': 'add'; 'path': string; 'value': JSONSchema7Type }
+    | { 'from': string; 'op': 'copy'; 'path': string }
+    | { 'from': string; 'op': 'move'; 'path': string }
+    | { 'op': 'remove'; 'path': string }
+    | { 'op': 'replace'; 'path': string; 'value': JSONSchema7Type }
+    | { 'op': 'test'; 'path': string; 'value': JSONSchema7Type };
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

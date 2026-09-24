@@ -23,7 +23,7 @@ interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
 export class VirtualTimeCounter {
   static create<TInstance extends VirtualTimeCounter = VirtualTimeCounter>(
     this: VirtualTimeCounterSubclassInterface<TInstance>,
-    options: VirtualTimeCounterOptionsEntity.Type = {}
+    options: VirtualTimeCounterOptionsEntity.InputType = {}
   ): TInstance {
     const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);
@@ -42,8 +42,7 @@ export class VirtualTimeCounter {
    * Property write order: #nowMs.
    */
   protected constructor(options: VirtualTimeCounterOptionsEntity.Type) {
-    // `startMs` is optional pre-intake; `.intake()` (called by `create()`) always fills its schema default.
-    this.#nowMs = options.startMs ?? 0;
+    this.#nowMs = options.startMs;
   }
 
   // ---------------------------------------------------------------------------

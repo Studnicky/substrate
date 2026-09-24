@@ -64,7 +64,7 @@ export class Context implements ContextInterface {
    */
   static create<TInstance extends Context = Context>(
     this: ContextConstructorInterface<TInstance>,
-    config: ContextConfigEntity.Type,
+    config: ContextConfigEntity.InputType,
     storage: ContextStorageInterface
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, storage]);
@@ -91,7 +91,7 @@ export class Context implements ContextInterface {
   /**
    * The name of this context (from config).
    */
-  readonly name: string;
+  readonly name: ContextConfigEntity.Type['name'];
 
   protected readonly hooks: HookInvoker = new HookInvoker();
 

@@ -8,8 +8,6 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
-import type { CircuitBreakerClosedStateEntity } from './entities/CircuitBreakerClosedStateEntity.js';
-import type { CircuitBreakerHalfOpenStateEntity } from './entities/CircuitBreakerHalfOpenStateEntity.js';
 import type { CircuitBreakerManualOpenEventEntity } from './entities/CircuitBreakerManualOpenEventEntity.js';
 import type { CircuitBreakerManualResetEventEntity } from './entities/CircuitBreakerManualResetEventEntity.js';
 import type { CircuitBreakerOnCloseEffectEntity } from './entities/CircuitBreakerOnCloseEffectEntity.js';
@@ -22,6 +20,8 @@ import type { CircuitBreakerOpenStateEntity } from './entities/CircuitBreakerOpe
 import type { CircuitBreakerResetTimeoutElapsedEventEntity } from './entities/CircuitBreakerResetTimeoutElapsedEventEntity.js';
 import type { CircuitStateEntity } from './entities/CircuitStateEntity.js';
 import type { CircuitBreakerCallFailedEventInterface } from './interfaces/CircuitBreakerCallFailedEventInterface.js';
+import type { CircuitBreakerClosedStateInterface } from './interfaces/CircuitBreakerClosedStateInterface.js';
+import type { CircuitBreakerHalfOpenStateInterface } from './interfaces/CircuitBreakerHalfOpenStateInterface.js';
 import type { CircuitBreakerOnFailureEffectInterface } from './interfaces/CircuitBreakerOnFailureEffectInterface.js';
 import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
@@ -43,7 +43,7 @@ export class CircuitBreaker {
   readonly #clock: () => number;
   readonly #errorClassifier: ErrorClassifierFunctionInterface | ErrorClassifierInterface | undefined;
   readonly #machine: CircuitBreakerMachine;
-  #machineState: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type;
+  #machineState: CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type;
   /**
    * Mirrors the `attemptNumber` semantics `classifyError`/`errorClassifier`
    * always saw pre-refactor: it counts consecutive failures while `closed`,

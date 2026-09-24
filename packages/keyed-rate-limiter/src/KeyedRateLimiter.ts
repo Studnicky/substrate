@@ -3,7 +3,7 @@
  */
 
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
-import type { TokenBucketOptionsInterface } from '@studnicky/resilience/interfaces';
+import type { RateLimitConsumptionInterface, TokenBucketOptionsInterface } from '@studnicky/resilience/interfaces';
 
 import { LruCache } from '@studnicky/cache/browser';
 import { EntityCompiler } from '@studnicky/entity/browser';
@@ -252,8 +252,8 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    *   (`TokenBucketExhaustedError` for the default `TokenBucket` path)
    */
   consume(
-    key: RateLimitRequestEntity.Type['key'],
-    tokens?: RateLimitRequestEntity.Type['tokens']
+    key: RateLimitRequestEntity.InputType['key'],
+    tokens?: RateLimitRequestEntity.InputType['tokens']
   ): RateLimitConsumptionEntity.Type {
     const request = this.#intakeRequest(key, tokens);
     const strategy = this.#resolveStrategy(request.key);
@@ -282,10 +282,10 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * @param options - `{signal?, tokens?}`, forwarded to the underlying strategy
    */
   async waitForToken(
-    key: RateLimitRequestEntity.Type['key'],
+    key: RateLimitRequestEntity.InputType['key'],
     options?: {
       'signal'?: AbortSignal;
-      'tokens'?: RateLimitRequestEntity.Type['tokens'];
+      'tokens'?: RateLimitRequestEntity.InputType['tokens'];
     }
   ): Promise<RateLimitConsumptionEntity.Type> {
     const request = this.#intakeRequest(key, options?.tokens);
@@ -344,7 +344,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     }
   }
 
-  #intakeConsumption(value: RateLimitConsumptionEntity.Type): RateLimitConsumptionEntity.Type {
+  #intakeConsumption(value: RateLimitConsumptionInterface): RateLimitConsumptionEntity.Type {
     try {
       const result = RateLimitConsumptionEntity.intake(value);
       return result;

@@ -13,7 +13,7 @@ import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/
 import { RaceTimeout, Signal } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
+import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
 import { COUNTER_POLL_DIVISOR, MINIMUM_RETRY_DELAY_MS } from './constants/index.js';
@@ -103,7 +103,7 @@ export class SlidingWindowLimiter {
    * Admits positive numeric token units, or throws `SlidingWindowExhaustedError`
    * if admitting them would exceed `limit`.
    */
-  consume(tokens?: number): RateLimitConsumptionEntity.Type {
+  consume(tokens?: number): RateLimitConsumptionInterface {
     const requestedTokens = this.#resolveTokens(tokens);
     const now = this.#clock();
     if (this.#algorithm === 'log') {
@@ -117,7 +117,7 @@ export class SlidingWindowLimiter {
   /** Wait until the requested token units can be admitted, then consume them. */
   async waitForToken(
     options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = this.#resolveTokens(options.tokens);
     const signal = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
     if (tokens > this.#limit) {
@@ -163,7 +163,7 @@ export class SlidingWindowLimiter {
     return result;
   }
 
-  #consumeIfAvailable(tokens: number): RateLimitConsumptionEntity.Type | undefined {
+  #consumeIfAvailable(tokens: number): RateLimitConsumptionInterface | undefined {
     try {
       const result = this.consume(tokens);
       return result;
@@ -173,7 +173,7 @@ export class SlidingWindowLimiter {
     }
   }
 
-  #consumeLog(now: number, tokens: number): RateLimitConsumptionEntity.Type {
+  #consumeLog(now: number, tokens: number): RateLimitConsumptionInterface {
     const timestamps = this.#timestamps;
     if (timestamps === undefined) { throw new SlidingWindowLimiterConfigError('internal: timestamps not initialized for log algorithm'); }
 
@@ -215,7 +215,7 @@ export class SlidingWindowLimiter {
     };
   }
 
-  #consumeCounter(now: number, tokens: number): RateLimitConsumptionEntity.Type {
+  #consumeCounter(now: number, tokens: number): RateLimitConsumptionInterface {
     this.#rollCounterWindow(now);
     const elapsedFraction = this.#elapsedFraction(now);
     const estimateBefore = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;

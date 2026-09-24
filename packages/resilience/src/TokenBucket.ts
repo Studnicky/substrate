@@ -4,7 +4,7 @@ import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
+import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 import { TokenBucketOptionsEntity } from './entities/TokenBucketOptionsEntity.js';
@@ -70,7 +70,7 @@ export class TokenBucket {
   }
 
   /** Throws TokenBucketExhaustedError if no token available. */
-  consume(tokens = 1): RateLimitConsumptionEntity.Type {
+  consume(tokens = 1): RateLimitConsumptionInterface {
     const requestedTokens = this.#resolveTokens(tokens);
     this.#refill();
     if (this.#tokens < requestedTokens) {
@@ -90,7 +90,7 @@ export class TokenBucket {
    */
   async waitForToken(
     options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = this.#resolveTokens(options.tokens);
     const signal = options.signal;
     if (tokens > this.#burstSize) {
@@ -140,7 +140,7 @@ export class TokenBucket {
     return result;
   }
 
-  #acquire(tokens: number): RateLimitConsumptionEntity.Type {
+  #acquire(tokens: number): RateLimitConsumptionInterface {
     this.#tokens -= tokens;
     this.#invokeOnTokenAcquired(tokens);
     return { 'consumedTokens': tokens, 'remainingTokens': this.#tokens };

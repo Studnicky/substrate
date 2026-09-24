@@ -30,9 +30,6 @@ import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
-import type { CircuitBreakerClosedStateEntity } from './entities/CircuitBreakerClosedStateEntity.js';
-import type { CircuitBreakerHalfOpenStateEntity } from './entities/CircuitBreakerHalfOpenStateEntity.js';
-import type { CircuitBreakerMachineOptionsEntity } from './entities/CircuitBreakerMachineOptionsEntity.js';
 import type { CircuitBreakerManualOpenEventEntity } from './entities/CircuitBreakerManualOpenEventEntity.js';
 import type { CircuitBreakerManualResetEventEntity } from './entities/CircuitBreakerManualResetEventEntity.js';
 import type { CircuitBreakerOnCloseEffectEntity } from './entities/CircuitBreakerOnCloseEffectEntity.js';
@@ -44,10 +41,12 @@ import type { CircuitBreakerOnTripEffectEntity } from './entities/CircuitBreaker
 import type { CircuitBreakerOpenStateEntity } from './entities/CircuitBreakerOpenStateEntity.js';
 import type { CircuitBreakerResetTimeoutElapsedEventEntity } from './entities/CircuitBreakerResetTimeoutElapsedEventEntity.js';
 import type { CircuitBreakerCallFailedEventInterface } from './interfaces/CircuitBreakerCallFailedEventInterface.js';
+import type { CircuitBreakerClosedStateInterface } from './interfaces/CircuitBreakerClosedStateInterface.js';
+import type { CircuitBreakerHalfOpenStateInterface } from './interfaces/CircuitBreakerHalfOpenStateInterface.js';
 import type { CircuitBreakerOnFailureEffectInterface } from './interfaces/CircuitBreakerOnFailureEffectInterface.js';
 
 export class CircuitBreakerMachine extends StateMachine<
-  CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+  CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
   CircuitBreakerCallFailedEventInterface
   | CircuitBreakerCallRejectedEventEntity.Type
   | CircuitBreakerCallSucceededEventEntity.Type
@@ -65,18 +64,18 @@ export class CircuitBreakerMachine extends StateMachine<
   readonly #failureThreshold: number;
   readonly #successThreshold: number;
 
-  constructor(options: CircuitBreakerMachineOptionsEntity.Type) {
+  constructor(options: { readonly 'failureThreshold': number; readonly 'successThreshold': number }) {
     super();
     this.#failureThreshold = options.failureThreshold;
     this.#successThreshold = options.successThreshold;
   }
 
-  override getInitialState(): CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type {
+  override getInitialState(): CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type {
     return { 'failureCount': 0, 'variant': 'closed' };
   }
 
   override reduce(
-    state: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    state: CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
     event: CircuitBreakerCallFailedEventInterface
     | CircuitBreakerCallRejectedEventEntity.Type
     | CircuitBreakerCallSucceededEventEntity.Type
@@ -84,7 +83,7 @@ export class CircuitBreakerMachine extends StateMachine<
     | CircuitBreakerManualResetEventEntity.Type
     | CircuitBreakerResetTimeoutElapsedEventEntity.Type
   ): FsmStepInterface<
-    CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
       CircuitBreakerOnCloseEffectEntity.Type
       | CircuitBreakerOnFailureEffectInterface
       | CircuitBreakerOnHalfOpenEffectEntity.Type
@@ -134,9 +133,9 @@ export class CircuitBreakerMachine extends StateMachine<
   }
 
   #reduceResetTimeoutElapsed(
-    state: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type
+    state: CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type
   ): FsmStepInterface<
-    CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
       CircuitBreakerOnCloseEffectEntity.Type
       | CircuitBreakerOnFailureEffectInterface
       | CircuitBreakerOnHalfOpenEffectEntity.Type
@@ -156,9 +155,9 @@ export class CircuitBreakerMachine extends StateMachine<
   }
 
   #reduceCallSucceeded(
-    state: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type
+    state: CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type
   ): FsmStepInterface<
-    CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
       CircuitBreakerOnCloseEffectEntity.Type
       | CircuitBreakerOnFailureEffectInterface
       | CircuitBreakerOnHalfOpenEffectEntity.Type
@@ -188,10 +187,10 @@ export class CircuitBreakerMachine extends StateMachine<
   }
 
   #reduceCallFailed(
-    state: CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    state: CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
     event: CircuitBreakerCallFailedEventInterface
   ): FsmStepInterface<
-    CircuitBreakerClosedStateEntity.Type | CircuitBreakerHalfOpenStateEntity.Type | CircuitBreakerOpenStateEntity.Type,
+    CircuitBreakerClosedStateInterface | CircuitBreakerHalfOpenStateInterface | CircuitBreakerOpenStateEntity.Type,
       CircuitBreakerOnCloseEffectEntity.Type
       | CircuitBreakerOnFailureEffectInterface
       | CircuitBreakerOnHalfOpenEffectEntity.Type
