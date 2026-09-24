@@ -249,6 +249,11 @@
       "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace PatchOperationEntity {\n  export const Schema = {\n    additionalProperties: false,\n    allOf: [\n      { anyOf: [{ not: { properties: { op: { const: 'add' } } } }, { properties: { value: {} }, required: ['value'] }] }\n    ],\n    properties: { op: { enum: ['add', 'remove'] }, path: { type: 'string' }, value: {} },\n    required: ['op', 'path'],\n    type: 'object'\n  } as const;\n  export type Type =\n    | { op: 'add'; path: string; value: unknown }\n    | { op: 'remove'; path: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).path === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
       "filename": "/project/src/entities/PatchOperationEntity.ts",
       "name": "[entities] a schema containing `not` (a conditional discriminant allOf/anyOf/not shape) permits a hand-written Type"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = readonly PatchOperationEntity.Type[];\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+      "filename": "/project/src/entities/PatchOperationsEntity.ts",
+      "name": "[entities] a schema composing an external reference (`items: OtherEntity.Schema`) permits a Type that itself composes that entity's .Type"
     }
   ],
   "invalid": [
@@ -827,6 +832,26 @@
       ],
       "filename": "/project/src/entities/FooEntity.ts",
       "name": "[entities] the deserialize override no longer disguises a hand-written Type when the schema derives structurally on its own"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport type { JSONSchema7Type } from 'json-schema';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = JSONSchema7Type;\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "typeNotFromSchema"
+        }
+      ],
+      "filename": "/project/src/entities/PatchOperationsEntity.ts",
+      "name": "[entities] a schema composing an external reference still rejects a Type that is a non-entity imported alias"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = readonly { op: string }[];\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+      "errors": [
+        {
+          "messageId": "typeNotFromSchema"
+        }
+      ],
+      "filename": "/project/src/entities/PatchOperationsEntity.ts",
+      "name": "[entities] a schema composing an external reference still rejects a Type that is a bare inline object literal"
     }
   ]
 }

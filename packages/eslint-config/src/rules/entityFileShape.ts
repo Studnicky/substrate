@@ -294,6 +294,7 @@ class NamespaceScanner {
       'hasTypeFromSchema': false,
       'hasValidate': false,
       'hasValidateTypeGuard': false,
+      'schemaComposesExternalReference': false,
       'schemaDefeatsDerivation': false
     };
 
@@ -363,6 +364,7 @@ class NamespaceScanner {
       result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
       result.hasObjectRootSchema = NamespaceScanner.hasObjectRootType(d);
       result.schemaDefeatsDerivation = SchemaMemberGuards.schemaDefeatsStructuralDerivation(d);
+      result.schemaComposesExternalReference = SchemaMemberGuards.schemaComposesExternalReference(d);
     }
     if (name === 'intake') {
       result.hasIntake = true;
@@ -386,10 +388,12 @@ class NamespaceScanner {
     // Structural derivation with no override argument needs no proof — there is nothing to
     // disguise. Anything else (an override argument replacing the derived type, or a bare
     // hand-written `Type`) is accepted only when the schema itself proves no structural
-    // derivation exists — never on the shape of `Type` alone.
+    // derivation exists, or — when the schema composes another file's schema this walk cannot
+    // see into — when `Type` itself composes that other file's already-justified `.Type`.
     const structurallyDerived = SchemaMemberGuards.isTypeFromSchema(decl) && !SchemaMemberGuards.derivedTypeHasOverride(decl);
+    const composedFromJustifiedEntity = result.schemaComposesExternalReference && SchemaMemberGuards.typeIsComposedFromEntityType(decl);
 
-    result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation;
+    result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation || composedFromJustifiedEntity;
   }
 
   private static scanInterfaceDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
