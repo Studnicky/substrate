@@ -8,7 +8,6 @@ import { Predicates } from '@studnicky/types/browser';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
-import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import type { ThrottleStateEntity } from '../entities/ThrottleStateEntity.js';
 import type { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
 import type { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
@@ -46,6 +45,7 @@ import {
   PERCENTILE_P95,
   PERCENTILE_P99
 } from '../constants/index.js';
+import { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import {
   ThrottleAbortedError,
@@ -188,7 +188,7 @@ export class Throttle implements ThrottleInterface {
    */
   static create<TInstance extends Throttle = Throttle>(
     this: ThrottleSubclassInterface<TInstance>,
-    config?: ThrottleConfigEntity.InputType
+    config?: unknown
   ): TInstance {
     const resolveSubclassConstructor = (): ThrottleSubclassInterface<TInstance> => {
       return this;
@@ -246,7 +246,7 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  protected constructor(config?: ThrottleConfigEntity.InputType) {
+  protected constructor(config?: unknown) {
     this.config = Throttle.validateConfig(config);
     this.semaphore = Semaphore.create({ 'permits': this.config.concurrencyLimit });
 
@@ -478,8 +478,9 @@ export class Throttle implements ThrottleInterface {
    * }
    * ```
    */
-  async abort(options?: ThrottleAbortOptionsEntity.InputType): Promise<AbortResultInterface> {
-    const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
+  async abort(options?: unknown): Promise<AbortResultInterface> {
+    const parsedOptions = ThrottleAbortOptionsEntity.intake(options === undefined ? {} : options);
+    const timeout = parsedOptions.timeout ?? DEFAULT_TIMEOUT;
     if (this.#state === 'aborted') {
       return {
         'cancelled': INITIAL_COUNTER,
@@ -1157,15 +1158,11 @@ export class Throttle implements ThrottleInterface {
   }
 
   private static validateConfig(
-    config?: ThrottleConfigEntity.InputType
+    config?: unknown
   ): ValidatedThrottleConfigEntity.Type {
-    let configuration: ThrottleConfigEntity.InputType = {};
-    if (config !== undefined) {
-      configuration = config;
-    }
     let parsedConfiguration: ThrottleConfigEntity.Type;
     try {
-      parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+      parsedConfiguration = ThrottleConfigEntity.intake(config === undefined ? {} : config);
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
         throw ConfigurationError.create(error.message);

@@ -1,4 +1,3 @@
-import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import type { AbortResultInterface } from './AbortResultInterface.js';
 import type { ThrottleStatsInterface } from './ThrottleStatsInterface.js';
 
@@ -19,7 +18,7 @@ export interface ThrottleInterface {
    * @param options.timeout Optional grace period in ms before force-aborting (default: 0 = immediate)
    * @returns Promise resolving to abort result with completion stats
    */
-  abort(options?: ThrottleAbortOptionsEntity.InputType): Promise<AbortResultInterface>;
+  abort(options?: unknown): Promise<AbortResultInterface>;
 
   /**
    * Enter draining mode: stop accepting new operations and wait for completion
