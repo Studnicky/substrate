@@ -40,7 +40,7 @@ export class VirtualClockThrottle extends Throttle {
   static createWithClock<TInstance extends VirtualClockThrottle = VirtualClockThrottle>(
     this: VirtualClockThrottleSubclassInterface<TInstance>,
     input: ThrottleClockInputInterface,
-    config?: Partial<ThrottleConfigEntity.Type>
+    config?: ThrottleConfigEntity.InputType
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, input]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
@@ -56,7 +56,7 @@ export class VirtualClockThrottle extends Throttle {
   /**
    * Property write order: #input, #counter, #clock.
    */
-  protected constructor(config: Partial<ThrottleConfigEntity.Type> | undefined, input: ThrottleClockInputInterface) {
+  protected constructor(config: ThrottleConfigEntity.InputType | undefined, input: ThrottleClockInputInterface) {
     super(config);
     this.#input = input;
     this.#counter = VirtualTimeCounter.create({ startMs: input.startMs });

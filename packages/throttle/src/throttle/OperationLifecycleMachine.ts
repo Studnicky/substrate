@@ -21,8 +21,8 @@
  * zero or two fires: the correctness is structural, not the result of auditing every
  * caller by hand.
  *
- * JSON-compatible lifecycle variants use complete entity types. The two Error-carrying
- * runtime variants remain interfaces because Error is not JSON-schema expressible.
+ * Every event/effect variant is a plain interface: their counter/id fields are computed
+ * internally from live state and never externally validated, so none carry entity brands.
  *
  * @module
  */
@@ -31,78 +31,78 @@ import type { FsmStepInterface } from '@studnicky/fsm/browser';
 import { RuntimeError } from '@studnicky/errors/browser';
 import { StateMachine } from '@studnicky/fsm/browser';
 
-import type { AbortStartedEventEntity } from '../entities/AbortStartedEventEntity.js';
-import type { AcquiredEventEntity } from '../entities/AcquiredEventEntity.js';
-import type { ConcurrencyAdjustedEventEntity } from '../entities/ConcurrencyAdjustedEventEntity.js';
-import type { ContendedEventEntity } from '../entities/ContendedEventEntity.js';
-import type { DrainCompletedEventEntity } from '../entities/DrainCompletedEventEntity.js';
-import type { DrainStartedEventEntity } from '../entities/DrainStartedEventEntity.js';
-import type { FireOnAbortStartEffectEntity } from '../entities/FireOnAbortStartEffectEntity.js';
-import type { FireOnAcquireEffectEntity } from '../entities/FireOnAcquireEffectEntity.js';
-import type { FireOnAcquireWaitEffectEntity } from '../entities/FireOnAcquireWaitEffectEntity.js';
-import type { FireOnAdaptiveAdjustEffectEntity } from '../entities/FireOnAdaptiveAdjustEffectEntity.js';
-import type { FireOnContendedEffectEntity } from '../entities/FireOnContendedEffectEntity.js';
-import type { FireOnDrainCompleteEffectEntity } from '../entities/FireOnDrainCompleteEffectEntity.js';
-import type { FireOnDrainStartEffectEntity } from '../entities/FireOnDrainStartEffectEntity.js';
-import type { FireOnReleaseEffectEntity } from '../entities/FireOnReleaseEffectEntity.js';
-import type { FireOnWindowSlideEffectEntity } from '../entities/FireOnWindowSlideEffectEntity.js';
 import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
-import type { QueuedEventEntity } from '../entities/QueuedEventEntity.js';
-import type { SlotReleasedEventEntity } from '../entities/SlotReleasedEventEntity.js';
-import type { WindowSlidEventEntity } from '../entities/WindowSlidEventEntity.js';
+import type { AbortStartedEventInterface } from '../interfaces/AbortStartedEventInterface.js';
+import type { AcquiredEventInterface } from '../interfaces/AcquiredEventInterface.js';
+import type { ConcurrencyAdjustedEventInterface } from '../interfaces/ConcurrencyAdjustedEventInterface.js';
+import type { ContendedEventInterface } from '../interfaces/ContendedEventInterface.js';
+import type { DrainCompletedEventInterface } from '../interfaces/DrainCompletedEventInterface.js';
+import type { DrainStartedEventInterface } from '../interfaces/DrainStartedEventInterface.js';
+import type { FireOnAbortStartEffectInterface } from '../interfaces/FireOnAbortStartEffectInterface.js';
+import type { FireOnAcquireEffectInterface } from '../interfaces/FireOnAcquireEffectInterface.js';
+import type { FireOnAcquireWaitEffectInterface } from '../interfaces/FireOnAcquireWaitEffectInterface.js';
+import type { FireOnAdaptiveAdjustEffectInterface } from '../interfaces/FireOnAdaptiveAdjustEffectInterface.js';
+import type { FireOnContendedEffectInterface } from '../interfaces/FireOnContendedEffectInterface.js';
+import type { FireOnDrainCompleteEffectInterface } from '../interfaces/FireOnDrainCompleteEffectInterface.js';
+import type { FireOnDrainStartEffectInterface } from '../interfaces/FireOnDrainStartEffectInterface.js';
 import type { FireOnRejectEffectInterface } from '../interfaces/FireOnRejectEffectInterface.js';
+import type { FireOnReleaseEffectInterface } from '../interfaces/FireOnReleaseEffectInterface.js';
+import type { FireOnWindowSlideEffectInterface } from '../interfaces/FireOnWindowSlideEffectInterface.js';
 import type { OperationRejectedEventInterface } from '../interfaces/OperationRejectedEventInterface.js';
+import type { QueuedEventInterface } from '../interfaces/QueuedEventInterface.js';
+import type { SlotReleasedEventInterface } from '../interfaces/SlotReleasedEventInterface.js';
+import type { WindowSlidEventInterface } from '../interfaces/WindowSlidEventInterface.js';
 
 interface OperationLifecycleEventReducerInterface {
   (
     state: OperationLifecycleStateEntity.Type,
-    event: AbortStartedEventEntity.Type
-    | AcquiredEventEntity.Type
-    | ConcurrencyAdjustedEventEntity.Type
-    | ContendedEventEntity.Type
-    | DrainCompletedEventEntity.Type
-    | DrainStartedEventEntity.Type
+    event: AbortStartedEventInterface
+    | AcquiredEventInterface
+    | ConcurrencyAdjustedEventInterface
+    | ContendedEventInterface
+    | DrainCompletedEventInterface
+    | DrainStartedEventInterface
     | OperationRejectedEventInterface
-    | QueuedEventEntity.Type
-    | SlotReleasedEventEntity.Type
-    | WindowSlidEventEntity.Type
+    | QueuedEventInterface
+    | SlotReleasedEventInterface
+    | WindowSlidEventInterface
   ): FsmStepInterface<
     OperationLifecycleStateEntity.Type,
-      FireOnAbortStartEffectEntity.Type
-      | FireOnAcquireEffectEntity.Type
-      | FireOnAcquireWaitEffectEntity.Type
-      | FireOnAdaptiveAdjustEffectEntity.Type
-      | FireOnContendedEffectEntity.Type
-      | FireOnDrainCompleteEffectEntity.Type
-      | FireOnDrainStartEffectEntity.Type
-      | FireOnReleaseEffectEntity.Type
+      FireOnAbortStartEffectInterface
+      | FireOnAcquireEffectInterface
+      | FireOnAcquireWaitEffectInterface
+      | FireOnAdaptiveAdjustEffectInterface
+      | FireOnContendedEffectInterface
+      | FireOnDrainCompleteEffectInterface
+      | FireOnDrainStartEffectInterface
+      | FireOnReleaseEffectInterface
       | FireOnRejectEffectInterface
-      | FireOnWindowSlideEffectEntity.Type
+      | FireOnWindowSlideEffectInterface
   >;
 }
 
 export class OperationLifecycleMachine extends StateMachine<
   OperationLifecycleStateEntity.Type,
-  AbortStartedEventEntity.Type
-  | AcquiredEventEntity.Type
-  | ConcurrencyAdjustedEventEntity.Type
-  | ContendedEventEntity.Type
-  | DrainCompletedEventEntity.Type
-  | DrainStartedEventEntity.Type
+  AbortStartedEventInterface
+  | AcquiredEventInterface
+  | ConcurrencyAdjustedEventInterface
+  | ContendedEventInterface
+  | DrainCompletedEventInterface
+  | DrainStartedEventInterface
   | OperationRejectedEventInterface
-  | QueuedEventEntity.Type
-  | SlotReleasedEventEntity.Type
-  | WindowSlidEventEntity.Type,
-    FireOnAbortStartEffectEntity.Type
-    | FireOnAcquireEffectEntity.Type
-    | FireOnAcquireWaitEffectEntity.Type
-    | FireOnAdaptiveAdjustEffectEntity.Type
-    | FireOnContendedEffectEntity.Type
-    | FireOnDrainCompleteEffectEntity.Type
-    | FireOnDrainStartEffectEntity.Type
-    | FireOnReleaseEffectEntity.Type
+  | QueuedEventInterface
+  | SlotReleasedEventInterface
+  | WindowSlidEventInterface,
+    FireOnAbortStartEffectInterface
+    | FireOnAcquireEffectInterface
+    | FireOnAcquireWaitEffectInterface
+    | FireOnAdaptiveAdjustEffectInterface
+    | FireOnContendedEffectInterface
+    | FireOnDrainCompleteEffectInterface
+    | FireOnDrainStartEffectInterface
+    | FireOnReleaseEffectInterface
     | FireOnRejectEffectInterface
-    | FireOnWindowSlideEffectEntity.Type
+    | FireOnWindowSlideEffectInterface
 > {
   private static readonly reducerByEventType = new Map<
     Parameters<OperationLifecycleEventReducerInterface>[1]['type'],
@@ -130,16 +130,16 @@ export class OperationLifecycleMachine extends StateMachine<
 
   reduce(
     state: OperationLifecycleStateEntity.Type,
-    event: AbortStartedEventEntity.Type
-    | AcquiredEventEntity.Type
-    | ConcurrencyAdjustedEventEntity.Type
-    | ContendedEventEntity.Type
-    | DrainCompletedEventEntity.Type
-    | DrainStartedEventEntity.Type
+    event: AbortStartedEventInterface
+    | AcquiredEventInterface
+    | ConcurrencyAdjustedEventInterface
+    | ContendedEventInterface
+    | DrainCompletedEventInterface
+    | DrainStartedEventInterface
     | OperationRejectedEventInterface
-    | QueuedEventEntity.Type
-    | SlotReleasedEventEntity.Type
-    | WindowSlidEventEntity.Type
+    | QueuedEventInterface
+    | SlotReleasedEventInterface
+    | WindowSlidEventInterface
   ): ReturnType<OperationLifecycleEventReducerInterface> {
     const reducer = OperationLifecycleMachine.reducerByEventType.get(event.type);
     if (reducer === undefined) {

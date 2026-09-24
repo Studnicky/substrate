@@ -1,6 +1,6 @@
-import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
 import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
-import type { ThrottleStatsEntity } from '../entities/ThrottleStatsEntity.js';
+import type { AbortResultInterface } from './AbortResultInterface.js';
+import type { ThrottleStatsInterface } from './ThrottleStatsInterface.js';
 
 /**
  * Contract for throttle implementations that limit concurrent async operations.
@@ -19,7 +19,7 @@ export interface ThrottleInterface {
    * @param options.timeout Optional grace period in ms before force-aborting (default: 0 = immediate)
    * @returns Promise resolving to abort result with completion stats
    */
-  abort(options?: ThrottleAbortOptionsEntity.Type): Promise<AbortResultEntity.Type>;
+  abort(options?: ThrottleAbortOptionsEntity.InputType): Promise<AbortResultInterface>;
 
   /**
    * Enter draining mode: stop accepting new operations and wait for completion
@@ -37,7 +37,7 @@ export interface ThrottleInterface {
   /**
    * Get current throttle statistics
    */
-  getStats(): ThrottleStatsEntity.Type;
+  getStats(): ThrottleStatsInterface;
 
   /**
    * Check if the throttle has completed all operations
