@@ -3,6 +3,7 @@ import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
 import perfectionistPlugin from 'eslint-plugin-perfectionist';
 import regexp from 'eslint-plugin-regexp';
+import sonarjs from 'eslint-plugin-sonarjs';
 import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
@@ -199,6 +200,7 @@ export default [
         'import-x': importX,
         'perfectionist': perfectionistPlugin,
         'regexp': regexp,
+        'sonarjs': sonarjs,
         'unused-imports': unusedImports,
         ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
       },
@@ -341,7 +343,13 @@ export default [
         'no-invalid-regexp': 'error',
         'no-lonely-if': 'error',
         'no-multi-assign': 'error',
+        'complexity': ['error', 10],
+        'max-depth': ['error', 4],
+        'max-lines': ['error', { 'max': 1000, 'skipBlankLines': true, 'skipComments': true }],
+        'max-lines-per-function': ['error', { 'max': 120, 'skipBlankLines': true, 'skipComments': true }],
+        'max-params': ['error', 5],
         'no-nested-ternary': 'error',
+        'sonarjs/cognitive-complexity': ['error', 15],
         'no-new-func': 'error',
         'no-new-wrappers': 'error',
         'no-object-constructor': 'error',
@@ -418,6 +426,7 @@ export default [
         'import-x': importX,
         'perfectionist': perfectionistPlugin,
         'regexp': regexp,
+        'sonarjs': sonarjs,
         'unused-imports': unusedImports,
         ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
       },
@@ -503,7 +512,13 @@ export default [
         'no-invalid-regexp': 'error',
         'no-lonely-if': 'error',
         'no-multi-assign': 'error',
+        'complexity': ['error', 10],
+        'max-depth': ['error', 4],
+        'max-lines': ['error', { 'max': 1000, 'skipBlankLines': true, 'skipComments': true }],
+        'max-lines-per-function': ['error', { 'max': 120, 'skipBlankLines': true, 'skipComments': true }],
+        'max-params': ['error', 5],
         'no-nested-ternary': 'error',
+        'sonarjs/cognitive-complexity': ['error', 15],
         'no-new-func': 'error',
         'no-new-wrappers': 'error',
         'no-object-constructor': 'error',
