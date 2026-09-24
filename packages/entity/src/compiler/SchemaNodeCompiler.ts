@@ -53,22 +53,28 @@ export class SchemaNodeCompiler {
       return result;
     };
 
-    const clauses: CompiledNodeInterface[] = [];
-    const scalarNode = compileContext.validationVocabularyEnabled ? ScalarNodeCompiler.compile(plan) : undefined;
-    if (scalarNode !== undefined) { clauses.push(scalarNode); }
-    const structuralNode = StructuralNodeCompiler.compile(plan, compileChild);
-    if (structuralNode !== undefined) { clauses.push(structuralNode); }
-    const arrayNode = ArrayNodeCompiler.compile(plan, compileChild);
-    if (arrayNode !== undefined) { clauses.push(arrayNode); }
-    const compositionNode = CompositionNodeCompiler.compile(plan, compileChild);
-    if (compositionNode !== undefined) { clauses.push(compositionNode); }
-    const referenceNode = ReferenceNodeCompiler.compile(plan, resolveReference, isDynamicAnchorTarget);
-    if (referenceNode !== undefined) { clauses.push(referenceNode); }
+    const clauses = SchemaNodeCompiler.compactClauses([
+      compileContext.validationVocabularyEnabled ? ScalarNodeCompiler.compile(plan) : undefined,
+      StructuralNodeCompiler.compile(plan, compileChild),
+      ArrayNodeCompiler.compile(plan, compileChild),
+      CompositionNodeCompiler.compile(plan, compileChild),
+      ReferenceNodeCompiler.compile(plan, resolveReference, isDynamicAnchorTarget)
+    ]);
 
     const combined = SchemaNodeCompiler.combine(clauses);
     const withUnevaluated = UnevaluatedNodeCompiler.wrap(plan, combined, compileChild);
     if (plan.id === undefined) { return withUnevaluated; }
     const result = SchemaNodeCompiler.withResourceEntry(effectiveBase, compileContext, withUnevaluated);
+    return result;
+  }
+
+  private static compactClauses(clauses: readonly (CompiledNodeInterface | undefined)[]): CompiledNodeInterface[] {
+    const result = clauses.filter(SchemaNodeCompiler.isDefinedClause);
+    return result;
+  }
+
+  private static isDefinedClause(clause: CompiledNodeInterface | undefined): clause is CompiledNodeInterface {
+    const result = clause !== undefined;
     return result;
   }
 

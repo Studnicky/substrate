@@ -140,38 +140,41 @@ export class EntityCompiler {
 
   /** Finds every non-JSON value in a finite, acyclic candidate. */
   private static collectJsonValidityErrors(value: unknown, path = ''): string[] {
-    if (value === null || Predicates.isString(value) || Predicates.isBoolean(value)) {
-      return [];
-    }
-    if (Predicates.isNumberType(value)) {
-      const message = Number.isFinite(value) ? undefined : EntityCompiler.describeInvalidJsonNumber(value);
-      const result = message === undefined ? [] : [EntityCompiler.formatPathMessage(path, message)];
-      return result;
-    }
-    if (Predicates.isArray(value)) {
-      const messages: string[] = [];
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const item: unknown = value.at(index);
-        messages.push(...EntityCompiler.collectJsonValidityErrors(item, `${path}/${index}`));
-      }
-      return messages;
-    }
-    if (JsonObject.is(value)) {
-      const messages: string[] = [];
-      const keys = Object.keys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index]!;
-        const item: unknown = Reflect.get(value, key);
-        const escapedKey = key.replaceAll('~', '~0').replaceAll('/', '~1');
-        const nextPath = `${path}/${escapedKey}`;
-        messages.push(...EntityCompiler.collectJsonValidityErrors(item, nextPath));
-      }
-      return messages;
-    }
-
+    if (value === null || Predicates.isString(value) || Predicates.isBoolean(value)) { return []; }
+    if (Predicates.isNumberType(value)) { const result = EntityCompiler.collectNumberValidityErrors(value, path); return result; }
+    if (Predicates.isArray(value)) { const result = EntityCompiler.collectArrayValidityErrors(value, path); return result; }
+    if (JsonObject.is(value)) { const result = EntityCompiler.collectObjectValidityErrors(value, path); return result; }
     return [EntityCompiler.formatPathMessage(path, `${typeof value} is not valid JSON data`)];
+  }
+
+  private static collectNumberValidityErrors(value: number, path: string): string[] {
+    const message = Number.isFinite(value) ? undefined : EntityCompiler.describeInvalidJsonNumber(value);
+    const result = message === undefined ? [] : [EntityCompiler.formatPathMessage(path, message)];
+    return result;
+  }
+
+  private static collectArrayValidityErrors(value: readonly unknown[], path: string): string[] {
+    const messages: string[] = [];
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item: unknown = value.at(index);
+      messages.push(...EntityCompiler.collectJsonValidityErrors(item, `${path}/${index}`));
+    }
+    return messages;
+  }
+
+  private static collectObjectValidityErrors(value: object, path: string): string[] {
+    const messages: string[] = [];
+    const keys = Object.keys(value);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index]!;
+      const item: unknown = Reflect.get(value, key);
+      const escapedKey = key.replaceAll('~', '~0').replaceAll('/', '~1');
+      const nextPath = `${path}/${escapedKey}`;
+      messages.push(...EntityCompiler.collectJsonValidityErrors(item, nextPath));
+    }
+    return messages;
   }
 
   /** Formats a message at a JSON Pointer path, substituting the root label when needed. */
@@ -211,58 +214,59 @@ export class EntityCompiler {
     schema: object | boolean,
     rootSchema: object | boolean = schema
   ): unknown {
-    if (typeof schema !== 'object' || typeof rootSchema !== 'object') {
-      return value;
-    }
-    if (Predicates.isArray(value)) {
-      const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
-      if (itemSchemas.length === 0) {
-        const result = value;
-        return result;
+    if (typeof schema !== 'object' || typeof rootSchema !== 'object') { return value; }
+    if (Predicates.isArray(value)) { const result = EntityCompiler.omitUndefinedInArray(value, schema, rootSchema); return result; }
+    if (!Predicates.isRecord(value)) { return value; }
+    const result = EntityCompiler.omitUndefinedInRecord(value, schema, rootSchema);
+    return result;
+  }
+
+  private static omitUndefinedInArray(value: readonly unknown[], schema: object, rootSchema: object): unknown {
+    const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
+    if (itemSchemas.length === 0) { return value; }
+    const result = value.map((item) => {
+      let normalized = item;
+      const schemaCount = itemSchemas.length;
+      for (let index = 0; index < schemaCount; index += 1) {
+        normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, itemSchemas[index]!, rootSchema);
       }
-      const result = value.map((item) => {
-        let normalized = item;
-        const schemaCount = itemSchemas.length;
-        for (let index = 0; index < schemaCount; index += 1) {
-          normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, itemSchemas[index]!, rootSchema);
-        }
-        return normalized;
-      });
-      return result;
-    }
-    if (!Predicates.isRecord(value)) {
-      const result = value;
-      return result;
-    }
+      return normalized;
+    });
+    return result;
+  }
+
+  private static omitUndefinedInRecord(value: Readonly<Record<string, unknown>>, schema: object, rootSchema: object): unknown {
     const keys = Object.keys(value);
-    if (keys.length === 0) {
-      const result = value;
-      return result;
-    }
+    if (keys.length === 0) { return value; }
     const result: Record<string, unknown> = {};
     for (let index = 0; index < keys.length; index += 1) {
       const key = keys[index]!;
-      const item = Reflect.get(value, key);
-      const propertySchemas = EntityCompiler.propertySchemas(schema, rootSchema, key, new Set<string>());
-      if (item === undefined) {
-        if (EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
-          continue;
-        }
-        JsonObject.write(result, key, item);
-        continue;
-      }
-      if (propertySchemas.length === 0) {
-        JsonObject.write(result, key, item);
-        continue;
-      }
-      let normalized: unknown = item;
-      const schemaCount = propertySchemas.length;
-      for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
-        normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
-      }
-      JsonObject.write(result, key, normalized);
+      EntityCompiler.omitUndefinedProperty(result, value, key, schema, rootSchema);
     }
     return result;
+  }
+
+  private static omitUndefinedProperty(
+    result: Record<string, unknown>, value: Readonly<Record<string, unknown>>, key: string, schema: object, rootSchema: object
+  ): void {
+    const item = Reflect.get(value, key);
+    if (item === undefined) {
+      if (!EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
+        JsonObject.write(result, key, item);
+      }
+      return;
+    }
+    const propertySchemas = EntityCompiler.propertySchemas(schema, rootSchema, key, new Set<string>());
+    if (propertySchemas.length === 0) {
+      JsonObject.write(result, key, item);
+      return;
+    }
+    let normalized: unknown = item;
+    const schemaCount = propertySchemas.length;
+    for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
+      normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
+    }
+    JsonObject.write(result, key, normalized);
   }
 
   /** Returns every object schema that declares a property through local references and composition. */
@@ -308,15 +312,7 @@ export class EntityCompiler {
     const referenceOptional = referencedSchema === undefined
       ? false
       : EntityCompiler.isOptionalDeclaredProperty(referencedSchema.schema, rootSchema, propertyName, referencedSchema.references);
-    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
-    const directPropertySchema = properties === undefined
-      ? undefined
-      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
-    const patternPropertySchema = directPropertySchema === undefined
-      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
-      : undefined;
-    const directOptional = (directPropertySchema ?? patternPropertySchema) !== undefined
-      && !EntityCompiler.isRequiredProperty(schema, propertyName);
+    const directOptional = EntityCompiler.isDirectlyOptionalProperty(schema, propertyName);
     const allOfOptional = EntityCompiler.hasOptionalAllOfProperty(schema, rootSchema, propertyName, references);
     const conditionalOptional = EntityCompiler.hasOptionalConditionalProperty(schema, rootSchema, propertyName, references);
     const declared = referenceOptional || directOptional || allOfOptional || conditionalOptional === true;
@@ -324,6 +320,19 @@ export class EntityCompiler {
       return false;
     }
     const result = conditionalOptional !== false;
+    return result;
+  }
+
+  /** A property declared directly via `properties`/`patternProperties`, and not itself `required`. */
+  private static isDirectlyOptionalProperty(schema: object, propertyName: string): boolean {
+    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
+    const directPropertySchema = properties === undefined
+      ? undefined
+      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
+    const patternPropertySchema = directPropertySchema === undefined
+      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
+      : undefined;
+    const result = (directPropertySchema ?? patternPropertySchema) !== undefined && !EntityCompiler.isRequiredProperty(schema, propertyName);
     return result;
   }
 
