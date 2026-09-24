@@ -18,6 +18,7 @@ import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { RequestContextInterface } from '../interfaces/RequestContextInterface.js';
 import type { RequestIdGeneratorInterface } from '../interfaces/RequestIdGeneratorInterface.js';
+import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 import type { ResponseContextInterface } from '../interfaces/ResponseContextInterface.js';
 import type { TestDispatcher } from '../testing/TestDispatcher.js';
 
@@ -54,7 +55,7 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
 }
 
 interface ValidatedClientConfigInterface {
-  readonly 'config': ClientConfigInterface;
+  readonly 'config': ResolvedClientConfigInterface;
   readonly 'queryParameters': QueryParametersEntity.Type | undefined;
 }
 
@@ -124,7 +125,7 @@ export class FetchClient implements FetchClientInterface {
 
   protected readonly hooks: HookInvoker;
 
-  private readonly config: ClientConfigInterface;
+  private readonly config: ResolvedClientConfigInterface;
   private readonly queryParameters: QueryParametersEntity.Type | undefined;
   private readonly clock: Clock;
   private readonly dispatcher: undefined | UndiciDispatcher;
@@ -254,7 +255,7 @@ export class FetchClient implements FetchClientInterface {
    * await client.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.dispatcher !== undefined) {
       await this.hooks.invokeAsync('onDispatcherDestroy', () => {
         const result = this.onDispatcherDestroy();

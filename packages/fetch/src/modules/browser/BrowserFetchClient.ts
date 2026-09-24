@@ -6,6 +6,7 @@ import type { BodyRequestOptionsInterface } from '../../interfaces/BodyRequestOp
 import type { ClientConfigInterface } from '../../interfaces/ClientConfigInterface.js';
 import type { FetchClientInterface } from '../../interfaces/FetchClientInterface.js';
 import type { FetchOptionsInterface } from '../../interfaces/FetchOptionsInterface.js';
+import type { ResolvedClientConfigInterface } from '../../interfaces/ResolvedClientConfigInterface.js';
 
 import { ConfigurationError, TimeoutError } from '../../errors/index.js';
 import { BodySerializer } from '../BodySerializer.js';
@@ -27,7 +28,7 @@ interface RequestErrorClassificationOptionsInterface {
 
 /** Browser-native HTTP client that uses the platform `fetch` implementation. */
 export class BrowserFetchClient implements FetchClientInterface {
-  readonly #config: ClientConfigInterface;
+  readonly #config: ResolvedClientConfigInterface;
   readonly #queryParameters: QueryParametersEntity.Type | undefined;
   readonly #signal: Signal;
 
@@ -57,7 +58,7 @@ export class BrowserFetchClient implements FetchClientInterface {
     return await this.#request(path, { ...options, 'method': 'DELETE' });
   }
 
-  public async destroy(_options?: DestroyOptionsEntity.Type): Promise<void> {}
+  public async destroy(_options?: DestroyOptionsEntity.InputType): Promise<void> {}
 
   public async get(path: string, options?: FetchOptionsInterface): Promise<Response> {
     return await this.#request(path, { ...options, 'method': 'GET' });
@@ -142,7 +143,9 @@ export class BrowserFetchClient implements FetchClientInterface {
     if (serialized !== undefined) {
       result.body = serialized;
       if (json !== undefined || BodySerializer.needsJsonContentType(effectiveBody)) {
-        result.headers = { ...result.headers, 'Content-Type': result.headers?.['Content-Type'] ?? 'application/json' };
+        const headers: Record<string, string> = result.headers ?? {};
+        headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+        result.headers = headers;
       }
     }
 

@@ -8,6 +8,6 @@ import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherSt
 export interface UndiciDispatcherInterface {
   checkDispatcherHealth(origin: string): DispatcherHealthEntity.Type;
   close(): Promise<void>;
-  destroy(options?: DestroyOptionsEntity.Type): Promise<void>;
+  destroy(options?: DestroyOptionsEntity.InputType): Promise<void>;
   getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>>;
 }

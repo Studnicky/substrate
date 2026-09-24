@@ -6,13 +6,14 @@ import { Predicates } from '@studnicky/types/browser';
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
+import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 
 import { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { UrlQueryString } from './UrlQueryString.js';
 
 interface FetchClientConfigurationResultInterface {
-  readonly 'config': ClientConfigInterface;
+  readonly 'config': ResolvedClientConfigInterface;
   readonly 'queryParameters': QueryParametersEntity.Type | undefined;
 }
 
@@ -77,7 +78,7 @@ export class FetchClientConfiguration {
     clock: ClientConfigInterface['clock'],
     requestIdGenerator: ClientConfigInterface['requestIdGenerator'],
     signalComposer: ClientConfigInterface['signal']
-  ): ClientConfigInterface {
+  ): ResolvedClientConfigInterface {
     return {
       ...parsed,
       ...(clock === undefined ? {} : { 'clock': clock }),

@@ -227,7 +227,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * await dispatcher.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.agent instanceof TestDispatcher) {
       await this.agent.destroy(options);
       return;

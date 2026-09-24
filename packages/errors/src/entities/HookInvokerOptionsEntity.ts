@@ -1,4 +1,4 @@
-import type { NodeStaticType } from '@studnicky/entity/types';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
@@ -33,8 +33,9 @@ export namespace HookInvokerOptionsEntity {
     'type': 'number'
   } as const) }, [] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
-  export const create = EntityCompiler.compileCreate<Type>(Schema);
+  export const create = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

@@ -9,8 +9,8 @@ import type { RequestInitFieldNameEntity } from '../entities/RequestInitFieldNam
  * Request options accepted by Fetch client operations.
  */
 export interface FetchOptionsInterface
-  extends Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'>,
-  FetchRequestOptionsEntity.Type {
+  extends FetchRequestOptionsEntity.InputType,
+  Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'> {
   /**
    * Request body, using the native Fetch body contract.
    */

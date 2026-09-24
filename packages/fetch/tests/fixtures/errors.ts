@@ -5,7 +5,7 @@ import { RuntimeError } from '@studnicky/errors/node';
 
 import type { SocketDispatcherStatsEntity } from '../../src/entities/SocketDispatcherStatsEntity.js';
 
-type SocketDispatcherStatsType = SocketDispatcherStatsEntity.Type;
+type SocketDispatcherStatsType = SocketDispatcherStatsEntity.InputType;
 
 export const mockDispatcherStatsHealthy = {
   connected: 20,
