@@ -59,13 +59,13 @@ void describe('array-scan-outside-loops', () => {
     });
   });
 
-  void it('B1: PER-ITERATION IS RESOLVED VIA LoopContext: scan inside a .forEach() callback is flagged', () => {
+  void it('B1: scan inside a .forEach() callback is flagged', () => {
     ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
       'invalid': [
         {
           'code': 'declare const recordGroups: number[][]; declare const id: number; recordGroups.forEach((records) => { records.find((r) => r === id); });',
           'errors': [{ 'messageId': 'forbidden' }],
-          'name': 'find() inside a .forEach() callback - flagged (FunctionScope.isInsideLoop stopped at the callback boundary and missed this)'
+          'name': 'find() inside a .forEach() callback is flagged'
         }
       ],
       'valid': []
