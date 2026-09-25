@@ -1176,10 +1176,10 @@ class ExportNamingListeners {
  * whole listener map is cast once at the end, rather than fighting each key's declared type.
  */
 class ListenerMerge {
-  private static dispatch(
-    listeners: { readonly 'first': ((node: Rule.Node) => void) | undefined; readonly 'second': ((node: Rule.Node) => void) | undefined; }
-  ): (node: Rule.Node) => void {
-    const merged = (node: Rule.Node): void => {
+  private static dispatch<TNode>(
+    listeners: { readonly 'first': ((node: TNode) => void) | undefined; readonly 'second': ((node: TNode) => void) | undefined; }
+  ): (node: TNode) => void {
+    const merged = (node: TNode): void => {
       listeners.first?.(node);
       listeners.second?.(node);
     };
@@ -1188,19 +1188,21 @@ class ListenerMerge {
   }
 
   public static combine(first: Rule.RuleListener, second: Rule.RuleListener): Rule.RuleListener {
-    const firstNode = first as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
-    const secondNode = second as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
-    const literal = {
-      'ExportAllDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportAllDeclaration, 'second': secondNode.ExportAllDeclaration }),
-      'ExportDefaultDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportDefaultDeclaration, 'second': secondNode.ExportDefaultDeclaration }),
-      'ExportNamedDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportNamedDeclaration, 'second': secondNode.ExportNamedDeclaration }),
-      'ExportSpecifier': ListenerMerge.dispatch({ 'first': firstNode.ExportSpecifier, 'second': secondNode.ExportSpecifier }),
-      'ImportDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ImportDeclaration, 'second': secondNode.ImportDeclaration }),
-      'Program:exit': ListenerMerge.dispatch({ 'first': firstNode['Program:exit'], 'second': secondNode['Program:exit'] }),
-      'TSExportAssignment': ListenerMerge.dispatch({ 'first': firstNode.TSExportAssignment, 'second': secondNode.TSExportAssignment }),
-      'VariableDeclarator': ListenerMerge.dispatch({ 'first': firstNode.VariableDeclarator, 'second': secondNode.VariableDeclarator })
+    const listeners: Rule.RuleListener = {
+      'ExportAllDeclaration': ListenerMerge.dispatch({ 'first': first.ExportAllDeclaration, 'second': second.ExportAllDeclaration }),
+      'ExportDefaultDeclaration': ListenerMerge.dispatch({ 'first': first.ExportDefaultDeclaration, 'second': second.ExportDefaultDeclaration }),
+      'ExportNamedDeclaration': ListenerMerge.dispatch({ 'first': first.ExportNamedDeclaration, 'second': second.ExportNamedDeclaration }),
+      'ExportSpecifier': ListenerMerge.dispatch({ 'first': first.ExportSpecifier, 'second': second.ExportSpecifier }),
+      'ImportDeclaration': ListenerMerge.dispatch({ 'first': first.ImportDeclaration, 'second': second.ImportDeclaration }),
+      'Program:exit': ListenerMerge.dispatch({ 'first': first['Program:exit'], 'second': second['Program:exit'] }),
+      // TSExportAssignment has no named RuleListener property (resolves via the catch-all
+      // index signature); typescript-eslint's precise type fails too, AST_NODE_TYPES.Program vs "Program".
+      'TSExportAssignment': ListenerMerge.dispatch<Rule.Node>({
+        'first': first.TSExportAssignment as ((node: Rule.Node) => void) | undefined,
+        'second': second.TSExportAssignment as ((node: Rule.Node) => void) | undefined
+      }),
+      'VariableDeclarator': ListenerMerge.dispatch({ 'first': first.VariableDeclarator, 'second': second.VariableDeclarator })
     };
-    const listeners = literal as unknown as Rule.RuleListener;
 
     return listeners;
   }
