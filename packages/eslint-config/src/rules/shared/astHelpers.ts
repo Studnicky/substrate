@@ -1,3 +1,4 @@
+import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
 import { Predicates } from '@studnicky/types/browser';
@@ -31,6 +32,22 @@ export class AstHelpers {
     if (!Predicates.isRecord(node)) { return undefined; }
     const name = node.name;
     const result = typeof name === 'string' ? name : undefined;
+    return result;
+  }
+
+  /** True for anything ESLint's traverser hands out — a real ESTree node always has a string `type`. */
+  public static isNode(value: unknown): value is Rule.Node {
+    const result = Predicates.isRecord(value) && typeof value.type === 'string';
+    return result;
+  }
+
+  // ESLint's traverser attaches `.parent` to every node it hands out, regardless of access
+  // path; `@types/eslint` only types this on the `RuleListener` callback parameter, not on
+  // e.g. `Scope.Reference.identifier`.
+  public static getParent(node: unknown): Rule.Node | null {
+    if (!Predicates.isRecord(node)) { return null; }
+    const parent = node.parent;
+    const result = AstHelpers.isNode(parent) ? parent : null;
     return result;
   }
 
