@@ -6,6 +6,7 @@ import { BaseError } from '@studnicky/errors/node';
 import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';
+import { WorkerPoolConfigEntity } from '../../src/entities/WorkerPoolConfigEntity.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 import scenarioGroups from './creation.scenarios.json' with { type: 'json' };
 
@@ -139,10 +140,21 @@ const runnerMap: RunnerMap = {
   'foreign-construction': async (scenarioCase) => {
     class ForeignWorkerPool extends WorkerPool<ItemInterface, string> {
       constructor() {
+        const parsedConfig = WorkerPoolConfigEntity.intake(resolveRequiredPoolConfig(scenarioCase.input.workerPool));
+        if (parsedConfig.batchConcurrency === undefined || parsedConfig.concurrency === undefined) {
+          throw new WorkerPoolError({
+            'code': 'workerPool.invalidForeignConstructionScenario',
+            'message': 'foreign-construction scenario input.workerPool requires batch.concurrency and concurrency'
+          });
+        }
         super({
-          ...resolveRequiredPoolConfig(scenarioCase.input.workerPool),
           'abortSignal': undefined,
+          'batchConcurrency': parsedConfig.batchConcurrency,
+          'concurrency': parsedConfig.concurrency,
           'signal': Signal.create(),
+          ...(parsedConfig.startupTimeoutMs === undefined ? {} : { 'startupTimeoutMs': parsedConfig.startupTimeoutMs }),
+          ...(parsedConfig.timeoutMs === undefined ? {} : { 'timeoutMs': parsedConfig.timeoutMs }),
+          'workerPath': parsedConfig.workerPath
         });
         return Object.create(null);
       }

@@ -14,13 +14,13 @@ import type { WorkerFailureStateEntity } from './entities/WorkerFailureStateEnti
 import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
 import type { WorkerLogEnvelopeEntity } from './entities/WorkerLogEnvelopeEntity.js';
 import type { WorkerProgressEnvelopeEntity } from './entities/WorkerProgressEnvelopeEntity.js';
-import type { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
 import type { FireOnWorkerErrorEffectInterface } from './interfaces/FireOnWorkerErrorEffectInterface.js';
 import type { WorkerPoolConfigInterface } from './interfaces/WorkerPoolConfigInterface.js';
 import type { WorkerPoolInterface } from './interfaces/WorkerPoolInterface.js';
 import type { WorkerResultEnvelopeInterface } from './interfaces/WorkerResultEnvelopeInterface.js';
 
 import { WorkerPoolConfigEntity } from './entities/WorkerPoolConfigEntity.js';
+import { WorkerTaskIndexEntity } from './entities/WorkerTaskIndexEntity.js';
 import { WorkerPoolError } from './errors/index.js';
 import { RetryGuardMachine } from './RetryGuardMachine.js';
 import { TaskSettlementMachine } from './TaskSettlementMachine.js';
@@ -243,6 +243,15 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     return result;
   }
 
+  /** An array position or worker id earns its brand via a positive guard before entering task/worker state. */
+  private static validateIndex(index: number): WorkerTaskIndexEntity.Type['index'] {
+    const candidate = { 'index': index };
+    if (!WorkerTaskIndexEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: invalid task index');
+    }
+    return candidate.index;
+  }
+
   /** True only for the reason `AbortSignal.timeout()` itself produces — a genuinely elapsed deadline, never a caller abort or a pre-aborted signal. */
   private static isTimeoutReason(reason: Error): boolean {
     const result = reason instanceof DOMException && reason.name === 'TimeoutError';
@@ -290,7 +299,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     const state = new WorkerPoolRunState<TMessage, TResult>();
     const batch = Batch.create<TResult>(this.#batchConcurrency);
     const indexed: IndexedItemInterface<TMessage>[] = items.map((item, index) => {
-      return { 'index': index, 'item': item };
+      return { 'index': WorkerPool.validateIndex(index), 'item': item };
     });
     const results: TResult[] = [];
 
@@ -328,7 +337,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   #reportWorkerError(state: WorkerPoolRunState<TMessage, TResult>, error: Error, index: number): void {
     const step = state.workerFailureMachine.transition(state.workerFailureState, {
       'error': error,
-      'index': index,
+      'index': WorkerPool.validateIndex(index),
       'type': 'workerFailure'
     });
     state.workerFailureState = step.state;
@@ -789,7 +798,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
   #createWorker(state: WorkerPoolRunState<TMessage, TResult>, workerIndex: number): Worker {
     const worker = new Worker(this.#workerPath);
-    state.workerRecords.set(worker, { 'lastIndex': workerIndex, 'lifecycleState': state.workerLifecycleMachine.getInitialState() });
+    state.workerRecords.set(worker, { 'lastIndex': WorkerPool.validateIndex(workerIndex), 'lifecycleState': state.workerLifecycleMachine.getInitialState() });
     this.hooks.invoke('onWorkerCreated', () => {
       const result = this.onWorkerCreated(worker.threadId);
       return result;
@@ -836,7 +845,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   async #dispatch(state: WorkerPoolRunState<TMessage, TResult>, item: TMessage, index: number): Promise<TResult> {
     const completion = Promise.withResolvers<TResult>();
     const entry: PendingEntryInterface<TMessage, TResult> = {
-      'index': index,
+      'index': WorkerPool.validateIndex(index),
       'item': item,
       'reject': completion.reject,
       'resolve': completion.resolve
