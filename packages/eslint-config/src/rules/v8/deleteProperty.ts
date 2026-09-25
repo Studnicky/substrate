@@ -27,7 +27,7 @@ class DeletionTarget {
     }
 
     if (argument.type === 'MemberExpression') {
-      const result = Predicates.isRecord(argument.object) ? argument.object as unknown as Rule.Node : undefined;
+      const result = AstHelpers.isNode(argument.object) ? argument.object : undefined;
 
       return result;
     }
@@ -38,7 +38,7 @@ class DeletionTarget {
         return undefined;
       }
 
-      const result = Predicates.isRecord(expression.object) ? expression.object as unknown as Rule.Node : undefined;
+      const result = AstHelpers.isNode(expression.object) ? expression.object : undefined;
 
       return result;
     }
@@ -59,7 +59,7 @@ class DeletionTarget {
     }
 
     const target = argumentList.at(0);
-    const result = Predicates.isRecord(target) ? target as unknown as Rule.Node : undefined;
+    const result = AstHelpers.isNode(target) ? target : undefined;
 
     return result;
   }

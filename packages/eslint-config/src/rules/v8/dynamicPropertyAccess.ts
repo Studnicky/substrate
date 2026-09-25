@@ -100,31 +100,30 @@ class PropertyOperation {
     if (parent === undefined) {
       return false;
     }
-    const raw = parent as unknown as Record<string, unknown>;
 
-    if (raw.type === 'AssignmentExpression') {
-      const result = raw.left === node;
+    if (parent.type === 'AssignmentExpression') {
+      const result = AstHelpers.getNodeProperty(parent, 'left') === node;
       return result;
     }
 
-    if (raw.type === 'UpdateExpression') {
-      const result = raw.argument === node;
+    if (parent.type === 'UpdateExpression') {
+      const result = AstHelpers.getNodeProperty(parent, 'argument') === node;
       return result;
     }
 
-    if (raw.type === 'UnaryExpression') {
-      const result = raw.operator === 'delete' && raw.argument === node;
+    if (parent.type === 'UnaryExpression') {
+      const result = AstHelpers.getNodeProperty(parent, 'operator') === 'delete' && AstHelpers.getNodeProperty(parent, 'argument') === node;
       return result;
     }
 
-    const result = PropertyOperation.#isDestructuringTarget(raw, node, parent);
+    const result = PropertyOperation.#isDestructuringTarget(parent, node);
 
     return result;
   }
 
   // A destructuring target: `[o[k]] = xs` / `({ a: o[k] } = obj)`.
-  static #isDestructuringTarget(raw: Record<string, unknown>, node: Rule.Node, parent: Rule.Node): boolean {
-    const result = raw.type === 'ArrayPattern' || raw.type === 'ObjectPattern' || raw.type === 'Property' && raw.value === node && PropertyOperation.#inPattern(parent);
+  static #isDestructuringTarget(parent: Rule.Node, node: Rule.Node): boolean {
+    const result = parent.type === 'ArrayPattern' || parent.type === 'ObjectPattern' || parent.type === 'Property' && AstHelpers.getNodeProperty(parent, 'value') === node && PropertyOperation.#inPattern(parent);
 
     return result;
   }
@@ -133,12 +132,10 @@ class PropertyOperation {
     let current: Rule.Node | undefined = node.parent ?? undefined;
 
     while (current !== undefined) {
-      const raw = current as unknown as Record<string, unknown>;
-
-      if (raw.type === 'ObjectPattern' || raw.type === 'ArrayPattern') {
+      if (current.type === 'ObjectPattern' || current.type === 'ArrayPattern') {
         return true;
       }
-      if (raw.type === 'AssignmentExpression' || raw.type === 'VariableDeclarator') {
+      if (current.type === 'AssignmentExpression' || current.type === 'VariableDeclarator') {
         return false;
       }
       current = current.parent ?? undefined;
@@ -172,10 +169,12 @@ class TrustBoundaryClassification {
     let current: Rule.Node | undefined = node.parent ?? undefined;
 
     while (current !== undefined) {
-      const raw = current as unknown as Record<string, unknown>;
+      if (current.type === 'MethodDefinition') {
+        const key = AstHelpers.getNodeProperty(current, 'key');
 
-      if (raw.type === 'MethodDefinition' && Predicates.isRecord(raw.key)) {
-        return raw.key as unknown as Rule.Node;
+        if (AstHelpers.isNode(key)) {
+          return key;
+        }
       }
       current = current.parent ?? undefined;
     }
