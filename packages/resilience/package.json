@@ -66,5 +66,8 @@
     "@studnicky/scheduler": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }
