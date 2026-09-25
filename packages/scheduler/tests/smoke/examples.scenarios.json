@@ -1,34 +1,46 @@
 {
   "cases": [
     {
+      "description": "the delay example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/delay.ts" },
       "name": "delay",
-      "description": "Runs the delay example",
-      "input": { "entrypoint": "../../examples/delay.ts" },
-      "expected": { "importsWithoutThrow": true }
+      "shape": "imports-example"
     },
     {
+      "description": "the di-provider example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/di-provider.ts" },
       "name": "di-provider",
-      "description": "Runs the DI provider example",
-      "input": { "entrypoint": "../../examples/di-provider.ts" },
-      "expected": { "importsWithoutThrow": true }
+      "shape": "imports-example"
     },
     {
+      "description": "the interval-tasks example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/interval-tasks.ts" },
       "name": "interval-tasks",
-      "description": "Runs the interval tasks example",
-      "input": { "entrypoint": "../../examples/interval-tasks.ts" },
-      "expected": { "importsWithoutThrow": true }
+      "shape": "imports-example"
     },
     {
+      "description": "the observedScheduler example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/observedScheduler.ts" },
       "name": "observed-scheduler",
-      "description": "Runs the observed scheduler example",
-      "input": { "entrypoint": "../../examples/observedScheduler.ts" },
-      "expected": { "importsWithoutThrow": true }
+      "shape": "imports-example"
     },
     {
+      "description": "the processKitComposition example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/processKitComposition.ts" },
+      "name": "process-kit-composition",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the virtual-scheduler example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/virtual-scheduler.ts" },
       "name": "virtual-scheduler",
-      "description": "Runs the virtual scheduler example",
-      "input": { "entrypoint": "../../examples/virtual-scheduler.ts" },
-      "expected": { "importsWithoutThrow": true }
+      "shape": "imports-example"
     }
   ]
 }
