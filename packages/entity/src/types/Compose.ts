@@ -104,10 +104,16 @@ export class Compose {
     const properties = Compose.keepProperties(node.schema.properties ?? {}, keySet);
     const required = Compose.keepValues(node.schema.required ?? [], keySet);
 
-    const result = { 'schema': { ...node.schema, 'properties': properties, 'required': required } } as unknown as SchemaNodeInterface<
+    const result: SchemaNodeInterface<
       PickSchemaType<TSchema, TKeys>,
       Pick<TStatic, TKeys>
-    >;
+    > = {
+      'schema': {
+        ...node.schema,
+        'properties': properties as Pick<NonNullable<TSchema['properties']>, TKeys>,
+        'required': required as Extract<NonNullable<TSchema['required']>[number], TKeys>[]
+      }
+    };
 
     return result;
   }
@@ -124,10 +130,16 @@ export class Compose {
     const properties = Compose.dropProperties(node.schema.properties ?? {}, keySet);
     const required = Compose.dropValues(node.schema.required ?? [], keySet);
 
-    const result = { 'schema': { ...node.schema, 'properties': properties, 'required': required } } as unknown as SchemaNodeInterface<
+    const result: SchemaNodeInterface<
       OmitSchemaType<TSchema, TKeys>,
       Omit<TStatic, TKeys>
-    >;
+    > = {
+      'schema': {
+        ...node.schema,
+        'properties': properties as Omit<NonNullable<TSchema['properties']>, TKeys>,
+        'required': required as Exclude<NonNullable<TSchema['required']>[number], TKeys>[]
+      }
+    };
 
     return result;
   }
@@ -165,10 +177,16 @@ export class Compose {
     const properties = { ...node.schema.properties, ...extension.schema.properties };
     const required = [...new Set([...(node.schema.required ?? []), ...(extension.schema.required ?? [])])];
 
-    const result = { 'schema': { ...node.schema, 'properties': properties, 'required': required } } as unknown as SchemaNodeInterface<
+    const result: SchemaNodeInterface<
       ExtendSchemaType<TSchema, TExtensionSchema>,
       Omit<TStatic, keyof TExtensionStatic> & TExtensionStatic
-    >;
+    > = {
+      'schema': {
+        ...node.schema,
+        'properties': properties as NonNullable<TExtensionSchema['properties']> & Omit<NonNullable<TSchema['properties']>, keyof NonNullable<TExtensionSchema['properties']>>,
+        'required': required
+      }
+    };
 
     return result;
   }
