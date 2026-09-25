@@ -1,13 +1,17 @@
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
 import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
 import { Clone } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
-import type { InterpreterHistoryCreateOptionsInterface } from './interfaces/InterpreterHistoryCreateOptionsInterface.js';
+import type { InterpreterHistoryCollaboratorsInterface } from './interfaces/InterpreterHistoryCollaboratorsInterface.js';
 import type { InterpreterHistoryRecordInterface } from './interfaces/InterpreterHistoryRecordInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
 import { EffectInterpreter } from './EffectInterpreter.js';
+import { InterpreterHistoryOptionsEntity } from './entities/InterpreterHistoryOptionsEntity.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
 
 interface InterpreterHistoryConstructorOptionsInterface<
@@ -15,7 +19,7 @@ interface InterpreterHistoryConstructorOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'capacity': number;
+  readonly 'capacity': unknown;
   readonly 'clock': ClockProviderInterface;
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect>;
@@ -39,21 +43,33 @@ export class InterpreterHistory<
     S extends { readonly 'variant': string },
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
-  >(options: InterpreterHistoryCreateOptionsInterface<S, E, Ef>): InterpreterHistory<S, E, Ef> {
-    if (options.machine === undefined) {
+  >(
+    config: unknown,
+    collaborators: InterpreterHistoryCollaboratorsInterface<S, E, Ef> = {}
+  ): InterpreterHistory<S, E, Ef> {
+    if (collaborators.machine === undefined) {
       throw new FsmConfigError('machine is required');
     }
-    if (options.machineId !== undefined && options.machineId === '') {
-      throw new FsmConfigError('machineId must not be empty');
+    if (!Predicates.isRecord(config)) {
+      throw new FsmConfigError('config must be an object');
     }
-    if (!Number.isInteger(options.capacity) || options.capacity <= 0) {
-      throw new FsmConfigError('capacity must be a positive integer');
+    const { capacity, ...rest } = config;
+
+    let options: InterpreterHistoryOptionsEntity.Type;
+    try {
+      options = InterpreterHistoryOptionsEntity.intake(rest);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new FsmConfigError(RuntimeError.toMessage(error));
+      }
+      throw error;
     }
+
     return new InterpreterHistory<S, E, Ef>({
-      'capacity': options.capacity,
-      'clock': options.clock ?? RealTimeClockProvider.create(),
-      'handler': options.handler,
-      'machine': options.machine,
+      'capacity': capacity,
+      'clock': collaborators.clock ?? RealTimeClockProvider.create(),
+      'handler': collaborators.handler,
+      'machine': collaborators.machine,
       'machineId': options.machineId
     });
   }
@@ -64,7 +80,14 @@ export class InterpreterHistory<
   protected constructor(options: InterpreterHistoryConstructorOptionsInterface<TState, TEvent, TEffect>) {
     super(options);
     this.#clock = Clock.create(options.clock);
-    this.#records = CircularBuffer.create<InterpreterHistoryRecordInterface<TState, TEvent>>({ 'capacity': options.capacity });
+    try {
+      this.#records = CircularBuffer.create<InterpreterHistoryRecordInterface<TState, TEvent>>({ 'capacity': options.capacity });
+    } catch (error) {
+      if (error instanceof CircularBufferError) {
+        throw new FsmConfigError('capacity must be a positive integer');
+      }
+      throw error;
+    }
   }
 
   /**

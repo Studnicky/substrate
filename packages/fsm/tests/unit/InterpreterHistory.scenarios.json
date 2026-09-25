@@ -12,7 +12,7 @@
       "description": "create rejects an empty machineId",
       "shape": "empty-machine-id",
       "input": { "capacity": 1, "machineId": "" },
-      "expected": { "message": "machineId must not be empty" }
+      "expected": { "message": "/machineId: must NOT have fewer than 1 characters" }
     },
     {
       "name": "non-positive-capacity",

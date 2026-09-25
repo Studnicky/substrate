@@ -1,6 +1,5 @@
-import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
 import { RuntimeError } from '@studnicky/errors/browser';
 import { Clone } from '@studnicky/json/browser';
 import { Predicates } from '@studnicky/types/browser';
@@ -47,8 +46,8 @@ interface MailboxEntryInterface<TEvent> {
  * forever — a dropped mailbox slot must still settle its promise.
  */
 class MailboxBuffer<TEvent> extends CircularBuffer<MailboxEntryInterface<TEvent>> {
-  static createMailbox<TEvent>(options: CircularBufferOptionsEntity.InputType = {}): MailboxBuffer<TEvent> {
-    return new MailboxBuffer<TEvent>(options);
+  static createMailbox<TEvent>(config: unknown = {}): MailboxBuffer<TEvent> {
+    return new MailboxBuffer<TEvent>(config);
   }
 
   protected override onEvict(entry: MailboxEntryInterface<TEvent>): void {
@@ -71,9 +70,6 @@ export class EffectInterpreter<
     }
     if (options.machineId !== undefined && options.machineId === '') {
       throw new FsmConfigError('machineId must not be empty');
-    }
-    if (options.mailboxCapacity !== undefined && (!Number.isInteger(options.mailboxCapacity) || options.mailboxCapacity <= 0)) {
-      throw new FsmConfigError('mailboxCapacity must be a positive integer');
     }
     const result = new EffectInterpreter<S, E, Ef>({
       'handler': options.handler,
@@ -105,9 +101,16 @@ export class EffectInterpreter<
     this.#machine = options.machine;
     this.#handler = options.handler;
     this.#machineId = options.machineId ?? crypto.randomUUID();
-    this.#mailbox = MailboxBuffer.createMailbox<TEvent>({
-      'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
-    });
+    try {
+      this.#mailbox = MailboxBuffer.createMailbox<TEvent>({
+        'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
+      });
+    } catch (error) {
+      if (error instanceof CircularBufferError) {
+        throw new FsmConfigError('mailboxCapacity must be a positive integer');
+      }
+      throw error;
+    }
   }
 
   /** Count of lifecycle hook failures captured since construction. */
