@@ -8,6 +8,7 @@ import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface
 import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
+import { RegisteredInterpreterMetricsEntity } from './entities/RegisteredInterpreterMetricsEntity.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
 import { InterpreterNotRunningError } from './errors/InterpreterNotRunningError.js';
 import { InterpreterNotStartedError } from './errors/InterpreterNotStartedError.js';
@@ -112,9 +113,12 @@ export class EffectInterpreter<
   }
 
   /** Count of lifecycle hook failures captured since construction. */
-  get hookErrorCount(): number {
-    const result = this.hooks.hookErrorCount;
-    return result;
+  get hookErrorCount(): RegisteredInterpreterMetricsEntity.Type['hookErrorCount'] {
+    const candidate = { 'hookErrorCount': this.hooks.hookErrorCount };
+    if (!RegisteredInterpreterMetricsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: hookErrorCount left its schema-defined bounds');
+    }
+    return candidate.hookErrorCount;
   }
 
   start(): void {
