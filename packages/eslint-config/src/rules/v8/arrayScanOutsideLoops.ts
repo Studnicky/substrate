@@ -69,19 +69,18 @@ class ReceiverOrigin {
       return false;
     }
 
-    const declRange = (declarationNode as unknown as { readonly 'range': readonly [number, number] }).range;
-    const loopRange = (loopNode as unknown as { readonly 'range': readonly [number, number] }).range;
-    const declStart = declRange.at(0);
-    const declEnd = declRange.at(1);
-    const loopStart = loopRange.at(0);
-    const loopEnd = loopRange.at(1);
+    const declRange = declarationNode.range;
+    const loopRange = loopNode.range;
 
-    if (declStart === undefined || declEnd === undefined || loopStart === undefined || loopEnd === undefined) {
-      return false;
+    if (declRange !== undefined && loopRange !== undefined) {
+      const [declStart, declEnd] = declRange;
+      const [loopStart, loopEnd] = loopRange;
+      const result = declStart >= loopStart && declEnd <= loopEnd;
+
+      return result;
     }
 
-    const result = declStart >= loopStart && declEnd <= loopEnd;
-    return result;
+    return false;
   }
 }
 
