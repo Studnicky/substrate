@@ -2,6 +2,8 @@ import type { Rule } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from './shared/astHelpers.js';
+
 class UnderscoreName {
   public static get(node: unknown): string | undefined {
     if (!Predicates.isRecord(node)) { return undefined; }
@@ -70,7 +72,9 @@ class ClassMemberCheck {
     const name: unknown = Reflect.get(identifier, 'name');
     if (typeof name !== 'string' || !name.startsWith('_')) { return; }
 
-    ViolationReporter.reportUnderscoreName(context, identifier as unknown as Rule.Node, name);
+    if (AstHelpers.isNode(identifier)) {
+      ViolationReporter.reportUnderscoreName(context, identifier, name);
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import type { Rule } from 'eslint';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
@@ -33,7 +34,12 @@ class ReceiverOrigin {
   // Resolves `identifierNode` to its declaring AST node by walking up the lexical scope
   // chain by name — the standard identifier-resolution algorithm.
   public static findDeclarationNode(identifierNode: Rule.Node, context: Rule.RuleContext): Rule.Node | undefined {
-    const name = (identifierNode as unknown as { readonly 'name': string }).name;
+    const rawName = AstHelpers.getNodeProperty(identifierNode, 'name');
+
+    if (typeof rawName !== 'string') {
+      return undefined;
+    }
+    const name = rawName;
     let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
 
     while (scope !== null) {
