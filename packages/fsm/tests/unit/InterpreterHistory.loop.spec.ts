@@ -18,13 +18,6 @@ type ScenarioCase =
       description: string;
       expected: { message: string };
       input: { capacity: number; machineId: string };
-      shape: 'missing-machine';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: { capacity: number; machineId: string };
       shape: 'empty-machine-id';
       name: string;
     }
@@ -148,12 +141,12 @@ function createSameVariantMachine(): StateMachine<ToggleState, ToggleEvent> {
 const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> } = {
   'empty-machine-id': async (scenarioCase) => {
     assert.throws(
-      () => InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId }),
+      () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
       { message: scenarioCase.expected.message }
     );
   },
   'evicts-oldest-when-capacity-exceeded': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await sendToggles(history, scenarioCase.input.steps);
     const records = history.history();
@@ -161,7 +154,7 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
     assert.deepEqual(records.map((record) => ({ from: record.from, to: record.to })), scenarioCase.expected.records);
   },
   'fresh-array-each-call': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await sendToggles(history, scenarioCase.input.steps);
     const first = history.history();
@@ -174,12 +167,16 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
   },
   'fully-functional-effect-interpreter': async (scenarioCase) => {
     const logged: string[] = [];
-    const history = InterpreterHistory.create({
-      capacity: scenarioCase.input.capacity,
-      handler: (effect) => { logged.push(effect.message); },
-      machine: createToggleMachine(),
-      machineId: scenarioCase.input.machineId,
-    });
+    const history = InterpreterHistory.create(
+      createToggleMachine(),
+      {
+        capacity: scenarioCase.input.capacity,
+        machineId: scenarioCase.input.machineId,
+      },
+      {
+        handler: (effect) => { logged.push(effect.message); },
+      }
+    );
     history.start();
     assert.deepEqual(history.getState(), scenarioCase.expected.initialState);
     await history.send({ type: 'toggle' });
@@ -204,7 +201,7 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
       return new NestedMachine();
     }
 
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createNestedMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createNestedMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await history.send({ details: scenarioCase.input.eventDetails, type: 'toggle' });
     const snapshot = history.history()[0];
@@ -221,19 +218,13 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
     assert.equal(retained?.event.details.value, scenarioCase.expected.eventValue);
   },
   'history-empty-before-transitions': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     assert.deepEqual(history.history(), []);
     assert.deepEqual(history.getState(), scenarioCase.expected.initialState);
   },
-  'missing-machine': async (scenarioCase) => {
-    assert.throws(
-      () => InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: undefined, machineId: scenarioCase.input.machineId }),
-      { message: scenarioCase.expected.message }
-    );
-  },
   'no-record-for-unchanged-state': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createSameVariantMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createSameVariantMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await history.send({ type: 'toggle' });
     assert.deepEqual(history.getState(), scenarioCase.expected.state);
@@ -242,18 +233,18 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
   },
   'non-integer-capacity': async (scenarioCase) => {
     assert.throws(
-      () => InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId }),
+      () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
       { message: scenarioCase.expected.message }
     );
   },
   'non-positive-capacity': async (scenarioCase) => {
     assert.throws(
-      () => InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId }),
+      () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
       { message: scenarioCase.expected.message }
     );
   },
   'records-transitions-in-order': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await sendToggles(history, scenarioCase.input.steps);
     const records = history.history();
@@ -264,7 +255,7 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
     );
   },
   'snapshot-isolated-from-later-transitions': async (scenarioCase) => {
-    const history = InterpreterHistory.create({ capacity: scenarioCase.input.capacity, machine: createToggleMachine(), machineId: scenarioCase.input.machineId });
+    const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
     await history.send({ type: 'toggle' });
     const snapshot = history.history();

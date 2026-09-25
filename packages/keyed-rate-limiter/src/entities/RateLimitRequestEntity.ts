@@ -3,20 +3,21 @@ import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+import { TokenCountEntity } from '@studnicky/resilience/entities';
 
-/** Canonical key and token count accepted by rate-limit operations. */
+/** Canonical key and token count accepted by rate-limit operations. `tokens` composes `TokenCountEntity` — resilience owns that constraint, since it also backs `TokenBucket`. */
 export namespace RateLimitRequestEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
       'key': { 'minLength': 1, 'type': 'string' },
-      'tokens': { 'exclusiveMinimum': 0, 'type': 'number' }
+      'tokens': TokenCountEntity.Schema
     },
     'required': ['key'],
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'tokens': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['key'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'tokens': TokenCountEntity.Node }, ['key'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

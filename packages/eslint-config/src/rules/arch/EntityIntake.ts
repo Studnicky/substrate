@@ -3,6 +3,7 @@ import type { Rule } from 'eslint';
 import { Predicates } from '@studnicky/types/browser';
 
 import { INTAKE_MEMBER } from '../constants/IntakeParseOnlyConstants.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 
 // PRIVATE HELPERS SHARE THE BOUNDARY. `FooEntity.intake` that outgrows a single function body
 // commonly gets a private helper extracted — a `#normalize` method, a `private static` method, or
@@ -33,16 +34,14 @@ export class EntityIntake {
   }
 
   static #isFunction(node: Rule.Node): boolean {
-    const raw = node as unknown as Record<string, unknown>;
-    const result = raw.type === 'ArrowFunctionExpression'
-      || raw.type === 'FunctionDeclaration'
-      || raw.type === 'FunctionExpression';
+    const result = node.type === 'ArrowFunctionExpression'
+      || node.type === 'FunctionDeclaration'
+      || node.type === 'FunctionExpression';
     return result;
   }
 
   static #isIntakeMember(node: Rule.Node): boolean {
-    const raw = node as unknown as Record<string, unknown>;
-    const id: unknown = raw.id;
+    const id = AstHelpers.getNodeProperty(node, 'id');
 
     if (Predicates.isRecord(id) && id.name === INTAKE_MEMBER) {
       return true;
@@ -72,16 +71,14 @@ export class EntityIntake {
   }
 
   static #isDeclaratorNamedIntake(declarator: Rule.Node): boolean {
-    const parentRaw = declarator as unknown as Record<string, unknown>;
-    const declaredId: unknown = parentRaw.id;
+    const declaredId = AstHelpers.getNodeProperty(declarator, 'id');
     const result = Predicates.isRecord(declaredId) && declaredId.name === INTAKE_MEMBER;
 
     return result;
   }
 
   static #isMemberNamedIntake(member: Rule.Node): boolean {
-    const memberRaw = member as unknown as Record<string, unknown>;
-    const key: unknown = memberRaw.key;
+    const key = AstHelpers.getNodeProperty(member, 'key');
     const result = Predicates.isRecord(key) && key.name === INTAKE_MEMBER;
 
     return result;
@@ -120,14 +117,13 @@ export class EntityIntake {
   }
 
   static #isPrivateMember(memberDefinition: Rule.Node): boolean {
-    const raw = memberDefinition as unknown as Record<string, unknown>;
-    const key: unknown = raw.key;
+    const key = AstHelpers.getNodeProperty(memberDefinition, 'key');
 
     if (Predicates.isRecord(key) && key.type === 'PrivateIdentifier') {
       return true;
     }
 
-    const result = raw.accessibility === 'private';
+    const result = AstHelpers.getNodeProperty(memberDefinition, 'accessibility') === 'private';
     return result;
   }
 
@@ -142,12 +138,12 @@ export class EntityIntake {
     let current: Rule.Node | undefined = declarationOrDeclarator;
 
     while (current !== undefined) {
-      const raw = current as unknown as Record<string, unknown>;
-
-      if (raw.type === 'ExportNamedDeclaration' || raw.type === 'ExportDefaultDeclaration') {
+      if (current.type === 'ExportNamedDeclaration' || current.type === 'ExportDefaultDeclaration') {
         return false;
       }
-      if (raw.type === 'TSModuleBlock' || raw.type === 'TSModuleDeclaration') {
+      const currentType = AstHelpers.getNodeType(current);
+
+      if (currentType === 'TSModuleBlock' || currentType === 'TSModuleDeclaration') {
         return true;
       }
 
@@ -161,10 +157,8 @@ export class EntityIntake {
     let current: Rule.Node | undefined = node.parent ?? undefined;
 
     while (current !== undefined) {
-      const raw = current as unknown as Record<string, unknown>;
-
-      if (raw.type === 'TSModuleDeclaration') {
-        const id: unknown = raw.id;
+      if (AstHelpers.getNodeType(current) === 'TSModuleDeclaration') {
+        const id = AstHelpers.getNodeProperty(current, 'id');
 
         if (Predicates.isRecord(id) && typeof id.name === 'string' && id.name.endsWith('Entity')) {
           return true;

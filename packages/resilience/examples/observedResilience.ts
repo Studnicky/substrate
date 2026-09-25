@@ -5,15 +5,15 @@ import assert from 'node:assert/strict';
 // #region usage
 import {
   CircuitBreaker,
+  type CircuitBreakerCollaboratorsInterface,
   CircuitBreakerOpenError,
-  type CircuitBreakerOptionsInterface,
   DeadLetterQueue,
   type DeadLetterQueueOptionsInterface
 } from '../src/index.js';
 
 // --- Observed CircuitBreaker ---
 class TracedBreaker extends CircuitBreaker {
-  constructor(options: CircuitBreakerOptionsInterface) { super(options); }
+  constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {}) { super(config, collaborators); }
   protected override onSuccess(): void { console.log('[resilience:cb] onSuccess — circuit closed and call succeeded'); }
   protected override onFailure(error: Error): void { console.log(`[resilience:cb] onFailure — error=${error.message}`); }
   protected override onTrip(): void { console.log('[resilience:cb] onTrip — failure threshold reached, circuit OPEN'); }
@@ -41,7 +41,10 @@ class Clock {
   static now(): number { const result = time + 0; return result; }
 }
 
-const circuitBreaker = new TracedBreaker({ 'clock': Clock.now, 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 });
+const circuitBreaker = new TracedBreaker(
+  { 'failureThreshold': 2, 'resetTimeoutMs': 100, 'successThreshold': 1 },
+  { 'clock': Clock.now }
+);
 const deadLetterQueue = new TracedDeadLetterQueue<string>({ 'capacity': 10 });
 
 // Trip the breaker open with 2 failures

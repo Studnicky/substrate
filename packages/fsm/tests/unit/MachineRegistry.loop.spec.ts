@@ -96,7 +96,7 @@ class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
 
 class Fixture {
   static interpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-    return EffectInterpreter.create({ machine: SimpleMachine.create() });
+    return EffectInterpreter.create(SimpleMachine.create());
   }
 }
 

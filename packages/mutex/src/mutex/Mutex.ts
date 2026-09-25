@@ -38,11 +38,8 @@ import { TransitionRejectedError } from '@studnicky/fsm/browser';
 import { Signal } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
-import type { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
-import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import type {
   MutexCreateOptionsInterface,
   MutexInterface,
@@ -56,6 +53,9 @@ import {
   INITIAL_COUNTER,
   UNLIMITED_QUEUE_SIZE
 } from '../constants/index.js';
+import { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
+import { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
+import { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import {
   LockTimeoutError,
   QueueSizeExceededError
@@ -284,6 +284,24 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private static hasAsyncDispose(value: object): value is MutexLockInterface {
     const result = Predicates.isFunction(Reflect.get(value, Symbol.asyncDispose));
     return result;
+  }
+
+  /** A clock reading earns its brand via a positive guard before entering lock metrics. */
+  private static buildLockMetrics(acquiredAt: number): LockMetricsEntity.Type {
+    const candidate = { 'acquiredAt': acquiredAt };
+    if (!LockMetricsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: clock produced an invalid acquiredAt timestamp');
+    }
+    return candidate;
+  }
+
+  /** A clock reading earns its brand via a positive guard before entering a queue entry. */
+  private static buildQueuedAt(queuedAt: number): MutexQueueEntryEntity.Type['queuedAt'] {
+    const candidate = { 'queuedAt': queuedAt };
+    if (!MutexQueueEntryEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: clock produced an invalid queuedAt timestamp');
+    }
+    return candidate.queuedAt;
   }
 
   static create<
@@ -591,7 +609,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.transitionKey(key, 'locked');
     const acquiredAt = this.#clock.now();
 
-    this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
+    this.lockMetrics.set(key, Mutex.buildLockMetrics(acquiredAt));
     this.totalExecuted++;
 
     const waitTimeMs = acquiredAt - requestedAt;
@@ -710,7 +728,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   ): void {
     const acquiredAt = this.#clock.now();
 
-    this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
+    this.lockMetrics.set(key, Mutex.buildLockMetrics(acquiredAt));
     this.totalExecuted++;
 
     const waitTimeMs = acquiredAt - requestedAt;
@@ -744,7 +762,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       };
       const entry: QueueEntryInterface = {
         'cancellationController': cancellationController,
-        'queuedAt': requestedAt,
+        'queuedAt': Mutex.buildQueuedAt(requestedAt),
         'reject': reject,
         'resolve': handleResolve
       };
@@ -840,7 +858,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   getStats(): MutexStatsEntity.Type {
-    const stats: MutexStatsEntity.Type = {
+    const candidate = {
       'activeLocksCount': this.locks.size,
       'coalescedCount': this.coalescedCount,
       'maximumQueueSize': this.config.maximumQueueSize,
@@ -848,7 +866,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       'timeout': this.config.timeout,
       'totalExecuted': this.totalExecuted
     };
-    return stats;
+    if (!MutexStatsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: mutex stats failed validation');
+    }
+    return candidate;
   }
 
   /**

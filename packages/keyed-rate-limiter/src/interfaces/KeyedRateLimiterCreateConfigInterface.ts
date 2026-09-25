@@ -5,7 +5,7 @@ import type { KeyedRateLimiterRegistryOptionsEntity } from '../entities/KeyedRat
 /** Construction options for {@link KeyedRateLimiter}'s default `TokenBucket`-per-key path. */
 export interface KeyedRateLimiterCreateConfigInterface extends TokenBucketOptionsInterface {
   /** Time-to-live (ms) for an idle key's bucket before it is evicted from the cache. */
-  'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.Type['keyIdleTtlMs'];
+  'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.InputType['keyIdleTtlMs'];
   /** Maximum number of distinct keys retained at once. Defaults to 10,000. */
-  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maximumKeys'];
+  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.InputType['maximumKeys'];
 }

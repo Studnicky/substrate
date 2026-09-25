@@ -1,14 +1,16 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
-import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
 import { ChannelKeyMachine } from './ChannelKeyMachine.js';
+import { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
+import { ChannelConfigError } from './errors/ChannelConfigError.js';
 import { ChannelError } from './errors/ChannelError.js';
 
 interface ChannelEntryInterface<T> {
@@ -56,12 +58,22 @@ export class Channel<T> {
     TInstance extends ChannelShapeInterface = Channel<T>
   >(
     this: ChannelSubclassInterface<TInstance>,
-    options?: ChannelOptionsEntity.Type
+    options?: ChannelOptionsEntity.InputType
   ): TInstance {
     const getCurrentConstructor = (): ChannelSubclassInterface<TInstance> => { return this; };
     const currentConstructor = getCurrentConstructor();
 
-    const result: unknown = Reflect.construct(currentConstructor, [options]);
+    let validated: ChannelOptionsEntity.Type;
+    try {
+      validated = ChannelOptionsEntity.intake(options ?? {});
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new ChannelConfigError(error.message);
+      }
+      throw error;
+    }
+
+    const result: unknown = Reflect.construct(currentConstructor, [validated]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, currentConstructor)) {
       throw RuntimeError.create('Channel.create() did not construct the requested subclass.');
     }

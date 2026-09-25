@@ -41,7 +41,8 @@ class ForOfIterationCheck {
     const { right } = node;
 
     if (right.type === 'CallExpression'
-      && CallIdentity.isBuiltinCall(right as unknown as Rule.Node, context, ARRAY_ITERATOR_METHODS, ARRAY_ITERATOR_OWNERS)) {
+      && AstHelpers.isNode(right)
+      && CallIdentity.isBuiltinCall(right, context, ARRAY_ITERATOR_METHODS, ARRAY_ITERATOR_OWNERS)) {
       context.report({
         'messageId': 'forOfArrays', 'node': node
       });

@@ -2,6 +2,9 @@
  * Boundary Kit — composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern
  */
 
+import type { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+import type { CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/interfaces';
+
 import { RuntimeError } from '@studnicky/errors/browser';
 import { CircuitBreaker } from '@studnicky/resilience/browser';
 import { Retry } from '@studnicky/retry/browser';
@@ -88,7 +91,13 @@ export class BoundaryKit {
     if (value instanceof CircuitBreaker) {
       return value;
     }
-    const result = CircuitBreaker.create(value ?? BOUNDARY_KIT_DEFAULTS.circuitBreakerOptions);
+    const source: CircuitBreakerCollaboratorsInterface & CircuitBreakerOptionsEntity.InputType
+      = value ?? BOUNDARY_KIT_DEFAULTS.circuitBreakerOptions;
+    const { clock, errorClassifier, ...config } = source;
+    const result = CircuitBreaker.create(config, {
+      ...(clock === undefined ? {} : { 'clock': clock }),
+      ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier })
+    });
     return result;
   }
 

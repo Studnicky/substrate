@@ -13,18 +13,17 @@ import { TransitionRejectedError } from '@studnicky/fsm/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
 import type { RetryConfigInterface, RetryContextInterface, RetryEventTopicMapInterface, RetryInterface } from '../interfaces/index.js';
 
 import {
-  DEFAULT_MAXIMUM_RETRIES,
   INCREMENT_BY_ONE,
   INITIAL_COUNTER,
   NO_DELAY_MS
 } from '../constants/index.js';
 import { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
+import { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import { RetryAttemptEventEntity } from '../entities/RetryAttemptEventEntity.js';
 import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import { RetryContextDataEntity } from '../entities/RetryContextDataEntity.js';
@@ -45,6 +44,14 @@ interface RetryConfigOverridesInterface {
   readonly 'clockProvider': RetryConfigInterface['clock'];
   readonly 'errorClassifier': RetryConfigInterface['errorClassifier'];
   readonly 'eventSink': RetryConfigInterface['eventSink'];
+}
+
+/** Schema-validated config fields stay branded; collaborators are typed, not schema-derived. */
+interface RetryResolvedConfigInterface extends RetryConfigEntity.Type {
+  readonly 'backoffStrategy'?: RetryConfigInterface['backoffStrategy'];
+  readonly 'clock'?: RetryConfigInterface['clock'];
+  readonly 'errorClassifier'?: RetryConfigInterface['errorClassifier'];
+  readonly 'eventSink'?: RetryConfigInterface['eventSink'];
 }
 
 interface RetryErrorHandlingOptionsInterface {
@@ -154,15 +161,10 @@ export class Retry implements RetryInterface {
   readonly #callMachine: RetryCallMachine = new RetryCallMachine();
 
   protected readonly hooks: RetryHookInvoker;
-  protected readonly maximumRetries: number;
-  protected readonly maximumElapsedMs: number | undefined;
+  protected readonly maximumRetries: RetryConfigEntity.Type['maximumRetries'];
+  protected readonly maximumElapsedMs: RetryConfigEntity.Type['maximumElapsedMs'];
 
-  protected stats: RequestStatsEntity.Type = {
-    'failedRequests': INITIAL_COUNTER,
-    'successfulRequests': INITIAL_COUNTER,
-    'totalRequests': INITIAL_COUNTER,
-    'totalRetries': INITIAL_COUNTER
-  };
+  protected stats: RequestStatsEntity.Type = Retry.buildInitialStats();
 
   protected constructor(config: RetryConfigInterface = {}) {
     const validated = Retry.validateConfig(config);
@@ -170,7 +172,7 @@ export class Retry implements RetryInterface {
     this.hooks = new RetryHookInvoker(
       validated.hookTimeoutMs === undefined ? undefined : { 'timeoutMs': validated.hookTimeoutMs }
     );
-    this.maximumRetries = validated.maximumRetries ?? DEFAULT_MAXIMUM_RETRIES;
+    this.maximumRetries = validated.maximumRetries;
     this.maximumElapsedMs = validated.maximumElapsedMs;
     this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
@@ -191,8 +193,22 @@ export class Retry implements RetryInterface {
     this.classifierCallback = classifierCallback;
   }
 
+  /** Zeroed stats earn their brand via a positive guard — internally built, never externally supplied. */
+  private static buildInitialStats(): RequestStatsEntity.Type {
+    const candidate = {
+      'failedRequests': INITIAL_COUNTER,
+      'successfulRequests': INITIAL_COUNTER,
+      'totalRequests': INITIAL_COUNTER,
+      'totalRetries': INITIAL_COUNTER
+    };
+    if (!RequestStatsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: initial stats failed validation');
+    }
+    return candidate;
+  }
+
   /** Validates retry configuration at the construction boundary. */
-  private static validateConfig(config: RetryConfigInterface): RetryConfigInterface {
+  private static validateConfig(config: RetryConfigInterface): RetryResolvedConfigInterface {
     try {
       if (!Predicates.isObject(config)) {
         throw ConfigurationError.create('config must be an object');
@@ -270,7 +286,7 @@ export class Retry implements RetryInterface {
     }
   }
 
-  private static mergeValidatedConfig(parsed: RetryConfigInterface, overrides: RetryConfigOverridesInterface): RetryConfigInterface {
+  private static mergeValidatedConfig(parsed: RetryConfigEntity.Type, overrides: RetryConfigOverridesInterface): RetryResolvedConfigInterface {
     return {
       ...parsed,
       ...(overrides.backoffStrategy === undefined ? {} : { 'backoffStrategy': overrides.backoffStrategy }),
@@ -660,12 +676,7 @@ export class Retry implements RetryInterface {
    * Reset statistics counters.
    */
   resetStats(): void {
-    this.stats = {
-      'failedRequests': INITIAL_COUNTER,
-      'successfulRequests': INITIAL_COUNTER,
-      'totalRequests': INITIAL_COUNTER,
-      'totalRetries': INITIAL_COUNTER
-    };
+    this.stats = Retry.buildInitialStats();
   }
 
 }

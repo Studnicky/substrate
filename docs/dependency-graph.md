@@ -55,7 +55,6 @@ p__studnicky_types["@studnicky/types"]
 p__studnicky_virtual_fs["@studnicky/virtual-fs"]
 p__studnicky_visible_range["@studnicky/visible-range"]
 p__studnicky_worker_pool["@studnicky/worker-pool"]
-p__studnicky_batch --> p__studnicky_entity
 p__studnicky_batch --> p__studnicky_errors
 p__studnicky_batch --> p__studnicky_types
 p__studnicky_boundary_kit --> p__studnicky_errors

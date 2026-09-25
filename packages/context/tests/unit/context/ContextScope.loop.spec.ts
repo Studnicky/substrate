@@ -79,7 +79,7 @@ function snapshotToRecord(snapshot: ReadonlyMap<string, unknown>): Record<string
   return Object.fromEntries(snapshot);
 }
 
-function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
+function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.InputType {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {

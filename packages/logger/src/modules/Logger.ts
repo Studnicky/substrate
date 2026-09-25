@@ -5,12 +5,12 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { LogDataEntity } from '../entities/LogDataEntity.js';
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
-import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { LoggerInterface } from '../interfaces/LoggerInterface.js';
 import type { LoggerOptionsInterface } from '../interfaces/LoggerOptionsInterface.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';
 
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
+import { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { ParseLogLevel } from './parseLogLevel.js';
 
@@ -214,12 +214,16 @@ export class Logger implements LoggerInterface {
       return;
     }
 
-    const record: LogRecordEntity.Type = {
+    const candidate: unknown = {
       'data': data,
       'level': level,
       'metadata': this.#metadata,
       'time': this.#clock.now()
     };
+    if (!LogRecordEntity.validate(candidate)) {
+      throw RuntimeError.create('assembled log record failed validation');
+    }
+    const record = candidate;
 
     this.hooks.invoke('onLog', () => {
       const result = this.onLog(level, record);

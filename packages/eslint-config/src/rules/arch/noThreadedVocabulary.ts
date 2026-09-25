@@ -11,6 +11,7 @@ import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
 import type { LayerBindingEntity } from '../layers/LayerBindingEntity.js';
 
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 import { ResolutionSiteEntity } from './ResolutionSiteEntity.js';
 
 // The rule asks one binary question of a file: may it resolve a token? That is a property of
@@ -579,7 +580,7 @@ export const noThreadedVocabulary: Rule.RuleModule = {
     };
 
     const checkParameters = (node: Rule.Node): void => {
-      const parameters: unknown = (node as unknown as Record<string, unknown>).params;
+      const parameters = AstHelpers.getNodeProperty(node, 'params');
       if (!Predicates.isArray(parameters)) { return; }
       if (AmbientAugmentation.contains(node, context)) { return; }
 
@@ -593,14 +594,17 @@ export const noThreadedVocabulary: Rule.RuleModule = {
         const typeNode = AnnotationTypeNode.ofParameter(parameter, binding);
         if (!vocabulary.matches(typeNode, TypeParameterConstraints.forNode(node, context))) { continue; }
 
-        report(binding as unknown as Rule.Node, ParameterBinding.nameOf(binding), 'threadedParameter');
+        if (AstHelpers.isNode(binding)) {
+          report(binding, ParameterBinding.nameOf(binding), 'threadedParameter');
+        }
       }
     };
 
     const checkMember = (node: Rule.Node, messageId: string): void => {
       if (AmbientAugmentation.contains(node, context)) { return; }
+      if (!Predicates.isRecord(node)) { return; }
 
-      const binding = node as unknown as Record<string, unknown>;
+      const binding = node;
       const typeNode = AnnotationTypeNode.of(binding);
       if (!vocabulary.matches(typeNode, TypeParameterConstraints.forNode(node, context))) { return; }
 

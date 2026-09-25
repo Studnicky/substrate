@@ -131,8 +131,7 @@ class RecurringScope {
 export const prototypeModification: Rule.RuleModule = {
   'create': (context) => {
     const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-      const raw = node as unknown as Record<string, unknown>;
-      const left = NodeAccess.asObject(raw.left);
+      const left = NodeAccess.asObject(node.left);
 
       if (left === undefined) {
         return;
@@ -152,8 +151,6 @@ export const prototypeModification: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const raw = node as unknown as Record<string, unknown>;
-
       const isForbiddenApi = CallIdentity.isBuiltinCall(node, context, OBJECT_PROTOTYPE_API_METHODS, OBJECT_PROTOTYPE_API_OWNERS)
         || CallIdentity.isBuiltinCall(node, context, REFLECT_PROTOTYPE_API_METHODS, REFLECT_PROTOTYPE_API_OWNERS);
 
@@ -161,7 +158,7 @@ export const prototypeModification: Rule.RuleModule = {
         return;
       }
 
-      if (CalleeShape.hasPrototypeArgument(raw.arguments) && !RecurringScope.isProvablyOneShot(node, context)) {
+      if (CalleeShape.hasPrototypeArgument(node.arguments) && !RecurringScope.isProvablyOneShot(node, context)) {
         context.report({
           'messageId': 'prototypeModification', 'node': node
         });

@@ -1,12 +1,14 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
 
 import { BusQueue } from './BusQueue.js';
+import { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
+import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a throwing hook must not replace publish()/subscribe() or block delivery. */
 class EventBusHookInvoker extends HookInvoker {
@@ -98,7 +100,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     TInstance extends EventBusShapeInterface = EventBus<TTopicMap>
   >(
     this: EventBusSubclassInterface<TInstance>,
-    config?: BusQueueOptionsEntity.Type
+    config?: BusQueueOptionsEntity.InputType
   ): TInstance {
     // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
     // passing `this` directly as a call argument) so the receiver is obtained
@@ -112,8 +114,15 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     return result;
   }
 
-  protected constructor(config?: BusQueueOptionsEntity.Type) {
-    this.#config = Object.freeze(structuredClone(config ?? {}));
+  protected constructor(config?: BusQueueOptionsEntity.InputType) {
+    try {
+      this.#config = Object.freeze(BusQueueOptionsEntity.intake(config ?? {}));
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new BusQueueConfigError(error.message);
+      }
+      throw error;
+    }
   }
 
   #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: true): Set<BusQueue<TTopicMap[K]>>;

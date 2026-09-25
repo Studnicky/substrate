@@ -19,9 +19,9 @@ import type { DispatchCompletedEventEntity, DispatchStartedEventEntity } from '.
 import { Semaphore } from '../src/index.js';
 
 interface DispatchTopicMapInterface {
-  'dispatch.completed': DispatchCompletedEventEntity.Type;
+  'dispatch.completed': DispatchCompletedEventEntity.InputType;
   'dispatch.failed': { 'error': unknown; 'key': string; };
-  'dispatch.started': DispatchStartedEventEntity.Type;
+  'dispatch.started': DispatchStartedEventEntity.InputType;
 }
 
 // One Semaphore bounds how many dispatched tasks run at once; one EventBus, tuned with a

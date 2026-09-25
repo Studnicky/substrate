@@ -1,0 +1,5 @@
+---
+"@studnicky/eslint-config": patch
+---
+
+`exportShape.ts`'s `onImportDeclaration`, `onVariableDeclarator`, `onExportSpecifier`, and `onExportNamedDeclaration` callbacks now declare the precise listener-derived parameter type (`NonNullable<Rule.RuleListener['Key']>`) instead of the generic `(node: Rule.Node) => void`, exposing `.specifiers`, `.init`, `.id`, `.local`, `.exported` directly with no cast — `local`/`exported` are read through `AstHelpers.getIdentifierName`, which already returns `undefined` for the `Literal` half of their real `Identifier | Literal` type, matching the previous cast's assumption that they always carry `.name` without actually asserting it. `onTSExportAssignment` and the private `checkExportNamedDeclaration`/`checkReExportAliasing`/`checkExportsImportedBinding` helpers read `.expression`/`.source`/`.specifiers` through `AstHelpers.getNodeProperty` instead of casting the whole node, since `TSExportAssignment` has no named `RuleListener` key to retype against.

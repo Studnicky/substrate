@@ -1,8 +1,7 @@
 import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '@studnicky/errors/browser';
 
-import type { CircuitBreakerOptionsEntity } from '../entities/CircuitBreakerOptionsEntity.js';
-
-export interface CircuitBreakerOptionsInterface extends CircuitBreakerOptionsEntity.InputType {
+/** Typed collaborators `CircuitBreaker.create` accepts alongside schema-validated options. */
+export interface CircuitBreakerCollaboratorsInterface {
   readonly 'clock'?: () => number;
 
   /**

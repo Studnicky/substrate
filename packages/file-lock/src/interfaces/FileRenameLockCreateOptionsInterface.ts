@@ -6,5 +6,5 @@ import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 export interface FileRenameLockCreateOptionsInterface {
   readonly 'fileSystem'?: FileSystemInterface;
   readonly 'ownerToken'?: OwnerTokenInterface;
-  readonly 'path': FileLockOptionsEntity.Type['path'];
+  readonly 'path': FileLockOptionsEntity.InputType['path'];
 }

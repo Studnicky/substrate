@@ -209,7 +209,7 @@ export class VirtualFileSystem implements FileSystemInterface {
     }
   }
 
-  mkdirSync(path: string, options?: MkdirOptionsEntity.Type): void {
+  mkdirSync(path: string, options?: MkdirOptionsEntity.InputType): void {
     const recursive = options?.recursive === true;
 
     if (this.#mkdirTargetOccupied(path, recursive)) {

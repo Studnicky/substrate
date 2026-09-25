@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 import { ResilienceConfigError, TokenBucketExhaustedError } from '@studnicky/resilience/node';
 
 import type { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
+import type { RateLimitConsumptionInterface } from '@studnicky/resilience/interfaces';
 
 import { KeyedRateLimiter, KeyedRateLimiterBoundaryError, KeyedRateLimiterConfigError } from '../../../src/index.js';
 import {
@@ -58,7 +59,7 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
     this.#remaining = allowance;
   }
 
-  consume(tokens = 1): RateLimitConsumptionEntity.Type {
+  consume(tokens = 1): RateLimitConsumptionInterface {
     if (this.#remaining < tokens) {
       throw RuntimeError.create('fake allowance exhausted');
     }
@@ -68,7 +69,7 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
 
   async waitForToken(
     options?: { signal?: AbortSignal; tokens?: number }
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = options?.tokens ?? 1;
     return this.consume(tokens);
   }
@@ -158,10 +159,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         factory: () => {
           factoryCalls += 1;
           return {
-            consume(): RateLimitConsumptionEntity.Type {
+            consume(): RateLimitConsumptionInterface {
               return { 'consumedTokens': 1, 'remainingTokens': 0 };
             },
-            waitForToken(): Promise<RateLimitConsumptionEntity.Type> {
+            waitForToken(): Promise<RateLimitConsumptionInterface> {
               return Promise.resolve({ 'consumedTokens': 1, 'remainingTokens': 0 });
             }
           };

@@ -61,7 +61,7 @@ const machine: DemoMachine = DemoMachine.make();
 const interpreter: EffectInterpreter<DemoStateEntity.Type, DemoEventEntity.Type> = EffectInterpreter.create<
   DemoStateEntity.Type,
   DemoEventEntity.Type
->({ 'machine': machine });
+>(machine);
 interpreter.start();
 await interpreter.send({ 'type': 'activate' });
 interpreter.stop();

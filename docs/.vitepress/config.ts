@@ -76,7 +76,7 @@ const ESLINT_CONFIG_RULES = [
   'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'entity-file-shape',
   'explicit-return-binding', 'export-shape', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-threaded-vocabulary', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
+  'lexical-this-only', 'no-double-assertion', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-threaded-vocabulary', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
   'static-method-verbs', 'type-alias-invariants'
 ] as const;
 

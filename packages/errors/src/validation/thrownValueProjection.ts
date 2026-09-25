@@ -1,3 +1,6 @@
+import type { MaximumItemsBrandInterface } from '@studnicky/entity/interfaces';
+
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { ThrownValueEntity } from '../entities/ThrownValueEntity.js';
@@ -17,15 +20,17 @@ import {
   PROBLEM_TYPE_THROWN_PRIMITIVE,
   PROBLEM_TYPE_THROWN_STRING
 } from '../constants/ProblemConstants.js';
+import { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
 
 /**
  * Projection of an arbitrary caught value into RFC 9457 members.
  *
- * This is a LEAF: it imports constants and predicates, and nothing else. `BaseError` needs
- * this projection to serialize a cause chain, and `BaseError` is the root every error class
- * extends — so anything it reaches at runtime must bottom out here. Putting the projection in
- * an entity instead would make the error classes depend on the entity layer while the entity
- * layer's intake boundaries throw error classes, and the import graph would stop being a DAG.
+ * This is a LEAF relative to `ThrownValueEntity`: it imports constants, predicates, and
+ * `CauseNodeEntity` to earn the `causes` array's element and `maxItems` brands, but never
+ * `ThrownValueEntity` or `BaseError` itself. `BaseError` needs this projection to serialize a
+ * cause chain, and `BaseError` is the root every error class extends — so anything it reaches
+ * at runtime must bottom out here without looping back through the entity that wraps it or
+ * through the error-class layer, or the import graph would stop being a DAG.
  *
  * `ThrownValueEntity` is the entity wrapper over this function, for consumers that want the
  * schema and the intake/create boundary.
@@ -192,13 +197,29 @@ export class ThrownValueProjection {
    */
   private static assemble(nodes: ThrownValueEntity.Type[]): ThrownValueEntity.Type {
     const head = nodes.at(0) ?? Classifier.ofNullish();
-    const causes = nodes.slice(1).map((node) => {
+    const causesRaw = nodes.slice(1).map((node) => {
       const { 'causes': _causes, 'stack': _stack, ...rest } = node;
 
       return rest;
     });
-    const result: ThrownValueEntity.Type = causes.length === 0 ? head : { ...head, 'causes': causes };
-
-    return result;
+    if (causesRaw.length === 0) {
+      return head;
+    }
+    if (ThrownValueProjection.isCauseChain(causesRaw)) {
+      const result: ThrownValueEntity.Type = { ...head, 'causes': causesRaw };
+      return result;
+    }
+    throw new Error(`assembled cause chain violates CauseNodeEntity's own schema: ${EntityCompiler.formatErrors(ThrownValueProjection.isCauseChain.errors)}`);
   }
+
+  /**
+   * Earns the `causes` array's `CauseNodeEntity` element brand and `maxItems` brand a
+   * subtraction can never forge — validating a fresh, cycle-free array in place, without
+   * cloning it, is cheaper than intake and just as sound as create for internal data.
+   */
+  private static readonly isCauseChain = EntityCompiler.compile<CauseNodeEntity.Type[] & MaximumItemsBrandInterface<typeof CAUSE_CHAIN_DEPTH_LIMIT>>({
+    'items': CauseNodeEntity.Schema,
+    'maxItems': CAUSE_CHAIN_DEPTH_LIMIT,
+    'type': 'array'
+  } as const);
 }

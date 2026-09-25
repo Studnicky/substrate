@@ -15,6 +15,10 @@ import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispa
 import type { BoundedDispatcherOperationContextInterface } from './interfaces/BoundedDispatcherOperationContextInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';
 
+import { BoundedDispatcherErrorEventEntity } from './entities/BoundedDispatcherErrorEventEntity.js';
+import { BoundedDispatcherStartEventEntity } from './entities/BoundedDispatcherStartEventEntity.js';
+import { BoundedDispatcherSuccessEventEntity } from './entities/BoundedDispatcherSuccessEventEntity.js';
+
 interface BoundedDispatcherDepsInterface<TTopicMap extends BoundedDispatcherTopicMapInterface> {
   readonly 'bus': EventBus<TTopicMap>;
   readonly 'pipeline': OperationPipelineInterface<BoundedDispatcherOperationContextInterface> | undefined;
@@ -60,6 +64,9 @@ export class BoundedDispatcher<
   static readonly #OwnedHookInvoker = class BoundedDispatcherHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
   };
+
+  /** The dispatch-start payload is invariant, so it is branded once and reused for every dispatch. */
+  static readonly #START_EVENT: BoundedDispatcherStartEventEntity.Type = BoundedDispatcherStartEventEntity.create({ 'phase': 'start' });
 
   /**
    * Creates a new BoundedDispatcher, defaulting any omitted primitive.
@@ -129,7 +136,7 @@ export class BoundedDispatcher<
         this.#publicationHooks.invoke(
           'publishDispatchStart',
           (): unknown => {
-            const publication = this.#bus.publish('dispatch', { 'phase': 'start' });
+            const publication = this.#bus.publish('dispatch', BoundedDispatcher.#START_EVENT);
             return publication;
           }
         );
@@ -139,7 +146,7 @@ export class BoundedDispatcher<
           this.#publicationHooks.invoke(
             'publishDispatchSuccess',
             (): unknown => {
-              const publication = this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
+              const publication = this.#bus.publish('dispatch', { ...BoundedDispatcherSuccessEventEntity.create({ 'phase': 'success' }), 'result': value });
               return publication;
             }
           );
@@ -148,7 +155,7 @@ export class BoundedDispatcher<
           this.#publicationHooks.invoke(
             'publishDispatchError',
             (): unknown => {
-              const publication = this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
+              const publication = this.#bus.publish('dispatch', { ...BoundedDispatcherErrorEventEntity.create({ 'phase': 'error' }), 'error': error });
               return publication;
             }
           );

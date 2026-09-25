@@ -281,8 +281,8 @@ function createConsoleRecord(
   message: string,
   metadata: Record<string, unknown>,
   body: LogBodyFixtureInput
-) {
-  return {
+): LogRecordEntity.Type {
+  return LogRecordEntity.create({
     'data': LogBody.create({
       'component': body.component,
       'context': body.context,
@@ -293,7 +293,7 @@ function createConsoleRecord(
     level,
     metadata,
     'time': body.time
-  };
+  });
 }
 
 type ScenarioRunner<K extends ScenarioCase['shape']> =

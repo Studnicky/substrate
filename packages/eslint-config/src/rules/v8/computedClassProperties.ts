@@ -65,9 +65,9 @@ class ClassMemberScope {
 export const computedClassProperties: Rule.RuleModule = {
   'create': (context) => {
     const checkMember: (node: Rule.Node) => void = (node) => {
-      const raw = node as unknown as { readonly 'key': unknown };
+      const key = AstHelpers.getNodeProperty(node, 'key');
 
-      if (KeyClassification.isWellKnownSymbol(raw.key) || KeyClassification.isLiteral(raw.key)) {
+      if (KeyClassification.isWellKnownSymbol(key) || KeyClassification.isLiteral(key)) {
         return;
       }
 

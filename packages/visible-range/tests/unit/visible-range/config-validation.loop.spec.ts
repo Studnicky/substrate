@@ -4,7 +4,7 @@ import {
   describe, it
 } from 'node:test';
 
-import type { VisibleRangeConfigInterface } from '../../../src/interfaces/index.js';
+import type { VisibleRangeCollaboratorsInterface } from '../../../src/interfaces/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
 import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };
@@ -27,20 +27,18 @@ type ScenarioCase = {
 
 const scenarioCases = scenarioGroups.cases as readonly ScenarioCase[];
 
-function buildConfig(config: SerializableVisibleRangeConfig): VisibleRangeConfigInterface {
-  const estimateSizeValue = config.estimateSizeValue;
-  if (estimateSizeValue !== undefined) {
-    return {
-      'count': config.count,
-      'estimateSize': () => estimateSizeValue,
-      ...(config.itemSize === undefined ? {} : { 'itemSize': config.itemSize })
-    };
-  }
-
-  return {
+function buildConfig(config: SerializableVisibleRangeConfig): readonly [unknown, VisibleRangeCollaboratorsInterface] {
+  const data = {
     'count': config.count,
     ...(config.itemSize === undefined ? {} : { 'itemSize': config.itemSize })
   };
+
+  const estimateSizeValue = config.estimateSizeValue;
+  if (estimateSizeValue !== undefined) {
+    return [data, { 'estimateSize': () => estimateSizeValue }];
+  }
+
+  return [data, {}];
 }
 
 function runErrorArgsCase(): void {
@@ -66,7 +64,7 @@ function runErrorArgsCase(): void {
 
 function runInvalidConfigCase(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
-    VisibleRange.create(buildConfig(scenarioCase.input.visibleRange));
+    VisibleRange.create(...buildConfig(scenarioCase.input.visibleRange));
   }, (error: Error) => {
     assert.ok(error instanceof VisibleRangeError);
     assert.equal(error.constructor.name, scenarioCase.expected.errorName);

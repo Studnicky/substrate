@@ -32,7 +32,7 @@ export class DeadLetterQueueRetryGenerator<T> {
     if (options.deadLetterQueue === null || options.deadLetterQueue === undefined) {
       throw new ResilienceConfigError('deadLetterQueue is required');
     }
-    const schemaOptions: DeadLetterQueueRetryGeneratorOptionsEntity.Type = {
+    const schemaOptions = {
       'intervalMs': options.intervalMs
     };
     if (!DeadLetterQueueRetryGeneratorOptionsEntity.validate(schemaOptions)) {

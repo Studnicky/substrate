@@ -185,7 +185,7 @@ class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
 }
 
 function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-  return EffectInterpreter.create({ machine: SimpleMachine.create() });
+  return EffectInterpreter.create(SimpleMachine.create());
 }
 
 type ScenarioShape = ScenarioCase['shape'];

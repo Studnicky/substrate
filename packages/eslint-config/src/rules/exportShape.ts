@@ -983,12 +983,8 @@ class ExportNamingListeners {
     const inIndex = CANONICAL_INDEX_BASES.has(filename.slice(lastSeparator + 1));
     const importedBindings = new Set<string>();
 
-    const onImportDeclaration = (node: Rule.Node): void => {
-      const rawNode = node as unknown as {
-        'specifiers': { 'local': unknown }[];
-      };
-
-      const specifiers = rawNode.specifiers;
+    const onImportDeclaration: NonNullable<Rule.RuleListener['ImportDeclaration']> = (node) => {
+      const specifiers = node.specifiers;
       const specifiersLength = specifiers.length;
 
       for (let index = 0; index < specifiersLength; index += 1) {
@@ -1008,36 +1004,26 @@ class ExportNamingListeners {
     // `importedBindings`. Import declarations are hoisted and always precede their use, so this
     // single-pass, declaration-order propagation is sufficient for the direct-aliasing pattern;
     // it does not attempt to trace an identifier through arbitrary reassignment chains.
-    const onVariableDeclarator = (node: Rule.Node): void => {
-      const rawNode = node as unknown as {
-        'id': unknown;
-        'init': unknown;
-      };
-
-      if (AstHelpers.getNodeType(rawNode.init) !== 'Identifier') {
+    const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
+      if (AstHelpers.getNodeType(node.init) !== 'Identifier') {
         return;
       }
-      const initName = AstHelpers.getIdentifierName(rawNode.init);
+      const initName = AstHelpers.getIdentifierName(node.init);
 
       if (initName === undefined || !importedBindings.has(initName)) {
         return;
       }
 
-      const declaredName = AstHelpers.getIdentifierName(rawNode.id);
+      const declaredName = AstHelpers.getIdentifierName(node.id);
 
       if (declaredName !== undefined) {
         importedBindings.add(declaredName);
       }
     };
 
-    const onExportSpecifier = (node: Rule.Node): void => {
-      const rawNode = node as unknown as {
-        'exported': { 'name': string; 'type': string; };
-        'local': { 'name': string; 'type': string; };
-      };
-
-      const localName = rawNode.local.name;
-      const exportedName = rawNode.exported.name;
+    const onExportSpecifier: NonNullable<Rule.RuleListener['ExportSpecifier']> = (node) => {
+      const localName = AstHelpers.getIdentifierName(node.local) ?? '';
+      const exportedName = AstHelpers.getIdentifierName(node.exported) ?? '';
 
       if (localName === exportedName) {
         return;
@@ -1052,7 +1038,7 @@ class ExportNamingListeners {
       });
     };
 
-    const onExportNamedDeclaration = (node: Rule.Node): void => {
+    const onExportNamedDeclaration: NonNullable<Rule.RuleListener['ExportNamedDeclaration']> = (node) => {
       ExportNamingListeners.checkExportNamedDeclaration(context, node, inIndex, importedBindings);
     };
 
@@ -1075,12 +1061,12 @@ class ExportNamingListeners {
         return;
       }
 
-      const rawNode = node as unknown as { 'expression': unknown };
+      const expression = AstHelpers.getNodeProperty(node, 'expression');
 
-      if (AstHelpers.getNodeType(rawNode.expression) !== 'Identifier') {
+      if (AstHelpers.getNodeType(expression) !== 'Identifier') {
         return;
       }
-      const name = AstHelpers.getIdentifierName(rawNode.expression);
+      const name = AstHelpers.getIdentifierName(expression);
 
       if (name === undefined || !importedBindings.has(name)) {
         return;
@@ -1112,24 +1098,25 @@ class ExportNamingListeners {
       return;
     }
 
-    const rawNode = node as unknown as {
-      'source': unknown;
-      'specifiers': { 'exported': { 'name': string }; 'local': { 'name': string }; }[];
-    };
+    const source = AstHelpers.getNodeProperty(node, 'source');
+    const specifiersRaw = AstHelpers.getNodeProperty(node, 'specifiers');
+    const specifiers = Predicates.isArray(specifiersRaw)
+      ? specifiersRaw.filter(Predicates.isRecord)
+      : [];
 
-    if (rawNode.source !== null && rawNode.source !== undefined) {
-      ExportNamingListeners.checkReExportAliasing(context, node, rawNode.specifiers);
+    if (source !== null && source !== undefined) {
+      ExportNamingListeners.checkReExportAliasing(context, node, specifiers);
 
       return;
     }
 
-    ExportNamingListeners.checkExportsImportedBinding(context, node, rawNode.specifiers, importedBindings);
+    ExportNamingListeners.checkExportsImportedBinding(context, node, specifiers, importedBindings);
   }
 
   private static checkReExportAliasing(
     context: Rule.RuleContext,
     node: Rule.Node,
-    specifiers: readonly { 'exported': { 'name': string }; 'local': { 'name': string }; }[]
+    specifiers: readonly Record<string, unknown>[]
   ): void {
     const hasAliasedSpecifier = specifiers.some((specifier) => {
       const result = AstHelpers.getIdentifierName(specifier.local) !== AstHelpers.getIdentifierName(specifier.exported);
@@ -1148,7 +1135,7 @@ class ExportNamingListeners {
   private static checkExportsImportedBinding(
     context: Rule.RuleContext,
     node: Rule.Node,
-    specifiers: readonly { 'exported': { 'name': string }; 'local': { 'name': string }; }[],
+    specifiers: readonly Record<string, unknown>[],
     importedBindings: ReadonlySet<string>
   ): void {
     const exportsImportedBinding = specifiers.some((specifier) => {
@@ -1176,10 +1163,10 @@ class ExportNamingListeners {
  * whole listener map is cast once at the end, rather than fighting each key's declared type.
  */
 class ListenerMerge {
-  private static dispatch(
-    listeners: { readonly 'first': ((node: Rule.Node) => void) | undefined; readonly 'second': ((node: Rule.Node) => void) | undefined; }
-  ): (node: Rule.Node) => void {
-    const merged = (node: Rule.Node): void => {
+  private static dispatch<TNode>(
+    listeners: { readonly 'first': ((node: TNode) => void) | undefined; readonly 'second': ((node: TNode) => void) | undefined; }
+  ): (node: TNode) => void {
+    const merged = (node: TNode): void => {
       listeners.first?.(node);
       listeners.second?.(node);
     };
@@ -1188,19 +1175,21 @@ class ListenerMerge {
   }
 
   public static combine(first: Rule.RuleListener, second: Rule.RuleListener): Rule.RuleListener {
-    const firstNode = first as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
-    const secondNode = second as unknown as Record<string, ((node: Rule.Node) => void) | undefined>;
-    const literal = {
-      'ExportAllDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportAllDeclaration, 'second': secondNode.ExportAllDeclaration }),
-      'ExportDefaultDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportDefaultDeclaration, 'second': secondNode.ExportDefaultDeclaration }),
-      'ExportNamedDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ExportNamedDeclaration, 'second': secondNode.ExportNamedDeclaration }),
-      'ExportSpecifier': ListenerMerge.dispatch({ 'first': firstNode.ExportSpecifier, 'second': secondNode.ExportSpecifier }),
-      'ImportDeclaration': ListenerMerge.dispatch({ 'first': firstNode.ImportDeclaration, 'second': secondNode.ImportDeclaration }),
-      'Program:exit': ListenerMerge.dispatch({ 'first': firstNode['Program:exit'], 'second': secondNode['Program:exit'] }),
-      'TSExportAssignment': ListenerMerge.dispatch({ 'first': firstNode.TSExportAssignment, 'second': secondNode.TSExportAssignment }),
-      'VariableDeclarator': ListenerMerge.dispatch({ 'first': firstNode.VariableDeclarator, 'second': secondNode.VariableDeclarator })
+    const listeners: Rule.RuleListener = {
+      'ExportAllDeclaration': ListenerMerge.dispatch({ 'first': first.ExportAllDeclaration, 'second': second.ExportAllDeclaration }),
+      'ExportDefaultDeclaration': ListenerMerge.dispatch({ 'first': first.ExportDefaultDeclaration, 'second': second.ExportDefaultDeclaration }),
+      'ExportNamedDeclaration': ListenerMerge.dispatch({ 'first': first.ExportNamedDeclaration, 'second': second.ExportNamedDeclaration }),
+      'ExportSpecifier': ListenerMerge.dispatch({ 'first': first.ExportSpecifier, 'second': second.ExportSpecifier }),
+      'ImportDeclaration': ListenerMerge.dispatch({ 'first': first.ImportDeclaration, 'second': second.ImportDeclaration }),
+      'Program:exit': ListenerMerge.dispatch({ 'first': first['Program:exit'], 'second': second['Program:exit'] }),
+      // TSExportAssignment has no named RuleListener property (resolves via the catch-all
+      // index signature); typescript-eslint's precise type fails too, AST_NODE_TYPES.Program vs "Program".
+      'TSExportAssignment': ListenerMerge.dispatch<Rule.Node>({
+        'first': first.TSExportAssignment as ((node: Rule.Node) => void) | undefined,
+        'second': second.TSExportAssignment as ((node: Rule.Node) => void) | undefined
+      }),
+      'VariableDeclarator': ListenerMerge.dispatch({ 'first': first.VariableDeclarator, 'second': second.VariableDeclarator })
     };
-    const listeners = literal as unknown as Rule.RuleListener;
 
     return listeners;
   }

@@ -2,6 +2,7 @@ import type { Rule } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ObjectSpreadConstants.js';
@@ -28,12 +29,10 @@ class ClassMemberScope {
   }
 
   public static getMemberName(member: Rule.Node): string | undefined {
-    const raw = member as unknown as Record<string, unknown>;
-
-    if (raw.computed === true) {
+    if (AstHelpers.getNodeProperty(member, 'computed') === true) {
       return undefined;
     }
-    const key = raw.key;
+    const key = AstHelpers.getNodeProperty(member, 'key');
 
     if (!Predicates.isRecord(key) || key.type !== 'Identifier') {
       return undefined;
@@ -45,9 +44,7 @@ class ClassMemberScope {
   }
 
   public static isConstructor(member: Rule.Node): boolean {
-    const raw = member as unknown as Record<string, unknown>;
-
-    const result = member.type === 'MethodDefinition' && raw.kind === 'constructor';
+    const result = member.type === 'MethodDefinition' && AstHelpers.getNodeProperty(member, 'kind') === 'constructor';
 
     return result;
   }
@@ -57,8 +54,7 @@ class ClassMemberScope {
     if (member.type !== 'PropertyDefinition') {
       return false;
     }
-    const raw = member as unknown as Record<string, unknown>;
-    const value = raw.value;
+    const value = AstHelpers.getNodeProperty(member, 'value');
 
     const result = Predicates.isRecord(value) && value.type === 'ArrowFunctionExpression';
 
@@ -66,9 +62,7 @@ class ClassMemberScope {
   }
 
   public static isRegularMethod(member: Rule.Node): boolean {
-    const raw = member as unknown as Record<string, unknown>;
-
-    const result = member.type === 'MethodDefinition' && raw.kind === 'method';
+    const result = member.type === 'MethodDefinition' && AstHelpers.getNodeProperty(member, 'kind') === 'method';
 
     return result;
   }
@@ -80,21 +74,14 @@ class ClassMemberScope {
       return undefined;
     }
 
-    const raw = classBody as unknown as Record<string, unknown>;
-    const body = raw.body;
-
-    if (!Array.isArray(body)) {
-      return undefined;
-    }
-
-    const members = body as readonly unknown[];
+    const members = classBody.body;
     const membersLength = members.length;
 
     for (let index = 0; index < membersLength; index += 1) {
       const item = members.at(index);
 
-      if (Predicates.isRecord(item) && item.type === 'MethodDefinition' && item.kind === 'constructor') {
-        return item as unknown as Rule.Node;
+      if (AstHelpers.isNode(item) && item.type === 'MethodDefinition' && AstHelpers.getNodeProperty(item, 'kind') === 'constructor') {
+        return item;
       }
     }
 
@@ -348,7 +335,10 @@ export const objectSpread: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const raw = node as unknown as Record<string, unknown>;
+      if (!Predicates.isRecord(node)) {
+        return;
+      }
+      const raw = node;
 
       if (AssignCallShape.isThisTargetAssign(raw)) {
         if (ClassMemberScope.runsAtConstructionTime(node)) {

@@ -8,20 +8,15 @@ import { ConfigurationError } from '@studnicky/config/browser';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import { DEFAULT_TIMEOUT, UNLIMITED_QUEUE_SIZE } from '../constants/index.js';
 import { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 
 /**
  * Internal validator for mutex configuration.
  */
 class ConfigValidator {
-  static validate(userConfig?: Partial<MutexConfigEntity.Type>): MutexConfigEntity.Type {
+  static validate(userConfig?: unknown): MutexConfigEntity.Type {
     try {
-      const config = MutexConfigEntity.intake(userConfig ?? {
-        'enableCoalescing': false,
-        'maximumQueueSize': UNLIMITED_QUEUE_SIZE,
-        'timeout': DEFAULT_TIMEOUT
-      });
+      const config = MutexConfigEntity.intake(userConfig ?? {});
       return config;
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
@@ -38,11 +33,7 @@ class ConfigValidator {
   }
 }
 
-const defaultConfig: MutexConfigEntity.Type = MutexConfigEntity.create({
-  'enableCoalescing': false,
-  'maximumQueueSize': UNLIMITED_QUEUE_SIZE,
-  'timeout': DEFAULT_TIMEOUT
-});
+const defaultConfig: MutexConfigEntity.Type = MutexConfigEntity.create();
 
 export const configInternal = {
   'defaultConfig': defaultConfig,

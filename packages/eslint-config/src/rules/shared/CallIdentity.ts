@@ -89,8 +89,7 @@ class DeclarationNames {
       return direct;
     }
 
-    const grandparent: unknown = (declaration.parent as unknown as { readonly 'parent'?: unknown }).parent;
-    const result = DeclarationNames.of(grandparent);
+    const result = DeclarationNames.of(declaration.parent.parent);
 
     return result;
   }

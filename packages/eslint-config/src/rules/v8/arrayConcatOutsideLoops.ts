@@ -2,6 +2,7 @@ import type { Rule, Scope } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
@@ -51,13 +52,15 @@ class HelperReachability {
         continue;
       }
 
-      const identifier = reference.identifier as unknown as Rule.Node;
-      const parent = identifier.parent;
+      const identifier = reference.identifier;
 
-      if (parent === null || !Predicates.isRecord(parent)) {
+      if (!AstHelpers.isNode(identifier)) {
         return undefined;
       }
-      if (parent.type !== 'CallExpression' || parent.callee !== identifier) {
+
+      const parent = AstHelpers.getParent(identifier);
+
+      if (parent?.type !== 'CallExpression' || parent.callee !== identifier) {
         return undefined;
       }
 

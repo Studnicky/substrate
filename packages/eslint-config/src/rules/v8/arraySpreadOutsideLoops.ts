@@ -19,20 +19,16 @@ class SpreadBinding {
     }
 
     if (parent.type === 'AssignmentExpression') {
-      const assignment = parent as unknown as { readonly 'left': { readonly 'type': string }; readonly 'right': unknown };
-
-      if (assignment.right !== arrayExpression) {
+      if (parent.right !== arrayExpression) {
         return false;
       }
 
-      const result = assignment.left.type === 'Identifier' || assignment.left.type === 'MemberExpression';
+      const result = parent.left.type === 'Identifier' || parent.left.type === 'MemberExpression';
       return result;
     }
 
     if (parent.type === 'VariableDeclarator') {
-      const declarator = parent as unknown as { readonly 'init': unknown };
-
-      const result = declarator.init === arrayExpression;
+      const result = parent.init === arrayExpression;
       return result;
     }
 

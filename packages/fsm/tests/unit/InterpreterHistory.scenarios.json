@@ -1,18 +1,11 @@
 {
   "cases": [
     {
-      "name": "missing-machine",
-      "description": "create rejects a missing machine",
-      "shape": "missing-machine",
-      "input": { "capacity": 1, "machineId": "x" },
-      "expected": { "message": "machine is required" }
-    },
-    {
       "name": "empty-machine-id",
       "description": "create rejects an empty machineId",
       "shape": "empty-machine-id",
       "input": { "capacity": 1, "machineId": "" },
-      "expected": { "message": "machineId must not be empty" }
+      "expected": { "message": "/machineId: must NOT have fewer than 1 characters" }
     },
     {
       "name": "non-positive-capacity",

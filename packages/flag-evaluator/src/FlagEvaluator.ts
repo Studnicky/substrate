@@ -91,7 +91,7 @@ export class FlagEvaluator {
    * Registers (or replaces) a named flag definition. Validates the definition against
    * FlagDefinitionEntity.Schema and throws FlagDefinitionValidationError when it fails.
    */
-  register(name: string, definition: FlagDefinitionEntity.Type): void {
+  register(name: string, definition: FlagDefinitionEntity.InputType): void {
     if (!FlagDefinitionEntity.validate(definition)) {
       const messages = (FlagDefinitionEntity.validate.errors ?? [])
         .map(FlagEvaluator.getValidationMessage)

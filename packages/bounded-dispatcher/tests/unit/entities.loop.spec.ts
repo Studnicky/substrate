@@ -62,7 +62,7 @@ void describe('bounded dispatcher event entities', () => {
 
   void it('rejects invalid intake and creates complete event entities', () => {
     const inheritedStart = Object.setPrototypeOf({}, { 'phase': 'start' });
-    const startWithUndeclaredProperty: BoundedDispatcherStartEventEntity.Type = { 'phase': 'start' };
+    const startWithUndeclaredProperty: BoundedDispatcherStartEventEntity.Type = BoundedDispatcherStartEventEntity.create({ 'phase': 'start' });
 
     Reflect.set(startWithUndeclaredProperty, 'ignored', true);
 

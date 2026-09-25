@@ -35,8 +35,7 @@ export const switchStatements: Rule.RuleModule = {
     };
 
     const onSwitchCase: NonNullable<Rule.RuleListener['SwitchCase']> = (node) => {
-      const raw = node as unknown as Record<string, unknown>;
-      const consequent = raw.consequent;
+      const consequent = node.consequent;
 
       if (!Predicates.isArray(consequent)) {
         return;

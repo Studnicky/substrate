@@ -68,7 +68,7 @@ type ScenarioInput = {
   asyncOperations?: AsyncOperation[];
   batch?: ScenarioBatch;
   flushTurns?: number;
-  options: CircularBufferOptionsEntity.Type;
+  options: CircularBufferOptionsEntity.InputType;
   pushItems?: BufferItem[];
   pushValue?: number;
 };
@@ -198,7 +198,7 @@ class ThrowingShiftBuffer<T> extends CircularBuffer<T> {
 class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
   readonly #cause: Error;
 
-  constructor(options: CircularBufferOptionsEntity.Type, cause: Error) {
+  constructor(options: CircularBufferOptionsEntity.InputType, cause: Error) {
     super(options);
     this.#cause = cause;
   }

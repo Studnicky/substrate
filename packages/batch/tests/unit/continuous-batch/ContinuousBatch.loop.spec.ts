@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
+import { BatchStatsEntity } from '../../../src/entities/BatchStatsEntity.js';
 import { Batch, BatchError } from '../../../src/index.js';
 import scenarioGroups from './ContinuousBatch.scenarios.json' with { type: 'json' };
 
@@ -112,11 +112,11 @@ function requireString(value: unknown, name: string): string {
 
 function requireStats(value: unknown): BatchStatsEntity.Type {
   const record = requireRecord(value, 'scenario expected stats');
-  return {
+  return BatchStatsEntity.create({
     'failed': requireNonNegativeNumber(record['failed'], 'scenario expected stats failed'),
     'succeeded': requireNonNegativeNumber(record['succeeded'], 'scenario expected stats succeeded'),
     'total': requireNonNegativeNumber(record['total'], 'scenario expected stats total')
-  };
+  });
 }
 
 function parseScenarioCase(value: unknown): ScenarioCase {

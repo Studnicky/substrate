@@ -35,10 +35,10 @@
  * can never produce an unhandled promise rejection or crash the process.
  */
 
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
 
 import {
@@ -51,6 +51,7 @@ import {
   INITIAL_BUFFER_HEAD,
   INITIAL_BUFFER_TAIL
 } from '../constants/index.js';
+import { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import { CircularBufferError } from '../errors/index.js';
 
 interface CircularBufferSubclassInterface<TInstance> extends Function {
@@ -61,7 +62,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Create a new CircularBuffer instance.
    *
-   * @param options - Construction options
+   * @param config - Construction options, schema-validated via `CircularBufferOptionsEntity`
    * @returns New CircularBuffer instance
    *
    * @example
@@ -71,7 +72,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    */
   static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
     this: CircularBufferSubclassInterface<TInstance>,
-    options: CircularBufferOptionsEntity.InputType = {}
+    config: unknown = {}
   ): TInstance {
     const resolveSubclassConstructor =
       (): CircularBufferSubclassInterface<TInstance> => {
@@ -80,7 +81,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
 
     const constructed: unknown = Reflect.construct(
       resolveSubclassConstructor(),
-      [options]
+      [config]
     );
     if (!Predicates.isObjectLike(constructed)) {
       throw RuntimeError.create(
@@ -142,17 +143,22 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Create a new circular buffer.
    *
-   * @param options - Construction options
-   * @param options.capacity - Initial capacity (default: 128)
-   * @param options.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
+   * @param config - Construction options
+   * @param config.capacity - Initial capacity (default: 128)
+   * @param config.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
    */
-  protected constructor(options: CircularBufferOptionsEntity.InputType = {}) {
-    const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
-
-    if (capacity <= 0 || !Number.isInteger(capacity)) {
-      throw new CircularBufferError('capacity must be a positive integer');
+  protected constructor(config: unknown = {}) {
+    let options: CircularBufferOptionsEntity.Type;
+    try {
+      options = CircularBufferOptionsEntity.intake(config);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new CircularBufferError(RuntimeError.toMessage(error));
+      }
+      throw error;
     }
 
+    const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
     this.capacity = capacity;
     this.items = Array.from<T | undefined>({ 'length': capacity });
     this.#overflow = options.overflow ?? 'overwrite';

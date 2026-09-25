@@ -32,9 +32,10 @@ export class LogFault {
     throw error;
   }
 
-  static create(config: Readonly<LogFaultConfigEntity.Type>): LogFaultDataEntity.Type {
+  static create(input: Readonly<LogFaultConfigEntity.InputType>): LogFaultDataEntity.Type {
+    let config: LogFaultConfigEntity.Type;
     try {
-      LogFaultConfigEntity.create(config);
+      config = LogFaultConfigEntity.create(input);
     } catch (error) {
       LogFault.#throwBuildError(error);
     }

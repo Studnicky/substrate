@@ -1,6 +1,7 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import {
   type ErrorClassifierFunctionInterface, type ErrorClassifierInterface, HookInvoker, RuntimeError
 } from '@studnicky/errors/browser';
@@ -21,12 +22,13 @@ import type { CircuitBreakerResetTimeoutElapsedEventEntity } from './entities/Ci
 import type { CircuitStateEntity } from './entities/CircuitStateEntity.js';
 import type { CircuitBreakerCallFailedEventInterface } from './interfaces/CircuitBreakerCallFailedEventInterface.js';
 import type { CircuitBreakerClosedStateInterface } from './interfaces/CircuitBreakerClosedStateInterface.js';
+import type { CircuitBreakerCollaboratorsInterface } from './interfaces/CircuitBreakerCollaboratorsInterface.js';
 import type { CircuitBreakerHalfOpenStateInterface } from './interfaces/CircuitBreakerHalfOpenStateInterface.js';
 import type { CircuitBreakerOnFailureEffectInterface } from './interfaces/CircuitBreakerOnFailureEffectInterface.js';
-import type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
 
 import { CircuitBreakerMachine } from './CircuitBreakerMachine.js';
 import { CircuitBreakerOpenError } from './CircuitBreakerOpenError.js';
+import { CircuitBreakerOptionsEntity } from './entities/CircuitBreakerOptionsEntity.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 
 interface CircuitBreakerSubclassInterface<TInstance> extends Function {
@@ -61,33 +63,43 @@ export class CircuitBreaker {
 
   static create<TInstance extends CircuitBreaker = CircuitBreaker>(
     this: CircuitBreakerSubclassInterface<TInstance>,
-    options: CircuitBreakerOptionsInterface
+    config: unknown,
+    collaborators: CircuitBreakerCollaboratorsInterface = {}
   ): TInstance {
     const resolveSubclassConstructor = (): CircuitBreakerSubclassInterface<TInstance> => {
       return this;
     };
 
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
+    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config, collaborators]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, resolveSubclassConstructor())) {
       throw RuntimeError.create('CircuitBreaker.create() did not construct the requested subclass.');
     }
     return result;
   }
 
-  protected constructor(options: CircuitBreakerOptionsInterface) {
+  protected constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {}) {
     this.hooks = new CircuitBreaker.#OwnedHookInvoker();
-    if (options.failureThreshold < 1) {throw new ResilienceConfigError('failureThreshold must be >= 1');}
-    if (options.resetTimeoutMs < 0) {throw new ResilienceConfigError('resetTimeoutMs must be >= 0');}
+
+    let options: CircuitBreakerOptionsEntity.Type;
+    try {
+      options = CircuitBreakerOptionsEntity.intake(config);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new ResilienceConfigError(RuntimeError.toMessage(error));
+      }
+      throw error;
+    }
+
     this.#resetTimeoutMs = options.resetTimeoutMs;
     this.#name = options.name ?? 'circuit-breaker';
-    this.#clock = options.clock ?? Date.now;
+    this.#clock = collaborators.clock ?? Date.now;
     this.#machine = new CircuitBreakerMachine({
       'failureThreshold': options.failureThreshold,
       'successThreshold': options.successThreshold ?? 1
     });
     this.#machineState = this.#machine.getInitialState();
 
-    this.#errorClassifier = options.errorClassifier;
+    this.#errorClassifier = collaborators.errorClassifier;
   }
 
   get state(): CircuitStateEntity.Type { const result = this.#machineState.variant;

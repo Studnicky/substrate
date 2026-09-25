@@ -6,7 +6,7 @@ import {
 
 
 
-import type { VisibleRangeConfigInterface } from '../../src/interfaces/index.js';
+import type { VisibleRangeCollaboratorsInterface } from '../../src/interfaces/index.js';
 
 import {
   VisibleRangeConfigDataEntity,
@@ -142,7 +142,7 @@ const fixedModeScenarios = scenarioGroups.fixedMode as readonly FixedModeScenari
 const onRangeChangeScenarios = scenarioGroups.onRangeChange as readonly OnRangeChangeScenario[];
 const variableModeScenarios = scenarioGroups.variableMode as readonly VariableModeScenario[];
 
-function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): VisibleRangeConfigInterface {
+function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): readonly [unknown, VisibleRangeCollaboratorsInterface] {
   const baseConfig = {
     'count': config.count,
     ...(config.itemSize === undefined ? {} : { 'itemSize': config.itemSize }),
@@ -150,21 +150,15 @@ function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): Visibl
   };
 
   if (config.estimateSizeMode === 'fractional-boundary') {
-    return {
-      ...baseConfig,
-      'estimateSize': (index: number) => (index === 1 ? 0.5 : 1)
-    };
+    return [baseConfig, { 'estimateSize': (index: number) => (index === 1 ? 0.5 : 1) }];
   }
 
   const estimateSizeValue = config.estimateSizeValue;
   if (estimateSizeValue !== undefined) {
-    return {
-      ...baseConfig,
-      'estimateSize': () => estimateSizeValue
-    };
+    return [baseConfig, { 'estimateSize': () => estimateSizeValue }];
   }
 
-  return baseConfig;
+  return [baseConfig, {}];
 }
 
 function requireEntityInput(scenario: EntityContractScenario): EntityContractInput {
@@ -207,7 +201,7 @@ function applyRangeInput(range: VisibleRange, input: Pick<RangeInput, 'scrollOff
 }
 
 function createConfiguredRange(input: RangeInput, rangeType: typeof VisibleRange = VisibleRange): VisibleRange {
-  const range = rangeType.create(buildVisibleRangeConfig(input.visibleRange));
+  const range = rangeType.create(...buildVisibleRangeConfig(input.visibleRange));
   applyRangeInput(range, input);
   return range;
 }
@@ -304,17 +298,17 @@ const entityContractRunners = {
   },
   'constructor-both-sizes': (scenario: EntityContractScenario): void => {
     assert.throws(() => {
-      VisibleRange.create(buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
+      VisibleRange.create(...buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
     });
   },
   'constructor-invalid-item-size': (scenario: EntityContractScenario): void => {
     assert.throws(() => {
-      VisibleRange.create(buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
+      VisibleRange.create(...buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
     });
   },
   'constructor-missing-size': (scenario: EntityContractScenario): void => {
     assert.throws(() => {
-      VisibleRange.create(buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
+      VisibleRange.create(...buildVisibleRangeConfig(requireVisibleRangeConfig(scenario)));
     });
   },
   'resolved-config-valid': (scenario: EntityContractScenario): void => {

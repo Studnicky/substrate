@@ -2,6 +2,7 @@ import type { Rule } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
   FUNCTION_TYPES, LOOP_TYPES, MESSAGE, RULE_NAME
@@ -29,12 +30,12 @@ class BoundaryWalk {
 class ExpressionWalk {
   /** Every `Identifier` denoting a variable read; excludes non-computed member/property names. */
   public static collectVariableReferences(node: unknown, out: Rule.Node[] = []): Rule.Node[] {
-    if (!Predicates.isRecord(node) || typeof node.type !== 'string') {
+    if (!AstHelpers.isNode(node)) {
       return out;
     }
 
     if (node.type === 'Identifier') {
-      out.push(node as unknown as Rule.Node);
+      out.push(node);
 
       return out;
     }
@@ -57,7 +58,9 @@ class ExpressionWalk {
       return out;
     }
 
-    ExpressionWalk.#visitEntries(node, out);
+    if (Predicates.isRecord(node)) {
+      ExpressionWalk.#visitEntries(node, out);
+    }
 
     return out;
   }
@@ -111,8 +114,36 @@ class PatternInvariance {
     return false;
   }
 
+  static #identifierName(identifierNode: Rule.Node): string | undefined {
+    const rawName = AstHelpers.getNodeProperty(identifierNode, 'name');
+    const result = typeof rawName === 'string' ? rawName : undefined;
+
+    return result;
+  }
+
+  static #isWithinBoundary(declarationNode: unknown, boundaryNode: Rule.Node): boolean {
+    if (!Predicates.isRecord(declarationNode)) {
+      return false;
+    }
+
+    const declRange = declarationNode.range as readonly [number, number] | undefined;
+    const boundaryRange = boundaryNode.range;
+
+    if (declRange === undefined || boundaryRange === undefined) {
+      return false;
+    }
+
+    const result = declRange[0] >= boundaryRange[0] && declRange[1] <= boundaryRange[1];
+
+    return result;
+  }
+
   static #isDeclaredWithin(identifierNode: Rule.Node, boundaryNode: Rule.Node, context: Rule.RuleContext): boolean {
-    const name = (identifierNode as unknown as { readonly 'name': string }).name;
+    const name = PatternInvariance.#identifierName(identifierNode);
+
+    if (name === undefined) {
+      return false;
+    }
     let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
 
     while (scope !== null) {
@@ -126,20 +157,7 @@ class PatternInvariance {
           continue;
         }
 
-        const declarationNode = candidate.defs.at(0)?.node;
-
-        if (!Predicates.isRecord(declarationNode)) {
-          return false;
-        }
-
-        const declRange = declarationNode.range as readonly [number, number] | undefined;
-        const boundaryRange = (boundaryNode as unknown as { readonly 'range': readonly [number, number] }).range;
-
-        if (declRange === undefined) {
-          return false;
-        }
-
-        const result = declRange[0] >= boundaryRange[0] && declRange[1] <= boundaryRange[1];
+        const result = PatternInvariance.#isWithinBoundary(candidate.defs.at(0)?.node, boundaryNode);
 
         return result;
       }
@@ -202,8 +220,8 @@ export const regexpInLoops: Rule.RuleModule = {
       const boundary = BoundaryWalk.findEnclosing(node);
 
       if (boundary !== undefined) {
-        const rawArgumentList = (node as unknown as { readonly 'arguments'?: readonly unknown[] }).arguments;
-        const argumentList = rawArgumentList ?? [];
+        const rawArgumentList = AstHelpers.getNodeProperty(node, 'arguments');
+        const argumentList = Predicates.isArray(rawArgumentList) ? rawArgumentList : [];
         const argumentListLength = argumentList.length;
         let isLoopVariant = false;
 

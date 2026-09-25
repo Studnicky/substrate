@@ -3,10 +3,10 @@
 import { Predicates } from '@studnicky/types/browser';
 
 import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
-import type { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
 import type { PathWildcardResultInterface } from '../interfaces/PathWildcardResultInterface.js';
 
 import { BRACKET_QUOTED_KEY_PATTERN, DANGEROUS_PROPERTIES, NUMERIC_SEGMENT_PATTERN, VALID_IDENTIFIER } from '../constants/PathConstants.js';
+import { PathGetOptionsEntity } from '../entities/PathGetOptionsEntity.js';
 
 interface PathBracketQuotedResultInterface {
   readonly 'matched': boolean;
@@ -45,7 +45,7 @@ export class Path {
   }
 
   /** Extract a value from `object` using a proto-safe dot-path expression. */
-  public static get(object: JsonValueEntity.Type, path: string, options?: PathGetOptionsEntity.Type): unknown {
+  public static get(object: JsonValueEntity.Type, path: string, options?: PathGetOptionsEntity.InputType): unknown {
     if (path === '') {return object;}
 
     const bracketResult = this.getBracketQuoted(object, path);
@@ -53,8 +53,9 @@ export class Path {
       return bracketResult.value;
     }
 
+    const validated = options === undefined ? undefined : PathGetOptionsEntity.intake(options);
     const parts = path.split('.');
-    if (options?.maximumDepth !== undefined && parts.length > options.maximumDepth) {return undefined;}
+    if (validated?.maximumDepth !== undefined && parts.length > validated.maximumDepth) {return undefined;}
     const result = this.getDotPath(object, parts);
     return result;
   }

@@ -4,5 +4,5 @@ import type { FileLockInspectionEntity } from '../entities/FileLockInspectionEnt
 
 export interface FileLockRecoveryOptionsInterface {
   readonly 'fileSystem'?: FileSystemInterface;
-  readonly 'inspection': FileLockInspectionEntity.Type;
+  readonly 'inspection': FileLockInspectionEntity.InputType;
 }

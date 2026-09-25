@@ -5,7 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 
 
-import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
+import type { MutexCreateOptionsInterface } from '../../../src/interfaces/MutexCreateOptionsInterface.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { Mutex } from '../../../src/mutex/index.js';
 import scenarioGroups from './observability.scenarios.json' with { type: 'json' };
@@ -19,7 +19,7 @@ type MutexScenarioInput = Record<string, unknown> & {
   holdMs?: number | number[];
   key?: string;
   keys?: string[];
-  mutex?: Record<string, unknown>;
+  mutex?: MutexCreateOptionsInterface;
   waitMs?: number;
 };
 
@@ -281,8 +281,8 @@ class ThrowingTimeoutHookMutex extends Mutex<string> {
   }
 }
 
-function mutexConfig(scenarioCase: ScenarioCase): Partial<MutexConfigEntity.Type> {
-  return (scenarioCase.input.mutex ?? {}) as Partial<MutexConfigEntity.Type>;
+function mutexConfig(scenarioCase: ScenarioCase): MutexCreateOptionsInterface {
+  return scenarioCase.input.mutex ?? {};
 }
 
 function readPendingCount(input: MutexScenarioInput): number {

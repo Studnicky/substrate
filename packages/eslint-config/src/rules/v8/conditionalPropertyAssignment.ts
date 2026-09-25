@@ -4,6 +4,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ConditionalPropertyAssignmentConstants.js';
@@ -107,10 +108,8 @@ class ClassMethodEligibility {
     let current: Rule.Node | null = node.parent;
 
     while (current !== null) {
-      const rawNode = current as unknown as AstNodeInterface;
-
-      if (rawNode.type === 'MethodDefinition') {
-        return rawNode;
+      if (Predicates.isRecord(current) && current.type === 'MethodDefinition') {
+        return current;
       }
       current = current.parent;
     }
@@ -394,9 +393,11 @@ class ConditionalAssignmentListeners {
         continue;
       }
 
-      context.report({
-        'messageId': 'forbidden', 'node': assignment.assignmentNode as unknown as Rule.Node
-      });
+      if (AstHelpers.isNode(assignment.assignmentNode)) {
+        context.report({
+          'messageId': 'forbidden', 'node': assignment.assignmentNode
+        });
+      }
     }
   }
 
@@ -417,15 +418,15 @@ class ConditionalAssignmentListeners {
       return;
     }
 
-    const rawAlternate = node.alternate as unknown as AstNodeInterface | null;
+    const alternate = node.alternate;
 
-    if (rawAlternate === null || rawAlternate.type === 'IfStatement') {
+    if (alternate === null || alternate === undefined || alternate.type === 'IfStatement') {
       ConditionalAssignmentListeners.reportEach(context, consequentAssignments);
 
       return;
     }
 
-    const alternateAssignments = StatementAssignments.collectBranch(rawAlternate);
+    const alternateAssignments = StatementAssignments.collectBranch(alternate);
     const isUniform = PropertyNameSets.equal(StatementAssignments.namesOf(consequentAssignments), StatementAssignments.namesOf(alternateAssignments));
 
     if (isUniform) {
@@ -461,8 +462,8 @@ class ConditionalAssignmentListeners {
       'matchedConditional': undefined, 'matchedConditionalOwnSide': undefined
     };
 
-    while (current !== null) {
-      const rawCurrent = current as unknown as AstNodeInterface;
+    while (current !== null && Predicates.isRecord(current)) {
+      const rawCurrent = current;
 
       ConditionalAssignmentListeners.matchConditionalStep(rawCurrent, previousChild, matched);
 
@@ -477,7 +478,7 @@ class ConditionalAssignmentListeners {
       current = current.parent;
     }
 
-    const methodDef = current === null ? undefined : (current as unknown as AstNodeInterface);
+    const methodDef = Predicates.isRecord(current) ? current : undefined;
 
     return {
       'matchedConditional': matched.matchedConditional,

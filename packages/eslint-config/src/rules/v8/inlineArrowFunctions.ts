@@ -33,8 +33,7 @@ class ArrowBodyStatementCount {
 export const inlineArrowFunctions: Rule.RuleModule = {
   'create': (context) => {
     const onArrowFunctionExpression: NonNullable<Rule.RuleListener['ArrowFunctionExpression']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const body: unknown = rawNode.body;
+      const body = node.body;
 
       if (!Predicates.isRecord(body) || body.type !== 'BlockStatement') {
         return;
