@@ -1,5 +1,5 @@
-import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { NodeStaticType } from '@studnicky/entity/types';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
@@ -17,8 +17,9 @@ export namespace BoundedDispatcherStartEventEntity {
 
   export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'type': 'object' } as const, { 'phase': SchemaNode.defineConst('start' as const) }, ['phase'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
-  export const intake = EntityCompiler.compileIntake<Type>(Schema);
-  export const create = EntityCompiler.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

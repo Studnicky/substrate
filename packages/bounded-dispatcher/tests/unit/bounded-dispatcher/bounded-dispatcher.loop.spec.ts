@@ -4,7 +4,9 @@ import { describe, it } from 'node:test';
 
 import { VirtualTimeCounter } from '@studnicky/clock/node';
 import { Semaphore, SemaphoreQueueFullError } from '@studnicky/concurrency/node';
+import type { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
 import { EventBus } from '@studnicky/event-bus/node';
+import type { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
 import { OperationPipeline } from '@studnicky/pipeline/node';
 import { VirtualScheduler } from '@studnicky/scheduler/node';
@@ -14,11 +16,11 @@ import { BoundedDispatcher } from '../../../src/index.js';
 
 type DispatcherBusDescriptor =
   | { shape: 'default' }
-  | { shape: 'options'; options: { highWaterMark?: number } }
+  | { shape: 'options'; options: BusQueueOptionsEntity.InputType }
   | { failureOrdinal: number; shape: 'rejecting' };
 
 type DispatcherOptionsDescriptor = {
-  semaphore?: { permits: number };
+  semaphore?: SemaphoreOptionsEntity.InputType;
 };
 
 type DispatcherScenarioConfig = {
