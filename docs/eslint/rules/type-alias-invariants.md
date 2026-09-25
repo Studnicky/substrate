@@ -32,7 +32,7 @@ A reference to a type-level function from another declaration still composes a c
 Recognition is library-agnostic: it inspects what a schema derivation produced, not the package that produced it. A retained alias satisfies four conditions:
 
 1. **Shape** — the alias body applies a type-level function to a value: `F<typeof Schema>`, `typeof Schema.inferred`, or `(typeof Schema)['inferred']`.
-2. **Deriving function** — `F` is recognized by structure, not by name or origin package. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, and a project-local equivalent are all accepted identically, satisfied by any one of:
+2. **Deriving function** — `F` is recognized by structure, not by name or origin package. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, `NodeStaticType`, and a project-local equivalent are all accepted identically, satisfied by any one of:
    - `F` is a type alias declared with type parameters;
    - `F` is declared in a `.d.ts` file;
    - `F`'s declaration carries a `/** @schemaDerivation */` JSDoc tag — the one in-code extension point, for a project-local schema-to-type function whose declaration is not itself a generic type alias; or
@@ -41,6 +41,8 @@ Recognition is library-agnostic: it inspects what a schema derivation produced, 
 4. **Result plainness** — the *resolved* type that `F<typeof Schema>` produces is JSON-plain: no call or construct signatures, no class instances, no symbol, bigint, `never`, `void`, `undefined`, `any`, or `unknown`. Recognition stops recursing into `F`'s own implementation and checks only what it resolves to, which is what makes this library-agnostic.
 
 Provenance resolution follows TypeScript symbols through local declarations and imports with deterministic cycle and depth protection. An unresolved source is non-canonical; matching field shapes do not substitute for verified provenance.
+
+The examples below use `NodeStaticType<typeof Node>`, the schema-deriving function this codebase builds entities with. It is one of many structurally-accepted forms, not the only one the rule recognizes — it is simply the mechanism a reader here will actually write.
 
 ## Hand-written `Type` in an entity namespace
 
@@ -102,12 +104,15 @@ type ListType<T> = Array<T>;
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+type ValueType = NodeStaticType<typeof Node>;
 export type ValueListType = readonly ValueType[];
 ```
+
+`ValueType` is verified schema-derived data; `ValueListType` fails on `readonly`, not on provenance — pure-data aliases describe mutable data.
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
@@ -119,18 +124,20 @@ function accept(value: Partial<FooInterface>): void {}
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-export type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+export type ValueType = NodeStaticType<typeof Node>;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+type ValueType = NodeStaticType<typeof Node>;
 export type ValueCollectionType = ValueType[] | null;
 ```
 
