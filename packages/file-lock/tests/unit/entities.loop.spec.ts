@@ -46,3 +46,11 @@ void describe('file-lock entities', () => {
     });
   }
 });
+
+void describe('FileLockPathStateEntity.create', () => {
+  void it('accepts a plain unbranded literal for minLength-constrained properties and validates', () => {
+    const result = FileLockPathStateEntity.create({ lockPath: '/tmp/a.lock', originalPath: '/tmp/a' });
+    assert.deepEqual(result, { lockPath: '/tmp/a.lock', originalPath: '/tmp/a' });
+    assert.equal(FileLockPathStateEntity.validate(result), true);
+  });
+});

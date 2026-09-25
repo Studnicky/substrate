@@ -1,5 +1,5 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
-import type { NodeStaticType } from '@studnicky/entity/types';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
@@ -27,9 +27,10 @@ namespace RequireOptionsObjectOptionsEntity {
     'type': 'number'
   } as const) }, [] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }
 
 interface TypeScriptRuleListenerInterface extends Rule.RuleListener {

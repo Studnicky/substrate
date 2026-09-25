@@ -1,5 +1,5 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { NodeStaticType } from '@studnicky/entity/types';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
@@ -29,8 +29,9 @@ export namespace GpuMetalProfileEntity {
 
   export const Node = SchemaNode.defineObject({ 'title': 'GpuMetalProfile', 'type': 'object' } as const, { 'SPDisplaysDataType': SchemaNode.defineArray({ 'minItems': 1, 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'spdisplays_vram': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]), 'sppci_model': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false })) }, ['SPDisplaysDataType'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

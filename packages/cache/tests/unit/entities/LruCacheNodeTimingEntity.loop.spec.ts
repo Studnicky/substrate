@@ -45,3 +45,11 @@ void describe('LruCacheNodeTimingEntity', () => {
     });
   }
 });
+
+void describe('LruCacheNodeTimingEntity.create', () => {
+  void it('accepts a plain unbranded literal for minimum-constrained properties and validates', () => {
+    const result = LruCacheNodeTimingEntity.create({ expiresAt: 5, staleAt: 5 });
+    assert.deepEqual(result, { expiresAt: 5, staleAt: 5 });
+    assert.equal(LruCacheNodeTimingEntity.validate(result), true);
+  });
+});

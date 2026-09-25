@@ -168,4 +168,15 @@ void describe('ThrownValueEntity', () => {
     assert.deepEqual(withName, { 'detail': 'boom', 'name': 'X' , 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR });
     assert.equal(Object.hasOwn(withName, 'stack'), false);
   });
+
+  void it('create accepts a plain unbranded literal for the maxItems-constrained causes array and validates', () => {
+    const result = ThrownValueEntity.create({
+      'causes': [{ 'detail': 'inner', 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR }],
+      'detail': 'outer',
+      'title': PROBLEM_TITLE_ERROR,
+      'type': PROBLEM_TYPE_ERROR
+    });
+    assert.deepEqual(result.causes, [{ 'detail': 'inner', 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR }]);
+    assert.equal(ThrownValueEntity.validate(result), true);
+  });
 });

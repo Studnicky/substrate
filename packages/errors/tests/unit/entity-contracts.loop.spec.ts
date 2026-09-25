@@ -109,3 +109,19 @@ void describe('errors entity contracts', () => {
     });
   }
 });
+
+void describe('ProblemDetailsEntity.create', () => {
+  void it('accepts a plain unbranded literal for the minimum/maximum-constrained status property and validates', () => {
+    const result = ProblemDetailsEntity.create({ status: 404, title: 'Not Found' });
+    assert.equal(result.status, 404);
+    assert.equal(ProblemDetailsEntity.validate(result), true);
+  });
+});
+
+void describe('ValidationReportOptionsEntity.create', () => {
+  void it('accepts a plain unbranded literal for the minimum/maximum-constrained status property and validates', () => {
+    const result = ValidationReportOptionsEntity.create({ status: 422 });
+    assert.equal(result.status, 422);
+    assert.equal(ValidationReportOptionsEntity.validate(result), true);
+  });
+});

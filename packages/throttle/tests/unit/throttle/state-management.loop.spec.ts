@@ -116,3 +116,27 @@ void describe('Throttle state management', () => {
     });
   }
 });
+
+void describe('ThrottleStatsEntity.create', () => {
+  void it('accepts a plain unbranded literal for nested minimum/exclusiveMinimum-constrained properties and validates', () => {
+    const result = ThrottleStatsEntity.create({
+      activeCount: 1,
+      concurrencyLimit: 5,
+      isAborted: false,
+      isDraining: false,
+      queuedCount: 0,
+      totalExecuted: 10,
+      adaptive: {
+        adjustmentCount: 1,
+        enabled: true,
+        lastAdjustmentTime: 100,
+        maximumConcurrency: 10,
+        minimumConcurrency: 1,
+        targetLatencyMs: 50
+      },
+      latency: { sampleCount: 3, p50: 1, p95: 2, p99: 3 }
+    });
+    assert.equal(result.adaptive?.targetLatencyMs, 50);
+    assert.equal(ThrottleStatsEntity.validate(result), true);
+  });
+});
