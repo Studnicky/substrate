@@ -1,0 +1,70 @@
+{
+  "valid": [
+    {
+      "code": "interface RuleListener { [key: string]: ((codePath: string, node: unknown) => void) | ((node: unknown) => void) | undefined; } declare const first: RuleListener; const handler = first.TSExportAssignment as ((node: unknown) => void) | undefined;",
+      "name": "exportShape.ts's documented survivor: a single assertion off RuleListener's catch-all index signature is valid"
+    },
+    {
+      "code": "interface RuleListener { [key: string]: ((codePath: string, node: unknown) => void) | ((node: unknown) => void) | undefined; } declare const second: RuleListener; const handler = second.TSExportAssignment as ((node: unknown) => void) | undefined;",
+      "name": "exportShape.ts's second documented survivor: the same single assertion on the other merged listener is valid"
+    },
+    {
+      "code": "type Handler = (node: unknown) => void; declare const record: Record<string, Handler | undefined>; const handler = record.key as Handler | undefined;",
+      "name": "a single assertion between overlapping types is valid"
+    },
+    {
+      "code": "declare const value: number; const widened = value as unknown;",
+      "name": "a single assertion widening to unknown is valid"
+    },
+    {
+      "code": "type Payload = { readonly value: string }; const payload = { value: 'parsed' } as const;",
+      "name": "a const assertion is valid"
+    },
+    {
+      "code": "type Payload = { readonly value: string }; declare const parsed: Payload; const repeated = parsed as Payload;",
+      "name": "a single assertion between a value and its own type is valid"
+    },
+    {
+      "code": "declare const value: unknown; const first = value as { readonly a: string }; const second = first as { readonly a: string; readonly b: string };",
+      "name": "two independent single-step assertions in sequence, not chained through one expression, are each valid"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "type Rule = { readonly Node: string }; declare const value: string; const node = value as unknown as Rule;",
+      "errors": [
+        {
+          "messageId": "doubleAssertion"
+        }
+      ],
+      "name": "an assertion routed through unknown to reach an unrelated type is invalid"
+    },
+    {
+      "code": "type Rule = { readonly Node: string }; declare const value: string; const node = value as any as Rule;",
+      "errors": [
+        {
+          "messageId": "doubleAssertion"
+        }
+      ],
+      "name": "an assertion routed through any to reach an unrelated type is invalid"
+    },
+    {
+      "code": "type Rule = { readonly Node: string }; declare const value: string; const node = <Rule>(<unknown>value);",
+      "errors": [
+        {
+          "messageId": "doubleAssertion"
+        }
+      ],
+      "name": "the legacy angle-bracket form routed through unknown is invalid"
+    },
+    {
+      "code": "type Rule = { readonly Node: string }; declare const value: string; const node = (value as unknown) as Rule;",
+      "errors": [
+        {
+          "messageId": "doubleAssertion"
+        }
+      ],
+      "name": "a parenthesized inner assertion through unknown is still invalid"
+    }
+  ]
+}
