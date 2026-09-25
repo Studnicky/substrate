@@ -4,6 +4,8 @@ import type {
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from './astHelpers.js';
+
 export class DeclaredFunctionVariable {
   // The declared function's own name, or the bound identifier for a
   // `const foo = function () {}` / `const foo = () => {}` variable declarator.
@@ -24,8 +26,8 @@ export class DeclaredFunctionVariable {
   }
 
   private static resolveFunctionDeclarationVariable(functionNode: Rule.Node, context: Rule.RuleContext): Scope.Variable | undefined {
-    const raw = functionNode as unknown as Record<string, unknown>;
-    const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
+    const rawId = AstHelpers.getNodeProperty(functionNode, 'id');
+    const id = Predicates.isRecord(rawId) ? rawId : undefined;
     const name = id !== undefined && typeof id.name === 'string' ? id.name : undefined;
 
     if (name === undefined) {
@@ -50,8 +52,7 @@ export class DeclaredFunctionVariable {
       return undefined;
     }
 
-    const raw = parent as unknown as Record<string, unknown>;
-    const id = Predicates.isRecord(raw.id) ? raw.id : undefined;
+    const id = Predicates.isRecord(parent.id) ? parent.id : undefined;
 
     if (id?.type !== 'Identifier' || typeof id.name !== 'string') {
       return undefined;

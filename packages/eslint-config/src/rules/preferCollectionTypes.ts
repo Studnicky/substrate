@@ -253,15 +253,13 @@ class IterationCallbackTracker {
   // Pushes a stack entry when `node` is a tracked iteration method call with at
   // least one function-typed argument, for later attribution.
   public static pushIfQualifying(node: Rule.Node, stack: IterationStackEntryInterface[]): void {
-    const raw = node as unknown as Record<string, unknown>;
+    if (node.type !== 'CallExpression') { return; }
 
-    if (AstHelpers.getNodeType(raw) !== 'CallExpression') { return; }
-
-    const methodName = IterationCallbackTracker.qualifyingIterationMethodName(raw);
+    const methodName = IterationCallbackTracker.qualifyingIterationMethodName(node);
     if (methodName === undefined) { return; }
 
-    const argumentList = raw.arguments;
-    if (!Array.isArray(argumentList) || argumentList.length === 0) { return; }
+    const argumentList = node.arguments;
+    if (argumentList.length === 0) { return; }
 
     const pendingArguments = IterationCallbackTracker.collectFunctionArguments(argumentList);
     if (pendingArguments.size === 0) { return; }
@@ -269,8 +267,8 @@ class IterationCallbackTracker {
     stack.push({ 'found': false, 'method': methodName, 'outerNode': node, 'pendingArguments': pendingArguments, 'reported': false });
   }
 
-  private static qualifyingIterationMethodName(raw: Record<string, unknown>): string | undefined {
-    const callee = raw.callee;
+  private static qualifyingIterationMethodName(node: Rule.Node): string | undefined {
+    const callee = AstHelpers.getNodeProperty(node, 'callee');
     if (!Predicates.isRecord(callee)) { return undefined; }
     if (AstHelpers.getNodeType(callee) !== 'MemberExpression') { return undefined; }
     if (NodePropertyAccess.getBool(callee, 'computed') !== false) { return undefined; }
@@ -436,7 +434,8 @@ class RuleHandlers {
   public static onMemberExpression(node: Rule.Node, options: Required<PreferCollectionTypesOptionsEntity.Type>, context: Rule.RuleContext): void {
     // Pattern B: Object.fromEntries(...)[key] — inline computed access on fromEntries result
     if (!options.checkFromEntries) { return; }
-    const raw = node as unknown as Record<string, unknown>;
+    if (!Predicates.isRecord(node)) { return; }
+    const raw = node;
     if (NodePropertyAccess.getBool(raw, 'computed') !== true) { return; }
 
     const object = NodePropertyAccess.getNode(raw, 'object');
@@ -530,9 +529,9 @@ class RuleHandlers {
     moduleScopeArrays: ModuleScopeArrayEntryInterface[],
     fromEntriesBindings: ModuleScopeArrayEntryInterface[]
   ): void {
-    const parent = node.parent as unknown as Record<string, unknown>;
+    const parent = node.parent;
     if (AstHelpers.getNodeType(parent) !== 'VariableDeclaration') { return; }
-    if (NodePropertyAccess.getString(parent, 'kind') !== 'const') { return; }
+    if (parent === null || AstHelpers.getNodeProperty(parent, 'kind') !== 'const') { return; }
 
     // Binding must be a simple identifier
     const name = RuleHandlers.constIdentifierName(node);
@@ -542,8 +541,7 @@ class RuleHandlers {
   }
 
   private static constIdentifierName(node: Rule.Node): string | undefined {
-    const declaratorRaw = node as unknown as Record<string, unknown>;
-    const id = declaratorRaw.id;
+    const id = AstHelpers.getNodeProperty(node, 'id');
 
     if (AstHelpers.getNodeType(id) !== 'Identifier') { return undefined; }
 
@@ -576,9 +574,9 @@ class RuleHandlers {
     context: Rule.RuleContext,
     collectors: { 'fromEntriesBindings': ModuleScopeArrayEntryInterface[]; 'moduleScopeArrays': ModuleScopeArrayEntryInterface[] }
   ): void {
-    const declaratorRaw = node as unknown as Record<string, unknown>;
-    const isArrayLiteralInit = AstHelpers.getNodeType(declaratorRaw.init) === 'ArrayExpression';
-    const isFromEntriesInit = MembershipCallDetection.isObjectFromEntriesCall(declaratorRaw.init);
+    const init = AstHelpers.getNodeProperty(node, 'init');
+    const isArrayLiteralInit = AstHelpers.getNodeType(init) === 'ArrayExpression';
+    const isFromEntriesInit = MembershipCallDetection.isObjectFromEntriesCall(init);
 
     if (!isArrayLiteralInit && !isFromEntriesInit) { return; }
 

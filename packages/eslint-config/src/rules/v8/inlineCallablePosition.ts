@@ -105,9 +105,7 @@ export class InlineCallablePosition {
         return current;
       }
 
-      const rawParent = parent as unknown as Record<string, unknown>;
-
-      if (parent.type === 'ConditionalExpression' && (rawParent.consequent === current || rawParent.alternate === current)) {
+      if (parent.type === 'ConditionalExpression' && (parent.consequent === current || parent.alternate === current)) {
         current = parent;
         continue;
       }
@@ -126,9 +124,7 @@ export class InlineCallablePosition {
       return false;
     }
 
-    const rawContainer = container as unknown as Record<string, unknown>;
-
-    if (rawContainer.value !== position) {
+    if (container.value !== position) {
       return false;
     }
 
@@ -150,9 +146,7 @@ export class InlineCallablePosition {
       return false;
     }
 
-    const rawContainer = container as unknown as Record<string, unknown>;
-
-    if (rawContainer.right !== position) {
+    if (container.right !== position) {
       return false;
     }
 
@@ -166,10 +160,9 @@ export class InlineCallablePosition {
       return false;
     }
 
-    const rawContainer = container as unknown as Record<string, unknown>;
-    const argumentList: unknown = rawContainer.arguments;
+    const argumentList: readonly unknown[] = container.arguments;
 
-    if (!Array.isArray(argumentList) || !argumentList.includes(position)) {
+    if (!argumentList.includes(position)) {
       return false;
     }
 
