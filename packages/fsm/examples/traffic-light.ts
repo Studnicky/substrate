@@ -40,9 +40,8 @@ class TrafficLightDemo {
 
   static async run(): Promise<{ readonly 'finalVariant': TrafficStateEntity.Type['variant']; readonly 'history': string[]; readonly 'soundsPlayed': string[] }> {
     const machine: TrafficLight = TrafficLight.make();
-    const interpreter: EffectInterpreter<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> = EffectInterpreter.create({
+    const interpreter: EffectInterpreter<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> = EffectInterpreter.create(machine, {
       'handler': TrafficLightDemo.handler,
-      'machine': machine,
       'machineId': 'test-light'
     });
 

@@ -44,12 +44,10 @@ export class InterpreterHistory<
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
   >(
+    machine: StateMachine<S, E, Ef>,
     config: unknown,
-    collaborators: InterpreterHistoryCollaboratorsInterface<S, E, Ef> = {}
+    collaborators: InterpreterHistoryCollaboratorsInterface<E, Ef> = {}
   ): InterpreterHistory<S, E, Ef> {
-    if (collaborators.machine === undefined) {
-      throw new FsmConfigError('machine is required');
-    }
     if (!Predicates.isRecord(config)) {
       throw new FsmConfigError('config must be an object');
     }
@@ -69,7 +67,7 @@ export class InterpreterHistory<
       'capacity': capacity,
       'clock': collaborators.clock ?? RealTimeClockProvider.create(),
       'handler': collaborators.handler,
-      'machine': collaborators.machine,
+      'machine': machine,
       'machineId': options.machineId
     });
   }

@@ -132,12 +132,12 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   const runnerMap: Record<ScenarioCase['shape'], (caseData: ScenarioCase) => Promise<void> | void> = {
     'create-empty-machine-id': (caseData) => {
       assert.throws(
-        () => EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId }),
+        () => EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId }),
         { message: caseData.expected.message }
       );
     },
     'create-default-identity': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createDemoMachine() });
+      const interp = EffectInterpreter.create(createDemoMachine());
       interp.start();
       return interp.send(caseData.input.event).then(() => {
         assert.deepEqual(interp.getState(), caseData.expected.state);
@@ -145,20 +145,19 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     },
     'create-non-integer-mailbox-capacity': (caseData) => {
       assert.throws(
-        () => EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId, mailboxCapacity: caseData.input.mailboxCapacity }),
+        () => EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId, mailboxCapacity: caseData.input.mailboxCapacity }),
         { message: caseData.expected.message }
       );
     },
     'create-non-positive-mailbox-capacity': (caseData) => {
       assert.throws(
-        () => EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId, mailboxCapacity: caseData.input.mailboxCapacity }),
+        () => EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId, mailboxCapacity: caseData.input.mailboxCapacity }),
         { message: caseData.expected.message }
       );
     },
     'effect-handler-called-after-transition': (caseData) => {
       const logged: string[] = [];
-      const interp = EffectInterpreter.create({
-        machine: createDemoMachine(),
+      const interp = EffectInterpreter.create(createDemoMachine(), {
         handler: (effect) => { logged.push(effect.message); },
         machineId: caseData.input.machineId,
       });
@@ -169,7 +168,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     },
     'effect-handler-omitted': (caseData) => {
       const states: DemoState[] = [];
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.subscribe((state) => { states.push(state); });
       interp.start();
       return interp.send(caseData.input.event).then(() => {
@@ -179,12 +178,11 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       });
     },
     'get-state-before-start': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       assert.throws(() => interp.getState(), /not started/);
     },
     'handler-dispatches-within-send': (caseData) => {
-      const interp = EffectInterpreter.create({
-        machine: createDemoMachine(),
+      const interp = EffectInterpreter.create(createDemoMachine(), {
         handler: (_effect, dispatch) => { dispatch({ type: 'deactivate' }); },
         machineId: caseData.input.machineId,
       });
@@ -194,8 +192,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       });
     },
     'mailbox-capacity-bounds-mailbox': (caseData) => {
-      const interp = EffectInterpreter.create({
-        machine: createDemoMachine(),
+      const interp = EffectInterpreter.create(createDemoMachine(), {
         machineId: caseData.input.machineId,
         mailboxCapacity: caseData.input.mailboxCapacity,
       });
@@ -217,7 +214,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
         });
     },
     'processes-events-fifo': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.start();
       const [firstEvent, secondEvent] = caseData.input.events;
       if (firstEvent === undefined || secondEvent === undefined) {
@@ -231,7 +228,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     },
     'unsubscribe-stops-notifications': (caseData) => {
       const states: DemoState[] = [];
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       const unsub = interp.subscribe((state) => { states.push(state); });
       interp.start();
       unsub();
@@ -240,7 +237,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       });
     },
     'queued-send-resolves-after-own-transition': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createRejectingMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createRejectingMachine(), { machineId: caseData.input.machineId });
       interp.start();
       const rejectingSend = interp.send(caseData.input.rejectedEvent);
       const queuedSend = interp.send(caseData.input.recoveryEvent);
@@ -251,7 +248,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
         });
     },
     'rejected-transition-does-not-wedge': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createRejectingMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createRejectingMachine(), { machineId: caseData.input.machineId });
       interp.start();
       return assert.rejects(() => interp.send(caseData.input.rejectedEvent))
         .then(() => interp.send(caseData.input.recoveryEvent))
@@ -260,12 +257,12 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
         });
     },
     'send-before-start': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       return assert.rejects(() => interp.send(caseData.input.event), /not running/);
     },
     'send-transitions-state': (caseData) => {
       const states: DemoState[] = [];
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.subscribe((state) => { states.push(state); });
       interp.start();
       return interp.send(caseData.input.event).then(() => {
@@ -292,7 +289,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       }
 
       const observed: NestedState[] = [];
-      const interp = EffectInterpreter.create({ machine: createNestedMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createNestedMachine(), { machineId: caseData.input.machineId });
       interp.subscribe((state) => {
         observed.push(state);
         state.details.count = caseData.input.mutatedCount;
@@ -318,7 +315,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     },
     'start-sets-initial-state': (caseData) => {
       const states: DemoState[] = [];
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.subscribe((state) => { states.push(state); });
       interp.start();
       assert.deepEqual(interp.getState(), caseData.expected.state);
@@ -327,7 +324,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
     },
     'start-is-idempotent': (caseData) => {
       const states: DemoState[] = [];
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.subscribe((state) => { states.push(state); });
       interp.start();
       interp.start();
@@ -355,8 +352,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
       let releaseHandler: (() => void) | undefined;
       const handlerGate = new Promise<void>((resolve) => { releaseHandler = resolve; });
 
-      const interp = EffectInterpreter.create({
-        machine: createDemoMachine(),
+      const interp = EffectInterpreter.create(createDemoMachine(), {
         handler: async () => { await handlerGate; },
         machineId: caseData.input.machineId,
       });
@@ -409,14 +405,14 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
         }
       }
 
-      const interp = ThrowingStopInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = ThrowingStopInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.start();
       interp.stop();
       assert.deepEqual(interp.getState(), caseData.expected.state);
       assert.strictEqual(original.message, 'stop boom');
     },
     'throwing-observer-does-not-block-send': (caseData) => {
-      const interp = EffectInterpreter.create({ machine: createDemoMachine(), machineId: caseData.input.machineId });
+      const interp = EffectInterpreter.create(createDemoMachine(), { machineId: caseData.input.machineId });
       interp.subscribe(() => {
         throw RuntimeError.create('observer boom');
       });

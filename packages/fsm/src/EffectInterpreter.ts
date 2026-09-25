@@ -18,12 +18,10 @@ import { FsmHookInvoker } from './FsmHookInvoker.js';
 const DEFAULT_MAILBOX_CAPACITY = 1024;
 
 interface EffectInterpreterCreateOptionsInterface<
-  TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
-  readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
   readonly 'mailboxCapacity'?: number | undefined;
 }
@@ -64,16 +62,16 @@ export class EffectInterpreter<
     S extends { readonly 'variant': string },
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
-  >(options: EffectInterpreterCreateOptionsInterface<S, E, Ef>): EffectInterpreter<S, E, Ef> {
-    if (options.machine === undefined) {
-      throw new FsmConfigError('machine is required');
-    }
+  >(
+    machine: StateMachine<S, E, Ef>,
+    options: EffectInterpreterCreateOptionsInterface<E, Ef> = {}
+  ): EffectInterpreter<S, E, Ef> {
     if (options.machineId !== undefined && options.machineId === '') {
       throw new FsmConfigError('machineId must not be empty');
     }
     const result = new EffectInterpreter<S, E, Ef>({
       'handler': options.handler,
-      'machine': options.machine,
+      'machine': machine,
       'machineId': options.machineId,
       'mailboxCapacity': options.mailboxCapacity
     });

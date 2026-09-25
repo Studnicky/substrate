@@ -4,10 +4,10 @@ import type { EffectHandlerInterface } from './EffectHandlerInterface.js';
 /**
  * Options accepted by `EffectInterpreter`'s protected constructor.
  *
- * A subclass that declares its own constructor needs this type to annotate the
- * parameter it forwards to `super()`. It differs from the shape `create()`
- * accepts in one respect: `machine` is required, because `create()` validates
- * the caller's optional value and throws before the constructor runs.
+ * A subclass that declares its own constructor needs this type to annotate
+ * the parameter it forwards to `super()`. `machine` is required and
+ * non-nullable, matching `create()`'s own required positional `machine`
+ * parameter — enforced by the type system, not a runtime check.
  */
 export interface EffectInterpreterConstructorOptionsInterface<
   TState extends { readonly 'variant': string },
