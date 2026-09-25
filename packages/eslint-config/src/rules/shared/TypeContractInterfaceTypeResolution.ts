@@ -46,6 +46,7 @@ import {
 import type { TypeContractContext } from './TypeContractContext.js';
 import type { TypeContractMetadataEntity } from './TypeContractMetadataEntity.js';
 
+import { ACCEPTED_SCHEMA_VALUE_NAMES } from './constants/SchemaDerivationConstants.js';
 import { type InterfaceContractEvidenceInterface } from './InterfaceContractEvidenceInterface.js';
 import { type InterfaceContractProbeInterface } from './InterfaceContractProbeInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
@@ -634,7 +635,7 @@ export class TypeContractInterfaceTypeResolution {
 
       if (schemaDeclaration !== undefined
         && isIdentifier(schemaDeclaration.name)
-        && schemaDeclaration.name.text === 'Schema'
+        && ACCEPTED_SCHEMA_VALUE_NAMES.has(schemaDeclaration.name.text)
         && this.context.checker.getSymbolAtLocation(schemaDeclaration.name) === schemaSymbol) {
         return true;
       }
