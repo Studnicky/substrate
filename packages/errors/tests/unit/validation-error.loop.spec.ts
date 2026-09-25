@@ -8,27 +8,106 @@ import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 import scenarioGroups from './validation-error.scenarios.json' with { type: 'json' };
 
-type RawScenarioCase = { description: string; expected: Record<string, unknown>; input: unknown; name: string; shape: string };
+interface ScenarioExpectedInterface {
+  code?: string;
+  correlationId?: string;
+  count?: number;
+  hasViolations?: boolean;
+  message?: string;
+  messageIncludes?: readonly string[];
+  messageType?: string;
+  retryable?: boolean;
+  tags?: readonly unknown[];
+  violations?: { 'shape': 'undefined' } | readonly { details?: Record<string, unknown>; message: string; path: string }[];
+  violationsLength?: number;
+  violationsLimit?: number;
+}
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: Record<string, unknown>;
-      input: ValidationErrorArgumentsEntity.Type;
-      shape: 'code' | 'correlation-id' | 'detach-violations' | 'instanceof' | 'json-excludes-violations' | 'json-includes-violations' | 'json-roundtrip' | 'json-serializes' | 'message-with-path' | 'retryable' | 'user-message-empty-violations' | 'user-message-plain' | 'user-message-violations' | 'violations-absent' | 'violations-present' | 'violations-present-details' | 'violations-complex-details';
-      name: string;
-    };
+type ScenarioShape = 'code' | 'correlation-id' | 'detach-violations' | 'instanceof' | 'json-excludes-violations' | 'json-includes-violations' | 'json-roundtrip' | 'json-serializes' | 'message-with-path' | 'retryable' | 'user-message-empty-violations' | 'user-message-plain' | 'user-message-violations' | 'violations-absent' | 'violations-present' | 'violations-present-details' | 'violations-complex-details';
+
+type ScenarioCase = {
+  expected: ScenarioExpectedInterface;
+  input: ValidationErrorArgumentsEntity.Type;
+  name: string;
+  shape: ScenarioShape;
+};
 
 type ScenarioRunner = (scenario: ScenarioCase, err: ValidationError) => void;
 
+const SCENARIO_SHAPES: readonly ScenarioShape[] = ['code', 'correlation-id', 'detach-violations', 'instanceof', 'json-excludes-violations', 'json-includes-violations', 'json-roundtrip', 'json-serializes', 'message-with-path', 'retryable', 'user-message-empty-violations', 'user-message-plain', 'user-message-violations', 'violations-absent', 'violations-present', 'violations-present-details', 'violations-complex-details'];
+
+function isScenarioShape(value: unknown): value is ScenarioShape {
+  return typeof value === 'string' && SCENARIO_SHAPES.includes(value as ScenarioShape);
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
+
+function isOptionalBoolean(value: unknown): value is boolean | undefined {
+  return value === undefined || typeof value === 'boolean';
+}
+
+function isOptionalNumber(value: unknown): value is number | undefined {
+  return value === undefined || typeof value === 'number';
+}
+
+function isOptionalReadonlyStringArray(value: unknown): value is readonly string[] | undefined {
+  return value === undefined || (Array.isArray(value) && value.every((entry) => typeof entry === 'string'));
+}
+
+function isExpectedViolation(value: unknown): value is { details?: Record<string, unknown>; message: string; path: string } {
+  return Predicates.isObject(value) && typeof value.message === 'string' && typeof value.path === 'string' && (value.details === undefined || Predicates.isObject(value.details));
+}
+
+function isExpectedViolations(value: unknown): value is ScenarioExpectedInterface['violations'] {
+  if (value === undefined) {
+    return true;
+  }
+  if (Predicates.isObject(value)) {
+    return value.shape === 'undefined';
+  }
+  return Array.isArray(value) && value.every(isExpectedViolation);
+}
+
+/** Validates the fixture envelope, including `expected`'s known keys, at the JSON-load edge. */
+function intakeScenarioCase(raw: unknown): ScenarioCase {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isScenarioShape(raw.shape) || !Predicates.isObject(raw.expected)) {
+    throw new TypeError(`malformed ValidationError scenario entry: ${JSON.stringify(raw)}`);
+  }
+  const { expected } = raw;
+  if (
+    !isOptionalString(expected.code) || !isOptionalString(expected.correlationId) || !isOptionalNumber(expected.count)
+    || !isOptionalBoolean(expected.hasViolations) || !isOptionalString(expected.message) || !isOptionalReadonlyStringArray(expected.messageIncludes)
+    || !isOptionalString(expected.messageType) || !isOptionalBoolean(expected.retryable) || !isExpectedViolations(expected.violations)
+    || !isOptionalNumber(expected.violationsLength) || !isOptionalNumber(expected.violationsLimit)
+    || (expected.tags !== undefined && !Array.isArray(expected.tags))
+  ) {
+    throw new TypeError(`malformed ValidationError scenario expected: ${JSON.stringify(expected)}`);
+  }
+  return {
+    'expected': {
+      ...(expected.code === undefined ? {} : { 'code': expected.code }),
+      ...(expected.correlationId === undefined ? {} : { 'correlationId': expected.correlationId }),
+      ...(expected.count === undefined ? {} : { 'count': expected.count }),
+      ...(expected.hasViolations === undefined ? {} : { 'hasViolations': expected.hasViolations }),
+      ...(expected.message === undefined ? {} : { 'message': expected.message }),
+      ...(expected.messageIncludes === undefined ? {} : { 'messageIncludes': expected.messageIncludes }),
+      ...(expected.messageType === undefined ? {} : { 'messageType': expected.messageType }),
+      ...(expected.retryable === undefined ? {} : { 'retryable': expected.retryable }),
+      ...(expected.tags === undefined ? {} : { 'tags': expected.tags }),
+      ...(expected.violations === undefined ? {} : { 'violations': expected.violations }),
+      ...(expected.violationsLength === undefined ? {} : { 'violationsLength': expected.violationsLength }),
+      ...(expected.violationsLimit === undefined ? {} : { 'violationsLimit': expected.violationsLimit })
+    },
+    'input': ValidationErrorArgumentsEntity.intake(raw.input),
+    'name': raw.name,
+    'shape': raw.shape
+  };
+}
+
 // Validated once, at the fixture-loading edge; every runner below consumes the typed result.
-const scenarios: ScenarioCase[] = (scenarioGroups.cases as RawScenarioCase[]).map((raw) => ({
-  'description': raw.description,
-  'expected': raw.expected,
-  'input': ValidationErrorArgumentsEntity.intake(raw.input),
-  'name': raw.name,
-  'shape': raw.shape as ScenarioCase['shape']
-}));
+const scenarios: ScenarioCase[] = (scenarioGroups.cases as unknown[]).map(intakeScenarioCase);
 
 const runnerMap = {
   'code': (scenario, err) => {
@@ -40,8 +119,10 @@ const runnerMap = {
   'detach-violations': (scenario) => {
     const violations = scenario.input.violations;
     assert.ok(violations !== undefined);
+    const violation = violations[0];
+    assert.ok(violation !== undefined);
     const detached = ValidationError.create(scenario.input);
-    (violations[0] as { details?: Record<string, unknown> }).details = { 'limit': 4 };
+    violation.details = { 'limit': 4 };
     assert.deepStrictEqual(detached.violations, scenario.expected.violations);
     const projection = detached.violations?.[0];
     if (projection?.details !== undefined) {
@@ -72,7 +153,7 @@ const runnerMap = {
     assert.strictEqual(typeof json.detail, scenario.expected.messageType);
   },
   'message-with-path': (scenario, err) => {
-    for (const fragment of scenario.expected.messageIncludes as string[]) {
+    for (const fragment of scenario.expected.messageIncludes ?? []) {
       assert.ok(err.message.includes(fragment));
     }
   },
@@ -87,7 +168,7 @@ const runnerMap = {
   },
   'user-message-violations': (scenario, err) => {
     const msg = err.toUserMessage();
-    for (const fragment of scenario.expected.messageIncludes as string[]) {
+    for (const fragment of scenario.expected.messageIncludes ?? []) {
       assert.ok(msg.includes(fragment));
     }
   },

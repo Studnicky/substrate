@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Predicates } from '@studnicky/types/node';
+
 import type { ProjectHostInterface } from '../../../src/interfaces/ProjectHostInterface.js';
 import { NodeProjectHost } from '../../../src/node/NodeProjectHost.js';
 import { LayerResolver } from '../../../src/rules/layers/LayerResolver.js';
@@ -73,13 +75,9 @@ function isOptionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === 'string';
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 /** Validates one raw scenario fixture entry at the JSON-load edge; no caller re-derives this shape. */
 function intakeScenarioCase(raw: unknown): ScenarioCase {
-  if (!isPlainRecord(raw) || typeof raw.name !== 'string' || !isLayerOperation(raw.operation) || !isPlainRecord(raw.expected) || !isPlainRecord(raw.input)) {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isLayerOperation(raw.operation) || !Predicates.isObject(raw.expected) || !Predicates.isObject(raw.input)) {
     throw new TypeError(`malformed LayerResolver scenario entry: ${JSON.stringify(raw)}`);
   }
   const { expected, input } = raw;
@@ -96,7 +94,7 @@ function intakeScenarioCase(raw: unknown): ScenarioCase {
       ...(input.from === undefined ? {} : { 'from': input.from }),
       ...(input.importingFile === undefined ? {} : { 'importingFile': input.importingFile }),
       // `canImport` fixtures omit `bindings` because canImport never reads it; default it so intake's required-field check still runs.
-      ...(input.options === undefined ? {} : { 'options': LayerOptionsEntity.intake(isPlainRecord(input.options) ? { 'bindings': [], ...input.options } : input.options) }),
+      ...(input.options === undefined ? {} : { 'options': LayerOptionsEntity.intake(Predicates.isObject(input.options) ? { 'bindings': [], ...input.options } : input.options) }),
       ...(input.path === undefined ? {} : { 'path': input.path }),
       ...(input.specifier === undefined ? {} : { 'specifier': input.specifier }),
       ...(input.to === undefined ? {} : { 'to': input.to })

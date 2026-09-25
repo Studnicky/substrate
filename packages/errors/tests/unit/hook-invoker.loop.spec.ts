@@ -76,6 +76,10 @@ interface DiagnosticsRichCauseInterface {
   readonly plain: unknown;
 }
 
+function isDiagnosticsRichCause(value: unknown): value is Error & DiagnosticsRichCauseInterface {
+  return value instanceof Error && 'broken' in value && 'items' in value && 'plain' in value;
+}
+
 class CloneableMarker {
   public readonly label = 'cloneable';
   public readonly nested = { count: 2 };
@@ -315,13 +319,12 @@ const runnerMap = {
     }).then(() => {
       const diagnostic = invoker.getHookErrors()[0];
       assert.ok(diagnostic instanceof HookInvocationError);
-      assert.ok(diagnostic.cause instanceof Error);
+      assert.ok(isDiagnosticsRichCause(diagnostic.cause));
       assert.strictEqual(diagnostic.hookName, String(expected.firstHookName));
       assert.strictEqual(diagnostic.cause.message, String(expected.firstCauseMessage));
-      const richCause = diagnostic.cause as Error & DiagnosticsRichCauseInterface;
-      assert.deepStrictEqual(richCause.plain, input.diagnostics?.plain);
-      assert.deepStrictEqual(richCause.items, input.diagnostics?.items);
-      assert.ok('broken' in richCause);
+      assert.deepStrictEqual(diagnostic.cause.plain, input.diagnostics?.plain);
+      assert.deepStrictEqual(diagnostic.cause.items, input.diagnostics?.items);
+      assert.ok('broken' in diagnostic.cause);
       assert.strictEqual(invoker.hookErrorCount, Number(expected.hookErrorCount));
     });
   },
