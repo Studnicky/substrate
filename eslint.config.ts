@@ -222,6 +222,7 @@ export default [
         '@studnicky/export-shape': 'error',
         '@studnicky/interfaces-compose-named-types': 'error',
         '@studnicky/lexical-this-only': 'error',
+        '@studnicky/no-double-assertion': 'error',
         '@studnicky/no-function-registries': 'error',
         '@studnicky/no-mixed-callable-shapes': 'error',
         '@studnicky/no-redefined-external-types': 'error',

@@ -66,7 +66,7 @@ cannot default, and is created with `.create(...)`.
 
 | Suite | Domain |
 |---|---|
-| `entityModelSuite` | Type, interface, entity-namespace, and keyed-collection conventions — `all-types-are-entities`, `entity-file-shape`, `interface-must-be-contract`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `no-redefined-external-types`, `no-unparsed-assertion`, `prefer-collection-types`, `type-alias-invariants` |
+| `entityModelSuite` | Type, interface, entity-namespace, and keyed-collection conventions — `all-types-are-entities`, `entity-file-shape`, `interface-must-be-contract`, `interfaces-compose-named-types`, `no-double-assertion`, `no-mixed-callable-shapes`, `no-redefined-external-types`, `no-unparsed-assertion`, `prefer-collection-types`, `type-alias-invariants` |
 | `moduleDesignSuite` | Export shape and method-body conventions — `explicit-return-binding`, `export-shape`, `inline-trivial-logic`, `no-function-registries`, `require-options-object` |
 | `diagnosticsSuite` | Diagnostic suppression — `clean-diagnostics` |
 | `VocabularySuite` | Identifier and vocabulary conventions — `descriptive-identifiers`, `static-method-verbs`, `no-threaded-vocabulary`. A factory: call `VocabularySuite.create(...)` with a `sourceRoot`, since `no-threaded-vocabulary` has no default for it. |
@@ -177,6 +177,7 @@ export default [
 | [`@studnicky/known-types-outside-adapters`](/eslint/rules/known-types-outside-adapters) | No | `error` |
 | [`@studnicky/layer-import-boundary`](/eslint/rules/layer-import-boundary) | No | `error` |
 | [`@studnicky/lexical-this-only`](/eslint/rules/lexical-this-only) | No | `error` |
+| [`@studnicky/no-double-assertion`](/eslint/rules/no-double-assertion) | No | `error` |
 | [`@studnicky/no-function-registries`](/eslint/rules/no-function-registries) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
 | [`@studnicky/no-redefined-external-types`](/eslint/rules/no-redefined-external-types) | No | `error` |
