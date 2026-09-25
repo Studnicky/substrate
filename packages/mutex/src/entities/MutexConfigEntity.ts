@@ -15,14 +15,13 @@ export namespace MutexConfigEntity {
     'propertyNames': {
       'enum': ['enableCoalescing', 'maximumQueueSize', 'timeout']
     },
-    'required': ['enableCoalescing', 'maximumQueueSize', 'timeout'],
     'type': 'object'
   } as const;
 
-  /** Mutex configuration options. */
+  /** Mutex configuration options. Every property carries a default, so none is required. */
   export const Node = SchemaNode.defineObject({ 'propertyNames': {
     'enum': ['enableCoalescing', 'maximumQueueSize', 'timeout']
-  }, 'type': 'object' } as const, { 'enableCoalescing': SchemaNode.defineBoolean({ 'default': false, 'type': 'boolean' } as const), 'maximumQueueSize': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'integer' } as const), 'timeout': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'integer' } as const) }, ['enableCoalescing', 'maximumQueueSize', 'timeout'] as const, { 'additionalProperties': false });
+  }, 'type': 'object' } as const, { 'enableCoalescing': SchemaNode.defineBoolean({ 'default': false, 'type': 'boolean' } as const), 'maximumQueueSize': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'integer' } as const), 'timeout': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 
