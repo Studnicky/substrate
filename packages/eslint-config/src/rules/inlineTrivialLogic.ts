@@ -193,47 +193,42 @@ class TypeContractGuard {
   static #findContainingClass(container: Rule.Node): Rule.Node | undefined {
     const classBody = container.parent;
 
-    if (classBody === null || !Predicates.isRecord(classBody)) {
+    if (classBody === null) {
       return undefined;
     }
 
-    const classNode = (classBody as { readonly 'parent'?: unknown }).parent;
+    const classNode = classBody.parent;
 
-    if (!Predicates.isRecord(classNode)) {
+    if (classNode === null) {
       return undefined;
     }
     if (classNode.type !== 'ClassDeclaration' && classNode.type !== 'ClassExpression') {
       return undefined;
     }
 
-    return classNode as unknown as Rule.Node;
+    return classNode;
   }
 
   /** Every heritage expression (`extends` target, each `implements` entry) on `classNode`. */
   static #collectHeritageExpressions(classNode: Rule.Node): readonly Rule.Node[] {
     const result: Rule.Node[] = [];
-    const superClass = (classNode as { readonly 'superClass'?: unknown }).superClass;
+    const superClass = AstHelpers.getNodeProperty(classNode, 'superClass');
 
-    if (Predicates.isRecord(superClass)) {
-      result.push(superClass as unknown as Rule.Node);
+    if (AstHelpers.isNode(superClass)) {
+      result.push(superClass);
     }
 
-    const implementsClauses = (classNode as { readonly 'implements'?: unknown }).implements;
+    const implementsClauses = AstHelpers.getNodeProperty(classNode, 'implements');
 
     if (Predicates.isArray(implementsClauses)) {
       const clauseCount = implementsClauses.length;
 
       for (let index = 0; index < clauseCount; index += 1) {
         const clause = implementsClauses.at(index);
+        const expression = AstHelpers.getNodeProperty(clause, 'expression');
 
-        if (!Predicates.isRecord(clause)) {
-          continue;
-        }
-
-        const expression = clause.expression;
-
-        if (Predicates.isRecord(expression)) {
-          result.push(expression as unknown as Rule.Node);
+        if (AstHelpers.isNode(expression)) {
+          result.push(expression);
         }
       }
     }

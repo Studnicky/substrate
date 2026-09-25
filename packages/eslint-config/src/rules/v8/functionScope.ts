@@ -16,8 +16,7 @@ export class FunctionScope {
       if (FUNCTION_TYPES.has(current.type)) { result = true; break; }
 
       if (current.type === 'PropertyDefinition') {
-        const rawNode = current as unknown as Record<string, unknown>;
-        result = rawNode.static !== true;
+        result = current.static !== true;
         break;
       }
 
