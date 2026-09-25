@@ -1,8 +1,7 @@
 /** Local deterministic feature-flag evaluation with percentage rollout and observability hooks */
 
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Hash } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { Hash, Predicates } from '@studnicky/types/node';
 
 import type { FlagContextEntity } from './entities/FlagContextEntity.js';
 
@@ -30,7 +29,7 @@ class FlagEvaluationHookInvoker extends HookInvoker {
  * OpenFeature's spec separates from its remote `Provider`; a consuming application wires its
  * own remote-fetch/polling layer on top if it needs one.
  *
- * Percentage rollout is bucketed via `@studnicky/json`'s `Hash.value()`, hashing
+ * Percentage rollout is bucketed via `@studnicky/types`'s `Hash.value()`, hashing
  * `flag + ':' + targetingKey` into a deterministic `[0, 100)` integer bucket — the same flag
  * and targeting key always land in the same bucket, so the same caller always gets the same
  * answer for a given flag, and different flags bucket independently for the same targeting key.

@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/json",
   "version": "14.0.0",
-  "description": "JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch, hash",
+  "description": "JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -42,7 +42,6 @@
     "equal",
     "freeze",
     "patch",
-    "hash",
     "path",
     "sort"
   ],

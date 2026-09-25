@@ -68,7 +68,7 @@ import {
 // `o[k]` in an expression position — so reporting reads flagged sites that could not exhibit
 // the hazard this rule exists to prevent.
 //
-// That over-reach had a cost. A read in `packages/json/src/json/StructuralHash.ts` was
+// That over-reach had a cost. A read in `packages/types/src/objects/StructuralHash.ts` was
 // "fixed" by rewriting `value[key]` as `Reflect.get(value, key)`, which does not remove the
 // dynamic key at all — it only spells it in a form the rule did not pattern-match. Measured
 // over a realistic object walk at 200,000 iterations the two are indistinguishable

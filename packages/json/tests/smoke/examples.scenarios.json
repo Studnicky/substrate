@@ -45,15 +45,15 @@
       "name": "json-smoke-patch-predicates"
     },
     {
-      "description": "imports the path-sort-hash example without throwing",
+      "description": "imports the path-sort example without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/path-sort-hash.ts"
+        "entrypoint": "../../examples/path-sort.ts"
       },
-      "shape": "path-sort-hash",
-      "name": "json-smoke-path-sort-hash"
+      "shape": "path-sort",
+      "name": "json-smoke-path-sort"
     }
   ]
 }
