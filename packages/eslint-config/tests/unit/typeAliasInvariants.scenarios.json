@@ -350,14 +350,14 @@
         "filename": "packages/eslint-config/RenamedReexportName.ts"
       },
       {
-        "code": "type FromSchema<T> = T extends { type: string } ? { value: string } : never;\nexport namespace ImitationEntity {\n  export const Schema = { type: \"string\" } as const;\n  export type Type = FromSchema<typeof Schema>;\n}",
+        "code": "type NodeStaticType<T> = T extends { type: string } ? { value: string } : never;\nexport namespace ImitationEntity {\n  export const Schema = { type: \"string\" } as const;\n  export type Type = NodeStaticType<typeof Schema>;\n}",
         "errors": [
           {
-            "messageId": "derivedFromSchema"
+            "messageId": "aliasMustBeInterface"
           }
         ],
         "filename": "packages/eslint-config/ImitationEntity.ts",
-        "name": "a local type named FromSchema cannot validate a canonical entity alias"
+        "name": "a local type named NodeStaticType cannot validate a canonical entity alias"
       },
       {
         "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Partial<FooInterface>): void {}",

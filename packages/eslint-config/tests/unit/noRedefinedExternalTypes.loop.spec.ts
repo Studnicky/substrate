@@ -261,15 +261,17 @@ void describe('no-redefined-external-types', () => {
   void it("exempts canonical entity Types and optional external data shapes", () => {
     const root = mkdtempSync(join(tmpdir(), "no-redefined-external-types-canonical-"));
     const contractsRoot = join(root, "node_modules", "@fixture", "contracts");
-    const schemaRoot = join(root, "node_modules", "json-schema-to-ts");
+    const entityInterfacesRoot = join(root, "node_modules", "@studnicky", "entity", "interfaces");
+    const entityTypesRoot = join(root, "node_modules", "@studnicky", "entity", "types");
     const entry = join(root, "src", "entity.ts");
 
     try {
       mkdirSync(join(root, "src"), { recursive: true });
       mkdirSync(contractsRoot, { recursive: true });
-      mkdirSync(schemaRoot, { recursive: true });
+      mkdirSync(entityInterfacesRoot, { recursive: true });
+      mkdirSync(entityTypesRoot, { recursive: true });
       writeFileSync(join(root, "package.json"), JSON.stringify({
-        dependencies: { "@fixture/contracts": "1.0.0", "json-schema-to-ts": "1.0.0" },
+        dependencies: { "@fixture/contracts": "1.0.0", "@studnicky/entity": "1.0.0" },
         name: "canonical-entity-fixture",
         type: "module"
       }));
@@ -277,26 +279,33 @@ void describe('no-redefined-external-types', () => {
         name: "@fixture/contracts",
         types: "./index.d.ts"
       }));
-      writeFileSync(join(contractsRoot, "index.d.ts"), [
-        "export interface ExternalRecord { readonly id: string; }",
-        "export interface JSONSchema7 { readonly id?: string; }"
-      ].join("\n"));
-      writeFileSync(join(schemaRoot, "package.json"), JSON.stringify({
-        name: "json-schema-to-ts",
+      writeFileSync(join(contractsRoot, "index.d.ts"), "export interface ExternalRecord { readonly id: string; }");
+      writeFileSync(join(entityInterfacesRoot, "package.json"), JSON.stringify({
+        name: "@studnicky/entity/interfaces",
         types: "./index.d.ts"
       }));
-      writeFileSync(join(schemaRoot, "index.d.ts"), "export type FromSchema<T> = { readonly id: string; };");
+      writeFileSync(join(entityInterfacesRoot, "index.d.ts"), "export interface SchemaNodeInterface<TSchema, TStatic> { readonly '__schema'?: TSchema; readonly '__static'?: TStatic; }");
+      writeFileSync(join(entityTypesRoot, "package.json"), JSON.stringify({
+        name: "@studnicky/entity/types",
+        types: "./index.d.ts"
+      }));
+      writeFileSync(join(entityTypesRoot, "index.d.ts"), [
+        "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';",
+        "export type NodeStaticType<TNode extends SchemaNodeInterface<unknown, unknown>> = { readonly id: string; };"
+      ].join("\n"));
 
       const source = [
         "import type { ExternalRecord } from '@fixture/contracts';",
-        "import type { FromSchema } from 'json-schema-to-ts';",
+        "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';",
+        "import type { NodeStaticType } from '@studnicky/entity/types';",
+        "declare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;",
         "export namespace AccountEntity {",
-        "  export const Schema = { type: 'object' } as const;",
-        "  export type Type = FromSchema<typeof Schema>;",
+        "  export const Node = defineNode<{ id: string }>({ type: 'object' } as const);",
+        "  export type Type = NodeStaticType<typeof Node>;",
         "}",
         "export namespace TeamEntity {",
-        "  export const Schema = { type: 'object' } as const;",
-        "  export interface Type extends FromSchema<typeof Schema> {}",
+        "  export const Node = defineNode<{ id: string }>({ type: 'object' } as const);",
+        "  export interface Type extends NodeStaticType<typeof Node> {}",
         "}",
         "export interface RebuiltRecord { readonly id: string; }",
         "export interface ErrorDetailPort { readonly cause?: Error; readonly id?: string; }",
@@ -308,7 +317,7 @@ void describe('no-redefined-external-types', () => {
 
       assert.deepEqual(messages.map((message) => {
         return { line: message.line, messageId: message.messageId };
-      }), [{ line: 11, messageId: "redefined-external-type" }]);
+      }), [{ line: 13, messageId: "redefined-external-type" }]);
     } finally {
       rmSync(root, { force: true, recursive: true });
     }
