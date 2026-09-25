@@ -5,14 +5,16 @@
  * measurement and feeds the results in via `setScrollOffset()` /
  * `setViewportSize()`.
  */
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';
-import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
+import type { VisibleRangeCollaboratorsInterface } from './interfaces/VisibleRangeCollaboratorsInterface.js';
 
 import { DEFAULT_OVERSCAN, INITIAL_OFFSET } from './constants/index.js';
+import { VisibleRangeConfigDataEntity } from './entities/VisibleRangeConfigDataEntity.js';
 import { VisibleRangeError } from './errors/index.js';
 
 /** `count`/`itemSize`/`overscan` are resolved internally by manual arithmetic guards, never independently validated. `mode` is a stable enum, kept on the entity. */
@@ -51,9 +53,10 @@ interface VisibleRangeConstructorInterface<TInstance> {
 export class VisibleRange {
   static create<TInstance extends VisibleRange = VisibleRange>(
     this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
-    config: VisibleRangeConfigInterface
+    config: unknown,
+    collaborators: VisibleRangeCollaboratorsInterface = {}
   ): TInstance {
-    const resolved = VisibleRange.#resolve(config);
+    const resolved = VisibleRange.#resolve(config, collaborators);
     const result: unknown = Reflect.construct(this, [resolved]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('VisibleRange.create() must construct a VisibleRange instance');
@@ -61,9 +64,22 @@ export class VisibleRange {
     return result;
   }
 
-  static #resolve(config: VisibleRangeConfigInterface): VisibleRangeResolvedConfigInterface {
-    const hasItemSize = config.itemSize !== undefined;
-    const hasEstimateSize = config.estimateSize !== undefined;
+  static #intakeConfigData(config: unknown): VisibleRangeConfigDataEntity.Type {
+    try {
+      const data = VisibleRangeConfigDataEntity.intake(config);
+      return data;
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new VisibleRangeError(RuntimeError.toMessage(error));
+      }
+      throw error;
+    }
+  }
+
+  static #resolve(config: unknown, collaborators: VisibleRangeCollaboratorsInterface): VisibleRangeResolvedConfigInterface {
+    const data = VisibleRange.#intakeConfigData(config);
+    const hasItemSize = data.itemSize !== undefined;
+    const hasEstimateSize = collaborators.estimateSize !== undefined;
 
     if (!hasItemSize && !hasEstimateSize) {
       throw new VisibleRangeError('one of `itemSize` or `estimateSize` must be supplied');
@@ -72,18 +88,15 @@ export class VisibleRange {
       throw new VisibleRangeError('`itemSize` and `estimateSize` are mutually exclusive — supply exactly one');
     }
 
-    const overscan = config.overscan ?? DEFAULT_OVERSCAN;
+    const overscan = data.overscan ?? DEFAULT_OVERSCAN;
 
-    if (hasItemSize) {
-      if (config.itemSize <= 0) {
-        throw new VisibleRangeError(`\`itemSize\` must be a positive number, received ${config.itemSize}`);
-      }
-      return { 'count': config.count, 'itemSize': config.itemSize, 'mode': 'fixed', 'overscan': overscan };
+    if (hasItemSize && data.itemSize !== undefined) {
+      return { 'count': data.count, 'itemSize': data.itemSize, 'mode': 'fixed', 'overscan': overscan };
     }
-    if (config.estimateSize === undefined) {
-      throw new VisibleRangeError('`estimateSize` is required in variable mode');
+    if (collaborators.estimateSize !== undefined) {
+      return { 'count': data.count, 'estimateSize': collaborators.estimateSize, 'mode': 'variable', 'overscan': overscan };
     }
-    return { 'count': config.count, 'estimateSize': config.estimateSize, 'mode': 'variable', 'overscan': overscan };
+    throw new VisibleRangeError('`estimateSize` is required in variable mode');
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
