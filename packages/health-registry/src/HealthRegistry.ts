@@ -6,11 +6,12 @@ import {
 import { Signal } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
 import type { HealthCheckInterface } from './interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from './interfaces/HealthCheckResultInterface.js';
 import type { HealthEvaluationInterface } from './interfaces/HealthEvaluationInterface.js';
+
+import { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 
 interface HealthCheckEntryInterface {
   readonly 'check': HealthCheckInterface;
@@ -97,10 +98,11 @@ export class HealthRegistry {
    * @param check - Async function resolving to a status and optional metadata
    * @param options - Per-check options; `timeoutMs` bounds how long the check may run
    */
-  register(name: string, check: HealthCheckInterface, options?: HealthCheckOptionsEntity.Type): void {
+  register(name: string, check: HealthCheckInterface, options?: HealthCheckOptionsEntity.InputType): void {
+    const validated = options === undefined ? undefined : HealthCheckOptionsEntity.intake(options);
     const entry: HealthCheckEntryInterface = {
       'check': check,
-      'timeoutMs': options?.timeoutMs
+      'timeoutMs': validated?.timeoutMs
     };
 
     this.#registry.set(name, entry);
