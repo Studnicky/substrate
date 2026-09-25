@@ -11,9 +11,9 @@ export interface FileLockCreateOptionsInterface {
   readonly 'clock'?: ClockProviderInterface;
   readonly 'fileSystem'?: FileSystemInterface;
   readonly 'ownerToken'?: OwnerTokenInterface;
-  readonly 'path': FileLockOptionsEntity.Type['path'];
-  readonly 'pollMs'?: FileLockOptionsEntity.Type['pollMs'];
+  readonly 'path': FileLockOptionsEntity.InputType['path'];
+  readonly 'pollMs'?: FileLockOptionsEntity.InputType['pollMs'];
   /** Scheduler used to defer contended acquisition attempts. Default: real-time scheduler. */
   readonly 'scheduler'?: SchedulerProviderInterface;
-  readonly 'timeoutMs'?: FileLockOptionsEntity.Type['timeoutMs'];
+  readonly 'timeoutMs'?: FileLockOptionsEntity.InputType['timeoutMs'];
 }
