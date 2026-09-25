@@ -185,8 +185,7 @@ export const maximumSwitchCases: Rule.RuleModule = {
     const groups = new SwitchGroupRegistry();
 
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const cases: unknown = rawNode.cases;
+      const cases = node.cases;
 
       if (!Array.isArray(cases)) {
         return;
@@ -199,7 +198,7 @@ export const maximumSwitchCases: Rule.RuleModule = {
       }).length;
 
       const block = SwitchScope.nearestEnclosingBlock(node);
-      const key: string | Rule.Node = DiscriminantKey.compute(rawNode.discriminant) ?? node;
+      const key: string | Rule.Node = DiscriminantKey.compute(node.discriminant) ?? node;
       const group = groups.groupFor(block, key);
 
       // Kind is fixed from the first switch seen for this discriminant; a

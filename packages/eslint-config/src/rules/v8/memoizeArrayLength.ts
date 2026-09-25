@@ -112,14 +112,12 @@ export const memoizeArrayLength: Rule.RuleModule = {
     };
 
     const onAssignmentExpression: NonNullable<Rule.RuleListener['AssignmentExpression']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-
-      if (rawNode.operator !== '=') {
+      if (node.operator !== '=') {
         return;
       }
 
-      const left = rawNode.left;
-      const right = rawNode.right;
+      const left = node.left;
+      const right = node.right;
 
       if (!LengthAstHelpers.isIdentifier(left) || !LengthAstHelpers.isLengthAccess(right)) {
         return;
@@ -139,8 +137,8 @@ export const memoizeArrayLength: Rule.RuleModule = {
     };
 
     const onLoop: (node: Rule.Node) => void = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const match = LoopTestClassifier.classify(rawNode.test);
+      const test = AstHelpers.getNodeProperty(node, 'test');
+      const match = LoopTestClassifier.classify(test);
 
       if (match === null) {
         return;
