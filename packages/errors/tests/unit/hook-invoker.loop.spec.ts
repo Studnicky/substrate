@@ -69,6 +69,13 @@ class DiagnosticMarker {
   public readonly label = 'marker';
 }
 
+/** The ad-hoc member set `diagnostics-rich` reflects onto its thrown cause. */
+interface DiagnosticsRichCauseInterface {
+  readonly broken: unknown;
+  readonly items: unknown;
+  readonly plain: unknown;
+}
+
 class CloneableMarker {
   public readonly label = 'cloneable';
   public readonly nested = { count: 2 };
@@ -311,9 +318,10 @@ const runnerMap = {
       assert.ok(diagnostic.cause instanceof Error);
       assert.strictEqual(diagnostic.hookName, String(expected.firstHookName));
       assert.strictEqual(diagnostic.cause.message, String(expected.firstCauseMessage));
-      assert.deepStrictEqual((diagnostic.cause as unknown as Record<string, unknown>).plain, input.diagnostics?.plain);
-      assert.deepStrictEqual((diagnostic.cause as unknown as Record<string, unknown>).items, input.diagnostics?.items);
-      assert.ok('broken' in (diagnostic.cause as unknown as Record<string, unknown>));
+      const richCause = diagnostic.cause as Error & DiagnosticsRichCauseInterface;
+      assert.deepStrictEqual(richCause.plain, input.diagnostics?.plain);
+      assert.deepStrictEqual(richCause.items, input.diagnostics?.items);
+      assert.ok('broken' in richCause);
       assert.strictEqual(invoker.hookErrorCount, Number(expected.hookErrorCount));
     });
   },

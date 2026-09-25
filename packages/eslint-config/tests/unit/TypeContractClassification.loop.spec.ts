@@ -179,14 +179,12 @@ function assertInterfaceOutcome(
 
 type ScenarioCase =
   | {
-      description: string;
       expected: { classification: string; reason: string };
       input: { aliasName: string; files: Record<string, string>; namespaceName: string };
       shape: 'entity-direct';
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
@@ -195,7 +193,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
@@ -204,7 +201,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
       };
@@ -213,7 +209,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: {
           intrinsic: Array<{ classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string }>;
@@ -230,7 +225,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
@@ -239,7 +233,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
@@ -248,7 +241,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ name: string; readonlyReasons?: readonly string[] }>;
         excluded: readonly string[];
@@ -258,7 +250,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
@@ -267,7 +258,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         aliasAssertions: Array<{ classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
         interfaceAssertions: Array<{ classification?: string; name: string; reason?: string }>;
@@ -276,6 +266,24 @@ type ScenarioCase =
       shape: 'interface-matrix';
       name: string;
     };
+
+const SCENARIO_SHAPES = ['entity-direct', 'composition-provenance', 'owner-direct', 'alias-cycles', 'readonly-intrinsics', 'explicit-readonly', 'exposed-defaults', 'readonly-exclusions', 'readonly-indirection', 'interface-matrix'] as const;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isScenarioShape(value: unknown): value is ScenarioCase['shape'] {
+  return typeof value === 'string' && (SCENARIO_SHAPES as readonly string[]).includes(value);
+}
+
+/** Validates the fixture envelope at the JSON-load edge; each runner still owns its own shape's fields. */
+function intakeScenarioCase(raw: unknown): ScenarioCase {
+  if (!isPlainRecord(raw) || typeof raw.name !== 'string' || !isScenarioShape(raw.shape) || !isPlainRecord(raw.expected) || !isPlainRecord(raw.input)) {
+    throw new TypeError(`malformed TypeContractClassification scenario entry: ${JSON.stringify(raw)}`);
+  }
+  return raw as ScenarioCase;
+}
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
 type RunnerMap = {
@@ -374,7 +382,7 @@ function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase
 }
 
 void describe('TypeContractClassification', () => {
-  for (const scenario of scenarioGroups.cases as unknown as ScenarioCase[]) {
+  for (const scenario of (scenarioGroups.cases as unknown[]).map(intakeScenarioCase)) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

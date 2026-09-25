@@ -2,6 +2,11 @@ import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { NodeStaticType } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
 import { ErrorDefaults } from '../../src/constants/index.js';
@@ -9,11 +14,26 @@ import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 import scenarioGroups from './subclass-extension.scenarios.json' with { type: 'json' };
 
-interface AuditErrorArgumentsInterface {
-  auditId: string;
-  message: string;
-  policy: string;
-}
+const AuditErrorArgumentsNode = SchemaNode.defineObject(
+  { 'type': 'object' } as const,
+  {
+    'auditId': SchemaNode.defineString({ 'type': 'string' } as const),
+    'message': SchemaNode.defineString({ 'type': 'string' } as const),
+    'policy': SchemaNode.defineString({ 'type': 'string' } as const)
+  },
+  ['auditId', 'message', 'policy'] as const
+);
+const AuditErrorArgumentsSchema = {
+  'properties': {
+    'auditId': { 'type': 'string' },
+    'message': { 'type': 'string' },
+    'policy': { 'type': 'string' }
+  },
+  'required': ['auditId', 'message', 'policy'],
+  'type': 'object'
+} as const;
+type AuditErrorArgumentsInterface = NodeStaticType<typeof AuditErrorArgumentsNode>;
+const intakeAuditErrorArguments = EntityCompiler.compileIntake<AuditErrorArgumentsInterface>(AuditErrorArgumentsSchema);
 
 class AuditError extends BaseError {
   public readonly auditId: string;
@@ -71,7 +91,7 @@ type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
 
 const runnerMap: RunnerMap = {
   'audit-instanceof': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { baseError: boolean; error: boolean; instanceOf: boolean };
     const err = AuditError.of(input);
     assert.strictEqual(err instanceof Error, expected.error);
@@ -80,7 +100,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-base': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { code: string };
     const json = AuditError.of(input).toJSON() as Record<string, unknown>;
     assert.strictEqual(json.code, expected.code);
@@ -89,7 +109,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-extra': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { auditId: string; policy: string };
     const json = AuditError.of(input).toJSON() as Record<string, unknown>;
     assert.strictEqual(json.auditId, expected.auditId);
@@ -97,7 +117,7 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-json-independent': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { jsonHasAuditId: boolean; messagePrefix: string };
     const err = AuditError.of(input);
     const json = err.toJSON() as Record<string, unknown>;
@@ -107,13 +127,13 @@ const runnerMap: RunnerMap = {
   },
 
   'audit-name': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { name: string };
     assert.strictEqual(AuditError.of(input).name, expected.name);
   },
 
   'audit-user-message': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
+    const input = intakeAuditErrorArguments(scenarioCase.input);
     const expected = scenarioCase.expected as { message: string };
     const msg = AuditError.of(input).toUserMessage();
     assert.strictEqual(msg, expected.message);

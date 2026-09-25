@@ -3,56 +3,32 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
+import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 import scenarioGroups from './validation-error.scenarios.json' with { type: 'json' };
 
-type ScenarioViolationInput = { details?: Record<string, unknown>; message: string; path: string };
-
-type ScenarioInput = {
-  correlationId?: string;
-  message: string;
-  path: string;
-  violations?: ReadonlyArray<Record<string, unknown>>;
-};
+type RawScenarioCase = { description: string; expected: Record<string, unknown>; input: unknown; name: string; shape: string };
 
 type ScenarioCase =
   | {
       description: string;
       expected: Record<string, unknown>;
-      input: ScenarioInput;
+      input: ValidationErrorArgumentsEntity.Type;
       shape: 'code' | 'correlation-id' | 'detach-violations' | 'instanceof' | 'json-excludes-violations' | 'json-includes-violations' | 'json-roundtrip' | 'json-serializes' | 'message-with-path' | 'retryable' | 'user-message-empty-violations' | 'user-message-plain' | 'user-message-violations' | 'violations-absent' | 'violations-present' | 'violations-present-details' | 'violations-complex-details';
       name: string;
     };
 
 type ScenarioRunner = (scenario: ScenarioCase, err: ValidationError) => void;
 
-function materializeViolations(violations: ReadonlyArray<Record<string, unknown>> | undefined): ScenarioViolationInput[] | undefined {
-  if (violations === undefined) {
-    return undefined;
-  }
-  return violations.map((violation) => {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(violation)) {
-      if (key === 'details' && value !== null && typeof value === 'object') {
-        result.details = { ...(value as Record<string, unknown>) };
-      } else {
-        result[key] = value;
-      }
-    }
-    return result;
-  }) as unknown as ScenarioViolationInput[];
-}
-
-function buildInput(input: ScenarioInput): { correlationId?: string; message: string; path: string; violations?: ScenarioViolationInput[] } {
-  const violations = materializeViolations(input.violations);
-  return {
-    ...(input.correlationId === undefined ? {} : { correlationId: input.correlationId }),
-    'message': input.message,
-    'path': input.path,
-    ...(violations === undefined ? {} : { violations })
-  };
-}
+// Validated once, at the fixture-loading edge; every runner below consumes the typed result.
+const scenarios: ScenarioCase[] = (scenarioGroups.cases as RawScenarioCase[]).map((raw) => ({
+  'description': raw.description,
+  'expected': raw.expected,
+  'input': ValidationErrorArgumentsEntity.intake(raw.input),
+  'name': raw.name,
+  'shape': raw.shape as ScenarioCase['shape']
+}));
 
 const runnerMap = {
   'code': (scenario, err) => {
@@ -62,10 +38,10 @@ const runnerMap = {
     assert.strictEqual(err.correlationId, scenario.expected.correlationId);
   },
   'detach-violations': (scenario) => {
-    const violations = buildInput(scenario.input).violations;
+    const violations = scenario.input.violations;
     assert.ok(violations !== undefined);
-    const detached = ValidationError.create(buildInput(scenario.input));
-    (violations[0] as Record<string, unknown>).details = { 'limit': 4 };
+    const detached = ValidationError.create(scenario.input);
+    (violations[0] as { details?: Record<string, unknown> }).details = { 'limit': 4 };
     assert.deepStrictEqual(detached.violations, scenario.expected.violations);
     const projection = detached.violations?.[0];
     if (projection?.details !== undefined) {
@@ -163,12 +139,12 @@ const runnerMap = {
 } satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): void {
-  const err = ValidationError.create(buildInput(scenario.input));
+  const err = ValidationError.create(scenario.input);
   runnerMap[scenario.shape](scenario, err);
 }
 
 void describe('ValidationError', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarios) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
