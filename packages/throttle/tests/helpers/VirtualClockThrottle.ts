@@ -10,8 +10,6 @@ import { Predicates } from '@studnicky/types/node';
 
 import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
-import type { ThrottleConfigEntity } from '../../src/entities/ThrottleConfigEntity.js';
-
 import { Throttle } from '../../src/index.js';
 
 /**
@@ -40,7 +38,7 @@ export class VirtualClockThrottle extends Throttle {
   static createWithClock<TInstance extends VirtualClockThrottle = VirtualClockThrottle>(
     this: VirtualClockThrottleSubclassInterface<TInstance>,
     input: ThrottleClockInputInterface,
-    config?: Partial<ThrottleConfigEntity.Type>
+    config?: unknown
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config, input]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
@@ -56,7 +54,7 @@ export class VirtualClockThrottle extends Throttle {
   /**
    * Property write order: #input, #counter, #clock.
    */
-  protected constructor(config: Partial<ThrottleConfigEntity.Type> | undefined, input: ThrottleClockInputInterface) {
+  protected constructor(config: unknown, input: ThrottleClockInputInterface) {
     super(config);
     this.#input = input;
     this.#counter = VirtualTimeCounter.create({ startMs: input.startMs });
