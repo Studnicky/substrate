@@ -27,6 +27,10 @@ exec \"$node_binary\" \"\$@\""
     git update-ref refs/remotes/origin/develop HEAD
     git switch -q -c feature/release-flow
 
+    printf '%s\n' 'export const a = 1;' > packages/a/index.js
+    git add packages/a/index.js
+    git commit -q -m "feat: deliver package a change"
+
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-lockstep 1.0.0
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" changeset-status origin/develop
     if PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-flow origin/develop refs/heads/feature/release-flow feature/release-flow 2>release-suite-delivery.out; then
