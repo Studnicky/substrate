@@ -13,6 +13,7 @@ import { AbortError, type ClientConfigInterface, FetchClient, type RequestContex
 import { OperationPipeline } from '@studnicky/pipeline/node';
 import { Retry } from '@studnicky/retry/node';
 import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import { RequestStatsEntity } from '@studnicky/retry/entities';
 import type { RetryContextInterface, RetryConfigInterface, RetryInterface } from '@studnicky/retry/interfaces';
 import type { SignalInterface } from '@studnicky/signal/interfaces';
 
@@ -947,7 +948,7 @@ void describe('RequestExecutor', () => {
         return result;
       },
       getStats() {
-        return { 'failedRequests': 0, 'successfulRequests': 0, 'totalRequests': 0, 'totalRetries': 0 };
+        return RequestStatsEntity.create({ 'failedRequests': 0, 'successfulRequests': 0, 'totalRequests': 0, 'totalRetries': 0 });
       },
       resetStats(): void {}
     };

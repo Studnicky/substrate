@@ -3,10 +3,10 @@ import type { RequestExecutorExecuteOptionsDataEntity } from '../entities/Reques
 /** Per-call overrides accepted by `RequestExecutor.execute()`. */
 export interface RequestExecutorExecuteOptionsInterface {
   /** Deadline in milliseconds for this call, overriding the executor default. */
-  readonly 'deadlineMs'?: RequestExecutorExecuteOptionsDataEntity.Type['deadlineMs'];
+  readonly 'deadlineMs'?: RequestExecutorExecuteOptionsDataEntity.InputType['deadlineMs'];
 
   /** Initial values seeded into the request scope when a scope factory is composed. */
-  readonly 'scopeInitial'?: RequestExecutorExecuteOptionsDataEntity.Type['scopeInitial'];
+  readonly 'scopeInitial'?: RequestExecutorExecuteOptionsDataEntity.InputType['scopeInitial'];
 
   /** Caller signal merged with the deadline through the executor's composed `Signal` instance. */
   readonly 'signal'?: AbortSignal;
