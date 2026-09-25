@@ -44,6 +44,10 @@ const transport = WebWorkerMessageTransport.fromEntity<ResultEntity.Type, Result
 
 Pass `abortSignal` to cancel a task and `timeoutMs` to limit execution. Call `close()` when a lease pool is no longer needed and await it before releasing related resources.
 
+`close()` is terminal. It rejects every acquisition still waiting for capacity, waits for acquisitions
+already in progress to settle, releases capacity held by outstanding leases, and terminates the tracked
+workers before it resolves. Concurrent `close()` calls share the same completion.
+
 ## Observe workers
 
 Override `onMessage`, `onWorkerTimeout`, or `onWorkerError` to collect worker activity. Use `getHookErrorCount()` and `getHookErrors()` to inspect hook failures.
