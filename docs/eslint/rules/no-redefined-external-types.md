@@ -9,6 +9,12 @@ Requires an exported local `interface` or `type` alias to reuse a public type ex
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
+## Performance
+
+Dependency and entity candidates depend only on the linted file's package root, never on the file itself, so `SemanticTypeCatalog` caches them once per `(ts.Program, packageRoot)` in a `WeakMap` instead of rebuilding on every linted file's `Program:exit`. Platform candidates are excluded from the cache — `checker.getSymbolsInScope` is genuinely file-scoped, since a file that shadows a global identifier name changes which symbol that name resolves to in that file's own scope.
+
+Measured with `TIMING=1 npx eslint packages/eslint-config/src` (150 files, one process): this rule's share of total rule-execution time drops from 23287ms (81.4%) to roughly 2400ms (19–28%, depending on run-to-run ordering of the rules table) — an ~89.6% reduction on this corpus. Findings are byte-identical before and after: a full workspace lint reports the same (empty) result, and a synthetic three-file fixture sharing one program and producing real `redefined-external-type` violations reports the identical messages, lines, and rule IDs.
+
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->

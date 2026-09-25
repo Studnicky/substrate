@@ -45,6 +45,15 @@ interface SymbolCandidateContextInterface {
 }
 
 export class SemanticTypeCatalog {
+  /**
+   * Dependency and entity candidates depend only on the linted file's package root, never on
+   * the file itself, so they are cached once per (program, packageRoot) rather than rebuilt on
+   * every linted file's Program:exit. Platform candidates are excluded from this cache — they
+   * come from `checker.getSymbolsInScope`, which is genuinely file-scoped: a file that shadows a
+   * global identifier name changes which symbol that name resolves to in that file's scope.
+   */
+  private static readonly programInvariantCandidatesByProgram = new WeakMap<Program, Map<string, readonly SemanticTypeCandidateInterface[]>>();
+
   public static create(
     context: Rule.RuleContext,
     host: ProjectHostInterface | undefined
@@ -200,12 +209,41 @@ export class SemanticTypeCatalog {
     host: ProjectHostInterface | undefined
   ): readonly SemanticTypeCandidateInterface[] {
     const checker = program.getTypeChecker();
+    const platformCandidates: SemanticTypeCandidateInterface[] = [];
+
+    SemanticTypeCatalog.addPlatformCandidates(sourceFile, program, checker, platformCandidates);
+
+    const invariantCandidates = SemanticTypeCatalog.programInvariantCandidates(sourceFile, program, host, checker);
+
+    return [...platformCandidates, ...invariantCandidates];
+  }
+
+  private static programInvariantCandidates(
+    sourceFile: SourceFile,
+    program: Program,
+    host: ProjectHostInterface | undefined,
+    checker: TypeChecker
+  ): readonly SemanticTypeCandidateInterface[] {
+    const packageRoot = PackageBoundary.rootFor(sourceFile, program, host) ?? sourceFile.fileName;
+    let candidatesByPackageRoot = SemanticTypeCatalog.programInvariantCandidatesByProgram.get(program);
+
+    if (candidatesByPackageRoot === undefined) {
+      candidatesByPackageRoot = new Map<string, readonly SemanticTypeCandidateInterface[]>();
+      SemanticTypeCatalog.programInvariantCandidatesByProgram.set(program, candidatesByPackageRoot);
+    }
+
+    const cached = candidatesByPackageRoot.get(packageRoot);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const candidates: SemanticTypeCandidateInterface[] = [];
 
-    SemanticTypeCatalog.addPlatformCandidates(sourceFile, program, checker, candidates);
     SemanticTypeCatalog.addDependencyCandidates(sourceFile, program, host, checker, candidates);
     SemanticTypeCatalog.addEntityCandidates(sourceFile, program, host, checker, candidates);
 
+    candidatesByPackageRoot.set(packageRoot, candidates);
     return candidates;
   }
 
