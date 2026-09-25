@@ -10,9 +10,10 @@ import type {
   PartitionGroupInterface
 } from '../../src/index.js';
 
-import { DrilldownRulesEntity, GroupValueDiscriminantEntity } from '../../src/index.js';
+import { GroupValueDiscriminantEntity } from '../../src/index.js';
 import { matcherRegistry } from '../../src/modules/matchers/index.js';
 import scenarioCases from './matchers.scenarios.json' with { type: 'json' };
+import type { GroupValueEntity } from '../../src/entities/GroupValueEntity.js';
 
 type MatcherType = GroupValueDiscriminantEntity.Type;
 type ContextType = 'date' | 'numeric';
@@ -35,7 +36,7 @@ type MatchScenarioCase = {
 type CreateAndMatchScenarioCase = {
   readonly 'description': string;
   readonly 'expected': { readonly 'matches': boolean };
-  readonly 'input': ScenarioInput & { readonly 'definition': DrilldownRulesEntity.GroupValueEntity.Type };
+  readonly 'input': ScenarioInput & { readonly 'definition': GroupValueEntity.Type };
   readonly 'name': string;
   readonly 'shape': 'create-and-match';
 };
@@ -143,7 +144,7 @@ function parseMatcher(value: unknown, type: MatcherType): MatcherUnionType {
   return { 'group': group, 'match': requireString(record['match'], 'scenario matcher match') };
 }
 
-function parseDefinition(value: unknown, type: MatcherType): DrilldownRulesEntity.GroupValueEntity.Type {
+function parseDefinition(value: unknown, type: MatcherType): GroupValueEntity.Type {
   const record = requireRecord(value, 'scenario definition');
   const definitionType = requireMatcherType(record['type'], 'scenario definition type');
   assert.equal(definitionType, type, 'scenario definition type must match scenario input type');

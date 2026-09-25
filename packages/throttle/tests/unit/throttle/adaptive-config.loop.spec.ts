@@ -329,3 +329,33 @@ void describe('Throttle adaptive config', () => {
     });
   }
 });
+
+const VALID_ENABLED_ADAPTIVE_CONFIG = {
+  'adjustmentInterval': 1000,
+  'enabled': true,
+  'maximumConcurrency': 100,
+  'minimumConcurrency': 1,
+  'sampleWindow': 100,
+  'scaleDownThreshold': 1.5,
+  'scaleUpThreshold': 0.5,
+  'stepSize': 1,
+  'targetLatencyMs': 500
+} as const;
+
+void describe('ValidatedAdaptiveConfigEntity anyOf of closed branches', () => {
+  void it('rejects a payload no single branch fully accepts: enabled true with a disabled-only targetLatencyMs', () => {
+    const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'targetLatencyMs': 0 };
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
+    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+  });
+
+  void it('rejects a payload no single branch fully accepts: an additional property neither closed branch admits', () => {
+    const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'unknownField': 'unexpected' };
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
+    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+  });
+
+  void it('accepts a payload the enabled branch fully accepts', () => {
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(VALID_ENABLED_ADAPTIVE_CONFIG), true);
+  });
+});

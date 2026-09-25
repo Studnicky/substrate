@@ -9,8 +9,6 @@ import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStat
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
 import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 import type { ThrottleStateEntity } from '../entities/ThrottleStateEntity.js';
-import type { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
-import type { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
 import type { AbortResultInterface } from '../interfaces/AbortResultInterface.js';
 import type { AbortStartedEventInterface } from '../interfaces/AbortStartedEventInterface.js';
 import type { AcquiredEventInterface } from '../interfaces/AcquiredEventInterface.js';
@@ -47,6 +45,8 @@ import {
 } from '../constants/index.js';
 import { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
+import { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
+import { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
 import {
   ThrottleAbortedError,
   ThrottleDrainingError
@@ -917,7 +917,7 @@ export class Throttle implements ThrottleInterface {
 
     const newLimit = this.calculateNewLimit(adaptive, p95);
     if (newLimit !== this.config.concurrencyLimit) {
-      this.config.concurrencyLimit = newLimit;
+      this.config = ValidatedThrottleConfigEntity.create({ ...this.config, 'concurrencyLimit': newLimit });
       this.adjustmentCount += 1;
       await this.semaphore.setPermits(newLimit);
     }
@@ -1104,7 +1104,7 @@ export class Throttle implements ThrottleInterface {
       throw ConfigurationError.create('adaptive.scaleUpThreshold must be less than adaptive.scaleDownThreshold');
     }
 
-    const result: ValidatedAdaptiveConfigEntity.Type = {
+    const result = ValidatedAdaptiveConfigEntity.create({
       'adjustmentInterval': adaptive.adjustmentInterval ?? defaults.adjustmentInterval,
       'enabled': true,
       'maximumConcurrency': maximumConcurrency,
@@ -1114,7 +1114,7 @@ export class Throttle implements ThrottleInterface {
       'scaleUpThreshold': scaleUpThreshold,
       'stepSize': adaptive.stepSize ?? defaults.stepSize,
       'targetLatencyMs': targetLatencyMs
-    };
+    });
     return result;
   }
 
@@ -1131,7 +1131,7 @@ export class Throttle implements ThrottleInterface {
     const defaults = Throttle.ADAPTIVE_DEFAULTS;
 
     if (adaptive.enabled === false) {
-      const result: ValidatedAdaptiveConfigEntity.Type = {
+      const result = ValidatedAdaptiveConfigEntity.create({
         'adjustmentInterval': defaults.adjustmentInterval,
         'enabled': false,
         'maximumConcurrency': defaults.maximumConcurrency,
@@ -1141,7 +1141,7 @@ export class Throttle implements ThrottleInterface {
         'scaleUpThreshold': defaults.scaleUpThreshold,
         'stepSize': defaults.stepSize,
         'targetLatencyMs': defaults.targetLatencyMs
-      };
+      });
       return result;
     }
 
@@ -1183,11 +1183,9 @@ export class Throttle implements ThrottleInterface {
       }
     }
 
-    const result: ValidatedThrottleConfigEntity.Type = { 'concurrencyLimit': concurrencyLimit };
-
-    if (adaptive !== undefined) {
-      result.adaptive = adaptive;
-    }
+    const result = adaptive !== undefined
+      ? ValidatedThrottleConfigEntity.create({ 'adaptive': adaptive, 'concurrencyLimit': concurrencyLimit })
+      : ValidatedThrottleConfigEntity.create({ 'concurrencyLimit': concurrencyLimit });
 
     return result;
   }

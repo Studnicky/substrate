@@ -1,5 +1,7 @@
 import type { JSONSchema7 } from 'json-schema';
 
+import { PickDefined } from '@studnicky/types/browser';
+
 import type { DefineObjectOptionsInterface } from '../../interfaces/DefineObjectOptionsInterface.js';
 import type { ObjectSchemaShapeInterface } from '../../interfaces/ObjectSchemaShapeInterface.js';
 import type { SchemaNodeInterface } from '../../interfaces/SchemaNodeInterface.js';
@@ -135,15 +137,9 @@ export class SchemaNode {
       & NodeStaticType<TItem>[],
     NodeInputType<TItem>[]
   > {
-    const combinedSchema = { ...schema, 'contains': contains, 'items': items };
+    const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
 
-    // Runtime shape proven correct by the spread above; the cast restores the branded generic return type.
-    return { 'schema': combinedSchema } as unknown as SchemaNodeInterface<
-      TSchema & { 'contains'?: TContains; 'items': TItem },
-      ApplyArrayConstraintBrandsType<TSchema, TContains extends SchemaNodeInterface<unknown, unknown> ? NodeStaticType<TContains> : never>
-        & NodeStaticType<TItem>[],
-      NodeInputType<TItem>[]
-    >;
+    return { 'schema': combinedSchema as TSchema & { 'contains'?: TContains; 'items': TItem } };
   }
 
   public static defineObject<
@@ -171,29 +167,17 @@ export class SchemaNode {
       & InferPatternPropertiesInputType<TPatternProps>
     >
   > {
-    const combinedSchema = {
+    const combinedSchema = PickDefined.from({
       ...schema,
-      'additionalProperties': options?.additionalProperties,
+      'additionalProperties': options?.additionalProperties ?? false,
       'patternProperties': options?.patternProperties,
       'properties': properties,
       'required': required
-    };
+    });
 
-    // Runtime shape proven correct by the spread above; the cast restores the branded generic return type.
-    return { 'schema': combinedSchema } as unknown as SchemaNodeInterface<
-      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
-      IdentityType<
-        ApplyObjectConstraintBrandsType<TSchema>
-        & InferAdditionalPropertiesStaticType<TAdditional>
-        & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
-        & InferPatternPropertiesStaticType<TPatternProps>
-      >,
-      IdentityType<
-        InferAdditionalPropertiesInputType<TAdditional>
-        & InferObjectPropertiesInputType<TProps, TRequired>
-        & InferPatternPropertiesInputType<TPatternProps>
-      >
-    >;
+    return {
+      'schema': combinedSchema as ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] }
+    };
   }
 
   public static defineAllOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(

@@ -189,8 +189,7 @@ function runScenarioCase(scenarioCase: ScenarioCase): void {
 
   const records = buildRecords(scenarioCase.input.properties, scenarioCase.input.values);
   // `minimumGroupSize` alone proves the branded bound; `rules` is already `DrilldownRulesEntity.Type`,
-  // validated separately above — combining the two avoids intake's cross-document `$ref` (pre-existing
-  // gap in EntityCompiler.compileIntake, unrelated to this schema; see report to team-lead).
+  // validated separately above.
   const provenMinimumGroupSize = DrillDownConfigEntity.intake({ 'minimumGroupSize': 1 });
   const minimumGroupSize = provenMinimumGroupSize.minimumGroupSize;
 
@@ -275,5 +274,25 @@ void describe('schema-owned group values', () => {
       assert.equal(candidate.guard(candidate.invalid), false);
       assert.equal(candidate.guard(candidate.valid), true);
     }
+  });
+});
+
+void describe('DrillDownConfigEntity.rules cross-document reference', () => {
+  void it('intake resolves nested rules against the real DrilldownRulesEntity shape', () => {
+    const config = DrillDownConfigEntity.intake({
+      'rules': {
+        'group': [{ 'property': 'category', 'values': [{ 'end': 'm', 'start': 'a', 'type': 'alphabetic' }] }]
+      }
+    });
+
+    assert.deepEqual(config.rules, {
+      'group': [{ 'property': 'category', 'values': [{ 'end': 'm', 'start': 'a', 'type': 'alphabetic' }] }]
+    });
+  });
+
+  void it('intake rejects rules whose nested group violates the referenced parent shape', () => {
+    assert.throws(() => {
+      DrillDownConfigEntity.intake({ 'rules': { 'group': 'not-an-array' } });
+    });
   });
 });

@@ -1,12 +1,13 @@
 import { Predicates } from '@studnicky/types/browser';
 
+import type { GroupRuleEntity } from '../../entities/GroupRuleEntity.js';
 import type { GroupValueDiscriminantEntity } from '../../entities/GroupValueDiscriminantEntity.js';
+import type { GroupValueEntity } from '../../entities/GroupValueEntity.js';
 import type {
   MatchContextInterface,
   MatcherHandlerInterface,
   PartitionGroupInterface
 } from '../../interfaces/index.js';
-import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 import type { MatcherUnionType } from '../../types/index.js';
 
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
@@ -90,7 +91,7 @@ interface BinarySearchPartitionInterface extends BinarySearchLookupInterface, Si
 
 /** Builds the per-type matcher/handler index from a group rule's configured values. */
 class PartitionIndexBuilder {
-  static build(groupValues: DrilldownRulesEntity.GroupValueEntity.Type[]): PartitionMatcherIndexInterface {
+  static build(groupValues: GroupValueEntity.Type[]): PartitionMatcherIndexInterface {
     const matched: PartitionGroupInterface[] = [];
     const matchersByType = new Map<GroupValueDiscriminantEntity.Type, MatcherUnionType[]>([
       ['alphabetic', []],
@@ -118,7 +119,7 @@ class PartitionIndexBuilder {
   }
 
   private static indexValue(
-    valueDef: DrilldownRulesEntity.GroupValueEntity.Type,
+    valueDef: GroupValueEntity.Type,
     matched: PartitionGroupInterface[],
     matchersByType: Map<GroupValueDiscriminantEntity.Type, MatcherUnionType[]>,
     handlersByType: Map<GroupValueDiscriminantEntity.Type, MatcherHandlerInterface>,
@@ -163,7 +164,7 @@ class PartitionIndexBuilder {
 
 /** Executes partitioning against a built matcher index, one phase per matching strategy. */
 class PartitionExecutor {
-  static run(data: Record<string, unknown>[], groupConfig: DrilldownRulesEntity.GroupRuleEntity.Type): PartitionResultInterface {
+  static run(data: Record<string, unknown>[], groupConfig: GroupRuleEntity.Type): PartitionResultInterface {
     if (groupConfig.values === undefined || groupConfig.values.length === 0) {
       return { 'matched': [], 'ungroupable': data };
     }

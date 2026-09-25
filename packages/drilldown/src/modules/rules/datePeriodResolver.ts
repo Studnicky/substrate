@@ -1,5 +1,5 @@
 import type { DateGranularityValueEntity } from '../../entities/DateGranularityValueEntity.js';
-import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
+import type { DateGroupValueEntity } from '../../entities/DateGroupValueEntity.js';
 
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 
@@ -8,7 +8,7 @@ interface DatePeriodKeyFunctionInterface {
 }
 
 interface DatePeriodRangeFunctionInterface {
-  (key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type
+  (key: string, yearString: string, monthString: string, dayString: string): DateGroupValueEntity.Type
 }
 
 const DAY_MS = 86_400_000;
@@ -72,7 +72,7 @@ const datePeriodKeyDispatch: Record<Exclude<DateGranularityValueEntity.Type, 'da
 };
 
 class DatePeriodRangeResolvers {
-  static day(_key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  static day(_key: string, yearString: string, monthString: string, dayString: string): DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
     const day = parseInt(dayString, 10);
@@ -84,7 +84,7 @@ class DatePeriodRangeResolvers {
     };
   }
 
-  static month(_key: string, yearString: string, monthString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  static month(_key: string, yearString: string, monthString: string): DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
 
@@ -95,7 +95,7 @@ class DatePeriodRangeResolvers {
     };
   }
 
-  static quarter(key: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  static quarter(key: string): DateGroupValueEntity.Type {
     const quarterParts = key.split('-Q');
     const year = parseInt(quarterParts[0] ?? '1970', 10);
     const quarter = parseInt(quarterParts[1] ?? '1', 10);
@@ -108,7 +108,7 @@ class DatePeriodRangeResolvers {
     };
   }
 
-  static week(_key: string, yearString: string, monthString: string, dayString: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  static week(_key: string, yearString: string, monthString: string, dayString: string): DateGroupValueEntity.Type {
     const year = parseInt(yearString, 10);
     const month = parseInt(monthString, 10) - 1;
     const day = parseInt(dayString, 10);
@@ -120,7 +120,7 @@ class DatePeriodRangeResolvers {
     };
   }
 
-  static year(key: string): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  static year(key: string): DateGroupValueEntity.Type {
     const year = parseInt(key, 10);
 
     return {
@@ -147,9 +147,9 @@ export class datePeriodResolver {
    * Converts a period key back to a date range group value.
    * @param key - Period key string
    * @param granularity - The date granularity level
-   * @returns DrilldownRulesEntity.DateGroupValueEntity.Type with after/before range
+   * @returns DateGroupValueEntity.Type with after/before range
    */
-  public static datePeriodToRange(key: string, granularity: DateGranularityValueEntity.Type): DrilldownRulesEntity.DateGroupValueEntity.Type {
+  public static datePeriodToRange(key: string, granularity: DateGranularityValueEntity.Type): DateGroupValueEntity.Type {
     const parts = key.split('-');
     const yearString = parts[0] ?? '1970';
     const monthString = parts[1] ?? '01';

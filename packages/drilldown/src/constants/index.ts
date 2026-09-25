@@ -6,6 +6,7 @@ export const DRILLDOWN_DEFAULTS = {
   'defaultDensityThreshold': 0.8,
   'defaultGroupCount': 5,
   'defaultMaximumStringValues': 50,
+  'drilldownRulesSchemaId': 'urn:studnicky:drilldown:rules',
   'leadingVPattern': new RegExp('^v', 'i'),
   'maximumPathCacheSize': 1000,
   'minimumPropertyScore': 20,
