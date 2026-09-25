@@ -1,0 +1,55 @@
+{
+  "name": "@studnicky/example-smoke-kit",
+  "version": "14.0.0",
+  "description": "Shared example-smoke scenario entities and test-suite registration for packages/*/tests/smoke",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./node": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/example-smoke-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "homepage": "https://studnicky.github.io/substrate/packages/example-smoke-kit",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "keywords": [
+    "testing",
+    "smoke",
+    "examples",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*"
+  }
+}

@@ -314,6 +314,12 @@
     },
     {
       "path": "packages/drilldown/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/example-smoke-kit"
+    },
+    {
+      "path": "packages/example-smoke-kit/tsconfig.tests.json"
     }
   ],
   "files": []

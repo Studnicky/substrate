@@ -156,6 +156,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/bounded-dispatcher:
     dependencies:
@@ -187,6 +191,9 @@ importers:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/cache:
     dependencies:
@@ -205,6 +212,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/circular-buffer:
     dependencies:
@@ -260,6 +271,9 @@ importers:
       '@studnicky/event-bus':
         specifier: workspace:*
         version: link:../event-bus
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
@@ -302,6 +316,10 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/drilldown:
     dependencies:
@@ -314,6 +332,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/entity:
     dependencies:
@@ -324,6 +346,9 @@ importers:
         specifier: ^7.0.15
         version: 7.0.15
     devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
@@ -339,6 +364,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/errors:
     dependencies:
@@ -430,6 +459,19 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+
+  packages/example-smoke-kit:
+    dependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
 
   packages/fetch:
     dependencies:
@@ -481,6 +523,10 @@ importers:
       '@studnicky/virtual-fs':
         specifier: workspace:*
         version: link:../virtual-fs
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/filters:
     dependencies:
@@ -499,6 +545,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/flag-evaluator:
     dependencies:
@@ -514,6 +564,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/fsm:
     dependencies:
@@ -535,6 +589,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/health-registry:
     dependencies:
@@ -553,6 +611,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/idempotency-guard:
     dependencies:
@@ -574,6 +636,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/json:
     dependencies:
@@ -614,6 +680,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/keyed-work-gate:
     dependencies:
@@ -629,6 +699,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/logger:
     dependencies:
@@ -666,6 +740,9 @@ importers:
         specifier: 4.0.7
         version: 4.0.7
     devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       '@types/picomatch':
         specifier: 4.0.3
         version: 4.0.3
@@ -684,6 +761,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/memoize:
     dependencies:
@@ -705,6 +786,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/mutex:
     dependencies:
@@ -751,6 +836,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/pipeline:
     dependencies:
@@ -782,6 +871,9 @@ importers:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -812,6 +904,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/resilience:
     dependencies:
@@ -836,6 +932,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/retry:
     dependencies:
@@ -903,6 +1003,9 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -918,6 +1021,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/signal:
     dependencies:
@@ -927,6 +1034,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/store:
     dependencies:
@@ -943,6 +1054,9 @@ importers:
         specifier: workspace:*
         version: link:../mutex
     devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
@@ -959,6 +1073,9 @@ importers:
       '@studnicky/context':
         specifier: workspace:*
         version: link:../context
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/system:
     dependencies:
@@ -974,6 +1091,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/throttle:
     dependencies:
@@ -1044,6 +1165,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/topic-router-models:
     dependencies:
@@ -1059,6 +1184,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/types:
     dependencies:
@@ -1086,6 +1215,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/visible-range:
     dependencies:
@@ -1104,6 +1237,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/worker-pool:
     dependencies:
@@ -1131,6 +1268,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
 packages:
 
