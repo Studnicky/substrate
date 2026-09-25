@@ -527,6 +527,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/filters:
     dependencies:
@@ -981,6 +984,18 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+
+  packages/scenario-kit:
+    dependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/scheduler:
     dependencies:
