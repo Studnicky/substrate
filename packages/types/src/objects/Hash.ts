@@ -1,8 +1,7 @@
 /** FNV-1a structural hashing for arbitrary in-memory values. */
 
-import { Predicates } from '@studnicky/types/browser';
-
-import { FNV_OFFSET_BASIS, FNV_PRIME, UINT32_MASK } from '../constants/HashConstants.js';
+import { Predicates } from '../predicates/Predicates.js';
+import { FNV_OFFSET_BASIS, FNV_PRIME, UINT32_MASK } from './constants/HashConstants.js';
 
 export class Hash {
   protected static fnv1a32(input: string): number {

@@ -19,6 +19,16 @@
         "entrypoint": "../../examples/pickDefined.ts"
       },
       "name": "pick-defined"
+    },
+    {
+      "description": "Runs the hash example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/hash.ts"
+      },
+      "name": "hash"
     }
   ]
 }

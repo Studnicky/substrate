@@ -1,8 +1,10 @@
 /** Schema hashing with metadata-key stripping. */
 
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValueEntity } from '../entities/JsonValueEntity.js';
+import { JsonObject } from '../guards/JsonObject.js';
+import { JsonValue } from '../guards/JsonValue.js';
+import { Predicates } from '../predicates/Predicates.js';
 import { Hash } from './Hash.js';
 
 export class StructuralHash {
@@ -13,9 +15,9 @@ export class StructuralHash {
   }
 
   /** Recursively strip metadata keys from a JSON schema document. */
-  protected static stripMetadata(value: JsonValueEntity.Type): JsonValueEntity.Type {
+  protected static stripMetadata(value: JSONSchema7Type): JSONSchema7Type {
     if (Array.isArray(value)) {
-      const result: JsonValueEntity.Type[] = [];
+      const result: JSONSchema7Type[] = [];
       const valueLength = value.length;
       for (let index = 0; index < valueLength; index += 1) {
         const item = value.at(index);
@@ -31,7 +33,7 @@ export class StructuralHash {
     }
     const keys = Object.keys(value);
     const keyLength = keys.length;
-    const entries = new Map<string, JsonValueEntity.Type>();
+    const entries = new Map<string, JSONSchema7Type>();
     for (let index = 0; index < keyLength; index += 1) {
       const key = keys[index];
       if (key !== undefined && !this.isMetadataKey(key)) {
@@ -45,9 +47,17 @@ export class StructuralHash {
     return result;
   }
 
+  /** Validate `schema` as finite, acyclic JSON data, or throw. */
+  protected static intake(schema: object): JSONSchema7Type {
+    if (!JsonValue.is(schema)) {
+      throw new TypeError('Schema must be finite, acyclic JSON data.');
+    }
+    return schema;
+  }
+
   /** Hash a schema object after stripping annotation-only fields. */
   public static of(schema: object): string {
-    const result = Hash.value(this.stripMetadata(JsonValueEntity.intake(schema)));
+    const result = Hash.value(this.stripMetadata(this.intake(schema)));
     return result;
   }
 }

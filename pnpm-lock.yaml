@@ -561,9 +561,6 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
-      '@studnicky/json':
-        specifier: workspace:*
-        version: link:../json
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -633,9 +630,6 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
-      '@studnicky/json':
-        specifier: workspace:*
-        version: link:../json
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types

@@ -1,5 +1,5 @@
 /**
- * Idempotency key guard composing cache, concurrency, and json
+ * Idempotency key guard composing cache and concurrency.
  */
 
 import { LruCache } from '@studnicky/cache/browser';
@@ -18,9 +18,9 @@ class IdempotencyGuardHookInvoker extends HookInvoker {
 }
 
 /**
- * Composes `@studnicky/cache` (`LruCache`), `@studnicky/concurrency`
- * (`Coalesce`), and `@studnicky/json` (`Hash`) into the "check cache → check
- * in-flight → run → store" idempotency-key pattern.
+ * Composes `@studnicky/cache` (`LruCache`) and `@studnicky/concurrency`
+ * (`Coalesce`) into the "check cache → check in-flight → run → store"
+ * idempotency-key pattern.
  *
  * `run(key, payload, factory)` fingerprints `payload` by sorted entries and
  * checks the composed `LruCache` for an existing entry under `key`:
