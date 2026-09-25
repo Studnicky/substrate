@@ -36,7 +36,7 @@ const COMPOSED_TYPE_ACCEPTED_SOURCE = "import { EntityCompiler } from '@studnick
 
 const STRUCTURALLY_DERIVING_SCHEMA_REJECTED_SOURCE = "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}";
 
-function verifyWith(rule: typeof entityFileShape, ruleName: string, code: string, filename: string, languageOptions: object): readonly string[] {
+function verifyWith(rule: typeof entityFileShape, ruleName: string, code: string, filename: string, languageOptions: Linter.LanguageOptions): readonly string[] {
   const linter = new Linter();
   const messages = linter.verify(code, {
     files: ['**/*.ts'],
