@@ -1,10 +1,10 @@
 # @studnicky/idempotency-guard
 
-> Idempotency key guard composing `@studnicky/cache`, `@studnicky/concurrency`, and `@studnicky/json`
+> Idempotency key guard composing `@studnicky/cache` and `@studnicky/concurrency`
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/idempotency-guard)
 
-Given a caller-supplied idempotency key and request payload, `IdempotencyGuard` replays the cached result for a repeat call within a TTL window, single-flights concurrent duplicate calls, and rejects a key reused with a *different* payload. It composes three existing primitives into the "check cache → check in-flight → run → store" sequence: an `LruCache` for TTL-bounded result storage, a `Coalesce` for in-flight dedup, and `Hash` for structural payload fingerprinting — no new storage engine.
+Given a caller-supplied idempotency key and request payload, `IdempotencyGuard` replays the cached result for a repeat call within a TTL window, single-flights concurrent duplicate calls, and rejects a key reused with a *different* payload. It composes two existing primitives into the "check cache → check in-flight → run → store" sequence: an `LruCache` for TTL-bounded result storage and a `Coalesce` for in-flight dedup, fingerprinting the payload by its sorted entries — no new storage engine.
 
 ## Install
 
@@ -56,7 +56,7 @@ Concurrent calls with the same key and payload, issued before the first resolves
 
 ### `run(key, payload, factory): Promise<TResult>`
 
-`TResult` belongs to the `IdempotencyGuard<TResult>` instance and is shared by every key the guard owns. `run()` fingerprints `payload` via `Hash.value()` and checks the composed cache for an entry under `key`:
+`TResult` belongs to the `IdempotencyGuard<TResult>` instance and is shared by every key the guard owns. `run()` fingerprints `payload` by its sorted entries and checks the composed cache for an entry under `key`:
 
 `IdempotencyGuardEntryMetadataEntity` owns the schema-derived fingerprint field composed by `IdempotencyGuardEntryInterface<TResult>`; the interface retains the caller-owned generic result.
 
