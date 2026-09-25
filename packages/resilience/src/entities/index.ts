@@ -23,3 +23,4 @@ export { DeadLetterQueueRetryGeneratorOptionsEntity } from './DeadLetterQueueRet
 export { RateLimitConsumptionEntity } from './RateLimitConsumptionEntity.js';
 export { SlidingWindowLimiterOptionsEntity } from './SlidingWindowLimiterOptionsEntity.js';
 export { TokenBucketOptionsEntity } from './TokenBucketOptionsEntity.js';
+export { TokenCountEntity } from './TokenCountEntity.js';

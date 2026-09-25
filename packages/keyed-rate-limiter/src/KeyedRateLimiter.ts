@@ -252,8 +252,8 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    *   (`TokenBucketExhaustedError` for the default `TokenBucket` path)
    */
   consume(
-    key: RateLimitRequestEntity.InputType['key'],
-    tokens?: RateLimitRequestEntity.InputType['tokens']
+    key: unknown,
+    tokens?: unknown
   ): RateLimitConsumptionEntity.Type {
     const request = this.#intakeRequest(key, tokens);
     const strategy = this.#resolveStrategy(request.key);
@@ -282,10 +282,10 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * @param options - `{signal?, tokens?}`, forwarded to the underlying strategy
    */
   async waitForToken(
-    key: RateLimitRequestEntity.InputType['key'],
+    key: unknown,
     options?: {
       'signal'?: AbortSignal;
-      'tokens'?: RateLimitRequestEntity.InputType['tokens'];
+      'tokens'?: unknown;
     }
   ): Promise<RateLimitConsumptionEntity.Type> {
     const request = this.#intakeRequest(key, options?.tokens);
@@ -294,7 +294,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       ? undefined
       : {
         ...(options.signal === undefined ? {} : { 'signal': options.signal }),
-        ...(request.tokens === undefined ? {} : { 'tokens': request.tokens })
+        'tokens': request.tokens
       };
     const result = this.#intakeConsumption(await strategy.waitForToken(strategyOptions));
     this.hooks.invoke('onTokenAcquired', () => {

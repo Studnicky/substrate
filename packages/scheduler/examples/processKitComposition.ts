@@ -86,9 +86,8 @@ class Job {
       });
     };
 
-    const interpreter = EffectInterpreter.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
-      'handler': handler,
-      'machine': JobProcess.make()
+    const interpreter = EffectInterpreter.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>(JobProcess.make(), {
+      'handler': handler
     });
 
     const waitForScheduledDispatch = (): Promise<void> => {
