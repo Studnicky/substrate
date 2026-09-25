@@ -1,13 +1,15 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
-import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 
 import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
+import { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
+import { CoalesceConfigError } from './errors/CoalesceConfigError.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
 interface CoalesceSubclassInterface<TInstance> extends Function {
@@ -30,9 +32,18 @@ export class Coalesce<T> {
     TInstance extends CoalesceShapeInterface = Coalesce<T>
   >(
     this: CoalesceSubclassInterface<TInstance>,
-    options?: CoalesceOptionsEntity.Type
+    options?: CoalesceOptionsEntity.InputType
   ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
+    let validated: CoalesceOptionsEntity.Type;
+    try {
+      validated = CoalesceOptionsEntity.intake(options ?? {});
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new CoalesceConfigError(error.message);
+      }
+      throw error;
+    }
+    const result: unknown = Reflect.construct(this, [validated]);
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
       throw RuntimeError.create('Coalesce.create() did not construct the requested subclass.');
     }

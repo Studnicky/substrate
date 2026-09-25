@@ -1,4 +1,6 @@
+export { ChannelConfigError } from './ChannelConfigError.js';
 export { ChannelError } from './ChannelError.js';
+export { CoalesceConfigError } from './CoalesceConfigError.js';
 export { CoalesceTimeoutError } from './CoalesceTimeoutError.js';
 export { ConcurrencyError } from './ConcurrencyError.js';
 export { SemaphoreError } from './SemaphoreError.js';
