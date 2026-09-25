@@ -2,8 +2,7 @@ import type {
   Rule, Scope
 } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
-
+import { AstHelpers } from '../shared/astHelpers.js';
 import { DeclaredFunctionVariable } from '../shared/DeclaredFunctionVariable.js';
 import { LoopContext } from '../shared/LoopContext.js';
 
@@ -57,14 +56,13 @@ class DefaultParameterReachability {
     }
 
     const result = readReferences.every((reference: Scope.Reference) => {
-      const identifier = reference.identifier as unknown as { readonly 'parent'?: unknown };
-      const parent = identifier.parent;
+      const parent = AstHelpers.getParent(reference.identifier);
 
-      if (!Predicates.isRecord(parent) || parent.type !== 'CallExpression' || parent.callee !== (reference.identifier as unknown)) {
+      if (parent?.type !== 'CallExpression' || parent.callee !== (reference.identifier as unknown)) {
         return false;
       }
 
-      const isPerIterationCall = LoopContext.isPerIteration(parent as unknown as Rule.Node, context);
+      const isPerIterationCall = LoopContext.isPerIteration(parent, context);
 
       return isPerIterationCall;
     });

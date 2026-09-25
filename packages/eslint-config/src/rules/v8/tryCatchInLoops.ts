@@ -4,6 +4,7 @@ import type {
 
 import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import { DeclaredFunctionVariable } from '../shared/DeclaredFunctionVariable.js';
 import { LoopContext } from '../shared/LoopContext.js';
@@ -37,8 +38,7 @@ class CallSiteAnalysis {
   // True only when the reference's identifier is the callee of a CallExpression,
   // not passed as a callback value, reassigned, or otherwise indirect.
   public static isDirectCallReference(reference: Scope.Reference): boolean {
-    const identifier = reference.identifier as unknown as { readonly 'parent'?: unknown };
-    const parent = identifier.parent;
+    const parent = AstHelpers.getParent(reference.identifier);
 
     if (!Predicates.isRecord(parent) || parent.type !== 'CallExpression') {
       return false;
@@ -66,7 +66,11 @@ class CallSiteAnalysis {
       if (!CallSiteAnalysis.isDirectCallReference(reference)) {
         return false;
       }
-      const callExpression = (reference.identifier as unknown as { readonly 'parent': Rule.Node }).parent;
+      const callExpression = AstHelpers.getParent(reference.identifier);
+
+      if (callExpression === null) {
+        return false;
+      }
 
       const isPerIterationCall = LoopContext.isPerIteration(callExpression, context);
 

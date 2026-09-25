@@ -188,7 +188,7 @@ class MembershipCallDetection {
     if (!Predicates.isRecord(callee)) { return false; }
     const object = callee.object;
     if (AstHelpers.getNodeType(object) !== 'ArrayExpression') { return false; }
-    const parent = (node as unknown as { readonly 'parent'?: unknown }).parent;
+    const parent = AstHelpers.getParent(node);
     const result = MembershipIndexOfCall.get(parent) === node;
     return result;
   }
@@ -336,7 +336,7 @@ class ScopeReferenceDetection {
   // Returns true if this scope reference is: ident.includes(...) as a call callee
   public static isIncludesCalleeReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
-    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    const parent = AstHelpers.getParent(id);
     if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== false) { return false; }
@@ -348,7 +348,7 @@ class ScopeReferenceDetection {
     if (parent.object !== (id as unknown)) { return false; }
 
     // MemberExpression must be the callee of a CallExpression
-    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+    const grandParent = AstHelpers.getParent(parent);
     if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
     if (grandParent.callee !== (parent as unknown)) { return false; }
@@ -359,7 +359,7 @@ class ScopeReferenceDetection {
   // Returns true if this scope reference is: ident.indexOf(...) used in a membership comparison
   public static isIndexOfCalleeMembershipReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
-    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    const parent = AstHelpers.getParent(id);
     if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== false) { return false; }
@@ -369,19 +369,19 @@ class ScopeReferenceDetection {
 
     if (parent.object !== (id as unknown)) { return false; }
 
-    const grandParent = (parent as unknown as { readonly 'parent'?: unknown }).parent;
+    const grandParent = AstHelpers.getParent(parent);
     if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
     if (grandParent.callee !== (parent as unknown)) { return false; }
 
-    const greatGrandParent = (grandParent as unknown as { readonly 'parent'?: unknown }).parent;
+    const greatGrandParent = AstHelpers.getParent(grandParent);
     const result = MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
     return result;
   }
 
   public static isComputedMemberObjectReference(reference: Scope.Reference): boolean {
     const id = reference.identifier;
-    const parent = (id as unknown as { readonly 'parent'?: unknown }).parent;
+    const parent = AstHelpers.getParent(id);
     if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== true) { return false; }
