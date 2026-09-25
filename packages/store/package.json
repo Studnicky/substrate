@@ -67,6 +67,7 @@
     "@studnicky/mutex": "workspace:*"
   },
   "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*",
     "fake-indexeddb": "^6.2.5"
   }
 }

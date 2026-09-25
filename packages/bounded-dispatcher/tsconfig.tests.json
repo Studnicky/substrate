@@ -28,6 +28,9 @@
     },
     {
       "path": "../scheduler"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

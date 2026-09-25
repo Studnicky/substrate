@@ -68,5 +68,8 @@
     "@studnicky/scheduler": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@studnicky/virtual-fs": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

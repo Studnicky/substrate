@@ -22,6 +22,9 @@
     },
     {
       "path": "../mutex"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

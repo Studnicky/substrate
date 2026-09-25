@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "the findSimilarText example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/findSimilarText.ts"
+      },
+      "name": "findSimilarText",
+      "shape": "imports-example"
+    }
+  ]
+}

@@ -61,6 +61,7 @@
     "@studnicky/store": "workspace:*"
   },
   "devDependencies": {
-    "@studnicky/context": "workspace:*"
+    "@studnicky/context": "workspace:*",
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

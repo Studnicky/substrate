@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "the observedMemoize example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedMemoize.ts"
+      },
+      "name": "observedMemoize",
+      "shape": "imports-example"
+    }
+  ]
+}

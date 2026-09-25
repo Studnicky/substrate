@@ -1,0 +1,81 @@
+{
+  "cases": [
+    {
+      "description": "the acquireRelease example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/acquireRelease.ts"
+      },
+      "name": "acquireRelease",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the browserWebLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/browserWebLock.ts"
+      },
+      "name": "browserWebLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedFileLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedFileLock.ts"
+      },
+      "name": "observedFileLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedVfsLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedVfsLock.ts"
+      },
+      "name": "observedVfsLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the timeoutContention example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/timeoutContention.ts"
+      },
+      "name": "timeoutContention",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the usingDispose example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/usingDispose.ts"
+      },
+      "name": "usingDispose",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the vfsLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/vfsLock.ts"
+      },
+      "name": "vfsLock",
+      "shape": "imports-example"
+    }
+  ]
+}

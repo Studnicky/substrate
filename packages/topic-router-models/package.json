@@ -53,5 +53,8 @@
     "@studnicky/matching": "workspace:*",
     "@studnicky/topic-router": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

@@ -61,14 +61,15 @@
   },
   "dependencies": {
     "@studnicky/circular-buffer": "workspace:*",
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/event-bus": "workspace:*",
+    "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scheduler": "workspace:*"
   }
 }

@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "the layered-browser-store example is browser-only; correctly refuses to run outside a browser, so it is asserted registered in the docs playground",
+      "expected": {
+        "registeredInDocsPlayground": true
+      },
+      "input": {
+        "file": "../../examples/layered-browser-store.ts"
+      },
+      "name": "layered-browser-store",
+      "shape": "browser-example"
+    }
+  ]
+}

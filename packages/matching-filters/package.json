@@ -45,5 +45,8 @@
     "@studnicky/filters": "workspace:*",
     "@studnicky/matching": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

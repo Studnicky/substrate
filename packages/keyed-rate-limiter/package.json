@@ -70,5 +70,8 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/resilience": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

@@ -62,5 +62,8 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

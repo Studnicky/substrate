@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/boundary-kit",
   "version": "14.0.0",
-  "description": "Boundary Kit — composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern",
+  "description": "Boundary Kit \u2014 composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -66,5 +66,8 @@
     "@studnicky/retry": "workspace:*",
     "@studnicky/throttle": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

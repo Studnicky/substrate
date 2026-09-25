@@ -69,11 +69,14 @@
   "dependencies": {
     "@studnicky/batch": "workspace:*",
     "@studnicky/concurrency": "workspace:*",
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/system": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

@@ -19,6 +19,9 @@
     },
     {
       "path": "../entity"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

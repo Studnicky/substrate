@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "description": "the browser-targets example is browser-only; correctly refuses to run outside a browser, so it is asserted registered in the docs playground",
+      "expected": {
+        "registeredInDocsPlayground": true
+      },
+      "input": {
+        "file": "../../examples/browser-targets.ts"
+      },
+      "name": "browser-targets",
+      "shape": "browser-example"
+    },
+    {
+      "description": "the memory-store example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/memory-store.ts"
+      },
+      "name": "memory-store",
+      "shape": "imports-example"
+    }
+  ]
+}

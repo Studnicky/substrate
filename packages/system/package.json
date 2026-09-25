@@ -64,9 +64,12 @@
     "npm": ">=11.0.0"
   },
   "dependencies": {
-    "@studnicky/fsm": "workspace:*",
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

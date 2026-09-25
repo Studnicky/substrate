@@ -62,9 +62,12 @@
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }
