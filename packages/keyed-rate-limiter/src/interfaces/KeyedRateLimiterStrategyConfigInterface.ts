@@ -8,7 +8,7 @@ export interface KeyedRateLimiterStrategyConfigInterface<
   /** Produces a strategy when a key is first seen or re-seen after eviction. */
   'factory': (key: string) => TStrategy;
   /** Time-to-live (ms) for an idle key's strategy before cache eviction. */
-  'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.Type['keyIdleTtlMs'];
+  'keyIdleTtlMs'?: KeyedRateLimiterRegistryOptionsEntity.InputType['keyIdleTtlMs'];
   /** Maximum number of distinct keys retained at once. Defaults to 10,000. */
-  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.Type['maximumKeys'];
+  'maximumKeys'?: KeyedRateLimiterRegistryOptionsEntity.InputType['maximumKeys'];
 }
