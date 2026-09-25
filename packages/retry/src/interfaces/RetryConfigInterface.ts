@@ -7,7 +7,7 @@ import type { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import type { BackoffStrategyInterface } from './BackoffStrategyInterface.js';
 import type { RetryEventTopicMapInterface } from './RetryEventTopicMapInterface.js';
 
-interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
+interface RetryBackoffConfigInterface extends BackoffConfigEntity.InputType {
   readonly 'strategy': BackoffStrategyInterface;
 }
 
@@ -21,7 +21,7 @@ interface RetryBackoffConfigInterface extends BackoffConfigEntity.Type {
  * The configuration intake parses the JSON subset and verifies the runtime-member
  * contracts before Retry construction uses them.
  */
-export interface RetryConfigInterface extends RetryConfigEntity.Type {
+export interface RetryConfigInterface extends RetryConfigEntity.InputType {
   readonly 'backoffStrategy'?: RetryBackoffConfigInterface;
   /** Clock used to measure the retry elapsed-time budget. Default: `RealTimeClockProvider`. */
   readonly 'clock'?: ClockProviderInterface;
