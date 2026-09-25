@@ -1,34 +1,32 @@
 {
   "cases": [
     {
-      "description": "Runs the basic context example",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "entrypoint": "../../examples/basic-context.ts"
-      },
-      "name": "basic-context"
+      "description": "the basic-context example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/basic-context.ts" },
+      "name": "basic-context",
+      "shape": "imports-example"
     },
     {
-      "description": "Runs the observed context example",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "entrypoint": "../../examples/observedContext.ts"
-      },
-      "name": "observed-context"
+      "description": "the browser-context example is browser-only; correctly refuses to run outside a browser, so it is asserted registered in the docs playground",
+      "expected": { "registeredInDocsPlayground": true },
+      "input": { "file": "../../examples/browser-context.ts" },
+      "name": "browser-context",
+      "shape": "browser-example"
     },
     {
-      "description": "Runs the subclass hooks example",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "entrypoint": "../../examples/subclass-hooks.ts"
-      },
-      "name": "subclass-hooks"
+      "description": "the observedContext example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/observedContext.ts" },
+      "name": "observed-context",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the subclass-hooks example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/subclass-hooks.ts" },
+      "name": "subclass-hooks",
+      "shape": "imports-example"
     }
   ]
 }

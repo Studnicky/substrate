@@ -77,5 +77,8 @@
     "@studnicky/types": "workspace:*",
     "rollup": "^4.63.1",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }
