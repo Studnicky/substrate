@@ -4,8 +4,7 @@ import type { Rule } from 'eslint';
 import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { AstNodeInterface } from '../shared/AstNodeInterface.js';
-
+import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
 import {
   ITERATION_METHOD_NAMES, ITERATION_OWNERS, MESSAGE, RULE_NAME
@@ -15,18 +14,18 @@ import {
 
 class IterationCall {
   public static matches(node: unknown, context: Rule.RuleContext): boolean {
-    if (!Predicates.isRecord(node) || node.type !== 'CallExpression') {
+    if (!AstHelpers.isNode(node) || node.type !== 'CallExpression') {
       return false;
     }
 
-    const result = CallIdentity.isBuiltinCall(node as unknown as Rule.Node, context, ITERATION_METHOD_NAMES, ITERATION_OWNERS);
+    const result = CallIdentity.isBuiltinCall(node, context, ITERATION_METHOD_NAMES, ITERATION_OWNERS);
     return result;
   }
 
   // Walks the receiver chain of `node` through intervening `.method(...)` calls, looking for
   // an earlier call in the same chain that is itself an iteration method.
-  public static hasEarlierIterationCallInChain(node: AstNodeInterface, context: Rule.RuleContext): boolean {
-    const callee = node.callee;
+  public static hasEarlierIterationCallInChain(node: Rule.Node, context: Rule.RuleContext): boolean {
+    const callee = AstHelpers.getNodeProperty(node, 'callee');
 
     if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
       return false;
@@ -59,7 +58,7 @@ namespace StatementIndexEntity {
 }
 
 interface StatementLocationInterface {
-  readonly 'block': AstNodeInterface;
+  readonly 'block': Rule.Node;
   readonly 'index': StatementIndexEntity.Type;
 }
 
@@ -71,15 +70,13 @@ class StatementIndex {
     let parent: Rule.Node | null = node.parent;
 
     while (parent !== null) {
-      const rawParent = parent as unknown as AstNodeInterface;
-
-      if ((rawParent.type === 'BlockStatement' || rawParent.type === 'Program') && Array.isArray(rawParent.body)) {
-        const body = rawParent.body as readonly unknown[];
+      if (parent.type === 'BlockStatement' || parent.type === 'Program') {
+        const body: readonly unknown[] = parent.body;
         const index = body.indexOf(current);
 
         if (index !== -1) {
           return {
-            'block': rawParent, 'index': index
+            'block': parent, 'index': index
           };
         }
       }
@@ -133,9 +130,9 @@ export const chainedArrayIteration: Rule.RuleModule = {
     const trackedTempVariables = new Map<string, TrackedTempVariableInterface>();
 
     const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-      const declarationNode = node.parent as unknown as AstNodeInterface;
+      const declarationNode = node.parent;
 
-      if (!Predicates.isRecord(declarationNode) || declarationNode.type !== 'VariableDeclaration' || declarationNode.kind !== 'const') {
+      if (declarationNode.type !== 'VariableDeclaration' || declarationNode.kind !== 'const') {
         return;
       }
       if (node.id.type !== 'Identifier') {
@@ -161,9 +158,7 @@ export const chainedArrayIteration: Rule.RuleModule = {
         return;
       }
 
-      const rawNode = node as unknown as AstNodeInterface;
-
-      if (IterationCall.hasEarlierIterationCallInChain(rawNode, context)) {
+      if (IterationCall.hasEarlierIterationCallInChain(node, context)) {
         context.report({
           'messageId': 'forbidden', 'node': node
         });
