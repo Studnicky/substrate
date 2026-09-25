@@ -4,6 +4,6 @@ import type { VectorEntryInterface } from './VectorEntryInterface.js';
 
 export interface VectorIndexInterface {
   delete(id: string, namespace: string): Promise<void>;
-  search(vector: Float32Array, options: VectorSearchOptionsEntity.Type): Promise<readonly VectorMatchEntity.Type[]>;
+  search(vector: Float32Array, options: VectorSearchOptionsEntity.InputType): Promise<readonly VectorMatchEntity.Type[]>;
   upsert(entry: VectorEntryInterface): Promise<void>;
 }
