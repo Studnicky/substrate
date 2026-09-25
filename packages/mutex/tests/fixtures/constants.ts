@@ -4,18 +4,18 @@
 
 import type { MutexConfigEntity } from '../../src/entities/MutexConfigEntity.js';
 
-export const defaultConfig: Partial<MutexConfigEntity.Type> = {};
+export const defaultConfig: Partial<MutexConfigEntity.InputType> = {};
 
-export const fullConfig: Partial<MutexConfigEntity.Type> = {
+export const fullConfig: Partial<MutexConfigEntity.InputType> = {
   maximumQueueSize: 100,
   timeout: 5000
 };
 
-export const mediumQueueConfig: Partial<MutexConfigEntity.Type> = {
+export const mediumQueueConfig: Partial<MutexConfigEntity.InputType> = {
   maximumQueueSize: 10,
   timeout: 5000
 };
 
-export const coalescingConfig: Partial<MutexConfigEntity.Type> = {
+export const coalescingConfig: Partial<MutexConfigEntity.InputType> = {
   enableCoalescing: true
 };

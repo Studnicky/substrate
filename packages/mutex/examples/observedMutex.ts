@@ -3,8 +3,9 @@
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { AcquireWaitEventEntity, QueueDrainEventEntity, ReleaseEventEntity } from '../src/entities/index.js';
+import type { QueueDrainEventEntity, ReleaseEventEntity } from '../src/entities/index.js';
 
+import { AcquireWaitEventEntity } from '../src/entities/index.js';
 import { Mutex } from '../src/index.js';
 
 class TracingMutex extends Mutex<string> {
@@ -22,7 +23,7 @@ class TracingMutex extends Mutex<string> {
 
   protected override onAcquireWait(key: string, waitTimeMs: number): void {
     console.log(`[mutex] onAcquireWait key=${key} waitTimeMs=${waitTimeMs}`);
-    this.acquireWaitEvents.push({ 'key': key, 'waitTimeMs': waitTimeMs });
+    this.acquireWaitEvents.push(AcquireWaitEventEntity.create({ 'key': key, 'waitTimeMs': waitTimeMs }));
   }
 
   protected override onContended(key: string, queueSize: number): void {
