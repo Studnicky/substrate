@@ -98,7 +98,7 @@ function snapshotToRecord(snapshot: ReadonlyMap<string, unknown>): Record<string
   return Object.fromEntries(snapshot);
 }
 
-function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
+function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.InputType {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {
@@ -152,7 +152,7 @@ function createContext(scenarioCase: ScenarioCase): Context {
 }
 
 function multiContextInput(scenarioCase: ScenarioCase, key: string): {
-  context: ContextConfigEntity.Type;
+  context: ContextConfigEntity.InputType;
   initial: Record<string, unknown> | undefined;
 } {
   const contexts = requireRecord(scenarioCase.input.contexts, 'input.contexts');
@@ -172,7 +172,7 @@ function multiContextInput(scenarioCase: ScenarioCase, key: string): {
   };
 }
 
-function makeLenientContext(config: ContextConfigEntity.Type): Context {
+function makeLenientContext(config: ContextConfigEntity.InputType): Context {
   class LenientContext extends Context {
     protected override onMissingContext(): boolean {
       return true;
