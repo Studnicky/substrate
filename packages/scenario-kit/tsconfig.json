@@ -2,12 +2,11 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "noEmit": true
+    "rootDir": "./src",
+    "outDir": "./dist"
   },
   "include": [
-    "tests/**/*",
-    "examples/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -15,22 +14,13 @@
   ],
   "references": [
     {
-      "path": "./tsconfig.json"
+      "path": "../entity"
     },
     {
       "path": "../errors"
     },
     {
-      "path": "../json"
-    },
-    {
-      "path": "../virtual-fs"
-    },
-    {
-      "path": "../example-smoke-kit"
-    },
-    {
-      "path": "../scenario-kit"
+      "path": "../types"
     }
   ]
 }

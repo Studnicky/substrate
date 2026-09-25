@@ -320,6 +320,12 @@
     },
     {
       "path": "packages/example-smoke-kit/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/scenario-kit"
+    },
+    {
+      "path": "packages/scenario-kit/tsconfig.tests.json"
     }
   ],
   "files": []

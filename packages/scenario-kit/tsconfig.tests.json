@@ -6,8 +6,7 @@
     "noEmit": true
   },
   "include": [
-    "tests/**/*",
-    "examples/**/*"
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
@@ -16,21 +15,6 @@
   "references": [
     {
       "path": "./tsconfig.json"
-    },
-    {
-      "path": "../errors"
-    },
-    {
-      "path": "../json"
-    },
-    {
-      "path": "../virtual-fs"
-    },
-    {
-      "path": "../example-smoke-kit"
-    },
-    {
-      "path": "../scenario-kit"
     }
   ]
 }
