@@ -53,7 +53,7 @@ The composed `LruCache` and `Coalesce` remain private. Callers control cached st
 
 | Error | Thrown when |
 |-------|-------------|
-| `MemoizeConfigError` | `Memoize.create(fn, options)` receives an invalid function, key derivation, or cache capacity |
+| `MemoizeConfigError` | `Memoize.create(fn, config, collaborators)` receives an invalid function, key derivation, or cache capacity |
 
 ## Documentation
 
@@ -70,11 +70,11 @@ import { CacheLookupEntity } from '@studnicky/memoize/entities';
 
 ## Interfaces
 
-`@studnicky/memoize/interfaces` exports memoization option contracts.
+`@studnicky/memoize/interfaces` exports the typed collaborators `Memoize.create` accepts alongside schema-validated config.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
-import type { MemoizeOptionsInterface } from '@studnicky/memoize/interfaces';
+import type { MemoizeCollaboratorsInterface } from '@studnicky/memoize/interfaces';
 ```
 
 ## Exports

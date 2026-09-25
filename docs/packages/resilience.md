@@ -132,7 +132,7 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 |--------|---------|-------------|
 | `CircuitBreaker` | Three-state async circuit breaker. | `@studnicky/resilience/node` |
 | `CircuitBreakerOpenError` | Signals a call rejected by an open circuit. | `@studnicky/resilience/node` |
-| `CircuitBreakerOptionsInterface` | Caller-supplied circuit-breaker options, including clock and error classifier. | `@studnicky/resilience/interfaces` |
+| `CircuitBreakerCollaboratorsInterface` | Typed clock and error-classifier collaborators `CircuitBreaker.create` accepts alongside schema-validated config. | `@studnicky/resilience/interfaces` |
 | `DeadLetterQueue<T>` | Bounded FIFO queue with async-generator drain. | `@studnicky/resilience/node` |
 | `DeadLetterQueueAbortedError` | Signals enqueue after queue abort. | `@studnicky/resilience/node` |
 | `DeadLetterQueueClosedError` | Signals enqueue after queue close. | `@studnicky/resilience/node` |
