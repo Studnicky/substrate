@@ -11,13 +11,15 @@ class Clock {
   static now(): number { const result = now + 0; return result; }
 }
 
-const breaker = CircuitBreaker.create({
-  'clock': Clock.now,
-  'failureThreshold': 3,
-  'name': 'test-service',
-  'resetTimeoutMs': 1_000,
-  'successThreshold': 2
-});
+const breaker = CircuitBreaker.create(
+  {
+    'failureThreshold': 3,
+    'name': 'test-service',
+    'resetTimeoutMs': 1_000,
+    'successThreshold': 2
+  },
+  { 'clock': Clock.now }
+);
 
 // --- CLOSED: successful calls pass through ---
 await breaker.execute(() => { const result = Promise.resolve('ok'); return result; });

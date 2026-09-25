@@ -85,7 +85,7 @@ Import FSM classes and package errors from `@studnicky/fsm/node`; import type co
 | Export | Type | Description |
 |--------|------|-------------|
 | `StateMachine<TState, TEvent, TEffect>` | abstract class | Base FSM; implement `getInitialState` and `reduce` |
-| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; configure a singular handler through `create({ machine, handler })` |
+| `EffectInterpreter<TState, TEvent, TEffect>` | class | Drives a machine; configure a singular handler through `create(machine, { handler })` |
 | `InterpreterHistory<TState, TEvent, TEffect>` | class | Bounded recorder of one interpreter's variant-changing transitions |
 | `MachineRegistry<TState, TEvent>` | class | Instantiable named registry of interpreters |
 | `FsmStepInterface<TState, TEffect>` | interface | Readonly `{ state, effects }` contract returned by `reduce` |
@@ -157,7 +157,7 @@ import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities'
 | `FsmStepInterface` | Defines a state-machine transition result. | `@studnicky/fsm/interfaces` |
 | `FsmTransitionInterface` | Defines a state-machine transition. | `@studnicky/fsm/interfaces` |
 | `InterpreterHistory` | Retains state-machine transition history. | `@studnicky/fsm/node` |
-| `InterpreterHistoryCreateOptionsInterface` | Defines bounded transition-history construction options. | `@studnicky/fsm/interfaces` |
+| `InterpreterHistoryCollaboratorsInterface` | Defines the typed clock and handler collaborators `InterpreterHistory.create` accepts alongside schema-validated config; `machine` is a required positional parameter, not a bag field. | `@studnicky/fsm/interfaces` |
 | `InterpreterHistoryRecordInterface` | Defines a recorded transition. | `@studnicky/fsm/interfaces` |
 | `InterpreterNotRunningError` | Signals work submitted to a stopped interpreter. | `@studnicky/fsm/node` |
 | `InterpreterNotStartedError` | Signals work submitted before an interpreter starts. | `@studnicky/fsm/node` |
