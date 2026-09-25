@@ -249,6 +249,6 @@ void describe('EntityClosureRegistry — boolean schemas and error shape', () =>
     assert.equal(typeof error.instancePath, 'string');
     assert.equal(typeof error.keyword, 'string');
     assert.equal(typeof error.schemaPath, 'string');
-    assert.ok(error.params !== undefined);
+    assert.ok(error.parameters !== undefined);
   });
 });

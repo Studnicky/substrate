@@ -97,7 +97,7 @@ void describe('EntityCompiler browser CSP safety', () => {
       if (!(error instanceof SchemaIntakeError)) {
         throw error;
       }
-      browserMissingProperty = error.errors[0]?.params.missingProperty;
+      browserMissingProperty = error.errors[0]?.parameters.missingProperty;
     }
 
     let nodeMissingProperty: unknown;
@@ -108,7 +108,7 @@ void describe('EntityCompiler browser CSP safety', () => {
       if (!(error instanceof SchemaIntakeError)) {
         throw error;
       }
-      nodeMissingProperty = error.errors[0]?.params.missingProperty;
+      nodeMissingProperty = error.errors[0]?.parameters.missingProperty;
     }
 
     assert.equal(browserMissingProperty, 'port');

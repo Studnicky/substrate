@@ -21,7 +21,7 @@ export class LogBody {
         });
         const missingProperty: unknown = requiredError === undefined
           ? undefined
-          : Reflect.get(requiredError.params, 'missingProperty');
+          : Reflect.get(requiredError.parameters, 'missingProperty');
         const message = typeof missingProperty !== 'string'
           ? error.message
           : `LogBody: ${missingProperty} is required${missingProperty === 'context' ? ' (use empty object {} if no context needed)' : ''}`;

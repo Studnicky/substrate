@@ -27,7 +27,7 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.ok(errors !== null && errors !== undefined);
     assert.ok(errors.length > 0);
     assert.equal(errors[0]?.keyword, 'type');
-    assert.equal(errors[0]?.params.missingProperty, undefined);
+    assert.equal(errors[0]?.parameters.missingProperty, undefined);
     assert.equal(EntityCompiler.formatErrors(null), 'invalid payload');
   });
 
@@ -43,7 +43,7 @@ void describe('EntityCompiler schema boundaries', () => {
     const errors = validate.errors;
     assert.ok(errors !== null && errors !== undefined);
     assert.equal(errors[0]?.keyword, 'required');
-    assert.equal(errors[0]?.params.missingProperty, 'port');
+    assert.equal(errors[0]?.parameters.missingProperty, 'port');
   });
 
   void it('fills defaults on an intake clone without coercing values', () => {
