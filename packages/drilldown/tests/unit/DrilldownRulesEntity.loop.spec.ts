@@ -3,9 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { DrillDownConfigEntity } from '../../src/index.js';
-
-import { DrilldownRulesEntity, DrillDown } from '../../src/index.js';
+import { DrilldownRulesEntity, DrillDown, DrillDownConfigEntity } from '../../src/index.js';
 import { TypeGuards } from '../../src/typeguards/index.js';
 import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { type: 'json' };
 
@@ -190,8 +188,16 @@ function runScenarioCase(scenarioCase: ScenarioCase): void {
   }
 
   const records = buildRecords(scenarioCase.input.properties, scenarioCase.input.values);
+  // `minimumGroupSize` alone proves the branded bound; `rules` is already `DrilldownRulesEntity.Type`,
+  // validated separately above — combining the two avoids intake's cross-document `$ref` (pre-existing
+  // gap in EntityCompiler.compileIntake, unrelated to this schema; see report to team-lead).
+  const provenMinimumGroupSize = DrillDownConfigEntity.intake({ 'minimumGroupSize': 1 });
+  const minimumGroupSize = provenMinimumGroupSize.minimumGroupSize;
+
+  assert.ok(minimumGroupSize !== undefined, 'minimumGroupSize was just supplied to intake');
+
   const config: DrillDownConfigEntity.Type = {
-    'minimumGroupSize': 0,
+    'minimumGroupSize': minimumGroupSize,
     'rules': buildPathRules(scenarioCase.input.properties, scenarioCase.input.values, scenarioCase.input.path, 0)
   };
 

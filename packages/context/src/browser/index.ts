@@ -13,7 +13,7 @@ import { ContextAsyncRuntime } from './ContextAsyncRuntime.js';
 export class Context extends ContextModule.Context {
   static override create<TInstance extends Context = Context>(
     this: ContextConstructorInterface<TInstance>,
-    config: ContextConfigEntity.Type,
+    config: ContextConfigEntity.InputType,
     storage: ContextStorageInterface = new BrowserContextStorage()
   ): TInstance {
     const result = super.create(config, storage);

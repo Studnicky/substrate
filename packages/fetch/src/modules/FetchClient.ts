@@ -17,7 +17,7 @@ import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { RequestContextInterface } from '../interfaces/RequestContextInterface.js';
-import type { RequestIdGeneratorInterface } from '../interfaces/RequestIdGeneratorInterface.js';
+import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 import type { ResponseContextInterface } from '../interfaces/ResponseContextInterface.js';
 import type { TestDispatcher } from '../testing/TestDispatcher.js';
 
@@ -51,11 +51,6 @@ const UNDICI_ERROR_MAP = new Map<string, 'body' | 'connect' | 'headers' | 'socke
 
 interface FetchClientSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
-}
-
-interface ValidatedClientConfigInterface {
-  readonly 'config': ClientConfigInterface;
-  readonly 'queryParameters': QueryParametersEntity.Type | undefined;
 }
 
 /** Tracks the deadline/abort signal produced while preparing a request, for reuse when classifying its failure. */
@@ -124,7 +119,7 @@ export class FetchClient implements FetchClientInterface {
 
   protected readonly hooks: HookInvoker;
 
-  private readonly config: ClientConfigInterface;
+  private readonly config: ResolvedClientConfigInterface;
   private readonly queryParameters: QueryParametersEntity.Type | undefined;
   private readonly clock: Clock;
   private readonly dispatcher: undefined | UndiciDispatcher;
@@ -132,7 +127,7 @@ export class FetchClient implements FetchClientInterface {
   private readonly signal: Signal;
 
   protected constructor(config: ClientConfigInterface = {}) {
-    const validated = FetchClient.validateConfig(config);
+    const validated = FetchClientConfiguration.intake(config, FetchClientConfiguration.collaboratorsFrom(config));
 
     this.config = validated.config;
     this.queryParameters = validated.queryParameters;
@@ -254,7 +249,7 @@ export class FetchClient implements FetchClientInterface {
    * await client.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.dispatcher !== undefined) {
       await this.hooks.invokeAsync('onDispatcherDestroy', () => {
         const result = this.onDispatcherDestroy();
@@ -808,39 +803,6 @@ export class FetchClient implements FetchClientInterface {
     }
 
     return new BodyTimeoutError(url, error);
-  }
-
-  private static validateConfig(config: ClientConfigInterface): ValidatedClientConfigInterface {
-    const validated = FetchClientConfiguration.intake(config);
-
-    if (validated.config.requestIdGenerator !== undefined) {
-      FetchClient.assertRequestIdGenerator(validated.config.requestIdGenerator);
-    }
-    if (validated.config.clock !== undefined && (!Predicates.isFunction(validated.config.clock.hrtime) || !Predicates.isFunction(validated.config.clock.now))) {
-      throw new ConfigurationError('clock must implement ClockProviderInterface');
-    }
-    if (validated.config.signal !== undefined && !(validated.config.signal instanceof Signal)) {
-      throw new ConfigurationError('signal must be a Signal instance');
-    }
-
-    return validated;
-  }
-
-  private static assertRequestIdGenerator(requestIdGenerator: RequestIdGeneratorInterface): void {
-    if (!Predicates.isFunction(requestIdGenerator)) {
-      throw new ConfigurationError('requestIdGenerator must be a function');
-    }
-
-    try {
-      if (!Predicates.isString(requestIdGenerator())) {
-        throw new ConfigurationError('requestIdGenerator must return a string');
-      }
-    } catch (error) {
-      if (error instanceof ConfigurationError) {
-        throw error;
-      }
-      throw new ConfigurationError(`requestIdGenerator function error: ${Predicates.isError(error) ? error.message : String(error)}`);
-    }
   }
 
 }

@@ -192,7 +192,7 @@ export class HookInvoker {
   readonly #timeoutMs: number | undefined;
   #invoking = false;
 
-  constructor(options?: HookInvokerOptionsEntity.Type) {
+  constructor(options?: HookInvokerOptionsEntity.InputType) {
     if (options !== undefined && !HookInvokerOptionsEntity.validate(options)) {
       throw ValidationError.create({
         'message': 'Must match HookInvokerOptionsEntity.Schema',

@@ -29,6 +29,7 @@ import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES
 } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 /**
@@ -919,12 +920,11 @@ class TypeAliasDeclarationCheck {
       return;
     }
 
-    // A top-level union of independently-declared, pure-data contract interfaces (every
-    // constituent readonly-evidenced, none callable) has no interface remedy either — the
-    // same "TypeScript cannot express a union as one interface" limitation above, just
-    // without a callable constituent to name it after. See
-    // `isTopLevelUnionOfDataContractInterfaces`'s doc comment.
-    if (classification.isTopLevelUnionOfDataContractInterfaces(declaration.type)) {
+    // A top-level union of independently-declared, named schema-derived constituents (every
+    // member a pure-data contract interface or a canonical Type-alias reference) has no
+    // interface remedy either — the same "TypeScript cannot express a union as one interface"
+    // limitation above. See `isTopLevelUnionOfNamedSchemaDerivedConstituents`'s doc comment.
+    if (classification.isTopLevelUnionOfNamedSchemaDerivedConstituents(declaration.type)) {
       return;
     }
 
@@ -984,6 +984,12 @@ export const typeAliasInvariants: Rule.RuleModule = {
       if (analysis === undefined || declaration === undefined || classification === undefined) {
         return;
       }
+      // entity-file-shape consults the same predicate on this file's own AST; consulting it
+      // here too keeps both rules agreeing on the same declaration rather than each running
+      // its own derivation-legitimacy judgment.
+      if (SchemaMemberGuards.isJustifiedHandWrittenEntityType(node)) {
+        return;
+      }
 
       TypeAliasDeclarationCheck.run(context, node, declaration, classification, analysis);
     };
@@ -1024,7 +1030,7 @@ export const typeAliasInvariants: Rule.RuleModule = {
     },
     'messages': {
       'aliasMustBeInterface': "Type alias '{{name}}' represents a contract or non-schema type computation. Declare the contract as an interface or redesign the type as schema-derived canonical data.",
-      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'FromSchema<typeof Schema>' and compose only verified canonical data types.",
+      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'NodeStaticType<typeof Node>' and compose only verified canonical data types.",
       'genericForwardingAlias': "Type alias '{{name}}' is a generic forwarding shim — '{{rhs}}<{{parameters}}>' renames '{{rhs}}' without transformation. Use '{{rhs}}' directly with the type arguments at each call site.",
       'importAlias': "Import alias '{{local}}' hides the canonical name '{{imported}}'. Use '{{imported}}' directly.",
       'mustEndType': "Exported type alias '{{name}}' must end in 'Type'. Rename to '{{name}}Type'.",

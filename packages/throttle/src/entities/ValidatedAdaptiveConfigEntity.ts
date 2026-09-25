@@ -1,5 +1,4 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 
@@ -44,9 +43,18 @@ export namespace ValidatedAdaptiveConfigEntity {
       'stepSize',
       'targetLatencyMs'
     ]
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  // Hand-authored: `anyOf` refines on the value of `enabled` — a conditional discriminant no structural derivation expresses.
+  export type Type = {
+    'adjustmentInterval': number;
+    'maximumConcurrency': number;
+    'minimumConcurrency': number;
+    'sampleWindow': number;
+    'scaleDownThreshold': number;
+    'scaleUpThreshold': number;
+    'stepSize': number;
+  } & ({ 'enabled': false; 'targetLatencyMs': number } | { 'enabled': true; 'targetLatencyMs': number });
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

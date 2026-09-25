@@ -314,6 +314,99 @@ void describe('no-redefined-external-types', () => {
     }
   });
 
+  void it("exempts a canonical entity InputType even when it structurally coincides with an unrelated dependency's public type", () => {
+    const root = mkdtempSync(join(tmpdir(), "no-redefined-external-types-input-type-"));
+    const entityInterfacesRoot = join(root, "node_modules", "@studnicky", "entity", "interfaces");
+    const entityTypesRoot = join(root, "node_modules", "@studnicky", "entity", "types");
+    const bundlerRoot = join(root, "node_modules", "@fixture", "bundler");
+    const entry = join(root, "src", "entity.ts");
+
+    try {
+      mkdirSync(join(root, "src"), { recursive: true });
+      mkdirSync(entityInterfacesRoot, { recursive: true });
+      mkdirSync(entityTypesRoot, { recursive: true });
+      mkdirSync(bundlerRoot, { recursive: true });
+      writeFileSync(join(root, "package.json"), JSON.stringify({
+        dependencies: { "@fixture/bundler": "1.0.0", "@studnicky/entity": "1.0.0" },
+        name: "input-type-fixture",
+        type: "module"
+      }));
+      writeFileSync(join(entityInterfacesRoot, "package.json"), JSON.stringify({
+        name: "@studnicky/entity/interfaces",
+        types: "./index.d.ts"
+      }));
+      writeFileSync(join(entityInterfacesRoot, "index.d.ts"), "export interface SchemaNodeInterface<TSchema, TStatic> { readonly '__schema'?: TSchema; readonly '__static'?: TStatic; }");
+      writeFileSync(join(entityTypesRoot, "package.json"), JSON.stringify({
+        name: "@studnicky/entity/types",
+        types: "./index.d.ts"
+      }));
+      writeFileSync(join(entityTypesRoot, "index.d.ts"), [
+        "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';",
+        "export type NodeStaticType<TNode extends SchemaNodeInterface<unknown, unknown>> = { readonly build: string; readonly entryFileNames?: string; };",
+        "export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = { readonly build: string; readonly entryFileNames?: string; };"
+      ].join("\n"));
+      writeFileSync(join(bundlerRoot, "package.json"), JSON.stringify({
+        name: "@fixture/bundler",
+        types: "./index.d.ts"
+      }));
+      writeFileSync(join(bundlerRoot, "index.d.ts"), "export interface OutputPlugin { readonly build: string; readonly entryFileNames?: string; }");
+
+      const source = [
+        "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';",
+        "import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';",
+        "declare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;",
+        "export namespace ContextConfigEntity {",
+        "  export const Node = defineNode<{ build: string }>({ type: 'object' } as const);",
+        "  export type Type = NodeStaticType<typeof Node>;",
+        "  export type InputType = NodeInputType<typeof Node>;",
+        "}"
+      ].join("\n");
+      prepareFixtureProject(root, new Map([[entry, source]]));
+
+      const messages = lint(source, entry, root);
+
+      assert.deepEqual(messages, []);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
+  void it("still reports a hand-written InputType with no schema provenance that structurally coincides with a dependency's public type", () => {
+    const root = mkdtempSync(join(tmpdir(), "no-redefined-external-types-input-type-invalid-"));
+    const bundlerRoot = join(root, "node_modules", "@fixture", "bundler");
+    const entry = join(root, "src", "entity.ts");
+
+    try {
+      mkdirSync(join(root, "src"), { recursive: true });
+      mkdirSync(bundlerRoot, { recursive: true });
+      writeFileSync(join(root, "package.json"), JSON.stringify({
+        dependencies: { "@fixture/bundler": "1.0.0" },
+        name: "input-type-invalid-fixture",
+        type: "module"
+      }));
+      writeFileSync(join(bundlerRoot, "package.json"), JSON.stringify({
+        name: "@fixture/bundler",
+        types: "./index.d.ts"
+      }));
+      writeFileSync(join(bundlerRoot, "index.d.ts"), "export interface OutputPlugin { readonly build: string; readonly entryFileNames?: string; }");
+
+      const source = [
+        "export namespace ContextConfigEntity {",
+        "  export type InputType = { readonly build: string; readonly entryFileNames?: string; };",
+        "}"
+      ].join("\n");
+      prepareFixtureProject(root, new Map([[entry, source]]));
+
+      const messages = lint(source, entry, root);
+
+      assert.deepEqual(messages.map((message) => {
+        return { line: message.line, messageId: message.messageId };
+      }), [{ line: 2, messageId: "redefined-external-type" }]);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  });
+
   void it("caches direct dependency candidates for one package", () => {
     const root = mkdtempSync(join(tmpdir(), "no-redefined-external-types-cache-"));
     const contractsRoot = join(root, "node_modules", "fixture-contracts");

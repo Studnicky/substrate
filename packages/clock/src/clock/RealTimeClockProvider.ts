@@ -25,7 +25,7 @@ interface RealTimeClockProviderSubclassInterface<TInstance> extends Function {
 export class RealTimeClockProvider implements ClockProviderInterface {
   static create<TInstance extends RealTimeClockProvider = RealTimeClockProvider>(
     this: RealTimeClockProviderSubclassInterface<TInstance>,
-    options: Partial<RealTimeClockProviderOptionsEntity.Type> = {}
+    options: RealTimeClockProviderOptionsEntity.InputType = {}
   ): TInstance {
     const resolvedOptions = RealTimeClockProviderOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);

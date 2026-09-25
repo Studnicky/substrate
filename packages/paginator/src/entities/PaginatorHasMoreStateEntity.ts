@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Serializable paginator state that retains pages and a cursor for another page. */
 export namespace PaginatorHasMoreStateEntity {
@@ -14,9 +15,19 @@ export namespace PaginatorHasMoreStateEntity {
     },
     'required': ['cursor', 'pages', 'variant'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'cursor': SchemaNode.defineUnknown({} as const),
+      'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)),
+      'variant': SchemaNode.defineConst('hasMore' as const)
+    },
+    ['cursor', 'pages', 'variant'] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

@@ -3,10 +3,34 @@ import { JsonObject } from '@studnicky/types/node';
 import { Agent } from 'undici';
 
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
-import type { MergedConfigEntity } from '../entities/MergedConfigEntity.js';
 
 import { DEFAULT_DISPATCHER_CONFIG } from '../constants/DEFAULT_DISPATCHER_CONFIG.js';
+import { MergedConfigEntity } from '../entities/MergedConfigEntity.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
+
+interface ConnectionDefaultsInterface {
+  'allowH2': MergedConfigEntity.InputType['allowH2'];
+  'autoSelectFamily': MergedConfigEntity.InputType['autoSelectFamily'];
+  'autoSelectFamilyAttemptTimeout': MergedConfigEntity.InputType['autoSelectFamilyAttemptTimeout'];
+  'connections': MergedConfigEntity.InputType['connections'];
+  'pipelining': MergedConfigEntity.InputType['pipelining'];
+}
+
+interface TimingDefaultsInterface {
+  'bodyTimeout': MergedConfigEntity.InputType['bodyTimeout'];
+  'connectTimeout': MergedConfigEntity.InputType['connectTimeout'];
+  'headersTimeout': MergedConfigEntity.InputType['headersTimeout'];
+  'keepAliveMaximumTimeout': MergedConfigEntity.InputType['keepAliveMaximumTimeout'];
+  'keepAliveTimeout': MergedConfigEntity.InputType['keepAliveTimeout'];
+  'keepAliveTimeoutThreshold': MergedConfigEntity.InputType['keepAliveTimeoutThreshold'];
+}
+
+interface LimitDefaultsInterface {
+  'maximumConcurrentStreams': MergedConfigEntity.InputType['maximumConcurrentStreams'];
+  'maximumHeaderSize': MergedConfigEntity.InputType['maximumHeaderSize'];
+  'maximumResponseSize': MergedConfigEntity.InputType['maximumResponseSize'];
+  'strictContentLength': MergedConfigEntity.InputType['strictContentLength'];
+}
 
 /** Creates configured undici Agents for owners that retain and manage them. */
 export class DispatcherAgent {
@@ -14,7 +38,7 @@ export class DispatcherAgent {
     throw RuntimeError.create('DispatcherAgent is a static factory');
   }
 
-  static create(config: DispatcherConfigEntity.Type): Agent | TestDispatcher {
+  static create(config: DispatcherConfigEntity.InputType): Agent | TestDispatcher {
     if (process.env.SUBSTRATE_FETCH_TEST_TRANSPORT === '1') {
       const result = TestDispatcher.create(config);
       return result;
@@ -50,19 +74,20 @@ export class DispatcherAgent {
     return result;
   }
 
-  static #mergeWithDefaults(config: DispatcherConfigEntity.Type): MergedConfigEntity.Type {
-    const merged: MergedConfigEntity.Type = {
+  static #mergeWithDefaults(config: DispatcherConfigEntity.InputType): MergedConfigEntity.Type {
+    const draft: Record<string, unknown> = {
       ...DispatcherAgent.#mergeConnectionDefaults(config),
       ...DispatcherAgent.#mergeTimingDefaults(config),
       ...DispatcherAgent.#mergeLimitDefaults(config)
     };
-    DispatcherAgent.#applyOptionalOverrides(merged, config);
+    DispatcherAgent.#applyOptionalOverrides(draft, config);
+    const merged = MergedConfigEntity.create(draft);
     return merged;
   }
 
   static #mergeConnectionDefaults(
-    config: DispatcherConfigEntity.Type
-  ): Pick<MergedConfigEntity.Type, 'allowH2' | 'autoSelectFamily' | 'autoSelectFamilyAttemptTimeout' | 'connections' | 'pipelining'> {
+    config: DispatcherConfigEntity.InputType
+  ): ConnectionDefaultsInterface {
     return {
       'allowH2': config.allowH2 ?? DEFAULT_DISPATCHER_CONFIG.allowH2,
       'autoSelectFamily': config.autoSelectFamily ?? DEFAULT_DISPATCHER_CONFIG.autoSelectFamily,
@@ -73,11 +98,8 @@ export class DispatcherAgent {
   }
 
   static #mergeTimingDefaults(
-    config: DispatcherConfigEntity.Type
-  ): Pick<
-    MergedConfigEntity.Type,
-    'bodyTimeout' | 'connectTimeout' | 'headersTimeout' | 'keepAliveMaximumTimeout' | 'keepAliveTimeout' | 'keepAliveTimeoutThreshold'
-  > {
+    config: DispatcherConfigEntity.InputType
+  ): TimingDefaultsInterface {
     return {
       'bodyTimeout': config.bodyTimeout ?? DEFAULT_DISPATCHER_CONFIG.bodyTimeout,
       'connectTimeout': config.connectTimeout ?? DEFAULT_DISPATCHER_CONFIG.connectTimeout,
@@ -89,8 +111,8 @@ export class DispatcherAgent {
   }
 
   static #mergeLimitDefaults(
-    config: DispatcherConfigEntity.Type
-  ): Pick<MergedConfigEntity.Type, 'maximumConcurrentStreams' | 'maximumHeaderSize' | 'maximumResponseSize' | 'strictContentLength'> {
+    config: DispatcherConfigEntity.InputType
+  ): LimitDefaultsInterface {
     return {
       'maximumConcurrentStreams': config.maximumConcurrentStreams ?? DEFAULT_DISPATCHER_CONFIG.maximumConcurrentStreams,
       'maximumHeaderSize': config.maximumHeaderSize ?? DEFAULT_DISPATCHER_CONFIG.maximumHeaderSize,
@@ -100,12 +122,12 @@ export class DispatcherAgent {
   }
 
   /** Optional fields default to absent, not to a fallback value — undefined/null stay unset. */
-  static #applyOptionalOverrides(merged: MergedConfigEntity.Type, config: DispatcherConfigEntity.Type): void {
-    DispatcherAgent.#setIfDefined(merged, 'clientTtl', config.clientTtl);
-    if (config.enabled !== undefined) { JsonObject.write(merged, 'enabled', config.enabled); }
-    DispatcherAgent.#setIfDefined(merged, 'localAddress', config.localAddress);
-    DispatcherAgent.#setIfDefined(merged, 'maximumOrigins', config.maximumOrigins);
-    DispatcherAgent.#setIfDefined(merged, 'maximumRequestsPerClient', config.maximumRequestsPerClient);
+  static #applyOptionalOverrides(draft: Record<string, unknown>, config: DispatcherConfigEntity.InputType): void {
+    DispatcherAgent.#setIfDefined(draft, 'clientTtl', config.clientTtl);
+    if (config.enabled !== undefined) { JsonObject.write(draft, 'enabled', config.enabled); }
+    DispatcherAgent.#setIfDefined(draft, 'localAddress', config.localAddress);
+    DispatcherAgent.#setIfDefined(draft, 'maximumOrigins', config.maximumOrigins);
+    DispatcherAgent.#setIfDefined(draft, 'maximumRequestsPerClient', config.maximumRequestsPerClient);
   }
 
   static #setIfTruthy(options: Record<string, unknown>, key: string, value: number | undefined): void {

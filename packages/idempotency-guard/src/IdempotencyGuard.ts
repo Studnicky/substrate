@@ -96,7 +96,7 @@ export class IdempotencyGuard<TResult = unknown> {
     TInstance extends IdempotencyGuard<TResult> = IdempotencyGuard<TResult>
   >(
     this: Function & { readonly 'prototype': TInstance },
-    options: IdempotencyGuardOptionsEntity.Type
+    options: IdempotencyGuardOptionsEntity.InputType
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
 
@@ -116,7 +116,7 @@ export class IdempotencyGuard<TResult = unknown> {
   readonly #inFlightFingerprints = new Map<string, string>();
   protected readonly hooks: HookInvoker = new IdempotencyGuardHookInvoker();
 
-  protected constructor(options: IdempotencyGuardOptionsEntity.Type) {
+  protected constructor(options: IdempotencyGuardOptionsEntity.InputType) {
     this.#cache = LruCache.create<string, IdempotencyGuardEntryInterface<TResult>>({
       'capacity': options.capacity,
       'ttlMs': options.ttlMs

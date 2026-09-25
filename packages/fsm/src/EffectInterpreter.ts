@@ -47,7 +47,7 @@ interface MailboxEntryInterface<TEvent> {
  * forever — a dropped mailbox slot must still settle its promise.
  */
 class MailboxBuffer<TEvent> extends CircularBuffer<MailboxEntryInterface<TEvent>> {
-  static createMailbox<TEvent>(options: CircularBufferOptionsEntity.Type = {}): MailboxBuffer<TEvent> {
+  static createMailbox<TEvent>(options: CircularBufferOptionsEntity.InputType = {}): MailboxBuffer<TEvent> {
     return new MailboxBuffer<TEvent>(options);
   }
 

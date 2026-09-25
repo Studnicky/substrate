@@ -15,12 +15,13 @@ import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfi
 import { DEFAULT_OVERSCAN, INITIAL_OFFSET } from './constants/index.js';
 import { VisibleRangeError } from './errors/index.js';
 
+/** `count`/`itemSize`/`overscan` are resolved internally by manual arithmetic guards, never independently validated. `mode` is a stable enum, kept on the entity. */
 interface VisibleRangeResolvedConfigInterface {
-  readonly 'count': VisibleRangeResolvedConfigEntity.Type['count'];
+  readonly 'count': number;
   readonly 'estimateSize'?: (index: number) => number;
-  readonly 'itemSize'?: VisibleRangeResolvedConfigEntity.Type['itemSize'];
+  readonly 'itemSize'?: number;
   readonly 'mode': VisibleRangeResolvedConfigEntity.Type['mode'];
-  readonly 'overscan': VisibleRangeResolvedConfigEntity.Type['overscan'];
+  readonly 'overscan': number;
 }
 
 interface VisibleRangeFunctionInterface extends Function {}

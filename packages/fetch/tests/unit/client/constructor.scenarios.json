@@ -189,51 +189,6 @@
       }
     },
     {
-      "name": "invalid-requestIdGenerator",
-      "description": "FetchClient.create rejects invalid requestIdGenerator",
-      "shape": "invalid-requestIdGenerator",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": "not-a-function"
-        }
-      },
-      "expected": {
-        "message": "requestIdGenerator must be a function"
-      }
-    },
-    {
-      "name": "invalid-requestIdGenerator-return-type",
-      "description": "FetchClient.create rejects requestIdGenerator return values that are not strings",
-      "shape": "invalid-requestIdGenerator-return-type",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": {
-            "shape": "static-request-id",
-            "value": 123
-          }
-        }
-      },
-      "expected": {
-        "message": "requestIdGenerator must return a string"
-      }
-    },
-    {
-      "name": "invalid-requestIdGenerator-throws",
-      "description": "FetchClient.create rejects requestIdGenerator functions that throw",
-      "shape": "invalid-requestIdGenerator-throws",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": {
-            "shape": "throwing-request-id",
-            "message": "request-id boom"
-          }
-        }
-      },
-      "expected": {
-        "message": "requestIdGenerator function error: request-id boom"
-      }
-    },
-    {
       "name": "behavior-baseURL",
       "description": "FetchClient applies baseURL to requests",
       "shape": "behavior-baseURL",

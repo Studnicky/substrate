@@ -1,8 +1,7 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import {
@@ -278,6 +277,11 @@ class NamespaceScanner {
     ['VariableDeclaration', NamespaceScanner.scanVariableDeclaration]
   ]);
 
+  // `Schema` must be scanned before `Type`, so `Type`'s derivation-defeat check reads a settled
+  // `schemaDefeatsDerivation` — a two-pass scan over these declaration-type groups.
+  private static readonly SCHEMA_DECL_TYPES: ReadonlySet<string> = new Set(['VariableDeclaration']);
+  private static readonly TYPE_DECL_TYPES: ReadonlySet<string> = new Set(['FunctionDeclaration', 'TSInterfaceDeclaration', 'TSTypeAliasDeclaration']);
+
   static scanBody(bodyNode: unknown) {
     const result = {
       'hasCreate': false,
@@ -288,7 +292,9 @@ class NamespaceScanner {
       'hasType': false,
       'hasTypeFromSchema': false,
       'hasValidate': false,
-      'hasValidateTypeGuard': false
+      'hasValidateTypeGuard': false,
+      'schemaComposesExternalReference': false,
+      'schemaDefeatsDerivation': false
     };
 
     if (!Predicates.isRecord(bodyNode)) {
@@ -300,6 +306,17 @@ class NamespaceScanner {
       return result;
     }
 
+    NamespaceScanner.scanDeclarations(body, result, NamespaceScanner.SCHEMA_DECL_TYPES);
+    NamespaceScanner.scanDeclarations(body, result, NamespaceScanner.TYPE_DECL_TYPES);
+
+    return result;
+  }
+
+  private static scanDeclarations(
+    body: readonly unknown[],
+    result: ReturnType<typeof NamespaceScanner.scanBody>,
+    declTypes: ReadonlySet<string>
+  ): void {
     const bodyLength = body.length;
 
     for (let bodyIndex = 0; bodyIndex < bodyLength; bodyIndex += 1) {
@@ -310,12 +327,13 @@ class NamespaceScanner {
       }
       const decl = FolderShapeHelpers.getDeclaration(stmt);
       const declType = AstHelpers.getNodeType(decl);
-      const scanner = typeof declType === 'string' ? NamespaceScanner.DECLARATION_SCANNERS.get(declType) : undefined;
 
-      scanner?.(decl, result);
+      if (typeof declType !== 'string' || !declTypes.has(declType)) {
+        continue;
+      }
+
+      NamespaceScanner.DECLARATION_SCANNERS.get(declType)?.(decl, result);
     }
-
-    return result;
   }
 
   private static scanVariableDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
@@ -344,6 +362,8 @@ class NamespaceScanner {
       result.hasSchema = true;
       result.hasSchemaValueAuthored = SchemaMemberGuards.isSchemaValueAuthored(d);
       result.hasObjectRootSchema = NamespaceScanner.hasObjectRootType(d);
+      result.schemaDefeatsDerivation = SchemaMemberGuards.schemaDefeatsStructuralDerivation(d);
+      result.schemaComposesExternalReference = SchemaMemberGuards.schemaComposesExternalReference(d);
     }
     if (name === 'intake') {
       result.hasIntake = true;
@@ -358,17 +378,33 @@ class NamespaceScanner {
   }
 
   private static scanTypeAliasDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
-    if (FolderShapeHelpers.getIdName(decl) === 'Type') {
-      result.hasType = true;
-      result.hasTypeFromSchema = SchemaMemberGuards.isTypeFromSchema(decl);
+    if (FolderShapeHelpers.getIdName(decl) !== 'Type') {
+      return;
     }
+
+    result.hasType = true;
+
+    // Structural derivation with no override argument needs no proof — there is nothing to
+    // disguise. Anything else (an override argument replacing the derived type, or a bare
+    // hand-written `Type`) is accepted only when the schema itself proves no structural
+    // derivation exists, or — when the schema composes another file's schema this walk cannot
+    // see into — when `Type` itself composes that other file's already-justified `.Type`.
+    const structurallyDerived = SchemaMemberGuards.isTypeFromSchema(decl) && !SchemaMemberGuards.derivedTypeHasOverride(decl);
+    const composedFromJustifiedEntity = result.schemaComposesExternalReference && SchemaMemberGuards.typeIsComposedFromEntityType(decl);
+
+    result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation || composedFromJustifiedEntity;
   }
 
   private static scanInterfaceDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
-    if (FolderShapeHelpers.getIdName(decl) === 'Type') {
-      result.hasType = true;
-      result.hasTypeFromSchema = SchemaMemberGuards.isInterfaceSchemaDerived(decl);
+    if (FolderShapeHelpers.getIdName(decl) !== 'Type') {
+      return;
     }
+
+    result.hasType = true;
+
+    const structurallyDerived = SchemaMemberGuards.isInterfaceSchemaDerived(decl) && !SchemaMemberGuards.interfaceDerivedTypeHasOverride(decl);
+
+    result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation;
   }
 
   private static scanFunctionDeclaration(decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
@@ -923,34 +959,21 @@ class ConstantsCountCheck {
 }
 
 namespace FileCategorySchema {
-  export const Schema = {
-    'additionalProperties': false,
-    'properties': {
-      'expectedName': { 'type': 'string' },
-      'shape': {
-        'enum': [
-          'constants',
-          'declaration',
-          'entity',
-          'none'
-        ]
-      },
-      'underInterfacesFolder': { 'type': 'boolean' },
-      'underTypesFolder': { 'type': 'boolean' }
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineEnum(['constants', 'declaration', 'entity', 'none'] as const),
+      'underInterfacesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+      'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
     },
-    'required': [
-      'expectedName',
-      'shape',
-      'underInterfacesFolder',
-      'underTypesFolder'
-    ],
-    'type': 'object'
-  } as const satisfies JSONSchema;
-
+    ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const,
+    { 'additionalProperties': false }
+  );
 }
 
 class FileCategoryResolver {
-  static resolve(filename: string): FromSchema<typeof FileCategorySchema.Schema> {
+  static resolve(filename: string): NodeStaticType<typeof FileCategorySchema.Node> {
     if (FolderCategory.isEmptyFilename(filename)) {
       return {
         'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false

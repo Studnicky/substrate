@@ -5,17 +5,17 @@ import { JsonObject, Predicates } from '@studnicky/types/node';
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.js';
 import type { DispatcherHealthEntity } from '../entities/DispatcherHealthEntity.js';
-import type { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 
 import {
   HTTP_STATUS_NOT_FOUND, HTTP_STATUS_OK
 } from '../constants/index.js';
+import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
 import { FetchBaseError } from '../errors/FetchBaseError.js';
 
 class OriginState {
   public 'active' = 0;
   public readonly 'queue': QueueEntry[] = [];
-  public readonly 'stats': SocketDispatcherStatsEntity.Type;
+  public readonly 'stats': SocketDispatcherStatsEntity.InputType;
 
   public constructor(capacity: number) {
     this.stats = {
@@ -100,7 +100,7 @@ export class TestDispatcher {
 
   static create<TInstance extends TestDispatcher = TestDispatcher>(
     this: TestDispatcherSubclassInterface<TInstance>,
-    config: Partial<DispatcherConfigEntity.Type> = {}
+    config: DispatcherConfigEntity.InputType = {}
   ): TInstance {
     const result = Reflect.construct(this, [config]) as object;
     if (!Predicates.isInstanceOf(result, this)) {
@@ -223,7 +223,7 @@ export class TestDispatcher {
     }
   }
 
-  static #stateSummary(state: OriginState): SocketDispatcherStatsEntity.Type {
+  static #stateSummary(state: OriginState): SocketDispatcherStatsEntity.InputType {
     return {
       'connected': state.stats.connected,
       'free': state.stats.free,
@@ -435,7 +435,7 @@ export class TestDispatcher {
     return TestDispatcher.#routeHandlersCache;
   }
 
-  protected constructor(config: Partial<DispatcherConfigEntity.Type>) {
+  protected constructor(config: DispatcherConfigEntity.InputType) {
     const connections = config.connections ?? 1;
     const pipelining = config.pipelining ?? 1;
     this.#capacity = Math.max(1, connections * Math.max(1, pipelining));
@@ -446,7 +446,7 @@ export class TestDispatcher {
     await this.#waitForIdle();
   }
 
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     const timeout = options?.timeout;
     if (timeout !== undefined && timeout > 0) {
       await TestDispatcher.#delay(timeout, undefined);
@@ -475,7 +475,7 @@ export class TestDispatcher {
     return {
       'healthy': healthy,
       'queueRatio': queueRatio,
-      'stats': stats,
+      'stats': SocketDispatcherStatsEntity.create(stats),
       ...(recommendation !== undefined ? { 'recommendation': recommendation } : {})
     };
   }
@@ -491,7 +491,7 @@ export class TestDispatcher {
         continue;
       }
       const [origin, state] = entry;
-      frozen.set(origin, Object.freeze({ ...state.stats }));
+      frozen.set(origin, Object.freeze(SocketDispatcherStatsEntity.create(state.stats)));
     }
 
     return frozen;

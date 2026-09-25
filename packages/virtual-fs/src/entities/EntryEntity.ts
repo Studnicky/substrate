@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace EntryEntity {
   export const Schema = {
@@ -12,10 +13,11 @@ export namespace EntryEntity {
     },
     'required': ['mtimeMs', 'shape'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
   /** Internal directory/file entry metadata tracked by `VirtualFileSystem`. */
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mtimeMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'shape': SchemaNode.defineEnum(['directory', 'file'] as const) }, ['mtimeMs', 'shape'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Predicates } from '@studnicky/types/node';
+
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 import scenarioGroups from './validation-error.scenarios.json' with { type: 'json' };
@@ -121,7 +123,8 @@ const runnerMap = {
       public readonly label = 'marker';
     }
     const marker = new DetailMarker();
-    const details = (scenario.input.violations?.[0]?.details ?? {}) as Record<string, unknown>;
+    const rawDetails = scenario.input.violations?.[0]?.details;
+    const details = Predicates.isRecord(rawDetails) ? rawDetails : {};
     const errWithComplexDetails = ValidationError.create({
       'message': scenario.input.message,
       'path': scenario.input.path,
@@ -139,11 +142,16 @@ const runnerMap = {
     });
     const violation = errWithComplexDetails.violations?.[0];
     assert.ok(violation !== undefined);
-    const resultTags = violation.details?.tags as unknown[] | undefined;
-    const expectedTags = scenario.expected.tags as unknown[] | undefined;
-    const resultPlain = violation.details?.plain as { nested?: { count?: unknown } } | undefined;
+    const tagsValue = violation.details?.tags;
+    const resultTags = Predicates.isArray(tagsValue) ? tagsValue : undefined;
+    const expectedTagsValue = scenario.expected.tags;
+    const expectedTags = Predicates.isArray(expectedTagsValue) ? expectedTagsValue : undefined;
+    const plainValue = violation.details?.plain;
+    const resultPlain = Predicates.isRecord(plainValue) ? plainValue : undefined;
+    const nestedValue = resultPlain?.nested;
+    const nested = Predicates.isRecord(nestedValue) ? nestedValue : undefined;
     assert.strictEqual(resultTags?.[0], expectedTags?.[0]);
-    assert.strictEqual(resultPlain?.nested?.count, scenario.expected.count);
+    assert.strictEqual(nested?.count, scenario.expected.count);
     assert.strictEqual(violation.details?.instance, marker);
   },
   'violations-present': (scenario, err) => {

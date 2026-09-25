@@ -144,7 +144,7 @@ void describe('SchemaNode static types are never incompatible with the real From
       SchemaNode.defineNumber({ 'type': 'number' } as const)
     ] as const);
     type Infer = NodeStaticType<typeof node>;
-    // MinimumItemsBrandType is phantom — a plain array literal needs the cast, same as every scalar brand case above.
+    // MinimumItemsBrandInterface is phantom — a plain array literal needs the cast, same as every scalar brand case above.
     assertAssignable<Infer>(['a', 1] as unknown as Infer);
     assertAssignable<Infer>(['a', 1, 'extra'] as unknown as Infer);
   });

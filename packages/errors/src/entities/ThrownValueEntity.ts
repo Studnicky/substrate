@@ -1,7 +1,8 @@
-import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { CAUSE_CHAIN_DEPTH_LIMIT } from '../constants/CauseChainConstants.js';
 import {
@@ -64,11 +65,30 @@ export namespace ThrownValueEntity {
     'required': ['detail', 'title', 'type'],
     'title': 'ThrownValue',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ThrownValue', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ThrownValue', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Bounded, cycle-safe projection of the remainder of the cause chain (excludes this node).', 'maxItems': CAUSE_CHAIN_DEPTH_LIMIT, 'type': 'array' } as const, CauseNodeEntity.Node), 'detail': SchemaNode.defineString({
+    'default': '',
+    'description': "Human-readable explanation specific to this occurrence — the caught value's message.",
+    'type': 'string'
+  } as const), 'name': SchemaNode.defineString({
+    'description': "Constructor name of the caught value, when it had one (e.g. 'TypeError').",
+    'type': 'string'
+  } as const), 'stack': SchemaNode.defineString({
+    'description': 'Stack trace of the head node. Cause nodes carry none.',
+    'type': 'string'
+  } as const), 'title': SchemaNode.defineString({
+    'default': PROBLEM_TITLE_THROWN_NULLISH,
+    'description': 'Stable human-readable name of the problem type.',
+    'type': 'string'
+  } as const), 'type': SchemaNode.defineString({
+    'default': PROBLEM_TYPE_THROWN_NULLISH,
+    'description': 'URI reference identifying the problem type. The discriminant.',
+    'type': 'string'
+  } as const) }, ['detail', 'title', 'type'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
-  export const validate = EntityCompiler.compile<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = ThrownValueProjection.project;
-  export const create = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

@@ -1,7 +1,8 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Schema-derived status fields returned after applying a patch. */
 export namespace PatchApplyResultStatusEntity {
@@ -13,9 +14,15 @@ export namespace PatchApplyResultStatusEntity {
     },
     'required': ['success'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'success': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
+    ['success'] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

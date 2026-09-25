@@ -118,7 +118,7 @@ export class GpuDetector {
       const gpuInfosLength = gpuInfos.length;
       for (let gpuInfoIndex = 0; gpuInfoIndex < gpuInfosLength; gpuInfoIndex += 1) {
         const gpuInfo = gpuInfos[gpuInfoIndex];
-        if (gpuInfo === undefined) { continue; }
+        if (gpuInfo === undefined || !Predicates.isRecord(gpuInfo)) { continue; }
         const vramTotalString = gpuInfo['VRAM Total Memory (B)'];
         const vramMb = Predicates.isString(vramTotalString)
           ? Math.round(parseInt(vramTotalString, 10) / BYTES_PER_MB)

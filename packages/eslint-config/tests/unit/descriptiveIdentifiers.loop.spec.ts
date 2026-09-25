@@ -34,6 +34,30 @@ void describe('descriptive-identifiers', () => {
     ruleTester.run('descriptive-identifiers', descriptiveIdentifiers, scenarioGroups.rule);
   });
 
+  void it('exempts JSON Schema vocabulary by exact name inside a SchemaNode.defineX(...) call, never by enclosing-call position', () => {
+    const packageRuleTester = new RuleTester({
+      languageOptions: {
+        parser,
+        parserOptions: {
+          projectService: { allowDefaultProject: ['*.ts'] },
+          tsconfigRootDir: import.meta.dirname
+        }
+      }
+    });
+
+    packageRuleTester.run('descriptive-identifiers', descriptiveIdentifiers, {
+      valid: [{
+        code: "import { SchemaNode } from '@studnicky/entity/types';\nexport const Node = SchemaNode.defineObject({ type: 'object' } as const, { field: SchemaNode.defineString({ minLength: 3, type: 'string' } as const) });",
+        filename: 'VocabKeyInSchemaNodeCall.ts'
+      }],
+      invalid: [{
+        code: "import { SchemaNode } from '@studnicky/entity/types';\nexport const Node = SchemaNode.defineObject({ type: 'object' } as const, { minVal: SchemaNode.defineNumber({ type: 'number' } as const) });",
+        errors: [{ messageId: 'banned-shortening' }],
+        filename: 'BadFieldInSchemaNodeCall.ts'
+      }]
+    });
+  });
+
   void it('resolves external option keys from their contextual type declarations', () => {
     const root = mkdtempSync(join(tmpdir(), 'descriptive-identifiers-external-property-'));
     const dependencyRoot = join(root, 'node_modules', '@fixture', 'options');

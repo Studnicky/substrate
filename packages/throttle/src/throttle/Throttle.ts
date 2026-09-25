@@ -5,36 +5,35 @@ import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { SampleBuffer } from '@studnicky/sample-buffer/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { AbortResultEntity } from '../entities/AbortResultEntity.js';
-import type { AbortStartedEventEntity } from '../entities/AbortStartedEventEntity.js';
-import type { AcquiredEventEntity } from '../entities/AcquiredEventEntity.js';
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
-import type { ConcurrencyAdjustedEventEntity } from '../entities/ConcurrencyAdjustedEventEntity.js';
-import type { ContendedEventEntity } from '../entities/ContendedEventEntity.js';
-import type { DrainCompletedEventEntity } from '../entities/DrainCompletedEventEntity.js';
-import type { DrainStartedEventEntity } from '../entities/DrainStartedEventEntity.js';
-import type { FireOnAbortStartEffectEntity } from '../entities/FireOnAbortStartEffectEntity.js';
-import type { FireOnAcquireEffectEntity } from '../entities/FireOnAcquireEffectEntity.js';
-import type { FireOnAcquireWaitEffectEntity } from '../entities/FireOnAcquireWaitEffectEntity.js';
-import type { FireOnAdaptiveAdjustEffectEntity } from '../entities/FireOnAdaptiveAdjustEffectEntity.js';
-import type { FireOnContendedEffectEntity } from '../entities/FireOnContendedEffectEntity.js';
-import type { FireOnDrainCompleteEffectEntity } from '../entities/FireOnDrainCompleteEffectEntity.js';
-import type { FireOnDrainStartEffectEntity } from '../entities/FireOnDrainStartEffectEntity.js';
-import type { FireOnReleaseEffectEntity } from '../entities/FireOnReleaseEffectEntity.js';
-import type { FireOnWindowSlideEffectEntity } from '../entities/FireOnWindowSlideEffectEntity.js';
 import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
-import type { QueuedEventEntity } from '../entities/QueuedEventEntity.js';
-import type { SlotReleasedEventEntity } from '../entities/SlotReleasedEventEntity.js';
-import type { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import type { ThrottleStateEntity } from '../entities/ThrottleStateEntity.js';
-import type { ThrottleStatsEntity } from '../entities/ThrottleStatsEntity.js';
 import type { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConfigEntity.js';
 import type { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
-import type { WindowSlidEventEntity } from '../entities/WindowSlidEventEntity.js';
+import type { AbortResultInterface } from '../interfaces/AbortResultInterface.js';
+import type { AbortStartedEventInterface } from '../interfaces/AbortStartedEventInterface.js';
+import type { AcquiredEventInterface } from '../interfaces/AcquiredEventInterface.js';
+import type { ConcurrencyAdjustedEventInterface } from '../interfaces/ConcurrencyAdjustedEventInterface.js';
+import type { ContendedEventInterface } from '../interfaces/ContendedEventInterface.js';
+import type { DrainCompletedEventInterface } from '../interfaces/DrainCompletedEventInterface.js';
+import type { DrainStartedEventInterface } from '../interfaces/DrainStartedEventInterface.js';
+import type { FireOnAbortStartEffectInterface } from '../interfaces/FireOnAbortStartEffectInterface.js';
+import type { FireOnAcquireEffectInterface } from '../interfaces/FireOnAcquireEffectInterface.js';
+import type { FireOnAcquireWaitEffectInterface } from '../interfaces/FireOnAcquireWaitEffectInterface.js';
+import type { FireOnAdaptiveAdjustEffectInterface } from '../interfaces/FireOnAdaptiveAdjustEffectInterface.js';
+import type { FireOnContendedEffectInterface } from '../interfaces/FireOnContendedEffectInterface.js';
+import type { FireOnDrainCompleteEffectInterface } from '../interfaces/FireOnDrainCompleteEffectInterface.js';
+import type { FireOnDrainStartEffectInterface } from '../interfaces/FireOnDrainStartEffectInterface.js';
 import type { FireOnRejectEffectInterface } from '../interfaces/FireOnRejectEffectInterface.js';
+import type { FireOnReleaseEffectInterface } from '../interfaces/FireOnReleaseEffectInterface.js';
+import type { FireOnWindowSlideEffectInterface } from '../interfaces/FireOnWindowSlideEffectInterface.js';
 import type { ThrottleInterface } from '../interfaces/index.js';
 import type { OperationRejectedEventInterface } from '../interfaces/OperationRejectedEventInterface.js';
+import type { QueuedEventInterface } from '../interfaces/QueuedEventInterface.js';
+import type { SlotReleasedEventInterface } from '../interfaces/SlotReleasedEventInterface.js';
+import type { ThrottleStatsInterface } from '../interfaces/ThrottleStatsInterface.js';
+import type { WindowSlidEventInterface } from '../interfaces/WindowSlidEventInterface.js';
 
 import {
   DEFAULT_ADAPTIVE_CONFIG,
@@ -46,6 +45,7 @@ import {
   PERCENTILE_P95,
   PERCENTILE_P99
 } from '../constants/index.js';
+import { ThrottleAbortOptionsEntity } from '../entities/ThrottleAbortOptionsEntity.js';
 import { ThrottleConfigEntity } from '../entities/ThrottleConfigEntity.js';
 import {
   ThrottleAbortedError,
@@ -80,16 +80,16 @@ interface ActiveOperationInterface {
 
 interface LifecycleEffectHandlerInterface {
   (
-    effect: FireOnAbortStartEffectEntity.Type
-    | FireOnAcquireEffectEntity.Type
-    | FireOnAcquireWaitEffectEntity.Type
-    | FireOnAdaptiveAdjustEffectEntity.Type
-    | FireOnContendedEffectEntity.Type
-    | FireOnDrainCompleteEffectEntity.Type
-    | FireOnDrainStartEffectEntity.Type
-    | FireOnReleaseEffectEntity.Type
+    effect: FireOnAbortStartEffectInterface
+    | FireOnAcquireEffectInterface
+    | FireOnAcquireWaitEffectInterface
+    | FireOnAdaptiveAdjustEffectInterface
+    | FireOnContendedEffectInterface
+    | FireOnDrainCompleteEffectInterface
+    | FireOnDrainStartEffectInterface
+    | FireOnReleaseEffectInterface
     | FireOnRejectEffectInterface
-    | FireOnWindowSlideEffectEntity.Type
+    | FireOnWindowSlideEffectInterface
   ): void;
 }
 
@@ -188,7 +188,7 @@ export class Throttle implements ThrottleInterface {
    */
   static create<TInstance extends Throttle = Throttle>(
     this: ThrottleSubclassInterface<TInstance>,
-    config?: Partial<ThrottleConfigEntity.Type>
+    config?: unknown
   ): TInstance {
     const resolveSubclassConstructor = (): ThrottleSubclassInterface<TInstance> => {
       return this;
@@ -246,7 +246,7 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  protected constructor(config?: Partial<ThrottleConfigEntity.Type>) {
+  protected constructor(config?: unknown) {
     this.config = Throttle.validateConfig(config);
     this.semaphore = Semaphore.create({ 'permits': this.config.concurrencyLimit });
 
@@ -332,16 +332,16 @@ export class Throttle implements ThrottleInterface {
    * why that eliminates the double-fire/missing-fire class of bug at the source.
    */
   private fireLifecycleEffect(
-    event: AbortStartedEventEntity.Type
-    | AcquiredEventEntity.Type
-    | ConcurrencyAdjustedEventEntity.Type
-    | ContendedEventEntity.Type
-    | DrainCompletedEventEntity.Type
-    | DrainStartedEventEntity.Type
+    event: AbortStartedEventInterface
+    | AcquiredEventInterface
+    | ConcurrencyAdjustedEventInterface
+    | ContendedEventInterface
+    | DrainCompletedEventInterface
+    | DrainStartedEventInterface
     | OperationRejectedEventInterface
-    | QueuedEventEntity.Type
-    | SlotReleasedEventEntity.Type
-    | WindowSlidEventEntity.Type
+    | QueuedEventInterface
+    | SlotReleasedEventInterface
+    | WindowSlidEventInterface
   ): void {
     const effect = this.stepLifecycle(event);
     const handler = this.lifecycleEffectHandlers.get(effect.variant);
@@ -356,16 +356,16 @@ export class Throttle implements ThrottleInterface {
    * resulting effect via `hooks.invokeAsync(...)`, exposing completion to the caller.
    */
   private async fireLifecycleEffectAsync(
-    event: AbortStartedEventEntity.Type
-    | AcquiredEventEntity.Type
-    | ConcurrencyAdjustedEventEntity.Type
-    | ContendedEventEntity.Type
-    | DrainCompletedEventEntity.Type
-    | DrainStartedEventEntity.Type
+    event: AbortStartedEventInterface
+    | AcquiredEventInterface
+    | ConcurrencyAdjustedEventInterface
+    | ContendedEventInterface
+    | DrainCompletedEventInterface
+    | DrainStartedEventInterface
     | OperationRejectedEventInterface
-    | QueuedEventEntity.Type
-    | SlotReleasedEventEntity.Type
-    | WindowSlidEventEntity.Type
+    | QueuedEventInterface
+    | SlotReleasedEventInterface
+    | WindowSlidEventInterface
   ): Promise<void> {
     const effect = this.stepLifecycle(event);
 
@@ -401,27 +401,27 @@ export class Throttle implements ThrottleInterface {
 
   /** Transitions the lifecycle reducer and returns its single effect for `event`. */
   private stepLifecycle(
-    event: AbortStartedEventEntity.Type
-    | AcquiredEventEntity.Type
-    | ConcurrencyAdjustedEventEntity.Type
-    | ContendedEventEntity.Type
-    | DrainCompletedEventEntity.Type
-    | DrainStartedEventEntity.Type
+    event: AbortStartedEventInterface
+    | AcquiredEventInterface
+    | ConcurrencyAdjustedEventInterface
+    | ContendedEventInterface
+    | DrainCompletedEventInterface
+    | DrainStartedEventInterface
     | OperationRejectedEventInterface
-    | QueuedEventEntity.Type
-    | SlotReleasedEventEntity.Type
-    | WindowSlidEventEntity.Type
+    | QueuedEventInterface
+    | SlotReleasedEventInterface
+    | WindowSlidEventInterface
   ):
-    FireOnAbortStartEffectEntity.Type
-    | FireOnAcquireEffectEntity.Type
-    | FireOnAcquireWaitEffectEntity.Type
-    | FireOnAdaptiveAdjustEffectEntity.Type
-    | FireOnContendedEffectEntity.Type
-    | FireOnDrainCompleteEffectEntity.Type
-    | FireOnDrainStartEffectEntity.Type
-    | FireOnReleaseEffectEntity.Type
+    FireOnAbortStartEffectInterface
+    | FireOnAcquireEffectInterface
+    | FireOnAcquireWaitEffectInterface
+    | FireOnAdaptiveAdjustEffectInterface
+    | FireOnContendedEffectInterface
+    | FireOnDrainCompleteEffectInterface
+    | FireOnDrainStartEffectInterface
+    | FireOnReleaseEffectInterface
     | FireOnRejectEffectInterface
-    | FireOnWindowSlideEffectEntity.Type {
+    | FireOnWindowSlideEffectInterface {
     const step = this.lifecycle.transition(this.lifecycleState, event);
 
     this.lifecycleState = step.state;
@@ -478,8 +478,9 @@ export class Throttle implements ThrottleInterface {
    * }
    * ```
    */
-  async abort(options?: ThrottleAbortOptionsEntity.Type): Promise<AbortResultEntity.Type> {
-    const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
+  async abort(options?: unknown): Promise<AbortResultInterface> {
+    const parsedOptions = ThrottleAbortOptionsEntity.intake(options === undefined ? {} : options);
+    const timeout = parsedOptions.timeout ?? DEFAULT_TIMEOUT;
     if (this.#state === 'aborted') {
       return {
         'cancelled': INITIAL_COUNTER,
@@ -745,22 +746,14 @@ export class Throttle implements ThrottleInterface {
    * console.log(`Queued: ${stats.queuedCount}`);
    * ```
    */
-  getStats(): ThrottleStatsEntity.Type {
-    const stats: ThrottleStatsEntity.Type = {
-      'activeCount': this.semaphore.activeCount,
-      'concurrencyLimit': this.config.concurrencyLimit,
-      'isAborted': this.#state === 'aborted',
-      'isDraining': this.#state === 'draining',
-      'queuedCount': this.semaphore.queuedCount,
-      'totalExecuted': this.totalExecuted
-    };
-
+  getStats(): ThrottleStatsInterface {
+    let latency: ThrottleStatsInterface['latency'];
     if (this.latencyBuffer !== undefined) {
       const p50 = this.latencyBuffer.percentile(PERCENTILE_P50);
       const p95 = this.latencyBuffer.percentile(PERCENTILE_P95);
       const p99 = this.latencyBuffer.percentile(PERCENTILE_P99);
 
-      stats.latency = {
+      latency = {
         ...(p50 !== undefined ? { 'p50': p50 } : {}),
         ...(p95 !== undefined ? { 'p95': p95 } : {}),
         ...(p99 !== undefined ? { 'p99': p99 } : {}),
@@ -768,8 +761,9 @@ export class Throttle implements ThrottleInterface {
       };
     }
 
+    let adaptive: ThrottleStatsInterface['adaptive'];
     if (this.config.adaptive?.enabled === true) {
-      stats.adaptive = {
+      adaptive = {
         'adjustmentCount': this.adjustmentCount,
         'enabled': true,
         'lastAdjustmentTime': this.lastAdjustmentTime,
@@ -779,7 +773,16 @@ export class Throttle implements ThrottleInterface {
       };
     }
 
-    const result = stats;
+    const result: ThrottleStatsInterface = {
+      'activeCount': this.semaphore.activeCount,
+      ...(adaptive !== undefined ? { 'adaptive': adaptive } : {}),
+      'concurrencyLimit': this.config.concurrencyLimit,
+      'isAborted': this.#state === 'aborted',
+      'isDraining': this.#state === 'draining',
+      ...(latency !== undefined ? { 'latency': latency } : {}),
+      'queuedCount': this.semaphore.queuedCount,
+      'totalExecuted': this.totalExecuted
+    };
     return result;
   }
 
@@ -1155,15 +1158,11 @@ export class Throttle implements ThrottleInterface {
   }
 
   private static validateConfig(
-    config?: Partial<ThrottleConfigEntity.Type>
+    config?: unknown
   ): ValidatedThrottleConfigEntity.Type {
-    let configuration: Partial<ThrottleConfigEntity.Type> = {};
-    if (config !== undefined) {
-      configuration = config;
-    }
     let parsedConfiguration: ThrottleConfigEntity.Type;
     try {
-      parsedConfiguration = ThrottleConfigEntity.intake(configuration);
+      parsedConfiguration = ThrottleConfigEntity.intake(config === undefined ? {} : config);
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
         throw ConfigurationError.create(error.message);

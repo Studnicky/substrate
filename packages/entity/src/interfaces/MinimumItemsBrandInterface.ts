@@ -4,8 +4,8 @@
  *
  * @module
  */
-import type { IdentityType } from '../IdentityType.js';
-
 declare const MINIMUM_ITEMS: unique symbol;
 
-export type MinimumItemsBrandType<N extends number> = IdentityType<{ [MINIMUM_ITEMS]: N }> & unknown[];
+export interface MinimumItemsBrandInterface<N extends number> extends Array<unknown> {
+  readonly [MINIMUM_ITEMS]: N;
+}

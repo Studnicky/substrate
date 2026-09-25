@@ -3,16 +3,15 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { RequestEventEntity, ResponseEventEntity } from '../src/entities/index.js';
-
+import { RequestEventEntity, ResponseEventEntity } from '../src/entities/index.js';
 import { FetchClient } from '../src/node/index.js';
 
 interface ErrorEventInterface {
-  'durationMs': ResponseEventEntity.Type['durationMs'];
+  'durationMs': number;
   'error': unknown;
-  'method': RequestEventEntity.Type['method'];
-  'requestId': RequestEventEntity.Type['requestId'];
-  'url': RequestEventEntity.Type['url'];
+  'method': string;
+  'requestId': string;
+  'url': string;
 }
 
 // Subclass FetchClient to capture telemetry events via protected lifecycle hooks.
@@ -22,11 +21,11 @@ class TelemetryClient extends FetchClient {
   public readonly errorEvents: ErrorEventInterface[] = [];
 
   protected override onRequestStart(method: string, _path: string, requestId: string, url: string): void {
-    this.requestEvents.push({ 'method': method, 'requestId': requestId, 'url': url });
+    this.requestEvents.push(RequestEventEntity.create({ 'method': method, 'requestId': requestId, 'url': url }));
   }
 
   protected override onResponseSuccess(method: string, requestId: string, statusCode: number, durationMs: number): void {
-    this.responseEvents.push({ 'durationMs': durationMs, 'method': method, 'requestId': requestId, 'statusCode': statusCode });
+    this.responseEvents.push(ResponseEventEntity.create({ 'durationMs': durationMs, 'method': method, 'requestId': requestId, 'statusCode': statusCode }));
   }
 
   protected override onRequestError(error: Error, method: string, requestId: string, url: string, durationMs: number): void {

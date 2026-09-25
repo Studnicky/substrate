@@ -107,12 +107,12 @@ export class EntityCompiler {
    * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
    * retrieved — no network I/O.
    */
-  public static compileCreate<TValidated extends object>(
+  public static compileCreate<TStatic extends object, TInput extends object = TStatic>(
     schema: object, remoteSchemas?: ReadonlyMap<string, object | boolean>
-  ): EntityCreateFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.create, schema, remoteSchemas);
+  ): EntityCreateFunctionInterface<TStatic, TInput> {
+    const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
-    const create: EntityCreateFunctionInterface<TValidated> = (partial = {}) => {
+    const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
       const cloned = structuredClone(partial);
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];

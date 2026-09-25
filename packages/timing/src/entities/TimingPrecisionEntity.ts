@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { DEFAULT_DECIMAL_PRECISION, VALID_TIME_UNITS } from '../constants/index.js';
 
@@ -26,9 +27,21 @@ export namespace TimingPrecisionEntity {
     },
     'propertyNames': { 'enum': VALID_TIME_UNITS },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'h': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.h, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'm': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.m, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'ms': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.ms, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      'ns': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.ns, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const),
+      's': SchemaNode.defineNumber({ 'default': DEFAULT_DECIMAL_PRECISION.s, 'maximum': 20, 'minimum': 0, 'type': 'integer' } as const)
+    },
+    [] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

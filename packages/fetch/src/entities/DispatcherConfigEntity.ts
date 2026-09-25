@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * HTTP Dispatcher configuration
@@ -105,9 +106,68 @@ export namespace DispatcherConfigEntity {
     },
     'title': 'DispatcherConfig',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/DispatcherConfig', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'HTTP dispatcher connection pooling configuration', 'title': 'DispatcherConfig', 'type': 'object' } as const, { 'allowH2': SchemaNode.defineBoolean({
+    'description': 'Enable HTTP/2 support if server prioritizes it through ALPN negotiation',
+    'type': 'boolean'
+  } as const), 'autoSelectFamily': SchemaNode.defineBoolean({
+    'description': 'Enable IPv4/IPv6 family autodetection (RFC 8305 "Happy Eyeballs")',
+    'type': 'boolean'
+  } as const), 'autoSelectFamilyAttemptTimeout': SchemaNode.defineNumber({
+    'description': 'Timeout for autoSelectFamily attempts in milliseconds',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'bodyTimeout': SchemaNode.defineNumber({
+    'description': 'Body timeout in milliseconds - time between receiving body data chunks. Use 0 to disable',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'clientTtl': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'number' } as const), SchemaNode.defineNull({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'null' } as const)]), 'connections': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'null' } as const)]), 'connectTimeout': SchemaNode.defineNumber({
+    'description': 'Connection timeout in milliseconds',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'enabled': SchemaNode.defineBoolean({
+    'description': 'Activate HTTP connection pooling',
+    'type': 'boolean'
+  } as const), 'headersTimeout': SchemaNode.defineNumber({
+    'description': 'Headers timeout in milliseconds - time to wait for complete HTTP headers',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'keepAliveMaximumTimeout': SchemaNode.defineNumber({
+    'description': 'Maximum keep-alive timeout when overridden by server hints (milliseconds)',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'keepAliveTimeout': SchemaNode.defineNumber({
+    'description': 'Keep-alive timeout in milliseconds - time before idle socket times out',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'keepAliveTimeoutThreshold': SchemaNode.defineNumber({
+    'description': 'Buffer time subtracted from server keep-alive hints (milliseconds)',
+    'minimum': 0,
+    'type': 'number'
+  } as const), 'localAddress': SchemaNode.defineAnyOf([SchemaNode.defineString({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'string' } as const), SchemaNode.defineNull({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'null' } as const)]), 'maximumConcurrentStreams': SchemaNode.defineNumber({
+    'description': 'Maximum concurrent H2 streams per connection',
+    'minimum': 1,
+    'type': 'integer'
+  } as const), 'maximumHeaderSize': SchemaNode.defineNumber({
+    'description': 'Maximum request header size in bytes',
+    'minimum': 1,
+    'type': 'integer'
+  } as const), 'maximumOrigins': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'null' } as const)]), 'maximumRequestsPerClient': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'null' } as const)]), 'maximumResponseSize': SchemaNode.defineNumber({
+    'description': 'Maximum response body size in bytes (-1 = unlimited)',
+    'minimum': -1,
+    'type': 'integer'
+  } as const), 'pipelining': SchemaNode.defineNumber({
+    'description': 'HTTP/1.1 pipelining factor - number of concurrent requests per connection',
+    'maximum': 10,
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'strictContentLength': SchemaNode.defineBoolean({
+    'description': 'Enforce strict Content-Length header validation',
+    'type': 'boolean'
+  } as const) }, [] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

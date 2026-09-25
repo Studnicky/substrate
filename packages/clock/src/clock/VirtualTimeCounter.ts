@@ -23,7 +23,7 @@ interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
 export class VirtualTimeCounter {
   static create<TInstance extends VirtualTimeCounter = VirtualTimeCounter>(
     this: VirtualTimeCounterSubclassInterface<TInstance>,
-    options: Partial<VirtualTimeCounterOptionsEntity.Type> = {}
+    options: VirtualTimeCounterOptionsEntity.InputType = {}
   ): TInstance {
     const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
     const result: unknown = Reflect.construct(this, [resolvedOptions]);

@@ -8,7 +8,7 @@ import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { CacheLookupEntity } from './entities/CacheLookupEntity.js';
-import type { MemoizeOptionsInterface } from './interfaces/MemoizeOptionsInterface.js';
+import type { MemoizeCollaboratorsInterface } from './interfaces/MemoizeCollaboratorsInterface.js';
 
 class MemoizeHookInvoker extends HookInvoker {
   protected override onHookError(_hookName: string): void {}
@@ -90,7 +90,8 @@ interface MemoizeShapeInterface {
  * ```typescript
  * const memo = Memoize.create(
  *   (userId: string) => fetchUser(userId),
- *   { keyDeriver: (userId) => userId, capacity: 1000, ttlMs: 60_000 }
+ *   { capacity: 1000, ttlMs: 60_000 },
+ *   { keyDeriver: (userId) => userId }
  * );
  *
  * const user = await memo.call('user-42');
@@ -137,7 +138,8 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
    * Creates a new Memoize wrapping a callback.
    *
    * @param callback - Function to memoize; may return a value or a Promise
-   * @param options - `{ keyDeriver, capacity, ttlMs?, staleMs? }` — `keyDeriver` is required
+   * @param config - `{ capacity, ttlMs?, staleMs? }`, schema-validated via `LruCacheOptionsEntity`
+   * @param collaborators - `{ keyDeriver }` — required
    * @returns New Memoize instance
    */
   static create<
@@ -147,18 +149,15 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
   >(
     this: MemoizeSubclassInterface<TInstance>,
     callback: (...argumentList: TArgumentList) => TResult | Promise<TResult>,
-    options: MemoizeOptionsInterface<TArgumentList>
+    config: unknown,
+    collaborators: MemoizeCollaboratorsInterface<TArgumentList>
   ): TInstance {
-    const cache = LruCache.create<string, TResult>({
-      'capacity': options.capacity,
-      ...(options.staleMs !== undefined ? { 'staleMs': options.staleMs } : {}),
-      ...(options.ttlMs !== undefined ? { 'ttlMs': options.ttlMs } : {})
-    });
+    const cache = LruCache.create<string, TResult>(config);
 
     const deps: MemoizeDepsInterface<TArgumentList, TResult> = {
       'cache': cache,
       'callback': callback,
-      'keyDeriver': options.keyDeriver
+      'keyDeriver': collaborators.keyDeriver
     };
     const result: unknown = Reflect.construct(this, [deps]);
 

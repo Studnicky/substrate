@@ -35,7 +35,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 
-  destroy(_options?: DestroyOptionsEntity.Type): Promise<void> {
+  destroy(_options?: DestroyOptionsEntity.InputType): Promise<void> {
     throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
   }
 

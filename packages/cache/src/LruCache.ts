@@ -1,21 +1,23 @@
 import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { LruCacheNodeTimingEntity } from './entities/LruCacheNodeTimingEntity.js';
-import type { LruCacheCreateOptionsInterface } from './interfaces/LruCacheCreateOptionsInterface.js';
+import type { LruCacheCollaboratorsInterface } from './interfaces/LruCacheCollaboratorsInterface.js';
 
 import { LruCacheOptionsEntity } from './entities/LruCacheOptionsEntity.js';
 import { CacheConfigError } from './errors/index.js';
 
+// Timing fields are computed internally (never externally validated), so they carry
+// plain `number`, not LruCacheNodeTimingEntity.Type's schema-validated brand.
 interface LruCacheNodeInterface<K, V> {
   /** Expiry timestamp (ms since epoch) or `0` (no expiry sentinel). */
-  'expiresAt': LruCacheNodeTimingEntity.Type['expiresAt'];
+  'expiresAt': number;
   'key': K;
   'next': LruCacheNodeInterface<K, V> | undefined;
   'previous': LruCacheNodeInterface<K, V> | undefined;
   /** Staleness timestamp (ms since epoch) or `0` (no staleness configured sentinel). */
-  'staleAt': LruCacheNodeTimingEntity.Type['staleAt'];
+  'staleAt': number;
   'value': V;
 }
 
@@ -72,9 +74,10 @@ export class LruCache<K, V> {
     TInstance extends LruCache<K, V> = LruCache<K, V>
   >(
     this: LruCacheConstructorInterface<TInstance>,
-    options: LruCacheCreateOptionsInterface
+    config: unknown,
+    collaborators: LruCacheCollaboratorsInterface = {}
   ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [options]);
+    const constructed: unknown = Reflect.construct(this, [config, collaborators]);
     if (!Predicates.isObjectLike(constructed)) {
       throw RuntimeError.create(
         'LruCache.create() must construct a LruCache instance'
@@ -88,25 +91,18 @@ export class LruCache<K, V> {
     return constructed;
   }
 
-  protected constructor(options: LruCacheCreateOptionsInterface) {
-    const { 'clock': clockProvider, ...cacheOptions } = options;
-    if (!LruCacheOptionsEntity.validate(cacheOptions)) {
-      const messages = (LruCacheOptionsEntity.validate.errors ?? [])
-        .map((error) => {
-          const message = error.message ?? String(error);
-          return message;
-        })
-        .join('; ');
-      throw new CacheConfigError(
-        messages.length > 0 ? messages : 'invalid options'
-      );
+  protected constructor(config: unknown, collaborators: LruCacheCollaboratorsInterface = {}) {
+    let cacheOptions: LruCacheOptionsEntity.Type;
+    try {
+      cacheOptions = LruCacheOptionsEntity.intake(config);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new CacheConfigError(RuntimeError.toMessage(error));
+      }
+      throw error;
     }
 
-    if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
-      throw new CacheConfigError('clock must implement ClockProviderInterface');
-    }
-
-    const provider: ClockProviderInterface = clockProvider ?? RealTimeClockProvider.create();
+    const provider: ClockProviderInterface = collaborators.clock ?? RealTimeClockProvider.create();
     this.#capacity = cacheOptions.capacity;
     this.#clock = Clock.create(provider);
     this.#defaultStaleMs = cacheOptions.staleMs;

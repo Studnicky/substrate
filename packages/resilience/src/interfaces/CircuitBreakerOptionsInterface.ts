@@ -2,7 +2,7 @@ import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from 
 
 import type { CircuitBreakerOptionsEntity } from '../entities/CircuitBreakerOptionsEntity.js';
 
-export interface CircuitBreakerOptionsInterface extends CircuitBreakerOptionsEntity.Type {
+export interface CircuitBreakerOptionsInterface extends CircuitBreakerOptionsEntity.InputType {
   readonly 'clock'?: () => number;
 
   /**

@@ -9,12 +9,12 @@ import type { RequestInitFieldNameEntity } from '../entities/RequestInitFieldNam
  * Request options accepted by Fetch client operations.
  */
 export interface FetchOptionsInterface
-  extends Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'>,
-  FetchRequestOptionsEntity.Type {
+  extends FetchRequestOptionsEntity.InputType,
+  Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'> {
   /**
-   * Request body, using the native Fetch body contract.
+   * Request body. Native-opaque: `fetch()` itself validates the shape.
    */
-  'body'?: RequestInit['body'];
+  'body'?: unknown;
 
   /**
    * Custom undici dispatcher or agent for Node.js connection pooling.

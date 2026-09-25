@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
@@ -27,8 +28,9 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 // namespace's `intake` member:
 //
 //   export namespace LogRecordEntity {
-//     export const Schema = { ... } as const satisfies JSONSchema;
-//     export type Type = FromSchema<typeof Schema>;
+//     export const Schema = { ... } as const;
+//     export const Node = SchemaNode.defineObject(...);
+//     export type Type = NodeStaticType<typeof Node>;
 //     export function intake(input: unknown): Type { ... }
 //   }
 //
@@ -144,9 +146,18 @@ namespace IntakeParseOnlyOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'exemptPackages': SchemaNode.defineArray({ 'default': DEFAULT_EXEMPT_PACKAGES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+      'structuralProperties': SchemaNode.defineArray({ 'default': DEFAULT_STRUCTURAL_PROPERTIES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
+    },
+    [] as const,
+    { 'additionalProperties': false }
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);

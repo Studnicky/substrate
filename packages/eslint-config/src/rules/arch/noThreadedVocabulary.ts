@@ -1,9 +1,10 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 import type * as TypeScript from 'typescript';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
 
@@ -34,9 +35,13 @@ namespace NoThreadedVocabularyOptionsEntity {
     },
     'required': ['sourceRoot'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolutionSites': SchemaNode.defineArray({ 'default': [], 'description': 'Matchers for the files permitted to receive a closed-vocabulary token and resolve it into an implementation -- the composition roots. Same matcher vocabulary as layer bindings (folder/package/module/dependency/builtin) minus the layer name. Every file not matching one of these is checked. The default, an empty list, exempts nothing.', 'type': 'array' } as const, ResolutionSiteEntity.Node), 'sourceRoot': SchemaNode.defineString({
+    'description': 'Path segment(s) after which a resolution site\'s candidate segment appears, e.g. "src" or "packages".',
+    'type': 'string'
+  } as const) }, ['sourceRoot'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);

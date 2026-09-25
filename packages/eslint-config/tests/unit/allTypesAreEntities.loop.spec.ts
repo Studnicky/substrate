@@ -21,13 +21,18 @@ const ruleTester = new RuleTester({
           '*.ts',
           'eslint.config.mjs',
           'packages/eslint-config/src/rules/*.ts',
+          'packages/eslint-config/tests/fixtures/relocated/eslint.config.mjs',
+          'packages/eslint-config/tests/fixtures/relocated/src/entities/*.ts',
+          'packages/eslint-config/tests/fixtures/relocated/src/models/*.ts',
+          'packages/eslint-config/tests/fixtures/relocated/src/types/*.ts',
+          'packages/eslint-config/tests/fixtures/relocated/tests/unit/*.test.ts',
           'packages/retry/eslint.config.mjs',
           'packages/retry/src/entities/*.ts',
           'packages/retry/src/models/*.ts',
           'packages/retry/src/types/*.ts',
           'packages/retry/tests/unit/*.test.ts'
         ],
-        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
+        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30
       },
       tsconfigRootDir: repoRoot
     }

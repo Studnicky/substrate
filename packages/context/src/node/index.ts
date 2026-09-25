@@ -13,7 +13,7 @@ import { NodeContextStorage } from './NodeContextStorage.js';
 export class Context extends ContextModule.Context {
   static override create<TInstance extends Context = Context>(
     this: ContextConstructorInterface<TInstance>,
-    config: ContextConfigEntity.Type,
+    config: ContextConfigEntity.InputType,
     storage: ContextStorageInterface = new NodeContextStorage()
   ): TInstance {
     const result = super.create(config, storage);

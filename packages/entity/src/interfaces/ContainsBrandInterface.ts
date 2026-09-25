@@ -4,8 +4,8 @@
  *
  * @module
  */
-import type { IdentityType } from '../IdentityType.js';
-
 declare const CONTAINS: unique symbol;
 
-export type ContainsBrandType<T> = IdentityType<{ [CONTAINS]: T }>;
+export interface ContainsBrandInterface<T> {
+  readonly [CONTAINS]: T;
+}

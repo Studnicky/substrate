@@ -21,6 +21,8 @@ import {
   type VariableStatement
 } from 'typescript';
 
+import { ACCEPTED_SCHEMA_VALUE_NAMES, CANONICAL_ENTITY_MEMBER_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -53,7 +55,7 @@ class ParserServices {
 
 class EntityTypeDeclaration {
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (declaration.name.text !== 'Type') {
+    if (!CANONICAL_ENTITY_MEMBER_NAMES.has(declaration.name.text)) {
       return false;
     }
     if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {
@@ -66,11 +68,17 @@ class EntityTypeDeclaration {
       return false;
     }
 
-    if (!EntityTypeDeclaration.isSchemaDerivedTypeReference(declaration.type)) {
+    const schemaValueName = EntityTypeDeclaration.schemaValueReferenceName(declaration.type);
+
+    if (schemaValueName === undefined) {
       return false;
     }
 
-    const ownsExportedSchema = namespaceBlock.statements.some(EntityTypeDeclaration.statementOwnsExportedSchema);
+    const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
+      const result = EntityTypeDeclaration.statementOwnsExportedName(statement, schemaValueName);
+
+      return result;
+    });
 
     if (!ownsExportedSchema) {
       return false;
@@ -85,21 +93,27 @@ class EntityTypeDeclaration {
     return result;
   }
 
-  private static isSchemaDerivedTypeReference(typeNode: TypeNode): boolean {
+  // The deriving type's identity carries no weight — only the `typeof <schemaValueName>`
+  // argument matters, and that name must be one this codebase's schema-derivation engines
+  // use for their own schema-owning value (`Schema` for json-schema-to-ts, `Node` for
+  // `packages/entity/src/types/`). See SchemaDerivationConstants.ts for the tightening edit.
+  private static schemaValueReferenceName(typeNode: TypeNode): string | undefined {
     if (!isTypeReferenceNode(typeNode)) {
-      return false;
+      return undefined;
     }
     const [schemaArgument] = typeNode.typeArguments ?? [];
 
-    const result = schemaArgument !== undefined
-      && isTypeQueryNode(schemaArgument)
-      && isIdentifier(schemaArgument.exprName)
-      && schemaArgument.exprName.text === 'Schema';
+    if (schemaArgument === undefined || !isTypeQueryNode(schemaArgument) || !isIdentifier(schemaArgument.exprName)) {
+      return undefined;
+    }
+    if (!ACCEPTED_SCHEMA_VALUE_NAMES.has(schemaArgument.exprName.text)) {
+      return undefined;
+    }
 
-    return result;
+    return schemaArgument.exprName.text;
   }
 
-  private static statementOwnsExportedSchema(statement: Statement): boolean {
+  private static statementOwnsExportedName(statement: Statement, name: string): boolean {
     if (!isVariableStatement(statement)) {
       return false;
     }
@@ -110,9 +124,9 @@ class EntityTypeDeclaration {
 
     const declarations = statement.declarationList.declarations;
     const result = declarations.some((schemaDeclaration) => {
-      const isSchema = isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema';
+      const matches = isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === name;
 
-      return isSchema;
+      return matches;
     });
 
     return result;
@@ -152,7 +166,10 @@ export const allTypesAreEntities: Rule.RuleModule = {
       if (analysis.classification !== 'pureDataCanonical') {
         return;
       }
-      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) {
+      if (
+        analysis.reason === 'fromSchema'
+        && (EntityTypeDeclaration.isCanonical(declaration) || SchemaMemberGuards.isJustifiedHandWrittenEntityType(node))
+      ) {
         return;
       }
 

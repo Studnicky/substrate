@@ -71,7 +71,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    */
   static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
     this: CircularBufferSubclassInterface<TInstance>,
-    options: CircularBufferOptionsEntity.Type = {}
+    options: CircularBufferOptionsEntity.InputType = {}
   ): TInstance {
     const resolveSubclassConstructor =
       (): CircularBufferSubclassInterface<TInstance> => {
@@ -146,7 +146,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param options.capacity - Initial capacity (default: 128)
    * @param options.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
    */
-  protected constructor(options: CircularBufferOptionsEntity.Type = {}) {
+  protected constructor(options: CircularBufferOptionsEntity.InputType = {}) {
     const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
 
     if (capacity <= 0 || !Number.isInteger(capacity)) {

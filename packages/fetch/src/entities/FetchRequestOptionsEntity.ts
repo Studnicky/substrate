@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace FetchRequestOptionsEntity {
   export const Schema = {
@@ -30,9 +31,11 @@ export namespace FetchRequestOptionsEntity {
       'window': { 'type': 'null' }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cache': SchemaNode.defineEnum(['default', 'force-cache', 'no-cache', 'no-store', 'only-if-cached', 'reload'] as const), 'credentials': SchemaNode.defineEnum(['include', 'omit', 'same-origin'] as const), 'duplex': SchemaNode.defineEnum(['half'] as const), 'headers': SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': false, 'patternProperties': { '^.*$': SchemaNode.defineString({ 'type': 'string' } as const) } }), 'integrity': SchemaNode.defineString({ 'type': 'string' } as const), 'keepalive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const), 'method': SchemaNode.defineString({ 'type': 'string' } as const), 'mode': SchemaNode.defineEnum(['cors', 'navigate', 'no-cors', 'same-origin'] as const), 'redirect': SchemaNode.defineEnum(['error', 'follow', 'manual'] as const), 'referrer': SchemaNode.defineString({ 'type': 'string' } as const), 'referrerPolicy': SchemaNode.defineEnum(['', 'no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url'] as const), 'requestId': SchemaNode.defineString({ 'type': 'string' } as const), 'timeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'multipleOf': 1, 'type': 'number' } as const), 'window': SchemaNode.defineNull({ 'type': 'null' } as const) }, [] as const, { 'additionalProperties': true });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

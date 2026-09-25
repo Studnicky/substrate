@@ -1,22 +1,26 @@
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type * as ts from 'typescript';
 
 import {
+  type ArrayLiteralExpression,
   type InterfaceDeclaration,
+  isArrayLiteralExpression,
   isAsExpression,
   isCallExpression,
   isComputedPropertyName,
   isConstTypeReference,
   isExportDeclaration,
+  isIdentifier,
   isImportDeclaration,
   isIndexedAccessTypeNode,
   isInterfaceDeclaration,
+  isModuleBlock,
   isObjectLiteralExpression,
+  isPropertyAssignment,
   isPropertySignature,
   isQualifiedName,
   isSatisfiesExpression,
+  isSpreadAssignment,
   isStringLiteral,
   isTypeAliasDeclaration,
   isTypeOperatorNode,
@@ -24,8 +28,12 @@ import {
   isTypeQueryNode,
   isTypeReferenceNode,
   isVariableDeclaration,
+  isVariableStatement,
+  type ModuleBlock,
   type Node,
   NodeFlags,
+  type ObjectLiteralElementLike,
+  type ObjectLiteralExpression,
   type Program,
   SignatureKind,
   type SourceFile,
@@ -42,6 +50,7 @@ import {
 } from 'typescript';
 
 import { type AliasClassificationResultInterface } from './AliasClassificationResultInterface.js';
+import { ACCEPTED_SCHEMA_VALUE_NAMES, DISCRIMINANT_DEFEATING_SCHEMA_KEYS, SCHEMA_DERIVING_TYPE_MODULES } from './constants/SchemaDerivationConstants.js';
 import { type ContractEvidenceInterface } from './ContractEvidenceInterface.js';
 import { type DataNodeResultInterface } from './DataNodeResultInterface.js';
 import { type InterfaceClassificationResultInterface } from './InterfaceClassificationResultInterface.js';
@@ -53,9 +62,10 @@ namespace SchemaDerivationMetadataEntity {
     'properties': { 'valid': { 'type': 'boolean' } },
     'required': ['valid'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['valid'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface SchemaDerivationShapeInterface {
@@ -67,6 +77,8 @@ interface SchemaValueAuthoringInterface {
   readonly 'builderCallee': Symbol | undefined;
   readonly 'valid': SchemaDerivationMetadataEntity.Type['valid'];
 }
+
+import { SchemaNode } from '@studnicky/entity/types';
 
 import type { TypeContractAliasResolution } from './TypeContractAliasResolution.js';
 import type { TypeContractCallabilityClassification } from './TypeContractCallabilityClassification.js';
@@ -620,10 +632,148 @@ export class TypeContractContext {
     return result;
   }
 
+  // A hand-written `Type`/interface member is justified — classified as canonical pure data
+  // the same as a real derivation — only when the namespace's own Schema/Node value itself
+  // proves no structural derivation exists. Mirrors entity-file-shape's exemption exactly, so
+  // a rule that inspects the schema and a rule that inspects the alias never disagree.
+  public namespaceHandWrittenTypeIsJustified(declaration: Node): boolean {
+    const namespaceBlock = declaration.parent;
+
+    if (!isModuleBlock(namespaceBlock)) {
+      return false;
+    }
+
+    const schemaInitializer = TypeContractContext.namespaceSchemaInitializer(namespaceBlock);
+    const result = this.schemaValueDefeatsStructuralDerivation(schemaInitializer);
+
+    return result;
+  }
+
+  private static namespaceSchemaInitializer(namespaceBlock: ModuleBlock): Node | undefined {
+    for (const statement of namespaceBlock.statements) {
+      if (!isVariableStatement(statement)) {
+        continue;
+      }
+
+      for (const declarator of statement.declarationList.declarations) {
+        if (
+          isIdentifier(declarator.name)
+          && ACCEPTED_SCHEMA_VALUE_NAMES.has(declarator.name.text)
+          && declarator.initializer !== undefined
+        ) {
+          return declarator.initializer;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  // Compiler-API counterpart to SchemaMemberGuards.schemaDefeatsStructuralDerivation — same
+  // predicate, over ts.Node rather than the ESTree-ish record entity-file-shape walks.
+  public schemaValueDefeatsStructuralDerivation(node: Node | undefined): boolean {
+    const literal = TypeContractContext.unwrapToObjectLiteralExpression(node);
+    const result = literal !== undefined && TypeContractContext.objectLiteralDefeatsDerivation(literal);
+
+    return result;
+  }
+
+  private static unwrapToObjectLiteralExpression(node: Node | undefined): ObjectLiteralExpression | undefined {
+    if (node === undefined) {
+      return undefined;
+    }
+    if (isAsExpression(node) || isSatisfiesExpression(node)) {
+      const result = TypeContractContext.unwrapToObjectLiteralExpression(node.expression);
+
+      return result;
+    }
+    if (isObjectLiteralExpression(node)) {
+      return node;
+    }
+
+    return undefined;
+  }
+
+  private static objectLiteralDefeatsDerivation(node: ObjectLiteralExpression): boolean {
+    const properties = node.properties;
+
+    if (properties.length === 0) {
+      return true;
+    }
+    if (TypeContractContext.isAnyOfRefinement(properties)) {
+      return true;
+    }
+
+    const result = properties.some(TypeContractContext.objectMemberDefeatsDerivation);
+
+    return result;
+  }
+
+  private static isAnyOfRefinement(properties: readonly ObjectLiteralElementLike[]): boolean {
+    const keyNames = new Set(properties.map(TypeContractContext.staticMemberKeyName));
+    const result = keyNames.has('anyOf') && (keyNames.has('properties') || keyNames.has('required'));
+
+    return result;
+  }
+
+  private static objectMemberDefeatsDerivation(member: ObjectLiteralElementLike): boolean {
+    if (isSpreadAssignment(member)) {
+      return false;
+    }
+    if (!isPropertyAssignment(member)) {
+      return false;
+    }
+
+    const keyName = TypeContractContext.staticMemberKeyName(member);
+
+    if (keyName !== undefined && DISCRIMINANT_DEFEATING_SCHEMA_KEYS.has(keyName)) {
+      return true;
+    }
+
+    const result = TypeContractContext.expressionDefeatsDerivation(member.initializer);
+
+    return result;
+  }
+
+  private static expressionDefeatsDerivation(node: Node): boolean {
+    if (isObjectLiteralExpression(node)) {
+      const result = TypeContractContext.objectLiteralDefeatsDerivation(node);
+
+      return result;
+    }
+    if (isArrayLiteralExpression(node)) {
+      const result = TypeContractContext.arrayLiteralDefeatsDerivation(node);
+
+      return result;
+    }
+
+    return false;
+  }
+
+  private static arrayLiteralDefeatsDerivation(node: ArrayLiteralExpression): boolean {
+    const result = node.elements.some(TypeContractContext.expressionDefeatsDerivation);
+
+    return result;
+  }
+
+  private static staticMemberKeyName(member: ObjectLiteralElementLike): string | undefined {
+    if (isSpreadAssignment(member) || member.name === undefined) {
+      return undefined;
+    }
+    if (isIdentifier(member.name)) {
+      return member.name.text;
+    }
+    if (isStringLiteral(member.name)) {
+      return member.name.text;
+    }
+
+    return undefined;
+  }
+
   public isCanonicalFromSchemaReference(derivingNameNode: Node): boolean {
     const resolvedSymbol = this.resolveSymbol(this.checker.getSymbolAtLocation(derivingNameNode));
 
-    if (resolvedSymbol?.getName() !== 'FromSchema') {
+    if (resolvedSymbol === undefined || !SCHEMA_DERIVING_TYPE_MODULES.has(resolvedSymbol.getName())) {
       return false;
     }
 
@@ -664,8 +814,13 @@ export class TypeContractContext {
 
     const moduleSpecifier = statement.moduleSpecifier;
 
-    if (moduleSpecifier === undefined || !isStringLiteral(moduleSpecifier)
-      || moduleSpecifier.text !== 'json-schema-to-ts') {
+    if (moduleSpecifier === undefined || !isStringLiteral(moduleSpecifier)) {
+      return;
+    }
+
+    const derivingTypeNames = TypeContractContext.derivingTypeNamesForModule(moduleSpecifier.text);
+
+    if (derivingTypeNames.length === 0) {
       return;
     }
 
@@ -676,16 +831,38 @@ export class TypeContractContext {
     }
 
     const exportedSymbols = this.checker.getExportsOfModule(moduleSymbol);
-    const exportedFromSchema = exportedSymbols.find((symbol) => {
-      const result = symbol.getName() === 'FromSchema';
+    const derivingTypeCount = derivingTypeNames.length;
+
+    for (let index = 0; index < derivingTypeCount; index += 1) {
+      this.addExportedDerivingSymbol(exportedSymbols, derivingTypeNames[index]!);
+    }
+  }
+
+  private addExportedDerivingSymbol(exportedSymbols: readonly Symbol[], derivingTypeName: string): void {
+    const exportedDerivingType = exportedSymbols.find((symbol) => {
+      const result = symbol.getName() === derivingTypeName;
 
       return result;
     });
-    const resolvedSymbol = this.resolveSymbol(exportedFromSchema);
+    const resolvedSymbol = this.resolveSymbol(exportedDerivingType);
 
     if (resolvedSymbol !== undefined) {
       this.canonicalFromSchemaSymbols.add(resolvedSymbol);
     }
+  }
+
+  // A module can back more than one deriving-type name (`NodeStaticType` and `NodeInputType`
+  // both resolve to `@studnicky/entity/types`), so every matching name is collected here.
+  private static derivingTypeNamesForModule(moduleSpecifierText: string): readonly string[] {
+    const result: string[] = [];
+
+    for (const [derivingTypeName, moduleSpecifier] of SCHEMA_DERIVING_TYPE_MODULES) {
+      if (moduleSpecifier === moduleSpecifierText) {
+        result.push(derivingTypeName);
+      }
+    }
+
+    return result;
   }
 
   private isSchemaDerivingFunction(derivingNameNode: Node, builderCallee: Symbol | undefined): boolean {
@@ -695,7 +872,7 @@ export class TypeContractContext {
       return false;
     }
 
-    if (derivingSymbol.getName() === 'FromSchema') {
+    if (SCHEMA_DERIVING_TYPE_MODULES.has(derivingSymbol.getName())) {
       const result = this.isCanonicalFromSchemaReference(derivingNameNode);
 
       return result;

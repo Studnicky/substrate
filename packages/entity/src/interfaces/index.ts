@@ -1,3 +1,4 @@
+export type { ContainsBrandInterface } from './ContainsBrandInterface.js';
 export type { EntityCompilerInterface } from './EntityCompilerInterface.js';
 export type { EntityCreateFunctionInterface } from './EntityCreateFunctionInterface.js';
 export type { EntityIntakeFunctionInterface } from './EntityIntakeFunctionInterface.js';
@@ -5,7 +6,14 @@ export type { EntityReferenceRegistryInterface } from './EntityReferenceRegistry
 export type { EntityValidateFunctionInterface } from './EntityValidateFunctionInterface.js';
 export type { EntityValidationErrorInterface } from './EntityValidationErrorInterface.js';
 export type { InvariantFunctionInterface } from './InvariantFunctionInterface.js';
+export type { MaximumContainsBrandInterface } from './MaximumContainsBrandInterface.js';
+export type { MaximumItemsBrandInterface } from './MaximumItemsBrandInterface.js';
+export type { MaximumPropertiesBrandInterface } from './MaximumPropertiesBrandInterface.js';
+export type { MinimumContainsBrandInterface } from './MinimumContainsBrandInterface.js';
+export type { MinimumItemsBrandInterface } from './MinimumItemsBrandInterface.js';
+export type { MinimumPropertiesBrandInterface } from './MinimumPropertiesBrandInterface.js';
 export type { ObjectSchemaShapeInterface } from './ObjectSchemaShapeInterface.js';
 export type { SchemaCompilerInterface } from './SchemaCompilerInterface.js';
 export type { SchemaNodeInterface } from './SchemaNodeInterface.js';
 export type { SchemaRegistrySetInterface } from './SchemaRegistrySetInterface.js';
+export type { UniqueItemsBrandInterface } from './UniqueItemsBrandInterface.js';

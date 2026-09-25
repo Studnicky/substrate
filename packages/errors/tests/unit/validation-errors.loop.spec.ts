@@ -39,7 +39,7 @@ type ScenarioCase =
         };
       };
       input: ScenarioValue;
-      shape: 'aggregate-dedup' | 'aggregate-empty' | 'construction-empty' | 'construction-invalid' | 'construction-non-empty' | 'create-from-array' | 'detaches-source' | 'fallback-message' | 'for-of' | 'from-empty-array' | 'from-null' | 'from-undefined' | 'maps-ajv' | 'merge' | 'merge-empty' | 'report-default' | 'report-empty' | 'report-overrides' | 'report-plural' | 'report-title' | 'spread';
+      shape: 'aggregate-dedup' | 'aggregate-empty' | 'construction-empty' | 'construction-invalid' | 'construction-non-empty' | 'create-from-array' | 'detaches-source' | 'fallback-message' | 'for-of' | 'from-empty-array' | 'from-null' | 'from-undefined' | 'maps-ajv' | 'merge' | 'merge-empty' | 'report-default' | 'report-empty' | 'report-invalid-status' | 'report-overrides' | 'report-plural' | 'report-title' | 'spread';
       name: string;
     };
 
@@ -159,6 +159,14 @@ const runReportOverrides: ScenarioRunner = (scenarioCase) => {
   assert.deepStrictEqual(report, scenarioCase.expected.report);
 };
 
+const runReportInvalidStatus: ScenarioRunner = (scenarioCase) => {
+  const input = materialize(scenarioCase.input);
+  const { options, violations } = input as { options: { status?: number; title?: string; type?: string }; violations: ValidationViolationEntity.Type[] };
+  assert.throws(() => {
+    ValidationErrors.create(violations).report(options);
+  });
+};
+
 const runnerMap: RunnerMap = {
   'aggregate-dedup': runAggregate,
   'aggregate-empty': runAggregate,
@@ -244,6 +252,7 @@ const runnerMap: RunnerMap = {
   },
   'report-default': runDefaultReport,
   'report-empty': runDefaultReport,
+  'report-invalid-status': runReportInvalidStatus,
   'report-overrides': runReportOverrides,
   'report-plural': runDefaultReport,
   'report-title': runReportOverrides,

@@ -1,9 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 // ONE RULE, FIVE UNITS, ONE ORDERED LIST.
 //
@@ -85,9 +84,25 @@ export namespace LayerBindingEntity {
       'layer'
     ],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'layer': SchemaNode.defineString({
+    'description': 'The layer name this binding resolves a match to. Must be one of the configured `layers` — a binding naming an unconfigured layer never matches, the same as a typo.',
+    'type': 'string'
+  } as const), 'pattern': SchemaNode.defineString({
+    'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
+    'type': 'string'
+  } as const), 'unit': SchemaNode.defineEnum([
+    'folder',
+    'package',
+    'module',
+    'dependency',
+    'builtin'
+  ] as const) }, [
+    'unit',
+    'layer'
+  ] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   // A binding entry is a closed shape — nothing extends it the way the four `arch/*` rules
   // extend `LayerOptionsEntity.Schema` with their own additional properties, so `validate`

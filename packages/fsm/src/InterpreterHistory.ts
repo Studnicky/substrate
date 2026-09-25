@@ -1,5 +1,3 @@
-import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
-
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
 import { Clone } from '@studnicky/json/browser';
@@ -17,7 +15,7 @@ interface InterpreterHistoryConstructorOptionsInterface<
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
-  readonly 'capacity': NonNullable<CircularBufferOptionsEntity.Type['capacity']>;
+  readonly 'capacity': number;
   readonly 'clock': ClockProviderInterface;
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
   readonly 'machine': StateMachine<TState, TEvent, TEffect>;

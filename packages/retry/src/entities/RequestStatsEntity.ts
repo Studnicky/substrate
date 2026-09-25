@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace RequestStatsEntity {
   export const Schema = {
@@ -34,9 +35,26 @@ export namespace RequestStatsEntity {
     'required': ['failedRequests', 'successfulRequests', 'totalRequests', 'totalRetries'],
     'title': 'RequestStats',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestStats', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Statistics for request executor', 'title': 'RequestStats', 'type': 'object' } as const, { 'failedRequests': SchemaNode.defineNumber({
+    'description': 'Total number of requests that failed (after all retries)',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'successfulRequests': SchemaNode.defineNumber({
+    'description': 'Total number of requests that succeeded',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'totalRequests': SchemaNode.defineNumber({
+    'description': 'Total number of requests executed',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'totalRetries': SchemaNode.defineNumber({
+    'description': 'Total number of retry attempts made',
+    'minimum': 0,
+    'type': 'integer'
+  } as const) }, ['failedRequests', 'successfulRequests', 'totalRequests', 'totalRetries'] as const, { 'additionalProperties': false });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
