@@ -1,6 +1,7 @@
 import { Predicates } from '@studnicky/types/browser';
 
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';
+import type { GroupRuleEntity } from '../../entities/GroupRuleEntity.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 
 import { MatcherHandlerLookup } from '../matchers/index.js';
@@ -62,7 +63,7 @@ class GroupNodeValidator {
   }
 
   private static validateGroupRule(
-    groupRule: DrilldownRulesEntity.GroupRuleEntity.Type,
+    groupRule: GroupRuleEntity.Type,
     index: number,
     path: string[],
     pathString: string,

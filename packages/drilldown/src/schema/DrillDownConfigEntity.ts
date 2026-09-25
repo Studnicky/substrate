@@ -9,23 +9,23 @@
  * @module
  */
 
-import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
+import { DRILLDOWN_DEFAULTS } from '../constants/index.js';
 import { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
 import { DrilldownRulesEntity } from './DrilldownRulesEntity.js';
+import { drilldownRulesRemoteSchemas } from './DrilldownRulesRemoteSchemas.js';
 
 export namespace DrillDownConfigEntity {
-  const rulesPointerKey = '$ref';
   const rulesLink = {
+    '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId,
     'description': 'Explicit rule tree (filter/group/sort) describing exactly how to partition, filter, and order the data. When provided, this takes precedence over autoGrouping/propertyPriority at each level the rules cover.',
     'title': 'DrillDownConfigRules'
-  } as { 'description': string, 'title': 'DrillDownConfigRules' };
-
-  Object.defineProperty(rulesLink, rulesPointerKey, { 'enumerable': true, 'value': DrilldownRulesEntity.Schema.$id });
-
+  } as const;
 
   export const Schema = {
     '$id': 'urn:studnicky:drilldown:config',
@@ -137,17 +137,63 @@ export namespace DrillDownConfigEntity {
     'required': [],
     'title': 'DrillDown Configuration',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<
-    typeof Schema,
-    { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrillDownConfigRules' } }] }
-  >;
+  /** Pins the displayed static type to the public `DrilldownRulesEntity.Type` alias, not its private interior shape. */
+  const rulesNode: SchemaNodeInterface<unknown, DrilldownRulesEntity.Type> = SchemaNode.defineReference(
+    DrilldownRulesEntity.Schema.$id,
+    DrilldownRulesEntity.Node
+  );
+
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'autoGrouping': SchemaNode.defineObject(
+        { 'type': 'object' } as const,
+        {
+          'mode': SchemaNode.defineEnum(Schema.properties.autoGrouping.properties.mode.enum),
+          'target': SchemaNode.defineNumber(Schema.properties.autoGrouping.properties.target)
+        },
+        ['mode', 'target'] as const
+      ),
+      'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.excludeProperties.items)),
+      'filter': SchemaNode.defineArray({ 'type': 'array' } as const, DrilldownRulesEntity.FilterRuleNode),
+      'granularity': SchemaNode.defineObject(
+        { 'type': 'object' } as const,
+        {
+          'cidr': SchemaNode.defineNumber(Schema.properties.granularity.properties.cidr),
+          'count': SchemaNode.defineNumber(Schema.properties.granularity.properties.count),
+          'date': SchemaNode.defineEnum(Schema.properties.granularity.properties.date.enum),
+          'density': SchemaNode.defineNumber(Schema.properties.granularity.properties.density),
+          'prefix': SchemaNode.defineNumber(Schema.properties.granularity.properties.prefix)
+        },
+        [] as const
+      ),
+      'maximumDepth': SchemaNode.defineNumber(Schema.properties.maximumDepth),
+      'maximumNodes': SchemaNode.defineNumber(Schema.properties.maximumNodes),
+      'minimumGroupSize': SchemaNode.defineNumber(Schema.properties.minimumGroupSize),
+      'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.propertyPriority.items)),
+      'rules': rulesNode,
+      'sort': SchemaNode.defineArray(
+        { 'type': 'array' } as const,
+        SchemaNode.defineObject(
+          { 'type': 'object' } as const,
+          {
+            'direction': SchemaNode.defineEnum(Schema.properties.sort.items.properties.direction.enum),
+            'property': SchemaNode.defineString(Schema.properties.sort.items.properties.property)
+          },
+          ['property', 'direction'] as const
+        )
+      )
+    },
+    [] as const
+  );
+  export type Type = NodeStaticType<typeof Node>;
 
   /** Type-guard — returns true when `value` is a valid `DrillDownConfigEntity.Type`. */
-  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
-  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema, drilldownRulesRemoteSchemas);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema, drilldownRulesRemoteSchemas);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema, drilldownRulesRemoteSchemas);
 
   /**
    * The single canonical default drilldown configuration. Used by callers that
@@ -155,13 +201,13 @@ export namespace DrillDownConfigEntity {
    * `propertyPriority` so the engine discovers groupable fields from the actual
    * decoded records.
    */
-  export const DEFAULT: Type = {
+  export const DEFAULT: Type = intake({
     'autoGrouping': { 'mode': 'count', 'target': 10 },
     'excludeProperties': ['id', 'iri', 'latitude', 'longitude', 'sourceFileId', 'sourceRowNumber'],
     'maximumDepth': 4,
     'maximumNodes': 250,
     'minimumGroupSize': 2,
     'sort': [{ 'direction': 'desc', 'property': '$groupCount' }]
-  };
+  });
 
 }

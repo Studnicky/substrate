@@ -1,11 +1,11 @@
 import type { DiscoverValuesOptionsEntity } from '../entities/DiscoverValuesOptionsEntity.js';
 import type { EngineContextEntity } from '../entities/EngineContextEntity.js';
 import type { FilterRuleEntity } from '../entities/FilterRuleEntity.js';
+import type { GroupRuleEntity } from '../entities/GroupRuleEntity.js';
 import type { PropertyPathEntity } from '../entities/PropertyPathEntity.js';
 import type { SortRuleEntity } from '../entities/SortRuleEntity.js';
 import type { DrillDownAnalysisInterface, DrillDownInterface, GroupNodeInterface, PartitionGroupInterface } from '../interfaces/index.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
-import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
 import type { FacetAccessorMapType, FacetFilterStateType } from '../types/index.js';
 
 import { DataAnalyzer } from './DataAnalyzer.js';
@@ -22,7 +22,7 @@ import {
 interface GroupLevelDescentInterface {
   'context': EngineContextEntity.Type
   'depth': number
-  'explicitGroupRules'?: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined
+  'explicitGroupRules'?: GroupRuleEntity.Type[] | undefined
   'filter': FilterRuleEntity.Type[]
   'propertyOrder': PropertyPathEntity.Type[]
   'sort'?: SortRuleEntity.Type[] | undefined
@@ -203,7 +203,7 @@ export class DrillDown implements DrillDownInterface {
   // In AUTO mode the current property is consumed by advancing the slice.
   private buildGroupedChildren(
     matched: PartitionGroupInterface[],
-    currentRule: DrilldownRulesEntity.GroupRuleEntity.Type,
+    currentRule: GroupRuleEntity.Type,
     wasExplicit: boolean,
     descent: GroupLevelDescentInterface
   ): GroupNodeInterface[] {
@@ -226,7 +226,7 @@ export class DrillDown implements DrillDownInterface {
 
   private buildChildNode(
     group: PartitionGroupInterface,
-    currentRule: DrilldownRulesEntity.GroupRuleEntity.Type,
+    currentRule: GroupRuleEntity.Type,
     nextPropertyOrder: string[],
     descent: GroupLevelDescentInterface
   ): GroupNodeInterface {
@@ -305,9 +305,9 @@ export class DrillDown implements DrillDownInterface {
     data: Record<string, unknown>[],
     propertyOrder: string[],
     depth: number,
-    explicitGroupRules: DrilldownRulesEntity.GroupRuleEntity.Type[] | undefined,
+    explicitGroupRules: GroupRuleEntity.Type[] | undefined,
     context: EngineContextEntity.Type
-  ): { 'rule': DrilldownRulesEntity.GroupRuleEntity.Type, 'wasExplicit': boolean } | null {
+  ): { 'rule': GroupRuleEntity.Type, 'wasExplicit': boolean } | null {
     // EXPLICIT path: explicit rule at this depth takes priority.
     if (explicitGroupRules !== undefined) {
       const rule = explicitGroupRules[depth];
