@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from 'node:child_process';
-import { globSync, readFileSync } from 'node:fs';
+import { existsSync, globSync, readFileSync } from 'node:fs';
 import { basename, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -570,9 +570,89 @@ class OrphanedSpecCheck {
   }
 }
 
+interface ExampleScenarioCaseInputInterface {
+  readonly 'entrypoint'?: string;
+  readonly 'examplesRoot'?: string;
+  readonly 'file'?: string;
+  readonly 'fileName'?: string;
+}
+
+interface ExampleScenarioFileInterface {
+  readonly 'cases': readonly { readonly 'input': ExampleScenarioCaseInputInterface }[];
+}
+
+/** A scenario case declares one file (`file`/`entrypoint`/`fileName`) or every `.ts` file directly under a directory (`examplesRoot`). */
+function resolveSingleFileCandidates(scenarioDir: string, singleFile: string): readonly string[] {
+  const relativeToSpec = resolve(ROOT_DIR, scenarioDir, singleFile);
+  const relativeToExamplesRoot = resolve(ROOT_DIR, scenarioDir, '../../examples', singleFile);
+  return [relativeToSpec, relativeToExamplesRoot]
+    .filter((candidate) => {
+      return existsSync(candidate);
+    })
+    .map((candidate) => {
+      return relative(ROOT_DIR, candidate).split('\\').join('/');
+    });
+}
+
+function resolveDeclaredExampleFiles(scenarioDir: string, input: ExampleScenarioCaseInputInterface): readonly string[] {
+  const singleFile = input.file ?? input.entrypoint ?? input.fileName;
+  if (singleFile !== undefined) {
+    const candidates = resolveSingleFileCandidates(scenarioDir, singleFile);
+    if (candidates.length > 0) {
+      return candidates;
+    }
+    return [relative(ROOT_DIR, resolve(ROOT_DIR, scenarioDir, singleFile)).split('\\').join('/')];
+  }
+  if (input.examplesRoot !== undefined) {
+    const examplesDir = resolve(ROOT_DIR, scenarioDir, input.examplesRoot);
+    return globSync('*.ts', { 'cwd': examplesDir }).map((file) => {
+      return relative(ROOT_DIR, resolve(examplesDir, file)).split('\\').join('/');
+    });
+  }
+  return [];
+}
+
+class ExampleOrphanCheck {
+  /** An example file on disk with no smoke scenario entry, or a scenario entry naming a file that does not exist, hides silently otherwise — this is how 63 examples across 32 packages stayed unrun. */
+  public static assertNone(): void {
+    const exampleFiles = new Set(globSync('packages/*/examples/*.ts', { 'cwd': ROOT_DIR }).map((file) => {
+      return file.split('\\').join('/');
+    }));
+    const scenarioFiles = globSync('packages/*/tests/smoke/examples.scenarios.json', { 'cwd': ROOT_DIR });
+    const declared = new Set<string>();
+    const missing: string[] = [];
+    for (const scenarioFile of scenarioFiles) {
+      const scenarioDir = dirname(scenarioFile);
+      const scenarioJson = JSON.parse(readFileSync(resolve(ROOT_DIR, scenarioFile), 'utf8')) as ExampleScenarioFileInterface;
+      for (const scenarioCase of scenarioJson.cases) {
+        for (const resolved of resolveDeclaredExampleFiles(scenarioDir, scenarioCase.input)) {
+          declared.add(resolved);
+          if (exampleFiles.has(resolved) === false) {
+            missing.push(`${scenarioFile} -> ${resolved}`);
+          }
+        }
+      }
+    }
+    const unclassified = [...exampleFiles].filter((file) => {
+      return declared.has(file) === false;
+    });
+    const problems: string[] = [];
+    if (unclassified.length > 0) {
+      problems.push(`example files with no smoke scenario entry: ${unclassified.toSorted().join(', ')}`);
+    }
+    if (missing.length > 0) {
+      problems.push(`smoke scenario entries naming a file that does not exist: ${missing.toSorted().join(', ')}`);
+    }
+    if (problems.length > 0) {
+      throw new Error(problems.join('; '));
+    }
+  }
+}
+
 export async function main(argv: readonly string[] = process.argv.slice(2)): Promise<void> {
   const options = parseArgs(argv);
   OrphanedSpecCheck.assertNone();
+  ExampleOrphanCheck.assertNone();
   const workspacePackages = loadWorkspacePackages();
 
   await runMode(options.mode, options, workspacePackages);
