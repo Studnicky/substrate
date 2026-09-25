@@ -24,8 +24,7 @@ class KeyClassification {
 class FromEntriesCallShape {
   /** `Object.fromEntries(...)` — resolved by direct callee shape, matching this file's existing convention (no `CallIdentity` dependency for a global static method with no realistic same-named user overload). */
   public static isObjectFromEntries(node: Rule.Node): boolean {
-    const raw = node as unknown as { readonly 'callee': unknown };
-    const callee = raw.callee;
+    const callee = AstHelpers.getNodeProperty(node, 'callee');
 
     if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
       return false;
@@ -48,9 +47,9 @@ class FromEntriesCallShape {
 export const computedObjectProperties: Rule.RuleModule = {
   'create': (context) => {
     const onComputedProperty: (node: Rule.Node) => void = (node) => {
-      const raw = node as unknown as { readonly 'key': unknown };
+      const key = AstHelpers.getNodeProperty(node, 'key');
 
-      if (KeyClassification.isWellKnownSymbol(raw.key)) {
+      if (KeyClassification.isWellKnownSymbol(key)) {
         return;
       }
 

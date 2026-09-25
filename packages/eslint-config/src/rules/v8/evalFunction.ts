@@ -78,9 +78,8 @@ export const evalFunction: Rule.RuleModule = {
     };
 
     const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const id = rawNode.id;
-      const init = rawNode.init;
+      const id = node.id;
+      const init = node.init;
 
       if (!Predicates.isRecord(id) || id.type !== 'Identifier') { return; }
       if (!EvalAstHelpers.isEvalReference(init)) { return; }
@@ -90,8 +89,7 @@ export const evalFunction: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const callee = rawNode.callee;
+      const callee = node.callee;
 
       if (EvalAstHelpers.isEvalReference(callee)) {
         report(node);
