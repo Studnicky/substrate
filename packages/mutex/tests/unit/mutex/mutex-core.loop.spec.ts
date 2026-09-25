@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { RuntimeError } from '@studnicky/errors/node';
 
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
+import type { MutexCreateOptionsInterface } from '../../../src/interfaces/MutexCreateOptionsInterface.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { configInternal, Mutex } from '../../../src/mutex/index.js';
 import scenarioGroups from './mutex-core.scenarios.json' with { type: 'json' };
@@ -25,7 +26,7 @@ type MutexScenarioInput = Record<string, unknown> & {
   errorMessage?: string;
   key?: unknown;
   keys?: string[];
-  mutex?: Record<string, unknown>;
+  mutex?: MutexCreateOptionsInterface;
   operations?: string[];
   result?: unknown;
   value?: unknown;
@@ -116,8 +117,8 @@ type NumericBatchField = keyof Omit<BatchInput, 'queuedPerKey'>;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type ReleaseFunction = () => void;
 
-function mutexConfig(scenarioCase: ScenarioCase): Partial<MutexConfigEntity.Type> {
-  return (scenarioCase.input.mutex ?? {}) as Partial<MutexConfigEntity.Type>;
+function mutexConfig(scenarioCase: ScenarioCase): MutexCreateOptionsInterface {
+  return scenarioCase.input.mutex ?? {};
 }
 
 function readBatchCount(input: MutexScenarioInput, field: NumericBatchField): number {
