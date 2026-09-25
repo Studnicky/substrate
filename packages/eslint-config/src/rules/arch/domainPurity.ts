@@ -10,6 +10,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 import { ImportSourceValue } from '../shared/importSourceValue.js';
 
 namespace DomainPurityOptionsEntity {
@@ -271,8 +272,8 @@ class CalleeDottedName {
       return resolved;
     }
 
-    if (Predicates.isRecord(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
-      const scope = context.sourceCode.getScope(callee as unknown as Rule.Node);
+    if (AstHelpers.isNode(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
+      const scope = context.sourceCode.getScope(callee);
       const destructured = CalleeDottedName.resolveDestructuredAlias(callee.name, scope);
 
       if (destructured !== undefined) {

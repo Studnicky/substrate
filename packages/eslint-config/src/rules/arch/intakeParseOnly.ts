@@ -173,8 +173,7 @@ export const intakeParseOnly: Rule.RuleModule = {
     const structuralProperties = new Set(options.structuralProperties);
 
     const inspect = (node: Rule.Node): void => {
-      const raw = node as unknown as Record<string, unknown>;
-      const parameters: unknown = raw.params;
+      const parameters = AstHelpers.getNodeProperty(node, 'params');
 
       if (!Array.isArray(parameters)) {
         return;
