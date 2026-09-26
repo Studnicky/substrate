@@ -10,9 +10,12 @@ import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
 import { Throttle } from '@studnicky/throttle/node';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+
 import { BoundaryKit } from '../../../src/index.js';
 import type { BoundaryKitConfigInterface } from '../../../src/interfaces/index.js';
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
+import { BoundaryKitScenarioCaseEntity } from './entities/BoundaryKitScenarioCaseEntity.js';
 import scenarioGroups from './boundary-kit.scenarios.json' with { type: 'json' };
 
 type RetryClassifierDescriptor = {
@@ -42,72 +45,7 @@ type BatchInput = {
   callCount: number;
 };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { result: string };
-      input: {
-        boundaryKit: {
-          config: BoundaryKitConfigDescriptor;
-        };
-      };
-      shape: 'plain-config';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: number; result: string };
-      input: { boundaryKit: { failuresBeforeSuccess: number } };
-      shape: 'default-retry';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { acquireCount: number; attemptCount: number; successCount: number };
-      input: {
-        boundaryKit: {
-          prebuiltConfig: Required<BoundaryKitConfigDescriptor>;
-        };
-      };
-      shape: 'prebuilt-instances';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { maxObservedActive: number };
-      input: {
-        batch: BatchInput;
-        boundaryKit: {
-          config: Required<Pick<BoundaryKitConfigDescriptor, 'throttle'>>;
-          workDelayMs: number;
-        };
-      };
-      shape: 'throttle-bound';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: number; breakerStateAfterFirst: 'closed'; breakerStateAfterSecond: 'open'; rejectionName: string };
-      input: {
-        boundaryKit: {
-          config: Required<Pick<BoundaryKitConfigDescriptor, 'circuitBreaker' | 'retry'>>;
-        };
-      };
-      shape: 'circuit-breaker-open';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortedRan: false; resultIsUndefined: true };
-      input: {
-        boundaryKit: {
-          abortDelayMs: number;
-          abortConfig: Required<Pick<BoundaryKitConfigDescriptor, 'throttle'>>;
-        };
-      };
-      shape: 'undefined-result-vs-abort';
-      name: string;
-    };
+type ScenarioCase = BoundaryKitScenarioCaseEntity.Type;
 
 class SubclassedThrottle extends Throttle {
   acquireCount = 0;
@@ -226,6 +164,8 @@ type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<Sc
 type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(BoundaryKitScenarioCaseEntity.Schema, BoundaryKitScenarioCaseEntity.Node);
 
 const runnerMap: RunnerMap = {
   'plain-config': async (scenarioCase) => {
@@ -354,7 +294,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('BoundaryKit', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
