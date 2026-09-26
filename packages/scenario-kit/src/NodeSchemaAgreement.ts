@@ -34,8 +34,13 @@ export class NodeSchemaAgreement {
       return value;
     }
     if (Predicates.isObject(value) && Predicates.isObject(value.schema)) {
-      const result = NodeSchemaAgreement.flattenSchema(value.schema);
-      return result;
+      const wrapped = NodeSchemaAgreement.flattenSchema(value.schema);
+      return wrapped;
+    }
+    /** A plain nested schema carries no wrapper, so it still needs normalizing at its own level. */
+    if (Predicates.isObject(value)) {
+      const plain = NodeSchemaAgreement.flattenSchema(value);
+      return plain;
     }
     return value;
   }
