@@ -56,7 +56,7 @@ class ForOfBinding {
 
 class SoleBodyPushCall {
   /** The single `acc.push(x)` CallExpression when `body` reduces to exactly that statement — a bare `ExpressionStatement`, or a `BlockStatement` with exactly one statement. Any other body shape (multiple statements, a condition, a second push) is not the pure drain pattern this rule targets. */
-  public static find(body: unknown): unknown {
+  public static find(body: unknown): Rule.Node | undefined {
     if (!Predicates.isRecord(body)) {
       return undefined;
     }
@@ -77,7 +77,7 @@ class SoleBodyPushCall {
     }
     const { expression } = statement;
 
-    if (!Predicates.isRecord(expression) || expression.type !== 'CallExpression') {
+    if (!AstHelpers.isNode(expression) || expression.type !== 'CallExpression') {
       return undefined;
     }
 
@@ -87,7 +87,7 @@ class SoleBodyPushCall {
 
 class AccumulatorBinding {
   /** True when `const <name> = [];`/`let <name> = [];` is the statement immediately preceding `forOfNode`. */
-  public static isFreshEmptyArrayDeclaredBefore(forOfNode: Rule.Node, name: string): boolean {
+  public static isFreshEmptyArrayDeclaredBefore(forOfNode: Parameters<NonNullable<Rule.RuleListener['ForOfStatement']>>[0], name: string): boolean {
     const previous = AccumulatorBinding.#precedingStatement(forOfNode);
 
     if (!Predicates.isRecord(previous) || previous.type !== 'VariableDeclaration') {
@@ -99,10 +99,8 @@ class AccumulatorBinding {
     return result;
   }
 
-  // Cast through `unknown`: `Predicates.isRecord` doesn't erase `Rule.Node`'s declared
-  // `.body` type. Same pattern as `StatementIndex.locate` in `chainedArrayIteration`.
-  static #precedingStatement(forOfNode: Rule.Node): unknown {
-    const block = forOfNode.parent as unknown;
+  static #precedingStatement(forOfNode: Parameters<NonNullable<Rule.RuleListener['ForOfStatement']>>[0]): unknown {
+    const block = forOfNode.parent;
 
     if (!Predicates.isRecord(block)) {
       return undefined;
@@ -183,20 +181,34 @@ class IterableProof {
 class PushDrainMatch {
   /** The accumulator's identifier name when `pushCall` is provably `acc.push(bindingName)`. */
   public static resolveAccumulatorName(pushCall: unknown, bindingName: string): string | undefined {
-    const rawPushCall = pushCall as { readonly 'arguments': readonly unknown[]; readonly 'callee': unknown };
+    if (!AstHelpers.isNode(pushCall) || pushCall.type !== 'CallExpression') {
+      return undefined;
+    }
     const {
       'arguments': pushArgumentList, callee
-    } = rawPushCall;
+    } = pushCall;
 
-    if (pushArgumentList.length !== 1) {
+    if (!PushDrainMatch.#pushesBindingValue(pushArgumentList, bindingName)) {
       return undefined;
+    }
+
+    const result = PushDrainMatch.#accumulatorNameOf(callee);
+
+    return result;
+  }
+
+  static #pushesBindingValue(pushArgumentList: readonly unknown[], bindingName: string): boolean {
+    if (pushArgumentList.length !== 1) {
+      return false;
     }
     const [pushedValue] = pushArgumentList;
 
-    if (!Predicates.isRecord(pushedValue) || pushedValue.type !== 'Identifier' || pushedValue.name !== bindingName) {
-      return undefined;
-    }
+    const result = Predicates.isRecord(pushedValue) && pushedValue.type === 'Identifier' && pushedValue.name === bindingName;
 
+    return result;
+  }
+
+  static #accumulatorNameOf(callee: unknown): string | undefined {
     if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression') {
       return undefined;
     }
@@ -224,7 +236,7 @@ export const arrayFromIterators: Rule.RuleModule = {
       if (pushCall === undefined) {
         return;
       }
-      if (!CallIdentity.isBuiltinCall(pushCall as Rule.Node, context, PUSH_METHODS, PUSH_OWNERS)) {
+      if (!CallIdentity.isBuiltinCall(pushCall, context, PUSH_METHODS, PUSH_OWNERS)) {
         return;
       }
 
