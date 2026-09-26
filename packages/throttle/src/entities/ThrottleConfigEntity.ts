@@ -10,16 +10,14 @@ export namespace ThrottleConfigEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'adaptive': {
-        ...AdaptiveConfigEntity.Schema,
-        'description': 'Adaptive concurrency configuration.'
-      },
+      'adaptive': AdaptiveConfigEntity.Schema,
       'concurrencyLimit': {
         'description': 'Maximum number of concurrent operations.',
         'minimum': 1,
         'type': 'integer'
       }
     },
+    'required': [],
     'type': 'object'
   } as const;
 
@@ -27,7 +25,7 @@ export namespace ThrottleConfigEntity {
     { 'type': 'object' } as const,
     {
       'adaptive': AdaptiveConfigEntity.Node,
-      'concurrencyLimit': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const)
+      'concurrencyLimit': SchemaNode.defineNumber({ 'description': 'Maximum number of concurrent operations.', 'minimum': 1, 'type': 'integer' } as const)
     },
     [] as const,
     { 'additionalProperties': false }

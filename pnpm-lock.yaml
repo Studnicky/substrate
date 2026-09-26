@@ -1027,6 +1027,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/sample-buffer:
     dependencies:
@@ -1231,6 +1234,9 @@ importers:
       '@studnicky/retry':
         specifier: workspace:*
         version: link:../retry
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/timing:
     dependencies:

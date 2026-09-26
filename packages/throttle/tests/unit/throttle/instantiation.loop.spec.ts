@@ -1,45 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Throttle } from '../../../src/throttle/index.js';
+import { InstantiationScenarioCaseEntity } from './entities/InstantiationScenarioCaseEntity.js';
 import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { concurrencyLimit: number };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'create-with-config';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { concurrencyLimit: number };
-      input: { throttle: Record<string, never> };
-      shape: 'create-with-default';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { result: string };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'execute-created-throttle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { result: string };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'chain-execute-after-create';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { result: number };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'execute-closure-arguments';
-      name: string;
-    };
+type ScenarioCase = InstantiationScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(InstantiationScenarioCaseEntity.Schema, InstantiationScenarioCaseEntity.Node);
 
 class ThrottleTestHelpers {
   public static async factoryResult(): Promise<string> {
@@ -89,7 +58,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Throttle instantiation', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
