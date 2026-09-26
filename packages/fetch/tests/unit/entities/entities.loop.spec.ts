@@ -1,23 +1,18 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ClientConfigDataEntity, FetchRequestOptionsEntity, QueryParametersEntity } from '../../../src/entities/index.js';
+
+import { EntitiesScenarioCaseEntity } from './entities/EntitiesScenarioCaseEntity.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
-type ValidationName = 'ClientConfigDataEntity' | 'FetchRequestOptionsEntity' | 'QueryParametersEntity';
+type ScenarioCase = EntitiesScenarioCaseEntity.Type;
+type ValidationName = ScenarioCase['input']['validations'][number]['entity'];
 
-type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
+const fileIntake = ScenarioFileCompiler.compileIntake(EntitiesScenarioCaseEntity.Schema, EntitiesScenarioCaseEntity.Node);
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { validationResults: boolean[] };
-      input: { validations: ValidationCase[] };
-      shape: 'client-config-invalid' | 'client-config-valid' | 'query-parameters-invalid' | 'query-parameters-valid' | 'request-options-invalid' | 'request-options-valid';
-      name: string;
-    };
-
-const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
+const validatorMap: Record<ValidationName, (value: unknown) => boolean> = {
   'ClientConfigDataEntity': (value) => ClientConfigDataEntity.validate(value),
   'FetchRequestOptionsEntity': (value) => FetchRequestOptionsEntity.validate(value),
   'QueryParametersEntity': (value) => QueryParametersEntity.validate(value)
@@ -72,7 +67,7 @@ void describe('fetch data entities', () => {
       QueryParametersEntity.intake({ 'omittedOnlyAtRuntime': undefined });
     }, /undefined is not valid JSON data/);
   });
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
