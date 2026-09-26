@@ -1,28 +1,13 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-
-
 import { Channel } from '../../src/Channel.js';
+import { ChannelScenarioCaseEntity } from './entities/ChannelScenarioCaseEntity.js';
 import scenarioGroups from './Channel.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; shape: 'buffered-publish'; name: string }
-  | { description: string; expected: { items: readonly string[] }; input: { items: readonly string[]; key: string }; shape: 'live-subscribe'; name: string }
-  | { description: string; expected: { items: readonly number[] }; input: { items: readonly number[]; key: string }; shape: 'close-terminates'; name: string }
-  | { description: string; expected: { left: readonly string[]; right: readonly string[] }; input: { left: string; leftItem: string; key: string; right: string; rightItem: string }; shape: 'independent-keys'; name: string }
-  | { description: string; expected: { items: readonly unknown[] }; input: { item: number; key: string }; shape: 'publish-after-close'; name: string }
-  | { description: string; expected: { errorName: string }; input: { key: string }; shape: 'duplicate-subscribe'; name: string }
-  | { description: string; expected: { entries: ReadonlyArray<{ item: string; key: string }>; count: number }; input: { items: readonly string[]; key: string }; shape: 'onEnqueue-hooks'; name: string }
-  | { description: string; expected: { entries: ReadonlyArray<{ item: number; key: string }>; count: number }; input: { items: readonly number[]; key: string }; shape: 'onDequeue-hooks'; name: string }
-  | { description: string; expected: { count: number; entry: { item: string; key: string } }; input: { item: string; key: string }; shape: 'onPublishDropped-hooks'; name: string }
-  | { description: string; expected: { before: number; after: number }; input: { before: number; after: number }; shape: 'onClose-hooks'; name: string }
-  | { description: string; expected: { items: readonly number[]; overflowCount: number }; input: { count: number; key: string }; shape: 'no-high-water-mark'; name: string }
-  | { description: string; expected: { items: readonly number[]; overflowDepths: readonly number[] }; input: { channel: { highWaterMark: number }; items: readonly number[]; key: string }; shape: 'high-water-mark'; name: string }
-  | { description: string; expected: { nextValue: number }; input: { first: number; key: string; second: number }; shape: 'enqueue-rollback'; name: string }
-  | { description: string; expected: { errorName: string; item: number; key: string }; input: { item: number; key: string }; shape: 'dequeue-hook-error'; name: string }
-  | { description: string; expected: { nextValue: number; rejectionCount: number }; input: { first: number; key: string; second: number }; shape: 'async-enqueue-hook'; name: string };
+type ScenarioCase = ChannelScenarioCaseEntity.Type;
 
 async function collectN<T>(gen: AsyncGenerator<T>, n: number): Promise<T[]> {
   const items: T[] = [];
@@ -282,8 +267,10 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
   await scenarioRunners[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(ChannelScenarioCaseEntity.Schema, ChannelScenarioCaseEntity.Node);
+
 void describe('Channel', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -13,29 +14,13 @@ import {
   DispatchStartedEventEntity,
   SemaphoreWaiterFlagsEntity
 } from '../../src/entities/index.js';
+import { ConcurrencyEntitiesScenarioCaseEntity } from './entities/ConcurrencyEntitiesScenarioCaseEntity.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
-type ValidationName =
-  | 'AsyncIterDoneDiscriminantEntity'
-  | 'AsyncIterErrorDiscriminantEntity'
-  | 'AsyncIterValueDiscriminantEntity'
-  | 'ChannelEntryStateEntity'
-  | 'ChannelStateEntity'
-  | 'DispatchCompletedEventEntity'
-  | 'DispatchStartedEventEntity'
-  | 'SemaphoreWaiterFlagsEntity';
+type ScenarioCase = ConcurrencyEntitiesScenarioCaseEntity.Type;
+type ValidationName = ScenarioCase['input']['validations'][number]['entity'];
 
-type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
-
-type ScenarioCase = {
-  description: string;
-  expected: { validationResults: boolean[] };
-  input: { validations: ValidationCase[] };
-  shape: 'invalid-contracts' | 'valid-contracts';
-  name: string;
-};
-
-const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
+const validatorMap: Record<ValidationName, (value: unknown) => boolean> = {
   'AsyncIterDoneDiscriminantEntity': (value) => AsyncIterDoneDiscriminantEntity.validate(value),
   'AsyncIterErrorDiscriminantEntity': (value) => AsyncIterErrorDiscriminantEntity.validate(value),
   'AsyncIterValueDiscriminantEntity': (value) => AsyncIterValueDiscriminantEntity.validate(value),
@@ -57,8 +42,10 @@ function runCase(scenarioCase: ScenarioCase): void {
   assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(ConcurrencyEntitiesScenarioCaseEntity.Schema, ConcurrencyEntitiesScenarioCaseEntity.Node);
+
 void describe('concurrency entities', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
