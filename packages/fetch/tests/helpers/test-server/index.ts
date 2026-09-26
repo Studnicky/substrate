@@ -26,6 +26,23 @@ function ensureDispatcher(): TestDispatcher {
   return testDispatcher;
 }
 
+function resolveRequestUrl(input: Request | URL | string): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.href;
+  }
+  return input.url;
+}
+
+function createFetchAdapter(dispatcher: TestDispatcher): typeof globalThis.fetch {
+  return async (input, init) => {
+    const initRecord: Record<string, unknown> = { ...init };
+    return dispatcher.fetch(resolveRequestUrl(input), initRecord);
+  };
+}
+
 function installTransport(): void {
   if (originalFetch === undefined) {
     originalFetch = globalThis.fetch;
@@ -38,7 +55,7 @@ function installTransport(): void {
   process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
 
   const dispatcher = ensureDispatcher();
-  globalThis.fetch = dispatcher.fetch.bind(dispatcher) as typeof globalThis.fetch;
+  globalThis.fetch = createFetchAdapter(dispatcher);
 }
 
 function restoreTransport(): void {

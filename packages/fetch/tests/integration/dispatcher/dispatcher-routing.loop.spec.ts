@@ -1,26 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { FetchClient, UndiciDispatcher } from '../../../src/node/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { DispatcherRoutingScenarioCaseEntity } from './entities/DispatcherRoutingScenarioCaseEntity.js';
 import scenarioGroups from './dispatcher-routing.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { originRecorded: true };
-      input: { dispatcher: { connections: number }; fetchClient: { baseURL: string }; path: string };
-      name: string;
-      operation: 'routes-through-configured-dispatcher';
-    }
-  | {
-      description: string;
-      expected: { idleOriginRecorded: false };
-      input: { dispatcher: { connections: number }; fetchClient: { baseURL: string }; path: string };
-      name: string;
-      operation: 'isolates-unrelated-dispatcher';
-    };
+type ScenarioCase = DispatcherRoutingScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(DispatcherRoutingScenarioCaseEntity.Schema, DispatcherRoutingScenarioCaseEntity.Node);
 
 const ctx = {
   testUrl: ''
@@ -87,7 +78,7 @@ async function runCase<Operation extends ScenarioCase['operation']>(scenarioCase
 }
 
 void describe('Dispatcher routing', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
