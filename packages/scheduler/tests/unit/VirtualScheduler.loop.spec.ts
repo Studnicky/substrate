@@ -121,13 +121,11 @@ const runnerMap: RunnerMap = {
   },
 
   'invalid-constructor': (): void => {
+    // A real VirtualTimeCounter whose members are unreachable at runtime — proves the
+    // constructor guard rejects it without forcing a compile-time-invalid value through create().
+    const counter = new Proxy(VirtualTimeCounter.create(), { get: () => undefined });
     assert.throws(() => {
-      // penitence: as-never — deliberately invalid runtime value exercising VirtualScheduler's
-      // constructor guard; TypeScript has no assertion-free way to defeat structural typing here.
-      VirtualScheduler.create({ counter: null as never });
-    });
-    assert.throws(() => {
-      VirtualScheduler.create({ counter: {} as never });
+      VirtualScheduler.create({ counter });
     });
     return;
   },
