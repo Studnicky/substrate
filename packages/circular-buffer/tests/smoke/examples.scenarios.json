@@ -1,37 +1,37 @@
 {
   "cases": [
     {
-      "description": "The basic usage example imports without throwing",
+      "description": "the basicUsage example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "fileName": "basicUsage.ts"
+        "file": "../../examples/basicUsage.ts"
       },
-      "shape": "example-file",
-      "name": "basicUsage.ts"
+      "name": "basicUsage",
+      "shape": "imports-example"
     },
     {
-      "description": "The observed circular buffer example imports without throwing",
+      "description": "the observedCircularBuffer example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "fileName": "observedCircularBuffer.ts"
+        "file": "../../examples/observedCircularBuffer.ts"
       },
-      "shape": "example-file",
-      "name": "observedCircularBuffer.ts"
+      "name": "observedCircularBuffer",
+      "shape": "imports-example"
     },
     {
-      "description": "The subclass hooks example imports without throwing",
+      "description": "the subclassHooks example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "fileName": "subclassHooks.ts"
+        "file": "../../examples/subclassHooks.ts"
       },
-      "shape": "example-file",
-      "name": "subclassHooks.ts"
+      "name": "subclassHooks",
+      "shape": "imports-example"
     }
   ]
 }

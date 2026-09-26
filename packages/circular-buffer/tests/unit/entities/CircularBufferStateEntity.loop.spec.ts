@@ -1,11 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircularBufferStateEntity } from '../../../src/entities/index.js';
+import { CircularBufferStateScenarioCaseEntity } from './CircularBufferStateScenarioCaseEntity.js';
 import scenarioGroups from './CircularBufferStateEntity.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: { validationResults: boolean[] }; input: { validations: { expected: boolean; value: Record<string, unknown> }[] }; shape: 'invalid-lengths' | 'valid-length'; name: string };
+const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferStateScenarioCaseEntity.Schema, CircularBufferStateScenarioCaseEntity.Node);
+
+type ScenarioCase = CircularBufferStateScenarioCaseEntity.Type;
 
 function runCase(scenarioCase: ScenarioCase): void {
   const results = scenarioCase.input.validations.map((validation) => {
@@ -18,7 +21,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('CircularBufferStateEntity', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

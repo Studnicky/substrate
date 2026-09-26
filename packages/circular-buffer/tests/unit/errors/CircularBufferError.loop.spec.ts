@@ -1,35 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { JSONSchema7Type } from 'json-schema';
-
 import { CircularBufferError } from '../../../src/errors/CircularBufferError.js';
-
+import { CircularBufferErrorScenarioCaseEntity } from '../entities/CircularBufferErrorScenarioCaseEntity.js';
 import scenarioGroups from './CircularBufferError.scenarios.json' with { type: 'json' };
 
-type ScenarioShape = 'default-construction' | 'with-args' | 'with-cause';
+const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferErrorScenarioCaseEntity.Schema, CircularBufferErrorScenarioCaseEntity.Node);
 
-type ScenarioCase = {
-  description: string;
-  expected: {
-    code: string;
-    correlationId?: string;
-    message: string;
-    metadata?: Record<string, JSONSchema7Type>;
-    retryable: boolean;
-  };
-  input: {
-    args?: {
-      cause?: unknown;
-      correlationId?: string;
-      metadata?: Record<string, JSONSchema7Type>;
-      retryable?: boolean;
-    };
-    message: string;
-  };
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = CircularBufferErrorScenarioCaseEntity.Type;
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
@@ -65,14 +44,14 @@ const runnerMap = {
   'default-construction': assertDefaultConstruction,
   'with-args': assertWithArgs,
   'with-cause': assertWithCause
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CircularBufferError', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

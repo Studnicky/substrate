@@ -11,11 +11,17 @@ export namespace CircularBufferOptionsEntity {
       'capacity': { 'minimum': 1, 'type': 'integer' },
       'overflow': { 'enum': ['overwrite', 'grow'], 'type': 'string' }
     },
+    'required': [],
     'type': 'object'
   } as const;
 
   /** Construction options for {@link CircularBuffer}. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'overflow': SchemaNode.defineEnum(['overwrite', 'grow'] as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    { 'capacity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'overflow': SchemaNode.defineEnum({ 'type': 'string' } as const, ['overwrite', 'grow'] as const) },
+    [] as const,
+    { 'additionalProperties': false }
+  );
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

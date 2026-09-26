@@ -1,79 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
-import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
+import { CircularBufferScenarioCaseEntity } from '../entities/CircularBufferScenarioCaseEntity.js';
 import scenarioGroups from './CircularBuffer.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'capacity-one-cycling'
-  | 'capacity-two-cycling'
-  | 'construction-capacity-one-empty'
-  | 'construction-custom-capacity-empty'
-  | 'construction-default-empty'
-  | 'construction-invalid-capacity'
-  | 'fifo-order'
-  | 'grow-head-wraparound'
-  | 'grow-multiple-cycles-preserves-order'
-  | 'grow-order-preserved-after-grow'
-  | 'grow-past-capacity'
-  | 'grow-preserves-items-head-not-zero'
-  | 'grow-wraparound-order'
-  | 'length-reflects-count-not-capacity'
-  | 'non-primitive-values'
-  | 'overwrite-capacity-one-holds-last'
-  | 'overwrite-fifo-after-multiple-evictions'
-  | 'overwrite-length-stays-at-capacity'
-  | 'overwrite-oldest-evicted'
-  | 'push-after-shift-order'
-  | 'push-increments-length'
-  | 'push-length-grow'
-  | 'push-length-overwrite'
-  | 'push-shift-cycling'
-  | 'push-then-shift-then-push-again'
-  | 'shift-after-all-items-returns-undefined'
-  | 'shift-empty-does-not-throw'
-  | 'shift-empty-returns-undefined'
-  | 'shift-empty-successive-returns-undefined'
-  | 'shift-first-item-and-decrements-length'
-  | 'shift-only-item-and-leaves-empty';
+const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferScenarioCaseEntity.Schema, CircularBufferScenarioCaseEntity.Node);
 
-type GrowOperation =
-  | { drainAll: true }
-  | { push: number }
-  | { shift: number };
-
-type BatchInput = {
-  itemCount?: number;
-  items?: number[];
-  operations?: GrowOperation[];
-  shiftEveryNth?: number;
-  startValue?: number;
-};
-
-type ScenarioInput = {
-  batch?: BatchInput;
-  options: CircularBufferOptionsEntity.Type;
-};
-
-type ExpectedObject = {
-  drained?: number[];
-  length?: number;
-  lengths?: number[];
-  message?: string;
-  preservedIdentity?: boolean;
-  shiftedMatchesPushed?: boolean;
-  shifts?: readonly [null, null, null];
-  value?: null | number;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected?: ExpectedObject | number[];
-  input: ScenarioInput;
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = CircularBufferScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+type ExpectedObject = CircularBufferScenarioCaseEntity.ExpectedObjectType;
+type BatchInput = NonNullable<ScenarioCase['input']['batch']>;
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
@@ -447,7 +385,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('CircularBuffer core', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
