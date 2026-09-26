@@ -39,14 +39,14 @@
       "name": "compose returns a signal that fires after deadlineMs",
       "description": "compose returns a signal that fires after deadlineMs",
       "shape": "compose-deadline-fires",
-      "input": { "composeOptions": { "deadlineMs": 50 }, "waitMs": 80 },
+      "input": { "composeOptions": { "deadlineMs": 50 }, "waitMs": 50 },
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
       "name": "compose accepts a whole-millisecond deadline",
       "description": "compose accepts a whole-millisecond deadline",
       "shape": "compose-deadline-fires",
-      "input": { "composeOptions": { "deadlineMs": 1 }, "waitMs": 20 },
+      "input": { "composeOptions": { "deadlineMs": 1 }, "waitMs": 1 },
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
@@ -130,7 +130,7 @@
       "name": "raceTimeout resolves aborted when the signal wins and removes its abort listener",
       "description": "raceTimeout resolves aborted when the signal wins and removes its abort listener",
       "shape": "race-timeout-removes-listener-on-abort",
-      "input": { "waitMs": 200, "abortAfterMs": 20 },
+      "input": { "waitMs": 200 },
       "expected": { "abortListenerCountBefore": 1, "abortListenerCountAfter": 0, "outcome": "aborted" }
     },
     {

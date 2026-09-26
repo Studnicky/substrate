@@ -2,7 +2,11 @@
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
+import type { DeadlineTimerInterface } from './interfaces/DeadlineTimerInterface.js';
+import type { SignalComposeOptionsInterface } from './interfaces/SignalComposeOptionsInterface.js';
+
 import { SignalError } from './errors/SignalError.js';
+import { RealDeadlineTimer } from './RealDeadlineTimer.js';
 
 interface SignalResolveOptionsInterface {
   readonly 'callerSignal': AbortSignal | undefined;
@@ -40,10 +44,12 @@ export class Signal {
     return controller.signal;
   }
 
-  async compose(options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }): Promise<AbortSignal> {
+  async compose(options: SignalComposeOptionsInterface): Promise<AbortSignal> {
     Signal.#validateDeadline(options.deadlineMs);
 
-    const timeoutSignal = options.deadlineMs !== undefined ? AbortSignal.timeout(options.deadlineMs) : undefined;
+    const timeoutSignal = options.deadlineMs !== undefined
+      ? Signal.#createTimeoutSignal(options.deadlineMs, options.timer ?? RealDeadlineTimer.create())
+      : undefined;
     const result = Signal.#resolveSignal({ 'callerSignal': options.signal, 'timeoutSignal': timeoutSignal });
 
     await this.hooks.invokeAsync('onCompose', async () => {
@@ -59,6 +65,15 @@ export class Signal {
     if (deadlineMs !== undefined && (!Predicates.isFiniteNumber(deadlineMs) || !Number.isInteger(deadlineMs) || deadlineMs < 0 || deadlineMs > 2_147_483_647)) {
       throw new SignalError('deadlineMs must be an integer between 0 and 2147483647');
     }
+  }
+
+  /** Builds an AbortSignal that aborts once `timer` fires at `timer.now() + deadlineMs`. */
+  static #createTimeoutSignal(deadlineMs: number, timer: DeadlineTimerInterface): AbortSignal {
+    const controller = new AbortController();
+    timer.scheduleAt(timer.now() + deadlineMs, () => {
+      controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    });
+    return controller.signal;
   }
 
   /** Prefers the caller signal combined with the deadline timeout; falls back to whichever is supplied, then the never-aborting sentinel. */
@@ -82,5 +97,5 @@ export class Signal {
   }
 
   /** Fires synchronously after `compose()` computes its result, right before returning it. No-op by default. */
-  protected onCompose(_options: { 'deadlineMs'?: number; 'signal'?: AbortSignal; }, _result: AbortSignal): void | Promise<void> {}
+  protected onCompose(_options: SignalComposeOptionsInterface, _result: AbortSignal): void | Promise<void> {}
 }

@@ -1,4 +1,6 @@
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import { describe, it } from 'node:test';
@@ -6,9 +8,27 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 
 
+import type { DeadlineTimerInterface } from '../../src/interfaces/DeadlineTimerInterface.js';
+
 import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { Signal, SignalError } from '../../src/index.js';
 import scenarioGroups from './Signal.scenarios.json' with { type: 'json' };
+
+/**
+ * `DeadlineTimerInterface` backed by a `VirtualScheduler` + paired `VirtualClockProvider`
+ * sharing one `VirtualTimeCounter`. `scheduler.advance(ms)` drives it deterministically
+ * instead of racing real timers.
+ */
+function createVirtualTimers(): { scheduler: VirtualScheduler; timer: DeadlineTimerInterface } {
+  const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+  const clock = VirtualClockProvider.create(counter);
+  const scheduler = VirtualScheduler.create({ 'counter': counter });
+  const timer: DeadlineTimerInterface = {
+    'now': () => clock.now(),
+    'scheduleAt': (atMs, fire) => scheduler.scheduleAt(atMs, fire)
+  };
+  return { scheduler, timer };
+}
 
 type ComposeOptions = { deadlineMs?: number; signal?: AbortSignal };
 type ComposeSignalId = 'abort-controller' | 'provided';
@@ -138,7 +158,7 @@ type ScenarioCase =
   | {
       description: string;
       expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'aborted' };
-      input: { abortAfterMs: number; waitMs: number };
+      input: { waitMs: number };
       shape: 'race-timeout-removes-listener-on-abort';
       name: string;
     }
@@ -252,10 +272,12 @@ const runnerMap: RunnerMap = {
   },
 
   'compose-deadline-fires': async (scenarioCase) => {
-    const sig = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    const { scheduler, timer } = createVirtualTimers();
+    const options = { ...materializeComposeOptions(scenarioCase.input.composeOptions), timer };
+    const sig = await Signal.create().compose(options);
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
-    await delay(scenarioCase.input.waitMs);
+    scheduler.advance(scenarioCase.input.waitMs);
     assert.equal(sig.aborted, scenarioCase.expected.abortedAfterWait);
   },
 
@@ -367,24 +389,32 @@ const runnerMap: RunnerMap = {
   },
 
   'race-timeout-no-signal': async (scenarioCase) => {
-    const outcome = await RaceTimeout.wait(scenarioCase.input.waitMs, undefined);
+    const { scheduler, timer } = createVirtualTimers();
+    const raceTimeout = RaceTimeout.create({ timer });
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, undefined);
+    scheduler.advance(scenarioCase.input.waitMs);
+    const outcome = await pending;
     assert.equal(outcome, scenarioCase.expected.outcome);
   },
 
   'race-timeout-removes-listener': async (scenarioCase) => {
+    const { scheduler, timer } = createVirtualTimers();
+    const raceTimeout = RaceTimeout.create({ timer });
     const controller = new AbortController();
-    const pending = RaceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
     assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
+    scheduler.advance(scenarioCase.input.waitMs);
     const outcome = await pending;
     assert.equal(outcome, scenarioCase.expected.outcome);
     assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
   },
 
   'race-timeout-removes-listener-on-abort': async (scenarioCase) => {
+    const { timer } = createVirtualTimers();
+    const raceTimeout = RaceTimeout.create({ timer });
     const controller = new AbortController();
-    const pending = RaceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
     assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
-    await delay(scenarioCase.input.abortAfterMs);
     controller.abort();
     const outcome = await pending;
     assert.equal(outcome, scenarioCase.expected.outcome);
