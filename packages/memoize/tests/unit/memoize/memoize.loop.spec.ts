@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 
 import {
@@ -9,64 +10,16 @@ import {
 } from '../../../src/index.js';
 import { CacheLookupEntity } from '../../../src/entities/index.js';
 import type { MemoizeCollaboratorsInterface } from '../../../src/interfaces/index.js';
+import { MemoizeScenarioCaseEntity } from '../entities/MemoizeScenarioCaseEntity.js';
 import scenarioGroups from './memoize.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'async-hooks-safe'
-  | 'clear-recomputes-all'
-  | 'coalesce-shared-call'
-  | 'coalesced-failure-recomputes'
-  | 'coalesced-hooks'
-  | 'config-error'
-  | 'create-rejects-foreign-construction'
-  | 'different-keys'
-  | 'entities'
-  | 'failure-recomputes-after-rejection'
-  | 'hit-and-miss-hooks'
-  | 'hit-cache'
-  | 'invalidate-preserves-other-keys'
-  | 'invalidate-recomputes'
-  | 'isolated-hook-ownership'
-  | 'miss-before-fn'
-  | 'per-key-hook-args'
-  | 'rejecting-coalesced-hook'
-  | 'rejecting-miss-hook'
-  | 'sync-fn'
-  | 'throwing-coalesced-hook'
-  | 'throwing-hit-hook'
-  | 'throwing-miss-hook'
-  | 'ttl-stale-options'
-  | 'undefined-result-cache';
+const fileIntake = ScenarioFileCompiler.compileIntake(MemoizeScenarioCaseEntity.Schema, MemoizeScenarioCaseEntity.Node);
 
-type KeyFnShape = 'compound' | 'identity' | 'number-string';
+type ScenarioShape = MemoizeScenarioCaseEntity.Type['shape'];
 
-type MemoizeConfigInput = {
-  capacity: number;
-  keyFnShape: KeyFnShape;
-  staleMs?: number;
-  ttlMs?: number;
-};
+type KeyFnShape = NonNullable<MemoizeScenarioCaseEntity.Type['input']['memoize']['keyFnShape']>;
 
-type BatchInput = {
-  callCount?: number;
-};
-
-type ScenarioInput = {
-  batch?: BatchInput;
-  failureMessage?: string;
-  failuresBeforeSuccess?: number;
-  key?: string;
-  memoize: MemoizeConfigInput;
-  successValue?: string;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: ScenarioInput;
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = MemoizeScenarioCaseEntity.Type;
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
@@ -77,12 +30,13 @@ const keyFnMap = {
 } satisfies Record<KeyFnShape, (...args: never[]) => string>;
 
 function memoizeOptions<TArgs extends unknown[]>(
-  config: MemoizeConfigInput,
+  config: MemoizeScenarioCaseEntity.Type['input']['memoize'],
   keyFn: (...args: TArgs) => string
 ): readonly [unknown, MemoizeCollaboratorsInterface<TArgs>] {
+  const capacity = readNumber(config.capacity, 'Scenario input.memoize.capacity');
   return [
     {
-      capacity: config.capacity,
+      capacity,
       ...(config.staleMs === undefined ? {} : { staleMs: config.staleMs }),
       ...(config.ttlMs === undefined ? {} : { ttlMs: config.ttlMs })
     },
@@ -725,7 +679,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Memoize', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.description, async () => {
       await runCase(scenarioCase);
     });
