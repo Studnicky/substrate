@@ -26,6 +26,20 @@ The house style is that a return which does work names its result before handing
 - `ObjectExpression`/`ArrayExpression` — `return { ...` matches 5 times, all unbound.
 - `MemberExpression` — plain field reads outside `this.` match 30 times, all unbound, at any chain depth.
 
+## Switch-case exemption
+
+A `return` that is a direct statement of a `SwitchCase`'s consequent — not nested inside a further block or conditional within that case — is exempt regardless of its argument shape. [`v8/switch-statements`](./v8/switch-statements.md) requires exactly that position to stay a single unbraced statement; wrapping it in a block to add a `const` binding is itself a violation of that rule. The two rules cannot both be satisfied for a delegating switch case, so this rule yields at that one position.
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+switch (action) {
+  case 'start': return initialize();
+  default: return undefined;
+}
+```
+
+A `return` nested one level deeper inside the case — inside an `if`, a block, or any other statement — is not exempt and is still reported.
+
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->

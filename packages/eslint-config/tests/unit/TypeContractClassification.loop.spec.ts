@@ -269,10 +269,10 @@ type ScenarioCase =
       name: string;
     };
 
-const SCENARIO_SHAPES = ['entity-direct', 'composition-provenance', 'owner-direct', 'alias-cycles', 'readonly-intrinsics', 'explicit-readonly', 'exposed-defaults', 'readonly-exclusions', 'readonly-indirection', 'interface-matrix'] as const;
+const SCENARIO_SHAPES = new Set(['entity-direct', 'composition-provenance', 'owner-direct', 'alias-cycles', 'readonly-intrinsics', 'explicit-readonly', 'exposed-defaults', 'readonly-exclusions', 'readonly-indirection', 'interface-matrix']);
 
 function isScenarioShape(value: unknown): value is ScenarioCase['shape'] {
-  return typeof value === 'string' && (SCENARIO_SHAPES as readonly string[]).includes(value);
+  return typeof value === 'string' && SCENARIO_SHAPES.has(value);
 }
 
 function isOptionalString(value: unknown): value is string | undefined {
@@ -645,7 +645,7 @@ function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase
 }
 
 void describe('TypeContractClassification', () => {
-  for (const scenario of (scenarioGroups.cases as unknown[]).map(intakeScenarioCase)) {
+  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

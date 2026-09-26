@@ -29,7 +29,7 @@ import {
   CAUSE_DEPTH_SENTINEL
 } from '../constants/CauseChainConstants.js';
 import { PROBLEM_TYPE_BASE } from '../constants/ProblemConstants.js';
-import { ThrownValueProjection } from '../validation/thrownValueProjection.js';
+import { ThrownValueProjection } from '../entities/ThrownValueEntity.js';
 
 /**
  * Abstract base class for all errors in the system.
@@ -255,7 +255,7 @@ export abstract class BaseError extends Error {
     // absent members itself, the same way this method does.
     const extras = this.serializeExtra();
 
-    const result = { ...extras, ...problem } as ProblemDetailsEntity.Type;
+    const result: ProblemDetailsEntity.Type = { ...extras, ...problem };
 
     return result;
   }

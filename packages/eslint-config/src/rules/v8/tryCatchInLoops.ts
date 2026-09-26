@@ -44,7 +44,7 @@ class CallSiteAnalysis {
       return false;
     }
 
-    const result = parent.callee === (reference.identifier as unknown);
+    const result = parent.callee === reference.identifier;
 
     return result;
   }

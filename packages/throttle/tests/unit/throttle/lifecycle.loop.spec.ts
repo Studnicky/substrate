@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -5,73 +6,13 @@ import { describe, it } from 'node:test';
 
 import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/errors/index.js';
 import { Throttle } from '../../../src/throttle/index.js';
+import { LifecycleScenarioCaseEntity } from './entities/LifecycleScenarioCaseEntity.js';
 
-type AbortResult = { cancelled: number; completed: number; timedOut: boolean };
-type ExpectedAbortResult = Partial<AbortResult>;
+type ScenarioCase = LifecycleScenarioCaseEntity.Type;
+type ExpectedAbortResult = NonNullable<ScenarioCase['expected']['abort']>;
+type AbortResult = Required<ExpectedAbortResult>;
 
-type ScenarioShape =
-  | 'abort-after-abort-is-idempotent'
-  | 'abort-cancels-active-and-queued'
-  | 'abort-during-draining-cancels-active-and-queued'
-  | 'abort-immediate-with-active-work'
-  | 'abort-on-complete-skips-grace-period'
-  | 'abort-start-hook-throws'
-  | 'abort-timeout-completes'
-  | 'abort-timeout-timed-out'
-  | 'abort-zero-timeout-with-active-work'
-  | 'drain-on-complete-returns-immediately'
-  | 'drain-reuses-completion-promise'
-  | 'drain-waits-for-active-and-queued'
-  | 'execute-after-abort-throws'
-  | 'execute-during-draining-throws'
-  | 'on-acquire-throws'
-  | 'on-acquire-wait-throws'
-  | 'on-contended-throws'
-  | 'on-reject-throws'
-  | 'on-release-throws'
-  | 'on-window-slide-throws'
-  | 'on-release-fires-exactly-once-became-idle'
-  | 'on-release-fires-exactly-once-handoff-granted'
-  | 'on-release-fires-exactly-once-on-acquire-rollback'
-  | 'on-release-fires-exactly-once-on-rejection'
-  | 'on-release-fires-exactly-once-still-busy'
-  | 'queued-operation-completes-after-release';
-
-type ThrottleConfigInput = NonNullable<Parameters<typeof Throttle.create>[0]>;
-
-type ScenarioCase = {
-  description: string;
-  expected: {
-    abort?: ExpectedAbortResult;
-    activeCount?: number;
-    activeResolvedWithUndefined?: boolean;
-    activeResult?: string;
-    causeMessage?: string;
-    drainResolvedBeforeRelease?: boolean;
-    errorName?: string;
-    isComplete?: boolean;
-    order?: readonly string[];
-    queuedCount?: number;
-    releaseCount?: number;
-    queuedResolvedWithUndefined?: boolean;
-    queuedStarted?: boolean;
-    result?: string;
-    results?: readonly number[];
-    secondAbort?: ExpectedAbortResult;
-    totalExecuted?: number;
-  };
-  input: {
-    abortOptions?: { timeout: number };
-    activeResult?: number | string;
-    hookErrorMessage?: string;
-    operationErrorMessage?: string;
-    queuedResult?: number | string;
-    settleMs?: number;
-    throttle: ThrottleConfigInput;
-  };
-  shape: ScenarioShape;
-  name: string;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(LifecycleScenarioCaseEntity.Schema, LifecycleScenarioCaseEntity.Node);
 
 import scenarioGroups from './lifecycle.scenarios.json' with { type: 'json' };
 
@@ -191,7 +132,7 @@ function settleMs(input: ScenarioCase['input']): number {
   return input.settleMs ?? 0;
 }
 
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void>> = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'abort-timeout-timed-out': async (scenarioCase) => {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
     let release!: () => void;
@@ -677,7 +618,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Throttle lifecycle', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

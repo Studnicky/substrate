@@ -1,36 +1,18 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BackoffStrategy } from '../../../src/retry/index.js';
+import { BackoffStrategiesScenarioCaseEntity } from '../entities/BackoffStrategiesScenarioCaseEntity.js';
 import scenarioGroups from './backoff-strategies.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(BackoffStrategiesScenarioCaseEntity.Schema, BackoffStrategiesScenarioCaseEntity.Node);
 
 type StrategyName = 'constant' | 'exponential' | 'linear';
 
-type ScenarioShape =
-  | 'ceiling'
-  | 'constant'
-  | 'decorrelated-range'
-  | 'decorrelated-zero'
-  | 'exponential'
-  | 'jitter-range'
-  | 'jitter-varying'
-  | 'linear';
+type ScenarioShape = BackoffStrategiesScenarioCaseEntity.Type['shape'];
 
-type ScenarioInput = {
-  attempt?: number;
-  batch?: {
-    sampleCount?: number;
-  };
-  baseDelay?: number;
-  ceiling?: number;
-  maxMultiplier?: number;
-  minMultiplier?: number;
-  strategy?: StrategyName;
-  value?: unknown;
-};
-
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInput; shape: ScenarioShape; name: string };
+type ScenarioCase = BackoffStrategiesScenarioCaseEntity.Type;
 
 const strategyMap: Record<StrategyName, (attempt: number, baseDelay: number) => number> = {
   'constant': BackoffStrategy.constant,
@@ -109,7 +91,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('BackoffStrategy', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

@@ -68,5 +68,8 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

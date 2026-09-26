@@ -18,16 +18,8 @@ const exampleFiles = readdirSync(examplesRoot, { withFileTypes: true })
 
 assert.ok(exampleFiles.length > 0, 'Expected at least one example in examples/');
 
-type ScenarioCase = {
-  description: string;
-  expected: { importsWithoutThrow: true };
-  input: { examplesRoot: string };
-  shape: 'examples-smoke';
-  name: string;
-};
-
 void describe('examples smoke', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases) {
     void it(scenario.name, async () => {
       assert.equal(scenario.expected.importsWithoutThrow, true);
       assert.equal(scenario.input.examplesRoot, '../../examples');

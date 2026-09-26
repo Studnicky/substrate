@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -7,23 +8,17 @@ import {
   InterpreterHistoryRecordMetadataEntity,
   RegisteredInterpreterMetricsEntity
 } from '../../src/entities/index.js';
+import { FsmMetadataEntitiesScenarioCaseEntity } from './entities/FsmMetadataEntitiesScenarioCaseEntity.js';
 import scenarioGroups from './FsmMetadataEntities.scenarios.json' with { type: 'json' };
 
 const validatorMap = {
-  'InterpreterHistoryRecordMetadataEntity': (value: Record<string, unknown>) => InterpreterHistoryRecordMetadataEntity.validate(value),
-  'RegisteredInterpreterMetricsEntity': (value: Record<string, unknown>) => RegisteredInterpreterMetricsEntity.validate(value)
+  'InterpreterHistoryRecordMetadataEntity': (value: unknown) => InterpreterHistoryRecordMetadataEntity.validate(value),
+  'RegisteredInterpreterMetricsEntity': (value: unknown) => RegisteredInterpreterMetricsEntity.validate(value)
 } as const;
 
-type ValidationName = keyof typeof validatorMap;
+type ScenarioCase = FsmMetadataEntitiesScenarioCaseEntity.Type;
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { validationResults: boolean[] };
-      input: { validations: { entity: ValidationName; expected: boolean; value: Record<string, unknown> }[] };
-      shape: 'history-timestamp-validation' | 'hook-error-count-validation';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(FsmMetadataEntitiesScenarioCaseEntity.Schema, FsmMetadataEntitiesScenarioCaseEntity.Node);
 
 function runCase(scenarioCase: ScenarioCase): void {
   const results = scenarioCase.input.validations.map((validation) => {
@@ -36,7 +31,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('FSM metadata entities', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

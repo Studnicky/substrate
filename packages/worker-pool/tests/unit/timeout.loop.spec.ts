@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -7,94 +8,29 @@ import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { TimeoutScenarioCaseEntity } from './entities/TimeoutScenarioCaseEntity.js';
 import scenarioGroups from './timeout.scenarios.json' with { type: 'json' };
 
-interface ItemInterface {
-  error?: string;
-  ms?: number;
-  value: string;
+type ScenarioCase = TimeoutScenarioCaseEntity.Type;
+type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
+type ScenarioItems = NonNullable<ScenarioCase['input']['items']>;
+type ItemInterface = ScenarioItems[number];
+
+const fileIntake = ScenarioFileCompiler.compileIntake(TimeoutScenarioCaseEntity.Schema, TimeoutScenarioCaseEntity.Node);
+
+function requireItems(items: ScenarioCase['input']['items']): ScenarioItems {
+  if (items === undefined) {
+    throw RuntimeError.create('scenario input.items is required');
+  }
+  return items;
 }
 
-interface DeferredSignalInputInterface {
-  shape: 'deferred-compose';
+function requireString(value: string | undefined): string {
+  if (value === undefined) {
+    throw RuntimeError.create('scenario expected field is required');
+  }
+  return value;
 }
-
-interface BatchConfigInputInterface {
-  concurrency?: WorkerPoolConfigInterface['batchConcurrency'];
-}
-
-interface WorkerPoolInputInterface {
-  batch?: BatchConfigInputInterface;
-  concurrency?: WorkerPoolConfigInterface['concurrency'];
-  startupTimeoutMs?: WorkerPoolConfigInterface['startupTimeoutMs'];
-  timeoutMs?: WorkerPoolConfigInterface['timeoutMs'];
-  workerPath: WorkerPoolConfigInterface['workerPath'];
-}
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { timedOutIndexes: number[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'worker-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
-      shape: 'signal-already-aborted';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { results: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'within-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { messagesAfterCompose: number; messagesAfterRun: number; results: string[] };
-      input: { items: Array<{ value: string }>; signal: DeferredSignalInputInterface; workerPool: WorkerPoolInputInterface };
-      shape: 'awaits-signal-composition';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { shape: 'rejecting-compose' }; workerPool: WorkerPoolInputInterface };
-      shape: 'signal-compose-rejects';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { shape: 'rejecting-compose-string' }; workerPool: WorkerPoolInputInterface };
-      shape: 'signal-compose-rejects-string';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string };
-      input: { items: Array<{ value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
-      shape: 'compose-after-exit';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { results: string[] };
-      input: { items: Array<{ exitAfterResult?: boolean; value: string }>; signal: { shape: 'deferred-compose' }; workerPool: WorkerPoolInputInterface };
-      shape: 'compose-after-exit-queued';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string; excludesMessage: string };
-      input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
-      shape: 'startup-timeout';
-      name: string;
-    };
 
 function resolveWorkerPath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
@@ -111,11 +47,7 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   return resolved;
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'worker-timeout': async (scenarioCase) => {
     const timedOutIndexes: number[] = [];
 
@@ -128,7 +60,7 @@ const runnerMap: RunnerMap = {
     const pool = TimeoutObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
     await assert.rejects(
-      pool.run(scenarioCase.input.items),
+      pool.run(requireItems(scenarioCase.input.items)),
       /exceeded its timeout/
     );
     assert.deepStrictEqual(timedOutIndexes, scenarioCase.expected.timedOutIndexes);
@@ -137,7 +69,7 @@ const runnerMap: RunnerMap = {
   'within-timeout': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemInterface, string>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    const results = await pool.run(scenarioCase.input.items);
+    const results = await pool.run(requireItems(scenarioCase.input.items));
     assert.deepStrictEqual(results, scenarioCase.expected.results);
   },
 
@@ -175,10 +107,10 @@ const runnerMap: RunnerMap = {
     });
 
     await assert.rejects(
-      pool.run(scenarioCase.input.items),
+      pool.run(requireItems(scenarioCase.input.items)),
       (error: Error) => {
         assert.ok(error instanceof Error);
-        assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
+        assert.ok(error.message.includes(requireString(scenarioCase.expected.errorMessageIncludes)));
         assert.equal(error.cause, abortReason);
         return true;
       }
@@ -220,7 +152,7 @@ const runnerMap: RunnerMap = {
       ...resolvePoolConfig(scenarioCase.input.workerPool),
       signal,
     });
-    const running = pool.run(scenarioCase.input.items);
+    const running = pool.run(requireItems(scenarioCase.input.items));
 
     await signal.entered.promise;
     assert.equal(pool.messages, scenarioCase.expected.messagesAfterCompose);
@@ -255,7 +187,7 @@ const runnerMap: RunnerMap = {
     });
 
     await assert.rejects(
-      pool.run(scenarioCase.input.items),
+      pool.run(requireItems(scenarioCase.input.items)),
       (error: Error) => {
         assert.ok(error instanceof Error);
         return true;
@@ -279,7 +211,7 @@ const runnerMap: RunnerMap = {
     });
 
     await assert.rejects(
-      pool.run(scenarioCase.input.items),
+      pool.run(requireItems(scenarioCase.input.items)),
       (error: Error) => {
         assert.ok(error instanceof Error);
         return true;
@@ -311,7 +243,7 @@ const runnerMap: RunnerMap = {
       ...resolvePoolConfig(scenarioCase.input.workerPool),
       signal,
     });
-    const running = pool.run(scenarioCase.input.items);
+    const running = pool.run(requireItems(scenarioCase.input.items));
 
     await signal.entered.promise;
     signal.release.resolve();
@@ -319,7 +251,7 @@ const runnerMap: RunnerMap = {
       running,
       (error: Error) => {
         assert.ok(error instanceof Error);
-        assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
+        assert.ok(error.message.includes(requireString(scenarioCase.expected.errorMessageIncludes)));
         return true;
       }
     );
@@ -365,7 +297,7 @@ const runnerMap: RunnerMap = {
       ...resolvePoolConfig(scenarioCase.input.workerPool),
       signal,
     });
-    const running = pool.run(scenarioCase.input.items.map((item) => ({ ...item, gate: gateBuffer })));
+    const running = pool.run(requireItems(scenarioCase.input.items).map((item) => ({ ...item, gate: gateBuffer })));
     await signal.entered.promise;
     signal.release();
     assert.deepStrictEqual(await running, scenarioCase.expected.results);
@@ -388,11 +320,11 @@ const runnerMap: RunnerMap = {
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
     await assert.rejects(
-      pool.run(scenarioCase.input.items),
+      pool.run(requireItems(scenarioCase.input.items)),
       (error: Error) => {
         assert.ok(error instanceof Error);
-        assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
-        assert.ok(!error.message.includes(scenarioCase.expected.excludesMessage));
+        assert.ok(error.message.includes(requireString(scenarioCase.expected.errorMessageIncludes)));
+        assert.ok(!error.message.includes(requireString(scenarioCase.expected.excludesMessage)));
         return true;
       }
     );
@@ -405,12 +337,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool timeout', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

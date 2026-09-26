@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -9,85 +10,15 @@ import { StateMachine } from '../../src/StateMachine.js';
 import { TransitionRejectedError } from '../../src/TransitionRejectedError.js';
 import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import { StateMachineScenarioCaseEntity } from './entities/StateMachineScenarioCaseEntity.js';
 import scenarioGroups from './StateMachine.scenarios.json' with { type: 'json' };
 
-type ToggleState = { readonly variant: 'on' } | { readonly variant: 'off' };
+type ToggleState = { readonly variant: 'on' | 'off' };
 type ToggleEvent = { readonly type: 'toggle' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        stateVariant: 'on' | 'off';
-      };
-      input: ToggleState;
-      shape: 'transitions-off-on';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        stateVariant: 'on' | 'off';
-      };
-      input: ToggleState;
-      shape: 'transitions-on-off';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        errorName: string;
-        eventType: string;
-        stateVariant: string;
-      };
-      input: ToggleState;
-      shape: 'wraps-reducer-throw';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        errorName: string;
-        eventType: string;
-        stateVariant: string;
-      };
-      input: ToggleState;
-      shape: 'rejected-error-surfaces';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        errorName: string;
-        expectedReason: string;
-      };
-      input: ToggleState;
-      shape: 'plain-error-wraps';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        firstTransitionStateVariant: 'on' | 'off';
-        secondErrorName: string;
-        secondEventType: string;
-        secondStateVariant: string;
-      };
-      input: ToggleState;
-      shape: 'terminated-blocks-transition';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        callCount: number;
-        callStateVariant: 'on' | 'off';
-        callEventType: string;
-      };
-      input: ToggleState;
-      shape: 'terminated-access-hook';
-      name: string;
-    };
+type ScenarioCase = StateMachineScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(StateMachineScenarioCaseEntity.Schema, StateMachineScenarioCaseEntity.Node);
 
 class ToggleMachine extends StateMachine<ToggleState, ToggleEvent> {
   public constructor() { super(); }
@@ -153,12 +84,6 @@ class TerminatingMachine extends StateMachine<ToggleState, ToggleEvent> {
   }
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
-
 function captureThrownError(callback: () => void): Error {
   try {
     callback();
@@ -170,7 +95,7 @@ function captureThrownError(callback: () => void): Error {
   assert.fail('Expected callback to throw');
 }
 
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'plain-error-wraps': (scenarioCase) => {
     const reasons: string[] = [];
     class ObservedPlainErrorThrowingMachine extends PlainErrorThrowingMachine {
@@ -241,12 +166,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('StateMachine', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

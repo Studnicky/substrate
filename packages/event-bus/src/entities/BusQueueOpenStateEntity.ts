@@ -9,7 +9,7 @@ export namespace BusQueueOpenStateEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'variant': { 'const': 'open', 'type': 'string' }
+      'variant': { 'const': 'open' }
     },
     'required': ['variant'],
     'type': 'object'

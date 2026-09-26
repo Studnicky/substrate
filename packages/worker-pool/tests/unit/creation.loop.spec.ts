@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -8,54 +9,17 @@ import { Signal } from '@studnicky/signal/node';
 import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';
 import { WorkerPoolConfigEntity } from '../../src/entities/WorkerPoolConfigEntity.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { CreationScenarioCaseEntity } from './entities/CreationScenarioCaseEntity.js';
 import scenarioGroups from './creation.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = CreationScenarioCaseEntity.Type;
+type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
 
 interface ItemInterface {
   value: string;
 }
 
-interface ScenarioCaseBaseInterface {
-  description: string;
-  name: string;
-}
-
-interface BatchConfigInputInterface {
-  concurrency?: WorkerPoolConfigInterface['batchConcurrency'];
-}
-
-interface WorkerPoolInputInterface {
-  batch?: BatchConfigInputInterface;
-  concurrency?: WorkerPoolConfigInterface['concurrency'];
-  timeoutMs?: WorkerPoolConfigInterface['timeoutMs'];
-  workerPath: WorkerPoolConfigInterface['workerPath'];
-}
-
-type ScenarioCase =
-  | (ScenarioCaseBaseInterface & {
-      expected: { errorMessageIncludes: string };
-      input: { workerPool: WorkerPoolInputInterface };
-      shape: 'missing-worker-path';
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: { results: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'default-concurrency';
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: { composeCalls: number; results: string[] };
-      input: { items: ItemInterface[]; signal: { shape: 'tracking' }; workerPool: WorkerPoolInputInterface };
-      shape: 'caller-supplied-signal';
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: { results: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'explicit-bounded-concurrency';
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: { errorMessageIncludes: string };
-      input: { workerPool: WorkerPoolInputInterface };
-      shape: 'foreign-construction';
-    });
+const fileIntake = ScenarioFileCompiler.compileIntake(CreationScenarioCaseEntity.Schema, CreationScenarioCaseEntity.Node);
 
 function resolveWorkerPath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
@@ -87,22 +51,32 @@ function resolveRequiredPoolConfig(config: WorkerPoolInputInterface): WorkerPool
   };
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+function requireItems(items: ScenarioCase['input']['items']): NonNullable<ScenarioCase['input']['items']> {
+  if (items === undefined) {
+    throw new WorkerPoolError({ 'code': 'workerPool.invalidScenario', 'message': 'scenario input.items is required' });
+  }
+  return items;
+}
 
-const runnerMap: RunnerMap = {
+function requireExpectedString(value: string | undefined): string {
+  if (value === undefined) {
+    throw new WorkerPoolError({ 'code': 'workerPool.invalidScenario', 'message': 'scenario expected field is required' });
+  }
+  return value;
+}
+
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'missing-worker-path': async (scenarioCase) => {
     assert.throws(() => WorkerPool.create(resolvePoolConfig(scenarioCase.input.workerPool)), (error: Error) => {
       assert.ok(error instanceof Error);
-      assert.ok(error.message.includes(scenarioCase.expected.errorMessageIncludes));
+      assert.ok(error.message.includes(requireExpectedString(scenarioCase.expected.errorMessageIncludes)));
       return true;
     });
   },
 
   'default-concurrency': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemInterface, string>(resolvePoolConfig(scenarioCase.input.workerPool));
-    const results = await pool.run(scenarioCase.input.items);
+    const results = await pool.run(requireItems(scenarioCase.input.items));
     assert.deepStrictEqual(results, scenarioCase.expected.results);
   },
 
@@ -125,7 +99,7 @@ const runnerMap: RunnerMap = {
       signal,
     });
 
-    const results = await pool.run(scenarioCase.input.items);
+    const results = await pool.run(requireItems(scenarioCase.input.items));
     assert.deepStrictEqual(results, scenarioCase.expected.results);
     assert.equal(signal.calls, scenarioCase.expected.composeCalls);
   },
@@ -133,7 +107,7 @@ const runnerMap: RunnerMap = {
   'explicit-bounded-concurrency': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemInterface, string>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    const results = await pool.run(scenarioCase.input.items);
+    const results = await pool.run(requireItems(scenarioCase.input.items));
     assert.deepStrictEqual(results, scenarioCase.expected.results);
   },
 
@@ -170,12 +144,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool.create', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

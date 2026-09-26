@@ -1,66 +1,21 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
-
-
-import type { MutexCreateOptionsInterface } from '../../../src/interfaces/MutexCreateOptionsInterface.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { Mutex } from '../../../src/mutex/index.js';
+import { ObservabilityScenarioCaseEntity } from './entities/ObservabilityScenarioCaseEntity.js';
 import scenarioGroups from './observability.scenarios.json' with { type: 'json' };
 
-type BatchInput = {
-  pendingCount?: number;
-};
-
-type MutexScenarioInput = Record<string, unknown> & {
-  batch?: BatchInput;
-  holdMs?: number | number[];
-  key?: string;
-  keys?: string[];
-  mutex?: MutexCreateOptionsInterface;
-  waitMs?: number;
-};
-
-type ScenarioData = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: MutexScenarioInput;
-  name: string;
-};
-
-type ScenarioShape =
-  | 'afterAcquire-error-does-not-stop-queue'
-  | 'afterAcquire-immediate'
-  | 'afterAcquire-separate-keys'
-  | 'afterAcquire-waiting'
-  | 'afterRelease-fires'
-  | 'afterRelease-fires-on-handoff-and-drop'
-  | 'async-hook-rejections-are-recorded'
-  | 'beforeAcquire-error-is-recorded'
-  | 'beforeRelease-fires'
-  | 'beforeRelease-tracks-hold-time'
-  | 'hook-errors-do-not-break-locking'
-  | 'onAcquireWait-not-immediate'
-  | 'onAcquireWait-per-waiter'
-  | 'onAcquireWait-queued'
-  | 'onContended-fires'
-  | 'onQueueDrain-normal'
-  | 'onQueueDrain-not-early'
-  | 'onQueueDrain-throw-does-not-replace-handoff'
-  | 'onQueueDrain-timeout'
-  | 'onRelease-every-release'
-  | 'onRelease-handoff'
-  | 'onRelease-throw-does-not-replace-release'
-  | 'onTimeout-fires'
-  | 'onTimeout-throw-does-not-replace-error'
-  | 'tracks-all-metrics';
-
-type ScenarioCase = ScenarioData & { shape: ScenarioShape };
+type ScenarioCase = ObservabilityScenarioCaseEntity.Type;
+type MutexScenarioInput = ScenarioCase['input'];
 type ReleaseFunction = () => void;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type AnyErrorConstructor = new (...args: never[]) => Error;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ObservabilityScenarioCaseEntity.Schema, ObservabilityScenarioCaseEntity.Node);
 
 const mutexErrorTypes = {
   'LockTimeoutError': LockTimeoutError
@@ -281,7 +236,7 @@ class ThrowingTimeoutHookMutex extends Mutex<string> {
   }
 }
 
-function mutexConfig(scenarioCase: ScenarioCase): MutexCreateOptionsInterface {
+function mutexConfig(scenarioCase: ScenarioCase): NonNullable<ScenarioCase['input']['mutex']> {
   return scenarioCase.input.mutex ?? {};
 }
 
@@ -369,7 +324,7 @@ async function waitForHookRejections(): Promise<void> {
   await new Promise((resolve) => { setImmediate(resolve); });
 }
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'afterAcquire-error-does-not-stop-queue': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = ThrowingQueueMutex.create();
@@ -680,10 +635,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-const scenarioEntries = Object.values(scenarioGroups).flat() as ScenarioCase[];
-
 void describe('Mutex observability', () => {
-  for (const scenario of scenarioEntries) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
@@ -5,15 +6,12 @@ import { describe, it } from 'node:test';
 
 import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import { MaxElapsedMsScenarioCaseEntity } from '../entities/MaxElapsedMsScenarioCaseEntity.js';
 import scenarioGroups from './max-elapsed-ms.scenarios.json' with { type: 'json' };
 
-type RetryScenarioInput = Record<string, unknown> & {
-  retry?: Partial<Pick<RetryConfigInterface, 'maximumElapsedMs' | 'maximumRetries'>>;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(MaxElapsedMsScenarioCaseEntity.Schema, MaxElapsedMsScenarioCaseEntity.Node);
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'configured-not-reached' | 'count-wins' | 'default-behavior' | 'time-wins'; name: string };
+type ScenarioCase = MaxElapsedMsScenarioCaseEntity.Type;
 
 type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
 
@@ -100,7 +98,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
 }
 
 void describe('Retry maximumElapsedMs', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

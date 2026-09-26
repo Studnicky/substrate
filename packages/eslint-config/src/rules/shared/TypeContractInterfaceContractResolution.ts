@@ -28,15 +28,16 @@ import {
   type TypeReferenceNode
 } from 'typescript';
 
-import type { TypeContractContext } from './TypeContractContext.js';
+import type { TypeContractContextInterface } from './TypeContractContextInterface.js';
 
 import { type InterfaceClassificationResultInterface } from './InterfaceClassificationResultInterface.js';
 import { type InterfaceContractEvidenceInterface } from './InterfaceContractEvidenceInterface.js';
 import { type InterfaceContractProbeInterface } from './InterfaceContractProbeInterface.js';
+import { type InterfaceContractResolutionInterface } from './InterfaceContractResolutionInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
 
-export class TypeContractInterfaceContractResolution {
-  public constructor(private readonly context: TypeContractContext) {}
+export class TypeContractInterfaceContractResolution implements InterfaceContractResolutionInterface {
+  public constructor(private readonly context: TypeContractContextInterface) {}
 
   private hasSchemaAnchoredMember(declaration: InterfaceDeclaration, depth: number): boolean {
     if (depth > MAXIMUM_RECURSION_DEPTH) {

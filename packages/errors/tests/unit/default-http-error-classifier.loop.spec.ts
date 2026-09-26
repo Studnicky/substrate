@@ -1,23 +1,19 @@
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { DefaultHttpErrorClassifier } from '../../src/classifiers/DefaultHttpErrorClassifier.js';
 import { ErrorWithStatusEntity } from '../../src/entities/ErrorWithStatusEntity.js';
+import { DefaultHttpErrorClassifierScenarioCaseEntity } from './entities/DefaultHttpErrorClassifierScenarioCaseEntity.js';
 import scenarioGroups from './default-http-error-classifier.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      attemptNumber: number;
-      description: string;
-      expected: { reason: string; retryable: boolean };
-      input: Record<string, unknown>;
-      shape: 'client-error' | 'gateway-error' | 'network-code' | 'network-message' | 'rate-limited' | 'request-timeout' | 'server-error' | 'unknown-early' | 'unknown-late';
-      name: string;
-    };
+type ScenarioCase = DefaultHttpErrorClassifierScenarioCaseEntity.Type;
 
-function createError(input: Record<string, unknown>): Error {
-  const error = RuntimeError.create(String(input.message ?? ''));
+const fileIntake = ScenarioFileCompiler.compileIntake(DefaultHttpErrorClassifierScenarioCaseEntity.Schema, DefaultHttpErrorClassifierScenarioCaseEntity.Node);
+
+function createError(input: ScenarioCase['input']): Error {
+  const error = RuntimeError.create(input.message ?? '');
   for (const [key, value] of Object.entries(input)) {
     Reflect.set(error, key, value);
   }
@@ -34,7 +30,7 @@ function runCase(scenario: ScenarioCase): void {
 }
 
 void describe('DefaultHttpErrorClassifier', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

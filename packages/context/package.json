@@ -79,6 +79,7 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*"
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

@@ -65,10 +65,10 @@ type ScenarioCase = {
   operation: 'canImport' | 'layerForImport' | 'layerForPath';
 };
 
-const LAYER_OPERATIONS = ['canImport', 'layerForImport', 'layerForPath'] as const;
+const LAYER_OPERATIONS = new Set(['canImport', 'layerForImport', 'layerForPath']);
 
 function isLayerOperation(value: unknown): value is ScenarioCase['operation'] {
-  return typeof value === 'string' && (LAYER_OPERATIONS as readonly string[]).includes(value);
+  return typeof value === 'string' && LAYER_OPERATIONS.has(value);
 }
 
 function isOptionalString(value: unknown): value is string | undefined {
@@ -107,33 +107,29 @@ function intakeScenarioCase(raw: unknown): ScenarioCase {
 const operations: Record<ScenarioCase['operation'], (scenario: ScenarioCase) => void> = {
   'canImport': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
-    assert.strictEqual(
-      LayerResolver.canImport(
-        scenario.input.from as string,
-        scenario.input.to as string,
-        options
-      ),
-      scenario.expected.output
-    );
+    const { from, to } = scenario.input;
+
+    assert(from !== undefined, `canImport scenario '${scenario.name}' is missing input.from`);
+    assert(to !== undefined, `canImport scenario '${scenario.name}' is missing input.to`);
+    assert.strictEqual(LayerResolver.canImport(from, to, options), scenario.expected.output);
   },
   'layerForImport': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
+    const { importingFile, specifier } = scenario.input;
+
+    assert(specifier !== undefined, `layerForImport scenario '${scenario.name}' is missing input.specifier`);
+    assert(importingFile !== undefined, `layerForImport scenario '${scenario.name}' is missing input.importingFile`);
     assert.strictEqual(
-      LayerResolver.layerForImport(
-        scenario.input.specifier as string,
-        scenario.input.importingFile as string,
-        options,
-        nodeHost
-      ),
+      LayerResolver.layerForImport(specifier, importingFile, options, nodeHost),
       scenario.expected.output ?? undefined
     );
   },
   'layerForPath': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
-    assert.strictEqual(
-      LayerResolver.layerForPath(scenario.input.path as string, options),
-      scenario.expected.output ?? undefined
-    );
+    const { path } = scenario.input;
+
+    assert(path !== undefined, `layerForPath scenario '${scenario.name}' is missing input.path`);
+    assert.strictEqual(LayerResolver.layerForPath(path, options), scenario.expected.output ?? undefined);
   }
 };
 
@@ -178,7 +174,7 @@ void describe('LayerResolver', () => {
     );
   });
 
-  for (const scenario of (scenarioGroups.cases as unknown[]).map(intakeScenarioCase)) {
+  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
     void it(scenario.name, () => {
       operations[scenario.operation](scenario);
     });

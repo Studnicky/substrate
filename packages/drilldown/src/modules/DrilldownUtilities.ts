@@ -209,14 +209,11 @@ export class DrilldownUtilities {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       return undefined;
     }
-    if (typeof source !== 'object' || source === null) {
+    if (!Predicates.isObject(source)) {
       return undefined;
     }
 
-    const record = source as Record<number | string, unknown>;
-    const value = record[key];
-
-    return value;
+    return source[String(key)];
   }
 
   /**

@@ -148,11 +148,11 @@ export class DataAnalyzer {
   }
 
   private static collectPaths(object: unknown, prefix: string, paths: Set<string>, depth = 0): void {
-    if (depth > 3 || Predicates.isNullish(object) || Predicates.isArray(object) || typeof object !== 'object') {
+    if (depth > 3 || !Predicates.isObject(object)) {
       return;
     }
 
-    const record = object as Record<string, unknown>;
+    const record = object;
     const keys = Object.keys(record);
 
     for (let index = 0; index < keys.length; index++) {

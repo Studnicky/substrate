@@ -167,7 +167,7 @@ void describe('EntityClosureRegistry — composition keywords', () => {
     const schema: object = JSON.parse(
       '{"type":"object","if":{"properties":{"kind":{"const":"a"}}},'
       + '"then":{"required":["extra"]},"else":{"properties":{"kind":{"const":"b"}}}}'
-    ) as object;
+    );
     const validate = compile(schema);
     assert.equal(validate({ 'kind': 'a', 'extra': 1 }), true);
     assert.equal(validate({ 'kind': 'a' }), false);

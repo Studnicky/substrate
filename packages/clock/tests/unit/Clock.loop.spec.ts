@@ -1,10 +1,9 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it, mock
 } from 'node:test';
-
-
 
 import { Clock } from '../../src/clock/Clock.js';
 import { RealTimeClockProvider } from '../../src/clock/RealTimeClockProvider.js';
@@ -14,151 +13,85 @@ import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderI
 import { RealTimeClockProviderOptionsEntity } from '../../src/entities/RealTimeClockProviderOptionsEntity.js';
 import { VirtualTimeCounterOptionsEntity } from '../../src/entities/VirtualTimeCounterOptionsEntity.js';
 import { ClockError } from '../../src/errors/ClockError.js';
+import { ClockScenarioCaseEntity } from './entities/ClockScenarioCaseEntity.js';
 import scenarioGroups from './Clock.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = ScenarioCaseVariant & { name: string };
-
-type ScenarioCaseVariant =
-  | { advanceMs: number; description: string; expectedNow: number; shape: 'now-returns'; startMs: number }
-  | { description: string; expectedNs: string; shape: 'hrtime-returns'; startMs: number }
-  | { description: string; shape: 'real-hrtime-positive'; offsetMs: number }
-  | { description: string; shape: 'real-now-within-range'; offsetMs: number }
-  | { description: string; expectedMessage: string; shape: 'offset-invalid'; offsetMs: 'NaN' | 'Infinity' | '-Infinity' }
-  | { description: string; expectedMessage: string; shape: 'clock-invalid-provider' }
-  | { description: string; expectedMessage: string; shape: 'real-provider-invalid-options' }
-  | { description: string; expectedMessage: string; shape: 'virtual-provider-invalid-counter' }
-  | { description: string; expectedMessage: string; shape: 'counter-invalid-options' }
-  | { description: string; shape: 'clock-error-with-cause' }
-  | { description: string; shape: 'now-monotonic-same-instance' }
-  | { description: string; shape: 'hrtime-monotonic-same-instance' }
-  | { description: string; shape: 'two-instances-independent' }
-  | { description: string; shape: 'clamp-backwards-provider-values' }
-  | { description: string; shape: 'virtual-advance-reflected' }
-  | { description: string; shape: 'hooked-clock-on-now' }
-  | { description: string; shape: 'hooked-clock-on-now-clamped' }
-  | { description: string; shape: 'hooked-clock-on-now-advanced' }
-  | { description: string; shape: 'hooked-clock-on-hrtime' }
-  | { description: string; shape: 'hooked-clock-on-hrtime-repeat' }
-  | { description: string; shape: 'clock-async-on-now-rejection-contained' }
-  | { description: string; shape: 'real-provider-on-now' }
-  | { description: string; shape: 'real-provider-on-now-offset' }
-  | { description: string; shape: 'real-provider-on-hrtime' }
-  | { description: string; shape: 'real-provider-default-options' }
-  | { description: string; shape: 'virtual-provider-on-now' }
-  | { description: string; shape: 'virtual-provider-on-now-advance' }
-  | { description: string; shape: 'virtual-provider-on-hrtime' }
-  | { description: string; shape: 'virtual-counter-default-options' }
-  | { description: string; shape: 'real-provider-throws-on-now' }
-  | { description: string; shape: 'real-provider-throws-on-hrtime' }
-  | { description: string; shape: 'virtual-provider-throws-on-now' }
-  | { description: string; shape: 'virtual-provider-throws-on-hrtime' }
-  | { description: string; shape: 'counter-on-advance' }
-  | { description: string; shape: 'counter-on-advance-suppressed' }
-  | { description: string; shape: 'counter-on-advance-sequence' }
-  | { description: string; shape: 'counter-on-now-ms' }
-  | { description: string; shape: 'counter-on-now-ms-repeat' }
-  | { description: string; shape: 'clock-throws-on-now' }
-  | { description: string; shape: 'clock-throws-on-hrtime' }
-  | { description: string; shape: 'counter-throws-on-advance' }
-  | { description: string; shape: 'counter-throws-on-now-ms' }
-  | { description: string; shape: 'metered-clock-now' }
-  | { description: string; shape: 'metered-clock-hrtime' }
-  | { description: string; shape: 'offset-provider-now' }
-  | { description: string; shape: 'offset-provider-offset' }
-  | { description: string; shape: 'traced-virtual-provider-now' }
-  | { description: string; shape: 'traced-virtual-provider-hrtime' }
-  | { description: string; shape: 'long-uptime-precision' };
+const fileIntake = ScenarioFileCompiler.compileIntake(ClockScenarioCaseEntity.Schema, ClockScenarioCaseEntity.Node);
 
 const NS_PER_MS = 1_000_000n;
 const ZERO_NS = 0n;
-
-type RuntimeNumberShape = 'infinity' | 'nan' | 'negative-infinity';
-type RuntimeNumberInput = number | { shape: RuntimeNumberShape };
-type RealTimeClockProviderOptionsInput = {
-  shape: 'default' | 'options';
-  value?: {
-    offsetMs?: RuntimeNumberInput;
-  };
-};
-type VirtualTimeCounterOptionsInput = {
-  shape: 'default' | 'options';
-  value?: {
-    startMs?: RuntimeNumberInput;
-  };
-};
-type ObjectFixtureInput = {
-  shape: 'empty-object';
-};
 
 const runtimeNumberByShape = {
   'infinity': () => Number.POSITIVE_INFINITY,
   'nan': () => Number.NaN,
   'negative-infinity': () => Number.NEGATIVE_INFINITY
-} satisfies Record<RuntimeNumberShape, () => number>;
+} satisfies Record<ClockScenarioCaseEntity.RuntimeNumberShape, () => number>;
 
-function materializeRuntimeNumber(input: RuntimeNumberInput): number {
+function materializeRuntimeNumber(input: ClockScenarioCaseEntity.RuntimeNumber): number {
   return typeof input === 'number' ? input : runtimeNumberByShape[input.shape]();
 }
 
 const realTimeClockProviderOptionsByShape = {
   'default': () => undefined,
-  'options': (input: RealTimeClockProviderOptionsInput) => {
+  'options': (input: ClockScenarioCaseEntity.RealTimeClockProviderOptions) => {
+    if (input.shape !== 'options') { throw RuntimeError.create('unreachable: expected options shape'); }
     const offsetMs = input.value?.offsetMs;
     return offsetMs === undefined ? {} : { offsetMs: materializeRuntimeNumber(offsetMs) };
   }
 } satisfies Record<
-  RealTimeClockProviderOptionsInput['shape'],
-  (input: RealTimeClockProviderOptionsInput) => Parameters<typeof RealTimeClockProvider.create>[0]
+  ClockScenarioCaseEntity.RealTimeClockProviderOptions['shape'],
+  (input: ClockScenarioCaseEntity.RealTimeClockProviderOptions) => Parameters<typeof RealTimeClockProvider.create>[0]
 >;
 
 function materializeRealTimeClockProviderOptions(
-  input: RealTimeClockProviderOptionsInput
+  input: ClockScenarioCaseEntity.RealTimeClockProviderOptions
 ): Parameters<typeof RealTimeClockProvider.create>[0] {
   return realTimeClockProviderOptionsByShape[input.shape](input);
 }
 
 const virtualTimeCounterOptionsByShape = {
   'default': () => undefined,
-  'options': (input: VirtualTimeCounterOptionsInput) => {
+  'options': (input: ClockScenarioCaseEntity.VirtualTimeCounterOptions) => {
+    if (input.shape !== 'options') { throw RuntimeError.create('unreachable: expected options shape'); }
     const startMs = input.value?.startMs;
     return startMs === undefined ? {} : { startMs: materializeRuntimeNumber(startMs) };
   }
 } satisfies Record<
-  VirtualTimeCounterOptionsInput['shape'],
-  (input: VirtualTimeCounterOptionsInput) => Parameters<typeof VirtualTimeCounter.create>[0]
+  ClockScenarioCaseEntity.VirtualTimeCounterOptions['shape'],
+  (input: ClockScenarioCaseEntity.VirtualTimeCounterOptions) => Parameters<typeof VirtualTimeCounter.create>[0]
 >;
 
 function materializeVirtualTimeCounterOptions(
-  input: VirtualTimeCounterOptionsInput
+  input: ClockScenarioCaseEntity.VirtualTimeCounterOptions
 ): Parameters<typeof VirtualTimeCounter.create>[0] {
   return virtualTimeCounterOptionsByShape[input.shape](input);
 }
 
 const objectFixtureByShape = {
   'empty-object': () => ({})
-} satisfies Record<ObjectFixtureInput['shape'], () => Record<string, never>>;
+} satisfies Record<ClockScenarioCaseEntity.ObjectFixture['shape'], () => Record<string, never>>;
 
-function materializeObjectFixture(input: ObjectFixtureInput): Record<string, never> {
+function materializeObjectFixture(input: ClockScenarioCaseEntity.ObjectFixture): Record<string, never> {
   return objectFixtureByShape[input.shape]();
 }
 
-function createRealTimeClockProvider(input: RealTimeClockProviderOptionsInput): RealTimeClockProvider {
+function createRealTimeClockProvider(input: ClockScenarioCaseEntity.RealTimeClockProviderOptions): RealTimeClockProvider {
   return RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input));
 }
 
-function createVirtualTimeCounter(input: VirtualTimeCounterOptionsInput): VirtualTimeCounter {
+function createVirtualTimeCounter(input: ClockScenarioCaseEntity.VirtualTimeCounterOptions): VirtualTimeCounter {
   return VirtualTimeCounter.create(materializeVirtualTimeCounterOptions(input));
 }
 
-function createVirtualClockProvider(input: VirtualTimeCounterOptionsInput): VirtualClockProvider {
+function createVirtualClockProvider(input: ClockScenarioCaseEntity.VirtualTimeCounterOptions): VirtualClockProvider {
   return VirtualClockProvider.create(createVirtualTimeCounter(input));
 }
 
-function createVirtualClock(input: VirtualTimeCounterOptionsInput): Clock {
+function createVirtualClock(input: ClockScenarioCaseEntity.VirtualTimeCounterOptions): Clock {
   return Clock.create(createVirtualClockProvider(input));
 }
 
-function readVirtualTimeCounterStartMs(input: VirtualTimeCounterOptionsInput): number {
+function readVirtualTimeCounterStartMs(input: ClockScenarioCaseEntity.VirtualTimeCounterOptions): number {
   return materializeVirtualTimeCounterOptions(input)?.startMs ?? 0;
 }
 
@@ -210,14 +143,12 @@ class MeteredClockProvider implements ClockProviderInterface {
   }
 }
 
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type ScenarioRunner = (scenarioCase: ClockScenarioCaseEntity.Type) => Promise<void> | void;
 
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
+const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> = {
   'now-returns': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'now-returns') { throw RuntimeError.create('unreachable: expected now-returns shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = Clock.create(VirtualClockProvider.create(counter));
     counter.advance(input.advanceMs);
@@ -226,20 +157,16 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hrtime-returns': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { ns: string };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hrtime-returns') { throw RuntimeError.create('unreachable: expected hrtime-returns shape'); }
+    const { expected, input } = scenarioCase;
     const clock = createVirtualClock(input.counterOptions);
     assert.strictEqual(clock.hrtime(), BigInt(expected.ns));
     return;
   },
 
   'real-hrtime-positive': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { positive: boolean };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'real-hrtime-positive') { throw RuntimeError.create('unreachable: expected real-hrtime-positive shape'); }
+    const { expected, input } = scenarioCase;
     const offsetMs = materializeRealTimeClockProviderOptions(input.realProviderOptions)?.offsetMs ?? 0;
     // Compare against a zero-offset baseline provider read at roughly the same
     // instant so the assertion proves the offset is actually reflected in the
@@ -261,10 +188,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-now-within-range': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { withinTolerance: boolean };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'real-now-within-range') { throw RuntimeError.create('unreachable: expected real-now-within-range shape'); }
+    const { expected, input } = scenarioCase;
     const before = Date.now();
     const clock = Clock.create(createRealTimeClockProvider(input.realProviderOptions));
     const value = clock.now();
@@ -275,50 +200,43 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'offset-invalid': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { message: string };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'offset-invalid') { throw RuntimeError.create('unreachable: expected offset-invalid shape'); }
+    const { expected, input } = scenarioCase;
     assert.throws(() => {
       RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     }, { message: expected.message });
     return;
   },
   'clock-invalid-provider': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { message: string };
-      input: { providerFixture: ObjectFixtureInput };
-    };
+    if (scenarioCase.shape !== 'clock-invalid-provider') { throw RuntimeError.create('unreachable: expected clock-invalid-provider shape'); }
+    const { expected, input } = scenarioCase;
     assert.throws(() => {
+      // penitence: as-never — no assertion-free way to pass a structurally invalid
+      // value to a strictly-typed constructor on purpose. Flagged as a blocker.
       Clock.create(materializeObjectFixture(input.providerFixture) as never);
     }, { message: expected.message });
     return;
   },
   'real-provider-invalid-options': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { message: string };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'real-provider-invalid-options') { throw RuntimeError.create('unreachable: expected real-provider-invalid-options shape'); }
+    const { expected, input } = scenarioCase;
     assert.throws(() => {
       RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input.realProviderOptions));
     }, { message: expected.message });
     return;
   },
   'virtual-provider-invalid-counter': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { message: string };
-      input: { counterFixture: ObjectFixtureInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-invalid-counter') { throw RuntimeError.create('unreachable: expected virtual-provider-invalid-counter shape'); }
+    const { expected, input } = scenarioCase;
     assert.throws(() => {
+      // penitence: as-never — same constructor-guard case as clock-invalid-provider above.
       VirtualClockProvider.create(materializeObjectFixture(input.counterFixture) as never);
     }, { message: expected.message });
     return;
   },
   'counter-invalid-options': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { message: string };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-invalid-options') { throw RuntimeError.create('unreachable: expected counter-invalid-options shape'); }
+    const { expected, input } = scenarioCase;
     assert.throws(() => {
       VirtualTimeCounter.create(materializeVirtualTimeCounterOptions(input.counterOptions));
     }, { message: expected.message });
@@ -333,10 +251,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'now-monotonic-same-instance': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { monotonic: boolean };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'now-monotonic-same-instance') { throw RuntimeError.create('unreachable: expected now-monotonic-same-instance shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = Clock.create(VirtualClockProvider.create(counter));
     const first = clock.now();
@@ -349,10 +265,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hrtime-monotonic-same-instance': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { monotonic: boolean };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hrtime-monotonic-same-instance') { throw RuntimeError.create('unreachable: expected hrtime-monotonic-same-instance shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = Clock.create(VirtualClockProvider.create(counter));
     const first = clock.hrtime();
@@ -363,10 +277,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'two-instances-independent': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { sameResults: boolean };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'two-instances-independent') { throw RuntimeError.create('unreachable: expected two-instances-independent shape'); }
+    const { expected, input } = scenarioCase;
     const startMs = readVirtualTimeCounterStartMs(input.counterOptions);
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = VirtualClockProvider.create(counter);
@@ -389,13 +301,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'clamp-backwards-provider-values': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { clamped: boolean };
-      input: {
-        lowerCounterOptions: VirtualTimeCounterOptionsInput;
-        counterOptions: VirtualTimeCounterOptionsInput;
-      };
-    };
+    if (scenarioCase.shape !== 'clamp-backwards-provider-values') { throw RuntimeError.create('unreachable: expected clamp-backwards-provider-values shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const lowerCounter = createVirtualTimeCounter(input.lowerCounterOptions);
     let readCount = 0;
@@ -421,10 +328,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-advance-reflected': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-advance-reflected') { throw RuntimeError.create('unreachable: expected virtual-advance-reflected shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const clock = Clock.create(VirtualClockProvider.create(counter));
     counter.advance(input.advanceMs);
@@ -433,10 +338,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hooked-clock-on-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[]; result: number };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hooked-clock-on-now') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now shape'); }
+    const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
@@ -459,10 +362,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hooked-clock-on-now-clamped': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[] };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hooked-clock-on-now-clamped') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now-clamped shape'); }
+    const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
       readonly nowEvents: number[] = [];
       protected override onNow(timestamp: number): void {
@@ -479,10 +380,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hooked-clock-on-now-advanced': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[] };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hooked-clock-on-now-advanced') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now-advanced shape'); }
+    const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
       readonly nowEvents: number[] = [];
       protected override onNow(timestamp: number): void {
@@ -500,10 +399,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hooked-clock-on-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtimeEvents: bigint[]; result: bigint };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hooked-clock-on-hrtime') { throw RuntimeError.create('unreachable: expected hooked-clock-on-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
       readonly hrtimeEvents: bigint[] = [];
       protected override onHrtime(value: bigint): void {
@@ -520,10 +417,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'hooked-clock-on-hrtime-repeat': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtimeEvents: bigint[] };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'hooked-clock-on-hrtime-repeat') { throw RuntimeError.create('unreachable: expected hooked-clock-on-hrtime-repeat shape'); }
+    const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
       readonly hrtimeEvents: bigint[] = [];
       protected override onHrtime(value: bigint): void {
@@ -541,10 +436,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'clock-async-on-now-rejection-contained': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { result: number; unhandledRejections: number };
-      input: { counterOptions: VirtualTimeCounterOptionsInput; message: string };
-    };
+    if (scenarioCase.shape !== 'clock-async-on-now-rejection-contained') { throw RuntimeError.create('unreachable: expected clock-async-on-now-rejection-contained shape'); }
+    const { expected, input } = scenarioCase;
     class AsyncRejectingNowClock extends Clock {
       protected override async onNow(_timestamp: number): Promise<void> {
         await Promise.resolve();
@@ -573,10 +466,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-on-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[]; result: number };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'real-provider-on-now') { throw RuntimeError.create('unreachable: expected real-provider-on-now shape'); }
+    const { expected, input } = scenarioCase;
     class HookedRealProvider extends RealTimeClockProvider {
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
@@ -598,10 +489,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-on-now-offset': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[]; result: number };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'real-provider-on-now-offset') { throw RuntimeError.create('unreachable: expected real-provider-on-now-offset shape'); }
+    const { expected, input } = scenarioCase;
     class HookedRealProvider extends RealTimeClockProvider {
       readonly nowEvents: number[] = [];
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
@@ -620,10 +509,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-on-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtimeEvents: bigint[]; result: bigint };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'real-provider-on-hrtime') { throw RuntimeError.create('unreachable: expected real-provider-on-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     class HookedRealProvider extends RealTimeClockProvider {
       readonly hrtimeEvents: bigint[] = [];
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
@@ -643,9 +530,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-default-options': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'real-provider-default-options') { throw RuntimeError.create('unreachable: expected real-provider-default-options shape'); }
+    const { input } = scenarioCase;
     const before = Date.now();
     const provider = createRealTimeClockProvider(input.realProviderOptions);
     const value = provider.now();
@@ -656,10 +542,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-on-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[]; result: number };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-on-now') { throw RuntimeError.create('unreachable: expected virtual-provider-on-now shape'); }
+    const { expected, input } = scenarioCase;
     class HookedVirtualProvider extends VirtualClockProvider {
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
@@ -677,10 +561,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-on-now-advance': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { nowEvents: number[] };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-on-now-advance') { throw RuntimeError.create('unreachable: expected virtual-provider-on-now-advance shape'); }
+    const { expected, input } = scenarioCase;
     class HookedVirtualProvider extends VirtualClockProvider {
       readonly nowEvents: number[] = [];
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
@@ -697,10 +579,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-on-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtimeEvents: bigint[]; result: bigint };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-on-hrtime') { throw RuntimeError.create('unreachable: expected virtual-provider-on-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     class HookedVirtualProvider extends VirtualClockProvider {
       readonly hrtimeEvents: bigint[] = [];
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
@@ -716,9 +596,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-counter-default-options': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-counter-default-options') { throw RuntimeError.create('unreachable: expected virtual-counter-default-options shape'); }
+    const { input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = VirtualClockProvider.create(counter);
     assert.strictEqual(provider.now(), 0);
@@ -727,10 +606,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-throws-on-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookError: boolean };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'real-provider-throws-on-now') { throw RuntimeError.create('unreachable: expected real-provider-throws-on-now shape'); }
+    const { expected, input } = scenarioCase;
     class ThrowingRealNowProvider extends RealTimeClockProvider {
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onNow(): void { throw RuntimeError.create('provider onNow boom'); }
@@ -754,10 +631,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'real-provider-throws-on-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookError: boolean };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'real-provider-throws-on-hrtime') { throw RuntimeError.create('unreachable: expected real-provider-throws-on-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     class ThrowingRealHrtimeProvider extends RealTimeClockProvider {
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       protected override onHrtime(): void { throw RuntimeError.create('provider onHrtime boom'); }
@@ -779,10 +654,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-throws-on-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookError: boolean };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-throws-on-now') { throw RuntimeError.create('unreachable: expected virtual-provider-throws-on-now shape'); }
+    const { expected, input } = scenarioCase;
     class ThrowingVirtualNowProvider extends VirtualClockProvider {
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
       protected override onNow(): void { throw RuntimeError.create('virtual provider onNow boom'); }
@@ -800,10 +673,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'virtual-provider-throws-on-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookError: boolean };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'virtual-provider-throws-on-hrtime') { throw RuntimeError.create('unreachable: expected virtual-provider-throws-on-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     class ThrowingVirtualHrtimeProvider extends VirtualClockProvider {
       public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }
       protected override onHrtime(): void { throw RuntimeError.create('virtual provider onHrtime boom'); }
@@ -821,10 +692,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-on-advance': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookCalls: [number, number] };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-on-advance') { throw RuntimeError.create('unreachable: expected counter-on-advance shape'); }
+    const { expected, input } = scenarioCase;
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
       readonly nowMsEvents: number[] = [];
@@ -846,10 +715,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-on-advance-suppressed': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookCalls: [] };
-      input: { advances: number[]; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-on-advance-suppressed') { throw RuntimeError.create('unreachable: expected counter-on-advance-suppressed shape'); }
+    const { expected, input } = scenarioCase;
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
@@ -867,10 +734,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-on-advance-sequence': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hookCalls: number[] };
-      input: { advances: number[]; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-on-advance-sequence') { throw RuntimeError.create('unreachable: expected counter-on-advance-sequence shape'); }
+    const { expected, input } = scenarioCase;
     class HookedCounter extends VirtualTimeCounter {
       readonly advanceEvents: Array<{ deltaMs: number; nowMs: number }> = [];
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
@@ -888,10 +753,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-on-now-ms': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { values: number[] };
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-on-now-ms') { throw RuntimeError.create('unreachable: expected counter-on-now-ms shape'); }
+    const { expected, input } = scenarioCase;
     class HookedCounter extends VirtualTimeCounter {
       readonly nowMsEvents: number[] = [];
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
@@ -909,10 +772,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-on-now-ms-repeat': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { values: number[] };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-on-now-ms-repeat') { throw RuntimeError.create('unreachable: expected counter-on-now-ms-repeat shape'); }
+    const { expected, input } = scenarioCase;
     class HookedCounter extends VirtualTimeCounter {
       readonly nowMsEvents: number[] = [];
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
@@ -931,9 +792,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'clock-throws-on-now': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'clock-throws-on-now') { throw RuntimeError.create('unreachable: expected clock-throws-on-now shape'); }
+    const { input } = scenarioCase;
     class ThrowingNowClock extends Clock {
       public constructor(provider: ClockProviderInterface) { super(provider); }
       protected override onNow(): void { throw RuntimeError.create('onNow boom'); }
@@ -950,9 +810,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'clock-throws-on-hrtime': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'clock-throws-on-hrtime') { throw RuntimeError.create('unreachable: expected clock-throws-on-hrtime shape'); }
+    const { input } = scenarioCase;
     class ThrowingHrtimeClock extends Clock {
       public constructor(provider: ClockProviderInterface) { super(provider); }
       protected override onHrtime(): void { throw RuntimeError.create('onHrtime boom'); }
@@ -969,9 +828,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-throws-on-advance': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-throws-on-advance') { throw RuntimeError.create('unreachable: expected counter-throws-on-advance shape'); }
+    const { input } = scenarioCase;
     class ThrowingAdvanceCounter extends VirtualTimeCounter {
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onAdvance(): void { throw RuntimeError.create('onAdvance boom'); }
@@ -987,9 +845,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'counter-throws-on-now-ms': (scenarioCase) => {
-    const { input } = scenarioCase as ScenarioCase & {
-      input: { counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'counter-throws-on-now-ms') { throw RuntimeError.create('unreachable: expected counter-throws-on-now-ms shape'); }
+    const { input } = scenarioCase;
     class ThrowingNowMsCounter extends VirtualTimeCounter {
       public constructor(options: Parameters<typeof VirtualTimeCounter.create>[0] = {}) { super(VirtualTimeCounterOptionsEntity.intake(options)); }
       protected override onNowMs(): void { throw RuntimeError.create('onNowMs boom'); }
@@ -1005,10 +862,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'metered-clock-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'metered-clock-now') { throw RuntimeError.create('unreachable: expected metered-clock-now shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new MeteredClockProvider(counter);
     const clock = Clock.create(provider);
@@ -1023,10 +878,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'metered-clock-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtime: string };
-      input: { advanceMs: number; counterOptions: VirtualTimeCounterOptionsInput };
-    };
+    if (scenarioCase.shape !== 'metered-clock-hrtime') { throw RuntimeError.create('unreachable: expected metered-clock-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     const provider = new MeteredClockProvider(counter);
     const clock = Clock.create(provider);
@@ -1039,10 +892,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'offset-provider-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'offset-provider-now') { throw RuntimeError.create('unreachable: expected offset-provider-now shape'); }
+    const { expected, input } = scenarioCase;
     const realTimeMock = mockRealTime(input.rawMs);
     try {
       const provider = RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input.realProviderOptions));
@@ -1054,10 +905,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'offset-provider-offset': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { realProviderOptions: RealTimeClockProviderOptionsInput; rawMs: number };
-    };
+    if (scenarioCase.shape !== 'offset-provider-offset') { throw RuntimeError.create('unreachable: expected offset-provider-offset shape'); }
+    const { expected, input } = scenarioCase;
     class OffsetRealTimeClockProvider extends RealTimeClockProvider {
       public constructor(options: Parameters<typeof RealTimeClockProvider.create>[0] = {}) { super(RealTimeClockProviderOptionsEntity.intake(options)); }
       // Exposes the protected `offsetMs` getter so the subclass-access claim in
@@ -1078,10 +927,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'traced-virtual-provider-now': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { now: number };
-      input: { counterOptions: VirtualTimeCounterOptionsInput; virtualMs: number };
-    };
+    if (scenarioCase.shape !== 'traced-virtual-provider-now') { throw RuntimeError.create('unreachable: expected traced-virtual-provider-now shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     counter.advance(input.virtualMs - counter.nowMs());
     const provider = VirtualClockProvider.create(counter);
@@ -1090,10 +937,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'traced-virtual-provider-hrtime': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { hrtime: string };
-      input: { counterOptions: VirtualTimeCounterOptionsInput; virtualMs: number };
-    };
+    if (scenarioCase.shape !== 'traced-virtual-provider-hrtime') { throw RuntimeError.create('unreachable: expected traced-virtual-provider-hrtime shape'); }
+    const { expected, input } = scenarioCase;
     const counter = createVirtualTimeCounter(input.counterOptions);
     counter.advance(input.virtualMs - counter.nowMs());
     const provider = VirtualClockProvider.create(counter);
@@ -1102,10 +947,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
 
   'long-uptime-precision': (scenarioCase) => {
-    const { expected, input } = scenarioCase as ScenarioCase & {
-      expected: { precise: boolean };
-      input: { rawMs: number; realProviderOptions: RealTimeClockProviderOptionsInput };
-    };
+    if (scenarioCase.shape !== 'long-uptime-precision') { throw RuntimeError.create('unreachable: expected long-uptime-precision shape'); }
+    const { expected, input } = scenarioCase;
     // Derive the expected nanosecond value independently of the production
     // trunc/multiply/round split used by RealTimeClockProvider.hrtime(): format
     // the raw ms value as a fixed-point decimal string with microsecond
@@ -1128,12 +971,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   }
 };
 
-function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
+function runCase(scenarioCase: ClockScenarioCaseEntity.Type): Promise<void> | void {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Clock', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

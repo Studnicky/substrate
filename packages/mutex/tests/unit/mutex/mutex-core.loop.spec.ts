@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -5,119 +6,20 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { RuntimeError } from '@studnicky/errors/node';
 
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
-import type { MutexCreateOptionsInterface } from '../../../src/interfaces/MutexCreateOptionsInterface.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { configInternal, Mutex } from '../../../src/mutex/index.js';
+import { MutexCoreScenarioCaseEntity } from './entities/MutexCoreScenarioCaseEntity.js';
 import scenarioGroups from './mutex-core.scenarios.json' with { type: 'json' };
 
-type BatchInput = {
-  acquireCount?: number;
-  observerCount?: number;
-  operationCount?: number;
-  overflowCount?: number;
-  queuedCount?: number;
-  queuedPerKey?: Record<string, number>;
-};
-
-type MutexScenarioInput = Record<string, unknown> & {
-  batch?: BatchInput;
-  delayMs?: number;
-  delaysMs?: number[];
-  errorMessage?: string;
-  key?: unknown;
-  keys?: string[];
-  mutex?: MutexCreateOptionsInterface;
-  operations?: string[];
-  result?: unknown;
-  value?: unknown;
-};
-
-type ScenarioData = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: MutexScenarioInput;
-  name: string;
-};
-
-type ScenarioShape =
-  | 'acquire-disposable'
-  | 'acquire-release'
-  | 'async-exclusive'
-  | 'async-return-value'
-  | 'burst-timeout-drains-queue'
-  | 'clear-clears-all'
-  | 'clear-empty'
-  | 'clear-rejects-queued-acquisitions'
-  | 'completeQueue-immediate'
-  | 'completeQueue-multiple-observers'
-  | 'completeQueue-waits-active'
-  | 'completeQueue-waits-multi-key'
-  | 'completeQueue-waits-queued'
-  | 'config-defaults'
-  | 'config-empty'
-  | 'config-enable-coalescing'
-  | 'config-external-modification'
-  | 'config-full'
-  | 'config-invalid-enableCoalescing'
-  | 'config-invalid-maxQueue-float'
-  | 'config-invalid-maxQueue-negative'
-  | 'config-invalid-timeout-float'
-  | 'config-invalid-timeout-negative'
-  | 'config-no-limits'
-  | 'config-partial-maxQueue-5'
-  | 'config-partial-maxQueue-50'
-  | 'config-partial-timeout'
-  | 'config-return-copy'
-  | 'config-unknown-key'
-  | 'create-composite-key'
-  | 'create-functional'
-  | 'create-no-config'
-  | 'create-number-key'
-  | 'create-partial-config'
-  | 'create-string-key'
-  | 'different-keys'
-  | 'getConfig-current'
-  | 'getConfig-default'
-  | 'isComplete-after-release-true'
-  | 'isComplete-held-false'
-  | 'isComplete-initial-true'
-  | 'isComplete-multi-active-false'
-  | 'isComplete-queued-false'
-  | 'isLocked-after-release'
-  | 'isLocked-initial-false'
-  | 'isLocked-multiple-keys'
-  | 'isLocked-true'
-  | 'multiple-operations'
-  | 'queue-size-exceeded'
-  | 'queueSize-decrements'
-  | 'queueSize-held-empty'
-  | 'queueSize-initial-zero'
-  | 'queueSize-tracks-queued'
-  | 'queued-timeout-unlinks-middle-node'
-  | 'releases-on-throw'
-  | 'result-validator-rejects'
-  | 'sequential-acquisitions'
-  | 'size-active-locks'
-  | 'size-initial-zero'
-  | 'size-no-queued'
-  | 'stats-active-locks'
-  | 'stats-api-shape'
-  | 'stats-initial'
-  | 'stats-multiple-active'
-  | 'stats-queued'
-  | 'stats-queued-multi-key'
-  | 'stats-total-executed'
-  | 'sync-return-number'
-  | 'sync-return-string'
-  | 'validateConfig-invalid'
-  | 'validateConfig-valid';
-
-type ScenarioCase = ScenarioData & { shape: ScenarioShape };
-type NumericBatchField = keyof Omit<BatchInput, 'queuedPerKey'>;
+type ScenarioCase = MutexCoreScenarioCaseEntity.Type;
+type MutexScenarioInput = ScenarioCase['input'];
+type NumericBatchField = keyof Omit<NonNullable<MutexScenarioInput['batch']>, 'queuedPerKey'>;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type ReleaseFunction = () => void;
 
-function mutexConfig(scenarioCase: ScenarioCase): MutexCreateOptionsInterface {
+const fileIntake = ScenarioFileCompiler.compileIntake(MutexCoreScenarioCaseEntity.Schema, MutexCoreScenarioCaseEntity.Node);
+
+function mutexConfig(scenarioCase: ScenarioCase): NonNullable<MutexScenarioInput['mutex']> {
   return scenarioCase.input.mutex ?? {};
 }
 
@@ -255,7 +157,7 @@ const assertInvalidMutexConfig: ScenarioRunner = (scenarioCase) => {
   assert.throws(() => { Mutex.create(mutexConfig(scenarioCase)); });
 };
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'acquire-disposable': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = Mutex.create();
@@ -894,7 +796,7 @@ void describe('Mutex core', () => {
     await mutex.completeQueue();
   });
 
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

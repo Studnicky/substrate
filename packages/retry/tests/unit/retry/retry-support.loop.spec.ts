@@ -1,9 +1,9 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ConfigurationError } from '@studnicky/config/node';
-
 
 import {
   BackoffStrategy,
@@ -14,48 +14,21 @@ import type {
   RetryConfigInterface,
   RetryContextInterface
 } from '../../../src/interfaces/index.js';
+import { RetrySupportScenarioCaseEntity } from '../entities/RetrySupportScenarioCaseEntity.js';
 import scenarioGroups from './retry-support.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'backoff-config-default'
-  | 'backoff-config-exponential'
-  | 'backoff-config-override'
-  | 'backoff-strategy-bad-delay'
-  | 'backoff-strategy-missing-fn'
-  | 'backoff-strategy-non-object'
-  | 'config-guard-bad-type'
-  | 'config-guard-unknown-key'
-  | 'config-guard-valid'
-  | 'decorrelated-jitter-0'
-  | 'decorrelated-jitter-lower-bound'
-  | 'decorrelated-jitter-upper-bound'
-  | 'decorrelated-jitter-varying'
-  | 'entity-backoff-config'
-  | 'entity-retry-context';
+const fileIntake = ScenarioFileCompiler.compileIntake(RetrySupportScenarioCaseEntity.Schema, RetrySupportScenarioCaseEntity.Node);
 
-type RetrySupportInput = Record<string, unknown> & {
-  attempt?: number;
-  batch?: {
-    failureCountBeforeSuccess?: number;
-    sampleCount?: number;
-  };
-  baseDelay?: number;
-  errorMessage?: string;
-  result?: string;
-  retry?: Record<string, unknown> & {
-    backoffStrategy?: { baseDelayMs?: number };
-    maximumRetries?: unknown;
-  };
-  value?: Record<string, unknown>;
-};
+type ScenarioShape = RetrySupportScenarioCaseEntity.Type['shape'];
 
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: RetrySupportInput;
-  shape: ScenarioShape;
-  name: string;
-};
+type RetrySupportInput = RetrySupportScenarioCaseEntity.Type['input'];
+
+type ScenarioCase = RetrySupportScenarioCaseEntity.Type;
+
+/** Reads a property off a deliberately-untrusted `retry`/`value` fixture field without asserting its shape. */
+function readUnknownProperty(source: unknown, key: string): unknown {
+  return typeof source === 'object' && source !== null ? Reflect.get(source, key) : undefined;
+}
 
 class RecordingRetry extends Retry {
   readonly recordedDelays: number[] = [];
@@ -84,9 +57,10 @@ class OverridingRetry extends Retry {
   }
 }
 
-function createBackoffConfig(config?: { baseDelayMs?: number }): { baseDelayMs: number; strategy: typeof BackoffStrategy.exponential } {
+function createBackoffConfig(config: unknown): { baseDelayMs: number; strategy: typeof BackoffStrategy.exponential } {
+  const baseDelayMs = readUnknownProperty(config, 'baseDelayMs');
   return {
-    'baseDelayMs': config?.baseDelayMs ?? 100,
+    'baseDelayMs': typeof baseDelayMs === 'number' ? baseDelayMs : 100,
     'strategy': BackoffStrategy.exponential
   };
 }
@@ -138,10 +112,7 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
   const { input } = scenarioCase;
 
   assert.throws(() => {
-    Retry.create({
-      backoffStrategy: input.retry?.backoffStrategy as never,
-      maximumRetries: Number(input.retry?.maximumRetries)
-    });
+    Reflect.construct(Retry, [input.retry ?? {}]);
   }, ConfigurationError);
 }
 
@@ -150,7 +121,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const { expected, input } = scenarioCase;
     const retry = new RecordingRetry({
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maximumRetries': Number(input.retry?.maximumRetries)
+      'maximumRetries': Number(readUnknownProperty(input.retry, 'maximumRetries'))
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -160,9 +131,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'backoff-config-exponential': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const retry = new RecordingRetry({
-      'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
+      'backoffStrategy': createBackoffConfig(readUnknownProperty(input.retry, 'backoffStrategy')),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maximumRetries': Number(input.retry?.maximumRetries)
+      'maximumRetries': Number(readUnknownProperty(input.retry, 'maximumRetries'))
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -172,9 +143,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'backoff-config-override': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const retry = new OverridingRetry({
-      'backoffStrategy': createBackoffConfig(input.retry?.backoffStrategy),
+      'backoffStrategy': createBackoffConfig(readUnknownProperty(input.retry, 'backoffStrategy')),
       'errorClassifier': DefaultHttpErrorClassifier.create(),
-      'maximumRetries': Number(input.retry?.maximumRetries)
+      'maximumRetries': Number(readUnknownProperty(input.retry, 'maximumRetries'))
     });
 
     await executeUntilConfiguredSuccess(retry, input);
@@ -269,7 +240,7 @@ void it('intakes only the serializable retry configuration', () => {
 });
 
 void describe('Retry support', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

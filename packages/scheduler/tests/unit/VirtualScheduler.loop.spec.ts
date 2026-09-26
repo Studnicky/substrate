@@ -1,4 +1,5 @@
 import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 /**
  * Unit tests for `VirtualScheduler`.
  * Requires `@studnicky/clock` — `VirtualTimeCounter` and `VirtualClockProvider`.
@@ -9,10 +10,16 @@ import { runInNewContext } from 'node:vm';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
-
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
+import { VirtualSchedulerScenarioCaseEntity } from './entities/VirtualSchedulerScenarioCaseEntity.js';
 import scenarioGroups from './VirtualScheduler.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(VirtualSchedulerScenarioCaseEntity.Schema, VirtualSchedulerScenarioCaseEntity.Node);
+
+type ScenarioCase = VirtualSchedulerScenarioCaseEntity.Type;
+type HeapTaskDescriptor = VirtualSchedulerScenarioCaseEntity.HeapTaskDescriptor;
+type HeapTaskVariant = HeapTaskDescriptor['variant'];
 
 function requiredAuditNumber(value: number | undefined): number {
   if (value === undefined) {
@@ -29,26 +36,6 @@ class FireRecord {
   }
 }
 
-type ScenarioInput = {
-  batch?: Record<string, boolean | number | string | object | null>;
-  scheduler: Record<string, boolean | number | string | object | null>;
-};
-type ScenarioRunnerContext = {
-  batch: Record<string, boolean | number | string | object | null>;
-  expected: Record<string, boolean | number | string | object | null>;
-  input: Record<string, boolean | number | string | object | null>;
-};
-type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
-type ScenarioCase = {
-  description: string;
-  expected?: Record<string, boolean | number | string | object | null>;
-  input: ScenarioInput;
-  shape: string;
-  name: string;
-};
-
-type HeapTaskFireShape = 'noop';
-type HeapTaskVariant = 'interval' | 'timeout';
 type MutableHeapTask = {
   atMs: number;
   fire: () => void;
@@ -56,23 +43,12 @@ type MutableHeapTask = {
   intervalMs: number;
   variant: HeapTaskVariant;
 };
-type HeapTaskDescriptor = {
-  atMs: number;
-  fire: HeapTaskFireShape;
-  id: string;
-  intervalMs: number;
-  mutation?: {
-    atMs?: number;
-    id?: string;
-  };
-  variant: HeapTaskVariant;
-};
 
 const heapTaskFireDispatch = {
   noop: (): (() => void) => {
     return (): void => { return; };
   }
-} satisfies Record<HeapTaskFireShape, () => () => void>;
+} satisfies Record<HeapTaskDescriptor['fire'], () => () => void>;
 const heapTaskMutationDispatch = {
   atMs: (task: MutableHeapTask, mutation: NonNullable<HeapTaskDescriptor['mutation']>): void => {
     if (mutation.atMs !== undefined) {
@@ -94,14 +70,6 @@ function createScheduler(startMs: number): VirtualScheduler {
   return VirtualScheduler.create({ counter: createCounter(startMs) });
 }
 
-function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
-  const value = input[key];
-  if (typeof value !== 'number') {
-    throw RuntimeError.create(`Expected numeric field '${key}'`);
-  }
-  return value;
-}
-
 function materializeHeapTask(descriptor: HeapTaskDescriptor): MutableHeapTask {
   return {
     atMs: descriptor.atMs,
@@ -118,10 +86,15 @@ function applyHeapTaskMutation(task: MutableHeapTask, mutation: HeapTaskDescript
   }
 }
 
-const scenarioRunners = {
-  'virtual-timecounter': ({ expected, input }): void => {
-    const counterAdvanceScenarios = input.counterAdvanceScenarios as Array<{ start: number; advances: number[]; expectedNowMs: number }>;
-    for (const { start, advances, expectedNowMs } of counterAdvanceScenarios) {
+type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
+
+const runnerMap: RunnerMap = {
+  'virtual-timecounter': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'virtual-timecounter') { throw RuntimeError.create('unreachable: expected virtual-timecounter shape'); }
+    const { expected, input } = scenarioCase;
+    const { scheduler } = input;
+    for (const { start, advances, expectedNowMs } of scheduler.counterAdvanceScenarios) {
       const counter = VirtualTimeCounter.create({ startMs: start });
       for (const delta of advances) {
         counter.advance(delta);
@@ -129,29 +102,28 @@ const scenarioRunners = {
       assert.strictEqual(counter.nowMs(), expectedNowMs);
     }
 
-    const edgeCases = input.edgeCases as Array<{ advance: number; start: number; expectedNowMs: number }>;
-    for (const { advance, start, expectedNowMs } of edgeCases) {
+    for (const { advance, start, expectedNowMs } of scheduler.edgeCases) {
       const counter = VirtualTimeCounter.create({ startMs: start });
       counter.advance(advance);
       assert.strictEqual(counter.nowMs(), expectedNowMs);
     }
 
-    const negativeStartMs = input.negativeStartMs as number;
     assert.throws(() => {
-      VirtualTimeCounter.create({ startMs: negativeStartMs });
+      VirtualTimeCounter.create({ startMs: scheduler.negativeStartMs });
     });
 
-    const counterInput = input as { finalCounterAdvances: number[]; finalCounterStartMs: number };
-    const counter = VirtualTimeCounter.create({ startMs: counterInput.finalCounterStartMs });
-    for (const delta of counterInput.finalCounterAdvances) {
+    const counter = VirtualTimeCounter.create({ startMs: scheduler.finalCounterStartMs });
+    for (const delta of scheduler.finalCounterAdvances) {
       counter.advance(delta);
     }
-    assert.strictEqual(counter.nowMs(), expected.finalNowMs as number);
+    assert.strictEqual(counter.nowMs(), expected.finalNowMs);
     return;
   },
 
   'invalid-constructor': (): void => {
     assert.throws(() => {
+      // penitence: as-never — deliberately invalid runtime value exercising VirtualScheduler's
+      // constructor guard; TypeScript has no assertion-free way to defeat structural typing here.
       VirtualScheduler.create({ counter: null as never });
     });
     assert.throws(() => {
@@ -160,10 +132,11 @@ const scenarioRunners = {
     return;
   },
 
-  'invalid-interval': ({ input }): void => {
-    const invalidIntervalInput = input as { invalidIntervals: number[]; startMs: number };
-    const sched = createScheduler(invalidIntervalInput.startMs);
-    for (const intervalMs of invalidIntervalInput.invalidIntervals) {
+  'invalid-interval': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'invalid-interval') { throw RuntimeError.create('unreachable: expected invalid-interval shape'); }
+    const { scheduler } = scenarioCase.input;
+    const sched = createScheduler(scheduler.startMs);
+    for (const intervalMs of scheduler.invalidIntervals) {
       assert.throws(() => {
         sched.scheduleEvery(intervalMs, () => { return; });
       });
@@ -171,10 +144,10 @@ const scenarioRunners = {
     return;
   },
 
-  'minimum-heap': ({ expected, input }): void => {
-    const heapInput = input as { tasks: readonly [HeapTaskDescriptor, HeapTaskDescriptor] };
-    const heapExpected = expected as { peekAtMs: number; removedMinimum: Omit<MutableHeapTask, 'fire'>; secondPeekAtMs: number };
-    const [firstDescriptor, secondDescriptor] = heapInput.tasks;
+  'minimum-heap': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'minimum-heap') { throw RuntimeError.create('unreachable: expected minimum-heap shape'); }
+    const { expected, input } = scenarioCase;
+    const [firstDescriptor, secondDescriptor] = input.scheduler.tasks;
     const first = materializeHeapTask(firstDescriptor);
     const second = materializeHeapTask(secondDescriptor);
     const heap = MinimumHeap.create();
@@ -184,24 +157,24 @@ const scenarioRunners = {
     applyHeapTaskMutation(first, firstDescriptor.mutation);
     applyHeapTaskMutation(second, secondDescriptor.mutation);
 
-    assert.strictEqual(heap.peekAtMs(), heapExpected.peekAtMs);
+    assert.strictEqual(heap.peekAtMs(), expected.peekAtMs);
     assert.deepStrictEqual(heap.removeMinimum(), {
-      atMs: heapExpected.removedMinimum.atMs,
+      atMs: expected.removedMinimum.atMs,
       fire: first.fire,
-      id: heapExpected.removedMinimum.id,
-      intervalMs: heapExpected.removedMinimum.intervalMs,
-      variant: heapExpected.removedMinimum.variant
+      id: expected.removedMinimum.id,
+      intervalMs: expected.removedMinimum.intervalMs,
+      variant: expected.removedMinimum.variant
     });
-    assert.strictEqual(heap.peekAtMs(), heapExpected.secondPeekAtMs);
+    assert.strictEqual(heap.peekAtMs(), expected.secondPeekAtMs);
     return;
   },
 
-  'minimum-heap-drain-order': ({ expected, input }): void => {
-    const heapInput = input as { tasks: HeapTaskDescriptor[] };
-    const heapExpected = expected as { drainedAtMs: number[]; drainedIds: string[]; empty: true };
+  'minimum-heap-drain-order': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'minimum-heap-drain-order') { throw RuntimeError.create('unreachable: expected minimum-heap-drain-order shape'); }
+    const { expected, input } = scenarioCase;
     const heap = MinimumHeap.create();
 
-    for (const task of heapInput.tasks) {
+    for (const task of input.scheduler.tasks) {
       heap.insert(materializeHeapTask(task));
     }
 
@@ -215,20 +188,19 @@ const scenarioRunners = {
       next = heap.removeMinimum();
     }
 
-    assert.deepStrictEqual(drainedAtMs, heapExpected.drainedAtMs);
-    assert.deepStrictEqual(drainedIds, heapExpected.drainedIds);
-    assert.strictEqual(heap.peekAtMs() === undefined, heapExpected.empty);
+    assert.deepStrictEqual(drainedAtMs, expected.drainedAtMs);
+    assert.deepStrictEqual(drainedIds, expected.drainedIds);
+    assert.strictEqual(heap.peekAtMs() === undefined, expected.empty);
     assert.strictEqual(heap.removeMinimum(), undefined);
     return;
   },
 
-  scheduleAt: ({ expected, input }): void => {
-    const scheduleAtInput = input as {
-      runs: Array<{ advanceMs: number; atMs: number; counterStartMs: number; expectedKey: string }>;
-    };
-    const scheduleAtExpected = expected as Record<string, { atMs: number; fired: boolean; idNonEmpty: boolean }>;
+  scheduleAt: (scenarioCase): void => {
+    if (scenarioCase.shape !== 'scheduleAt') { throw RuntimeError.create('unreachable: expected scheduleAt shape'); }
+    const { expected, input } = scenarioCase;
+    const scheduleAtExpected = expected;
 
-    for (const run of scheduleAtInput.runs) {
+    for (const run of input.scheduler.runs) {
       const sched = createScheduler(run.counterStartMs);
       let fired = false;
       const task = sched.scheduleAt(run.atMs, () => {
@@ -244,80 +216,55 @@ const scenarioRunners = {
     return;
   },
 
-  scheduleEvery: ({ expected, input }): void => {
-    const scheduleEveryInput = input as {
-      runs: Array<{ advanceMs: number; counterStartMs: number; expectedKey: string; intervalMs: number }>;
-    };
-    const scheduleEveryExpected = expected as Record<string, number>;
+  scheduleEvery: (scenarioCase): void => {
+    if (scenarioCase.shape !== 'scheduleEvery') { throw RuntimeError.create('unreachable: expected scheduleEvery shape'); }
+    const { expected, input } = scenarioCase;
 
-    for (const run of scheduleEveryInput.runs) {
+    for (const run of input.scheduler.runs) {
       const sched = createScheduler(run.counterStartMs);
       let fireCount = 0;
       sched.scheduleEvery(run.intervalMs, () => {
         fireCount++;
       });
       sched.advance(run.advanceMs);
-      assert.strictEqual(fireCount, scheduleEveryExpected[run.expectedKey]);
+      assert.strictEqual(fireCount, expected[run.expectedKey]);
     }
     return;
   },
 
-  'cancelAll-runAll': ({ batch, expected, input }): void => {
-    const cancelRunInput = input as {
-      cancelAll: { advanceMs: number; atMs: number; counterStartMs: number };
-      runAll: { counterStartMs: number; taskStepMs: number };
-    };
-    const cancelRunExpected = expected as { cancelAllFireCount: number; runAllFireCount: number };
-    const cancelSched = createScheduler(cancelRunInput.cancelAll.counterStartMs);
+  'cancelAll-runAll': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'cancelAll-runAll') { throw RuntimeError.create('unreachable: expected cancelAll-runAll shape'); }
+    const { expected, input } = scenarioCase;
+    const { batch, scheduler } = input;
+    const cancelSched = createScheduler(scheduler.cancelAll.counterStartMs);
     const rec = new FireRecord();
-    for (let index = 0; index < numberField(batch, 'cancelAllTaskCount'); index++) {
-      cancelSched.scheduleAt(cancelRunInput.cancelAll.atMs, () => {
+    for (let index = 0; index < batch.cancelAllTaskCount; index++) {
+      cancelSched.scheduleAt(scheduler.cancelAll.atMs, () => {
         rec.record();
       });
     }
     cancelSched.cancelAll();
-    cancelSched.advance(cancelRunInput.cancelAll.advanceMs);
-    assert.strictEqual(rec.count, cancelRunExpected.cancelAllFireCount);
+    cancelSched.advance(scheduler.cancelAll.advanceMs);
+    assert.strictEqual(rec.count, expected.cancelAllFireCount);
 
-    const runAllSched = createScheduler(cancelRunInput.runAll.counterStartMs);
+    const runAllSched = createScheduler(scheduler.runAll.counterStartMs);
     const runAllRec = new FireRecord();
-    for (let index = 0; index < numberField(batch, 'runAllTaskCount'); index++) {
-      runAllSched.scheduleAt((index + 1) * cancelRunInput.runAll.taskStepMs, () => {
+    for (let index = 0; index < batch.runAllTaskCount; index++) {
+      runAllSched.scheduleAt((index + 1) * scheduler.runAll.taskStepMs, () => {
         runAllRec.record();
       });
     }
     runAllSched.runAll();
-    assert.strictEqual(runAllRec.count, cancelRunExpected.runAllFireCount);
+    assert.strictEqual(runAllRec.count, expected.runAllFireCount);
     return;
   },
 
-  'edge-cases': ({ batch, expected, input }): void => {
-    const edgeInput = input as {
-      cancelledAdvanceMs: number;
-      cancelledAtMs: number;
-      cancelledIntervalFirstAdvanceMs: number;
-      cancelledIntervalSecondAdvanceMs: number;
-      counterStartMs: number;
-      emptyAdvanceMs: number;
-      intervalAdvanceMs: number;
-      intervalMs: number;
-      invalidIntervals: number[];
-      runUntilAtMs: number;
-      runUntilFirstAtMs: number;
-      runUntilSecondAtMs: number;
-      stepMs: number;
-    };
-    const edgeExpected = expected as {
-      cancelledFired: boolean;
-      cancelledIntervalCount: number;
-      cancelledTaskAtMs: number;
-      emptyRecordCount: number;
-      intervalCount: number;
-      invalidIntervalErrorCount: number;
-      runUntilFirstFired: boolean;
-      runUntilSecondFired: boolean;
-      skippedCount: number;
-    };
+  'edge-cases': (scenarioCase): void => {
+    if (scenarioCase.shape !== 'edge-cases') { throw RuntimeError.create('unreachable: expected edge-cases shape'); }
+    const { expected, input } = scenarioCase;
+    const { batch } = input;
+    const edgeInput = input.scheduler;
+    const edgeExpected = expected;
     const sched = createScheduler(edgeInput.counterStartMs);
     let fired = false;
     const task = sched.scheduleAt(edgeInput.cancelledAtMs, () => {
@@ -336,7 +283,7 @@ const scenarioRunners = {
     const skipSched = createScheduler(edgeInput.counterStartMs);
     const rec = new FireRecord();
     const tasks: { readonly cancel: () => void }[] = [];
-    for (let index = 0; index < numberField(batch, 'skipCount'); index++) {
+    for (let index = 0; index < batch.skipCount; index++) {
       const next = skipSched.scheduleAt((index + 1) * edgeInput.stepMs, () => {
         rec.record();
       });
@@ -395,26 +342,11 @@ const scenarioRunners = {
     return;
   },
 
-  'unhappy-path': async ({ expected, input }): Promise<void> => {
-    const unhappyInput = input as {
-      advanceCounterStartMs: number;
-      advanceDeltas: number[];
-      advanceFiredAtMs: number;
-      cancelledCounterStartMs: number;
-      cancelAtMs: number;
-      providerNowMs: number;
-      runAllCounterStartMs: number;
-      runAllRejectAtMs: number;
-      runUntilAdvanceMs: number;
-      runUntilCounterStartMs: number;
-      runUntilRejectAtMs: number;
-    };
-    const unhappyExpected = expected as {
-      advanceCounterNowMs: number;
-      advanceFired: boolean;
-      cancelledFired: boolean;
-      providerNowMs: number;
-    };
+  'unhappy-path': async (scenarioCase): Promise<void> => {
+    if (scenarioCase.shape !== 'unhappy-path') { throw RuntimeError.create('unreachable: expected unhappy-path shape'); }
+    const { expected, input } = scenarioCase;
+    const unhappyInput = input.scheduler;
+    const unhappyExpected = expected;
     const cancelledSched = createScheduler(unhappyInput.cancelledCounterStartMs);
     let fired = false;
     const task = cancelledSched.scheduleAt(unhappyInput.cancelAtMs, () => {
@@ -464,9 +396,10 @@ const scenarioRunners = {
     return;
   },
 
-  'virtual-fire-error-loop': async ({ expected, input }): Promise<void> => {
-    const fireErrorExpected = expected as { errorsPerScheduler: number; firedAfterIntervalFailure: number };
-    const fireErrorInput = input as { atMs: number; counterStartMs: number; intervalAdvanceDeltas: number[]; intervalMs: number };
+  'virtual-fire-error-loop': async (scenarioCase): Promise<void> => {
+    if (scenarioCase.shape !== 'virtual-fire-error-loop') { throw RuntimeError.create('unreachable: expected virtual-fire-error-loop shape'); }
+    const fireErrorExpected = scenarioCase.expected;
+    const fireErrorInput = scenarioCase.input.scheduler;
 
     class ErrorHookScheduler extends VirtualScheduler {
       public errors: Error[] = [];
@@ -524,7 +457,10 @@ const scenarioRunners = {
     return;
   },
 
-  'subclass-seams': async ({ batch, expected, input }): Promise<void> => {
+  'subclass-seams': async (scenarioCase): Promise<void> => {
+    if (scenarioCase.shape !== 'subclass-seams') { throw RuntimeError.create('unreachable: expected subclass-seams shape'); }
+    const { expected, input } = scenarioCase;
+    const { batch } = input;
     class AuditVirtualScheduler extends VirtualScheduler {
       public scheduleCount = 0;
       public fireCount = 0;
@@ -557,55 +493,11 @@ const scenarioRunners = {
       }
     }
 
-    type AuditActionName = 'advance' | 'schedule' | 'schedule-and-advance' | 'schedule-and-cancel' | 'schedule-and-cancel-all';
-    type AuditCountKey = 'advanceCount' | 'cancelAllCount' | 'cancelCount' | 'fireCount' | 'scheduleCount';
-    type AuditScenarioDescriptor = {
-      action: AuditActionName;
-      advanceMs?: number;
-      atMs?: number;
-      counterStartMs: number;
-      expectedKey: AuditCountKey;
-    };
-    const subclassInput = input as {
-      advanceMs: number;
-      auditScenarios: AuditScenarioDescriptor[];
-      cancelAfterFireAtMs: number;
-      cancelAtMs: number;
-      counterStartMs: number;
-      fireErrorAtMs: number;
-      fireRejectAtMs: number;
-      heapAtMs: number;
-      idleAdvanceMs: number;
-      idleAtMs: number;
-      idleSecondAtMs: number;
-      intervalMs: number;
-      rescheduleAdvanceMs: number;
-      scheduleAtMs: number;
-    };
-    const subclassExpected = expected as Record<AuditCountKey, number> & {
-      asyncErrorCount: number;
-      cancelAfterFireCancelCount: number;
-      cancelAfterFireFireCount: number;
-      cancelCheckerCancelled: boolean;
-      cancelRepeatCount: number;
-      cancelRepeatFireCount: number;
-      counterAccessorNowMs: number;
-      fireErrorCount: number;
-      heapCreatedCount: number;
-      heapFired: boolean;
-      idleCount: number;
-      idlePartialCount: number;
-      observedCauseMessage: string;
-      observedHookName: string;
-      recordedHookNames: string[];
-      rejectionEventsLength: number;
-      rescheduleAtMs: number[];
-      rescheduleCount: number;
-      throwingFireErrorCount: number;
-      throwingFireFired: boolean;
-      throwingRescheduleFireCount: number;
-      throwingScheduleIdNonEmpty: boolean;
-    };
+    const subclassInput = input.scheduler;
+    const subclassExpected = expected;
+    type AuditScenarioDescriptor = (typeof subclassInput)['auditScenarios'][number];
+    type AuditActionName = AuditScenarioDescriptor['action'];
+    type AuditCountKey = AuditScenarioDescriptor['expectedKey'];
     const auditActionDispatch = {
       advance: (sched, scenario): void => {
         sched.advance(requiredAuditNumber(scenario.advanceMs));
@@ -644,7 +536,7 @@ const scenarioRunners = {
     const repeatCounter = createCounter(subclassInput.counterStartMs);
     const repeatSched = new AuditVirtualScheduler(repeatCounter);
     const repeatTask = repeatSched.scheduleAt(subclassInput.cancelAtMs, () => { return; });
-    for (let index = 0; index < numberField(batch, 'repeatCancelCount'); index++) {
+    for (let index = 0; index < batch.repeatCancelCount; index++) {
       repeatTask.cancel();
     }
     repeatSched.advance(subclassInput.advanceMs);
@@ -655,7 +547,7 @@ const scenarioRunners = {
     const cancelAfterFireSched = new AuditVirtualScheduler(cancelAfterFireCounter);
     const cancelAfterFireTask = cancelAfterFireSched.scheduleAt(subclassInput.cancelAfterFireAtMs, () => { return; });
     cancelAfterFireSched.advance(subclassInput.advanceMs);
-    for (let index = 0; index < numberField(batch, 'repeatCancelCount'); index++) {
+    for (let index = 0; index < batch.repeatCancelCount; index++) {
       cancelAfterFireTask.cancel();
     }
     assert.strictEqual(cancelAfterFireSched.fireCount, subclassExpected.cancelAfterFireFireCount);
@@ -937,29 +829,14 @@ const scenarioRunners = {
     }
     return;
   }
-} satisfies Record<string, ScenarioRunner>;
-
-type ScenarioShape = keyof typeof scenarioRunners;
-
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.hasOwn(scenarioRunners, shape);
-}
-
-function scenarioRunner(shape: string): ScenarioRunner {
-  assert.ok(isScenarioShape(shape), `Unknown VirtualScheduler scenario shape: ${shape}`);
-  return scenarioRunners[shape];
-}
+};
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const input = scenarioCase.input.scheduler;
-  const batch = scenarioCase.input.batch ?? {};
-  const expected = scenarioCase.expected ?? {};
-
-  await scenarioRunner(scenarioCase.shape)({ batch, expected, input });
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('VirtualScheduler', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

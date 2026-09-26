@@ -1,20 +1,18 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
+import { ExamplesSmokeScenarioCaseEntity } from './entities/ExamplesSmokeScenarioCaseEntity.js';
 import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
 const currentDir = fileURLToPath(new URL('.', import.meta.url));
 const examplesRoot = resolve(currentDir, '../../examples');
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { importsWithoutThrow: true };
-      input: { entrypoint: string };
-      name: string;
-    };
+type ScenarioCase = ExamplesSmokeScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ExamplesSmokeScenarioCaseEntity.Schema, ExamplesSmokeScenarioCaseEntity.Node);
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   assert.equal(scenarioCase.expected.importsWithoutThrow, true);
@@ -24,9 +22,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('examples smoke', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
-      await runCase(scenario as ScenarioCase);
+      await runCase(scenario);
     });
   }
 });

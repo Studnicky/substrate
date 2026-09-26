@@ -1,8 +1,7 @@
 import { Predicates } from '@studnicky/types/browser';
 
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
-import type { DynamicScopeFrameInterface } from './interfaces/DynamicScopeFrameInterface.js';
+import type { CompiledNodeInterface, DynamicScopeFrameInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { ReferenceTargetResolverFunctionInterface } from './interfaces/ReferenceTargetResolverFunctionInterface.js';
 import type { ResolvedUriReferenceInterface } from './interfaces/ResolvedUriReferenceInterface.js';
 import type { SchemaCompileContextInterface } from './interfaces/SchemaCompileContextInterface.js';

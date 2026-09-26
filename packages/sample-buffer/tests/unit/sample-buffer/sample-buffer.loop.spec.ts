@@ -1,102 +1,15 @@
+import { ScenarioFileCompiler } from "@studnicky/scenario-kit/node";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { SampleBuffer } from "../../../src/sample-buffer/SampleBuffer.js";
 import { SampleBufferError } from "../../../src/errors/SampleBufferError.js";
+import { SampleBufferScenarioCaseEntity } from "../entities/SampleBufferScenarioCaseEntity.js";
 import scenarioGroups from "./sample-buffer.scenarios.json" with { type: "json" };
 
-type SampleBufferConfig = { capacity: number; extra?: boolean };
-
-type ScenarioDescriptor<K extends string, Input, Expected> = {
-  description: string;
-  expected: Expected;
-  input: Input;
-  shape: K;
-  name: string;
-};
-
-type ScenarioCaseMap = {
-  "capacity-error": ScenarioDescriptor<
-    "capacity-error",
-    { sampleBuffer: SampleBufferConfig },
-    { errorName: string }
-  >;
-  "clear-resets": ScenarioDescriptor<
-    "clear-resets",
-    { pct: number; pushes: number[]; sampleBuffer: SampleBufferConfig },
-    { full: boolean; length: number; percentile: number | null }
-  >;
-  construction: ScenarioDescriptor<
-    "construction",
-    { sampleBuffer: SampleBufferConfig },
-    { full: boolean; length: number }
-  >;
-  "invalid-multi-error": ScenarioDescriptor<
-    "invalid-multi-error",
-    { sampleBuffer: SampleBufferConfig },
-    { errorName: string; messageIncludes: string[] }
-  >;
-  "is-full": ScenarioDescriptor<
-    "is-full",
-    { pushes: number[]; sampleBuffer: SampleBufferConfig },
-    { full: boolean }
-  >;
-  "maintains-length": ScenarioDescriptor<
-    "maintains-length",
-    { pushes: number[]; sampleBuffer: SampleBufferConfig },
-    { isFull: boolean; length: number }
-  >;
-  "overwrites-oldest": ScenarioDescriptor<
-    "overwrites-oldest",
-    { pct: number; pushes: number[]; sampleBuffer: SampleBufferConfig },
-    { isFull: boolean; length: number; percentile: number }
-  >;
-  percentile: ScenarioDescriptor<
-    "percentile",
-    { pct: number; sampleBuffer: SampleBufferConfig; samples: number[] },
-    { percentile: number | null }
-  >;
-  "percentile-batch": ScenarioDescriptor<
-    "percentile-batch",
-    {
-      batch: { sampleCount: number };
-      pct: number;
-      sampleBuffer: SampleBufferConfig;
-      startValue: number;
-    },
-    { percentile: number }
-  >;
-  "push-lengths": ScenarioDescriptor<
-    "push-lengths",
-    { pushes: number[]; sampleBuffer: SampleBufferConfig },
-    { lengths: number[] }
-  >;
-  "recalculate-after-push": ScenarioDescriptor<
-    "recalculate-after-push",
-    {
-      pct: number;
-      pushAfter: number;
-      pushes: number[];
-      sampleBuffer: SampleBufferConfig;
-    },
-    { percentileAfter: number; percentileBefore: number }
-  >;
-  "reuse-after-clear": ScenarioDescriptor<
-    "reuse-after-clear",
-    {
-      firstPushes: number[];
-      pct: number;
-      sampleBuffer: SampleBufferConfig;
-      secondPushes: number[];
-    },
-    { length: number; percentile: number }
-  >;
-};
-
-type ScenarioShape = keyof ScenarioCaseMap;
-type ScenarioCase = ScenarioCaseMap[ScenarioShape];
+type ScenarioShape = SampleBufferScenarioCaseEntity.Type["shape"];
 type RunnerMap = {
-  [K in ScenarioShape]: (scenarioCase: ScenarioCaseMap[K]) => void;
+  [K in ScenarioShape]: (scenarioCase: SampleBufferScenarioCaseEntity.Type & { shape: K }) => void;
 };
 
 const runnerMap: RunnerMap = {
@@ -223,14 +136,12 @@ const runnerMap: RunnerMap = {
 
 function dispatchCase<K extends ScenarioShape>(
   shape: K,
-  scenarioCase: ScenarioCaseMap[K],
+  scenarioCase: SampleBufferScenarioCaseEntity.Type & { shape: K },
 ): void {
   runnerMap[shape](scenarioCase);
 }
 
-function runCase<K extends ScenarioShape>(
-  scenarioCase: ScenarioCaseMap[K],
-): void {
+function runCase(scenarioCase: SampleBufferScenarioCaseEntity.Type): void {
   dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
@@ -240,10 +151,12 @@ function pushValues(buffer: SampleBuffer, values: readonly number[]): void {
   }
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(SampleBufferScenarioCaseEntity.Schema, SampleBufferScenarioCaseEntity.Node);
+
 void describe("SampleBuffer", () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, () => {
+      runCase(scenarioCase);
     });
   }
 });

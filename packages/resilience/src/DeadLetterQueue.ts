@@ -35,11 +35,16 @@ export class DeadLetterQueue<T> {
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
-  #pendingDequeueItem: T | undefined;
+  /** Boxed so a legitimately-`undefined` `T` value is distinguishable from "no pending item". */
+  #pendingDequeueItem: { readonly 'item': T } | undefined;
 
   /** Built once and reused across `drain()` iterations to avoid rebuilding a closure on every loop pass. */
   readonly #onDequeueHook = (): void => {
-    this.onDequeue(this.#pendingDequeueItem as T);
+    if (this.#pendingDequeueItem !== undefined) {
+      this.onDequeue(this.#pendingDequeueItem.item);
+      return;
+    }
+    throw RuntimeError.create('DeadLetterQueue: dequeue hook fired without a pending item');
   };
 
   /** Built once and reused across `drain()` iterations; threads `resolve` through to `registerDrainWaiter`. */
@@ -117,7 +122,7 @@ export class DeadLetterQueue<T> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
-        this.#pendingDequeueItem = entry.item;
+        this.#pendingDequeueItem = { 'item': entry.item };
         this.hooks.invoke('onDequeue', this.#onDequeueHook);
         yield entry;
         continue;
