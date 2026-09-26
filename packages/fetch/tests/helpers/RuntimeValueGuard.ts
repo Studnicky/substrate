@@ -9,7 +9,7 @@ import { Predicates } from '@studnicky/types/node';
  */
 export function createRuntimeValueGuard<TTag extends string>(tagShapes: readonly TTag[]): { isRuntimeTag: (value: unknown) => value is { shape: TTag }; isRuntimeValue: (value: unknown) => boolean } {
   function isRuntimeTag(value: unknown): value is { shape: TTag } {
-    return Predicates.isObject(value) && typeof value.shape === 'string' && (tagShapes as readonly string[]).includes(value.shape);
+    return Predicates.isObject(value) && typeof value.shape === 'string' && tagShapes.some((tag) => { return tag === value.shape; });
   }
 
   function isRuntimeValue(value: unknown): boolean {
