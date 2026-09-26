@@ -1,21 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
 import { MkdirOptionsEntity } from '../../../src/entities/index.js';
+import { EntityContractsScenarioCaseEntity } from './entities/EntityContractsScenarioCaseEntity.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { validationResults: boolean[] };
-      input: { validations: { expected: boolean; value: Record<string, unknown> }[] };
-      shape: 'non-boolean-recursive-values' | 'recursive-directory-options';
-      name: string;
-    };
-
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase(scenarioCase: EntityContractsScenarioCaseEntity.Type): void {
   const results = scenarioCase.input.validations.map((validation) => {
     const result = MkdirOptionsEntity.validate(validation.value);
     assert.equal(result, validation.expected);
@@ -25,10 +18,10 @@ function runCase(scenarioCase: ScenarioCase): void {
   assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
 }
 
-const scenarios = scenarioGroups.cases as ScenarioCase[];
+const fileIntake = ScenarioFileCompiler.compileIntake(EntityContractsScenarioCaseEntity.Schema, EntityContractsScenarioCaseEntity.Node);
 
 void describe('MkdirOptionsEntity', () => {
-  for (const scenario of scenarios) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
