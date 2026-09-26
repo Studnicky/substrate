@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -7,104 +8,23 @@ import {
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import { StateMachineHooksScenarioCaseEntity } from './entities/StateMachineHooksScenarioCaseEntity.js';
 import scenarioGroups from './StateMachineHooks.scenarios.json' with { type: 'json' };
 
-type TrafficState =
-  | { readonly variant: 'red' }
-  | { readonly variant: 'green' }
-  | { readonly variant: 'amber' };
-
+type TrafficState = { readonly variant: 'red' | 'green' | 'amber' };
 type TrafficEvent = { readonly type: 'advance' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        transition: { event: 'advance'; from: TrafficState['variant']; to: TrafficState['variant'] };
-      };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'transition-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { variant: 'green' };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'enter-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { variant: 'red' };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'exit-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { order: Array<'exit' | 'transition' | 'enter'> };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'hook-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookCount: 0 };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'unchanged-no-hooks';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        enters: Array<{ variant: TrafficState['variant'] }>;
-        exits: Array<{ variant: TrafficState['variant'] }>;
-        transitions: Array<{ event: 'advance'; from: TrafficState['variant']; to: TrafficState['variant'] }>;
-      };
-      input: { event: TrafficEvent; states: TrafficState[] };
-      shape: 'multiple-transitions';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        event: 'advance';
-        hookCount: 0;
-        reasonIncludes: string;
-        state: 'red';
-      };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'transition-rejected-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { rejectionCount: 0 };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'successful-transition-no-rejection';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookCount: 1; state: 'green'; toEffects: [] };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'throwing-transition-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookCount: 1 };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'throwing-rejection-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookCount: 1; rejectionEvents: 0; state: 'green' };
-      input: { event: TrafficEvent; state: TrafficState };
-      shape: 'async-rejection';
-      name: string;
-    };
+type ScenarioCase = StateMachineHooksScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(StateMachineHooksScenarioCaseEntity.Schema, StateMachineHooksScenarioCaseEntity.Node);
+
+function requireState(scenarioCase: ScenarioCase): TrafficState {
+  const { state } = scenarioCase.input;
+  if (state === undefined) {
+    throw RuntimeError.create('Expected a scenario state');
+  }
+  return state;
+}
 
 class TrafficMachine extends StateMachine<TrafficState, TrafficEvent> {
   public constructor() { super(); }
@@ -163,14 +83,7 @@ class ObservedThrowingMachine extends ThrowingMachine {
   }
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
-
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
-
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'async-rejection': async (scenarioCase) => {
     class AsyncRejectingEnterStateMachine extends TrafficMachine {
       readonly failureDetails = { labels: ['initial'] };
@@ -192,7 +105,7 @@ const runnerMap: RunnerMap = {
 
     try {
       const machine = new AsyncRejectingEnterStateMachine();
-      const step = machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+      const step = machine.transition(requireState(scenarioCase), scenarioCase.input.event);
       assert.deepEqual(step.state, { variant: scenarioCase.expected.state });
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
@@ -204,13 +117,13 @@ const runnerMap: RunnerMap = {
   },
   'enter-hook': (scenarioCase) => {
     const machine = new ObservedTrafficMachine();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.equal(machine.enters.length, 1);
     assert.equal(machine.enters[0]!.args.variant, scenarioCase.expected.variant);
   },
   'exit-hook': (scenarioCase) => {
     const machine = new ObservedTrafficMachine();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.equal(machine.exits.length, 1);
     assert.equal(machine.exits[0]!.args.variant, scenarioCase.expected.variant);
   },
@@ -224,12 +137,12 @@ const runnerMap: RunnerMap = {
     }
 
     const machine = new OrderedMachine();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.deepEqual(order, scenarioCase.expected.order);
   },
   'multiple-transitions': (scenarioCase) => {
     const machine = new ObservedTrafficMachine();
-    for (const state of scenarioCase.input.states) {
+    for (const state of scenarioCase.input.states ?? []) {
       machine.transition(state, scenarioCase.input.event);
     }
 
@@ -242,7 +155,7 @@ const runnerMap: RunnerMap = {
   },
   'successful-transition-no-rejection': (scenarioCase) => {
     const machine = new ObservedTrafficMachine();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.equal(machine.rejections.length, scenarioCase.expected.rejectionCount);
   },
   'throwing-rejection-hook': (scenarioCase) => {
@@ -253,7 +166,7 @@ const runnerMap: RunnerMap = {
     }
 
     const machine = new ThrowingRejectedHookMachine();
-    assert.throws(() => machine.transition(scenarioCase.input.state, scenarioCase.input.event), ReducerThrewError);
+    assert.throws(() => machine.transition(requireState(scenarioCase), scenarioCase.input.event), ReducerThrewError);
     assert.equal(machine.hookErrorCount, scenarioCase.expected.hookCount);
   },
   'throwing-transition-hook': (scenarioCase) => {
@@ -264,14 +177,14 @@ const runnerMap: RunnerMap = {
     }
 
     const machine = new ThrowingTransitionHookMachine();
-    const step = machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    const step = machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.deepEqual(step.state, { variant: scenarioCase.expected.state });
     assert.deepEqual(step.effects, scenarioCase.expected.toEffects);
     assert.equal(machine.hookErrorCount, scenarioCase.expected.hookCount);
   },
   'transition-hook': (scenarioCase) => {
     const machine = new ObservedTrafficMachine();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.equal(machine.transitions.length, 1);
     assert.deepEqual(
       {
@@ -284,11 +197,11 @@ const runnerMap: RunnerMap = {
   },
   'transition-rejected-hook': (scenarioCase) => {
     const machine = new ObservedThrowingMachine();
-    assert.throws(() => machine.transition(scenarioCase.input.state, scenarioCase.input.event), ReducerThrewError);
+    assert.throws(() => machine.transition(requireState(scenarioCase), scenarioCase.input.event), ReducerThrewError);
     assert.equal(machine.rejections.length, 1);
     assert.equal(machine.rejections[0]!.args.state, scenarioCase.expected.state);
     assert.equal(machine.rejections[0]!.args.event, scenarioCase.expected.event);
-    assert.ok(machine.rejections[0]!.args.reason.includes(scenarioCase.expected.reasonIncludes));
+    assert.ok(machine.rejections[0]!.args.reason.includes(String(scenarioCase.expected.reasonIncludes)));
     assert.equal(machine.hookErrorCount, scenarioCase.expected.hookCount);
   },
   'unchanged-no-hooks': (scenarioCase) => {
@@ -309,17 +222,17 @@ const runnerMap: RunnerMap = {
     }
 
     const machine = new ObservedSelfLoop();
-    machine.transition(scenarioCase.input.state, scenarioCase.input.event);
+    machine.transition(requireState(scenarioCase), scenarioCase.input.event);
     assert.equal(machine.count, scenarioCase.expected.hookCount);
   }
 };
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('StateMachine hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

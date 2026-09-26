@@ -229,7 +229,7 @@ export class Predicates {
   public static readonly areObjectsReferenceEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areObjectsReferenceEqual;
 
   /** Reference equality using `Object.is` semantics — correct for `NaN` and `-0`/`+0`. */
-  public static readonly areReferenceEqual: (value: unknown, filterValue: unknown) => boolean = RuntimeValuePredicates.areReferenceEqual;
+  public static readonly areReferenceEqual: (value: unknown, filterValue: unknown) => boolean = Object.is;
 
   /** Case-sensitive or case-insensitive string comparison via a supplied `operation`. */
   public static readonly areStringsMatching: (

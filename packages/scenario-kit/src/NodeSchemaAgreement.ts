@@ -6,10 +6,13 @@ import { isDeepStrictEqual } from 'node:util';
 
 /** Proves a hand-authored `Schema` and its parallel `Node` describe the same shape. `Node`'s nested entries are `{schema: {...}}` wrapper objects, so this flattens them before comparing. */
 export class NodeSchemaAgreement {
+  private static readonly SCHEMA_LIST_KEYWORDS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
+
   static assertMatches(schema: Record<string, unknown>, node: SchemaNodeInterface<unknown, unknown>): void {
     const nodeSchema = NodeSchemaAgreement.schemaOf(node);
     const flattenedNode = NodeSchemaAgreement.flattenSchema(nodeSchema);
-    if (!isDeepStrictEqual(schema, flattenedNode)) {
+    const flattenedSchema = NodeSchemaAgreement.flattenSchema(schema);
+    if (!isDeepStrictEqual(flattenedSchema, flattenedNode)) {
       const error = RuntimeError.create(
         `Schema and Node disagree.\nSchema: ${JSON.stringify(schema)}\nNode (flattened): ${JSON.stringify(flattenedNode)}`
       );
@@ -31,8 +34,13 @@ export class NodeSchemaAgreement {
       return value;
     }
     if (Predicates.isObject(value) && Predicates.isObject(value.schema)) {
-      const result = NodeSchemaAgreement.flattenSchema(value.schema);
-      return result;
+      const wrapped = NodeSchemaAgreement.flattenSchema(value.schema);
+      return wrapped;
+    }
+    /** A plain nested schema carries no wrapper, so it still needs normalizing at its own level. */
+    if (Predicates.isObject(value)) {
+      const plain = NodeSchemaAgreement.flattenSchema(value);
+      return plain;
     }
     return value;
   }
@@ -64,8 +72,18 @@ export class NodeSchemaAgreement {
     return result;
   }
 
+  /** An empty `required` list and an absent `required` key validate identically, so neither side's choice is a disagreement. */
+  private static dropEmptyRequired(schema: Record<string, unknown>): void {
+    const required = schema.required;
+    if (Array.isArray(required) && required.length === 0) {
+      Reflect.deleteProperty(schema, 'required');
+    }
+  }
+
   private static flattenSchema(schema: Record<string, unknown>): Record<string, unknown> {
     const flattened: Record<string, unknown> = { ...schema };
+
+    NodeSchemaAgreement.dropEmptyRequired(flattened);
 
     const properties = schema.properties;
     if (Predicates.isObject(properties)) {
@@ -82,9 +100,13 @@ export class NodeSchemaAgreement {
       JsonObject.write(flattened, 'items', NodeSchemaAgreement.flattenChild(items));
     }
 
-    const oneOf = schema.oneOf;
-    if (Array.isArray(oneOf) && oneOf.every(Predicates.isObject)) {
-      JsonObject.write(flattened, 'oneOf', NodeSchemaAgreement.flattenBranches(oneOf));
+    const keywordCount = NodeSchemaAgreement.SCHEMA_LIST_KEYWORDS.length;
+    for (let index = 0; index < keywordCount; index += 1) {
+      const keyword = NodeSchemaAgreement.SCHEMA_LIST_KEYWORDS[index]!;
+      const branches: unknown = Reflect.get(schema, keyword);
+      if (Array.isArray(branches) && branches.every(Predicates.isObject)) {
+        JsonObject.write(flattened, keyword, NodeSchemaAgreement.flattenBranches(branches));
+      }
     }
 
     return flattened;

@@ -1,8 +1,7 @@
 import type { EntityValidateFunctionInterface } from '../interfaces/EntityValidateFunctionInterface.js';
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
 import type { SchemaCompilerInterface } from '../interfaces/SchemaCompilerInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
-import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
+import type { CompiledNodeInterface, ValidationExecutionContextInterface } from './interfaces/CompilerExecutionStateInterface.js';
 
 import { SchemaId } from '../SchemaId.js';
 import { KnownMetaschemaRegistry } from './KnownMetaschemaRegistry.js';

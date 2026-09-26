@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import {
@@ -12,100 +13,12 @@ import type { SchedulerProviderInterface } from '../../src/interfaces/SchedulerP
 import { Delay } from '../../src/delay/Delay.js';
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
+import { DelayScenarioCaseEntity } from './entities/DelayScenarioCaseEntity.js';
 import scenarioGroups from './Delay.scenarios.json' with { type: 'json' };
 
-interface VirtualSchedulerInputInterface {
-  counter: {
-    startMs: number;
-  };
-}
+const fileIntake = ScenarioFileCompiler.compileIntake(DelayScenarioCaseEntity.Schema, DelayScenarioCaseEntity.Node);
 
-interface DelayInputInterface {
-  abortMs?: number;
-  reasonMessage?: string;
-  scheduler?: VirtualSchedulerInputInterface;
-  schedulerErrorMessage?: string;
-  sleepMs: number;
-}
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { elapsedMsAtLeast: number };
-      input: DelayInputInterface;
-      shape: 'real-time-sleep';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resolved: true; virtualSleepMs: number };
-      input: DelayInputInterface;
-      shape: 'virtual-sleep';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { cancelCount: 1; reasonMessage: string };
-      input: DelayInputInterface;
-      shape: 'real-time-abort';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resolved: true; sleepMs: 0 };
-      input: DelayInputInterface;
-      shape: 'virtual-zero';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resolved: true; sleepMs: 0 };
-      input: DelayInputInterface;
-      shape: 'default-scheduler';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { scheduleCount: 0 };
-      input: DelayInputInterface;
-      shape: 'pre-aborted';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { cancelCount: 0; fireCount: 0; scheduleCount: 0 };
-      input: DelayInputInterface;
-      shape: 'abort-during-clock';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { cancelCount: 1; fireCount: 0; scheduleCount: 1 };
-      input: DelayInputInterface;
-      shape: 'abort-during-schedule';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { cancelCount: 1; fireCount: 0 };
-      input: DelayInputInterface;
-      shape: 'pending-abort';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { cancelCount: 0; fireCount: 1 };
-      input: DelayInputInterface;
-      shape: 'late-abort';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessage: string; listenerCountUnchanged: true };
-      input: DelayInputInterface;
-      shape: 'schedule-failure';
-      name: string;
-    };
+type ScenarioCase = DelayScenarioCaseEntity.Type;
 
 const TRACE_DELAY_TESTS = process.env.SUBSTRATE_TEST_TRACE === '1';
 
@@ -148,22 +61,15 @@ class ThrowingScheduler implements SchedulerProviderInterface {
   }
 }
 
-function virtualSchedulerInput(input: DelayInputInterface): VirtualSchedulerInputInterface {
-  assert.ok(input.scheduler !== undefined);
-  return input.scheduler;
+function createVirtualTimeCounter(input: { scheduler: { counter: { startMs: number } } }): VirtualTimeCounter {
+  return VirtualTimeCounter.create({ 'startMs': input.scheduler.counter.startMs });
 }
 
-function createVirtualTimeCounter(input: DelayInputInterface): VirtualTimeCounter {
-  return VirtualTimeCounter.create({ 'startMs': virtualSchedulerInput(input).counter.startMs });
-}
-
-function createReason(input: DelayInputInterface): Error {
-  assert.ok(input.reasonMessage !== undefined);
+function createReason(input: { reasonMessage: string }): Error {
   return RuntimeError.create(input.reasonMessage);
 }
 
-function createSchedulerError(input: DelayInputInterface): Error {
-  assert.ok(input.schedulerErrorMessage !== undefined);
+function createSchedulerError(input: { schedulerErrorMessage: string }): Error {
   return RuntimeError.create(input.schedulerErrorMessage);
 }
 
@@ -324,7 +230,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Delay', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

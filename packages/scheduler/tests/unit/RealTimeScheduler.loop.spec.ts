@@ -1,4 +1,5 @@
 import { RuntimeError, HookInvoker } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 /**
  * Unit tests for `RealTimeScheduler`.
  */
@@ -8,28 +9,20 @@ import {
   describe, it, mock
 } from 'node:test';
 
-
-
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
+import { RealTimeSchedulerScenarioCaseEntity } from './entities/RealTimeSchedulerScenarioCaseEntity.js';
 import scenarioGroups from './RealTimeScheduler.scenarios.json' with { type: 'json' };
 
-type ScenarioInput = {
-  batch?: Record<string, boolean | number | string | object | null>;
-  scheduler: Record<string, boolean | number | string | object | null>;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(RealTimeSchedulerScenarioCaseEntity.Schema, RealTimeSchedulerScenarioCaseEntity.Node);
+
+type ScenarioCase = RealTimeSchedulerScenarioCaseEntity.Type;
+type OpenBag = ScenarioCase['expected'];
 type ScenarioRunnerContext = {
-  batch: Record<string, boolean | number | string | object | null>;
-  expected: Record<string, boolean | number | string | object | null>;
-  input: Record<string, boolean | number | string | object | null>;
+  batch: OpenBag;
+  expected: OpenBag;
+  input: OpenBag;
 };
 type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, boolean | number | string | object | null>;
-  input: ScenarioInput;
-  shape: string;
-  name: string;
-};
 
 class AuditScheduler extends RealTimeScheduler {
   public scheduleCount = 0;
@@ -56,7 +49,7 @@ class AuditScheduler extends RealTimeScheduler {
   }
 }
 
-function numberField(input: Record<string, boolean | number | string | object | null>, key: string): number {
+function numberField(input: OpenBag, key: string): number {
   const value = input[key];
   if (typeof value !== 'number') {
     throw RuntimeError.create(`Expected numeric field '${key}'`);
@@ -64,7 +57,7 @@ function numberField(input: Record<string, boolean | number | string | object | 
   return value;
 }
 
-function futureAtMs(input: Record<string, boolean | number | string | object | null>): number {
+function futureAtMs(input: OpenBag): number {
   return Date.now() + numberField(input, 'delayMs');
 }
 
@@ -579,7 +572,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
 }
 
 void describe('RealTimeScheduler', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

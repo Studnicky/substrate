@@ -50,6 +50,11 @@ export const explicitReturnBinding: Rule.RuleModule = {
       if (!ReturnArgumentClassification.requiresBinding(argument)) {
         return;
       }
+      // `v8/switch-statements` forbids wrapping a case body in a block to add a
+      // binding, so a direct SwitchCase return cannot satisfy both rules.
+      if (AstHelpers.getParent(node)?.type === 'SwitchCase') {
+        return;
+      }
 
       context.report({
         'messageId': 'unbound',

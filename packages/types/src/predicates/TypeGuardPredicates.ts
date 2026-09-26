@@ -365,9 +365,9 @@ export class TypeGuardPredicates {
     return result;
   }
 
-  /** Checks whether a typed array has length 0. */
+  /** Checks whether a typed array or `DataView` spans zero bytes. */
   public static isEmptyTypedArray(value: unknown): boolean {
-    const result = TypeGuardPredicates.isArrayBufferView(value) && (value as Uint8Array).length === 0;
+    const result = TypeGuardPredicates.isArrayBufferView(value) && value.byteLength === 0;
     return result;
   }
 
@@ -537,7 +537,7 @@ export class TypeGuardPredicates {
       || (value !== null
        && value !== undefined
        && typeof value === 'object'
-       && typeof (value as Record<string, unknown>).then === 'function');
+       && typeof Reflect.get(value, 'then') === 'function');
     return result;
   }
 

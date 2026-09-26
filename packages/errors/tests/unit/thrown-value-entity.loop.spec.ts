@@ -16,8 +16,7 @@ import {
   PROBLEM_TYPE_THROWN_STRING
 } from '../../src/constants/ProblemConstants.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
-import { ThrownValueProjection } from '../../src/validation/thrownValueProjection.js';
+import { ThrownValueEntity, ThrownValueProjection } from '../../src/entities/ThrownValueEntity.js';
 void describe('ThrownValueEntity', () => {
   void it('is total: never throws for cyclic objects, functions, symbols, and caught-value shapes', () => {
     const cyclic: Record<string, unknown> = {};

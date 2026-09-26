@@ -1,37 +1,17 @@
 import { RuntimeError, HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-
-
 import { Mutex } from '../../../src/mutex/index.js';
+import { ReentrancyScenarioCaseEntity } from './entities/ReentrancyScenarioCaseEntity.js';
 import scenarioGroups from './reentrancy.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; hookName: 'beforeAcquire'; lockedAfterOuterRelease: boolean };
-      input: { key: string };
-      shape: 'beforeAcquire-reentrant-same-key';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; lockedAfterFirstRelease: boolean; lockedAfterSecondRelease: boolean; lockedAfterThirdRelease: boolean };
-      input: { batch: { pendingCount: number }; key: string };
-      shape: 'onRelease-reentrant-same-key';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; keys: string[] };
-      input: { keys: string[] };
-      shape: 'different-keys-unaffected';
-      name: string;
-    };
-
+type ScenarioCase = ReentrancyScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape: Shape }>;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ReentrancyScenarioCaseEntity.Schema, ReentrancyScenarioCaseEntity.Node);
 
 function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
   const item = items[index];
@@ -153,7 +133,7 @@ async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseOf
 }
 
 void describe('Mutex reentrancy', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

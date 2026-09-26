@@ -138,6 +138,13 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/boundary-kit:
     dependencies:
@@ -263,6 +270,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/concurrency:
     dependencies:
@@ -291,6 +301,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
@@ -341,6 +354,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/drilldown:
     dependencies:
@@ -401,6 +417,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/eslint-config:
     dependencies:
@@ -624,6 +644,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/health-registry:
     dependencies:
@@ -859,6 +882,9 @@ importers:
       '@studnicky/concurrency':
         specifier: workspace:*
         version: link:../concurrency
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/paginator:
     dependencies:
@@ -1042,6 +1068,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/scenario-kit:
     dependencies:
@@ -1083,6 +1113,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -1290,6 +1323,13 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/virtual-fs:
     dependencies:
@@ -1371,6 +1411,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
 packages:
 

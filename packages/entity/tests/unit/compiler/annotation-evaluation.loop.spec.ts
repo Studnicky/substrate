@@ -65,7 +65,7 @@ void describe('annotation evaluation — if/then/else credit', () => {
     const schema: object = JSON.parse(
       '{"type":"object","if":{"properties":{"foo":{"const":"then"}},"required":["foo"]},'
       + '"else":{"properties":{"baz":{"type":"string"}},"required":["baz"]},"unevaluatedProperties":false}'
-    ) as object;
+    );
     const validate = compile(schema);
     assert.equal(validate({ 'baz': 'z' }), true);
   });
@@ -85,7 +85,7 @@ void describe('annotation evaluation — if/then/else credit', () => {
       '{"type":"object","if":{"properties":{"foo":{"const":"then"}},"required":["foo"]},'
       + '"then":{"properties":{"bar":{"type":"string"}},"required":["bar"]},'
       + '"else":{"properties":{"baz":{"type":"string"}},"required":["baz"]},"unevaluatedProperties":false}'
-    ) as object;
+    );
     const validate = compile(schema);
     assert.equal(validate({ 'bar': 'y', 'foo': 'then' }), true);
     assert.equal(validate({ 'baz': 'z', 'foo': 'then' }), false);

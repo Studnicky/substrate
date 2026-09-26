@@ -9,7 +9,7 @@ export namespace BusQueueAbortedStateEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'variant': { 'const': 'aborted', 'type': 'string' }
+      'variant': { 'const': 'aborted' }
     },
     'required': ['variant'],
     'type': 'object'

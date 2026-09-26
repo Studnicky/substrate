@@ -1,4 +1,4 @@
-import type { CompiledNodeInterface } from './CompiledNodeInterface.js';
+import type { CompiledNodeInterface } from './CompilerExecutionStateInterface.js';
 import type { PatternApplicatorInterface } from './PatternApplicatorInterface.js';
 
 /** The compiled `properties`/`patternProperties`/`additionalProperties`/`propertyNames` applicators for one object schema. */
