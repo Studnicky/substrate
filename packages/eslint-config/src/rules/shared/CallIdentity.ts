@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
-import type ts from 'typescript';
 
 import { Predicates } from '@studnicky/types/browser';
+import { type Declaration, isCallLikeExpression, type Node, type TypeChecker } from 'typescript';
 
 import { AstHelpers } from './astHelpers.js';
 
@@ -82,7 +82,7 @@ class DeclarationNames {
    * parent has it directly; a `declare namespace X { function f() {} }` member's
    * parent is the namespace body, so the name sits one level further up.
    */
-  public static ownerNameOf(declaration: ts.Declaration): string | undefined {
+  public static ownerNameOf(declaration: Declaration): string | undefined {
     const direct = DeclarationNames.of(declaration.parent);
 
     if (direct !== undefined) {
@@ -99,7 +99,7 @@ class DeclarationNames {
    * `lib.dom.d.ts`, …) rather than from project or dependency source. This is the
    * check that separates a genuine built-in from a same-named user method.
    */
-  public static isFromStandardLibrary(declaration: ts.Declaration): boolean {
+  public static isFromStandardLibrary(declaration: Declaration): boolean {
     const fileName = declaration.getSourceFile().fileName;
     const basename = fileName.slice(fileName.lastIndexOf('/') + 1);
 
@@ -126,12 +126,12 @@ export class CallIdentity {
 
     const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
 
-    if (tsNode === undefined) {
+    if (tsNode === undefined || !isCallLikeExpression(tsNode)) {
       return false;
     }
 
     const checker = servicesUnknown.program.getTypeChecker();
-    const signature = checker.getResolvedSignature(tsNode as ts.CallLikeExpression);
+    const signature = checker.getResolvedSignature(tsNode);
 
     const declaration = signature?.declaration;
 
@@ -196,7 +196,7 @@ export class CallIdentity {
     return result;
   }
 
-  private static resolveMemberDeclaration(checker: ts.TypeChecker, tsNode: ts.Node, memberNames: ReadonlySet<string>): ts.Declaration | undefined {
+  private static resolveMemberDeclaration(checker: TypeChecker, tsNode: Node, memberNames: ReadonlySet<string>): Declaration | undefined {
     const symbol = checker.getSymbolAtLocation(tsNode);
     const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.at(0);
     const declaredName = declaration === undefined ? undefined : DeclarationNames.of(declaration);
