@@ -3,8 +3,10 @@ import { describe, it } from 'node:test';
 
 import type { FromSchema } from 'json-schema-to-ts';
 
+import type { ApplyArrayConstraintBrandsType } from '../../../../src/types/index.js';
 import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
 import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
+import type { Assert, Equal } from './type-level-assert.js';
 
 /** Compiles only if `Infer` is assignable to the real `FromSchema` output — ours strictly narrower, never incompatible. */
 function assertInferAssignableToFromSchema<TInfer, TFromSchema>(identity: (v: TInfer) => TFromSchema): void {
@@ -139,23 +141,36 @@ void describe('SchemaNode static types are never incompatible with the real From
   });
 
   void it('prefixItems + minItems reaching full length: single variant, open tail unless closed', () => {
-    const node = SchemaNode.defineTuple({ 'type': 'array', 'minItems': 2 } as const, [
-      SchemaNode.defineString({ 'type': 'string' } as const),
-      SchemaNode.defineNumber({ 'type': 'number' } as const)
-    ] as const);
+    const firstItemNode = SchemaNode.defineString({ 'type': 'string' } as const);
+    const secondItemNode = SchemaNode.defineNumber({ 'type': 'number' } as const);
+    const node = SchemaNode.defineTuple({ 'type': 'array', 'minItems': 2 } as const, [firstItemNode, secondItemNode] as const);
     type Infer = NodeStaticType<typeof node>;
-    // MinimumItemsBrandInterface is phantom — a plain array literal needs the cast, same as every scalar brand case above.
-    assertAssignable<Infer>(['a', 1] as unknown as Infer);
-    assertAssignable<Infer>(['a', 1, 'extra'] as unknown as Infer);
+    // MinimumItemsBrandInterface is phantom; the open tail admits any extra elements after the two required slots.
+    type ExpectedType = ApplyArrayConstraintBrandsType<{ 'type': 'array'; 'minItems': 2 }>
+      & [NodeStaticType<typeof firstItemNode>, NodeStaticType<typeof secondItemNode>, ...unknown[]];
+    type ShapeCheck = Assert<Equal<Infer, ExpectedType>>;
+    const check: ShapeCheck = true;
+    const two: [string, number] = ['a', 1];
+    const three: [string, number, string] = ['a', 1, 'extra'];
+
+    assert.ok(check);
+    assertAssignable<[string, number, ...unknown[]]>(two);
+    assertAssignable<[string, number, ...unknown[]]>(three);
   });
 
   void it('prefixItems + minItems + items: false: exact closed tuple, no open tail', () => {
-    const node = SchemaNode.defineTuple({ 'type': 'array', 'minItems': 2, 'items': false } as const, [
-      SchemaNode.defineString({ 'type': 'string' } as const),
-      SchemaNode.defineNumber({ 'type': 'number' } as const)
-    ] as const);
+    const firstItemNode = SchemaNode.defineString({ 'type': 'string' } as const);
+    const secondItemNode = SchemaNode.defineNumber({ 'type': 'number' } as const);
+    const node = SchemaNode.defineTuple({ 'type': 'array', 'minItems': 2, 'items': false } as const, [firstItemNode, secondItemNode] as const);
     type Infer = NodeStaticType<typeof node>;
-    assertAssignable<Infer>(['a', 1] as unknown as Infer);
+    type ExpectedType = ApplyArrayConstraintBrandsType<{ 'type': 'array'; 'minItems': 2; 'items': false }>
+      & [NodeStaticType<typeof firstItemNode>, NodeStaticType<typeof secondItemNode>];
+    type ShapeCheck = Assert<Equal<Infer, ExpectedType>>;
+    const check: ShapeCheck = true;
+    const two: [string, number] = ['a', 1];
+
+    assert.ok(check);
+    assertAssignable<[string, number]>(two);
     assert.equal(node.schema.items, false);
   });
 
