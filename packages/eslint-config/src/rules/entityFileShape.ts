@@ -456,6 +456,10 @@ class EntityNamespaceCheck {
   }
 
   private static checkNamespaceExport(context: Rule.RuleContext, exportStmt: unknown, expectedName: string): void {
+    if (!AstHelpers.isNode(exportStmt)) {
+      return;
+    }
+
     const decl = FolderShapeHelpers.getDeclaration(exportStmt);
 
     if (!Predicates.isRecord(decl)) {
@@ -470,14 +474,13 @@ class EntityNamespaceCheck {
           'expected': expectedName, 'found': nsName ?? '(unknown)'
         },
         'messageId': 'namespaceMismatch',
-        'node': exportStmt as Rule.Node
+        'node': exportStmt
       });
     }
 
     const members = NamespaceScanner.scanBody(decl.body);
-    const reportNode = exportStmt as Rule.Node;
 
-    EntityNamespaceCheck.reportMemberShapeIssues(context, members, reportNode);
+    EntityNamespaceCheck.reportMemberShapeIssues(context, members, exportStmt);
   }
 
   private static reportMemberShapeIssues(
