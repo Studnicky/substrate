@@ -1,19 +1,22 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
 import { LruCacheNodeTimingEntity } from '../../../src/entities/index.js';
+import { LruCacheNodeTimingEntityScenarioCaseEntity } from './LruCacheNodeTimingEntityScenarioCaseEntity.js';
 import scenarioGroups from './LruCacheNodeTimingEntity.scenarios.json' with { type: 'json' };
 
+type ScenarioCase = LruCacheNodeTimingEntityScenarioCaseEntity.Type;
 type ScenarioCaseByShape = {
-  'invalid-timestamps': { description: string; expected: { valid: boolean; invalidChecks: boolean[] }; input: { timing: { expiresAt?: number; staleAt?: number }[] }; shape: 'invalid-timestamps'; name: string };
-  'valid-timestamps': { description: string; expected: { valid: boolean }; input: { timing: { expiresAt: number; staleAt: number } }; shape: 'valid-timestamps'; name: string };
+  'invalid-timestamps': Extract<ScenarioCase, { shape: 'invalid-timestamps' }>;
+  'valid-timestamps': Extract<ScenarioCase, { shape: 'valid-timestamps' }>;
 };
-
 type ScenarioShape = keyof ScenarioCaseByShape;
-type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
 type ScenarioRunnerMap = Record<ScenarioShape, (scenarioCase: ScenarioCase) => void>;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(LruCacheNodeTimingEntityScenarioCaseEntity.Schema, LruCacheNodeTimingEntityScenarioCaseEntity.Node);
 
 function assertScenarioShape<Shape extends ScenarioShape>(
   scenarioCase: ScenarioCase,
@@ -39,9 +42,9 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('LruCacheNodeTimingEntity', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
-      runCase(scenario as ScenarioCase);
+      runCase(scenario);
     });
   }
 });
