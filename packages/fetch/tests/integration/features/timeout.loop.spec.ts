@@ -1,67 +1,16 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { TimeoutScenarioCaseEntity } from './entities/TimeoutScenarioCaseEntity.js';
 import scenarioGroups from './timeout.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { status: number };
-      input: { request: { timeout?: number; url: string } };
-      shape: 'completes-without-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'TimeoutError' };
-      input: { request: { timeout: number; url: string } };
-      shape: 'times-out-fast-request';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'TimeoutError'; timeoutMs: number; urlIncludes: string };
-      input: { request: { timeout: number; url: string } };
-      shape: 'reports-timeout-details';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { status: number };
-      input: { request: { timeout: number; url: string } };
-      shape: 'clears-timeout-after-success';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'TimeoutError' };
-      input: { request: { timeout: number; url: string } };
-      shape: 'supports-timeout-in-get';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { status: number };
-      input: { request: { timeout: number; url: string } };
-      shape: 'works-with-fast-requests';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { status: number };
-      input: { clientTimeout: number; request: { url: string } };
-      shape: 'applies-default-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { status: number };
-      input: { clientTimeout: number; request: { timeout: number; url: string } };
-      shape: 'request-overrides-default-timeout';
-      name: string;
-    };
+type ScenarioCase = TimeoutScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(TimeoutScenarioCaseEntity.Schema, TimeoutScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -159,7 +108,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('Timeout Feature', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
