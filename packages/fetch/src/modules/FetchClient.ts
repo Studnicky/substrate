@@ -110,7 +110,7 @@ export class FetchClient implements FetchClientInterface {
     this: FetchClientSubclassInterface<TInstance>,
     config: ClientConfigInterface = {}
   ): TInstance {
-    const result = Reflect.construct(this, [config]) as object;
+    const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
     }

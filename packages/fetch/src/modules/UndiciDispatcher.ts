@@ -73,7 +73,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     this: UndiciDispatcherSubclassInterface<TInstance>,
     agent: Agent | TestDispatcher
   ): TInstance {
-    const result = Reflect.construct(this, [agent]) as object;
+    const result: unknown = Reflect.construct(this, [agent]);
     if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
     }
