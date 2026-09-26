@@ -289,12 +289,27 @@ export class SchemaNode {
    * Wraps an already-built node with sibling schema keys, without restating its shape:
    * the derived type reads `target`'s own precomputed `static`/`input` directly, the same
    * indexed-access rule every other constructor follows — only `schema` is new.
+   *
+   * This REPLACES `target`'s own schema rather than merging it — correct for `$ref`/`$defs`
+   * resolution (`defineReference`, `defineRecursive`'s self case), where inlining a
+   * self-referential or recursive target's own schema would recurse forever. A caller that
+   * wants `target`'s structural schema preserved, with extra sibling keys layered on top
+   * (e.g. attaching a `default`), needs `defineAnnotated` instead.
    */
   public static defineDecorated<const TSchema extends Record<string, unknown>, TTarget extends SchemaNodeInterface<unknown, unknown>>(
     schema: TSchema,
     _target: TTarget
   ): SchemaNodeInterface<TSchema, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
     return { 'schema': schema };
+  }
+
+  /** Layers sibling schema keys (e.g. `default`) onto `target`'s own schema without discarding it — unlike `defineDecorated`, which replaces it. */
+  public static defineAnnotated<const TSchema extends Record<string, unknown>, TTargetSchema, TTarget extends SchemaNodeInterface<TTargetSchema, unknown>>(
+    schema: TSchema,
+    target: TTarget
+  ): SchemaNodeInterface<TSchema & TTargetSchema, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
+    const merged = { ...target.schema, ...schema };
+    return { 'schema': merged };
   }
 
   /**
