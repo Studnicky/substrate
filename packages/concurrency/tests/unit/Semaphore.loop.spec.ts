@@ -1,35 +1,17 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-
 import { Semaphore } from '../../src/Semaphore.js';
 import { SemaphoreQueueFullError } from '../../src/errors/SemaphoreQueueFullError.js';
+import { SemaphoreScenarioCaseEntity } from './entities/SemaphoreScenarioCaseEntity.js';
 import scenarioGroups from './Semaphore.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'reject-zero' | 'reject-fractional' | 'reject-negative'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getter-reflects-permits'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'acquire-release-cycle'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'double-release-safe'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'queue-waiters'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'withPermit-runs'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'withPermit-throws'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquire-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquireWait-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onAcquireWait-multiwaiter'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onRelease-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'onReleaseDelegated-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-onAcquire'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-onContended'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquire-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquire-reserve'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onAcquireWait-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-onContended-reject'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'fifo-swap'; name: string };
-
+type ScenarioCase = SemaphoreScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 function flushMicrotasks(): Promise<void> {
   return new Promise((resolve) => { setImmediate(resolve); });
@@ -53,62 +35,54 @@ class ObservedSemaphore extends Semaphore {
   protected override onReleaseDelegated(): void { this.releaseDelegatedEvents.push(1); }
 }
 
-const rejectInvalidPermits: ScenarioRunner = (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { errorName: string };
-    assert.throws(() => Semaphore.create(semaphoreOptions(input)), { 'name': expected.errorName });
-};
+function rejectInvalidPermits(scenarioCase: Extract<ScenarioCase, { shape: 'reject-fractional' | 'reject-negative' | 'reject-zero' }>): void {
+  assert.throws(() => Semaphore.create(semaphoreOptions(scenarioCase.input)), { 'name': scenarioCase.expected.errorName });
+}
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: RunnerMap = {
   'acquire-release-cycle': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfterAcquire1: number; availableAfterAcquire2: number; availableAfterRelease1: number; availableAfterRelease2: number; availableInitial: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
-    assert.equal(sem.available, expected.availableInitial);
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
+    assert.equal(sem.available, scenarioCase.expected.availableInitial);
     const r1 = await sem.acquire();
-    assert.equal(sem.available, expected.availableAfterAcquire1);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterAcquire1);
     const r2 = await sem.acquire();
-    assert.equal(sem.available, expected.availableAfterAcquire2);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterAcquire2);
     r1();
-    assert.equal(sem.available, expected.availableAfterRelease1);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterRelease1);
     r2();
-    assert.equal(sem.available, expected.availableAfterRelease2);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterRelease2);
   },
   'async-onAcquire-reject': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { hookName: string; unhandledRejections: number };
     class AsyncRejectingAcquireSemaphore extends Semaphore {
       protected override async onAcquire(): Promise<void> {
         await new Promise((resolve) => { setImmediate(resolve); });
-        throw RuntimeError.create(input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
     let rejectionCount = 0;
     const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const sem = AsyncRejectingAcquireSemaphore.create(semaphoreOptions(input));
-      await assert.rejects(() => sem.acquire(), { 'hookName': expected.hookName, 'name': HookInvocationError.name });
+      const sem = AsyncRejectingAcquireSemaphore.create(semaphoreOptions(scenarioCase.input));
+      await assert.rejects(() => sem.acquire(), { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionCount, expected.unhandledRejections);
+      assert.equal(rejectionCount, scenarioCase.expected.unhandledRejections);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
   },
   'async-onAcquire-reserve': async (scenarioCase) => {
-    const input = scenarioCase.input as { firstMessage: string; secondMessage: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfterSecondRelease: number; availableAfterFirstFailure: number };
     class RejectFirstAcquireSemaphore extends Semaphore {
       readonly entered = Promise.withResolvers<void>();
       readonly finish = Promise.withResolvers<void>();
       #acquireCount = 0;
-      constructor() { super(semaphoreOptions(input)); }
+      constructor() { super(semaphoreOptions(scenarioCase.input)); }
       protected override async onAcquire(): Promise<void> {
         this.#acquireCount += 1;
         if (this.#acquireCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw RuntimeError.create(input.firstMessage);
+        throw RuntimeError.create(scenarioCase.input.firstMessage);
       }
     }
     const sem = new RejectFirstAcquireSemaphore();
@@ -117,67 +91,63 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const second = sem.acquire();
     sem.finish.resolve();
     await assert.rejects(first, HookInvocationError);
-    assert.equal(sem.available, expected.availableAfterFirstFailure);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterFirstFailure);
     const releaseSecond = await second;
     assert.equal(sem.available, 0);
     await releaseSecond();
-    assert.equal(sem.available, expected.availableAfterSecondRelease);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterSecondRelease);
   },
   'async-onAcquireWait-reject': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfter: number; hookName: string; thirdAcquiredBeforeResolve: boolean };
     class RejectFirstWaitSemaphore extends Semaphore {
       readonly entered = Promise.withResolvers<void>();
       readonly finish = Promise.withResolvers<void>();
       #waitCount = 0;
-      constructor() { super(semaphoreOptions(input)); }
+      constructor() { super(semaphoreOptions(scenarioCase.input)); }
       protected override async onAcquireWait(): Promise<void> {
         this.#waitCount += 1;
         if (this.#waitCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw RuntimeError.create(input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
     const sem = new RejectFirstWaitSemaphore();
     const releaseFirst = await sem.acquire();
     const second = sem.acquire();
     await sem.entered.promise;
-    const secondRejected = assert.rejects(second, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
+    const secondRejected = assert.rejects(second, { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
     let thirdAcquired = false;
     const third = sem.acquire().then((release) => { thirdAcquired = true; return release; });
     await flushMicrotasks();
     await releaseFirst();
-    assert.equal(thirdAcquired, expected.thirdAcquiredBeforeResolve);
+    assert.equal(thirdAcquired, scenarioCase.expected.thirdAcquiredBeforeResolve);
     sem.finish.resolve();
     await secondRejected;
     const releaseThird = await third;
     assert.equal(thirdAcquired, true);
     assert.equal(sem.available, 0);
     await releaseThird();
-    assert.equal(sem.available, expected.availableAfter);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'async-onContended-reject': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfter: number; hookName: string };
     class RejectFirstContendedSemaphore extends Semaphore {
       readonly entered = Promise.withResolvers<void>();
       readonly finish = Promise.withResolvers<void>();
       #contendedCount = 0;
-      constructor() { super(semaphoreOptions(input)); }
+      constructor() { super(semaphoreOptions(scenarioCase.input)); }
       protected override async onContended(): Promise<void> {
         this.#contendedCount += 1;
         if (this.#contendedCount !== 1) { return; }
         this.entered.resolve();
         await this.finish.promise;
-        throw RuntimeError.create(input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
     const sem = new RejectFirstContendedSemaphore();
     const releaseFirst = await sem.acquire();
     const second = sem.acquire();
     await sem.entered.promise;
-    const secondRejected = assert.rejects(second, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
+    const secondRejected = assert.rejects(second, { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
     const third = sem.acquire();
     await releaseFirst();
     sem.finish.resolve();
@@ -185,25 +155,21 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const releaseThird = await third;
     assert.equal(sem.available, 0);
     await releaseThird();
-    assert.equal(sem.available, expected.availableAfter);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'double-release-safe': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfterAcquire: number; availableAfterRelease: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
     const release = await sem.acquire();
-    assert.equal(sem.available, expected.availableAfterAcquire);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterAcquire);
     release();
     release();
-    assert.equal(sem.available, expected.availableAfterRelease);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterRelease);
   },
   'fifo-swap': async (scenarioCase) => {
-    const input = scenarioCase.input as { order: number[]; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { order: number[]; availableAfter: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     const order: number[] = [];
-    const waiters = input.order.map((n) =>
+    const waiters = scenarioCase.input.order.map((n) =>
       sem.acquire().then((release) => {
         order.push(n);
         return release;
@@ -215,86 +181,72 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const waiterTwo = waiters[0];
     assert.ok(waiterTwo);
     const releaseTwo = await waiterTwo;
-    assert.deepEqual(order, expected.order.slice(0, 1));
+    assert.deepEqual(order, scenarioCase.expected.order.slice(0, 1));
     await releaseTwo();
     const waiterThree = waiters[1];
     assert.ok(waiterThree);
     const releaseThree = await waiterThree;
-    assert.deepEqual(order, expected.order.slice(0, 2));
+    assert.deepEqual(order, scenarioCase.expected.order.slice(0, 2));
     await releaseThree();
     await waiters[2];
-    assert.deepEqual(order, expected.order);
-    assert.equal(sem.available, expected.availableAfter);
+    assert.deepEqual(order, scenarioCase.expected.order);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'getter-reflects-permits': (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { permits: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
-    assert.equal(sem.permits, expected.permits);
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
+    assert.equal(sem.permits, scenarioCase.expected.permits);
   },
   'onAcquire-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { acquireEvents: number[] };
-    const sem = new ObservedSemaphore(semaphoreOptions(input));
+    const sem = new ObservedSemaphore(semaphoreOptions(scenarioCase.input));
     await sem.acquire();
-    assert.deepEqual(sem.acquireEvents, expected.acquireEvents.slice(0, 1));
+    assert.deepEqual(sem.acquireEvents, scenarioCase.expected.acquireEvents.slice(0, 1));
     await sem.acquire();
-    assert.deepEqual(sem.acquireEvents, expected.acquireEvents);
+    assert.deepEqual(sem.acquireEvents, scenarioCase.expected.acquireEvents);
   },
   'onAcquireWait-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { acquireWaitEvents: number; contendedEvents: number[] };
-    const sem = new ObservedSemaphore(semaphoreOptions(input));
+    const sem = new ObservedSemaphore(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     const pending = sem.acquire();
     await flushMicrotasks();
-    assert.equal(sem.acquireWaitEvents.length, expected.acquireWaitEvents);
-    assert.deepEqual(sem.contendedEvents, expected.contendedEvents);
+    assert.equal(sem.acquireWaitEvents.length, scenarioCase.expected.acquireWaitEvents);
+    assert.deepEqual(sem.contendedEvents, scenarioCase.expected.contendedEvents);
     r1();
     await pending;
   },
   'onAcquireWait-multiwaiter': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { acquireWaitEvents: number; contendedEvents: number[] };
-    const sem = new ObservedSemaphore(semaphoreOptions(input));
+    const sem = new ObservedSemaphore(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     const firstPending = sem.acquire();
     const secondPending = sem.acquire();
     await flushMicrotasks();
-    assert.equal(sem.acquireWaitEvents.length, expected.acquireWaitEvents);
-    assert.deepEqual(sem.contendedEvents, expected.contendedEvents);
+    assert.equal(sem.acquireWaitEvents.length, scenarioCase.expected.acquireWaitEvents);
+    assert.deepEqual(sem.contendedEvents, scenarioCase.expected.contendedEvents);
     r1();
     const r2 = await firstPending;
     r2();
     await secondPending;
   },
   'onRelease-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { releaseEvents: number[] };
-    const sem = new ObservedSemaphore(semaphoreOptions(input));
+    const sem = new ObservedSemaphore(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     const r2 = await sem.acquire();
     r2();
-    assert.deepEqual(sem.releaseEvents, expected.releaseEvents.slice(0, 1));
+    assert.deepEqual(sem.releaseEvents, scenarioCase.expected.releaseEvents.slice(0, 1));
     r1();
-    assert.deepEqual(sem.releaseEvents, expected.releaseEvents);
+    assert.deepEqual(sem.releaseEvents, scenarioCase.expected.releaseEvents);
   },
   'onReleaseDelegated-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { releaseDelegatedEvents: number; releaseEvents: number };
-    const sem = new ObservedSemaphore(semaphoreOptions(input));
+    const sem = new ObservedSemaphore(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     const pending = sem.acquire();
     await Promise.resolve();
     r1();
     await pending;
-    assert.equal(sem.releaseDelegatedEvents.length, expected.releaseDelegatedEvents);
-    assert.equal(sem.releaseEvents.length, expected.releaseEvents);
+    assert.equal(sem.releaseDelegatedEvents.length, scenarioCase.expected.releaseDelegatedEvents);
+    assert.equal(sem.releaseEvents.length, scenarioCase.expected.releaseEvents);
   },
   'queue-waiters': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfterFirstRelease: number; availableAfterSecondRelease: number; secondAcquiredInitially: boolean };
-    const sem = Semaphore.create(semaphoreOptions(input));
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
     const r1 = await sem.acquire();
     let secondAcquired = false;
     const pending = sem.acquire().then((r) => {
@@ -302,75 +254,69 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       return r;
     });
     await Promise.resolve();
-    assert.equal(secondAcquired, expected.secondAcquiredInitially);
+    assert.equal(secondAcquired, scenarioCase.expected.secondAcquiredInitially);
     r1();
     const r2 = await pending;
     assert.equal(secondAcquired, true);
-    assert.equal(sem.available, expected.availableAfterFirstRelease);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterFirstRelease);
     r2();
-    assert.equal(sem.available, expected.availableAfterSecondRelease);
+    assert.equal(sem.available, scenarioCase.expected.availableAfterSecondRelease);
   },
   'reject-fractional': rejectInvalidPermits,
   'reject-negative': rejectInvalidPermits,
   'reject-zero': rejectInvalidPermits,
   'throwing-onAcquire': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfter: number; hookName: string };
     class ThrowingAcquireSemaphore extends Semaphore {
       protected override onAcquire(): void {
-        throw RuntimeError.create(input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
-    const sem = ThrowingAcquireSemaphore.create(semaphoreOptions(input));
-    await assert.rejects(() => sem.acquire(), { 'hookName': expected.hookName, 'name': HookInvocationError.name });
-    assert.equal(sem.available, expected.availableAfter);
+    const sem = ThrowingAcquireSemaphore.create(semaphoreOptions(scenarioCase.input));
+    await assert.rejects(() => sem.acquire(), { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'throwing-onContended': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfter: number; hookName: string };
     class ThrowingContendedSemaphore extends Semaphore {
       protected override onContended(): void {
-        throw RuntimeError.create(input.message);
+        throw RuntimeError.create(scenarioCase.input.message);
       }
     }
-    const sem = ThrowingContendedSemaphore.create(semaphoreOptions(input));
+    const sem = ThrowingContendedSemaphore.create(semaphoreOptions(scenarioCase.input));
     const releaseFirst = await sem.acquire();
     const pendingSecond = sem.acquire();
-    await assert.rejects(() => pendingSecond, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
+    await assert.rejects(() => pendingSecond, { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
     await releaseFirst();
-    assert.equal(sem.available, expected.availableAfter);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
     const releaseThird = await sem.acquire();
     await releaseThird();
-    assert.equal(sem.available, expected.availableAfter);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'withPermit-runs': async (scenarioCase) => {
-    const input = scenarioCase.input as { semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { inside: boolean; availableAfter: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
     let inside = false;
     await sem.withPermit(async () => {
       inside = true;
       assert.equal(sem.available, 0);
     });
-    assert.equal(inside, expected.inside);
-    assert.equal(sem.available, expected.availableAfter);
+    assert.equal(inside, scenarioCase.expected.inside);
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   },
   'withPermit-throws': async (scenarioCase) => {
-    const input = scenarioCase.input as { message: string; semaphore: { permits: number } };
-    const expected = scenarioCase.expected as { availableAfter: number };
-    const sem = Semaphore.create(semaphoreOptions(input));
+    const sem = Semaphore.create(semaphoreOptions(scenarioCase.input));
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => sem.withPermit(async () => { throw RuntimeError.create(input.message); }), new RegExp(input.message));
-    assert.equal(sem.available, expected.availableAfter);
+    await assert.rejects(() => sem.withPermit(async () => { throw RuntimeError.create(scenarioCase.input.message); }), new RegExp(scenarioCase.input.message));
+    assert.equal(sem.available, scenarioCase.expected.availableAfter);
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(SemaphoreScenarioCaseEntity.Schema, SemaphoreScenarioCaseEntity.Node);
+
 void describe('Semaphore', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

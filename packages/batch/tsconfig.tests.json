@@ -21,7 +21,13 @@
       "path": "../errors"
     },
     {
+      "path": "../example-smoke-kit"
+    },
+    {
       "path": "../json"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }
