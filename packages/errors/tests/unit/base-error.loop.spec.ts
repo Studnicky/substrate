@@ -1,4 +1,5 @@
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -13,7 +14,38 @@ import {
 } from '../../src/constants/ProblemConstants.js';
 import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
+import { BaseErrorScenarioCaseEntity } from './entities/BaseErrorScenarioCaseEntity.js';
 import scenarioGroups from './base-error.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(BaseErrorScenarioCaseEntity.Schema, BaseErrorScenarioCaseEntity.Node, BaseErrorScenarioCaseEntity.RemoteSchemas);
+
+function requireString(value: unknown, label: string): string {
+  if (typeof value !== 'string') {
+    throw RuntimeError.create(`${label} must be a string`);
+  }
+  return value;
+}
+
+function requireNumber(value: unknown, label: string): number {
+  if (typeof value !== 'number') {
+    throw RuntimeError.create(`${label} must be a number`);
+  }
+  return value;
+}
+
+function requireStringArray(value: unknown, label: string): readonly string[] {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw RuntimeError.create(`${label} must be a string array`);
+  }
+  return value;
+}
+
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!Predicates.isRecord(value)) {
+    throw RuntimeError.create(`${label} must be an object`);
+  }
+  return value;
+}
 
 class TestError extends BaseError {
   public constructor(message: string, options?: Partial<{
@@ -57,25 +89,9 @@ class CustomMessageError extends BaseError {
   }
 }
 
-type CauseDescriptor = { shape: 'base-error' | 'native-error'; message: string };
-type ScenarioInput = {
-  cause?: CauseDescriptor | string;
-  correlationId?: string;
-  depth?: number;
-  message: string;
-  metadata?: Record<string, JSONSchema7Type>;
-  retryable?: boolean;
-  toMessage?: ToMessageInput;
-};
-type ToMessageInput = { shape: 'native-error' | 'primitive'; message?: string; value?: boolean | null | number | string };
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: ScenarioInput;
-  shape: 'cause-chain' | 'cause-chain-primitive' | 'construction-cause' | 'construction-code' | 'construction-correlation-id' | 'construction-correlation-id-absent' | 'construction-default-retryable' | 'construction-explicit-retryable' | 'construction-instanceof' | 'construction-message' | 'construction-metadata' | 'construction-metadata-absent' | 'construction-metadata-nested' | 'construction-name' | 'construction-omitted-optional-args' | 'construction-timestamp' | 'find-cause-of-type-hit' | 'find-cause-of-type-miss' | 'find-cause-of-type-primitive' | 'find-cause-of-type-self' | 'has-cause-of-type-hit' | 'has-cause-of-type-miss' | 'json-code-message' | 'json-correlation-absent' | 'json-correlation-value' | 'json-depth-sentinel' | 'json-native-error-cause' | 'json-primitive-cause' | 'json-recursive-cause' | 'json-required-fields' | 'json-roundtrip' | 'to-message-native-error' | 'to-message-primitive' | 'to-problem-details' | 'to-user-message-default' | 'to-user-message-custom';
-  name: string;
-};
+type ScenarioCase = BaseErrorScenarioCaseEntity.Type;
+type CauseDescriptor = Extract<NonNullable<ScenarioCase['input']['cause']>, { shape: string }>;
+type ToMessageInput = NonNullable<ScenarioCase['input']['toMessage']>;
 
 type ScenarioRunner = (scenario: ScenarioCase, error: TestError) => void;
 
@@ -124,7 +140,8 @@ const runnerMap = {
     assert.deepStrictEqual(chain.map((entry) => entry instanceof Error ? entry.message : String(entry)), scenario.expected.messages);
   },
   'construction-cause': (scenario, error) => {
-    assert.strictEqual((error.cause as Error | undefined)?.message, scenario.expected.causeMessage);
+    const causeMessage = error.cause instanceof Error ? error.cause.message : undefined;
+    assert.strictEqual(causeMessage, scenario.expected.causeMessage);
   },
   'construction-code': (scenario, error) => {
     assert.strictEqual(error.code, scenario.expected.code);
@@ -173,8 +190,9 @@ const runnerMap = {
     const before = Date.now();
     const observed = createError(scenario.input).timestamp;
     const after = Date.now();
-    assert.ok(observed >= before - (scenario.expected.timestampWithinMs as number));
-    assert.ok(observed <= after + (scenario.expected.timestampWithinMs as number));
+    const timestampWithinMs = requireNumber(scenario.expected.timestampWithinMs, 'Scenario expected.timestampWithinMs');
+    assert.ok(observed >= before - timestampWithinMs);
+    assert.ok(observed <= after + timestampWithinMs);
   },
   'find-cause-of-type-hit': (scenario) => {
     class InnerError extends TestError {}
@@ -230,13 +248,15 @@ const runnerMap = {
   },
   'json-native-error-cause': (scenario, error) => {
     const cause = (error.toJSON().causes ?? [])[0];
+    const expectedCause = requireRecord(scenario.expected.cause, 'Scenario expected.cause');
     assert.strictEqual(cause?.code, 'errors.runtime');
-    assert.strictEqual(cause?.detail, (scenario.expected.cause as { message: string }).message);
+    assert.strictEqual(cause?.detail, expectedCause.message);
   },
   'json-primitive-cause': (scenario, error) => {
     const cause = (error.toJSON().causes ?? [])[0];
+    const expectedCause = requireRecord(scenario.expected.cause, 'Scenario expected.cause');
     assert.strictEqual(cause?.type, PROBLEM_TYPE_THROWN_STRING);
-    assert.strictEqual(cause?.detail, (scenario.expected.cause as { message: string }).message);
+    assert.strictEqual(cause?.detail, expectedCause.message);
   },
   'json-recursive-cause': (_scenario, error) => {
     const causes = error.toJSON().causes ?? [];
@@ -246,7 +266,7 @@ const runnerMap = {
   },
   'json-required-fields': (scenario, error) => {
     const json = error.toJSON();
-    for (const key of scenario.expected.containsFields as string[]) {
+    for (const key of requireStringArray(scenario.expected.containsFields, 'Scenario expected.containsFields')) {
       assert.ok(key in json);
     }
   },
@@ -268,7 +288,7 @@ const runnerMap = {
     assert.strictEqual(problem.code, scenario.expected.code);
     assert.strictEqual(problem.detail, scenario.expected.message);
     assert.strictEqual(problem.correlationId, scenario.expected.correlationId ?? undefined);
-    assert.strictEqual(problem.type, `${PROBLEM_TYPE_BASE}${scenario.expected.code as string}`);
+    assert.strictEqual(problem.type, `${PROBLEM_TYPE_BASE}${requireString(scenario.expected.code, 'Scenario expected.code')}`);
     assert.strictEqual(problem.title, error.name);
   },
   'to-user-message-custom': (scenario) => {
@@ -284,7 +304,7 @@ function runCase(scenario: ScenarioCase): void {
 }
 
 void describe('BaseError', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       runCase(scenario);
     });
