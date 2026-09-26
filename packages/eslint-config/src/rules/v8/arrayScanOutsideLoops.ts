@@ -1,4 +1,4 @@
-import type { Rule } from 'eslint';
+import type { Rule, Scope } from 'eslint';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
@@ -14,18 +14,16 @@ class ReceiverOrigin {
   // Walks a (possibly chained) MemberExpression down to its root Identifier. Any other
   // root shape returns undefined, and the caller's default is to keep flagging.
   public static findRootIdentifier(node: unknown): Rule.Node | undefined {
-    let current = node;
+    let current: unknown = node;
 
-    while (current !== null && typeof current === 'object') {
-      const raw = current as Record<string, unknown>;
-
-      if (raw.type === 'Identifier') {
-        return current as Rule.Node;
+    while (AstHelpers.isNode(current)) {
+      if (current.type === 'Identifier') {
+        return current;
       }
-      if (raw.type !== 'MemberExpression') {
+      if (current.type !== 'MemberExpression') {
         return undefined;
       }
-      current = raw.object;
+      current = AstHelpers.getNodeProperty(current, 'object');
     }
 
     return undefined;
@@ -40,7 +38,7 @@ class ReceiverOrigin {
       return undefined;
     }
     const name = rawName;
-    let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
+    let scope: Scope.Scope | null = context.sourceCode.getScope(identifierNode);
 
     while (scope !== null) {
       const { variables } = scope;
@@ -50,7 +48,9 @@ class ReceiverOrigin {
         const candidate = variables.at(index);
 
         if (candidate?.name === name) {
-          const result = candidate.defs.at(0)?.node as Rule.Node | undefined;
+          const definitionNode = candidate.defs.at(0)?.node;
+          const result = AstHelpers.isNode(definitionNode) ? definitionNode : undefined;
+
           return result;
         }
       }

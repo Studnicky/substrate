@@ -47,7 +47,7 @@ class EvalAstHelpers {
     const expressions = node.expressions;
     if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
 
-    const last: unknown = (expressions as readonly unknown[]).at(-1);
+    const last: unknown = expressions.at(-1);
     const result = EvalAstHelpers.isEvalIdentifier(last) || EvalAstHelpers.isEvalMemberExpression(last);
     return result;
   }

@@ -203,7 +203,7 @@ class NodeWalk {
 
   static #visitValue(value: unknown, visit: (current: unknown) => boolean): boolean {
     if (Array.isArray(value)) {
-      const items = value as readonly unknown[];
+      const items: readonly unknown[] = value;
       const itemsLength = items.length;
 
       for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {

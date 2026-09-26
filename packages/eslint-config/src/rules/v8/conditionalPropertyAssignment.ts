@@ -38,7 +38,7 @@ class AstWalker {
       }
 
       if (Array.isArray(value)) {
-        const items = value as readonly unknown[];
+        const items: readonly unknown[] = value;
         const itemsLength = items.length;
 
         for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {
@@ -170,7 +170,8 @@ class ClassMethodEligibility {
       return undefined;
     }
 
-    const constructorDef = (classBody.body as readonly unknown[]).find((member): member is AstNodeInterface => {
+    const classMembers: readonly unknown[] = classBody.body;
+    const constructorDef = classMembers.find((member): member is AstNodeInterface => {
       const result = Predicates.isRecord(member) && member.type === 'MethodDefinition' && member.kind === 'constructor';
 
       return result;
@@ -245,7 +246,7 @@ class StatementAssignments {
     }
 
     if (branchNode.type === 'BlockStatement' && Array.isArray(branchNode.body)) {
-      const statements = branchNode.body as readonly unknown[];
+      const statements: readonly unknown[] = branchNode.body;
       const statementsLength = statements.length;
       const collected: { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] = [];
 
@@ -306,7 +307,7 @@ class ObjectExpressionKeys {
     }
 
     const names = new Set<string>();
-    const properties = node.properties as readonly unknown[];
+    const properties: readonly unknown[] = node.properties;
     const propertiesLength = properties.length;
 
     for (let index = 0; index < propertiesLength; index += 1) {
@@ -354,7 +355,7 @@ class CaseAssignments {
       return [];
     }
 
-    const statements = switchCase.consequent as readonly unknown[];
+    const statements: readonly unknown[] = switchCase.consequent;
     const statementsLength = statements.length;
     const collected: { readonly 'assignmentNode': AstNodeInterface; readonly 'propertyName': string }[] = [];
 
