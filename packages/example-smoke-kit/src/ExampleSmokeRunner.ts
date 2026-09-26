@@ -9,6 +9,7 @@ import type { ExampleSmokeContextInterface } from './interfaces/ExampleSmokeCont
 import type { ShapeRunnerFunctionInterface } from './interfaces/ShapeRunnerFunctionInterface.js';
 
 import { EXAMPLE_SMOKE_CONSTANTS } from './constants/ExampleSmokeConstants.js';
+import { DocsPlaygroundPathsEntity } from './entities/DocsPlaygroundPathsEntity.js';
 import { ExampleScenarioFileEntity } from './entities/ExampleScenarioFileEntity.js';
 
 /** Registers a `describe`/`it` suite from a package's `examples.scenarios.json`, dispatching each case by its `shape`. */
@@ -23,9 +24,9 @@ export class ExampleSmokeRunner {
 
   static runBrowserExample(scenario: ExampleScenarioEntity.Type, context: ExampleSmokeContextInterface): void {
     if (scenario.shape === 'browser-example') {
-      const playgroundPaths = JSON.parse(
-        readFileSync(fileURLToPath(new URL(EXAMPLE_SMOKE_CONSTANTS.DOCS_PLAYGROUND_PATHS_RELATIVE_URL, context.specUrl)), 'utf8')
-      ) as readonly string[];
+      const playgroundPaths = DocsPlaygroundPathsEntity.intake(
+        JSON.parse(readFileSync(fileURLToPath(new URL(EXAMPLE_SMOKE_CONSTANTS.DOCS_PLAYGROUND_PATHS_RELATIVE_URL, context.specUrl)), 'utf8'))
+      );
       const exampleName = scenario.input.file
         .replace(EXAMPLE_SMOKE_CONSTANTS.FILE_BASENAME_PATTERN, '')
         .replace(EXAMPLE_SMOKE_CONSTANTS.TS_EXTENSION_PATTERN, '');

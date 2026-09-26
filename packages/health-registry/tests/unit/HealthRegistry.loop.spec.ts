@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
@@ -8,147 +9,17 @@ import { HealthRegistry } from '../../src/HealthRegistry.js';
 import { HealthCheckOptionsEntity } from '../../src/entities/HealthCheckOptionsEntity.js';
 import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
+import { HealthRegistryScenarioCaseEntity } from './entities/HealthRegistryScenarioCaseEntity.js';
 import scenarioGroups from './HealthRegistry.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(HealthRegistryScenarioCaseEntity.Schema, HealthRegistryScenarioCaseEntity.Node);
 
 function createUnhandledRejectionAssertion(message: string): () => void {
   return () => { assert.fail(message); };
 }
 
-type HealthStatus = 'degraded' | 'healthy' | 'unhealthy';
-
-interface HealthCheckDefinitionInterface {
-  delayMs?: number;
-  metadata?: Record<string, string>;
-  name: string;
-  outcome?: 'healthy' | 'late-throw' | 'throw' | 'timeout';
-  status?: HealthStatus;
-  timeoutMs?: number;
-}
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        resultCount: number;
-        status: 'healthy';
-      };
-      input: {
-        checks: [];
-      };
-      shape: 'empty-registry-healthy';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        results: Array<{ name: string; status: 'healthy' }>;
-        status: 'healthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'all-healthy';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        results: Array<{ name: string; status: 'healthy' | 'degraded' }>;
-        status: 'degraded';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'one-degraded';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        results: Array<{ name: string; status: 'healthy' | 'degraded' | 'unhealthy' }>;
-        status: 'unhealthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'one-unhealthy';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        results: Array<{ name: string; status: 'healthy' | 'unhealthy' }>;
-        status: 'unhealthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'rejecting-check-unhealthy';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        resultStatus: 'unhealthy';
-        status: 'unhealthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'timeout-check-unhealthy';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        rejectionEvents: number;
-        resultStatus: 'unhealthy';
-        status: 'unhealthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 'timed-out-late-rejection-owned';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        remainingCount: number;
-        status: 'healthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-        unregister: string;
-      };
-      shape: 'unregister-removes-check';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        afterRegisterHas: true;
-        afterUnregisterHas: false;
-        initialHas: false;
-        registeredNames: string[];
-      };
-      input: {
-        name: string;
-      };
-      shape: 'has-and-list-reflect-registration';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        status: 'healthy';
-      };
-      input: {
-        checks: HealthCheckDefinitionInterface[];
-      };
-      shape: 're-register-replaces-check';
-      name: string;
-    };
+type ScenarioCase = HealthRegistryScenarioCaseEntity.Type;
+type HealthCheckDefinitionInterface = HealthRegistryScenarioCaseEntity.CheckDefinition;
 
 function createHealthResult(def: HealthCheckDefinitionInterface): HealthCheckResultInterface {
   assert.ok(def.status !== undefined);
@@ -297,7 +168,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('HealthRegistry', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

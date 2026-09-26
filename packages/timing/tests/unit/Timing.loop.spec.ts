@@ -1,4 +1,5 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -12,6 +13,7 @@ import type { TimingEventDataEntity } from '../../src/entities/TimingEventDataEn
 import { TimingOptionsEntity } from '../../src/entities/TimingOptionsEntity.js';
 import { Timing } from '../../src/modules/Timing.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { TimingScenarioCaseEntity } from './entities/TimingScenarioCaseEntity.js';
 import scenarioGroups from './Timing.scenarios.json' with { type: 'json' };
 
 type TimingEventFixture = {
@@ -20,69 +22,12 @@ type TimingEventFixture = {
   status?: (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS];
 };
 
-type ScenarioBase<
-  Shape extends string,
-  Input extends Record<string, unknown>,
-  Expected extends Record<string, unknown>
-> = {
-  description: string;
-  expected: Expected;
-  input: Input;
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCaseByShape = {
-  'accepts-config-options': ScenarioBase<'accepts-config-options', { timing: { options: TimingOptionsEntity.Type[] } }, { createdCount: number }>;
-  'async-onEvent-unhandled': ScenarioBase<'async-onEvent-unhandled', { errorMessage: string; event: TimingEventFixture; settleTicks: number }, { unhandledRejections: number }>;
-  'clear-all-and-reuse': ScenarioBase<'clear-all-and-reuse', { afterEvent: TimingEventFixture; batch: { clearCount: number }; beforeEvents: TimingEventFixture[]; waitAfterClearMs: number }, { afterAddCount: number; afterClearCount: number; beforeCount: number }>;
-  'clear-keeps-start-time': ScenarioBase<'clear-keeps-start-time', { waitAfterClearMs: number; waitBeforeClearMs: number }, { durationIncreasesAfterClear: boolean }>;
-  'clear-multiple-times': ScenarioBase<'clear-multiple-times', { batch: { clearCount: number }; event: TimingEventFixture }, { finalCount: number }>;
-  'component-operation-events': ScenarioBase<'component-operation-events', { events: TimingEventFixture[] }, { keys: string[] }>;
-  'constructor-wraps-error': ScenarioBase<'constructor-wraps-error', { errorMessage: string }, { wrapped: boolean }>;
-  'continues-after-get-events': ScenarioBase<'continues-after-get-events', { waitBeforeFirstMs: number; waitBeforeSecondMs: number }, { durationIncreases: boolean }>;
-  'convert-time': ScenarioBase<'convert-time', { ns: number; unit: 'ms' }, { result: number }>;
-  'creates-instance': ScenarioBase<'creates-instance', { expectMethods: Array<'clear' | 'event' | 'getEvents'> }, { instanceOf: 'Timing'; methodCount: number }>;
-  'cumulative-timing': ScenarioBase<'cumulative-timing', { events: TimingEventFixture[]; stageWaitMs: number[] }, { keys: string[]; minimums: Record<string, number> }>;
-  'domain-status': ScenarioBase<'domain-status', { events: TimingEventFixture[] }, { keys: string[] }>;
-  'evicts-default-max-events': ScenarioBase<'evicts-default-max-events', { event: { component: string; operationPrefix: string }; overflowMargin: number }, { defaultMaxEvents: number; retainedLastEventPrefix: string; retainedLastIndex: number }>;
-  'evicts-when-max-events-exceeded': ScenarioBase<'evicts-when-max-events-exceeded', { events: TimingEventFixture[]; timing: { maximumEvents: number } }, { evictedKeys: string[]; retainedKeys: string[] }>;
-  'high-resolution-timing': ScenarioBase<'high-resolution-timing', { busyWaitMs: number; event: TimingEventFixture }, { minElapsedMs: number }>;
-  'hook-error-instance': ScenarioBase<'hook-error-instance', { errorMessage: string; event: TimingEventFixture }, { instanceOf: 'HookInvocationError' }>;
-  'immediate-operations': ScenarioBase<'immediate-operations', { event: TimingEventFixture }, Record<string, never>>;
-  'includes-duration': ScenarioBase<'includes-duration', { busyWaitMs: number; event: TimingEventFixture }, { minDurationMs: number }>;
-  'includes-later-events': ScenarioBase<'includes-later-events', { firstEvent: TimingEventFixture; secondEvent: TimingEventFixture }, { newKey: string }>;
-  'increasing-elapsed-times': ScenarioBase<'increasing-elapsed-times', { busyWaitMs: number[]; events: TimingEventFixture[] }, { keysInOrder: string[] }>;
-  'initial-only-initialize': ScenarioBase<'initial-only-initialize', { observeInitialize: boolean }, { durationMsType: 'number'; eventKeys: string[] }>;
-  'json-serializable': ScenarioBase<'json-serializable', { event: TimingEventFixture }, { serializable: boolean }>;
-  'logbody-context': ScenarioBase<'logbody-context', { events: TimingEventFixture[] }, { allValuesAreNumbers: boolean; keys: string[] }>;
-  'maintains-most-recent-events': ScenarioBase<'maintains-most-recent-events', { cases: Array<{ eventNames: string[]; timing: { maximumEvents: number } }> }, { retainedSets: string[][] }>;
-  'maximumEvents-accessible': ScenarioBase<'maximumEvents-accessible', { timing: { maximumEvents: number } }, { maximumEvents: number; startTimeType: 'bigint' }>;
-  'maximumEvents-defaults': ScenarioBase<'maximumEvents-defaults', { defaultMaxEvents: number }, { maximumEvents: number }>;
-  'mixes-status-and-plain': ScenarioBase<'mixes-status-and-plain', { events: TimingEventFixture[] }, { keys: string[] }>;
-  'non-negative-values': ScenarioBase<'non-negative-values', { events: TimingEventFixture[] }, { allElapsedNonNegative: boolean }>;
-  'onClear-hook-called': ScenarioBase<'onClear-hook-called', { batch: { clearCount: number } }, { clearCount: number }>;
-  'onEvent-hook-called': ScenarioBase<'onEvent-hook-called', { event: TimingEventFixture }, { eventCountDelta: number; lastEventData: string }>;
-  'onEvict-hook-called': ScenarioBase<'onEvict-hook-called', { events: TimingEventFixture[]; timing: { maximumEvents: number } }, { evictCountAtLeast: number }>;
-  'onGetEvents-hook-fires': ScenarioBase<'onGetEvents-hook-fires', { events: TimingEventFixture[] }, { getEventsCount: number; lastEventCounts: number[] }>;
-  'onInitialize-hook-fires': ScenarioBase<'onInitialize-hook-fires', { construct: boolean }, { initCount: number; startTimeType: 'bigint' }>;
-  'optional-status': ScenarioBase<'optional-status', { events: TimingEventFixture[] }, { keys: string[] }>;
-  'read-hrtime-called': ScenarioBase<'read-hrtime-called', { event: TimingEventFixture }, { readCountDelta: number }>;
-  'returns-new-object': ScenarioBase<'returns-new-object', { event: TimingEventFixture }, { sameReference: boolean }>;
-  'same-name-events': ScenarioBase<'same-name-events', { busyWaitMs: number; event: TimingEventFixture }, { keys: string[]; uniqueCount: number }>;
-  'starts-immediately': ScenarioBase<'starts-immediately', { busyWaitMs: number }, { hasInitialize: boolean; minDurationMs: number }>;
-  'throwing-onClear': ScenarioBase<'throwing-onClear', { errorMessage: string; event: TimingEventFixture }, { errorName: 'HookInvocationError' }>;
-  'throwing-onEvent': ScenarioBase<'throwing-onEvent', { errorMessage: string; event: TimingEventFixture }, { errorName: 'HookInvocationError' }>;
-  'throwing-onEvict': ScenarioBase<'throwing-onEvict', { errorMessage: string; event: TimingEventFixture; timing: { maximumEvents: number } }, { errorName: 'HookInvocationError' }>;
-  'throwing-onGetEvents': ScenarioBase<'throwing-onGetEvents', { errorMessage: string }, { errorName: 'HookInvocationError' }>;
-  'throwing-onInitialize': ScenarioBase<'throwing-onInitialize', { errorMessage: string }, { errorName: 'HookInvocationError' }>;
-  'timing-status-constants': ScenarioBase<'timing-status-constants', { events: TimingEventFixture[] }, { keys: string[] }>;
-};
-
-type ScenarioShape = keyof ScenarioCaseByShape;
-type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
+type ScenarioCase = TimingScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void> | void;
 type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(TimingScenarioCaseEntity.Schema, TimingScenarioCaseEntity.Node);
 
 class TestClock {
   static busyWait(ms: number): void {
@@ -709,7 +654,7 @@ function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase
 }
 
 void describe('Timing', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

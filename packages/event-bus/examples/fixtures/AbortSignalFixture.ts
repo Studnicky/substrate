@@ -1,4 +1,4 @@
-export const AbortSignalFixture = Object.freeze({
-  'abortedDuringDelivery': [] as boolean[],
-  'received': [] as string[]
+export const AbortSignalFixture: { readonly 'abortedDuringDelivery': boolean[]; readonly 'received': string[] } = Object.freeze({
+  'abortedDuringDelivery': [],
+  'received': []
 });

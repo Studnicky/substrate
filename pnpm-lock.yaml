@@ -164,9 +164,15 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/bounded-dispatcher:
     dependencies:
@@ -405,6 +411,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/errors:
     dependencies:
@@ -673,6 +682,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/idempotency-guard:
     dependencies:
@@ -764,9 +776,15 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/logger:
     dependencies:
@@ -861,6 +879,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/mutex:
     dependencies:
@@ -992,6 +1013,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/resilience:
     dependencies:
@@ -1155,9 +1179,15 @@ importers:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
@@ -1289,6 +1319,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/topic-router:
     dependencies:

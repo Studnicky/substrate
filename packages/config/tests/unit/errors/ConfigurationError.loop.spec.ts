@@ -5,42 +5,19 @@ import { describe, it } from 'node:test';
 
 
 import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
+import { ConfigurationErrorScenariosEntity } from '../entities/ConfigurationErrorScenariosEntity.js';
 
 import scenarioGroups from './ConfigurationError.scenarios.json' with { type: 'json' };
 
-type ConstructionOutcome =
-  | 'ConfigurationError'
-  | 'base-error'
-  | 'config.invalid'
-  | 'error'
-  | 'retryable-false'
-  | 'stack';
+type ConstructionScenario = ConfigurationErrorScenariosEntity.Type['construction'][number];
 
-type ConstructionScenario = {
-  readonly description: string;
-  readonly outcome: ConstructionOutcome;
-};
+type ConstructionOutcome = ConstructionScenario['outcome'];
 
-type DirectShape = 'cause' | 'json' | 'message';
+type DirectScenario = ConfigurationErrorScenariosEntity.Type['direct'][number];
 
-type DirectOutcome = {
-  readonly causeMessage?: string;
-  readonly code?: string;
-  readonly message?: string;
-};
+type DirectShape = DirectScenario['shape'];
 
-type DirectScenario = {
-  readonly causeMessage?: string;
-  readonly description: string;
-  readonly shape: DirectShape;
-  readonly message: string;
-  readonly outcome: DirectOutcome;
-};
-
-const typedScenarioGroups = scenarioGroups as {
-  readonly construction: readonly ConstructionScenario[];
-  readonly direct: readonly DirectScenario[];
-};
+const typedScenarioGroups = ConfigurationErrorScenariosEntity.intake(scenarioGroups);
 
 const constructionAssertions: Record<ConstructionOutcome, (err: ConfigurationError) => void> = {
   'ConfigurationError': (err): void => {

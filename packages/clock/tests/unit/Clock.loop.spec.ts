@@ -67,14 +67,6 @@ function materializeVirtualTimeCounterOptions(
   return virtualTimeCounterOptionsByShape[input.shape](input);
 }
 
-const objectFixtureByShape = {
-  'empty-object': () => ({})
-} satisfies Record<ClockScenarioCaseEntity.ObjectFixture['shape'], () => Record<string, never>>;
-
-function materializeObjectFixture(input: ClockScenarioCaseEntity.ObjectFixture): Record<string, never> {
-  return objectFixtureByShape[input.shape]();
-}
-
 function createRealTimeClockProvider(input: ClockScenarioCaseEntity.RealTimeClockProviderOptions): RealTimeClockProvider {
   return RealTimeClockProvider.create(materializeRealTimeClockProviderOptions(input));
 }
@@ -209,11 +201,15 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
   },
   'clock-invalid-provider': (scenarioCase) => {
     if (scenarioCase.shape !== 'clock-invalid-provider') { throw RuntimeError.create('unreachable: expected clock-invalid-provider shape'); }
-    const { expected, input } = scenarioCase;
+    const { expected } = scenarioCase;
+    // A real ClockProviderInterface value whose members are unreachable at runtime — proves the
+    // constructor guard rejects it without forcing a compile-time-invalid value through create().
+    const provider = new Proxy<ClockProviderInterface>(
+      { hrtime: () => ZERO_NS, now: () => 0 },
+      { get: () => undefined }
+    );
     assert.throws(() => {
-      // penitence: as-never — no assertion-free way to pass a structurally invalid
-      // value to a strictly-typed constructor on purpose. Flagged as a blocker.
-      Clock.create(materializeObjectFixture(input.providerFixture) as never);
+      Clock.create(provider);
     }, { message: expected.message });
     return;
   },
@@ -227,10 +223,11 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
   },
   'virtual-provider-invalid-counter': (scenarioCase) => {
     if (scenarioCase.shape !== 'virtual-provider-invalid-counter') { throw RuntimeError.create('unreachable: expected virtual-provider-invalid-counter shape'); }
-    const { expected, input } = scenarioCase;
+    const { expected } = scenarioCase;
+    // Same real-value-with-unreachable-members case as clock-invalid-provider above.
+    const counter = new Proxy(VirtualTimeCounter.create(), { get: () => undefined });
     assert.throws(() => {
-      // penitence: as-never — same constructor-guard case as clock-invalid-provider above.
-      VirtualClockProvider.create(materializeObjectFixture(input.counterFixture) as never);
+      VirtualClockProvider.create(counter);
     }, { message: expected.message });
     return;
   },

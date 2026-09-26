@@ -1,40 +1,20 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { TIMING_STATUS } from '../../src/constants/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { TimingEventScenarioCaseEntity } from './entities/TimingEventScenarioCaseEntity.js';
 import scenarioGroups from './TimingEvent.scenarios.json' with { type: 'json' };
 
 type TimingStatus = (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS];
-type TimingEventInput = { component: string; operation: string };
-type TimingEventWithStatusInput = TimingEventInput & { status: TimingStatus };
 
-type ScenarioBase<
-  Shape extends string,
-  Input extends Record<string, unknown>,
-  Expected extends Record<string, unknown>
-> = {
-  description: string;
-  expected: Expected;
-  input: Input;
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCaseByShape = {
-  'component-operation-format': ScenarioBase<'component-operation-format', TimingEventInput, { event: string }>;
-  'domain-specific-status': ScenarioBase<'domain-specific-status', TimingEventWithStatusInput, { event: string }>;
-  'immutable-event-data': ScenarioBase<'immutable-event-data', TimingEventInput, { frozen: true }>;
-  'includes-status': ScenarioBase<'includes-status', TimingEventWithStatusInput, { event: string }>;
-  'independent-event-values': ScenarioBase<'independent-event-values', { first: TimingEventInput; second: TimingEventInput }, { firstEvent: string; secondEvent: string }>;
-  'missing-component': ScenarioBase<'missing-component', { operation: string }, { errorName: string }>;
-  'missing-operation': ScenarioBase<'missing-operation', { component: string }, { errorName: string }>;
-};
-
-type ScenarioShape = keyof ScenarioCaseByShape;
-type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
+type ScenarioCase = TimingEventScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(TimingEventScenarioCaseEntity.Schema, TimingEventScenarioCaseEntity.Node);
 
 function createInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
   Reflect.apply(TimingEvent.create, TimingEvent, [input]);
@@ -97,7 +77,7 @@ function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase
 }
 
 void describe('TimingEvent', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

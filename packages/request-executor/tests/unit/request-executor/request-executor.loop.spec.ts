@@ -1,4 +1,5 @@
 import { SchemaIntakeError } from '@studnicky/entity/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
@@ -23,7 +24,10 @@ import type { RequestExecutorConfigInterface } from '../../../src/interfaces/Req
 import type { RequestExecutorOperationContextInterface } from '../../../src/interfaces/RequestExecutorOperationContextInterface.js';
 import type { RequestScopeFactoryInterface } from '../../../src/interfaces/RequestScopeFactoryInterface.js';
 import type { RequestScopeInterface } from '../../../src/interfaces/RequestScopeInterface.js';
+import { RequestExecutorScenarioCaseEntity } from './entities/RequestExecutorScenarioCaseEntity.js';
 import scenarioGroups from './request-executor.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(RequestExecutorScenarioCaseEntity.Schema, RequestExecutorScenarioCaseEntity.Node);
 
 interface ScenarioRequestExecutorInputInterface {
   context?: { name: string };
@@ -47,132 +51,7 @@ async function captureRejectedError<T>(promise: Promise<T>): Promise<Error> {
   assert.fail('Expected promise to reject');
 }
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: { values: Array<Record<string, unknown>> };
-      shape: 'entity-validates-deadlines';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: false };
-      input: { values: Array<Record<string, unknown>> };
-      shape: 'entity-rejects-invalid-deadline';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { requestMethod: 'GET'; requestUrl: string; responseText: string; result: string };
-      input: {
-        fetchInputUrl: string;
-        fetchMethod: 'GET';
-        fetchResponseText: string;
-        requestPath: string;
-        requestExecutor: ScenarioRequestExecutorInputInterface;
-      };
-      shape: 'create-plain-config';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { result: string; retryTotalRetries: number; sameFetchClient: true };
-      input: {
-        requestExecutor: ScenarioRequestExecutorInputInterface;
-        retryFailOnceMessage: string;
-      };
-      shape: 'create-with-instances';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { responseStatus: number; responseText: string };
-      input: { fetchResponseText: string; fetchUrl: string };
-      shape: 'caller-owned-runtime-ports';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { observedRequestId: string };
-      input: { contextValue: string; fetchResponseText: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'context-roundtrip';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { observedSeed: number };
-      input: { contextSeed: number; fetchResponseText: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'context-seeded-values';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { aborted: true };
-      input: {
-        abortAfterMs: number;
-        fetchPath: string;
-        requestExecutor: ScenarioRequestExecutorInputInterface;
-      };
-      shape: 'cancellation-merged-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { responseStatus: number; signalAborted: false };
-      input: { fetchDelayMs: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface; responseText: string };
-      shape: 'cancellation-default-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { responseStatus: number; signalAborted: false };
-      input: { fetchDelayMs: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface; responseText: string };
-      shape: 'cancellation-deadline-only';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookNames: string[]; responseStatus: number };
-      input: { fetchFailures: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'hooks-bracket-retry-loop';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessage: string; hookNames: string[] };
-      input: { errorMessage: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'hooks-bracket-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessage: string; hookErrorCount: number; hookErrorName: string };
-      input: { errorMessage: string; hookFailureMessage: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'hooks-error-not-swallowed';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookErrorCount: number; responseStatus: number; responseText: string };
-      input: { fetchResponseText: string; fetchUrl: string };
-      shape: 'hooks-noop-default';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        requestPaths: string[];
-        responseStatuses: number[];
-        retryAttempts: number[];
-        scheduledRetries: number[];
-        responseStatus: number;
-        responseText: string;
-      };
-      input: { fetchFailures: number; fetchPath: string; requestExecutor: ScenarioRequestExecutorInputInterface };
-      shape: 'hooks-fire-through-executor';
-      name: string;
-    };
+type ScenarioCase = RequestExecutorScenarioCaseEntity.Type;
 
 const originalFetch = globalThis.fetch;
 
@@ -691,7 +570,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('RequestExecutor', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
