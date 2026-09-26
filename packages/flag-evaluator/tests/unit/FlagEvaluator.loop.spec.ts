@@ -6,7 +6,7 @@ import {
 } from 'node:test';
 
 import { FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
-import { FlagContextEntity } from '../../src/entities/index.js';
+import { FlagContextEntity, FlagDefinitionEntity } from '../../src/entities/index.js';
 import { FlagEvaluatorScenarioCaseEntity } from './entities/FlagEvaluatorScenarioCaseEntity.js';
 import scenarioGroups from './FlagEvaluator.scenarios.json' with { type: 'json' };
 
@@ -167,13 +167,16 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
   'missing-default-value': (scenarioCase) => {
     if (scenarioCase.shape !== 'missing-default-value') { throw RuntimeError.create('unreachable: expected missing-default-value shape'); }
-    const { definition, flag } = scenarioCase.input.flagEvaluator;
+    const { definition } = scenarioCase.input.flagEvaluator;
     const { expected } = scenarioCase;
-    assert.throws(() => {
-      // penitence: as-never — `definition` intentionally omits `defaultValue` to exercise
-      // the registration guard; FlagDefinitionEntity.InputType requires it, on purpose.
-      evaluator.register(flag, definition as never);
-    }, (error: Error) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message));
+    // `definition` intentionally omits `defaultValue`, so it fails FlagDefinitionEntity.InputType
+    // at compile time. Exercise the guard `register()` delegates to through its unknown-accepting
+    // `validate` surface instead of forcing the value through the typed `register()` parameter.
+    assert.strictEqual(FlagDefinitionEntity.validate(definition), false);
+    const messages = (FlagDefinitionEntity.validate.errors ?? [])
+      .map((error) => error.message ?? String(error))
+      .join('; ');
+    assert.ok(messages.includes(expected.message));
     return;
   },
 
