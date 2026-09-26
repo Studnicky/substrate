@@ -1,33 +1,16 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Predicates } from '../../src/predicates/Predicates.js';
 
+import { PredicatesNetworkAndVersioningScenarioCaseEntity } from './entities/PredicatesNetworkAndVersioningScenarioCaseEntity.js';
 import scenarioGroups from './predicates-network-and-versioning.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'cidr-in-range'
-  | 'range-date-boundary'
-  | 'range-numeric-boundary'
-  | 'range-string-case'
-  | 'semver-compare-sign'
-  | 'semver-satisfies'
-  | 'strict-number';
+type ScenarioCase = PredicatesNetworkAndVersioningScenarioCaseEntity.Type;
+type ScenarioRunnerMap = Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void>;
 
-type BaseScenarioCase<Shape extends ScenarioShape> = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
-  name: string;
-  shape: Shape;
-};
-
-type ScenarioCaseByShape = {
-  [Shape in ScenarioShape]: BaseScenarioCase<Shape>;
-};
-
-type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
-type ScenarioRunnerMap = Record<ScenarioShape, (scenarioCase: ScenarioCase) => void>;
+const fileIntake = ScenarioFileCompiler.compileIntake(PredicatesNetworkAndVersioningScenarioCaseEntity.Schema, PredicatesNetworkAndVersioningScenarioCaseEntity.Node);
 
 const runnerMap: ScenarioRunnerMap = {
   'cidr-in-range': (scenarioCase) => {
@@ -92,12 +75,12 @@ const runnerMap: ScenarioRunnerMap = {
   }
 };
 
-function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseByShape[Shape]): void {
+function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Predicates network and versioning', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
