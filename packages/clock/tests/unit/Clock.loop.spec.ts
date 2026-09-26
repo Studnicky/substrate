@@ -709,8 +709,8 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     const counter = new HookedCounter(materializeVirtualTimeCounterOptions(input.counterOptions));
     counter.advance(input.advanceMs);
     assert.strictEqual(counter.advanceEvents.length, 1);
-    assert.strictEqual(counter.advanceEvents[0]!.deltaMs, expected.hookCalls[0]!);
-    assert.strictEqual(counter.advanceEvents[0]!.nowMs, expected.hookCalls[1]!);
+    assert.strictEqual(counter.advanceEvents[0]!.deltaMs, expected.hookCalls[0]);
+    assert.strictEqual(counter.advanceEvents[0]!.nowMs, expected.hookCalls[1]);
     return;
   },
 
