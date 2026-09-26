@@ -89,13 +89,13 @@ class TypePredicateGuard {
       return false;
     }
 
-    const returnType: unknown = (node as { readonly 'returnType'?: unknown }).returnType;
+    const returnType = AstHelpers.getNodeProperty(node, 'returnType');
 
     if (!Predicates.isRecord(returnType)) {
       return false;
     }
 
-    const typeAnnotation: unknown = (returnType as { readonly 'typeAnnotation'?: unknown }).typeAnnotation;
+    const typeAnnotation = AstHelpers.getNodeProperty(returnType, 'typeAnnotation');
 
     if (!Predicates.isRecord(typeAnnotation)) {
       return false;
@@ -118,13 +118,13 @@ class TypeContractGuard {
       return false;
     }
 
-    const computed = (container as { readonly 'computed'?: unknown }).computed;
+    const computed = AstHelpers.getNodeProperty(container, 'computed');
 
     if (computed !== false) {
       return false;
     }
 
-    const methodName = TypeContractGuard.#getStaticKeyName((container as { readonly 'key'?: unknown }).key);
+    const methodName = TypeContractGuard.#getStaticKeyName(AstHelpers.getNodeProperty(container, 'key'));
 
     if (methodName === undefined) {
       return false;
@@ -178,13 +178,13 @@ class TypeContractGuard {
 
   /** `protected` accessibility or an explicit `override` modifier -- a declared override seam. */
   static #hasLocalContractModifier(container: Rule.Node): boolean {
-    const accessibility = (container as { readonly 'accessibility'?: unknown }).accessibility;
+    const accessibility = AstHelpers.getNodeProperty(container, 'accessibility');
 
     if (accessibility === 'protected') {
       return true;
     }
 
-    const overrideModifier = (container as { readonly 'override'?: unknown }).override;
+    const overrideModifier = AstHelpers.getNodeProperty(container, 'override');
     const result = overrideModifier === true;
 
     return result;

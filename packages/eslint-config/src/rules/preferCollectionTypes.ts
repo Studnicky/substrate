@@ -343,13 +343,13 @@ class ScopeReferenceDetection {
     if (NodePropertyAccess.getString(prop, 'name') !== 'includes') { return false; }
 
     // Identifier must be the object (left side), not an argument
-    if (parent.object !== (id as unknown)) { return false; }
+    if (parent.object !== id) { return false; }
 
     // MemberExpression must be the callee of a CallExpression
     const grandParent = AstHelpers.getParent(parent);
     if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
-    if (grandParent.callee !== (parent as unknown)) { return false; }
+    if (grandParent.callee !== parent) { return false; }
 
     return true;
   }
@@ -365,15 +365,15 @@ class ScopeReferenceDetection {
     if (!Predicates.isRecord(prop)) { return false; }
     if (NodePropertyAccess.getString(prop, 'name') !== 'indexOf') { return false; }
 
-    if (parent.object !== (id as unknown)) { return false; }
+    if (parent.object !== id) { return false; }
 
     const grandParent = AstHelpers.getParent(parent);
     if (!Predicates.isRecord(grandParent)) { return false; }
     if (AstHelpers.getNodeType(grandParent) !== 'CallExpression') { return false; }
-    if (grandParent.callee !== (parent as unknown)) { return false; }
+    if (grandParent.callee !== parent) { return false; }
 
     const greatGrandParent = AstHelpers.getParent(grandParent);
-    const result = MembershipIndexOfCall.get(greatGrandParent) === (grandParent as unknown);
+    const result = MembershipIndexOfCall.get(greatGrandParent) === grandParent;
     return result;
   }
 
@@ -383,7 +383,7 @@ class ScopeReferenceDetection {
     if (!Predicates.isRecord(parent)) { return false; }
     if (AstHelpers.getNodeType(parent) !== 'MemberExpression') { return false; }
     if (NodePropertyAccess.getBool(parent, 'computed') !== true) { return false; }
-    const result = parent.object === (id as unknown);
+    const result = parent.object === id;
     return result;
   }
 }
@@ -543,9 +543,9 @@ class RuleHandlers {
   private static constIdentifierName(node: Rule.Node): string | undefined {
     const id = AstHelpers.getNodeProperty(node, 'id');
 
-    if (AstHelpers.getNodeType(id) !== 'Identifier') { return undefined; }
+    if (!Predicates.isRecord(id) || AstHelpers.getNodeType(id) !== 'Identifier') { return undefined; }
 
-    const result = NodePropertyAccess.getString(id as Record<string, unknown>, 'name');
+    const result = NodePropertyAccess.getString(id, 'name');
 
     return result;
   }
