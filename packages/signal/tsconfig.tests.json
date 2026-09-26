@@ -21,10 +21,16 @@
       "path": "../clock"
     },
     {
+      "path": "../entity"
+    },
+    {
       "path": "../errors"
     },
     {
       "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../scenario-kit"
     },
     {
       "path": "../scheduler"

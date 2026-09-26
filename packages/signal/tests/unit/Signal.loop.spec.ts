@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
 import { VirtualScheduler } from '@studnicky/scheduler/node';
@@ -12,7 +13,10 @@ import type { DeadlineTimerInterface } from '../../src/interfaces/DeadlineTimerI
 
 import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { Signal, SignalError } from '../../src/index.js';
+import { SignalScenarioCaseEntity } from './entities/SignalScenarioCaseEntity.js';
 import scenarioGroups from './Signal.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(SignalScenarioCaseEntity.Schema, SignalScenarioCaseEntity.Node);
 
 /**
  * `DeadlineTimerInterface` backed by a `VirtualScheduler` + paired `VirtualClockProvider`
@@ -35,147 +39,7 @@ type ComposeSignalId = 'abort-controller' | 'provided';
 type SerializableComposeOptions = { deadlineMs?: number; signalId?: ComposeSignalId };
 type ComposeRuntime = { controllers: Record<ComposeSignalId, AbortController> };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { aborted: false };
-      input: Record<string, never>;
-      shape: 'never-aborts';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { distinctInstances: true; firstAborted: false; secondAborted: false };
-      input: Record<string, never>;
-      shape: 'never-distinct-instances';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { aborted: false };
-      input: { aborted: false; composeOptions: SerializableComposeOptions };
-      shape: 'compose-empty-options';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { sameSignal: true };
-      input: { composeOptions: { signalId: 'provided' } };
-      shape: 'compose-provided-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortedAfterAbort: true; initialAborted: false };
-      input: { composeOptions: { deadlineMs: number; signalId: 'abort-controller' } };
-      shape: 'compose-signal-deadline-abort';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortedAfterWait: true; initialAborted: false };
-      input: { composeOptions: { deadlineMs: number }; waitMs: number };
-      shape: 'compose-deadline-fires';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessageIncludes: string };
-      input: { composeOptions: { deadlineMs: number } };
-      shape: 'compose-invalid-deadline';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { aborted: false };
-      input: { composeOptions: SerializableComposeOptions };
-      shape: 'instance-empty-options';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { sameSignal: true };
-      input: { composeOptions: { signalId: 'provided' } };
-      shape: 'instance-provided-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: 1; resultMatches: true };
-      input: { composeOptions: SerializableComposeOptions };
-      shape: 'on-compose-signal-only';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: 1; resultMatches: true };
-      input: { composeOptions: SerializableComposeOptions };
-      shape: 'on-compose-deadline-only';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: 1; resultMatches: true };
-      input: { composeOptions: SerializableComposeOptions };
-      shape: 'on-compose-empty-options';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { causeMessage: string; hookName: 'onCompose' };
-      input: { composeOptions: SerializableComposeOptions; message: string };
-      shape: 'throwing-on-compose-surfaces';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { causeMessage: string; hookName: 'onCompose' };
-      input: { composeOptions: SerializableComposeOptions; message: string };
-      shape: 'async-on-compose-rejection-surfaces';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { aborted: false };
-      input: { composeOptions: SerializableComposeOptions; message: string };
-      shape: 'swallowing-hook-invoker';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { outcome: 'timeout' };
-      input: { waitMs: number };
-      shape: 'race-timeout-no-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'timeout' };
-      input: { waitMs: number };
-      shape: 'race-timeout-removes-listener';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortListenerCountAfter: 0; abortListenerCountBefore: 1; outcome: 'aborted' };
-      input: { waitMs: number };
-      shape: 'race-timeout-removes-listener-on-abort';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { outcome: 'aborted' };
-      input: Record<string, never>;
-      shape: 'race-timeout-already-aborted';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { code: 'signal.invalidConfig' };
-      input: { message: string };
-      shape: 'signal-error-construction';
-      name: string;
-    };
+type ScenarioCase = SignalScenarioCaseEntity.Type;
 
 class RecordingSignal extends Signal {
   public calls: Array<{ options: ComposeOptions; result: AbortSignal }> = [];
@@ -439,7 +303,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Signal', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
