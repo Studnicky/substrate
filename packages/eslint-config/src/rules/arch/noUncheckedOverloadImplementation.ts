@@ -10,96 +10,180 @@ import { AstHelpers } from '../shared/astHelpers.js';
 // implementation's. An overload set can declare a type the implementation never proves, and
 // the compiler stays silent. This rule performs the check the compiler skips.
 
-class GenericTypeParameterUsage {
-  /** True when `type` structurally contains one of `parameters`, walking alias/reference type arguments, unions/intersections, and object properties. */
-  public static references(type: ts.Type, parameters: readonly ts.Type[], checker: ts.TypeChecker, seen: Set<ts.Type> = new Set()): boolean {
-    if (parameters.length === 0 || seen.has(type)) {
-      return false;
-    }
+/**
+ * Two independently-declared type parameter objects at the same position of a signature and
+ * its overload are the same conceptual variable under a different name — `isTypeAssignableTo`
+ * treats them as unrelated free variables and cannot prove that. `holds` walks both types in
+ * parallel, treating `sourceParameters[i]` as identical to `targetParameters[i]` and otherwise
+ * demanding the same structural shape (same union arity, same generic target, same property
+ * set) recursively. A shape mismatch — an overload's single type folded into an implementation
+ * union, for instance — fails alpha-equivalence and falls through to a real assignability
+ * check, which correctly rejects it: the implementation might resolve to the union member the
+ * overload never promised.
+ */
+interface AlphaEquivalenceContextInterface {
+  readonly 'checker': ts.TypeChecker;
+  readonly 'positionMap': ReadonlyMap<ts.Type, ts.Type>;
+  readonly 'reverseMap': ReadonlyMap<ts.Type, ts.Type>;
+  readonly 'seen': Set<string>;
+}
 
-    seen.add(type);
-
-    if (parameters.includes(type)) {
+class GenericAlphaEquivalence {
+  public static holds(source: ts.Type, target: ts.Type, context: AlphaEquivalenceContextInterface): boolean {
+    if (source === target) {
       return true;
     }
 
-    const result = GenericTypeParameterUsage.referencesAliasArguments(type, parameters, checker, seen)
-      || GenericTypeParameterUsage.referencesUnionMembers(type, parameters, checker, seen)
-      || GenericTypeParameterUsage.referencesTypeArguments(type, parameters, checker, seen)
-      || GenericTypeParameterUsage.referencesProperties(type, parameters, checker, seen);
+    const mappedTarget = context.positionMap.get(source);
+
+    if (mappedTarget !== undefined) {
+      const result = mappedTarget === target;
+
+      return result;
+    }
+
+    if (context.reverseMap.has(target)) {
+      return false;
+    }
+
+    const cycleKey = `${context.checker.typeToString(source)}~~~${context.checker.typeToString(target)}`;
+
+    if (context.seen.has(cycleKey)) {
+      return true;
+    }
+
+    context.seen.add(cycleKey);
+
+    const result = GenericAlphaEquivalence.unionsEquivalent(source, target, context)
+      ?? GenericAlphaEquivalence.aliasArgumentsEquivalent(source, target, context)
+      ?? GenericAlphaEquivalence.referenceArgumentsEquivalent(source, target, context)
+      ?? GenericAlphaEquivalence.propertiesEquivalent(source, target, context)
+      ?? false;
 
     return result;
   }
 
-  private static referencesAliasArguments(type: ts.Type, parameters: readonly ts.Type[], checker: ts.TypeChecker, seen: Set<ts.Type>): boolean {
-    const aliasArguments = type.aliasTypeArguments ?? [];
-    const argumentCount = aliasArguments.length;
+  /** Returns `undefined` (not applicable) rather than `false` when the two types aren't both this shape, so the caller can try the next shape instead of failing outright. */
+  private static unionsEquivalent(source: ts.Type, target: ts.Type, context: AlphaEquivalenceContextInterface): boolean | undefined {
+    if (!source.isUnionOrIntersection() && !target.isUnionOrIntersection()) {
+      return undefined;
+    }
+
+    if (!source.isUnionOrIntersection() || !target.isUnionOrIntersection() || source.types.length !== target.types.length) {
+      return false;
+    }
+
+    const sourceMembers = source.types;
+    const targetMembers = target.types;
+    const usedTargetIndexes = new Set<number>();
+    const sourceMemberCount = sourceMembers.length;
+
+    for (let sourceIndex = 0; sourceIndex < sourceMemberCount; sourceIndex += 1) {
+      const sourceMember = sourceMembers[sourceIndex];
+
+      if (sourceMember === undefined || !GenericAlphaEquivalence.matchesSomeMember(sourceMember, targetMembers, usedTargetIndexes, context)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static matchesSomeMember(sourceMember: ts.Type, targetMembers: readonly ts.Type[], usedTargetIndexes: Set<number>, context: AlphaEquivalenceContextInterface): boolean {
+    const targetCount = targetMembers.length;
+
+    for (let targetIndex = 0; targetIndex < targetCount; targetIndex += 1) {
+      if (usedTargetIndexes.has(targetIndex)) {
+        continue;
+      }
+
+      const targetMember = targetMembers[targetIndex];
+
+      if (targetMember !== undefined && GenericAlphaEquivalence.holds(sourceMember, targetMember, context)) {
+        usedTargetIndexes.add(targetIndex);
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static aliasArgumentsEquivalent(source: ts.Type, target: ts.Type, context: AlphaEquivalenceContextInterface): boolean | undefined {
+    if (source.aliasSymbol === undefined && target.aliasSymbol === undefined) {
+      return undefined;
+    }
+
+    if (source.aliasSymbol !== target.aliasSymbol) {
+      return false;
+    }
+
+    const result = GenericAlphaEquivalence.typeArgumentListsEquivalent(source.aliasTypeArguments ?? [], target.aliasTypeArguments ?? [], context);
+
+    return result;
+  }
+
+  private static referenceArgumentsEquivalent(source: ts.Type, target: ts.Type, context: AlphaEquivalenceContextInterface): boolean | undefined {
+    const sourceIsReference = AstHelpers.isTypeReference(source);
+    const targetIsReference = AstHelpers.isTypeReference(target);
+
+    if (!sourceIsReference && !targetIsReference) {
+      return undefined;
+    }
+
+    if (!sourceIsReference || !targetIsReference || source.target !== target.target) {
+      return false;
+    }
+
+    const result = GenericAlphaEquivalence.typeArgumentListsEquivalent(context.checker.getTypeArguments(source), context.checker.getTypeArguments(target), context);
+
+    return result;
+  }
+
+  private static typeArgumentListsEquivalent(sourceArguments: readonly ts.Type[], targetArguments: readonly ts.Type[], context: AlphaEquivalenceContextInterface): boolean {
+    if (sourceArguments.length !== targetArguments.length) {
+      return false;
+    }
+
+    const argumentCount = sourceArguments.length;
 
     for (let index = 0; index < argumentCount; index += 1) {
-      const argument = aliasArguments[index];
+      const sourceArgument = sourceArguments[index];
+      const targetArgument = targetArguments[index];
 
-      if (argument !== undefined && GenericTypeParameterUsage.references(argument, parameters, checker, seen)) {
-        return true;
+      if (sourceArgument === undefined || targetArgument === undefined || !GenericAlphaEquivalence.holds(sourceArgument, targetArgument, context)) {
+        return false;
       }
     }
 
-    return false;
+    return true;
   }
 
-  private static referencesUnionMembers(type: ts.Type, parameters: readonly ts.Type[], checker: ts.TypeChecker, seen: Set<ts.Type>): boolean {
-    if (!type.isUnionOrIntersection()) {
+  private static propertiesEquivalent(source: ts.Type, target: ts.Type, context: AlphaEquivalenceContextInterface): boolean | undefined {
+    if ((source.flags & ts.TypeFlags.Object) === 0 || (target.flags & ts.TypeFlags.Object) === 0) {
+      return undefined;
+    }
+
+    const sourceProperties = context.checker.getPropertiesOfType(source);
+    const targetProperties = context.checker.getPropertiesOfType(target);
+
+    if (sourceProperties.length !== targetProperties.length) {
       return false;
     }
 
-    const memberCount = type.types.length;
+    const targetPropertiesByName = new Map(targetProperties.map((property) => { return [property.name, property] as const; }));
+    const sourcePropertyCount = sourceProperties.length;
 
-    for (let index = 0; index < memberCount; index += 1) {
-      const member = type.types[index];
+    for (let index = 0; index < sourcePropertyCount; index += 1) {
+      const sourceProperty = sourceProperties[index];
+      const targetProperty = sourceProperty === undefined ? undefined : targetPropertiesByName.get(sourceProperty.name);
 
-      if (member !== undefined && GenericTypeParameterUsage.references(member, parameters, checker, seen)) {
-        return true;
+      if (sourceProperty === undefined || targetProperty === undefined || !GenericAlphaEquivalence.holds(context.checker.getTypeOfSymbol(sourceProperty), context.checker.getTypeOfSymbol(targetProperty), context)) {
+        return false;
       }
     }
 
-    return false;
-  }
-
-  private static referencesTypeArguments(type: ts.Type, parameters: readonly ts.Type[], checker: ts.TypeChecker, seen: Set<ts.Type>): boolean {
-    if ((type.flags & ts.TypeFlags.Object) === 0 || !AstHelpers.isTypeReference(type)) {
-      return false;
-    }
-
-    const typeArguments = checker.getTypeArguments(type);
-    const argumentCount = typeArguments.length;
-
-    for (let index = 0; index < argumentCount; index += 1) {
-      const argument = typeArguments[index];
-
-      if (argument !== undefined && GenericTypeParameterUsage.references(argument, parameters, checker, seen)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static referencesProperties(type: ts.Type, parameters: readonly ts.Type[], checker: ts.TypeChecker, seen: Set<ts.Type>): boolean {
-    if ((type.flags & ts.TypeFlags.Object) === 0) {
-      return false;
-    }
-
-    const properties = checker.getPropertiesOfType(type);
-    const propertyCount = properties.length;
-
-    for (let index = 0; index < propertyCount; index += 1) {
-      const property = properties[index];
-
-      if (property !== undefined && GenericTypeParameterUsage.references(checker.getTypeOfSymbol(property), parameters, checker, seen)) {
-        return true;
-      }
-    }
-
-    return false;
+    return true;
   }
 }
 
@@ -112,21 +196,42 @@ interface SignatureProofRelationInterface {
 
 class SignatureProof {
   /**
-   * True when the checker can prove `source` relates to `target`, treating a signature pair
-   * that each derive their compared type from their own type parameters as proven without a
-   * naked assignability check — two independently-declared type parameters of the same name
-   * are otherwise unrelated symbols, so a truly generic overload matched by an equally generic
-   * implementation would otherwise read as unproven.
+   * True when the checker can prove `source` relates to `target`. When both signatures declare
+   * the same number of type parameters, tries alpha-equivalence first — the two signatures may
+   * be the same generic shape under independently-declared type parameter objects. Otherwise,
+   * and whenever alpha-equivalence fails, falls back to a real `isTypeAssignableTo` check.
    */
   public static holds(relation: SignatureProofRelationInterface, checker: ts.TypeChecker): boolean {
-    const sourceIsGeneric = GenericTypeParameterUsage.references(relation.source, relation.sourceParameters, checker);
-    const targetIsGeneric = GenericTypeParameterUsage.references(relation.target, relation.targetParameters, checker);
-
-    if (sourceIsGeneric && targetIsGeneric) {
+    if (SignatureProof.alphaEquivalent(relation, checker)) {
       return true;
     }
 
     const result = checker.isTypeAssignableTo(relation.source, relation.target);
+
+    return result;
+  }
+
+  private static alphaEquivalent(relation: SignatureProofRelationInterface, checker: ts.TypeChecker): boolean {
+    const parameterCount = relation.sourceParameters.length;
+
+    if (parameterCount === 0 || parameterCount !== relation.targetParameters.length) {
+      return false;
+    }
+
+    const positionMap = new Map<ts.Type, ts.Type>();
+    const reverseMap = new Map<ts.Type, ts.Type>();
+
+    for (let index = 0; index < parameterCount; index += 1) {
+      const sourceParameter = relation.sourceParameters[index];
+      const targetParameter = relation.targetParameters[index];
+
+      if (sourceParameter !== undefined && targetParameter !== undefined) {
+        positionMap.set(sourceParameter, targetParameter);
+        reverseMap.set(targetParameter, sourceParameter);
+      }
+    }
+
+    const result = GenericAlphaEquivalence.holds(relation.source, relation.target, { 'checker': checker, 'positionMap': positionMap, 'reverseMap': reverseMap, 'seen': new Set() });
 
     return result;
   }

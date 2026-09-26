@@ -66,6 +66,33 @@
         }
       ],
       "name": "a non-generic implementation returning a type unrelated to the overload's declared return is invalid"
+    },
+    {
+      "code": "interface Box<T> { value: T; } interface Other<T> { other: T; } function makeBox<T>(v: T): Box<T>; function makeBox<T>(v: T): Box<T> | Other<T> { return { value: v }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "an implementation returning a union across arity-dispatched overloads is invalid for the single-type overload it does not prove"
+    },
+    {
+      "code": "interface A<T> { a: T; } interface B<S, T> { s: S; t: T; } function build<T>(v: T): A<T>; function build<S, T>(s: S, v: T): B<S, T>; function build<S, T>(s: S, v?: T): A<T> | B<S, T> { if (v === undefined) { throw new Error('unreachable'); } return { 's': s, 't': v }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "an implementation returning a union of two overloads' distinct result shapes is invalid for the overload it does not prove"
+    },
+    {
+      "code": "interface SchemaNodeInterface<S, T> { schema: S; } function defineArray<TSchema extends Record<string, unknown>, TItem>(schema: TSchema, item: TItem): SchemaNodeInterface<TSchema & { items: TItem }, unknown>; function defineArray(schema: Record<string, unknown>, item: unknown): SchemaNodeInterface<unknown, unknown> { return { schema }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "a free function implementation erasing a generic interface return to its widest instantiation is invalid"
     }
   ]
 }
