@@ -1,3 +1,6 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -8,26 +11,30 @@ import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
 
-type ScenarioCase = {
-  description: string;
-  expected:
-    | { shape: 'ok'; status: number; text?: string }
-    | { id?: number; shape: 'json'; status: number; title?: string };
-  name: string;
-  input: {
-    body?: Record<string, unknown> | string;
-    method: 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
-    path: string;
-  };
-};
-
+import { StandaloneScenarioCaseEntity } from './entities/StandaloneScenarioCaseEntity.js';
 import scenarioGroups from './standalone.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = StandaloneScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(StandaloneScenarioCaseEntity.Schema, StandaloneScenarioCaseEntity.Node);
 
 const client = FetchClient.create();
 
 let testUrl: string;
 
-const requestRunnerMap: Record<ScenarioCase['input']['method'], (url: string, body?: Record<string, unknown> | string) => Promise<Response>> = {
+function requireJsonRecord(value: unknown): { id?: number; title?: string } {
+  if (!Predicates.isObject(value)) {
+    throw RuntimeError.create('Expected a JSON object response body');
+  }
+  const id = value.id;
+  const title = value.title;
+  return {
+    ...(typeof id === 'number' ? { id } : {}),
+    ...(typeof title === 'string' ? { title } : {})
+  };
+}
+
+const requestRunnerMap: Record<ScenarioCase['input']['method'], (url: string, body?: ScenarioCase['input']['body']) => Promise<Response>> = {
   'DELETE': async (url) => client.delete(url),
   'GET': async (url) => client.get(url),
   'HEAD': async (url) => client.head(url),
@@ -58,7 +65,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  const data = await response.json() as { id?: number; title?: string };
+  const data = requireJsonRecord(await response.json());
   if (scenarioCase.expected.id !== undefined) {
     assert.strictEqual(data.id, scenarioCase.expected.id);
   }
@@ -68,7 +75,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('FetchClient HTTP methods with absolute URLs', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

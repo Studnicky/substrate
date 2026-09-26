@@ -1,23 +1,16 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { AbortError, FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { ErrorsScenarioCaseEntity } from './entities/ErrorsScenarioCaseEntity.js';
 import scenarioGroups from './errors.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { error: 'AbortError' | 'Error' | 'TimeoutError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string };
-      input: { signal?: 'abort-after-ms'; timeout?: number; url: string };
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { ok: boolean; status: number };
-      input: { timeout?: number; url: string };
-      name: string;
-    };
+type ScenarioCase = ErrorsScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ErrorsScenarioCaseEntity.Schema, ErrorsScenarioCaseEntity.Node);
 
 const client = FetchClient.create();
 
@@ -93,7 +86,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Error Handling', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

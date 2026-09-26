@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -7,72 +8,25 @@ import { ClientConfigDataEntity } from '../../src/entities/ClientConfigDataEntit
 import { DEFAULT_DISPATCHER_CONFIG } from '../../src/constants/DEFAULT_DISPATCHER_CONFIG.js';
 import { FetchClient } from '../../src/modules/FetchClient.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
+
+import { UndiciConfigMergeScenarioCaseEntity } from './entities/UndiciConfigMergeScenarioCaseEntity.js';
 import scenarioGroups from './undici-config-merge.scenarios.json' with { type: 'json' };
 
-type RuntimeValue =
-  | RuntimeValue[]
-  | boolean
-  | null
-  | number
-  | string
-  | { [key: string]: RuntimeValue };
+type ScenarioCase = UndiciConfigMergeScenarioCaseEntity.Type;
+type ScenarioOperation = ScenarioCase['operation'];
+type ExpectedOutcome = ScenarioCase['expected'];
 
-type MaterializedRuntimeValue =
-  | MaterializedRuntimeValue[]
-  | boolean
-  | null
-  | number
-  | string
-  | { [key: string]: MaterializedRuntimeValue };
-
-type ExpectedOutcome = {
-  shape: 'defaults' | 'dispatcher' | 'fetch-client' | 'ok' | 'throws';
-  messageIncludes?: readonly string[];
-  values?: Record<string, unknown>;
-};
-
-type ScenarioOperation = 'create-client' | 'create-dispatcher' | 'defaults' | 'validate-dispatcher';
-
-type ScenarioCase = {
-  description: string;
-  expected: ExpectedOutcome;
-  input: {
-    dispatcher?: RuntimeValue;
-    fetchClient?: RuntimeValue;
-  };
-  name: string;
-  operation: ScenarioOperation;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(UndiciConfigMergeScenarioCaseEntity.Schema, UndiciConfigMergeScenarioCaseEntity.Node);
 
 type ScenarioAction = () => unknown;
 type OperationFactory = (scenarioCase: ScenarioCase) => ScenarioAction;
 type ExpectedOutcomeRunner = (scenarioCase: ScenarioCase, action: ScenarioAction) => void;
 
-function materializeRuntimeValue(value: RuntimeValue | undefined): MaterializedRuntimeValue {
-  if (value === undefined) {
-    return {};
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => {
-      return materializeRuntimeValue(item);
-    });
-  }
-
-  if (value !== null && typeof value === 'object') {
-    const materialized: Record<string, MaterializedRuntimeValue> = {};
-
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry);
-    }
-
-    return materialized;
-  }
-
-  return value;
+function resolveInputObject(value: ScenarioCase['input']['dispatcher']): object {
+  return value ?? {};
 }
 
-function createDispatcher(config: MaterializedRuntimeValue): UndiciDispatcher {
+function createDispatcher(config: object): UndiciDispatcher {
   const clientConfig = ClientConfigDataEntity.intake({ 'dispatcher': config });
   const dispatcher = clientConfig.dispatcher;
   if (dispatcher === undefined) {
@@ -85,12 +39,12 @@ function createDispatcher(config: MaterializedRuntimeValue): UndiciDispatcher {
 const operationMap: Record<ScenarioOperation, OperationFactory> = {
   'create-client': (scenarioCase) => {
     return () => {
-      return Reflect.apply(FetchClient.create, FetchClient, [materializeRuntimeValue(scenarioCase.input.fetchClient)]);
+      return Reflect.apply(FetchClient.create, FetchClient, [resolveInputObject(scenarioCase.input.fetchClient)]);
     };
   },
   'create-dispatcher': (scenarioCase) => {
     return () => {
-      return createDispatcher(materializeRuntimeValue(scenarioCase.input.dispatcher));
+      return createDispatcher(resolveInputObject(scenarioCase.input.dispatcher));
     };
   },
   defaults: () => {
@@ -100,7 +54,7 @@ const operationMap: Record<ScenarioOperation, OperationFactory> = {
   },
   'validate-dispatcher': (scenarioCase) => {
     return () => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'dispatcher': materializeRuntimeValue(scenarioCase.input.dispatcher) }]);
+      Reflect.apply(FetchClient.create, FetchClient, [{ 'dispatcher': resolveInputObject(scenarioCase.input.dispatcher) }]);
     };
   }
 };
@@ -139,7 +93,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('pool configuration validation and merging', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

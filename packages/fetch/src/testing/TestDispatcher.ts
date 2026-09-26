@@ -102,7 +102,7 @@ export class TestDispatcher {
     this: TestDispatcherSubclassInterface<TInstance>,
     config: DispatcherConfigEntity.InputType = {}
   ): TInstance {
-    const result = Reflect.construct(this, [config]) as object;
+    const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('TestDispatcher.create() did not construct the requested subclass.');
     }
@@ -148,6 +148,11 @@ export class TestDispatcher {
     } catch {
       return {};
     }
+  }
+
+  static #isHeadersInit(value: unknown): value is ConstructorParameters<typeof Headers>[0] {
+    const result = Predicates.isHeaders(value) || Array.isArray(value) || Predicates.isObject(value);
+    return result;
   }
 
   static #toPlainHeaders(headers: ConstructorParameters<typeof Headers>[0] | undefined): Record<string, string> {
@@ -530,7 +535,7 @@ export class TestDispatcher {
       : String(rawBody);
     return new TestRequest({
       'body': TestDispatcher.#readBodyValue(body),
-      'headers': TestDispatcher.#toPlainHeaders(init.headers as ConstructorParameters<typeof Headers>[0] | undefined),
+      'headers': TestDispatcher.#toPlainHeaders(TestDispatcher.#isHeadersInit(init.headers) ? init.headers : undefined),
       'method': Predicates.isString(init.method) ? init.method.toUpperCase() : 'GET',
       'origin': parsedUrl.origin,
       'path': parsedUrl.pathname,

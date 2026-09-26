@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -11,91 +11,27 @@ import {
   SocketExhaustionError
 } from '../../../src/node/index.js';
 
+import { ErrorWrappingScenarioCaseEntity } from './entities/ErrorWrappingScenarioCaseEntity.js';
 import scenarioGroups from './error-wrapping.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { shape: 'undefined' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-unknown-code';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'undefined' };
-      input: { errorCode?: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-no-code';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'undefined' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'handle-no-dispatcher';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'undefined' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'handle-invalid-origin';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'error'; errorName: 'BodyTimeoutError' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-body-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'error'; errorName: 'ConnectTimeoutError' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-connect-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'error'; errorName: 'HeadersTimeoutError' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-headers-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'error'; errorName: 'SocketError' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'wrap-socket-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'socket-exhaustion' };
-      input: { errorCode: string; fetchClient: Parameters<typeof FetchClient.create>[0]; url: string };
-      shape: 'handle-dispatcher-health';
-      name: string;
-    };
+type ScenarioCase = ErrorWrappingScenarioCaseEntity.Type;
+type RunnerMap = { [Shape in ScenarioCase['shape']]: (scenarioCase: ScenarioCase) => Promise<void> };
 
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-type MappedErrorScenario = Extract<ScenarioCase, {
-  shape:
-    | 'wrap-body-timeout'
-    | 'wrap-connect-timeout'
-    | 'wrap-headers-timeout'
-    | 'wrap-socket-error';
-}>;
-type MappedErrorAssertionMap = { [Shape in MappedErrorScenario['shape']]: (wrapped: Error | undefined, scenarioCase: MappedErrorScenario) => void };
+const fileIntake = ScenarioFileCompiler.compileIntake(ErrorWrappingScenarioCaseEntity.Schema, ErrorWrappingScenarioCaseEntity.Node);
 
-function createClient(config: Parameters<typeof FetchClient.create>[0]): FetchClient {
+function createCodedError(message: string, code?: string): NodeJS.ErrnoException {
+  const error: NodeJS.ErrnoException = new Error(message);
+  if (code !== undefined) {
+    error.code = code;
+  }
+  return error;
+}
+
+function createClient(config: ScenarioCase['input']['fetchClient']): FetchClient {
   return FetchClient.create(config);
 }
 
-/**
- * Categorizes a wrapped result the same way `expected.shape` describes it in the scenario data.
- */
+/** Categorizes a wrapped result the same way `expected.shape` describes it in the scenario data. */
 function resultShape(wrapped: Error | undefined): 'error' | 'socket-exhaustion' | 'undefined' {
   if (wrapped === undefined) {
     return 'undefined';
@@ -106,90 +42,86 @@ function resultShape(wrapped: Error | undefined): 'error' | 'socket-exhaustion' 
   return 'error';
 }
 
-const mappedErrorAssertionMap: MappedErrorAssertionMap = {
-  'wrap-body-timeout': (wrapped, scenarioCase) => {
-    assert.ok(wrapped instanceof BodyTimeoutError);
-    assert.equal(wrapped.name, scenarioCase.expected.errorName);
-    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
-  },
-  'wrap-connect-timeout': (wrapped, scenarioCase) => {
-    assert.ok(wrapped instanceof ConnectTimeoutError);
-    assert.equal(wrapped.name, scenarioCase.expected.errorName);
-    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
-  },
-  'wrap-headers-timeout': (wrapped, scenarioCase) => {
-    assert.ok(wrapped instanceof HeadersTimeoutError);
-    assert.equal(wrapped.name, scenarioCase.expected.errorName);
-    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
-  },
-  'wrap-socket-error': (wrapped, scenarioCase) => {
-    assert.ok(wrapped instanceof SocketError);
-    assert.equal(wrapped.name, scenarioCase.expected.errorName);
-    assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
-  }
+function stubDispatcherHealth(client: FetchClient): void {
+  const dispatcher = Reflect.get(client, 'dispatcher');
+  dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
+}
+
+async function wrapUndiciError(client: FetchClient, error: Error, url: string): Promise<Error | undefined> {
+  return Reflect.apply(Reflect.get(client, 'wrapUndiciError'), client, [error, url, 'GET', 'request-1', 1]);
+}
+
+async function handleSocketExhaustion(client: FetchClient, url: string, errorCode: string): Promise<Error | undefined> {
+  return Reflect.apply(Reflect.get(client, 'handleSocketExhaustion'), client, [url, errorCode, 'GET', 'request-1', 1]);
+}
+
+const mappedErrorConstructorMap: Record<'wrap-body-timeout' | 'wrap-connect-timeout' | 'wrap-headers-timeout' | 'wrap-socket-error', new (...args: never[]) => Error> = {
+  'wrap-body-timeout': BodyTimeoutError,
+  'wrap-connect-timeout': ConnectTimeoutError,
+  'wrap-headers-timeout': HeadersTimeoutError,
+  'wrap-socket-error': SocketError
 };
 
-async function runMappedErrorScenario(scenarioCase: MappedErrorScenario): Promise<void> {
-  const error = RuntimeError.create('mapped') as Error & { code?: string };
-  error.code = scenarioCase.input.errorCode;
-  const client = createClient(scenarioCase.input.fetchClient) as never;
-  const dispatcher = Reflect.get(client, 'dispatcher') as { checkDispatcherHealth(origin: string): { stats: Record<string, unknown> } };
-  dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
-  const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);
-  mappedErrorAssertionMap[scenarioCase.shape](wrapped, scenarioCase);
+async function runMappedErrorScenario(scenarioCase: ScenarioCase, shape: keyof typeof mappedErrorConstructorMap): Promise<void> {
+  if (scenarioCase.expected.shape !== 'error') {
+    throw new Error(`Expected error-shaped expectation for ${scenarioCase.name}`);
+  }
+
+  const client = createClient(scenarioCase.input.fetchClient);
+  stubDispatcherHealth(client);
+  const error = createCodedError('mapped', scenarioCase.input.errorCode);
+  const wrapped = await wrapUndiciError(client, error, scenarioCase.input.url);
+  assert.ok(wrapped instanceof mappedErrorConstructorMap[shape]);
+  assert.equal(wrapped.name, scenarioCase.expected.errorName);
+  assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
 }
 
 const runnerMap: RunnerMap = {
   'handle-dispatcher-health': async (scenarioCase) => {
-    const client = createClient(scenarioCase.input.fetchClient) as never;
-    const dispatcher = Reflect.get(client, 'dispatcher') as { checkDispatcherHealth(origin: string): { stats: Record<string, unknown> } };
-    dispatcher.checkDispatcherHealth = () => ({ 'stats': { 'freeConnections': 0, 'maxConnections': 2, 'pendingRequests': 1, 'queuedRequests': 0 } });
-    const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, scenarioCase.input.errorCode, 'GET', 'request-1', 1);
+    const client = createClient(scenarioCase.input.fetchClient);
+    stubDispatcherHealth(client);
+    const wrapped = await handleSocketExhaustion(client, scenarioCase.input.url, scenarioCase.input.errorCode ?? 'UND_ERR_CONNECT_TIMEOUT');
     assert.ok(wrapped instanceof SocketExhaustionError);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'handle-invalid-origin': async (scenarioCase) => {
-    const client = createClient(scenarioCase.input.fetchClient) as never;
-    const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, scenarioCase.input.errorCode, 'GET', 'request-1', 1);
+    const client = createClient(scenarioCase.input.fetchClient);
+    const wrapped = await handleSocketExhaustion(client, scenarioCase.input.url, scenarioCase.input.errorCode ?? 'UND_ERR_CONNECT_TIMEOUT');
     assert.equal(wrapped, undefined);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
   'handle-no-dispatcher': async (scenarioCase) => {
-    const error = RuntimeError.create('connect timeout') as Error & { code?: string };
-    error.code = scenarioCase.input.errorCode ?? 'UND_ERR_CONNECT_TIMEOUT';
-    const client = createClient(scenarioCase.input.fetchClient) as never;
-    const wrapped = await (client as { handleSocketExhaustion(url: string, errorCode: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).handleSocketExhaustion(scenarioCase.input.url, error.code, 'GET', 'request-1', 1);
+    const client = createClient(scenarioCase.input.fetchClient);
+    const wrapped = await handleSocketExhaustion(client, scenarioCase.input.url, scenarioCase.input.errorCode ?? 'UND_ERR_CONNECT_TIMEOUT');
     assert.equal(wrapped, undefined);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
-  'wrap-body-timeout': runMappedErrorScenario,
-  'wrap-connect-timeout': runMappedErrorScenario,
-  'wrap-headers-timeout': runMappedErrorScenario,
+  'wrap-body-timeout': async (scenarioCase) => { await runMappedErrorScenario(scenarioCase, 'wrap-body-timeout'); },
+  'wrap-connect-timeout': async (scenarioCase) => { await runMappedErrorScenario(scenarioCase, 'wrap-connect-timeout'); },
+  'wrap-headers-timeout': async (scenarioCase) => { await runMappedErrorScenario(scenarioCase, 'wrap-headers-timeout'); },
   'wrap-no-code': async (scenarioCase) => {
-    const client = createClient(scenarioCase.input.fetchClient) as never;
-    const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(RuntimeError.create('no code'), scenarioCase.input.url, 'GET', 'request-1', 1);
+    const client = createClient(scenarioCase.input.fetchClient);
+    const wrapped = await wrapUndiciError(client, createCodedError('no code'), scenarioCase.input.url);
     assert.equal(wrapped, undefined);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   },
-  'wrap-socket-error': runMappedErrorScenario,
+  'wrap-socket-error': async (scenarioCase) => { await runMappedErrorScenario(scenarioCase, 'wrap-socket-error'); },
   'wrap-unknown-code': async (scenarioCase) => {
-    const error = RuntimeError.create('unknown') as Error & { code?: string };
-    error.code = scenarioCase.input.errorCode;
-    const client = createClient(scenarioCase.input.fetchClient) as never;
-    const wrapped = await (client as { wrapUndiciError(error: Error, url: string, method: string, requestId: string, duration: number): Promise<Error | undefined> }).wrapUndiciError(error, scenarioCase.input.url, 'GET', 'request-1', 1);
+    const client = createClient(scenarioCase.input.fetchClient);
+    const wrapped = await wrapUndiciError(client, createCodedError('unknown', scenarioCase.input.errorCode), scenarioCase.input.url);
     assert.equal(wrapped, undefined);
     assert.equal(resultShape(wrapped), scenarioCase.expected.shape);
   }
 };
 
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('fetch error wrapping', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, async () => {
+      await runCase(scenarioCase);
     });
   }
 });

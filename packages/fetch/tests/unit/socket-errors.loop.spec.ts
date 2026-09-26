@@ -1,55 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { SocketExhaustionError } from '../../src/errors/index.js';
-import type { SocketDispatcherStatsEntity } from '../../src/entities/SocketDispatcherStatsEntity.js';
+
+import { SocketErrorsScenarioCaseEntity } from './entities/SocketErrorsScenarioCaseEntity.js';
 import scenarioGroups from './socket-errors.scenarios.json' with { type: 'json' };
 
-type SocketDispatcherStatsType = SocketDispatcherStatsEntity.Type;
+type ScenarioCase = SocketErrorsScenarioCaseEntity.Type;
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { dispatcherStats: undefined; maximumConnections: number; pendingRequests: number; queuedRequests: number; url: string };
-      input: { stats?: SocketDispatcherStatsType; url: string };
-      shape: 'url-only';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { dispatcherStats: SocketDispatcherStatsType; maximumConnections: number; pendingRequests: number; queuedRequests: number; url: string };
-      input: { stats: SocketDispatcherStatsType; url: string };
-      shape: 'with-stats';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { messageIncludes: string[] };
-      input: { stats: SocketDispatcherStatsType; url: string };
-      shape: 'message-includes-stats';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { caughtName: 'SocketExhaustionError'; url: string };
-      input: { stats: SocketDispatcherStatsType; url: string };
-      shape: 'catchable';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { dispatcherStatsType: 'object'; freeConnectionsType: 'number'; maximumConnectionsType: 'number'; pendingRequestsType: 'number'; queuedRequestsType: 'number'; urlType: 'string' };
-      input: { stats: SocketDispatcherStatsType; url: string };
-      shape: 'property-types';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { dispatcherStatsDefined: true; freeConnections: number; maximumConnections: number; pendingRequests: number; url: string };
-      input: { stats: SocketDispatcherStatsType; url: string };
-      shape: 'preserve-through-throw';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(SocketErrorsScenarioCaseEntity.Schema, SocketErrorsScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -126,7 +86,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('socket error classes', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

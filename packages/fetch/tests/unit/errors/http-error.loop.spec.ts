@@ -1,39 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { HTTPError } from '../../../src/errors/index.js';
 
+import { HttpErrorScenarioCaseEntity } from './entities/HttpErrorScenarioCaseEntity.js';
 import scenarioGroups from './http-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { code: string; message: string; retryable: boolean; status: number; statusText: string; url: string };
-      input: { body: string; status: number; statusText: string; url: string };
-      shape: 'client-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { code: string; message: string; retryable: boolean; status: number; statusText: string; url: string };
-      input: { body: string; status: number; statusText: string; url: string };
-      shape: 'server-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { caughtName: 'HTTPError'; retryable: boolean; status: number; statusText: string; url: string };
-      input: { body: string; status: number; statusText: string; url: string };
-      shape: 'catchable';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { responseUrl: string; status: number; statusText: string; url: string };
-      input: { body: string; status: number; statusText: string; url: string };
-      shape: 'response-properties';
-      name: string;
-    };
+type ScenarioCase = HttpErrorScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(HttpErrorScenarioCaseEntity.Schema, HttpErrorScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -104,7 +80,7 @@ function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<Scen
 }
 
 void describe('fetch http error', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -85,6 +86,35 @@ void after(async () => {
   await stopTestServer();
 });
 
+const scenarioShapes = new Set<string>([
+  'client-destroy-passes-timeout', 'close-waits', 'destroy-timeout-waits', 'destroy-zero-no-wait', 'dns-failure',
+  'health-after-errors', 'invalid-config', 'isolates-network-errors', 'keep-alive-long', 'keep-alive-short',
+  'many-concurrent-network-errors', 'many-concurrent-requests', 'many-concurrent-timeouts', 'mixed-errors-successes',
+  'mixed-success-timeout-with-limited-connections', 'network-refused', 'pipelining-disabled', 'pipelining-high',
+  'pool-after-network-error', 'pool-after-timeout', 'queue-requests-when-pool-is-full', 'saturated-health', 'sequential-errors'
+]);
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  return Predicates.isObject(value)
+    && typeof value.description === 'string'
+    && typeof value.name === 'string'
+    && typeof value.shape === 'string'
+    && scenarioShapes.has(value.shape)
+    && Predicates.isObject(value.input)
+    && (value.expected === undefined || Predicates.isObject(value.expected));
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('connection.errors.scenarios.json does not match the expected scenario case shape');
+  }
+  return value;
+}
+
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
   return typeof value === 'object' && value !== null && 'shape' in value;
 }
@@ -112,7 +142,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
     const materialized: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
+      materialized[key] = materializeRuntimeValue(entry);
     }
     return materialized;
   }
@@ -211,9 +241,12 @@ function normalizeOutcome(value: Response | number | string): number | string {
 
 const runnerMap: RunnerMap = {
   'client-destroy-passes-timeout': async (scenarioCase) => {
-    const fetchClientConfig = materializeRuntimeValue(scenarioCase.input.fetchClient ?? {}) as Parameters<typeof FetchClient.create>[0];
+    const materializedFetchClient = materializeRuntimeValue(scenarioCase.input.fetchClient ?? {});
+    if (!Predicates.isObject(materializedFetchClient)) {
+      throw RuntimeError.create('Expected input.fetchClient to materialize into an object');
+    }
     const client = FetchClient.create({
-      ...fetchClientConfig,
+      ...materializedFetchClient,
       baseURL: testUrl,
     });
     const warmupResponse = await client.get('/posts/1');
@@ -276,8 +309,8 @@ const runnerMap: RunnerMap = {
       await client.get('/api');
     }, (error) => {
       assert.ok(error instanceof Error);
-      const cause = error as Error & { cause?: Error };
-      const hasDnsError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);
+      const causeMessage = error.cause instanceof Error ? error.cause.message : '';
+      const hasDnsError = error.message.includes(expectedError) || causeMessage.includes(expectedError);
       assert.ok(hasDnsError, `Expected DNS error, got: ${error.message}`);
       return true;
     });
@@ -419,8 +452,8 @@ const runnerMap: RunnerMap = {
       await client.get('/api');
     }, (error) => {
       assert.ok(error instanceof Error);
-      const cause = error as Error & { cause?: Error };
-      const hasConnectError = error.message.includes(expectedError) || (cause.cause?.message ?? '').includes(expectedError);
+      const causeMessage = error.cause instanceof Error ? error.cause.message : '';
+      const hasConnectError = error.message.includes(expectedError) || causeMessage.includes(expectedError);
       assert.ok(hasConnectError, `Expected connect error, got: ${error.message}`);
       return true;
     });
@@ -542,7 +575,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Connection Pool Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

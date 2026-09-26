@@ -1,58 +1,18 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { AbortError, FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { FeaturesScenarioCaseEntity } from './entities/FeaturesScenarioCaseEntity.js';
 import scenarioGroups from './features.scenarios.json' with { type: 'json' };
 
-type StatusScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { status: number };
-  input: { fetchClient: Record<string, unknown>; request: { options?: Record<string, unknown>; url: string } };
-  shape: Shape;
-  name: string;
-};
+type ScenarioCase = FeaturesScenarioCaseEntity.Type;
 
-type AbortScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { abortErrorName: 'AbortError'; urlIncludes: string };
-  input: { fetchClient: Record<string, unknown> };
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCase =
-  | StatusScenarioCase<'baseURL-prepend-relative'>
-  | StatusScenarioCase<'baseURL-keep-absolute'>
-  | StatusScenarioCase<'baseURL-trailing-slash'>
-  | StatusScenarioCase<'baseURL-path-without-leading-slash'>
-  | StatusScenarioCase<'headers-apply-defaults'>
-  | StatusScenarioCase<'headers-merge-default-and-request'>
-  | StatusScenarioCase<'headers-override-defaults'>
-  | {
-      description: string;
-      expected: { itemsLengthAtMost: number };
-      input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      shape: 'params-apply-defaults-with-baseURL';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { query: Record<string, string> };
-      input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      shape: 'params-apply-defaults-without-baseURL';
-      name: string;
-    }
-  | AbortScenarioCase<'abort-details'>
-  | AbortScenarioCase<'abort-in-get'>
-  | AbortScenarioCase<'abort-first'>
-  | {
-      description: string;
-      expected: { timeoutErrorName: 'TimeoutError' };
-      input: { fetchClient: Record<string, unknown> };
-      shape: 'timeout-first';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(FeaturesScenarioCaseEntity.Schema, FeaturesScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -84,35 +44,39 @@ void after(async () => {
   await stopTestServer();
 });
 
-function materializeConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const resolveValue = (value: boolean | null | number | object | string): unknown => {
-    if (typeof value === 'string') {
-      return value.split('__TEST_URL__').join(testUrl);
-    }
-    if (Array.isArray(value)) {
-      return value.map(resolveValue);
-    }
-    if (value !== null && typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([key, nested]) => {
-        const resolved = nested === null
-          || typeof nested === 'boolean'
-          || typeof nested === 'number'
-          || typeof nested === 'object'
-          || typeof nested === 'string'
-          ? resolveValue(nested)
-          : nested;
-        return [key, resolved];
-      }));
-    }
-    return value;
-  };
-
-  return resolveValue(config) as Record<string, unknown>;
+function resolveValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return value.split('__TEST_URL__').join(testUrl);
+  }
+  if (Array.isArray(value)) {
+    return value.map(resolveValue);
+  }
+  if (Predicates.isObject(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, resolveValue(nested)]));
+  }
+  return value;
 }
 
-function materializeRequest(input: { request: { options?: Record<string, unknown>; url: string } }): { options?: Record<string, unknown>; url: string } {
-  const request = materializeConfig(input.request) as { options?: Record<string, unknown>; url: string };
-  return request;
+function requireRecord(value: unknown): Record<string, unknown> {
+  if (!Predicates.isObject(value)) {
+    throw RuntimeError.create('Expected a materialized config object');
+  }
+  return value;
+}
+
+function materializeConfig(config: object): Record<string, unknown> {
+  return requireRecord(resolveValue(config));
+}
+
+function materializeRequest(input: { request: object }): { options?: Record<string, unknown>; url: string } {
+  const request = materializeConfig(input.request);
+  if (typeof request.url !== 'string') {
+    throw RuntimeError.create('Expected request.url to be a string');
+  }
+  return {
+    ...(Predicates.isObject(request.options) ? { 'options': request.options } : {}),
+    'url': request.url
+  };
 }
 
 async function runStatusScenario(scenarioCase: StatusScenario): Promise<void> {
@@ -140,7 +104,7 @@ async function runParamsWithoutBaseURLScenario(scenarioCase: ParamsWithoutBaseUR
   const request = materializeRequest(scenarioCase.input);
   const response = await client.get(request.url);
   assert.strictEqual(response.status, 200);
-  const data = await response.json() as { query: Record<string, string> };
+  const data = requireRecord(await response.json());
   assert.deepStrictEqual(data.query, scenarioCase.expected.query);
 }
 
@@ -208,7 +172,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('fetch integration features', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
