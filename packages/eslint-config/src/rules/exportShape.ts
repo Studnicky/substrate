@@ -549,39 +549,36 @@ class ExportNames {
   }
 
   private static collectDeclarationNames(declarationNode: unknown, names: string[]): void {
-    const declaration = declarationNode as {
-      'declarations'?: { 'id'?: { 'name'?: string; 'type'?: string; }; }[];
-      'id'?: { 'name'?: string; 'type'?: string; };
-      'type'?: string;
-    };
-    const declarationType = declaration.type ?? '';
+    if (!Predicates.isRecord(declarationNode)) { return; }
 
-    if (ExportNames.SINGLE_NAME_DECLARATION_TYPES.has(declarationType) && declaration.id?.type === 'Identifier') {
-      const idName = declaration.id.name;
+    const declarationType = AstHelpers.getNodeType(declarationNode) ?? '';
+    const id = AstHelpers.getNodeProperty(declarationNode, 'id');
 
-      if (typeof idName === 'string' && idName.length > 0) {
+    if (ExportNames.SINGLE_NAME_DECLARATION_TYPES.has(declarationType) && AstHelpers.getNodeType(id) === 'Identifier') {
+      const idName = AstHelpers.getIdentifierName(id);
+
+      if (idName !== undefined && idName.length > 0) {
         names.push(idName);
       }
     }
 
     if (declarationType === 'VariableDeclaration') {
-      ExportNames.collectVariableDeclaratorNames(declaration.declarations ?? [], names);
+      const declarators = AstHelpers.getNodeProperty(declarationNode, 'declarations');
+      ExportNames.collectVariableDeclaratorNames(Predicates.isArray(declarators) ? declarators : [], names);
     }
   }
 
-  private static collectVariableDeclaratorNames(
-    declarators: readonly { 'id'?: { 'name'?: string; 'type'?: string; }; }[],
-    names: string[]
-  ): void {
+  private static collectVariableDeclaratorNames(declarators: readonly unknown[], names: string[]): void {
     const declaratorsLength = declarators.length;
 
     for (let index = 0; index < declaratorsLength; index += 1) {
       const declarator = declarators.at(index);
+      const id = AstHelpers.getNodeProperty(declarator, 'id');
 
-      if (declarator?.id?.type === 'Identifier') {
-        const idName = declarator.id.name;
+      if (AstHelpers.getNodeType(id) === 'Identifier') {
+        const idName = AstHelpers.getIdentifierName(id);
 
-        if (typeof idName === 'string' && idName.length > 0) {
+        if (idName !== undefined && idName.length > 0) {
           names.push(idName);
         }
       }
@@ -1155,14 +1152,13 @@ class ExportNamingListeners {
   }
 }
 
-/**
- * Every AST visitor key either listener family attaches — a fixed, known union, not a dynamic
- * key set. `Program:exit` and `TSExportAssignment` fall outside `RuleListener`'s well-known
- * ESTree keys, so the declared type ESLint infers for them is an unusable code-path-analysis
- * union; every merged handler is therefore built against the concrete `Rule.Node` shape and the
- * whole listener map is cast once at the end, rather than fighting each key's declared type.
- */
 class ListenerMerge {
+  /** Narrows `TSExportAssignment`'s index-signature type — outside `RuleListener`'s known ESTree keys — to a single-node listener. */
+  private static isSingleNodeListener(value: unknown): value is (node: Rule.Node) => void {
+    const result = typeof value === 'function';
+    return result;
+  }
+
   private static dispatch<TNode>(
     listeners: { readonly 'first': ((node: TNode) => void) | undefined; readonly 'second': ((node: TNode) => void) | undefined; }
   ): (node: TNode) => void {
@@ -1185,8 +1181,8 @@ class ListenerMerge {
       // TSExportAssignment has no named RuleListener property (resolves via the catch-all
       // index signature); typescript-eslint's precise type fails too, AST_NODE_TYPES.Program vs "Program".
       'TSExportAssignment': ListenerMerge.dispatch<Rule.Node>({
-        'first': first.TSExportAssignment as ((node: Rule.Node) => void) | undefined,
-        'second': second.TSExportAssignment as ((node: Rule.Node) => void) | undefined
+        'first': ListenerMerge.isSingleNodeListener(first.TSExportAssignment) ? first.TSExportAssignment : undefined,
+        'second': ListenerMerge.isSingleNodeListener(second.TSExportAssignment) ? second.TSExportAssignment : undefined
       }),
       'VariableDeclarator': ListenerMerge.dispatch({ 'first': first.VariableDeclarator, 'second': second.VariableDeclarator })
     };

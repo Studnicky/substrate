@@ -40,11 +40,16 @@ class ViolationReporter {
 }
 
 class ClassMemberCheck {
-  public static onClassMember(context: Rule.RuleContext, node: Record<string, unknown>): void {
+  public static onClassMember(context: Rule.RuleContext, node: unknown): void {
+    if (!Predicates.isRecord(node)) { return; }
+
     const name = UnderscoreName.get(node);
     if (name === undefined) { return; }
 
-    ViolationReporter.reportUnderscoreName(context, node.key as Rule.Node, name);
+    const key: unknown = Reflect.get(node, 'key');
+    if (AstHelpers.isNode(key)) {
+      ViolationReporter.reportUnderscoreName(context, key, name);
+    }
   }
 
   public static unwrapParameterIdentifier(parameter: unknown): Record<string, unknown> | undefined {
@@ -80,8 +85,8 @@ class ClassMemberCheck {
 
 export const hashPrivateFields: Rule.RuleModule = {
   'create': (context) => {
-    const onMethodDefinition = (node: unknown): void => { ClassMemberCheck.onClassMember(context, node as Record<string, unknown>); };
-    const onPropertyDefinition = (node: unknown): void => { ClassMemberCheck.onClassMember(context, node as Record<string, unknown>); };
+    const onMethodDefinition = (node: unknown): void => { ClassMemberCheck.onClassMember(context, node); };
+    const onPropertyDefinition = (node: unknown): void => { ClassMemberCheck.onClassMember(context, node); };
     const onTSParameterProperty = (node: unknown): void => { ClassMemberCheck.onParameterProperty(context, node); };
 
     return {
