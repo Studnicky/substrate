@@ -16,8 +16,6 @@ import type { RequiredSchemaType } from './RequiredSchemaType.js';
  * The private filter helpers are overloaded: a generic signature narrows the
  * return to the exact `Pick`/`Omit` the caller's branded `TSchema` promises,
  * while the implementation signature stays loose for the runtime loop.
- * `extend`'s merge is the one method the checker can't relate this way — see
- * the cast at its `properties` assignment for why.
  *
  * @module
  */
@@ -83,6 +81,14 @@ export class Compose {
     }
 
     return kept;
+  }
+
+  /** Merges `extension`'s own properties over `base`'s, `extension` taking precedence on key collision. */
+  private static mergeProperties<TBase extends Record<string, unknown>, TExtension extends Record<string, unknown>>(
+    base: TBase, extension: TExtension
+  ): Omit<TBase, keyof TExtension> & TExtension;
+  private static mergeProperties(base: Record<string, unknown>, extension: Record<string, unknown>): Record<string, unknown> {
+    return { ...base, ...extension };
   }
 
   /** Copies `source`'s own members whose value is absent from `keySet`, preserving insertion order. */
@@ -186,9 +192,9 @@ export class Compose {
     node: SchemaNodeInterface<TSchema, TStatic>,
     extension: SchemaNodeInterface<TExtensionSchema, TExtensionStatic>
   ): SchemaNodeInterface<ExtendSchemaType<TSchema, TExtensionSchema>, Omit<TStatic, keyof TExtensionStatic> & TExtensionStatic> {
-    /** Structural-equivalence limit: the spread's inferred object type and this generic-indexed intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
-    const properties = { ...node.schema.properties, ...extension.schema.properties } as
-      NonNullable<TExtensionSchema['properties']> & Omit<NonNullable<TSchema['properties']>, keyof NonNullable<TExtensionSchema['properties']>>;
+    const properties = Compose.mergeProperties<NonNullable<TSchema['properties']>, NonNullable<TExtensionSchema['properties']>>(
+      node.schema.properties ?? {}, extension.schema.properties ?? {}
+    );
     const required = [...new Set([...(node.schema.required ?? []), ...(extension.schema.required ?? [])])];
 
     const result: SchemaNodeInterface<
