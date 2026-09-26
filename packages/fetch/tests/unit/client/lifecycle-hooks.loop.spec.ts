@@ -1,69 +1,56 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError, HookTimeoutError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   afterEach, beforeEach, describe, it
 } from 'node:test';
 
-
-
 import {
   FetchClient,
 } from '../../../src/node/index.js';
+
+import { LifecycleHooksScenarioCaseEntity } from './entities/LifecycleHooksScenarioCaseEntity.js';
 import scenarioGroups from './lifecycle-hooks.scenarios.json' with { type: 'json' };
 
 type HookEvent = { 'hook': string; 'args': unknown[] };
 
-type FetchClientConfig = NonNullable<Parameters<typeof FetchClient.create>[0]>;
+type ScenarioCase = LifecycleHooksScenarioCaseEntity.Type;
 
-type ScenarioExpected = {
-  readonly count: number;
-  readonly events: string[];
-  readonly hook: string;
-  readonly hookName: string;
-  readonly message?: string;
-  readonly status: number;
-  readonly timeoutMs: number;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(LifecycleHooksScenarioCaseEntity.Schema, LifecycleHooksScenarioCaseEntity.Node);
 
-type ScenarioInput = {
-  readonly abortAfterMs: number;
-  readonly dispatcher: FetchClientConfig['dispatcher'];
-  readonly hookTimeoutMs: number;
-  readonly message: string;
-  readonly method: string;
-  readonly path: string;
-  readonly settleMs: number;
-  readonly timeoutMs: number;
-};
+function createCodedError(message: string, code: string): RuntimeError & { code: string } {
+  return Object.assign(RuntimeError.create(message), { code });
+}
 
-type ScenarioCase = {
-  description: string;
-  expected: ScenarioExpected;
-  input: ScenarioInput;
-  name: string;
-  operation:
-    | 'abort-event'
-    | 'abort-event-preaborted'
-  | 'dispatcher-destroy'
-  | 'dispatcher-destroy-with-timeout'
-  | 'dispatcher-destroy-no-dispatcher'
-  | 'fast-hook'
-    | 'hook-timeout'
-    | 'never-settles'
-  | 'request-start'
-  | 'response-error'
-  | 'response-success'
-  | 'timeout-event'
-  | 'throw-timeout'
-  | 'throw-fetch-string'
-  | 'throw-fetch-error'
-  | 'throw-request-error-string'
-  | 'throw-dispatcher-destroy'
-  | 'throw-request-error'
-  | 'throw-request-start'
-    | 'throw-response-success'
-    | 'undici-error-wrap';
-};
+function stringAt(args: readonly unknown[], index: number): string {
+  const value = args[index];
+  if (typeof value !== 'string') {
+    throw RuntimeError.create(`Expected args[${index}] to be a string`);
+  }
+  return value;
+}
+
+function numberAt(args: readonly unknown[], index: number): number {
+  const value = args[index];
+  if (typeof value !== 'number') {
+    throw RuntimeError.create(`Expected args[${index}] to be a number`);
+  }
+  return value;
+}
+
+function requireString(value: string | undefined, label: string): string {
+  if (value === undefined) {
+    throw RuntimeError.create(`${label} is required for this scenario`);
+  }
+  return value;
+}
+
+function requireNumber(value: number | undefined, label: string): number {
+  if (value === undefined) {
+    throw RuntimeError.create(`${label} is required for this scenario`);
+  }
+  return value;
+}
 
 const originalFetch = globalThis.fetch;
 const baseURL = 'https://example.test';
@@ -205,33 +192,23 @@ async function fakeFetch(input: Request | URL | string, init?: RequestInit): Pro
   }
 
   if (parsedUrl.pathname === '/error-connect') {
-    const error = RuntimeError.create('connect timeout') as Error & { code?: string };
-    error.code = 'UND_ERR_CONNECT_TIMEOUT';
-    throw error;
+    throw createCodedError('connect timeout', 'UND_ERR_CONNECT_TIMEOUT');
   }
 
   if (parsedUrl.pathname === '/error-body-timeout') {
-    const error = RuntimeError.create('body timeout') as Error & { code?: string };
-    error.code = 'UND_ERR_BODY_TIMEOUT';
-    throw error;
+    throw createCodedError('body timeout', 'UND_ERR_BODY_TIMEOUT');
   }
 
   if (parsedUrl.pathname === '/error-headers-timeout') {
-    const error = RuntimeError.create('headers timeout') as Error & { code?: string };
-    error.code = 'UND_ERR_HEADERS_TIMEOUT';
-    throw error;
+    throw createCodedError('headers timeout', 'UND_ERR_HEADERS_TIMEOUT');
   }
 
   if (parsedUrl.pathname === '/error-socket-timeout') {
-    const error = RuntimeError.create('socket error') as Error & { code?: string };
-    error.code = 'UND_ERR_SOCKET';
-    throw error;
+    throw createCodedError('socket error', 'UND_ERR_SOCKET');
   }
 
   if (parsedUrl.pathname === '/error-unknown-code') {
-    const error = RuntimeError.create('unknown error') as Error & { code?: string };
-    error.code = 'UND_ERR_SOMETHING_ELSE';
-    throw error;
+    throw createCodedError('unknown error', 'UND_ERR_SOMETHING_ELSE');
   }
 
   if (parsedUrl.pathname === '/throw-string') {
@@ -256,7 +233,7 @@ function createDispatcherClient(): HookedClient {
 }
 
 function getDispatcher(client: FetchClient): { destroy(options?: unknown): Promise<void> } | undefined {
-  return Reflect.get(client, 'dispatcher') as { destroy(options?: unknown): Promise<void> } | undefined;
+  return Reflect.get(client, 'dispatcher');
 }
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
@@ -269,7 +246,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       }, caseData.input.abortAfterMs);
 
       try {
-        await client.get(caseData.input.path, { 'signal': controller.signal });
+        await client.get(requireString(caseData.input.path, 'input.path'), { 'signal': controller.signal });
       } catch {
         // expected
       } finally {
@@ -278,9 +255,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       const aborts = client.eventsOf('onAbort');
       assert.equal(aborts.length, caseData.expected.count ?? 1);
-      const [method, , url] = aborts[0]!.args as [string, string, string];
+      const method = stringAt(aborts[0]!.args, 0);
+      const url = stringAt(aborts[0]!.args, 2);
       assert.equal(method, caseData.input.method);
-      assert.ok(url.includes(caseData.input.path));
+      assert.ok(url.includes(requireString(caseData.input.path, 'input.path')));
       assert.equal(client.eventsOf('onRequestError').length, 1);
     },
     'abort-event-preaborted': async (caseData) => {
@@ -289,7 +267,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       controller.abort();
 
       try {
-        await client.get(caseData.input.path, { signal: controller.signal });
+        await client.get(requireString(caseData.input.path, 'input.path'), { signal: controller.signal });
       } catch {
         // expected
       } finally {
@@ -298,9 +276,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       const aborts = client.eventsOf('onAbort');
       assert.equal(aborts.length, caseData.expected.count ?? 1);
-      const [method, , url] = aborts[0]!.args as [string, string, string];
+      const method = stringAt(aborts[0]!.args, 0);
+      const url = stringAt(aborts[0]!.args, 2);
       assert.equal(method, caseData.input.method);
-      assert.ok(url.includes(caseData.input.path));
+      assert.ok(url.includes(requireString(caseData.input.path, 'input.path')));
       assert.equal(client.eventsOf('onRequestError').length, 1);
     },
     'dispatcher-destroy': async (caseData) => {
@@ -310,7 +289,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
     'dispatcher-destroy-with-timeout': async (caseData) => {
       const client = createDispatcherClient();
-      await client.destroy({ 'timeout': caseData.input.timeoutMs });
+      await client.destroy({ 'timeout': requireNumber(caseData.input.timeoutMs, 'input.timeoutMs') });
       assert.equal(client.eventsOf('onDispatcherDestroy').length, caseData.expected.count);
     },
     'dispatcher-destroy-no-dispatcher': async (caseData) => {
@@ -327,7 +306,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         // Node always drains the microtask queue before running any timer, so
         // this deterministically wins the race regardless of system load.
         protected override async onRequestStart(): Promise<void> {
-          for (let tick = 0; tick < caseData.input.settleMs; tick += 1) {
+          for (let tick = 0; tick < requireNumber(caseData.input.settleMs, 'input.settleMs'); tick += 1) {
             await Promise.resolve();
           }
           this.events.push('onRequestStart');
@@ -340,7 +319,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       });
 
       try {
-        const response = await client.get(caseData.input.path);
+        const response = await client.get(requireString(caseData.input.path, 'input.path'));
         await response.arrayBuffer();
         assert.equal(response.status, 200);
         assert.deepEqual(client.events, caseData.expected.events);
@@ -364,7 +343,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -391,7 +370,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const client = SlowUnboundedClient.create({ 'baseURL': baseURL });
 
       try {
-        const response = await client.get(caseData.input.path);
+        const response = await client.get(requireString(caseData.input.path, 'input.path'));
         await response.arrayBuffer();
         assert.equal(response.status, 200);
         assert.deepEqual(client.events, caseData.expected.events);
@@ -402,15 +381,18 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'request-start': async (caseData) => {
       const client = createHookedClient();
       try {
-        const response = await client.get(caseData.input.path);
+        const response = await client.get(requireString(caseData.input.path, 'input.path'));
         await response.arrayBuffer();
         const events = client.eventsOf('onRequestStart');
         assert.equal(events.length, caseData.expected.count);
-        const [method, path, requestId, url] = events[0]!.args as [string, string, string, string];
+        const method = stringAt(events[0]!.args, 0);
+        const path = stringAt(events[0]!.args, 1);
+        const requestId = stringAt(events[0]!.args, 2);
+        const url = stringAt(events[0]!.args, 3);
         assert.equal(method, caseData.input.method);
-        assert.equal(path, caseData.input.path);
+        assert.equal(path, requireString(caseData.input.path, 'input.path'));
         assert.ok(requestId.length > 0);
-        assert.ok(url.includes(caseData.input.path));
+        assert.ok(url.includes(requireString(caseData.input.path, 'input.path')));
       } finally {
         await client.destroy();
       }
@@ -418,7 +400,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-start': async (caseData) => {
       class ThrowingStartClient extends FetchClient {
         protected override onRequestStart(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -426,7 +408,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -441,7 +423,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-error': async (caseData) => {
       class ThrowingRequestErrorClient extends FetchClient {
         protected override onRequestError(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -452,7 +434,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -466,7 +448,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-request-error-string': async (caseData) => {
       class ThrowingRequestErrorStringClient extends FetchClient {
         protected override onRequestError(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -474,7 +456,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -488,7 +470,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-response-success': async (caseData) => {
       class ThrowingSuccessClient extends FetchClient {
         protected override onResponseSuccess(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -496,7 +478,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -510,13 +492,13 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'response-error': async (caseData) => {
       const client = createHookedClient();
       try {
-        const response = await client.get(caseData.input.path);
+        const response = await client.get(requireString(caseData.input.path, 'input.path'));
         await response.arrayBuffer();
         const successes = client.eventsOf('onResponseSuccess');
         const errors = client.eventsOf('onResponseError');
         assert.equal(errors.length, caseData.expected.count);
         assert.equal(successes.length, 0);
-        const [, , statusCode] = errors[0]!.args as [string, string, number, number];
+        const statusCode = numberAt(errors[0]!.args, 2);
         assert.equal(statusCode, caseData.expected.status);
       } finally {
         await client.destroy();
@@ -527,7 +509,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.strictEqual(error, caseData.expected.message);
             assert.equal(client.eventsOf('onRequestError').length, 1);
@@ -544,14 +526,14 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         globalThis.fetch = async (): Promise<Response> => {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         };
 
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof Error);
-            assert.equal((error as Error).message, caseData.input.message);
+            assert.equal(error.message, caseData.input.message);
             assert.equal(client.eventsOf('onRequestError').length, 1);
             return true;
           }
@@ -562,13 +544,13 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       }
     },
     'undici-error-wrap': async (caseData) => {
-      const client = caseData.input.path === '/error-connect-exhaustion'
+      const client = requireString(caseData.input.path, 'input.path') === '/error-connect-exhaustion'
         ? createDispatcherClient()
         : createHookedClient();
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof Error);
             assert.equal(error.name, caseData.expected.hookName);
@@ -582,13 +564,13 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'response-success': async (caseData) => {
       const client = createHookedClient();
       try {
-        const response = await client.get(caseData.input.path);
+        const response = await client.get(requireString(caseData.input.path, 'input.path'));
         await response.arrayBuffer();
         const successes = client.eventsOf('onResponseSuccess');
         const errors = client.eventsOf('onResponseError');
         assert.equal(successes.length, caseData.expected.count);
         assert.equal(errors.length, 0);
-        const [, , statusCode] = successes[0]!.args as [string, string, number, number];
+        const statusCode = numberAt(successes[0]!.args, 2);
         assert.equal(statusCode, caseData.expected.status);
       } finally {
         await client.destroy();
@@ -601,7 +583,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       });
 
       try {
-        await client.get(caseData.input.path);
+        await client.get(requireString(caseData.input.path, 'input.path'));
       } catch {
         // expected
       } finally {
@@ -610,7 +592,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       const timeouts = client.eventsOf('onTimeout');
       assert.equal(timeouts.length, caseData.expected.count);
-      const [method, , , timeoutMs] = timeouts[0]!.args as [string, string, string, number];
+      const method = stringAt(timeouts[0]!.args, 0);
+      const timeoutMs = numberAt(timeouts[0]!.args, 3);
       assert.equal(method, caseData.input.method);
       assert.equal(timeoutMs, caseData.expected.timeoutMs);
       assert.equal(client.eventsOf('onRequestError').length, 1);
@@ -618,7 +601,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-timeout': async (caseData) => {
       class ThrowingTimeoutClient extends FetchClient {
         protected override onTimeout(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -629,7 +612,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
       try {
         await assert.rejects(
-          () => client.get(caseData.input.path),
+          () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
             assert.ok(error instanceof HookInvocationError);
             assert.equal(error.hookName, caseData.expected.hookName);
@@ -643,7 +626,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     'throw-dispatcher-destroy': async (caseData) => {
       class ThrowingDestroyClient extends FetchClient {
         protected override onDispatcherDestroy(): void {
-          throw RuntimeError.create(caseData.input.message);
+          throw RuntimeError.create(requireString(caseData.input.message, 'input.message'));
         }
       }
 
@@ -671,7 +654,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('FetchClient lifecycle hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
