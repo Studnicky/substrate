@@ -10,7 +10,7 @@ interface FixtureNodeStaticInterface {
 }
 
 void describe('Compose', () => {
-  const node = {
+  const node: { 'schema': { 'properties': Record<string, unknown>; 'required': readonly string[]; 'type': string } } = {
     'schema': {
       'properties': {
         'age': { 'type': 'number' },
@@ -20,7 +20,7 @@ void describe('Compose', () => {
       'required': ['name', 'email'],
       'type': 'object'
     }
-  } as { 'schema': { 'properties': Record<string, unknown>; 'required': readonly string[]; 'type': string } };
+  };
 
   void it('pick narrows properties and required to the given keys', () => {
     const picked = Compose.pick<typeof node.schema, FixtureNodeStaticInterface, 'email' | 'name'>(node, ['name', 'email']);
@@ -50,13 +50,13 @@ void describe('Compose', () => {
   });
 
   void it('extend merges an extension schema, the extension winning collisions', () => {
-    const extension = {
+    const extension: { 'schema': { 'properties': Record<string, unknown>; 'required': readonly string[]; 'type': string } } = {
       'schema': {
         'properties': { 'email': { 'format': 'email', 'type': 'string' }, 'role': { 'type': 'string' } },
         'required': ['role'],
         'type': 'object'
       }
-    } as { 'schema': { 'properties': Record<string, unknown>; 'required': readonly string[]; 'type': string } };
+    };
 
     const extended = Compose.extend<
       typeof node.schema,

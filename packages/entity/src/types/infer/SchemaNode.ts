@@ -139,7 +139,7 @@ export class SchemaNode {
   > {
     const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
 
-    /** `TSchema` stays unresolved here; the checker can't relate `PickDefined.from`'s mapped result to it until a caller instantiates it. */
+    /** Structural-equivalence limit: `PickDefined.from`'s mapped return type and this generic intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
     return { 'schema': combinedSchema as TSchema & { 'contains'?: TContains; 'items': TItem } };
   }
 
@@ -176,7 +176,7 @@ export class SchemaNode {
       'required': required
     });
 
-    /** `TSchema` stays unresolved here; the checker can't relate `PickDefined.from`'s mapped result to it until a caller instantiates it. */
+    /** Structural-equivalence limit: `PickDefined.from`'s mapped return type and this generic intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
     return {
       'schema': combinedSchema as ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] }
     };

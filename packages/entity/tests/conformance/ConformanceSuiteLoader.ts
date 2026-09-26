@@ -41,7 +41,8 @@ export class ConformanceSuiteLoader {
       const relativePath = matches[index]!;
       const absolutePath = resolve(remotesRoot, relativePath);
       const uri = `http://localhost:1234/${relativePath.split(sep).join('/')}`;
-      result.set(uri, JSON.parse(readFileSync(absolutePath, 'utf8')) as object | boolean);
+      const remote: boolean | object = JSON.parse(readFileSync(absolutePath, 'utf8'));
+      result.set(uri, remote);
     }
     return result;
   }
@@ -53,7 +54,7 @@ export class ConformanceSuiteLoader {
     for (let index = 0; index < matchCount; index += 1) {
       const absolutePath = resolve(suiteRoot, matches[index]!);
       const relativePath = relative(resolve(suiteRoot, 'tests/draft2020-12'), absolutePath);
-      const groups = JSON.parse(readFileSync(absolutePath, 'utf8')) as readonly ConformanceGroupInterface[];
+      const groups: readonly ConformanceGroupInterface[] = JSON.parse(readFileSync(absolutePath, 'utf8'));
       result.push({ 'relativePath': relativePath, 'groups': groups });
     }
     return result;

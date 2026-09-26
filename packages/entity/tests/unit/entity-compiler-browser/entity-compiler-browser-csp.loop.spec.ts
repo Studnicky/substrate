@@ -28,7 +28,7 @@ function countDynamicCodeConstructions(run: () => void): number {
     },
     'construct'(target, argumentsList: unknown[], newTarget) {
       constructions += 1;
-      return Reflect.construct(target, argumentsList, newTarget as typeof target);
+      return Reflect.construct(target, argumentsList, newTarget);
     }
   });
   globalThis.Function = trappedFunction;

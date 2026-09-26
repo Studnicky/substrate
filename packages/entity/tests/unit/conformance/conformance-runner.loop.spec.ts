@@ -7,10 +7,10 @@ import type { ConformanceSuiteFileInterface } from '../../conformance/interfaces
 import { ConformanceRunner } from '../../conformance/ConformanceRunner.js';
 
 /** A minimal stand-in compiler exercising the same seam `EntityCompiler.compile` exposes. */
-const fakeTypeCompile: ConformanceCompileFunctionInterface = <TValidated>(schema: object) => {
-  const declaredType = Reflect.get(schema, 'type') as unknown;
-  const predicate = ((data: unknown): data is TValidated => typeof data === declaredType) as ((data: unknown) => data is TValidated) & { 'errors': null };
-  predicate.errors = null;
+const fakeTypeCompile: ConformanceCompileFunctionInterface = <TValidated>(schema: boolean | object) => {
+  const declaredType: unknown = Reflect.get(schema, 'type');
+  const check = (data: unknown): data is TValidated => typeof data === declaredType;
+  const predicate = Object.assign(check, { 'errors': null });
   return predicate;
 };
 
