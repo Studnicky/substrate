@@ -41,15 +41,16 @@ import {
   type TypeReferenceNode
 } from 'typescript';
 
-import type { TypeContractContext } from './TypeContractContext.js';
+import type { TypeContractContextInterface } from './TypeContractContextInterface.js';
 import type { TypeContractMetadataEntity } from './TypeContractMetadataEntity.js';
 
+import { type DataNodeClassificationInterface } from './DataNodeClassificationInterface.js';
 import { type DataNodeResultInterface } from './DataNodeResultInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
 import { type ReadonlyOutputEvidenceInterface } from './ReadonlyOutputEvidenceInterface.js';
 
-export class TypeContractDataNodeClassification {
-  public constructor(private readonly context: TypeContractContext) {}
+export class TypeContractDataNodeClassification implements DataNodeClassificationInterface {
+  public constructor(private readonly context: TypeContractContextInterface) {}
 
   private readonly readonlyCache = new WeakMap<TypeAliasDeclaration, readonly ReadonlyOutputEvidenceInterface[]>();
 

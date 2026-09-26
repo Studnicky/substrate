@@ -45,16 +45,22 @@ import {
   type TypeChecker,
   type TypeElement,
   TypeFlags,
-  type TypeNode,
-  type TypeQueryNode
+  type TypeNode
 } from 'typescript';
 
 import { type AliasClassificationResultInterface } from './AliasClassificationResultInterface.js';
+import { type AliasResolutionInterface } from './AliasResolutionInterface.js';
+import { type CallabilityClassificationInterface } from './CallabilityClassificationInterface.js';
 import { ACCEPTED_SCHEMA_VALUE_NAMES, DISCRIMINANT_DEFEATING_SCHEMA_KEYS, SCHEMA_DERIVING_TYPE_MODULES } from './constants/SchemaDerivationConstants.js';
 import { type ContractEvidenceInterface } from './ContractEvidenceInterface.js';
+import { type DataNodeClassificationInterface } from './DataNodeClassificationInterface.js';
 import { type DataNodeResultInterface } from './DataNodeResultInterface.js';
 import { type InterfaceClassificationResultInterface } from './InterfaceClassificationResultInterface.js';
+import { type InterfaceContractResolutionInterface } from './InterfaceContractResolutionInterface.js';
+import { type InterfaceTypeResolutionInterface } from './InterfaceTypeResolutionInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
+import { type SchemaDerivationShapeInterface } from './SchemaDerivationShapeInterface.js';
+import { type TypeContractContextInterface } from './TypeContractContextInterface.js';
 
 namespace SchemaDerivationMetadataEntity {
   export const Schema = {
@@ -68,23 +74,12 @@ namespace SchemaDerivationMetadataEntity {
   export type Type = NodeStaticType<typeof Node>;
 }
 
-interface SchemaDerivationShapeInterface {
-  readonly 'derivingNameNode': Node | undefined;
-  readonly 'valueQuery': TypeQueryNode;
-}
-
 interface SchemaValueAuthoringInterface {
   readonly 'builderCallee': Symbol | undefined;
   readonly 'valid': SchemaDerivationMetadataEntity.Type['valid'];
 }
 
 import { SchemaNode } from '@studnicky/entity/types';
-
-import type { TypeContractAliasResolution } from './TypeContractAliasResolution.js';
-import type { TypeContractCallabilityClassification } from './TypeContractCallabilityClassification.js';
-import type { TypeContractDataNodeClassification } from './TypeContractDataNodeClassification.js';
-import type { TypeContractInterfaceContractResolution } from './TypeContractInterfaceContractResolution.js';
-import type { TypeContractInterfaceTypeResolution } from './TypeContractInterfaceTypeResolution.js';
 
 /**
  * Shared TS-program state and cross-concern type-contract primitives — symbol resolution,
@@ -93,12 +88,12 @@ import type { TypeContractInterfaceTypeResolution } from './TypeContractInterfac
  * Constructed once per Program by {@link TypeContractClassification.forProgram} and wired to
  * the five resolver instances immediately after construction.
  */
-export class TypeContractContext {
-  public dataNode!: TypeContractDataNodeClassification;
-  public callability!: TypeContractCallabilityClassification;
-  public aliasResolution!: TypeContractAliasResolution;
-  public interfaceContract!: TypeContractInterfaceContractResolution;
-  public interfaceType!: TypeContractInterfaceTypeResolution;
+export class TypeContractContext implements TypeContractContextInterface {
+  public dataNode!: DataNodeClassificationInterface;
+  public callability!: CallabilityClassificationInterface;
+  public aliasResolution!: AliasResolutionInterface;
+  public interfaceContract!: InterfaceContractResolutionInterface;
+  public interfaceType!: InterfaceTypeResolutionInterface;
 
   private readonly aliasCache = new WeakMap<TypeAliasDeclaration, AliasClassificationResultInterface>();
   private readonly interfaceCache = new WeakMap<InterfaceDeclaration, InterfaceClassificationResultInterface>();

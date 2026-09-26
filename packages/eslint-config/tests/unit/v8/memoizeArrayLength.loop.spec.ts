@@ -1,18 +1,10 @@
 import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
 
 import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
 
 import { memoizeArrayLength } from '../../../src/rules/v8/memoizeArrayLength.js';
-import { Predicates } from '@studnicky/types/node';
 import scenarioGroups from './memoizeArrayLength.scenarios.json' with { type: 'json' };
-
-function toMessageId(report: unknown): string {
-  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
-  const { messageId } = report;
-  return typeof messageId === 'string' ? messageId : '<no-messageId>';
-}
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -26,61 +18,24 @@ void describe('memoize-array-length', () => {
     ruleTester.run('memoize-array-length', memoizeArrayLength, scenarioGroups);
   });
 
-  void it('covers guard exits directly', () => {
-    const reports: unknown[] = [];
-    const listeners = memoizeArrayLength.create({
-      report(descriptor: unknown) {
-        reports.push(descriptor);
-      }
-    } as never);
-
-    // ForStatement with no test (`for (;;)`) - guarded, not crashed.
-    listeners.ForStatement?.({ test: null } as never);
-    listeners['ForStatement:exit']?.({ test: null } as never);
-
-    // WhileStatement whose test is an unrelated comparison - not tracked.
-    listeners.WhileStatement?.({
-      test: {
-        left: { name: 'i', type: 'Identifier' },
-        operator: '<',
-        right: { type: 'Literal', value: 10 },
-        type: 'BinaryExpression'
-      }
-    } as never);
-    listeners['WhileStatement:exit']?.({
-      test: {
-        left: { name: 'i', type: 'Identifier' },
-        operator: '<',
-        right: { type: 'Literal', value: 10 },
-        type: 'BinaryExpression'
-      }
-    } as never);
-
-    // AssignmentExpression that isn't a plain `=` reassignment.
-    listeners.AssignmentExpression?.({
-      left: { name: 'len', type: 'Identifier' },
-      operator: '+=',
-      right: {
-        computed: false,
-        object: { name: 'arr', type: 'Identifier' },
-        property: { name: 'length', type: 'Identifier' },
-        type: 'MemberExpression'
-      }
-    } as never);
-
-    // AssignmentExpression not enclosed by any loop - not tracked (no crash walking to Program).
-    listeners.AssignmentExpression?.({
-      left: { name: 'len', type: 'Identifier' },
-      operator: '=',
-      parent: { parent: null, type: 'Program' },
-      right: {
-        computed: false,
-        object: { name: 'arr', type: 'Identifier' },
-        property: { name: 'length', type: 'Identifier' },
-        type: 'MemberExpression'
-      }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), []);
+  void it('covers remaining guard exits over real source', () => {
+    ruleTester.run('memoize-array-length', memoizeArrayLength, {
+      'invalid': [],
+      'valid': [
+        { 'code': 'for (;;) { break; }', 'name': 'a ForStatement with no test - guarded, not crashed' },
+        {
+          'code': 'declare let i: number; while (i < 10) { i += 1; }',
+          'name': 'a WhileStatement whose test is an unrelated comparison - not tracked'
+        },
+        {
+          'code': 'declare let len: number; declare const arr: readonly unknown[]; for (let i = 0; i < 10; i += 1) { len += arr.length; }',
+          'name': 'an AssignmentExpression that is not a plain `=` reassignment'
+        },
+        {
+          'code': 'declare let len: number; declare const arr: readonly unknown[]; len = arr.length;',
+          'name': 'an AssignmentExpression not enclosed by any loop - not tracked (no crash walking to Program)'
+        }
+      ]
+    });
   });
 });
