@@ -9,7 +9,7 @@ export namespace BusQueueDrainingStateEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'variant': { 'const': 'draining', 'type': 'string' }
+      'variant': { 'const': 'draining' }
     },
     'required': ['variant'],
     'type': 'object'

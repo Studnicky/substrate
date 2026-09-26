@@ -9,7 +9,7 @@ export namespace BusQueueStartLoopEventEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'type': { 'const': 'startLoop', 'type': 'string' }
+      'type': { 'const': 'startLoop' }
     },
     'required': ['type'],
     'type': 'object'
