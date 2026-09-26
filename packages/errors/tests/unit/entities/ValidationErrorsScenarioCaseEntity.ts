@@ -140,7 +140,6 @@ export namespace ValidationErrorsScenarioCaseEntity {
           'aggregate': aggregateSchema,
           'items': { 'items': violationSchema, 'type': 'array' },
           'length': { 'type': 'number' },
-          'messageIncludes': { 'items': { 'type': 'string' }, 'type': 'array' },
           'ok': { 'type': 'boolean' },
           'report': reportSchema
         },
@@ -165,7 +164,6 @@ export namespace ValidationErrorsScenarioCaseEntity {
           'aggregate': aggregateNode,
           'items': SchemaNode.defineArray({ 'type': 'array' } as const, violationNode),
           'length': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
           'ok': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'report': reportNode
         },

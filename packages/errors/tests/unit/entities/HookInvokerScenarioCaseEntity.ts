@@ -193,8 +193,8 @@ export namespace HookInvokerScenarioCaseEntity {
           'outerHookName': { 'type': 'string' },
           'outerRan': { 'type': 'boolean' },
           'terminalCauseMessage': { 'type': 'string' },
-          'throws': { 'type': 'string' },
-          'unhandledRejections': { 'type': 'number' }
+          'unhandledRejections': { 'type': 'number' },
+          'valid': { 'type': 'boolean' }
         },
         'required': [],
         'type': 'object'
@@ -243,8 +243,8 @@ export namespace HookInvokerScenarioCaseEntity {
           'outerHookName': SchemaNode.defineString({ 'type': 'string' } as const),
           'outerRan': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'terminalCauseMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-          'throws': SchemaNode.defineString({ 'type': 'string' } as const),
-          'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
+          'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const),
+          'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
         },
         [] as const,
         { 'additionalProperties': false }
