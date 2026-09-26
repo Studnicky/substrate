@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from "@studnicky/scenario-kit/node";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -14,75 +15,11 @@ import { ProcessKit } from "../../src/ProcessKit.js";
 import type { JobEffectEntity } from "../fixtures/entities/JobEffectEntity.js";
 import type { JobEventEntity } from "../fixtures/entities/JobEventEntity.js";
 import type { JobStateEntity } from "../fixtures/entities/JobStateEntity.js";
+import { ProcessKitScenarioCaseEntity } from "./entities/ProcessKitScenarioCaseEntity.js";
 import scenarioGroups from "./ProcessKit.scenarios.json" with { type: "json" };
 
-interface ScenarioCaseBaseInterface {
-  description: string;
-  name: string;
-}
-
-interface ScheduledScenarioInputInterface {
-  events: { finish: JobEventEntity.Type; start: JobEventEntity.Type };
-  scheduler: {
-    counter: { startMs: number };
-  };
-  timing: {
-    scheduleDelayMs: number;
-    stepMs: number;
-  };
-}
-
-type ScenarioCase =
-  | (ScenarioCaseBaseInterface & {
-      expected: {
-        afterFinish: JobStateEntity.Type;
-        afterStart: JobStateEntity.Type;
-      };
-      input: {
-        events: { finish: JobEventEntity.Type; start: JobEventEntity.Type };
-      };
-      shape: "drive";
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: { logged: string[] };
-      input: {
-        events: { start: JobEventEntity.Type };
-      };
-      shape: "effects";
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: {
-        afterAdvance: JobStateEntity.Type;
-        afterFirstAdvance: JobStateEntity.Type;
-        afterStart: JobStateEntity.Type;
-        scheduledAtMs: number;
-      };
-      input: ScheduledScenarioInputInterface;
-      shape: "scheduled";
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: {
-        afterAdvance: JobStateEntity.Type;
-        afterStop: JobStateEntity.Type;
-        scheduledAtMs: number;
-      };
-      input: ScheduledScenarioInputInterface;
-      shape: "stop-cancels";
-    })
-  | (ScenarioCaseBaseInterface & {
-      expected: {
-        afterRecovery: JobStateEntity.Type;
-        rejectionName: string;
-        rejectedEvent: JobEventEntity.Type;
-      };
-      input: {
-        events: {
-          rejected: JobEventEntity.Type;
-          recovery: JobEventEntity.Type;
-        };
-      };
-      shape: "rejection";
-    });
+type ScenarioCase = ProcessKitScenarioCaseEntity.Type;
+type SchedulerInputType = Extract<ScenarioCase, { shape: "scheduled" }>["input"]["scheduler"];
 
 class JobMachine extends StateMachine<
   JobStateEntity.Type,
@@ -129,7 +66,7 @@ class JobMachine extends StateMachine<
 }
 
 function materializeVirtualScheduler(
-  input: ScheduledScenarioInputInterface["scheduler"],
+  input: SchedulerInputType,
 ) {
   const counter = VirtualTimeCounter.create(input.counter);
   return { counter, scheduler: VirtualScheduler.create({ counter }) };
@@ -286,8 +223,13 @@ async function runCase<K extends ScenarioCase["shape"]>(
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(
+  ProcessKitScenarioCaseEntity.Schema,
+  ProcessKitScenarioCaseEntity.Node,
+);
+
 void describe("ProcessKit", () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
