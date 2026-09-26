@@ -17,6 +17,7 @@ export namespace RequestMetadataEntity {
     'description': 'Request metadata that flows through the request/response lifecycle',
     'properties': {
       'metadata': {
+        'additionalProperties': {},
         'description': 'User-provided metadata for logging and tracking. Key-value pairs that flow through lifecycle hooks.',
         'type': 'object'
       },
@@ -38,7 +39,7 @@ export namespace RequestMetadataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestMetadata', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Request metadata that flows through the request/response lifecycle', 'title': 'RequestMetadata', 'type': 'object' } as const, { 'metadata': SchemaNode.defineObject({ 'description': 'User-provided metadata for logging and tracking. Key-value pairs that flow through lifecycle hooks.', 'type': 'object' } as const, {  }, [] as const), 'method': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestMetadata', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Request metadata that flows through the request/response lifecycle', 'title': 'RequestMetadata', 'type': 'object' } as const, { 'metadata': SchemaNode.defineObject({ 'description': 'User-provided metadata for logging and tracking. Key-value pairs that flow through lifecycle hooks.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'method': SchemaNode.defineString({
     'description': 'HTTP method (GET, POST, etc.)',
     'type': 'string'
   } as const), 'path': SchemaNode.defineString({
