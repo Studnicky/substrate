@@ -36,7 +36,9 @@ const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
     '../../../../packages/*/src/interfaces/index.ts',
     '../../../../packages/*/src/types/index.ts',
     '!../../../../packages/context/src/index.ts',
-    '!../../../../packages/eslint-config/src/index.ts'
+    '!../../../../packages/eslint-config/src/index.ts',
+    '!../../../../packages/example-smoke-kit/src/index.ts',
+    '!../../../../packages/scenario-kit/src/index.ts'
   ]
 );
 
