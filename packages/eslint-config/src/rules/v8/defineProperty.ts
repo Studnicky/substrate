@@ -65,7 +65,7 @@ class AliasRegistry {
 
     if (id.type === 'ObjectPattern' && Array.isArray(id.properties)) {
       // `const { defineProperty } = Object;` / `const { defineProperty: dp } = O;`
-      this.#observeDestructuredMethodNames(id.properties as readonly unknown[]);
+      this.#observeDestructuredMethodNames(id.properties);
     }
   }
 
@@ -398,7 +398,7 @@ export const defineProperty: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const callee = node.callee as unknown;
+      const callee = node.callee;
 
       if (!Predicates.isRecord(callee)) {
         return;
