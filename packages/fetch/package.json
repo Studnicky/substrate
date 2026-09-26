@@ -74,5 +74,8 @@
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
     "undici": "^8.10.2"
+  },
+  "devDependencies": {
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

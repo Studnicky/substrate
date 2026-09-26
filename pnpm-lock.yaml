@@ -517,6 +517,10 @@ importers:
       undici:
         specifier: ^8.10.2
         version: 8.10.2
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/file-lock:
     dependencies:
