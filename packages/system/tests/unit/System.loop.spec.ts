@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import os from 'node:os';
@@ -7,38 +8,19 @@ import type { GpuInfoEntity } from '../../src/entities/GpuInfoEntity.js';
 
 import { System } from '../../src/System.js';
 import { SystemProvider } from '../../src/providers/SystemProvider.js';
-
-type ScenarioCase =
-  | {
-    description: string;
-    expected: Record<string, unknown>;
-    input: { system: { detectedGpu?: GpuInfoEntity.Type } };
-    shape: SystemScenarioShape;
-    name: string;
-  };
-
-type SystemScenarioShape =
-  | 'cpu-logical-count-positive'
-  | 'optimal-worker-count-at-least-1'
-  | 'optimal-worker-count-clamped'
-  | 'cpu-arch-non-empty'
-  | 'cpu-model-non-empty'
-  | 'cpu-logical-count-matches-os'
-  | 'cpu-physical-count-range'
-  | 'cpu-physical-count-equals-logical-count'
-  | 'cpu-getter-calls-os-cpus-once'
-  | 'memory-total-positive'
-  | 'memory-free-range'
-  | 'platform-node-version'
-  | 'platform-os-non-empty'
-  | 'platform-is-apple-silicon'
-  | 'gpu-caches-detection';
+import { SystemScenarioCaseEntity } from './entities/SystemScenarioCaseEntity.js';
 
 import scenarioGroups from './System.scenarios.json' with { type: 'json' };
 
+type ScenarioCase = SystemScenarioCaseEntity.Type;
+type SystemScenarioShape = ScenarioCase['shape'];
+type SystemExpected = ScenarioCase['expected'];
+
+const fileIntake = ScenarioFileCompiler.compileIntake(SystemScenarioCaseEntity.Schema, SystemScenarioCaseEntity.Node);
+
 type SystemScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-function numberInput(expected: Record<string, unknown>, key: string): number {
+function numberInput(expected: SystemExpected, key: keyof SystemExpected): number {
   const value = expected[key];
   if (typeof value !== 'number') {
     throw RuntimeError.create(`expected.${key} must be a number`);
@@ -46,7 +28,7 @@ function numberInput(expected: Record<string, unknown>, key: string): number {
   return value;
 }
 
-function stringInput(expected: Record<string, unknown>, key: string): string {
+function stringInput(expected: SystemExpected, key: keyof SystemExpected): string {
   const value = expected[key];
   if (typeof value !== 'string') {
     throw RuntimeError.create(`expected.${key} must be a string`);
@@ -54,7 +36,7 @@ function stringInput(expected: Record<string, unknown>, key: string): string {
   return value;
 }
 
-function booleanInput(expected: Record<string, unknown>, key: string): boolean {
+function booleanInput(expected: SystemExpected, key: keyof SystemExpected): boolean {
   const value = expected[key];
   if (typeof value !== 'boolean') {
     throw RuntimeError.create(`expected.${key} must be a boolean`);
@@ -217,9 +199,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('System', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, async () => {
+      await runCase(scenarioCase);
     });
   }
 });
