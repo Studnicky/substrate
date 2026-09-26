@@ -6,9 +6,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/custom-error.ts"
+        "file": "../../examples/custom-error.ts"
       },
-      "name": "custom-error"
+      "name": "custom-error",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the validate config example",
@@ -16,9 +17,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/validate-config.ts"
+        "file": "../../examples/validate-config.ts"
       },
-      "name": "validate-config"
+      "name": "validate-config",
+      "shape": "imports-example"
     }
   ]
 }

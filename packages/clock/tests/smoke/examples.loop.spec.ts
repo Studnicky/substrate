@@ -1,27 +1,5 @@
-import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { ExampleSmokeRunner } from '@studnicky/example-smoke-kit/node';
 
 import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: { importsWithoutThrow: true };
-  input: { entrypoint: string };
-  name: string;
-};
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await assert.doesNotReject(async () => {
-    await import(new URL(scenarioCase.input.entrypoint, import.meta.url).href);
-  }, `Example ${scenarioCase.input.entrypoint} threw`);
-}
-
-void describe('examples smoke', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario as ScenarioCase);
-    });
-  }
-});
+ExampleSmokeRunner.registerExampleSmokeSuite(scenarioGroups, { 'packageName': 'clock', 'specUrl': import.meta.url });

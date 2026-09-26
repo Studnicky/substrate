@@ -6,9 +6,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/basic-usage.ts"
+        "file": "../../examples/basic-usage.ts"
       },
-      "name": "basic-usage"
+      "name": "basic-usage",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the custom provider example",
@@ -16,9 +17,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/custom-provider.ts"
+        "file": "../../examples/custom-provider.ts"
       },
-      "name": "custom-provider"
+      "name": "custom-provider",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed clock example",
@@ -26,9 +28,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/observedClock.ts"
+        "file": "../../examples/observedClock.ts"
       },
-      "name": "observed-clock"
+      "name": "observed-clock",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the virtual time example",
@@ -36,9 +39,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/virtual-time.ts"
+        "file": "../../examples/virtual-time.ts"
       },
-      "name": "virtual-time"
+      "name": "virtual-time",
+      "shape": "imports-example"
     }
   ]
 }

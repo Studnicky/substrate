@@ -6,9 +6,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/basicRetry.ts"
+        "file": "../../examples/basicRetry.ts"
       },
-      "name": "basic-retry"
+      "name": "basic-retry",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the EventBus retry telemetry example",
@@ -16,9 +17,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/eventSinkRetry.ts"
+        "file": "../../examples/eventSinkRetry.ts"
       },
-      "name": "event-sink-retry"
+      "name": "event-sink-retry",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the custom classifier example",
@@ -26,9 +28,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/customClassifier.ts"
+        "file": "../../examples/customClassifier.ts"
       },
-      "name": "custom-classifier"
+      "name": "custom-classifier",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed retry example",
@@ -36,9 +39,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/observedRetry.ts"
+        "file": "../../examples/observedRetry.ts"
       },
-      "name": "observed-retry"
+      "name": "observed-retry",
+      "shape": "imports-example"
     }
   ]
 }
