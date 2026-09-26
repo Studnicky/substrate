@@ -103,14 +103,14 @@ class UntypedParameter {
       const parameter = parameters[index];
 
       if (UntypedParameter.#isUntyped(context, parameter)) {
-        return parameter as Rule.Node;
+        return parameter;
       }
     }
 
     return undefined;
   }
 
-  static #isUntyped(context: Rule.RuleContext, parameter: unknown): boolean {
+  static #isUntyped(context: Rule.RuleContext, parameter: unknown): parameter is Rule.Node {
     if (!Predicates.isRecord(parameter)) {
       return false;
     }
