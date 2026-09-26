@@ -304,8 +304,6 @@
       "name": "jitter-range-a0",
       "description": "exponentialWithJitter attempt 0 baseDelay 100 is within 50-150",
       "shape": "jitter-range",
-      "minMultiplier": 0.5,
-      "maxMultiplier": 1.5,
       "input": {
         "attempt": 0,
         "baseDelay": 100,
@@ -323,8 +321,6 @@
       "name": "jitter-range-a1",
       "description": "exponentialWithJitter attempt 1 baseDelay 100 is within 100-300",
       "shape": "jitter-range",
-      "minMultiplier": 0.5,
-      "maxMultiplier": 1.5,
       "input": {
         "attempt": 1,
         "baseDelay": 100,
@@ -342,8 +338,6 @@
       "name": "jitter-range-a2",
       "description": "exponentialWithJitter attempt 2 baseDelay 100 is within 200-600",
       "shape": "jitter-range",
-      "minMultiplier": 0.5,
-      "maxMultiplier": 1.5,
       "input": {
         "attempt": 2,
         "baseDelay": 100,
@@ -361,8 +355,6 @@
       "name": "jitter-range-a3",
       "description": "exponentialWithJitter attempt 3 baseDelay 100 is within 400-1200",
       "shape": "jitter-range",
-      "minMultiplier": 0.5,
-      "maxMultiplier": 1.5,
       "input": {
         "attempt": 3,
         "baseDelay": 100,
@@ -395,8 +387,6 @@
       "name": "ceiling-exp-a0",
       "description": "withCeiling(exponential, 500) attempt 0 baseDelay 100 returns 100",
       "shape": "ceiling",
-      "strategy": "exponential",
-      "ceiling": 500,
       "expected": {
         "result": 100
       },
@@ -411,8 +401,6 @@
       "name": "ceiling-exp-a1",
       "description": "withCeiling(exponential, 500) attempt 1 baseDelay 100 returns 200",
       "shape": "ceiling",
-      "strategy": "exponential",
-      "ceiling": 500,
       "expected": {
         "result": 200
       },
@@ -427,8 +415,6 @@
       "name": "ceiling-exp-a2",
       "description": "withCeiling(exponential, 500) attempt 2 baseDelay 100 returns 400",
       "shape": "ceiling",
-      "strategy": "exponential",
-      "ceiling": 500,
       "expected": {
         "result": 400
       },
@@ -443,8 +429,6 @@
       "name": "ceiling-exp-a3",
       "description": "withCeiling(exponential, 500) attempt 3 baseDelay 100 caps at 500",
       "shape": "ceiling",
-      "strategy": "exponential",
-      "ceiling": 500,
       "expected": {
         "result": 500
       },
@@ -459,8 +443,6 @@
       "name": "ceiling-exp-a4",
       "description": "withCeiling(exponential, 500) attempt 4 baseDelay 100 caps at 500",
       "shape": "ceiling",
-      "strategy": "exponential",
-      "ceiling": 500,
       "expected": {
         "result": 500
       },
@@ -475,8 +457,6 @@
       "name": "ceiling-lin-a0",
       "description": "withCeiling(linear, 300) attempt 0 baseDelay 100 returns 100",
       "shape": "ceiling",
-      "strategy": "linear",
-      "ceiling": 300,
       "expected": {
         "result": 100
       },
@@ -491,8 +471,6 @@
       "name": "ceiling-lin-a1",
       "description": "withCeiling(linear, 300) attempt 1 baseDelay 100 returns 200",
       "shape": "ceiling",
-      "strategy": "linear",
-      "ceiling": 300,
       "expected": {
         "result": 200
       },
@@ -507,8 +485,6 @@
       "name": "ceiling-lin-a2",
       "description": "withCeiling(linear, 300) attempt 2 baseDelay 100 returns 300 at ceiling",
       "shape": "ceiling",
-      "strategy": "linear",
-      "ceiling": 300,
       "expected": {
         "result": 300
       },
@@ -523,8 +499,6 @@
       "name": "ceiling-lin-a3",
       "description": "withCeiling(linear, 300) attempt 3 baseDelay 100 caps at 300",
       "shape": "ceiling",
-      "strategy": "linear",
-      "ceiling": 300,
       "expected": {
         "result": 300
       },
@@ -539,8 +513,6 @@
       "name": "ceiling-const-a0",
       "description": "withCeiling(constant, 500) attempt 0 baseDelay 100 unaffected returns 100",
       "shape": "ceiling",
-      "strategy": "constant",
-      "ceiling": 500,
       "expected": {
         "result": 100
       },
@@ -555,8 +527,6 @@
       "name": "ceiling-const-a5",
       "description": "withCeiling(constant, 500) attempt 5 baseDelay 100 unaffected returns 100",
       "shape": "ceiling",
-      "strategy": "constant",
-      "ceiling": 500,
       "expected": {
         "result": 100
       },
@@ -571,8 +541,6 @@
       "name": "ceiling-const-a10",
       "description": "withCeiling(constant, 500) attempt 10 baseDelay 100 unaffected returns 100",
       "shape": "ceiling",
-      "strategy": "constant",
-      "ceiling": 500,
       "expected": {
         "result": 100
       },
@@ -587,8 +555,6 @@
       "name": "ceiling-const-cap",
       "description": "withCeiling(constant, 50) caps baseDelay 100 at ceiling 50",
       "shape": "ceiling",
-      "strategy": "constant",
-      "ceiling": 50,
       "expected": {
         "result": 50
       },

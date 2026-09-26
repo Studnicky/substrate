@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -7,15 +8,14 @@ import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateE
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
 import { Retry } from '../../../src/retry/index.js';
+import { HookThrowScenarioCaseEntity } from '../entities/HookThrowScenarioCaseEntity.js';
 import scenarioGroups from './hook-throw.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call' | 'on-attempt' | 'on-give-up-exhausted' | 'on-give-up-non-retryable' | 'on-retry-scheduled' | 'on-retry-scheduled-async' | 'on-retryable-error' | 'on-success'; name: string };
+const fileIntake = ScenarioFileCompiler.compileIntake(HookThrowScenarioCaseEntity.Schema, HookThrowScenarioCaseEntity.Node);
 
-type RetryScenarioInput = Record<string, unknown> & {
-  batch?: { failureCountBeforeSuccess?: number };
-  retry: Pick<RetryConfigInterface, 'maximumRetries'>;
-};
+type ScenarioCase = HookThrowScenarioCaseEntity.Type;
+
+type RetryScenarioInput = ScenarioCase['input'];
 
 class RetryableClassifier {
   classify(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
@@ -228,7 +228,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
 }
 
 void describe('Retry hook throws', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

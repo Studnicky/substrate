@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -5,16 +6,13 @@ import { describe, it } from 'node:test';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
-
 import { Retry } from '../../../src/retry/index.js';
+import { HookInvocationErrorScenarioCaseEntity } from '../entities/HookInvocationErrorScenarioCaseEntity.js';
 import scenarioGroups from './hook-invocation-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'async-rejects-are-guarded' | 'enter-call-swallows' | 'hookinvoker-default-throws'; name: string };
+const fileIntake = ScenarioFileCompiler.compileIntake(HookInvocationErrorScenarioCaseEntity.Schema, HookInvocationErrorScenarioCaseEntity.Node);
 
-type RetryScenarioInput = Record<string, unknown> & {
-  retry?: Partial<Pick<RetryConfigInterface, 'maximumRetries'>>;
-};
+type ScenarioCase = HookInvocationErrorScenarioCaseEntity.Type;
 
 type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
 
@@ -90,7 +88,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
 }
 
 void describe('Retry hook invocation errors', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
