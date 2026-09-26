@@ -83,6 +83,13 @@ export class AstHelpers {
     AstHelpers.forEachDescendant(value, visit);
   }
 
+  /** Duck-typed on `target`, the field every `ts.TypeReference` carries and no other `ts.Type` does, since the public API exposes no `isTypeReference` guard the way it exposes `isTupleType`/`isArrayType`. */
+  public static isTypeReference(type: ts.Type): type is ts.TypeReference {
+    const result = 'target' in type;
+
+    return result;
+  }
+
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {
     if (!Predicates.isRecord(value)) { return false; }
     if (!('program' in value) || !Predicates.isRecord(value.program)) { return false; }
