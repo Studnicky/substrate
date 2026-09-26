@@ -1,92 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
+
+import { DispatcherHealthScenarioCaseEntity } from './entities/DispatcherHealthScenarioCaseEntity.js';
 import scenarioGroups from './dispatcher-health.scenarios.json' with { type: 'json' };
 
-type EmptyStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: false; objectKeys: number };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
+type ScenarioCase = DispatcherHealthScenarioCaseEntity.Type;
 
-type FrozenStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: true };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
-
-type TestTransportScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
-  input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCase =
-  | EmptyStatsScenarioCase<'empty-stats'>
-  | EmptyStatsScenarioCase<'stats-object-after-requests'>
-  | EmptyStatsScenarioCase<'structure-after-get-stats'>
-  | FrozenStatsScenarioCase<'frozen-stats-object'>
-  | FrozenStatsScenarioCase<'deeply-frozen-stats'>
-  | {
-      description: string;
-      expected: { healthy: true; queueRatio: '__UNDEFINED__'; recommendation: '__UNDEFINED__'; stats: '__UNDEFINED__' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-non-existent-origin';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; objectKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-new-dispatcher';
-      name: string;
-    }
-  | TestTransportScenarioCase<'test-transport-overloaded'>
-  | TestTransportScenarioCase<'test-transport-pressure'>
-  | {
-      description: string;
-      expected: { healthyType: 'boolean'; queueRatioType: 'number-or-undefined'; recommendationType: 'string-or-undefined'; statsType: 'object-or-undefined' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'health-interface-shape';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { closed: true };
-      input: { dispatcher: { connections: number } };
-      shape: 'close-after-idle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { destroyedAfterWait: true };
-      input: { destroy: { timeout: number }; dispatcher: { connections: number } };
-      shape: 'destroy-with-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: Record<string, never>;
-      shape: 'reject-invalid-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; statsKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'test-transport-delegates';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(DispatcherHealthScenarioCaseEntity.Schema, DispatcherHealthScenarioCaseEntity.Node);
 
 function createDispatcher(config: { connections: number }): UndiciDispatcher {
   const agent = DispatcherAgent.create(config);
@@ -285,7 +210,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('dispatcher health monitoring', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
