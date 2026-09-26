@@ -100,7 +100,6 @@ export namespace DrilldownRulesEntity {
 
   /** Shared with `DrillDownConfigEntity`'s own `filter` property — both compose the same three variants. */
   export const FilterRuleNode = drilldownRulesNodes.filterSort.filterRuleNode;
-  /** Referenced by `DrilldownRulesStaticInterface`'s own module for its `.sort` field type. */
   export const SortRuleNode = drilldownRulesNodes.filterSort.sortRuleNode;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
