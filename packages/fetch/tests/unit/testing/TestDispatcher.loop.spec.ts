@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
@@ -5,70 +6,14 @@ import {
 } from 'node:test';
 
 import { TestDispatcher } from '../../../src/testing/TestDispatcher.js';
+
+import { TestDispatcherScenarioCaseEntity } from './entities/TestDispatcherScenarioCaseEntity.js';
 import scenarioGroups from './TestDispatcher.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: {
-    body?: Record<string, unknown> | readonly unknown[] | string;
-    errorCode?: string;
-    errorMessage?: string;
-    headers?: Record<string, string>;
-    longStatus?: number;
-    origin: string;
-    queuedErrorMessage?: string;
-    queuedErrorName?: string;
-    stats?: {
-      connected: number;
-      free: number;
-      pending: number;
-      queued: number;
-      running: number;
-      size: number;
-    };
-    status?: number;
-  };
-  input: {
-    abortAfterMs?: number;
-    body?: string;
-    bodyBuffer?: number[];
-    init?: Record<string, unknown>;
-    longUrl?: string;
-    queuedUrl?: string;
-    testDispatcher: {
-      connections: number;
-      enabled: boolean;
-    };
-    url: string;
-  };
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = TestDispatcherScenarioCaseEntity.Type;
+type BodyScenarioShape = 'post-arraybuffer' | 'post-dataview' | 'post-string' | 'post-uint8array';
 
-type BodyScenarioShape =
-  | 'post-arraybuffer'
-  | 'post-dataview'
-  | 'post-string'
-  | 'post-uint8array';
-
-type ScenarioShape =
-  | BodyScenarioShape
-  | 'delete-post'
-  | 'enotfound'
-  | 'enetunreach'
-  | 'invalid-protocol'
-  | 'head-post'
-  | 'not-found'
-  | 'ok'
-  | 'patch-post'
-  | 'post-blob'
-  | 'post-echo'
-  | 'post-posts'
-  | 'put-post'
-  | 'queued-request-aborts-before-dispatch'
-  | 'signal-aborted-before-wait'
-  | 'text-response'
-  | 'url-echo';
+const fileIntake = ScenarioFileCompiler.compileIntake(TestDispatcherScenarioCaseEntity.Schema, TestDispatcherScenarioCaseEntity.Node);
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
 
@@ -149,7 +94,7 @@ async function runSignalAbortedCase(scenarioCase: ScenarioCase): Promise<void> {
     controller.abort();
 
     await assert.rejects(
-      dispatcher.fetch(scenarioCase.input.url, { signal: controller.signal }),
+      dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), { signal: controller.signal }),
       (error) => {
         assert.ok(error instanceof DOMException);
         assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);
@@ -163,7 +108,7 @@ async function runSignalAbortedCase(scenarioCase: ScenarioCase): Promise<void> {
 async function runNetworkErrorCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
     await assert.rejects(
-      dispatcher.fetch(scenarioCase.input.url, {}),
+      dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), {}),
       (error) => {
         assert.ok(error instanceof Error);
         assert.strictEqual(Reflect.get(error, 'code'), scenarioCase.expected.errorCode);
@@ -176,7 +121,7 @@ async function runNetworkErrorCase(scenarioCase: ScenarioCase): Promise<void> {
 
 async function runTextCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
-    const response = await dispatcher.fetch(scenarioCase.input.url, {});
+    const response = await dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), {});
     assert.strictEqual(response.status, scenarioCase.expected.status);
     const body = await response.text();
     assert.strictEqual(body, scenarioCase.expected.body);
@@ -185,7 +130,7 @@ async function runTextCase(scenarioCase: ScenarioCase): Promise<void> {
 
 async function runJsonRouteCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
-    const response = await dispatcher.fetch(scenarioCase.input.url, scenarioCase.input.init ?? {});
+    const response = await dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), scenarioCase.input.init ?? {});
     assert.strictEqual(response.status, scenarioCase.expected.status);
     const json = await response.json();
     assert.deepStrictEqual(json, scenarioCase.expected.body);
@@ -194,7 +139,7 @@ async function runJsonRouteCase(scenarioCase: ScenarioCase): Promise<void> {
 
 async function runHeadRouteCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
-    const response = await dispatcher.fetch(scenarioCase.input.url, scenarioCase.input.init ?? {});
+    const response = await dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), scenarioCase.input.init ?? {});
     assert.strictEqual(response.status, scenarioCase.expected.status);
     assert.strictEqual(await response.text(), '');
   });
@@ -202,10 +147,10 @@ async function runHeadRouteCase(scenarioCase: ScenarioCase): Promise<void> {
 
 async function runBodyEchoCase(scenarioCase: ScenarioCase, bodyShape: BodyScenarioShape): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
-    const init = { ...scenarioCase.input.init };
+    const init: Record<string, unknown> = { ...scenarioCase.input.init };
     init.body = requestBodyMap[bodyShape](scenarioCase);
 
-    const response = await dispatcher.fetch(scenarioCase.input.url, init);
+    const response = await dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), init);
     assert.strictEqual(response.status, scenarioCase.expected.status);
     const json = await response.json();
     assert.deepStrictEqual(json, scenarioCase.expected.body);
@@ -216,7 +161,7 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
   await withDispatcher(scenarioCase, async (dispatcher) => {
     const init = { ...scenarioCase.input.init, 'body': new Blob([scenarioCase.input.body ?? '']) };
     await assert.rejects(
-      dispatcher.fetch(scenarioCase.input.url, init),
+      dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), init),
       (error) => {
         assert.ok(error instanceof RuntimeError);
         assert.strictEqual(error.code, scenarioCase.expected.errorCode);
@@ -227,7 +172,7 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
   });
 }
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'delete-post': runJsonRouteCase,
   'enotfound': runNetworkErrorCase,
   'enetunreach': runNetworkErrorCase,
@@ -263,7 +208,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('fetch test dispatcher', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
