@@ -29,23 +29,16 @@ class FilterPredicates {
   }
 
   static passesFilter(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    let result: boolean;
-
     switch (filter.type) {
       case 'date':
-        result = FilterPredicates.passesDateFilter(item, filter);
-        break;
+        return FilterPredicates.passesDateFilter(item, filter);
       case 'numeric':
-        result = FilterPredicates.passesNumericFilter(item, filter);
-        break;
+        return FilterPredicates.passesNumericFilter(item, filter);
       case 'value':
-        result = FilterPredicates.passesValueFilter(item, filter);
-        break;
+        return FilterPredicates.passesValueFilter(item, filter);
       default:
-        result = filter;
+        return filter;
     }
-
-    return result;
   }
 
   static passesNumericFilter(item: Record<string, unknown>, filter: NumericRangeFilterRuleEntity.Type): boolean {
