@@ -1,8 +1,11 @@
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
 
+import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
 import scenarioGroups from './metadata.scenarios.json' with { type: 'json' };
 
 type RuntimeTag =
@@ -33,8 +36,31 @@ const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
   undefined: () => undefined
 };
 
+const runtimeValueGuard = createRuntimeValueGuard(['undefined'] as const);
+
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
   return value !== null && typeof value === 'object' && 'shape' in value;
+}
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  return Predicates.isObject(value)
+    && typeof value.description === 'string'
+    && typeof value.name === 'string'
+    && Predicates.isObject(value.expected)
+    && (value.expected.shape === 'ok' || value.expected.shape === 'throws')
+    && Predicates.isObject(value.input)
+    && runtimeValueGuard.isRuntimeValue(value.input.metadata);
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('metadata.scenarios.json does not match the expected scenario case shape');
+  }
+  return value;
 }
 
 function materializeRuntimeValue(value: RuntimeValue): unknown {
@@ -83,7 +109,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('fetch metadata validation', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
