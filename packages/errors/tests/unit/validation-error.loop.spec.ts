@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
+import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
@@ -136,19 +137,19 @@ const runnerMap = {
     assert.ok(err instanceof ValidationError);
   },
   'json-excludes-violations': (scenario, err) => {
-    const json = err.toJSON() as Record<string, unknown>;
+    const json = err.toJSON();
     assert.strictEqual('violations' in json, scenario.expected.hasViolations);
   },
   'json-includes-violations': (scenario, err) => {
-    const json = err.toJSON() as Record<string, unknown>;
+    const json = err.toJSON();
     assert.strictEqual('violations' in json, scenario.expected.hasViolations);
   },
   'json-roundtrip': (scenario, err) => {
-    const parsed = JSON.parse(JSON.stringify(err.toJSON())) as Record<string, unknown>;
+    const parsed = ProblemDetailsEntity.intake(JSON.parse(JSON.stringify(err.toJSON())));
     assert.strictEqual(parsed.code, scenario.expected.code);
   },
   'json-serializes': (scenario, err) => {
-    const json = err.toJSON() as Record<string, unknown>;
+    const json = err.toJSON();
     assert.strictEqual(json.code, scenario.expected.code);
     assert.strictEqual(typeof json.detail, scenario.expected.messageType);
   },

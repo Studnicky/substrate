@@ -18,6 +18,9 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../scenario-kit"
+    },
+    {
       "path": "../types"
     }
   ]

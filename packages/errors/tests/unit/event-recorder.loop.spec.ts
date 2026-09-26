@@ -1,7 +1,9 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { EventRecorder } from '../../src/index.js';
+import { EventRecorderScenarioCaseEntity } from './entities/EventRecorderScenarioCaseEntity.js';
 import scenarioGroups from './event-recorder.scenarios.json' with { type: 'json' };
 
 interface RecordedEventInterface {
@@ -9,21 +11,14 @@ interface RecordedEventInterface {
   nested: { value: number };
 }
 
-type ScenarioShape = 'detaches-recorded-events';
+type ScenarioCase = EventRecorderScenarioCaseEntity.Type;
+type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: { recorder: { event: RecordedEventInterface } };
-  shape: ScenarioShape;
-  name: string;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(EventRecorderScenarioCaseEntity.Schema, EventRecorderScenarioCaseEntity.Node);
 
 function runCase(scenario: ScenarioCase): void {
   scenarioRunners[scenario.shape](scenario);
 }
-
-type ScenarioRunner = (scenario: ScenarioCase) => void;
 
 const scenarioRunners = {
   'detaches-recorded-events': (scenario) => {
@@ -45,10 +40,10 @@ const scenarioRunners = {
 
     assert.deepStrictEqual(recorder.events[0], expected.detachedProjection);
   }
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 void describe('EventRecorder', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
