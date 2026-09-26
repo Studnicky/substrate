@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -8,6 +9,7 @@ import { FetchClient } from '../../../src/node/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
+
 
 type RuntimeTag = { shape: 'undefined' };
 type RuntimeValue =
@@ -72,11 +74,31 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
     const materialized: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
+      materialized[key] = materializeRuntimeValue(entry);
     }
     return materialized;
   }
 
+  return value;
+}
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  return Predicates.isObject(value)
+    && typeof value.description === 'string'
+    && typeof value.name === 'string'
+    && Predicates.isObject(value.expected)
+    && (value.expected.shape === 'ok' || value.expected.shape === 'reject')
+    && Predicates.isObject(value.input);
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('headers.errors.scenarios.json does not match the expected scenario case shape');
+  }
   return value;
 }
 
@@ -93,13 +115,13 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   const { expected } = scenarioCase;
   const clientConfig = {
     baseURL: testUrl,
-    ...(scenarioCase.input.clientConfig === undefined ? {} : (scenarioCase.input.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.input.clientConfig.headers) as never }))
+    ...(scenarioCase.input.clientConfig === undefined ? {} : (scenarioCase.input.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.input.clientConfig.headers) }))
   };
 
   if (expected.shape === 'reject') {
     if (request === undefined) {
       assert.throws(() => {
-        FetchClient.create(clientConfig as never);
+        Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
       }, (error: Error) => {
         for (const expectedMessagePart of expected.messageIncludes ?? []) {
           assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));
@@ -109,7 +131,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       return;
     }
 
-    const clientInstance = FetchClient.create(clientConfig as never);
+    const clientInstance: FetchClient = Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
     const headers = 'headerCount' in request && request.headerCount !== undefined ? buildHeaders(request.headerCount) : request.headers;
     const options = {
       ...(headers === undefined ? {} : { headers }),
@@ -141,7 +163,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     return;
   }
 
-  const clientInstance = FetchClient.create(clientConfig as never);
+  const clientInstance: FetchClient = Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
   if (request === undefined) {
     assert.fail('scenario request is required for ok cases');
   }
@@ -168,7 +190,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Headers Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
