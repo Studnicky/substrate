@@ -6,9 +6,9 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "basicThrottle.ts"
+        "file": "../../examples/basicThrottle.ts"
       },
-      "shape": "basicThrottle",
+      "shape": "imports-example",
       "name": "runs basicThrottle without throwing"
     },
     {
@@ -17,9 +17,9 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "boundaryKitComposition.ts"
+        "file": "../../examples/boundaryKitComposition.ts"
       },
-      "shape": "boundaryKitComposition",
+      "shape": "imports-example",
       "name": "runs boundaryKitComposition without throwing"
     },
     {
@@ -28,9 +28,9 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "drainThrottle.ts"
+        "file": "../../examples/drainThrottle.ts"
       },
-      "shape": "drainThrottle",
+      "shape": "imports-example",
       "name": "runs drainThrottle without throwing"
     },
     {
@@ -39,9 +39,9 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "observedThrottle.ts"
+        "file": "../../examples/observedThrottle.ts"
       },
-      "shape": "observedThrottle",
+      "shape": "imports-example",
       "name": "runs observedThrottle without throwing"
     }
   ]

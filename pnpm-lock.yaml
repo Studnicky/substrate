@@ -216,6 +216,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/circular-buffer:
     dependencies:
@@ -246,6 +249,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/concurrency:
     dependencies:
@@ -292,6 +299,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/context:
     dependencies:
@@ -964,6 +975,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/sample-buffer:
     dependencies:
@@ -1146,6 +1161,9 @@ importers:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
       '@studnicky/resilience':
         specifier: workspace:*
         version: link:../resilience
@@ -1170,6 +1188,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
 
   packages/topic-router:
     dependencies:

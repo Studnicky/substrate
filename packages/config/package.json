@@ -37,6 +37,9 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
+  },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "keywords": [

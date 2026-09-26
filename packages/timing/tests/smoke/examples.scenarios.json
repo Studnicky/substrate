@@ -6,9 +6,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/basic-usage.ts"
+        "file": "../../examples/basic-usage.ts"
       },
-      "name": "basic-usage"
+      "name": "basic-usage",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the instrumented timing example",
@@ -16,9 +17,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/instrumented-timing.ts"
+        "file": "../../examples/instrumented-timing.ts"
       },
-      "name": "instrumented-timing"
+      "name": "instrumented-timing",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the noop timing example",
@@ -26,9 +28,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/noop-timing.ts"
+        "file": "../../examples/noop-timing.ts"
       },
-      "name": "noop-timing"
+      "name": "noop-timing",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed timing example",
@@ -36,9 +39,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/observedTiming.ts"
+        "file": "../../examples/observedTiming.ts"
       },
-      "name": "observed-timing"
+      "name": "observed-timing",
+      "shape": "imports-example"
     }
   ]
 }
