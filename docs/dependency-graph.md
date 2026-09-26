@@ -126,7 +126,6 @@ p__studnicky_filters --> p__studnicky_json
 p__studnicky_filters --> p__studnicky_types
 p__studnicky_flag_evaluator --> p__studnicky_entity
 p__studnicky_flag_evaluator --> p__studnicky_errors
-p__studnicky_flag_evaluator --> p__studnicky_json
 p__studnicky_flag_evaluator --> p__studnicky_types
 p__studnicky_fsm --> p__studnicky_circular_buffer
 p__studnicky_fsm --> p__studnicky_clock
