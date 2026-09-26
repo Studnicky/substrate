@@ -4,14 +4,15 @@
 
 import { LruCache } from '@studnicky/cache/browser';
 import { Coalesce } from '@studnicky/concurrency/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
 import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
 
-import { IdempotencyConflictError } from './errors/index.js';
+import { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
+import { IdempotencyConflictError, IdempotencyGuardConfigError } from './errors/index.js';
 
 class IdempotencyGuardHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
@@ -89,6 +90,7 @@ export class IdempotencyGuard<TResult = unknown> {
    *
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
+   * @throws {IdempotencyGuardConfigError} `options` fails `IdempotencyGuardOptionsEntity`'s schema
    */
 
   static create<
@@ -116,7 +118,17 @@ export class IdempotencyGuard<TResult = unknown> {
   readonly #inFlightFingerprints = new Map<string, string>();
   protected readonly hooks: HookInvoker = new IdempotencyGuardHookInvoker();
 
-  protected constructor(options: IdempotencyGuardOptionsEntity.InputType) {
+  protected constructor(config: IdempotencyGuardOptionsEntity.InputType) {
+    let options: IdempotencyGuardOptionsEntity.Type;
+    try {
+      options = IdempotencyGuardOptionsEntity.intake(config);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new IdempotencyGuardConfigError(RuntimeError.toMessage(error));
+      }
+      throw error;
+    }
+
     this.#cache = LruCache.create<string, IdempotencyGuardEntryInterface<TResult>>({
       'capacity': options.capacity,
       'ttlMs': options.ttlMs
