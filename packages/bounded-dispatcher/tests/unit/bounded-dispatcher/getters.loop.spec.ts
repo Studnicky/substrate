@@ -14,9 +14,8 @@ import scenarioGroups from './getters.scenarios.json' with { type: 'json' };
 const fileIntake = ScenarioFileCompiler.compileIntake(GettersScenarioCaseEntity.Schema, GettersScenarioCaseEntity.Node);
 
 type ScenarioCase = GettersScenarioCaseEntity.Type;
-type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
+const runnerMap: { [K in ScenarioCase['shape']]: (scenario: Extract<ScenarioCase, { shape: K }>) => void } = {
   'getBus-default': (scenario) => {
     const dispatcher = BoundedDispatcher.create();
     const { expected, input } = scenario;
@@ -34,7 +33,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   }
 };
 
-function runCase(scenario: ScenarioCase): void {
+function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
   runnerMap[scenario.shape](scenario);
 }
 
