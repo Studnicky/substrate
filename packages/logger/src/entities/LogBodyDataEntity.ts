@@ -17,6 +17,7 @@ export namespace LogBodyDataEntity {
     'description': 'Data structure for a normalized log entry.',
     'properties': {
       'context': {
+        'additionalProperties': {},
         'description': 'Freeform application data as a JSON blob.',
         'type': 'object'
       },
@@ -48,7 +49,7 @@ export namespace LogBodyDataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized log entry.', 'title': 'LogBodyData', 'type': 'object' } as const, { 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const), 'durationMs': SchemaNode.defineNumber({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized log entry.', 'title': 'LogBodyData', 'type': 'object' } as const, { 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'

@@ -21,6 +21,7 @@ export namespace LogFaultDataEntity {
         'type': 'string'
       },
       'context': {
+        'additionalProperties': {},
         'description': 'Freeform application data as a JSON blob.',
         'type': 'object'
       },
@@ -63,7 +64,7 @@ export namespace LogFaultDataEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogFaultData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized error log entry.', 'title': 'LogFaultData', 'type': 'object' } as const, { 'cause': SchemaNode.defineString({
     'description': 'Underlying cause message (for chained errors).',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const), 'durationMs': SchemaNode.defineNumber({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'
