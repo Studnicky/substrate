@@ -25,7 +25,7 @@ export class EntityClosureRegistry {
   private static readonly NO_REMOTES: ReadonlyMap<string, object | boolean> = new Map();
 
   public static create(fillDefaults: boolean): SchemaCompilerInterface {
-    const cache = new Map<string, MutableValidateFunctionInterface<unknown>>();
+    const cache = new Map<string, MutableValidateFunctionInterface<never>>();
 
     const compile = <TValidated>(
       schema: object | boolean, remoteSchemas: ReadonlyMap<string, object | boolean> = EntityClosureRegistry.NO_REMOTES
@@ -34,8 +34,7 @@ export class EntityClosureRegistry {
       if (id !== undefined) {
         const existing = cache.get(id);
         if (existing !== undefined) {
-          const result = existing as MutableValidateFunctionInterface<TValidated>;
-          return result;
+          return existing;
         }
       }
       const knownRemotes = EntityClosureRegistry.withKnownMetaschemas(remoteSchemas);
@@ -47,7 +46,7 @@ export class EntityClosureRegistry {
         'remoteSchemas': knownRemotes, 'resourceIndex': resourceIndex, 'validationVocabularyEnabled': validationVocabularyEnabled
       };
       const node = SchemaNodeCompiler.compileRoot(schema, compileContext, '#', '');
-      const predicate = EntityClosureRegistry.toPredicate<TValidated>(node, fillDefaults);
+      const predicate = EntityClosureRegistry.toPredicate(node, fillDefaults);
       if (id !== undefined) {
         cache.set(id, predicate);
       }
@@ -55,8 +54,8 @@ export class EntityClosureRegistry {
     };
 
     const getSchema = <TValidated>(key: string): EntityValidateFunctionInterface<TValidated> | undefined => {
-      const result = cache.get(key) as MutableValidateFunctionInterface<TValidated> | undefined;
-      return result;
+      const cached = cache.get(key);
+      return cached;
     };
 
     const result = { 'compile': compile, 'getSchema': getSchema };
@@ -70,15 +69,16 @@ export class EntityClosureRegistry {
     return merged;
   }
 
-  private static toPredicate<TValidated>(node: CompiledNodeInterface, fillDefaults: boolean): MutableValidateFunctionInterface<TValidated> {
-    const predicate = ((data: unknown): data is TValidated => {
+  /** The predicate's declared type is a phantom over `TValidated`; `never` is the sound universal witness a caller's generic narrows from. */
+  private static toPredicate(node: CompiledNodeInterface, fillDefaults: boolean): MutableValidateFunctionInterface<never> {
+    const predicate: MutableValidateFunctionInterface<never> = (data: unknown): data is never => {
       const context: ValidationExecutionContextInterface = {
         'dynamicScope': [], 'options': { 'fillDefaults': fillDefaults }
       };
       const valid = node.check(data, context);
       predicate.errors = valid ? null : node.collect(data, context, '', '');
       return valid;
-    }) as MutableValidateFunctionInterface<TValidated>;
+    };
     predicate.errors = null;
     return predicate;
   }
