@@ -1,13 +1,12 @@
+import { ScenarioFileCompiler } from "@studnicky/scenario-kit/node";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { VirtualFileSystem } from "../../../src/virtual-fs/VirtualFileSystem.js";
+import { VirtualFileSystemScenarioCaseEntity } from "./entities/VirtualFileSystemScenarioCaseEntity.js";
 import scenarioGroups from "./VirtualFileSystem.scenarios.json" with { type: "json" };
 
-type ScenarioCase = {
-  [Shape in ScenarioShape]: ScenarioMetadata<Shape> &
-    ScenarioCaseByShape[Shape];
-}[ScenarioShape];
+type ScenarioCase = VirtualFileSystemScenarioCaseEntity.Type;
 
 type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<
   ScenarioCase,
@@ -22,253 +21,11 @@ type ScenarioHandlers = {
   [Shape in ScenarioShape]: ScenarioHandler<Shape>;
 };
 
-type ScenarioShape = keyof ScenarioCaseByShape;
+type ScenarioShape = ScenarioCase["shape"];
 
-type ScenarioMetadata<Shape extends string> = {
-  description: string;
-  shape: Shape;
-  name: string;
-};
+type SeedInput = ScenarioCaseOf<"create-seed-populates">["input"]["seed"];
 
-type SeedInput = Array<{ content: string; path: string }>;
-
-type TextFileInput = {
-  content: string;
-  encoding: "utf8";
-  path: string;
-};
-
-interface ScenarioCaseByShape {
-  "create-clock-deterministic": {
-    expected: { mtimeMs: number };
-    input: TextFileInput & { clockMs: number };
-  };
-  "create-seed-empty": {
-    expected: { rootEntries: string[]; rootPath: string };
-    input: { seed: SeedInput };
-  };
-  "create-seed-populates": {
-    expected: { content: string };
-    input: { readPath: string; seed: SeedInput };
-  };
-  "exists-after-write": {
-    expected: { exists: boolean };
-    input: TextFileInput;
-  };
-  "exists-missing": {
-    expected: { exists: boolean };
-    input: { path: string };
-  };
-  "exists-root": {
-    expected: { exists: boolean };
-    input: { path: string };
-  };
-  "lifecycle-onCreate": {
-    expected: { logEntry: string };
-    input: TextFileInput;
-  };
-  "lifecycle-onDelete": {
-    expected: { logEntry: string };
-    input: TextFileInput;
-  };
-  "lifecycle-onRead": {
-    expected: { logEntry: string };
-    input: TextFileInput;
-  };
-  "lifecycle-onRename": {
-    expected: { logEntry: { newPath: string; oldPath: string } };
-    input: {
-      content: string;
-      encoding: "utf8";
-      from: string;
-      to: string;
-    };
-  };
-  "lifecycle-onWrite": {
-    expected: { logEntry: string };
-    input: {
-      encoding: "utf8";
-      firstContent: string;
-      path: string;
-      secondContent: string;
-    };
-  };
-  "mkdir-existing-dir-no-throw": {
-    expected: { didThrow: boolean };
-    input: { path: string; recursive: boolean };
-  };
-  "mkdir-existing-dir-throws": {
-    expected: { errorCode: string };
-    input: { existingRecursive: boolean; path: string };
-  };
-  "mkdir-file-path-throws": {
-    expected: {
-      errorCode: string;
-      fileContent: string;
-      fileStillExists: boolean;
-    };
-    input: TextFileInput;
-  };
-  "mkdir-recursive-creates": {
-    expected: { exists: string[] };
-    input: { path: string; recursive: boolean };
-  };
-  "mkdir-recursive-intermediate-file-throws": {
-    expected: { errorCode: string };
-    input: {
-      content: string;
-      encoding: "utf8";
-      intermediateFilePath: string;
-      path: string;
-    };
-  };
-  "read-missing-throws": {
-    expected: { errorCode: string };
-    input: { encoding: "utf8"; path: string };
-  };
-  "readdir-missing-throws": {
-    expected: { errorCode: string };
-    input: { path: string };
-  };
-  "readdir-mixed-operations": {
-    expected: {
-      childEntries: string[];
-      dirBEntries: string[];
-      rootEntries: string[];
-    };
-    input: {
-      childDirectory: string;
-      directory: string;
-      extraContent: string;
-      extraPath: string;
-      leafContent: string;
-      leafPath: string;
-      removedPath: string;
-      renamedDirectory: string;
-      rootFiles: Array<{ content: string; path: string }>;
-    };
-  };
-  "readdir-no-nested": {
-    expected: { excludedEntries: string[]; includedEntries: string[] };
-    input: { content: string; directory: string; filePath: string };
-  };
-  "readdir-reflects-dir-rename": {
-    expected: {
-      movedEntries: string[];
-      movedSubEntries: string[];
-      rootEntries: string[];
-    };
-    input: {
-      directories: string[];
-      files: Array<{ content: string; path: string }>;
-      from: string;
-      missingAfterRename: string;
-      movedSubDirectory: string;
-      to: string;
-    };
-  };
-  "readdir-reflects-file-rename": {
-    expected: { excludedEntries: string[]; includedEntries: string[] };
-    input: { content: string; directory: string; from: string; to: string };
-  };
-  "readdir-reflects-unlink": {
-    expected: { excludedEntries: string[]; includedEntries: string[] };
-    input: {
-      keep: string;
-      keepContent: string;
-      removed: string;
-      removedContent: string;
-    };
-  };
-  "readdir-root": {
-    expected: { entries: string[] };
-    input: { files: Array<{ content: string; path: string }> };
-  };
-  "readdir-scale-scope": {
-    expected: { entries: string[] };
-    input: { target: string; targetFile: string; unrelatedCount: number };
-  };
-  "rename-directory": {
-    expected: {
-      sourceExists: boolean;
-      targetExists: boolean;
-      targetIsDirectory: boolean;
-    };
-    input: { path: string; renamedPath: string };
-  };
-  "rename-directory-subtree": {
-    expected: {
-      movedFileContent: string;
-      movedNestedContent: string;
-      sourceExists: boolean;
-    };
-    input: {
-      childPath: string;
-      fileContent: string;
-      filePath: string;
-      movedFilePath: string;
-      movedNestedPath: string;
-      nestedContent: string;
-      nestedPath: string;
-      sourcePath: string;
-      targetPath: string;
-    };
-  };
-  "rename-file-moves-content": {
-    expected: { content: string; sourceExists: boolean; targetExists: boolean };
-    input: {
-      content: string;
-      encoding: "utf8";
-      from: string;
-      to: string;
-    };
-  };
-  "rename-missing-throws": {
-    expected: { errorCode: string };
-    input: { from: string; to: string };
-  };
-  "stat-dir-shape": {
-    expected: { isDirectory: boolean; isFile: boolean };
-    input: { path: string };
-  };
-  "stat-file-shape": {
-    expected: { isDirectory: boolean; isFile: boolean };
-    input: TextFileInput;
-  };
-  "stat-missing-throws": {
-    expected: { errorCode: string };
-    input: { path: string };
-  };
-  "stat-mtime-clock": {
-    expected: { mtimeMs: number };
-    input: TextFileInput & { advanceMs: number; initialClockMs: number };
-  };
-  "unlink-directory-throws": {
-    expected: { errorCode: string };
-    input: { path: string };
-  };
-  "unlink-missing-throws": {
-    expected: { errorCode: string };
-    input: { path: string };
-  };
-  "unlink-removes": {
-    expected: { exists: boolean };
-    input: TextFileInput;
-  };
-  "write-overwrite": {
-    expected: { content: string };
-    input: {
-      encoding: "utf8";
-      firstContent: string;
-      path: string;
-      secondContent: string;
-    };
-  };
-  "write-roundtrip": {
-    expected: { content: string };
-    input: TextFileInput;
-  };
-}
+const fileIntake = ScenarioFileCompiler.compileIntake(VirtualFileSystemScenarioCaseEntity.Schema, VirtualFileSystemScenarioCaseEntity.Node);
 
 let clockMs = 1000;
 const mockClock = {
@@ -718,10 +475,8 @@ function runCase<Shape extends ScenarioShape>(
   scenarioHandlers[scenarioCase.shape](scenarioCase);
 }
 
-const scenarios = scenarioGroups.cases as ScenarioCase[];
-
 void describe("VirtualFileSystem", () => {
-  for (const scenario of scenarios) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,56 +10,34 @@ import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
 import { FileLock, FileLockConfigError, FileLockTimeoutError } from '../../src/node/index.js';
+import { FileLockScenarioCaseEntity } from './entities/FileLockScenarioCaseEntity.js';
 import scenarioGroups from './FileLock.scenarios.json' with { type: 'json' };
 
-type ScenarioCaseBase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
-  name: string;
-};
-
-type ScenarioCase =
-  | (ScenarioCaseBase & { shape: 'timeout-missing-file' })
-  | (ScenarioCaseBase & { shape: 'acquire-success-restores-path' })
-  | (ScenarioCaseBase & { shape: 'contention-times-out' })
-  | (ScenarioCaseBase & { shape: 'read-after-create' })
-  | (ScenarioCaseBase & { shape: 'write-then-release-restores-new-content' })
-  | (ScenarioCaseBase & { shape: 'release-idempotent' })
-  | (ScenarioCaseBase & { shape: 'symbol-dispose-releases' })
-  | (ScenarioCaseBase & { shape: 'poll-and-timeout-options' })
-  | (ScenarioCaseBase & { shape: 'hook-acquire-start-and-acquire' })
-  | (ScenarioCaseBase & { shape: 'hook-release-original-path' })
-  | (ScenarioCaseBase & { shape: 'hook-idempotent-release' })
-  | (ScenarioCaseBase & { shape: 'hook-timeout' })
-  | (ScenarioCaseBase & { shape: 'hook-contention-wait-and-timeout' })
-  | (ScenarioCaseBase & { shape: 'hook-order' })
-  | (ScenarioCaseBase & { shape: 'throwing-onAcquire-does-not-orphan-lock' })
-  | (ScenarioCaseBase & { shape: 'async-rejecting-onAcquire-guarded' })
-  | (ScenarioCaseBase & { shape: 'hook-errors-isolated-per-instance' })
-  | (ScenarioCaseBase & { shape: 'symbol-dispose-hook' })
-  | (ScenarioCaseBase & { shape: 'bare-relative-filename-contention' })
-  | (ScenarioCaseBase & { shape: 'genuine-fs-error-routes-to-onError' });
-
+type ScenarioCase = FileLockScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
 type ScenarioRunnerMap = { readonly [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
-type FileLockScenarioConfig = {
-  pollMs?: number;
-  timeoutMs?: number;
-};
+/** The `pollMs`/`timeoutMs` override every contended-acquire branch carries under `input.fileLock`. */
+type FileLockPollTimeoutConfig = { pollMs?: number; timeoutMs?: number };
 
-type FaultyFileSystemConfig = {
-  code: string;
-  message: string;
-};
+/** The `{ code, message }` pair `genuine-fs-error-routes-to-onError` uses to script a thrown `FaultyFileSystem` failure. */
+type FaultyFileSystemConfig = Extract<ScenarioCase, { shape: 'genuine-fs-error-routes-to-onError' }>['input']['fileSystemError'];
+
+const fileIntake = ScenarioFileCompiler.compileIntake(FileLockScenarioCaseEntity.Schema, FileLockScenarioCaseEntity.Node);
 
 let TEST_DIR = '';
 
 class FileLockTestHelpers {
   public static makePath(name: string): string {
     return join(TEST_DIR, name);
+  }
+}
+
+/** A minimal Node-style filesystem error: only `code` and `message` matter to `FileRenameLock`'s `'code' in error` check. */
+class FaultyFileSystemError extends Error {
+  public constructor(public readonly code: string, message: string) {
+    super(message);
   }
 }
 
@@ -70,9 +49,7 @@ class FaultyFileSystem implements FileSystemInterface {
   readdirSync(): string[] { return []; }
   readFileSync(): string { return ''; }
   renameSync(): void {
-    const error = RuntimeError.create(this.config.message) as NodeJS.ErrnoException;
-    error.code = this.config.code;
-    throw error;
+    throw new FaultyFileSystemError(this.config.code, this.config.message);
   }
   statSync(): StatResultInterface {
     return { isDirectory: () => false, isFile: () => true, mtimeMs: 0 };
@@ -81,8 +58,8 @@ class FaultyFileSystem implements FileSystemInterface {
   writeFileSync(): void {}
 }
 
-function getFileLockConfig(scenarioCase: ScenarioCase): FileLockScenarioConfig {
-  return (scenarioCase.input.fileLock ?? {}) as FileLockScenarioConfig;
+function getFileLockConfig<TCase extends { input: { fileLock?: FileLockPollTimeoutConfig } }>(scenarioCase: TCase): FileLockPollTimeoutConfig {
+  return scenarioCase.input.fileLock ?? {};
 }
 
 beforeEach(() => {
@@ -129,23 +106,23 @@ const runnerMap: ScenarioRunnerMap = {
   'timeout-missing-file': async (scenarioCase) => {
     await assert.rejects(
       FileLock.create({
-        path: FileLockTestHelpers.makePath(scenarioCase.input.path as string),
+        path: FileLockTestHelpers.makePath(scenarioCase.input.path),
         ...getFileLockConfig(scenarioCase)
       }),
       (error: Error) => Boolean(scenarioCase.expected.timedOut) && error instanceof FileLockTimeoutError
     );
   },
   'acquire-success-restores-path': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await FileLock.create({ path });
-    assert.equal(existsSync(path), scenarioCase.expected.existedDuringLock as boolean);
+    assert.equal(existsSync(path), scenarioCase.expected.existedDuringLock);
     lock.release();
-    assert.equal(existsSync(path), scenarioCase.expected.existedAfterRelease as boolean);
+    assert.equal(existsSync(path), scenarioCase.expected.existedAfterRelease);
   },
   'contention-times-out': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
@@ -154,39 +131,39 @@ const runnerMap: ScenarioRunnerMap = {
     lock.release();
   },
   'read-after-create': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await FileLock.create({ path });
-    assert.strictEqual(lock.read(), scenarioCase.expected.content as string);
+    assert.strictEqual(lock.read(), scenarioCase.expected.content);
     lock.release();
   },
   'write-then-release-restores-new-content': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.originalContent as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.originalContent);
     const lock = await FileLock.create({ path });
-    lock.write(scenarioCase.input.updatedContent as string);
+    lock.write(scenarioCase.input.updatedContent);
     lock.release();
     assert.ok(existsSync(path));
-    assert.strictEqual(readFileSync(path, 'utf8'), scenarioCase.expected.content as string);
+    assert.strictEqual(readFileSync(path, 'utf8'), scenarioCase.expected.content);
   },
   'release-idempotent': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await FileLock.create({ path });
     lock.release();
     lock.release();
   },
   'symbol-dispose-releases': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await FileLock.create({ path });
-    assert.equal(existsSync(path), scenarioCase.expected.existedDuringLock as boolean);
+    assert.equal(existsSync(path), scenarioCase.expected.existedDuringLock);
     lock[Symbol.dispose]();
-    assert.equal(existsSync(path), scenarioCase.expected.existedAfterDispose as boolean);
+    assert.equal(existsSync(path), scenarioCase.expected.existedAfterDispose);
   },
   'poll-and-timeout-options': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const firstLock = await FileLock.create({ path });
     await assert.rejects(
       FileLock.create({ path, ...getFileLockConfig(scenarioCase) }),
@@ -195,38 +172,38 @@ const runnerMap: ScenarioRunnerMap = {
     firstLock.release();
   },
   'hook-acquire-start-and-acquire': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await RecordingFileLock.create({ path });
     const starts = lock.events.filter((e) => e.hook === 'onAcquireStart');
     const acquires = lock.events.filter((e) => e.hook === 'onAcquire');
-    assert.strictEqual(starts.length, scenarioCase.expected.startCount as number);
+    assert.strictEqual(starts.length, scenarioCase.expected.startCount);
     assert.strictEqual(starts[0]?.path, path);
-    assert.strictEqual(acquires.length, scenarioCase.expected.acquireCount as number);
+    assert.strictEqual(acquires.length, scenarioCase.expected.acquireCount);
     assert.strictEqual(acquires[0]?.path, path);
     assert.ok(lock.events.findIndex((e) => e.hook === 'onAcquireStart') < lock.events.findIndex((e) => e.hook === 'onAcquire'));
     lock.release();
   },
   'hook-release-original-path': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await RecordingFileLock.create({ path });
     lock.release();
     const releases = lock.events.filter((e) => e.hook === 'onRelease');
-    assert.strictEqual(releases.length, scenarioCase.expected.releaseCount as number);
+    assert.strictEqual(releases.length, scenarioCase.expected.releaseCount);
     assert.strictEqual(releases[0]?.path, path);
   },
   'hook-idempotent-release': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await RecordingFileLock.create({ path });
     lock.release();
     lock.release();
     const releases = lock.events.filter((e) => e.hook === 'onRelease');
-    assert.strictEqual(releases.length, scenarioCase.expected.releaseCount as number);
+    assert.strictEqual(releases.length, scenarioCase.expected.releaseCount);
   },
   'hook-timeout': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
     let lock: RecordingFileLock | undefined;
     let caughtError: unknown;
     try {
@@ -238,8 +215,8 @@ const runnerMap: ScenarioRunnerMap = {
     assert.ok(lock === undefined);
   },
   'hook-contention-wait-and-timeout': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const first = await RecordingFileLock.create({ path });
     const capturedEvents: Array<{ hook: string; path: string; extra?: number | string }> = [];
     class CapturingFileLock extends FileLock {
@@ -260,9 +237,9 @@ const runnerMap: ScenarioRunnerMap = {
     const contentions = capturedEvents.filter((e) => e.hook === 'onContended');
     const waits = capturedEvents.filter((e) => e.hook === 'onAcquireWait');
     const timeouts = capturedEvents.filter((e) => e.hook === 'onTimeout');
-    assert.ok(contentions.length >= (scenarioCase.expected.minimumContentions as number));
-    assert.ok(waits.length >= (scenarioCase.expected.minimumWaits as number));
-    assert.strictEqual(timeouts.length, scenarioCase.expected.timeoutCount as number);
+    assert.ok(contentions.length >= scenarioCase.expected.minimumContentions);
+    assert.ok(waits.length >= scenarioCase.expected.minimumWaits);
+    assert.strictEqual(timeouts.length, scenarioCase.expected.timeoutCount);
     assert.ok(contentions.length === waits.length);
     for (let i = 0; i < waits.length; i++) {
       assert.strictEqual(waits[i]?.extra, i + 1);
@@ -270,8 +247,8 @@ const runnerMap: ScenarioRunnerMap = {
     first.release();
   },
   'hook-order': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const holder = await FileLock.create({ path });
     const capturedHooks: string[] = [];
     class OrderingFileLock extends FileLock {
@@ -290,9 +267,9 @@ const runnerMap: ScenarioRunnerMap = {
     holder.release();
   },
   'throwing-onAcquire-does-not-orphan-lock': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
-    const hookErrorMessage = scenarioCase.input.hookErrorMessage as string;
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
+    const hookErrorMessage = scenarioCase.input.hookErrorMessage;
     class ThrowingAcquireHookLock extends FileLock {
       protected override onAcquire(): void {
         throw RuntimeError.create(hookErrorMessage);
@@ -304,9 +281,9 @@ const runnerMap: ScenarioRunnerMap = {
     assert.equal(existsSync(path), !scenarioCase.expected.orphaned);
   },
   'async-rejecting-onAcquire-guarded': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
-    const hookCauseMessage = scenarioCase.expected.hookCauseMessage as string;
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
+    const hookCauseMessage = scenarioCase.expected.hookCauseMessage;
     class AsyncRejectingAcquireLock extends FileLock {
       static readonly hookCause = RuntimeError.create(hookCauseMessage, { cause: { details: { attempt: 1 } } });
       protected override onAcquire(): Promise<void> {
@@ -331,7 +308,7 @@ const runnerMap: ScenarioRunnerMap = {
       assert.ok(firstDiagnostic.cause !== AsyncRejectingAcquireLock.hookCause);
       assert.ok(firstDiagnostic.cause !== secondDiagnostic.cause);
       firstDiagnostic.cause.message = 'mutated projection';
-      assert.strictEqual(secondDiagnostic.cause.message, scenarioCase.expected.hookCauseMessage as string);
+      assert.strictEqual(secondDiagnostic.cause.message, scenarioCase.expected.hookCauseMessage);
       assert.strictEqual(lock.hookErrorCount, 1);
       lock.release();
     } finally {
@@ -339,10 +316,10 @@ const runnerMap: ScenarioRunnerMap = {
     }
   },
   'hook-errors-isolated-per-instance': async (scenarioCase) => {
-    const firstPath = FileLockTestHelpers.makePath((scenarioCase.input.first as Record<string, unknown>).path as string);
-    const secondPath = FileLockTestHelpers.makePath((scenarioCase.input.second as Record<string, unknown>).path as string);
-    writeFileSync(firstPath, (scenarioCase.input.first as Record<string, unknown>).content as string);
-    writeFileSync(secondPath, (scenarioCase.input.second as Record<string, unknown>).content as string);
+    const firstPath = FileLockTestHelpers.makePath(scenarioCase.input.first.path);
+    const secondPath = FileLockTestHelpers.makePath(scenarioCase.input.second.path);
+    writeFileSync(firstPath, scenarioCase.input.first.content);
+    writeFileSync(secondPath, scenarioCase.input.second.content);
     class IsolatedFailureLock extends FileLock {
       protected override onAcquire(path: string): void {
         throw RuntimeError.create(`hook failure for ${path}`);
@@ -367,8 +344,8 @@ const runnerMap: ScenarioRunnerMap = {
     }
   },
   'symbol-dispose-hook': async (scenarioCase) => {
-    const path = FileLockTestHelpers.makePath(scenarioCase.input.path as string);
-    writeFileSync(path, scenarioCase.input.content as string);
+    const path = FileLockTestHelpers.makePath(scenarioCase.input.path);
+    writeFileSync(path, scenarioCase.input.content);
     const lock = await RecordingFileLock.create({ path });
     lock[Symbol.dispose]();
     const releases = lock.events.filter((e) => e.hook === 'onRelease');
@@ -378,15 +355,15 @@ const runnerMap: ScenarioRunnerMap = {
     const originalCwd = process.cwd();
     process.chdir(TEST_DIR);
     try {
-      writeFileSync(scenarioCase.input.filename as string, scenarioCase.input.content as string);
-      const holder = await FileLock.create({ path: scenarioCase.input.filename as string });
-      assert.equal(existsSync(scenarioCase.input.filename as string), scenarioCase.expected.existedDuringLock as boolean);
+      writeFileSync(scenarioCase.input.filename, scenarioCase.input.content);
+      const holder = await FileLock.create({ path: scenarioCase.input.filename });
+      assert.equal(existsSync(scenarioCase.input.filename), scenarioCase.expected.existedDuringLock);
       await assert.rejects(
-        FileLock.create({ path: scenarioCase.input.filename as string, ...getFileLockConfig(scenarioCase) }),
+        FileLock.create({ path: scenarioCase.input.filename, ...getFileLockConfig(scenarioCase) }),
         (error: Error) => error instanceof FileLockTimeoutError
       );
       holder.release();
-      assert.equal(existsSync(scenarioCase.input.filename as string), scenarioCase.expected.existedAfterRelease as boolean);
+      assert.equal(existsSync(scenarioCase.input.filename), scenarioCase.expected.existedAfterRelease);
     } finally {
       process.chdir(originalCwd);
     }
@@ -394,7 +371,7 @@ const runnerMap: ScenarioRunnerMap = {
   'genuine-fs-error-routes-to-onError': async (scenarioCase) => {
     const errorEvents: Array<{ path: string; message: string }> = [];
     const contendedEvents: string[] = [];
-    const fileSystemError = scenarioCase.input.fileSystemError as FaultyFileSystemConfig;
+    const fileSystemError = scenarioCase.input.fileSystemError;
     class ErrorRoutingFileLock extends FileLock {
       protected override onError(path: string, error: Error): void {
         errorEvents.push({ path, message: error.message });
@@ -407,17 +384,17 @@ const runnerMap: ScenarioRunnerMap = {
     await assert.rejects(
       ErrorRoutingFileLock.create({
         fileSystem: new FaultyFileSystem(fileSystemError),
-        path: scenarioCase.input.path as string,
+        path: scenarioCase.input.path,
         ...getFileLockConfig(scenarioCase),
       }),
-      (error: Error) => error.message.includes(scenarioCase.expected.errorMessageIncludes as string)
+      (error: Error) => error.message.includes(scenarioCase.expected.errorMessageIncludes)
     );
     const elapsed = Date.now() - start;
-    assert.strictEqual(errorEvents.length, scenarioCase.expected.errorCount as number);
-    assert.strictEqual(errorEvents[0]?.path, scenarioCase.input.path as string);
-    assert.ok(errorEvents[0]?.message.includes(scenarioCase.expected.errorMessageIncludes as string));
-    assert.strictEqual(contendedEvents.length, scenarioCase.expected.contendedCount as number);
-    assert.ok(elapsed < (getFileLockConfig(scenarioCase).timeoutMs as number));
+    assert.strictEqual(errorEvents.length, scenarioCase.expected.errorCount);
+    assert.strictEqual(errorEvents[0]?.path, scenarioCase.input.path);
+    assert.ok(errorEvents[0]?.message.includes(scenarioCase.expected.errorMessageIncludes));
+    assert.strictEqual(contendedEvents.length, scenarioCase.expected.contendedCount);
+    assert.ok(elapsed < scenarioCase.input.fileLock.timeoutMs);
   },
 };
 
@@ -441,7 +418,7 @@ void describe('FileLock', () => {
     );
   });
 
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
