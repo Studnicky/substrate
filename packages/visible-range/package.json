@@ -69,6 +69,7 @@
     "@types/json-schema": "^7.0.15"
   },
   "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*"
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }
