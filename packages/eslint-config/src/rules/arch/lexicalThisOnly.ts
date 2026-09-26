@@ -97,9 +97,9 @@ class ThisContext {
    * enclosing class member is treated as instance context: the strict default.
    */
   public static isStatic(node: Rule.Node): boolean {
-    let current: Rule.Node | undefined = node.parent as Rule.Node | undefined;
+    let current: Rule.Node | null = node.parent;
 
-    while (current !== undefined) {
+    while (current !== null) {
       const nodeType = AstHelpers.getNodeType(current);
 
       if (nodeType === 'StaticBlock') {
@@ -112,7 +112,7 @@ class ThisContext {
         return result;
       }
 
-      current = current.parent as Rule.Node | undefined;
+      current = current.parent;
     }
 
     return false;
@@ -122,9 +122,9 @@ class ThisContext {
 class EnclosingClass {
   /** The nearest enclosing `ClassDeclaration`/`ClassExpression`'s own declared name, if any. */
   public static ownName(node: Rule.Node): string | undefined {
-    let current: Rule.Node | undefined = node.parent as Rule.Node | undefined;
+    let current: Rule.Node | null = node.parent;
 
-    while (current !== undefined) {
+    while (current !== null) {
       const nodeType = AstHelpers.getNodeType(current);
 
       if (nodeType === 'ClassDeclaration' || nodeType === 'ClassExpression') {
@@ -133,7 +133,7 @@ class EnclosingClass {
         return result;
       }
 
-      current = current.parent as Rule.Node | undefined;
+      current = current.parent;
     }
 
     return undefined;
@@ -237,11 +237,7 @@ class PermittedUse {
 export const lexicalThisOnly: Rule.RuleModule = {
   'create': (context) => {
     const onThisExpression: NonNullable<Rule.RuleListener['ThisExpression']> = (node) => {
-      const parent = node.parent as Rule.Node | undefined;
-
-      if (parent === undefined) {
-        return;
-      }
+      const parent = node.parent;
 
       if (PermittedUse.isMemberAccess(node, parent)) {
         return;
