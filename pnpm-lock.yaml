@@ -589,6 +589,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/fsm:
     dependencies:
@@ -873,6 +876,10 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/process-kit:
     dependencies:
