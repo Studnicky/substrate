@@ -9,7 +9,9 @@ import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
 import { noCircularImports } from './rules/arch/noCircularImports.js';
 import { noDoubleAssertion } from './rules/arch/noDoubleAssertion.js';
+import { noReflectArgumentLaundering } from './rules/arch/noReflectArgumentLaundering.js';
 import { noThreadedVocabulary } from './rules/arch/noThreadedVocabulary.js';
+import { noUncheckedOverloadImplementation } from './rules/arch/noUncheckedOverloadImplementation.js';
 import { noUnparsedAssertion } from './rules/arch/noUnparsedAssertion.js';
 import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
 import { descriptiveIdentifiers } from './rules/descriptiveIdentifiers.js';
@@ -53,7 +55,9 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'no-function-registries': noFunctionRegistries,
     'no-mixed-callable-shapes': noMixedCallableShapes,
     'no-redefined-external-types': noRedefinedExternalTypes,
+    'no-reflect-argument-laundering': noReflectArgumentLaundering,
     'no-threaded-vocabulary': noThreadedVocabulary,
+    'no-unchecked-overload-implementation': noUncheckedOverloadImplementation,
     'no-unparsed-assertion': noUnparsedAssertion,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,

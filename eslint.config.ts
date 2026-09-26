@@ -227,6 +227,8 @@ export default [
         '@studnicky/no-function-registries': 'error',
         '@studnicky/no-mixed-callable-shapes': 'error',
         '@studnicky/no-redefined-external-types': 'error',
+        '@studnicky/no-reflect-argument-laundering': 'error',
+        '@studnicky/no-unchecked-overload-implementation': 'error',
         '@studnicky/no-unparsed-assertion': 'error',
         '@studnicky/prefer-collection-types': 'error',
         '@studnicky/require-options-object': 'error',
