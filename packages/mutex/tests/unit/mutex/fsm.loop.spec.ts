@@ -1,89 +1,16 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { MutexKeyStateEntity } from '../../../src/entities/MutexKeyStateEntity.js';
 import { Mutex } from '../../../src/mutex/index.js';
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        invalidState: false;
-        validStates: true;
-      };
-      input: {
-        invalidState: string;
-        states: MutexKeyStateEntity.Type[];
-      };
-      shape: 'validate-states';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        from: 'unlocked';
-        key: string;
-        to: 'locked';
-      };
-      input: {
-        key: string;
-      };
-      shape: 'unlocked-to-locked';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        from: 'locked';
-        key: string;
-        to: 'queued';
-      };
-      input: {
-        key: string;
-      };
-      shape: 'locked-to-queued';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        from: 'queued';
-        key: string;
-        to: 'locked';
-      };
-      input: {
-        key: string;
-      };
-      shape: 'queued-to-locked';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        from: 'locked';
-        key: string;
-        to: 'unlocked';
-      };
-      input: {
-        key: string;
-      };
-      shape: 'locked-to-unlocked';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        errorPattern: string;
-      };
-      input: {
-        key: string;
-      };
-      shape: 'illegal-transition-throws';
-      name: string;
-    };
-
+import { FsmScenarioCaseEntity } from './entities/FsmScenarioCaseEntity.js';
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = FsmScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
 
 interface TransitionRecord {
   from: MutexKeyStateEntity.Type;
@@ -182,7 +109,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Scenar
 }
 
 void describe('Mutex FSM', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
