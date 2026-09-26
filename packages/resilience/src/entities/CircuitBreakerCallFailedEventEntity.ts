@@ -7,6 +7,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 /** Canonical JSON fields of a circuit-breaker call-failure event. */
 export namespace CircuitBreakerCallFailedEventEntity {
   export const Schema = {
+    'additionalProperties': false,
     'properties': {
       'at': { 'type': 'number' },
       'type': { 'const': 'callFailed', 'type': 'string' }
@@ -15,7 +16,7 @@ export namespace CircuitBreakerCallFailedEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'at': SchemaNode.defineNumber({ 'type': 'number' } as const), 'type': SchemaNode.defineConst('callFailed' as const) }, ['at', 'type'] as const);
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'at': SchemaNode.defineNumber({ 'type': 'number' } as const), 'type': SchemaNode.defineConst('callFailed' as const) }, ['at', 'type'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
