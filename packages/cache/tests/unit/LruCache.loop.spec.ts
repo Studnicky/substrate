@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from "node:assert/strict";
@@ -8,64 +9,23 @@ import scenarioGroups from "./LruCache.scenarios.json" with { type: "json" };
 import { CacheConfigError } from "../../src/errors/CacheConfigError.js";
 import { LruCacheOptionsEntity } from "../../src/entities/LruCacheOptionsEntity.js";
 import { LruCache } from "../../src/LruCache.js";
+import { LruCacheScenarioCaseEntity } from "./entities/LruCacheScenarioCaseEntity.js";
 
-type ScenarioShape =
-  | "clear-empties-cache"
-  | "delete-existing"
-  | "delete-missing"
-  | "delete-where-empty"
-  | "delete-where-matches"
-  | "delete-where-none"
-  | "entry-ttl-overrides-global"
-  | "evict-correct-key"
-  | "get-missing"
-  | "hard-expiry-wins"
-  | "has-existing"
-  | "has-missing"
-  | "invalid-options"
-  | "lru-evicts-tail"
-  | "lru-promotes-accessed-entry"
-  | "no-stale-ms-uses-hit"
-  | "object-key-identity"
-  | "on-clear"
-  | "on-clear-empty"
-  | "on-delete"
-  | "on-delete-absent"
-  | "on-evict"
-  | "on-expire-and-on-miss"
-  | "on-expire-with-has"
-  | "on-hit"
-  | "on-miss"
-  | "on-set"
-  | "on-update"
-  | "per-call-stale-override"
-  | "set-get"
-  | "set-vs-update"
-  | "size-reflects-entry-count"
-  | "stale-before-expiry"
-  | "throwing-on-expire"
-  | "throwing-on-hit"
-  | "throwing-on-update"
-  | "ttl-before-expiry"
-  | "ttl-expires-after-delay";
-
-type BaseScenarioCase<Shape extends ScenarioShape> = {
-  description: string;
-  expected: { sizes?: number[] } & Record<string, unknown>;
-  input: { cache: LruCacheOptionsEntity.InputType } & Record<string, unknown>;
-  shape: Shape;
-  name: string;
-};
-
+type ScenarioCase = LruCacheScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase["shape"];
 type ScenarioCaseByShape = {
-  [Shape in ScenarioShape]: BaseScenarioCase<Shape>;
+  [Shape in ScenarioShape]: Extract<ScenarioCase, { shape: Shape }>;
 };
+type ScenarioRunnerMap = Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void>;
 
-type ScenarioCase = ScenarioCaseByShape[ScenarioShape];
-type ScenarioRunnerMap = Record<
-  ScenarioShape,
-  (scenarioCase: ScenarioCase) => Promise<void> | void
->;
+const fileIntake = ScenarioFileCompiler.compileIntake(LruCacheScenarioCaseEntity.Schema, LruCacheScenarioCaseEntity.Node);
+
+function assertScenarioShape<Shape extends ScenarioShape>(
+  scenarioCase: ScenarioCase,
+  shape: Shape
+): asserts scenarioCase is ScenarioCaseByShape[Shape] {
+  assert.strictEqual(scenarioCase.shape, shape, `Invalid runner ${shape} for scenario ${scenarioCase.name}`);
+}
 
 class RecordingCache extends LruCache<string, number> {
   readonly log: Array<
@@ -131,6 +91,7 @@ function createRecordingCache(scenarioCase: ScenarioCase): RecordingCache {
 
 const runnerMap = {
   "clear-empties-cache": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "clear-empties-cache");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(
       String(scenarioCase.input.firstKey),
@@ -152,6 +113,7 @@ const runnerMap = {
     );
   },
   "delete-existing": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "delete-existing");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     assert.strictEqual(
@@ -164,6 +126,7 @@ const runnerMap = {
     );
   },
   "delete-missing": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "delete-missing");
     const cache = createCache<string, number>(scenarioCase);
     assert.strictEqual(
       cache.delete(String(scenarioCase.input.key)),
@@ -171,6 +134,7 @@ const runnerMap = {
     );
   },
   "delete-where-empty": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "delete-where-empty");
     const cache = createCache<string, number>(scenarioCase);
     const removed = cache.deleteWhere(() => {
       return Boolean(scenarioCase.expected.matchPredicate);
@@ -178,11 +142,10 @@ const runnerMap = {
     assert.strictEqual(removed, Number(scenarioCase.expected.removed));
   },
   "delete-where-matches": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "delete-where-matches");
     const cache = createRecordingCache(scenarioCase);
-    for (const [key, value] of scenarioCase.input.entries as Array<
-      [string, number]
-    >) {
-      cache.set(key, value);
+    for (const pair of scenarioCase.input.entries) {
+      cache.set(String(pair[0]), Number(pair[1]));
     }
     cache.log.length = 0;
     const removed = cache.deleteWhere((_key, value) => {
@@ -213,11 +176,10 @@ const runnerMap = {
     );
   },
   "delete-where-none": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "delete-where-none");
     const cache = createRecordingCache(scenarioCase);
-    for (const [key, value] of scenarioCase.input.entries as Array<
-      [string, number]
-    >) {
-      cache.set(key, value);
+    for (const pair of scenarioCase.input.entries) {
+      cache.set(String(pair[0]), Number(pair[1]));
     }
     cache.log.length = 0;
     const removed = cache.deleteWhere((_key, value) => {
@@ -231,6 +193,7 @@ const runnerMap = {
     );
   },
   "entry-ttl-overrides-global": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "entry-ttl-overrides-global");
     const cache = createCache<string, string>(scenarioCase);
     cache.set(
       String(scenarioCase.input.shortKey),
@@ -256,6 +219,7 @@ const runnerMap = {
     });
   },
   "evict-correct-key": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "evict-correct-key");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.lruKey),
@@ -281,6 +245,7 @@ const runnerMap = {
     }
   },
   "get-missing": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "get-missing");
     const cache = createCache<string, number>(scenarioCase);
     assert.strictEqual(
       cache.get(String(scenarioCase.input.key)),
@@ -288,6 +253,7 @@ const runnerMap = {
     );
   },
   "hard-expiry-wins": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "hard-expiry-wins");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     cache.log.length = 0;
@@ -308,6 +274,7 @@ const runnerMap = {
     });
   },
   "has-existing": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "has-existing");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     assert.strictEqual(
@@ -316,6 +283,7 @@ const runnerMap = {
     );
   },
   "has-missing": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "has-missing");
     const cache = createCache<string, number>(scenarioCase);
     assert.strictEqual(
       cache.has(String(scenarioCase.input.key)),
@@ -323,17 +291,17 @@ const runnerMap = {
     );
   },
   "invalid-options": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "invalid-options");
     assert.throws(
       () => createCache<string, number>(scenarioCase),
       CacheConfigError,
     );
   },
   "lru-evicts-tail": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "lru-evicts-tail");
     const cache = createCache<string, number>(scenarioCase);
-    for (const [key, value] of scenarioCase.input.entries as Array<
-      [string, number]
-    >) {
-      cache.set(key, value);
+    for (const pair of scenarioCase.input.entries) {
+      cache.set(String(pair[0]), Number(pair[1]));
     }
     assert.strictEqual(
       cache.get(String(scenarioCase.expected.evictedKey)),
@@ -349,6 +317,7 @@ const runnerMap = {
     );
   },
   "lru-promotes-accessed-entry": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "lru-promotes-accessed-entry");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(
       String(scenarioCase.input.firstKey),
@@ -377,6 +346,7 @@ const runnerMap = {
     );
   },
   "no-stale-ms-uses-hit": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "no-stale-ms-uses-hit");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     cache.log.length = 0;
@@ -388,18 +358,9 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "object-key-identity": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "object-key-identity");
     const cache = createCache<object, number>(scenarioCase);
     const { keyA, keyB } = scenarioCase.input;
-    if (
-      typeof keyA !== "object" ||
-      keyA === null ||
-      typeof keyB !== "object" ||
-      keyB === null
-    ) {
-      throw RuntimeError.create(
-        `Object keys are required for scenario ${scenarioCase.name}`,
-      );
-    }
     cache.set(keyA, Number(scenarioCase.input.valueA));
     cache.set(keyB, Number(scenarioCase.input.valueB));
     assert.strictEqual(cache.get(keyA), Number(scenarioCase.expected.valueA));
@@ -407,11 +368,10 @@ const runnerMap = {
     assert.strictEqual(cache.size, Number(scenarioCase.expected.size));
   },
   "on-clear": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-clear");
     const cache = createRecordingCache(scenarioCase);
-    for (const [key, value] of scenarioCase.input.entries as Array<
-      [string, number]
-    >) {
-      cache.set(key, value);
+    for (const pair of scenarioCase.input.entries) {
+      cache.set(String(pair[0]), Number(pair[1]));
     }
     cache.log.length = 0;
     cache.clear();
@@ -422,6 +382,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-clear-empty": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-clear-empty");
     const cache = createRecordingCache(scenarioCase);
     cache.clear();
     assert.strictEqual(
@@ -431,6 +392,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-delete": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-delete");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     cache.log.length = 0;
@@ -442,6 +404,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-delete-absent": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-delete-absent");
     const cache = createRecordingCache(scenarioCase);
     cache.delete(String(scenarioCase.input.key));
     assert.strictEqual(
@@ -450,6 +413,7 @@ const runnerMap = {
     );
   },
   "on-evict": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-evict");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.firstKey),
@@ -474,6 +438,7 @@ const runnerMap = {
     assert.deepStrictEqual(evictEvents[0], scenarioCase.expected.evictEntry);
   },
   "on-expire-and-on-miss": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-expire-and-on-miss");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -502,6 +467,7 @@ const runnerMap = {
     });
   },
   "on-expire-with-has": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-expire-with-has");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -529,6 +495,7 @@ const runnerMap = {
     });
   },
   "on-hit": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-hit");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     cache.log.length = 0;
@@ -540,6 +507,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-miss": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-miss");
     const cache = createRecordingCache(scenarioCase);
     cache.get(String(scenarioCase.input.key));
     assert.strictEqual(
@@ -549,6 +517,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-set": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-set");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     assert.strictEqual(
@@ -558,6 +527,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "on-update": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "on-update");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -575,6 +545,7 @@ const runnerMap = {
     assert.deepStrictEqual(cache.log[0], scenarioCase.expected.logEntry);
   },
   "per-call-stale-override": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "per-call-stale-override");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -592,6 +563,7 @@ const runnerMap = {
     });
   },
   "set-get": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "set-get");
     const cache = createCache<string, string>(scenarioCase);
     cache.set(String(scenarioCase.input.key), String(scenarioCase.input.value));
     assert.strictEqual(
@@ -600,6 +572,7 @@ const runnerMap = {
     );
   },
   "set-vs-update": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "set-vs-update");
     const cache = createRecordingCache(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -622,6 +595,7 @@ const runnerMap = {
     );
   },
   "size-reflects-entry-count": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "size-reflects-entry-count");
     const cache = createCache<string, number>(scenarioCase);
     const { sizes } = scenarioCase.expected;
     if (sizes === undefined) {
@@ -656,6 +630,7 @@ const runnerMap = {
     assert.strictEqual(cache.size, afterDeleteSize);
   },
   "stale-before-expiry": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "stale-before-expiry");
     const cache = createRecordingCache(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     cache.log.length = 0;
@@ -673,15 +648,8 @@ const runnerMap = {
     });
   },
   "throwing-on-expire": (scenarioCase) => {
-    const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.InputType;
-      key: string;
-      ttlMs: number;
-      value: number;
-      throwMessage: string;
-      waitMs: number;
-    };
-    const expected = scenarioCase.expected as { size: number; value: null };
+    assertScenarioShape(scenarioCase, "throwing-on-expire");
+    const { input, expected } = scenarioCase;
     class ThrowingExpireCache extends LruCache<string, number> {
       constructor(config: LruCacheOptionsEntity.InputType) {
         super(config);
@@ -704,23 +672,8 @@ const runnerMap = {
     });
   },
   "throwing-on-hit": (scenarioCase) => {
-    const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.InputType;
-      keyA: string;
-      keyB: string;
-      keyC: string;
-      valueA: number;
-      valueB: number;
-      valueC: number;
-      throwMessage: string;
-    };
-    const expected = scenarioCase.expected as {
-      afterGetA: number;
-      afterGetB: number;
-      afterGetC: number;
-      hitCount: number;
-      missingKey: string;
-    };
+    assertScenarioShape(scenarioCase, "throwing-on-hit");
+    const { input, expected } = scenarioCase;
     class ThrowingHitCache extends LruCache<string, number> {
       hitCount = 0;
 
@@ -744,14 +697,8 @@ const runnerMap = {
     assert.strictEqual(cache.hitCount, expected.hitCount);
   },
   "throwing-on-update": (scenarioCase) => {
-    const input = scenarioCase.input as {
-      cache: LruCacheOptionsEntity.InputType;
-      key: string;
-      firstValue: number;
-      secondValue: number;
-      throwMessage: string;
-    };
-    const expected = scenarioCase.expected as { value: number };
+    assertScenarioShape(scenarioCase, "throwing-on-update");
+    const { input, expected } = scenarioCase;
     class ThrowingUpdateCache extends LruCache<string, number> {
       constructor(config: LruCacheOptionsEntity.InputType) {
         super(config);
@@ -768,6 +715,7 @@ const runnerMap = {
     assert.strictEqual(cache.get(input.key), expected.value);
   },
   "ttl-before-expiry": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "ttl-before-expiry");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(String(scenarioCase.input.key), Number(scenarioCase.input.value));
     assert.strictEqual(
@@ -776,6 +724,7 @@ const runnerMap = {
     );
   },
   "ttl-expires-after-delay": (scenarioCase) => {
+    assertScenarioShape(scenarioCase, "ttl-expires-after-delay");
     const cache = createCache<string, number>(scenarioCase);
     cache.set(
       String(scenarioCase.input.key),
@@ -794,14 +743,12 @@ const runnerMap = {
   },
 } satisfies ScenarioRunnerMap;
 
-function runCase<Shape extends ScenarioShape>(
-  scenarioCase: ScenarioCaseByShape[Shape],
-): Promise<void> | void {
+function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe("LruCache", () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
