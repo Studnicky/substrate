@@ -1,0 +1,53 @@
+{
+  "cases": [
+    {
+      "name": "accepts valid capacity and ttlMs options",
+      "description": "accepts valid capacity and ttlMs options",
+      "shape": "accepts-valid-options",
+      "input": { "options": { "capacity": 25, "ttlMs": 5000 } },
+      "expected": { "capacity": 25, "ttlMs": 5000 }
+    },
+    {
+      "name": "rejects capacity below the required minimum of 1",
+      "description": "rejects capacity below the required minimum of 1",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "capacity": 0, "ttlMs": 1000 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    },
+    {
+      "name": "rejects non-integer capacity",
+      "description": "rejects non-integer capacity",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "capacity": 1.5, "ttlMs": 1000 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    },
+    {
+      "name": "rejects negative ttlMs",
+      "description": "rejects negative ttlMs",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "capacity": 10, "ttlMs": -1 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    },
+    {
+      "name": "rejects options missing capacity",
+      "description": "rejects options missing capacity",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "ttlMs": 1000 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    },
+    {
+      "name": "rejects options missing ttlMs",
+      "description": "rejects options missing ttlMs",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "capacity": 10 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    },
+    {
+      "name": "rejects an unknown additional property",
+      "description": "rejects an unknown additional property",
+      "shape": "rejects-invalid-options",
+      "input": { "options": { "capacity": 10, "ttlMs": 1000, "staleMs": 500 } },
+      "expected": { "code": "idempotencyGuard.invalidConfig" }
+    }
+  ]
+}
