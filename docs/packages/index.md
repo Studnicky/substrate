@@ -109,3 +109,5 @@ platform-parity status.
 |---------|-------------|
 | [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
 | [@studnicky/entity](/packages/entity) | Strict entity input compilation and cycle detection |
+| [@studnicky/example-smoke-kit](/packages/example-smoke-kit) | Shared smoke-suite runner that registers example coverage from a scenario file |
+| [@studnicky/scenario-kit](/packages/scenario-kit) | Shared intake for table-driven scenario fixtures, validating each case against its entity |
