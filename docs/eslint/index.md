@@ -71,7 +71,7 @@ cannot default, and is created with `.create(...)`.
 | `diagnosticsSuite` | Diagnostic suppression — `clean-diagnostics` |
 | `VocabularySuite` | Identifier and vocabulary conventions — `descriptive-identifiers`, `static-method-verbs`, `no-threaded-vocabulary`. A factory: call `VocabularySuite.create(...)` with a `sourceRoot`, since `no-threaded-vocabulary` has no default for it. |
 | `classMechanicsSuite` | Class-mechanics conventions — `lexical-this-only`, `hash-private-fields`, `direct-invocation-only` |
-| `LayerBoundarySuite` | Hexagonal-architecture and entity-intake boundaries — `adapter-only-import`, `domain-purity`, `intake-parse-only`, `known-types-outside-adapters`, `layer-import-boundary`. A factory, not a static config: call `LayerBoundarySuite.create(...)` with the shared layer config, since four of the five rules take distinct extra options on top of a common `layers`/`sourceRoot` shape and `intake-parse-only` takes its own unrelated options. |
+| `LayerBoundarySuite` | Hexagonal-architecture and entity-intake boundaries — `adapter-only-import`, `domain-purity`, `intake-parse-only`, `known-types-outside-adapters`, `layer-import-boundary`, `no-circular-imports`. A factory, not a static config: call `LayerBoundarySuite.create(...)` with the shared layer config, since four of the six rules take distinct extra options on top of a common `layers`/`sourceRoot` shape, `intake-parse-only` takes its own unrelated options, and `no-circular-imports` takes none. |
 | `v8ObjectShapeSuite` | Constructs that destabilize V8 hidden-class/inline-cache assumptions — see the [V8 rules](#v8-rules) table |
 | `v8CollectionTraversalSuite` | How a collection is walked, not how often — see the [V8 rules](#v8-rules) table |
 | `v8RepeatedWorkSuite` | Cost that compounds per hot-loop iteration — see the [V8 rules](#v8-rules) table |
@@ -156,7 +156,7 @@ export default [
 
 ## Configuration rules
 
-26 rules that enforce structural, semantic, and stylistic constraints.
+27 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
@@ -177,6 +177,7 @@ export default [
 | [`@studnicky/known-types-outside-adapters`](/eslint/rules/known-types-outside-adapters) | No | `error` |
 | [`@studnicky/layer-import-boundary`](/eslint/rules/layer-import-boundary) | No | `error` |
 | [`@studnicky/lexical-this-only`](/eslint/rules/lexical-this-only) | No | `error` |
+| [`@studnicky/no-circular-imports`](/eslint/rules/no-circular-imports) | No | `error` |
 | [`@studnicky/no-double-assertion`](/eslint/rules/no-double-assertion) | No | `error` |
 | [`@studnicky/no-function-registries`](/eslint/rules/no-function-registries) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |

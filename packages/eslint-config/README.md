@@ -75,7 +75,7 @@ export default [{ settings: { '@studnicky/projectHost': projectHost }, plugins: 
 
 ## Suites
 
-Wiring all 53 rules individually is tedious, so the package also exports domain-grouped presets. A static suite is a plain `Linter.Config` object — spread it into a flat-config array. A factory suite needs project-specific options its member rules cannot default — call `.create(...)` to get the config entry.
+Wiring all 54 rules individually is tedious, so the package also exports domain-grouped presets. A static suite is a plain `Linter.Config` object — spread it into a flat-config array. A factory suite needs project-specific options its member rules cannot default — call `.create(...)` to get the config entry.
 
 | Suite | Domain |
 |-------|--------|
@@ -120,7 +120,7 @@ export default [
 ];
 ```
 
-`layer-import-boundary`, `domain-purity`, `adapter-only-import`, and `known-types-outside-adapters` all share the same layers/sourceRoot configuration but take distinct extra options, and `intake-parse-only` takes its own unrelated options, so `LayerBoundarySuite` is a factory rather than a static suite — call `.create(...)` once with the shared layer config plus each rule's own extras to enable all five consistently.
+`layer-import-boundary`, `domain-purity`, `adapter-only-import`, and `known-types-outside-adapters` all share the same layers/sourceRoot configuration but take distinct extra options, `intake-parse-only` takes its own unrelated options, and `no-circular-imports` takes none, so `LayerBoundarySuite` is a factory rather than a static suite — call `.create(...)` once with the shared layer config plus each rule's own extras to enable all six consistently.
 
 ## Entity declaration contract
 
@@ -180,7 +180,7 @@ export default [
 
 ## Custom rules
 
-**`@studnicky` namespace** (26 rules via `plugin`):
+**`@studnicky` namespace** (27 rules via `plugin`):
 
 | Rule | Purpose |
 |------|---------|
@@ -201,6 +201,7 @@ export default [
 | `@studnicky/known-types-outside-adapters` | Disallow `any`/`unknown` types outside the adapters layer of a hexagonal architecture |
 | `@studnicky/layer-import-boundary` | Disallow imports that cross hexagonal-architecture layer boundaries not permitted by the configured allow-matrix |
 | `@studnicky/lexical-this-only` | Disallow aliasing `this` to another variable or assignment |
+| `@studnicky/no-circular-imports` | Disallow circular imports between package source files |
 | `@studnicky/no-function-registries` | Disallow object literals containing two or more function implementations |
 | `@studnicky/no-mixed-callable-shapes` | Forbid a union or intersection type from mixing a callable/constructable constituent with a data constituent |
 | `@studnicky/no-redefined-external-types` | Requires an exported local interface/type alias to reuse a public type a direct dependency already exports instead of rebuilding the same shape |

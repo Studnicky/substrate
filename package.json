@@ -25,7 +25,6 @@
   "scripts": {
     "build": "tsc -b",
     "check:browser-entrypoints": "tsx scripts/check-browser-entrypoints.ts",
-    "check:no-circular-imports": "tsx scripts/check-no-circular-imports.ts",
     "check:no-json-schema-to-ts": "tsx scripts/check-no-json-schema-to-ts.ts",
     "check:runtime-exports": "tsx scripts/check-browser-entrypoints.ts",
     "changeset": "changeset",
@@ -41,7 +40,7 @@
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
-    "lint": "pnpm run check:runtime-exports && pnpm run check:no-json-schema-to-ts && pnpm run check:no-circular-imports && oxlint packages && eslint . && pnpm run lint:docs && pnpm run lint:docs:rules && pnpm run lint:docs:exports && pnpm run lint:docs:demos",
+    "lint": "pnpm run check:runtime-exports && pnpm run check:no-json-schema-to-ts && oxlint packages && eslint . && pnpm run lint:docs && pnpm run lint:docs:rules && pnpm run lint:docs:exports && pnpm run lint:docs:demos",
     "lint:docs": "tsx scripts/check-docs-includes.ts",
     "lint:docs:demos": "tsx scripts/check-docs-demos.ts",
     "lint:docs:rules": "tsx scripts/check-rule-docs.ts",
