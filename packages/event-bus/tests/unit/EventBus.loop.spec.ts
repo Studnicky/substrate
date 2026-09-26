@@ -4,10 +4,11 @@ import {
   describe, it
 } from 'node:test';
 
-
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { EventBus } from '../../src/EventBus.js';
 import type { EventSinkInterface } from '../../src/interfaces/index.js';
+import { EventBusScenarioCaseEntity } from './entities/EventBusScenarioCaseEntity.js';
 import scenarioGroups from './EventBus.scenarios.json' with { type: 'json' };
 
 async function flushMicrotasks(times = 20): Promise<void> {
@@ -26,46 +27,56 @@ interface HookTopics {
   'order:updated': { 'id': string };
 }
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-delivers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'unsubscribe-stops' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'multiple-subscribers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topics-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'handler-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-listener-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'subscribe-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'preaborted-caller-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'close-stops-delivery' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-empty-topic' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-subscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-subscription-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-owned-queue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-deliver' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'owned-queues-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-handler-error' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'enqueue-dequeue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-drop-noop' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-dispose' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'hook-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'pending-admission-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'default-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'forwarded-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'config-snapshot' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'same-depth-no-overflow' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-kept' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-deliver' };
-
+type ScenarioCase = EventBusScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
 
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(EventBusScenarioCaseEntity.Schema, EventBusScenarioCaseEntity.Node);
+
+function requireError(value: unknown): Error {
+  if (!(value instanceof Error)) {
+    throw RuntimeError.create('Expected an Error instance');
+  }
+  return value;
+}
+
+function requireDefined<TValue>(value: TValue | undefined, context: string): TValue {
+  if (value === undefined) {
+    throw RuntimeError.create(`Scenario ${context} is required`);
+  }
+  return value;
+}
+
+function requireTopic<TTopic extends string>(topic: string | undefined, expected: TTopic): TTopic {
+  if (topic !== expected) {
+    throw RuntimeError.create(`Expected topic ${expected}, received ${String(topic)}`);
+  }
+  return expected;
+}
+
+function requireHookTopic(topic: string): keyof HookTopics {
+  if (topic === 'order:created' || topic === 'order:updated') {
+    return topic;
+  }
+  throw RuntimeError.create(`Unknown hook topic: ${topic}`);
+}
+
+function expectedNumber(value: unknown, context: string): number {
+  if (typeof value !== 'number') {
+    throw RuntimeError.create(`Scenario expected.${context} must be a number`);
+  }
+  return value;
+}
+
+function expectedStringArray(value: unknown, context: string): string[] {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw RuntimeError.create(`Scenario expected.${context} must be a string array`);
+  }
+  return value;
+}
 
 class ObservedBus extends EventBus<HookTopics> {
   readonly publishEvents: Array<{ 'topic': keyof HookTopics; 'payload': HookTopics[keyof HookTopics] }> = [];
@@ -189,14 +200,14 @@ class EmptyTopicPublishBus extends EventBus<TestTopics> {
 }
 
 const runnerMap: RunnerMap = {
-  'publish-delivers': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'publish-delivers': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     const received: string[] = [];
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    bus.subscribe(topic, async (value) => { received.push(value); });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
@@ -204,18 +215,19 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'unsubscribe-stops': (scenarioCase) => {
-    const input = scenarioCase.input as { first: string; second: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'unsubscribe-stops': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const first = requireDefined(input.first, 'first');
+    const second = requireDefined(input.second, 'second');
     const bus = EventBus.create<TestTopics>();
     const received: string[] = [];
-    const unsub = bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    const unsub = bus.subscribe(topic, async (payload) => { received.push(payload); });
 
-    return bus.publish(input.topic, input.first)
+    return bus.publish(topic, first)
       .then(() => bus.drain())
       .then(() => {
         unsub();
-        return bus.publish(input.topic, input.second);
+        return bus.publish(topic, second);
       })
       .then(() => bus.drain())
       .then(() => {
@@ -224,17 +236,17 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'multiple-subscribers': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { receivedA: string[]; receivedB: string[] };
+  'multiple-subscribers': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     const receivedA: string[] = [];
     const receivedB: string[] = [];
 
-    bus.subscribe(input.topic, async (payload) => { receivedA.push(payload); });
-    bus.subscribe(input.topic, async (payload) => { receivedB.push(payload); });
+    bus.subscribe(topic, async (value) => { receivedA.push(value); });
+    bus.subscribe(topic, async (value) => { receivedB.push(value); });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(receivedA, expected.receivedA);
@@ -243,9 +255,9 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'topics-isolated': (scenarioCase) => {
-    const input = scenarioCase.input as { countPayload: number; pingPayload: string };
-    const expected = scenarioCase.expected as { counts: number[]; pings: string[] };
+  'topics-isolated': ({ expected, input }) => {
+    const countPayload = requireDefined(input.countPayload, 'countPayload');
+    const pingPayload = requireDefined(input.pingPayload, 'pingPayload');
     const bus = EventBus.create<TestTopics>();
     const pings: string[] = [];
     const counts: number[] = [];
@@ -253,8 +265,8 @@ const runnerMap: RunnerMap = {
     bus.subscribe('ping', async (payload) => { pings.push(payload); });
     bus.subscribe('count', async (payload) => { counts.push(payload); });
 
-    return bus.publish('ping', input.pingPayload)
-      .then(() => bus.publish('count', input.countPayload))
+    return bus.publish('ping', pingPayload)
+      .then(() => bus.publish('count', countPayload))
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(pings, expected.pings);
@@ -263,17 +275,17 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'handler-signal': (scenarioCase) => {
-    const expected = scenarioCase.expected as { aborted: boolean; isAbortSignal: boolean; topic: 'ping' };
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
+  'handler-signal': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     let capturedSignal: AbortSignal | undefined;
 
-    bus.subscribe(input.topic, (_payload, signal) => {
+    bus.subscribe(topic, (_payload, signal) => {
       capturedSignal = signal;
     });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(capturedSignal instanceof AbortSignal, expected.isAbortSignal);
@@ -282,16 +294,16 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'signal-after-unsubscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { abortedAfterUnsubscribe: boolean; abortedBeforeUnsubscribe: boolean };
+  'signal-after-unsubscribe': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     let capturedSignal: AbortSignal | undefined;
-    const unsub = bus.subscribe(input.topic, (_payload, signal) => {
+    const unsub = bus.subscribe(topic, (_payload, signal) => {
       capturedSignal = signal;
     });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeUnsubscribe);
@@ -301,17 +313,17 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'signal-after-close': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { abortedAfterClose: boolean; abortedBeforeClose: boolean };
+  'signal-after-close': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     let capturedSignal: AbortSignal | undefined;
 
-    bus.subscribe(input.topic, (_payload, signal) => {
+    bus.subscribe(topic, (_payload, signal) => {
       capturedSignal = signal;
     });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeClose);
@@ -322,9 +334,9 @@ const runnerMap: RunnerMap = {
       });
   },
 
-  'signal-listener-cleanup': (scenarioCase) => {
-    const input = scenarioCase.input as { cycles: number; topic: 'ping' };
-    const expected = scenarioCase.expected as { addMinusRemoveAfterAdd: number; addMinusRemoveAfterRemove: number };
+  'signal-listener-cleanup': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const cycles = requireDefined(input.cycles, 'cycles');
     const bus = EventBus.create<TestTopics>();
     const controller = new AbortController();
 
@@ -332,17 +344,19 @@ const runnerMap: RunnerMap = {
     let removeCount = 0;
     const originalAdd = controller.signal.addEventListener.bind(controller.signal);
     const originalRemove = controller.signal.removeEventListener.bind(controller.signal);
-    controller.signal.addEventListener = ((...args: Parameters<typeof originalAdd>) => {
+    const wrappedAdd: AbortSignal['addEventListener'] = (...args: Parameters<AbortSignal['addEventListener']>) => {
       addCount += 1;
-      return originalAdd(...args);
-    }) as typeof controller.signal.addEventListener;
-    controller.signal.removeEventListener = ((...args: Parameters<typeof originalRemove>) => {
+      originalAdd(...args);
+    };
+    const wrappedRemove: AbortSignal['removeEventListener'] = (...args: Parameters<AbortSignal['removeEventListener']>) => {
       removeCount += 1;
-      return originalRemove(...args);
-    }) as typeof controller.signal.removeEventListener;
+      originalRemove(...args);
+    };
+    controller.signal.addEventListener = wrappedAdd;
+    controller.signal.removeEventListener = wrappedRemove;
 
-    for (let i = 0; i < input.cycles; i += 1) {
-      const unsub = bus.subscribe(input.topic, async () => {}, { 'signal': controller.signal });
+    for (let i = 0; i < cycles; i += 1) {
+      const unsub = bus.subscribe(topic, async () => {}, { 'signal': controller.signal });
       assert.strictEqual(addCount - removeCount, expected.addMinusRemoveAfterAdd);
       unsub();
       assert.strictEqual(addCount - removeCount, expected.addMinusRemoveAfterRemove);
@@ -351,29 +365,28 @@ const runnerMap: RunnerMap = {
     return bus.close();
   },
 
-  'subscribe-after-close': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { ok: boolean };
+  'subscribe-after-close': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
     const bus = EventBus.create<TestTopics>();
     return bus.close().then(() => {
-      const unsub = bus.subscribe(input.topic, async () => {});
+      const unsub = bus.subscribe(topic, async () => {});
       assert.strictEqual(typeof unsub === 'function', expected.ok);
       unsub();
     });
   },
 
-  'preaborted-caller-signal': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'preaborted-caller-signal': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EventBus.create<TestTopics>();
     const controller = new AbortController();
     controller.abort();
     const signal = controller.signal;
     const received: string[] = [];
-    bus.subscribe(input.topic, async (_payload) => {
-      received.push(_payload);
+    bus.subscribe(topic, async (value) => {
+      received.push(value);
     }, { 'signal': signal });
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
@@ -381,29 +394,30 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'close-stops-delivery': (scenarioCase) => {
-    const input = scenarioCase.input as { afterClose: string; beforeClose: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'close-stops-delivery': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const beforeClose = requireDefined(input.beforeClose, 'beforeClose');
+    const afterClose = requireDefined(input.afterClose, 'afterClose');
     const bus = EventBus.create<TestTopics>();
     const received: string[] = [];
 
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    bus.subscribe(topic, async (payload) => { received.push(payload); });
 
-    return bus.publish(input.topic, input.beforeClose)
+    return bus.publish(topic, beforeClose)
       .then(() => bus.drain())
       .then(() => bus.close())
-      .then(() => bus.publish(input.topic, input.afterClose))
+      .then(() => bus.publish(topic, afterClose))
       .then(() => flushMicrotasks())
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
       });
   },
 
-  'publish-empty-topic': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { publishFired: boolean };
+  'publish-empty-topic': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const payload = requireDefined(input.payload, 'payload');
     const bus = EmptyTopicPublishBus.create();
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => bus.close())
       .then(() => {
@@ -411,27 +425,27 @@ const runnerMap: RunnerMap = {
       });
   },
 
-  'on-publish': (scenarioCase) => {
-    const input = scenarioCase.input as { firstId: string; secondId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { publishCount: number; firstPayload: { id: string } };
+  'on-publish': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const firstId = requireDefined(input.firstId, 'firstId');
+    const secondId = requireDefined(input.secondId, 'secondId');
     const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
+    bus.subscribe(topic, async () => {});
 
-    return bus.publish(input.topic, { 'id': input.firstId })
-      .then(() => bus.publish(input.topic, { 'id': input.secondId }))
+    return bus.publish(topic, { 'id': firstId })
+      .then(() => bus.publish(topic, { 'id': secondId }))
       .then(() => bus.drain())
       .then(() => {
         assert.strictEqual(bus.publishEvents.length, expected.publishCount);
-        assert.deepStrictEqual(bus.publishEvents[0], { 'topic': input.topic, 'payload': expected.firstPayload });
+        assert.deepStrictEqual(bus.publishEvents[0], { 'topic': topic, 'payload': expected.firstPayload });
       })
       .finally(() => bus.close());
   },
 
-  'on-subscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { topics: Array<keyof HookTopics> };
-    const expected = scenarioCase.expected as { subscribeCount: number; firstTopic: keyof HookTopics; lastTopic: keyof HookTopics };
+  'on-subscribe': ({ expected, input }) => {
+    const topics = requireDefined(input.topics, 'topics').map(requireHookTopic);
     const bus = ObservedBus.create();
-    for (const topic of input.topics) {
+    for (const topic of topics) {
       bus.subscribe(topic, async () => {});
     }
 
@@ -442,11 +456,10 @@ const runnerMap: RunnerMap = {
     }).finally(() => bus.close());
   },
 
-  'on-unsubscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: keyof HookTopics };
-    const expected = scenarioCase.expected as { unsubscribeCount: number; topic: keyof HookTopics };
+  'on-unsubscribe': ({ expected, input }) => {
+    const topic = requireHookTopic(requireDefined(input.topic, 'topic'));
     const bus = ObservedBus.create();
-    const unsub = bus.subscribe(input.topic, async () => {});
+    const unsub = bus.subscribe(topic, async () => {});
     assert.strictEqual(bus.unsubscribeEvents.length, 0);
     unsub();
     assert.strictEqual(bus.unsubscribeEvents.length, expected.unsubscribeCount);
@@ -454,9 +467,9 @@ const runnerMap: RunnerMap = {
     return bus.close();
   },
 
-  'async-subscription-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { hookNames: string[]; unhandledRejections: number };
-    const expected = scenarioCase.expected as { hookNames: string[]; unhandledRejections: number };
+  'async-subscription-hooks': ({ expected, input }) => {
+    const hookNames = requireDefined(input.hookNames, 'hookNames');
+    const unhandledRejectionsExpected = requireDefined(input.unhandledRejections, 'unhandledRejections');
     const bus = RejectingLifecycleBus.create();
     const unhandledRejections: unknown[] = [];
     const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
@@ -469,8 +482,8 @@ const runnerMap: RunnerMap = {
 
     return new Promise<void>((resolve) => { setImmediate(resolve); })
       .then(() => {
-        assert.deepStrictEqual(input.hookNames, expected.hookNames);
-        assert.strictEqual(input.unhandledRejections, expected.unhandledRejections);
+        assert.deepStrictEqual(hookNames, expected.hookNames);
+        assert.strictEqual(unhandledRejectionsExpected, expected.unhandledRejections);
         assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
         assert.deepStrictEqual(bus.recordingHooks.causes, [bus.subscribeFailure, bus.unsubscribeFailure]);
         assert.strictEqual(unhandledRejections.length, expected.unhandledRejections);
@@ -481,9 +494,11 @@ const runnerMap: RunnerMap = {
       });
   },
 
-  'async-owned-queue-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { hookNames: string[]; payloadId: string; topic: 'order:created'; unhandledRejections: number };
-    const expected = scenarioCase.expected as { hookNames: string[]; received: string[]; unhandledRejections: number };
+  'async-owned-queue-hooks': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const hookNames = requireDefined(input.hookNames, 'hookNames');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
+    const unhandledRejectionsExpected = requireDefined(input.unhandledRejections, 'unhandledRejections');
     const bus = RejectingQueueHooksBus.create();
     const received: string[] = [];
     const unhandledRejections: unknown[] = [];
@@ -492,14 +507,14 @@ const runnerMap: RunnerMap = {
 
     return Promise.resolve()
       .then(() => {
-        bus.subscribe(input.topic, async (payload) => { received.push(payload.id); });
-        return bus.publish(input.topic, { 'id': input.payloadId });
+        bus.subscribe(topic, async (payload) => { received.push(payload.id); });
+        return bus.publish(topic, { 'id': payloadId });
       })
       .then(() => bus.drain())
       .then(() => new Promise<void>((resolve) => { setImmediate(resolve); }))
       .then(() => {
-        assert.deepStrictEqual(input.hookNames, expected.hookNames);
-        assert.strictEqual(input.unhandledRejections, expected.unhandledRejections);
+        assert.deepStrictEqual(hookNames, expected.hookNames);
+        assert.strictEqual(unhandledRejectionsExpected, expected.unhandledRejections);
         assert.deepStrictEqual(received, expected.received);
         assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
         assert.deepStrictEqual(bus.recordingHooks.causes, [bus.enqueueFailure, bus.dequeueFailure, bus.deliverFailure]);
@@ -511,29 +526,26 @@ const runnerMap: RunnerMap = {
       });
   },
 
-  'on-deliver': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { deliverCount: number; firstPayload: { id: string } };
+  'on-deliver': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
     const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
-    bus.subscribe(input.topic, async () => {});
+    bus.subscribe(topic, async () => {});
+    bus.subscribe(topic, async () => {});
 
-    return bus.publish(input.topic, { 'id': input.payloadId })
+    return bus.publish(topic, { 'id': payloadId })
       .then(() => bus.drain())
       .then(() => {
         assert.strictEqual(bus.deliverEvents.length, expected.deliverCount);
-        assert.deepStrictEqual(bus.deliverEvents[0], { 'topic': input.topic, 'payload': expected.firstPayload });
+        assert.deepStrictEqual(bus.deliverEvents[0], { 'topic': topic, 'payload': expected.firstPayload });
       })
       .finally(() => bus.close());
   },
 
-  'owned-queues-isolated': (scenarioCase) => {
-    const input = scenarioCase.input as { firstId: string; secondId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as {
-      firstDeliver: { payload: { id: string }; topic: 'order:created' };
-      received: string[];
-      secondDeliver: { payload: { id: string }; topic: 'order:created' };
-    };
+  'owned-queues-isolated': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const firstId = requireDefined(input.firstId, 'firstId');
+    const secondId = requireDefined(input.secondId, 'secondId');
     const first = ObservedBus.create();
     const second = ObservedBus.create();
     const received: string[] = [];
@@ -541,84 +553,85 @@ const runnerMap: RunnerMap = {
       received.push(payload.id);
     };
 
-    first.subscribe(input.topic, sharedHandler);
-    second.subscribe(input.topic, sharedHandler);
+    first.subscribe(topic, sharedHandler);
+    second.subscribe(topic, sharedHandler);
 
     return Promise.all([
-      first.publish(input.topic, { 'id': input.firstId }),
-      second.publish(input.topic, { 'id': input.secondId })
+      first.publish(topic, { 'id': firstId }),
+      second.publish(topic, { 'id': secondId })
     ])
       .then(() => Promise.all([first.drain(), second.drain()]))
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
-        assert.deepStrictEqual(first.enqueueEvents, [input.topic]);
-        assert.deepStrictEqual(second.enqueueEvents, [input.topic]);
+        assert.deepStrictEqual(first.enqueueEvents, [topic]);
+        assert.deepStrictEqual(second.enqueueEvents, [topic]);
         assert.deepStrictEqual(first.deliverEvents, [expected.firstDeliver]);
         assert.deepStrictEqual(second.deliverEvents, [expected.secondDeliver]);
       })
       .finally(() => Promise.all([first.close(), second.close()]));
   },
 
-  'on-handler-error': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { handlerErrors: number; message: string; topic: 'order:created' };
+  'on-handler-error': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
     const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => { throw RuntimeError.create(input.errorMessage); });
+    bus.subscribe(topic, async () => { throw RuntimeError.create(errorMessage); });
 
-    return bus.publish(input.topic, { 'id': input.payloadId })
+    return bus.publish(topic, { 'id': payloadId })
       .then(() => bus.drain())
       .then(() => {
         assert.strictEqual(bus.handlerErrors.length, expected.handlerErrors);
         assert.strictEqual(bus.handlerErrors[0]!.topic, expected.topic);
-        assert.strictEqual((bus.handlerErrors[0]!.error as Error).message, expected.message);
+        assert.strictEqual(requireError(bus.handlerErrors[0]!.error).message, expected.message);
       })
       .finally(() => bus.close());
   },
 
-  'enqueue-dequeue-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { dequeueCount: number; enqueueCount: number };
+  'enqueue-dequeue-hooks': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
     const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
+    bus.subscribe(topic, async () => {});
 
-    return bus.publish(input.topic, { 'id': input.payloadId })
+    return bus.publish(topic, { 'id': payloadId })
       .then(() => bus.drain())
       .then(() => {
         assert.strictEqual(bus.enqueueEvents.length, expected.enqueueCount);
-        assert.strictEqual(bus.enqueueEvents[0], input.topic);
+        assert.strictEqual(bus.enqueueEvents[0], topic);
         assert.strictEqual(bus.dequeueEvents.length, expected.dequeueCount);
-        assert.strictEqual(bus.dequeueEvents[0], input.topic);
+        assert.strictEqual(bus.dequeueEvents[0], topic);
       })
       .finally(() => bus.close());
   },
 
-  'on-drop-noop': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { dropCount: number; topic: 'order:created' };
+  'on-drop-noop': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
     const bus = ObservedBus.create();
     const controller = new AbortController();
     controller.abort();
-    bus.subscribe(input.topic, async () => {}, { 'signal': controller.signal });
+    bus.subscribe(topic, async () => {}, { 'signal': controller.signal });
 
-    return bus.publish(input.topic, { 'id': input.payloadId })
+    return bus.publish(topic, { 'id': payloadId })
       .then(() => {
         assert.strictEqual(bus.dropEvents.length, expected.dropCount);
       })
       .finally(() => bus.close());
   },
 
-  'on-dispose': (scenarioCase) => {
-    const input = scenarioCase.input as { disposeCount: number };
+  'on-dispose': ({ input }) => {
+    const disposeCount = requireDefined(input.disposeCount, 'disposeCount');
     const bus = ObservedBus.create();
     assert.strictEqual(bus.disposeCount.length, 0);
     return bus.close().then(() => {
-      assert.strictEqual(bus.disposeCount.length, input.disposeCount);
+      assert.strictEqual(bus.disposeCount.length, disposeCount);
     });
   },
 
-  'hook-order': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { order: string[] };
+  'hook-order': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
     const order: string[] = [];
 
     class OrderedBus extends EventBus<HookTopics> {
@@ -630,8 +643,8 @@ const runnerMap: RunnerMap = {
     }
 
     const bus = OrderedBus.create();
-    bus.subscribe(input.topic, async () => {});
-    return bus.publish(input.topic, { 'id': input.payloadId })
+    bus.subscribe(topic, async () => {});
+    return bus.publish(topic, { 'id': payloadId })
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(order, expected.order);
@@ -639,9 +652,10 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'pending-admission-order': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { order: string[] };
+  'pending-admission-order': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'order:created');
+    const payloadId = requireDefined(input.payloadId, 'payloadId');
+    const busConfig = requireDefined(input.bus, 'bus');
     const enqueueGate = Promise.withResolvers<void>();
     const enqueueStarted = Promise.withResolvers<void>();
     const overflowGate = Promise.withResolvers<void>();
@@ -676,18 +690,19 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const bus = PendingAdmissionBus.create(input.bus);
-    bus.subscribe(input.topic, async () => { order.push('handler'); });
+    const bus = PendingAdmissionBus.create(busConfig);
+    bus.subscribe(topic, async () => { order.push('handler'); });
 
-    const publish = bus.publish(input.topic, { 'id': input.payloadId });
+    const publish = bus.publish(topic, { 'id': payloadId });
+    const expectedOrder = expectedStringArray(expected.order, 'order');
     return enqueueStarted.promise
       .then(() => {
-        assert.deepStrictEqual(order, expected.order.slice(0, 2));
+        assert.deepStrictEqual(order, expectedOrder.slice(0, 2));
         enqueueGate.resolve();
         return overflowStarted.promise;
       })
       .then(() => {
-        assert.deepStrictEqual(order, expected.order.slice(0, 4));
+        assert.deepStrictEqual(order, expectedOrder.slice(0, 4));
         overflowGate.resolve();
         return publish;
       })
@@ -697,15 +712,15 @@ const runnerMap: RunnerMap = {
       });
   },
 
-  'default-hwm': (scenarioCase) => {
-    const input = scenarioCase.input as { items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
+  'default-hwm': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'x');
+    const items = requireDefined(input.items, 'items');
     const bus = OverflowObservedBus.create();
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
 
-    bus.subscribe(input.topic, async () => {
+    bus.subscribe(topic, async () => {
       if (first) {
         first = false;
         await blockFirst;
@@ -713,8 +728,8 @@ const runnerMap: RunnerMap = {
     });
 
     const pending: Promise<void>[] = [];
-    for (const item of input.items) {
-      pending.push(bus.publish(input.topic, item));
+    for (const item of items) {
+      pending.push(bus.publish(topic, item));
     }
 
     return flushMicrotasks()
@@ -727,26 +742,27 @@ const runnerMap: RunnerMap = {
       .then(() => bus.close());
   },
 
-  'forwarded-hwm': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCountAtLeast: number };
-    const bus = OverflowObservedBus.create(input.bus);
+  'forwarded-hwm': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'x');
+    const items = requireDefined(input.items, 'items');
+    const busConfig = requireDefined(input.bus, 'bus');
+    const bus = OverflowObservedBus.create(busConfig);
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
 
-    bus.subscribe(input.topic, async () => {
+    bus.subscribe(topic, async () => {
       if (first) {
         first = false;
         await blockFirst;
       }
     });
 
-    const pending = input.items.map((item) => bus.publish(input.topic, item));
+    const pending = items.map((item) => bus.publish(topic, item));
 
     return flushMicrotasks()
       .then(() => {
-        assert.strictEqual(bus.overflowDepths.length >= expected.overflowCountAtLeast, true);
+        assert.strictEqual(bus.overflowDepths.length >= expectedNumber(expected.overflowCountAtLeast, 'overflowCountAtLeast'), true);
         resolveBlock();
         return Promise.all(pending);
       })
@@ -754,17 +770,19 @@ const runnerMap: RunnerMap = {
       .then(() => bus.close());
   },
 
-  'config-snapshot': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; mutatedBus: { highWaterMark: number }; payload: string; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
-    const config = { 'highWaterMark': input.bus.highWaterMark };
+  'config-snapshot': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'x');
+    const payload = requireDefined(input.payload, 'payload');
+    const busInput = requireDefined(input.bus, 'bus');
+    const mutatedBusInput = requireDefined(input.mutatedBus, 'mutatedBus');
+    const config = { 'highWaterMark': requireDefined(busInput.highWaterMark, 'bus.highWaterMark') };
     const bus = OverflowObservedBus.create(config);
-    config.highWaterMark = input.mutatedBus.highWaterMark;
+    config.highWaterMark = requireDefined(mutatedBusInput.highWaterMark, 'mutatedBus.highWaterMark');
 
     const blocked = Promise.withResolvers<void>();
-    bus.subscribe(input.topic, async () => { await blocked.promise; });
+    bus.subscribe(topic, async () => { await blocked.promise; });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => flushMicrotasks())
       .then(() => {
         assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
@@ -774,22 +792,22 @@ const runnerMap: RunnerMap = {
       .then(() => bus.close());
   },
 
-  'same-depth-no-overflow': (scenarioCase) => {
-    const input = scenarioCase.input as { items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
+  'same-depth-no-overflow': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'x');
+    const items = requireDefined(input.items, 'items');
     const bus = OverflowObservedBus.create();
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
 
-    bus.subscribe(input.topic, async () => {
+    bus.subscribe(topic, async () => {
       if (first) {
         first = false;
         await blockFirst;
       }
     });
 
-    const pending = input.items.map((item) => bus.publish(input.topic, item));
+    const pending = items.map((item) => bus.publish(topic, item));
 
     return flushMicrotasks()
       .then(() => {
@@ -801,21 +819,22 @@ const runnerMap: RunnerMap = {
       .then(() => bus.close());
   },
 
-  'throwing-on-publish': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'throwing-on-publish': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
+    const payload = requireDefined(input.payload, 'payload');
     const received: string[] = [];
 
     class ThrowingPublishBus extends EventBus<TestTopics> {
       protected override onPublish(): void {
-        throw RuntimeError.create(input.errorMessage);
+        throw RuntimeError.create(errorMessage);
       }
     }
 
     const bus = ThrowingPublishBus.create();
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    bus.subscribe(topic, async (value) => { received.push(value); });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
@@ -823,44 +842,43 @@ const runnerMap: RunnerMap = {
       .finally(() => bus.close());
   },
 
-  'topic-entry-cleanup': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { after: boolean; before: boolean; during: boolean };
+  'topic-entry-cleanup': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
     const bus = IntrospectableBus.create();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.before);
-    const unsub = bus.subscribe(input.topic, async () => {});
-    assert.strictEqual(bus.hasTopic(input.topic), expected.during);
+    assert.strictEqual(bus.hasTopic(topic), expected.before);
+    const unsub = bus.subscribe(topic, async () => {});
+    assert.strictEqual(bus.hasTopic(topic), expected.during);
     unsub();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.after);
+    assert.strictEqual(bus.hasTopic(topic), expected.after);
     return bus.close();
   },
 
-  'topic-entry-kept': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { after: boolean };
+  'topic-entry-kept': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
     const bus = IntrospectableBus.create();
-    const unsubA = bus.subscribe(input.topic, async () => {});
-    bus.subscribe(input.topic, async () => {});
+    const unsubA = bus.subscribe(topic, async () => {});
+    bus.subscribe(topic, async () => {});
     unsubA();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.after);
+    assert.strictEqual(bus.hasTopic(topic), expected.after);
     return bus.close();
   },
 
-  'throwing-on-deliver': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
+  'throwing-on-deliver': ({ expected, input }) => {
+    const topic = requireTopic(input.topic, 'ping');
+    const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
+    const payload = requireDefined(input.payload, 'payload');
     const received: string[] = [];
 
     class ThrowingDeliverBus extends EventBus<TestTopics> {
       protected override onDeliver(): void {
-        throw RuntimeError.create(input.errorMessage);
+        throw RuntimeError.create(errorMessage);
       }
     }
 
     const bus = ThrowingDeliverBus.create();
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    bus.subscribe(topic, async (value) => { received.push(value); });
 
-    return bus.publish(input.topic, input.payload)
+    return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => {
         assert.deepStrictEqual(received, expected.received);
@@ -869,14 +887,14 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> | void {
+function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('EventBus', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario as ScenarioCase);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, async () => {
+      await runCase(scenarioCase);
     });
   }
 });

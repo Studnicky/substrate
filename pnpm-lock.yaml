@@ -138,6 +138,13 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/boundary-kit:
     dependencies:
@@ -256,6 +263,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/concurrency:
     dependencies:
@@ -284,6 +294,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@studnicky/scheduler':
         specifier: workspace:*
         version: link:../scheduler
@@ -624,6 +637,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/health-registry:
     dependencies:
@@ -871,6 +887,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/pipeline:
     dependencies:
@@ -974,6 +993,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/retry:
     dependencies:
@@ -1005,6 +1027,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/sample-buffer:
     dependencies:
@@ -1023,6 +1048,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/scenario-kit:
     dependencies:
@@ -1064,6 +1093,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@studnicky/signal':
         specifier: workspace:*
         version: link:../signal
@@ -1202,6 +1234,9 @@ importers:
       '@studnicky/retry':
         specifier: workspace:*
         version: link:../retry
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/timing:
     dependencies:
@@ -1353,6 +1388,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
 packages:
 

@@ -1,4 +1,5 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -17,39 +18,10 @@ import type {
 } from '../../../src/interfaces/index.js';
 
 import { Paginator } from '../../../src/index.js';
+import { PaginatorScenarioCaseEntity } from '../entities/PaginatorScenarioCaseEntity.js';
 
-type ScenarioShape =
-  | 'accumulation-many-pages'
-  | 'accumulation-multiple-pages'
-  | 'accumulation-nested-pages-detached'
-  | 'accumulation-pages-defensive-snapshot'
-  | 'accumulation-single-page'
-  | 'creation-has-next'
-  | 'creation-pages-empty'
-  | 'discriminant-narrowing'
-  | 'exhaustion-after-exhaustion-throws'
-  | 'exhaustion-first-page'
-  | 'exhaustion-later-page'
-  | 'exhaustion-undefined-cursor'
-  | 'hook-error-async-rejection'
-  | 'hook-error-owning-instance-isolation'
-  | 'hook-error-throwing-enter'
-  | 'hooks-record-exhausted-reset'
-  | 'hooks-record-transitions'
-  | 'hooks-rejected-after-exhaustion'
-  | 'hooks-retain-detached-cursor-snapshot'
-  | 'hooks-skip-hasmore-self-transition'
-  | 'reentrancy-cross-instance'
-  | 'reentrancy-next'
-  | 'reentrancy-reset';
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: { paginator: Record<string, unknown> };
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = PaginatorScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
 
 import scenarioGroups from './paginator.scenarios.json' with { type: 'json' };
 
@@ -249,18 +221,34 @@ class CrossInstanceReentrantPaginator extends Paginator<string, number> {
   }
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function recordField(input: Record<string, unknown>, key: string): Record<string, unknown> {
   const value = input[key];
-  assert.notEqual(value, null);
-  assert.equal(typeof value, 'object');
-  assert.equal(Array.isArray(value), false);
-  return value as Record<string, unknown>;
+  if (isPlainRecord(value)) {
+    return value;
+  }
+  throw RuntimeError.create(`Expected record field ${key}`);
 }
 
 function arrayField(input: Record<string, unknown>, key: string): unknown[] {
   const value = input[key];
   assert.ok(Array.isArray(value));
   return value;
+}
+
+function isStringArray(value: readonly unknown[]): value is string[] {
+  return value.every((item) => typeof item === 'string');
+}
+
+function stringArrayField(input: Record<string, unknown>, key: string): string[] {
+  const value = arrayField(input, key);
+  if (isStringArray(value)) {
+    return value;
+  }
+  throw RuntimeError.create(`Expected string array field ${key}`);
 }
 
 function stringField(input: Record<string, unknown>, key: string): string {
@@ -293,21 +281,60 @@ function itemAt<T>(values: readonly T[], index: number): T {
   return value;
 }
 
-function cursorFrom<TCursor, TValue = unknown>(
-  value: TValue
+interface NamedItem {
+  name: string;
+}
+
+interface NamedItemsPage {
+  items: NamedItem[];
+}
+
+function isNamedItem(value: unknown): value is NamedItem {
+  return value !== null && typeof value === 'object' && typeof Reflect.get(value, 'name') === 'string';
+}
+
+function namedItemsPageFrom(input: Record<string, unknown>): NamedItemsPage {
+  const items = arrayField(input, 'items');
+  if (items.every(isNamedItem)) {
+    return { items };
+  }
+  throw RuntimeError.create('Expected items array of { name: string }');
+}
+
+function isCursorLike(value: unknown): value is { cursor?: unknown; exhausted: boolean } {
+  return value !== null && typeof value === 'object' && typeof Reflect.get(value, 'exhausted') === 'boolean';
+}
+
+function cursorFrom<TCursor>(
+  value: unknown,
+  parseCursor: (raw: unknown) => TCursor
 ): PaginatorAvailableCursorInterface<TCursor> | PaginatorExhaustedCursorEntity.Type {
-  const cursor = value as { cursor?: unknown; exhausted: boolean };
-  if (cursor.exhausted) {
+  if (!isCursorLike(value)) {
+    throw RuntimeError.create('Expected cursor-like payload');
+  }
+  if (value.exhausted) {
     return { 'exhausted': true };
   }
 
-  const normalizedCursor = cursor.cursor !== null
-    && typeof cursor.cursor === 'object'
-    && Reflect.get(cursor.cursor, 'shape') === 'undefined'
-    ? undefined
-    : cursor.cursor;
+  return { 'cursor': parseCursor(value.cursor), 'exhausted': false };
+}
 
-  return { 'cursor': normalizedCursor as TCursor, 'exhausted': false };
+function parseNumberCursor(raw: unknown): number {
+  if (typeof raw !== 'number') {
+    throw RuntimeError.create('Expected number cursor');
+  }
+  return raw;
+}
+
+/** The fixture encodes an absent cursor as `{ shape: 'undefined' }`, since JSON has no `undefined` literal. */
+function parseOptionalStringCursor(raw: unknown): string | undefined {
+  if (raw !== null && typeof raw === 'object' && Reflect.get(raw, 'shape') === 'undefined') {
+    return undefined;
+  }
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  throw RuntimeError.create('Expected string or undefined cursor');
 }
 
 function objectCursorFrom(input: Record<string, unknown>): ObjectCursor {
@@ -324,10 +351,11 @@ function objectCursorNextCursorFrom(
 function applyPages<TPage, TCursor>(
   paginator: Paginator<TPage, TCursor>,
   pages: readonly TPage[],
-  cursors: readonly unknown[]
+  cursors: readonly unknown[],
+  parseCursor: (raw: unknown) => TCursor
 ): void {
   for (let index = 0; index < pages.length; index += 1) {
-    paginator.next(itemAt(pages, index), cursorFrom<TCursor>(cursors[index]));
+    paginator.next(itemAt(pages, index), cursorFrom(cursors[index], parseCursor));
   }
 }
 
@@ -351,8 +379,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'accumulation-single-page': () => {
     const paginator = Paginator.create<string, number>();
-    const pages = arrayField(input, 'pages') as string[];
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
+    const pages = stringArrayField(input, 'pages');
+    paginator.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
     assert.deepEqual(paginator.pages, expected.pages);
     assert.equal(paginator.hasNext(), expected.hasNext);
     return;
@@ -360,7 +388,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'accumulation-multiple-pages': () => {
     const paginator = Paginator.create<string, number>();
-    applyPages(paginator, arrayField(input, 'pages') as string[], arrayField(input, 'nextCursors'));
+    applyPages(paginator, stringArrayField(input, 'pages'), arrayField(input, 'nextCursors'), parseNumberCursor);
     assert.deepEqual(paginator.pages, expected.pages);
     assert.equal(paginator.hasNext(), expected.hasNext);
     return;
@@ -368,8 +396,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'accumulation-pages-defensive-snapshot': () => {
     const paginator = Paginator.create<string, number>();
-    const pages = arrayField(input, 'pages') as string[];
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
+    const pages = stringArrayField(input, 'pages');
+    paginator.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
     const snapshot = paginator.pages;
     Reflect.set(snapshot, 0, 'tampered');
     assert.deepEqual(paginator.pages, expected.pages);
@@ -377,11 +405,11 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   },
 
   'accumulation-nested-pages-detached': () => {
-    const paginator = Paginator.create<{ 'items': { 'name': string }[] }, number>();
-    const page = structuredClone(recordField(input, 'page')) as { 'items': { 'name': string }[] };
+    const paginator = Paginator.create<NamedItemsPage, number>();
+    const page = structuredClone(namedItemsPageFrom(recordField(input, 'page')));
 
-    paginator.next(page, cursorFrom<number>(input.nextCursor));
-    page.items[0] = itemAt(recordField(input, 'mutatedPage').items as { 'name': string }[], 0);
+    paginator.next(page, cursorFrom(input.nextCursor, parseNumberCursor));
+    page.items[0] = itemAt(namedItemsPageFrom(recordField(input, 'mutatedPage')).items, 0);
 
     const snapshot = paginator.pages;
     const firstPage = snapshot[0];
@@ -409,8 +437,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'exhaustion-first-page': () => {
     const paginator = Paginator.create<string, number>();
-    const pages = arrayField(input, 'pages') as string[];
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
+    const pages = stringArrayField(input, 'pages');
+    paginator.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
     assert.equal(paginator.hasNext(), expected.hasNext);
     assert.deepEqual(paginator.pages, expected.pages);
     return;
@@ -418,7 +446,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'exhaustion-later-page': () => {
     const paginator = Paginator.create<string, number>();
-    applyPages(paginator, arrayField(input, 'pages') as string[], arrayField(input, 'nextCursors'));
+    applyPages(paginator, stringArrayField(input, 'pages'), arrayField(input, 'nextCursors'), parseNumberCursor);
     assert.equal(paginator.hasNext(), expected.hasNext);
     assert.deepEqual(paginator.pages, expected.pages);
     return;
@@ -426,16 +454,16 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'exhaustion-after-exhaustion-throws': () => {
     const paginator = Paginator.create<string, number>();
-    const pages = arrayField(input, 'pages') as string[];
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
-    assert.throws(() => { paginator.next(itemAt(pages, 1), cursorFrom<number>(input.nextCursor)); }, Error);
+    const pages = stringArrayField(input, 'pages');
+    paginator.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
+    assert.throws(() => { paginator.next(itemAt(pages, 1), cursorFrom(input.nextCursor, parseNumberCursor)); }, Error);
     assert.equal(expected.throws, true);
     return;
   },
 
   'exhaustion-undefined-cursor': () => {
     const paginator = Paginator.create<string, string | undefined>();
-    applyPages(paginator, arrayField(input, 'pages') as string[], arrayField(input, 'nextCursors'));
+    applyPages(paginator, stringArrayField(input, 'pages'), arrayField(input, 'nextCursors'), parseOptionalStringCursor);
     assert.equal(paginator.hasNext(), expected.hasNext);
     assert.deepEqual(paginator.pages, expected.pages);
     return;
@@ -443,7 +471,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'hooks-record-transitions': () => {
     const paginator = TrackingPaginator.create();
-    paginator.next(stringField(input, 'page'), cursorFrom<number>(input.nextCursor));
+    paginator.next(stringField(input, 'page'), cursorFrom(input.nextCursor, parseNumberCursor));
     assert.deepEqual(paginator.transitions, expected.transitions);
     assert.deepEqual(paginator.exits, expected.exits);
     assert.deepEqual(paginator.enters, expected.enters);
@@ -453,7 +481,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'hooks-skip-hasmore-self-transition': () => {
     const paginator = TrackingPaginator.create();
-    applyPages(paginator, arrayField(input, 'pages') as string[], arrayField(input, 'nextCursors'));
+    applyPages(paginator, stringArrayField(input, 'pages'), arrayField(input, 'nextCursors'), parseNumberCursor);
     assert.equal(paginator.transitions.length, expected.transitions);
     assert.equal(paginator.enters.length, expected.enters);
     assert.equal(paginator.exits.length, expected.exits);
@@ -462,7 +490,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'hooks-record-exhausted-reset': () => {
     const paginator = TrackingPaginator.create();
-    applyPages(paginator, arrayField(input, 'pages') as string[], arrayField(input, 'nextCursors'));
+    applyPages(paginator, stringArrayField(input, 'pages'), arrayField(input, 'nextCursors'), parseNumberCursor);
     paginator.reset();
     assert.deepEqual(paginator.transitions.at(-1), expected.lastTransition);
     return;
@@ -470,10 +498,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'hooks-rejected-after-exhaustion': () => {
     const paginator = TrackingPaginator.create();
-    const pages = arrayField(input, 'pages') as string[];
+    const pages = stringArrayField(input, 'pages');
     const nextCursors = arrayField(input, 'nextCursors');
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(nextCursors[0]));
-    assert.throws(() => { paginator.next(itemAt(pages, 1), cursorFrom<number>(nextCursors[1])); });
+    paginator.next(itemAt(pages, 0), cursorFrom(nextCursors[0], parseNumberCursor));
+    assert.throws(() => { paginator.next(itemAt(pages, 1), cursorFrom(nextCursors[1], parseNumberCursor)); });
     assert.equal(paginator.rejections.length, expected.rejections);
     const rejection = itemAt(paginator.rejections, 0);
     assert.equal(rejection.state, expected.state);
@@ -495,7 +523,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   'hook-error-throwing-enter': () => {
     const paginator = ThrowingOnEnterPaginator.create();
     assert.throws(
-      () => { paginator.next(stringField(input, 'page'), cursorFrom<number>(input.nextCursor)); },
+      () => { paginator.next(stringField(input, 'page'), cursorFrom(input.nextCursor, parseNumberCursor)); },
       (err: Error) => {
         if (!(err instanceof HookInvocationError) || !(err.cause instanceof Error)) {
           return false;
@@ -510,7 +538,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'hook-error-async-rejection': async () => {
     const paginator = AsyncOverridePaginator.create();
-    const pages = arrayField(input, 'pages') as string[];
+    const pages = stringArrayField(input, 'pages');
     const nextCursors = arrayField(input, 'nextCursors');
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: Error): void => {
@@ -519,12 +547,12 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      paginator.next(itemAt(pages, 0), cursorFrom<number>(nextCursors[0]));
+      paginator.next(itemAt(pages, 0), cursorFrom(nextCursors[0], parseNumberCursor));
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
       assert.deepEqual(rejectionEvents, expected.rejectionEvents);
       assert.throws(
-        () => { paginator.next(itemAt(pages, 1), cursorFrom<number>(nextCursors[1])); },
+        () => { paginator.next(itemAt(pages, 1), cursorFrom(nextCursors[1], parseNumberCursor)); },
         (err: Error) => {
           if (!(err instanceof HookInvocationError) || !(err.cause instanceof Error)) {
             return false;
@@ -554,23 +582,23 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      const failingPages = arrayField(failingInput, 'pages') as string[];
+      const failingPages = stringArrayField(failingInput, 'pages');
       const failingCursors = arrayField(failingInput, 'nextCursors');
-      const healthyPages = arrayField(healthyInput, 'pages') as string[];
+      const healthyPages = stringArrayField(healthyInput, 'pages');
       const healthyCursors = arrayField(healthyInput, 'nextCursors');
 
-      failing.next(itemAt(failingPages, 0), cursorFrom<number>(failingCursors[0]));
-      healthy.next(itemAt(healthyPages, 0), cursorFrom<number>(healthyCursors[0]));
+      failing.next(itemAt(failingPages, 0), cursorFrom(failingCursors[0], parseNumberCursor));
+      healthy.next(itemAt(healthyPages, 0), cursorFrom(healthyCursors[0], parseNumberCursor));
 
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
 
       assert.equal(rejectionEvents.length, 0);
-      healthy.next(itemAt(healthyPages, 1), cursorFrom<number>(healthyCursors[1]));
+      healthy.next(itemAt(healthyPages, 1), cursorFrom(healthyCursors[1], parseNumberCursor));
       assert.deepEqual(healthy.pages, healthyPages);
 
       assert.throws(
-        () => { failing.next(itemAt(failingPages, 1), cursorFrom<number>(failingCursors[1])); },
+        () => { failing.next(itemAt(failingPages, 1), cursorFrom(failingCursors[1], parseNumberCursor)); },
         (err: Error) => {
           if (!(err instanceof HookInvocationError)) {
             return false;
@@ -623,20 +651,20 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'reentrancy-next': () => {
     const paginator = ReentrantNextPaginator.create();
-    const pages = arrayField(input, 'pages') as string[];
+    const pages = stringArrayField(input, 'pages');
     const nextCursors = arrayField(input, 'nextCursors');
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(nextCursors[0]));
+    paginator.next(itemAt(pages, 0), cursorFrom(nextCursors[0], parseNumberCursor));
     assert.deepEqual(paginator.pages, pages.slice(0, 2));
     assert.equal(paginator.hasNext(), expected.hasNext);
-    paginator.next(itemAt(pages, 2), cursorFrom<number>(nextCursors[2]));
+    paginator.next(itemAt(pages, 2), cursorFrom(nextCursors[2], parseNumberCursor));
     assert.deepEqual(paginator.pages, expected.pages);
     return;
   },
 
   'reentrancy-reset': () => {
     const paginator = ReentrantResetPaginator.create();
-    const pages = arrayField(input, 'pages') as string[];
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
+    const pages = stringArrayField(input, 'pages');
+    paginator.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
     assert.deepEqual(paginator.pages, expected.pages);
     assert.equal(paginator.hasNext(), expected.hasNext);
     assert.equal(paginator.enterCount, expected.enterCount, 'same-instance nested hook dispatch is stopped by reentrancy detection');
@@ -648,8 +676,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     const source = CrossInstanceReentrantPaginator.create();
     target.configure(stringField(input, 'targetName'));
     source.configure(stringField(input, 'sourceName'), target);
-    const pages = arrayField(input, 'pages') as string[];
-    source.next(itemAt(pages, 0), cursorFrom<number>(input.nextCursor));
+    const pages = stringArrayField(input, 'pages');
+    source.next(itemAt(pages, 0), cursorFrom(input.nextCursor, parseNumberCursor));
     assert.deepEqual(source.pages, expected.sourcePages);
     assert.deepEqual(target.pages, expected.targetPages);
     assert.deepEqual(source.enters, expected.sourceEnters);
@@ -659,14 +687,14 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
   'discriminant-narrowing': () => {
     const paginator = Paginator.create<string, number>();
-    const pages = arrayField(input, 'pages') as string[];
+    const pages = stringArrayField(input, 'pages');
     const cursors = arrayField(input, 'nextCursors');
 
-    paginator.next(itemAt(pages, 0), cursorFrom<number>(cursors[0]));
+    paginator.next(itemAt(pages, 0), cursorFrom(cursors[0], parseNumberCursor));
     assert.deepEqual(paginator.pages, expected.pagesAfterFirst);
     assert.equal(paginator.hasNext(), expected.hasNextAfterFirst);
 
-    paginator.next(itemAt(pages, 1), cursorFrom<number>(cursors[1]));
+    paginator.next(itemAt(pages, 1), cursorFrom(cursors[1], parseNumberCursor));
     assert.deepEqual(paginator.pages, expected.pagesAfterSecond);
     assert.equal(paginator.hasNext(), expected.hasNextAfterSecond);
 
@@ -680,8 +708,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[shape]();
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(PaginatorScenarioCaseEntity.Schema, PaginatorScenarioCaseEntity.Node);
+
 void describe('Paginator', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

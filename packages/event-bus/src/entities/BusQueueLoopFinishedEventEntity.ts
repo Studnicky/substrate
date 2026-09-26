@@ -9,7 +9,7 @@ export namespace BusQueueLoopFinishedEventEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'type': { 'const': 'loopFinished', 'type': 'string' }
+      'type': { 'const': 'loopFinished' }
     },
     'required': ['type'],
     'type': 'object'

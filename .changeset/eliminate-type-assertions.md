@@ -1,0 +1,9 @@
+---
+"@studnicky/eslint-config": patch
+---
+
+`inlineCallablePosition.ts` and `tryCatchInLoops.ts` compare a scope reference's identifier against a call expression's callee directly instead of through an `as unknown` cast on one side — the two sides already share a comparable type, or are already `unknown` from an upstream guard, and the cast added no safety.
+
+Every test-only `as` assertion in `@studnicky/eslint-config` is gone. Fixture JSON arrays that fed a discriminated union now go through a validating `intake` function (matching the pattern `TypeContractClassification.loop.spec.ts` already used) instead of a direct cast; a membership list checked with `.includes()` against a widened array is a `Set` instead. `LayerResolver.loop.spec.ts`'s per-operation runners assert an optional scenario field is present before calling the resolver, rather than asserting the field away with `as string` — a scenario missing `input.from`/`input.to`/etc. now fails with a clear message instead of silently passing `undefined` through the cast.
+
+Several `v8/*.loop.spec.ts` files replace a hand-built `Rule.RuleContext`/`Rule.Node` mock (cast to `never` to satisfy the type checker) with equivalent real source run through `RuleTester` or `Linter`, since every guarded branch they exercised was reachable through ordinary code. `forOfArrays.loop.spec.ts`'s one branch that genuinely needs a controlled `parserServices` shape now gets it through a real `Linter.NonESTreeParser` wrapping the real `@typescript-eslint/parser`, rather than a mock. Three guard branches (`max-switch-cases`' non-array `cases`, `eval-function`'s zero-expression `SequenceExpression`, `regexp-in-loops`' undefined-`regex` literal) defend against a malformed AST no real parser produces; their mocked tests are removed rather than kept alive through an unsound cast.

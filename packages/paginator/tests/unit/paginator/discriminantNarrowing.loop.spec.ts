@@ -7,6 +7,7 @@
  * `tsc` before a single assertion runs. The scenario fixture supplies the inputs and expected
  * descriptions; the compile-time guarantee lives here.
  */
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -29,6 +30,7 @@ import type {
   PaginatorPageReceivedEventInterface
 } from '../../../src/interfaces/index.js';
 
+import { DiscriminantNarrowingScenarioCaseEntity } from '../entities/DiscriminantNarrowingScenarioCaseEntity.js';
 import scenarioGroups from './discriminantNarrowing.scenarios.json' with { type: 'json' };
 
 type CursorUnion = PaginatorAvailableCursorInterface<number> | PaginatorExhaustedCursorEntity.Type;
@@ -65,10 +67,7 @@ function describeState(state: StateUnion): string {
   }
 }
 
-type ScenarioCase =
-  | { description: string; expected: { descriptions: string[] }; input: { cursors: CursorUnion[] }; shape: 'cursor-discriminants'; name: string }
-  | { description: string; expected: { descriptions: string[] }; input: { events: EventUnion[] }; shape: 'event-discriminants'; name: string }
-  | { description: string; expected: { descriptions: string[] }; input: { states: StateUnion[] }; shape: 'state-discriminants'; name: string };
+type ScenarioCase = DiscriminantNarrowingScenarioCaseEntity.Type;
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 
@@ -84,10 +83,19 @@ const scenarioRunners: { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape>
   }
 };
 
+/** A literal-keyed switch lets each branch narrow `scenarioCase` before indexing the map, so the call stays sound without erasing the union to `ScenarioRunner<ScenarioCase['shape']>`. */
 function runCase(scenarioCase: ScenarioCase): void {
-  const runner = scenarioRunners[scenarioCase.shape] as ScenarioRunner<ScenarioCase['shape']>;
-
-  runner(scenarioCase);
+  switch (scenarioCase.shape) {
+    case 'cursor-discriminants':
+      scenarioRunners['cursor-discriminants'](scenarioCase);
+      return;
+    case 'event-discriminants':
+      scenarioRunners['event-discriminants'](scenarioCase);
+      return;
+    case 'state-discriminants':
+      scenarioRunners['state-discriminants'](scenarioCase);
+      return;
+  }
 }
 
 void describe('Paginator entity contracts', () => {
@@ -123,8 +131,10 @@ void describe('Paginator entity contracts', () => {
   });
 });
 
+const fileIntake = ScenarioFileCompiler.compileIntake(DiscriminantNarrowingScenarioCaseEntity.Schema, DiscriminantNarrowingScenarioCaseEntity.Node);
+
 void describe('Paginator discriminant narrowing', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

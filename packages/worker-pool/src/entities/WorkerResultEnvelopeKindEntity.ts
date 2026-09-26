@@ -11,7 +11,7 @@ export namespace WorkerResultEnvelopeKindEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['result'] as const);
+  export const Node = SchemaNode.defineEnum({ 'type': 'string' } as const, ['result'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

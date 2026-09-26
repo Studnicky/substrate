@@ -3,5 +3,6 @@ import type { DeadLetterQueueRetryGeneratorOptionsEntity } from '../entities/Dea
 
 export interface DeadLetterQueueRetryGeneratorOptionsInterface<T>
   extends DeadLetterQueueRetryGeneratorOptionsEntity.InputType {
-  readonly 'deadLetterQueue': DeadLetterQueue<T>;
+  /** Nullable: the constructor rejects a missing queue with `ResilienceConfigError` at runtime. */
+  readonly 'deadLetterQueue': DeadLetterQueue<T> | null | undefined;
 }

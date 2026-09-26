@@ -15,7 +15,7 @@ export namespace WorkerLifecycleAssignEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum(['assign'] as const) }, ['type'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum({ 'type': 'string' } as const, ['assign'] as const) }, ['type'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -15,7 +15,7 @@ export namespace RequestRetryEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum(['requestRetry'] as const) }, ['type'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum({ 'type': 'string' } as const, ['requestRetry'] as const) }, ['type'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

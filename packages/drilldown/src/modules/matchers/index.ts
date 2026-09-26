@@ -551,7 +551,7 @@ const dateHandler: MatcherHandlerInterface<DateGroupValueEntity.Type, DateMatche
   'validate': DateHandler.validate
 };
 
-const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueEntity.Type, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
+export const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueEntity.Type, SequentialMatcherInterface, SequentialRangeEntity.Type> = {
   'compare': SequentialHandler.compare,
   'createMatcher': SequentialHandler.createMatcher,
   'createNodeValue': SequentialHandler.createNodeValue,
@@ -564,7 +564,7 @@ const sequentialHandler: MatcherHandlerInterface<SequentialGroupValueEntity.Type
   'validate': SequentialHandler.validate
 };
 
-const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueEntity.Type, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
+export const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueEntity.Type, AlphabeticMatcherInterface, AlphabeticRangeEntity.Type> = {
   'compare': AlphabeticHandler.compare,
   'createMatcher': AlphabeticHandler.createMatcher,
   'createNodeValue': AlphabeticHandler.createNodeValue,
@@ -577,30 +577,37 @@ const alphabeticHandler: MatcherHandlerInterface<AlphabeticGroupValueEntity.Type
   'validate': AlphabeticHandler.validate
 };
 
+class MatcherRegistryBuilder {
+  static buildByType(): Record<GroupValueDiscriminantEntity.Type, MatcherHandlerInterface> {
+    return {
+      'alphabetic': alphabeticHandler,
+      'cidr': cidrHandler,
+      'date': dateHandler,
+      'range': rangeHandler,
+      'semver': semverHandler,
+      'sequential': sequentialHandler,
+      'string': stringHandler
+    };
+  }
+
+  static buildOrdered(): MatcherHandlerInterface[] {
+    return [
+      stringHandler,
+      sequentialHandler,
+      rangeHandler,
+      cidrHandler,
+      semverHandler,
+      dateHandler,
+      alphabeticHandler
+    ];
+  }
+}
+
 /**
  * Ordered list (by specificity, to avoid false positive matches between types that share
  * similar field structures) and by-type lookup of every matcher handler.
  */
-export const matcherRegistry = {
-  'byType': {
-    'alphabetic': alphabeticHandler,
-    'cidr': cidrHandler,
-    'date': dateHandler,
-    'range': rangeHandler,
-    'semver': semverHandler,
-    'sequential': sequentialHandler,
-    'string': stringHandler
-  } as Record<GroupValueDiscriminantEntity.Type, MatcherHandlerInterface>,
-  'ordered': [
-    stringHandler,
-    sequentialHandler,
-    rangeHandler,
-    cidrHandler,
-    semverHandler,
-    dateHandler,
-    alphabeticHandler
-  ] as MatcherHandlerInterface[]
-};
+export const matcherRegistry = { 'byType': MatcherRegistryBuilder.buildByType(), 'ordered': MatcherRegistryBuilder.buildOrdered() };
 
 /**
  * Looks up matcher handlers for group and node values.

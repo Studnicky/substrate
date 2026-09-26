@@ -1,8 +1,7 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-
 
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
@@ -10,41 +9,16 @@ import type { RetryContextInterface } from '../../../src/interfaces/RetryContext
 
 import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
+import { FsmScenarioCaseEntity } from '../entities/FsmScenarioCaseEntity.js';
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
-type TransitionRecord = { from: RetryCallStateEntity.Type['variant']; to: RetryCallStateEntity.Type['variant'] };
+const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
 
-type ScenarioShape =
-  | 'aborted-by-hook'
-  | 'exhausted-after-max-elapsed'
-  | 'exhausted-after-max-retries'
-  | 'illegal-transition'
-  | 'immediate-success'
-  | 'non-retryable-error'
-  | 'retryable-failure-then-success';
+type TransitionRecord = { from: string; to: string };
 
-type ScenarioCase = {
-  description: string;
-  expected: {
-    errorMessageIncludes?: string;
-    errorName?: string;
-    exhausted?: TransitionRecord;
-    result?: string;
-    transitions?: TransitionRecord[];
-  };
-  input: {
-    batch?: {
-      failureCountBeforeSuccess?: number;
-    };
-    errorMessage?: string;
-    maximumElapsedMs?: number;
-    maximumRetries: number;
-    rejectedTransition?: TransitionRecord;
-    result?: string;
-  };
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioShape = FsmScenarioCaseEntity.Type['shape'];
+
+type ScenarioCase = FsmScenarioCaseEntity.Type;
 
 class TrackingRetry extends Retry {
   readonly transitions: TransitionRecord[] = [];
@@ -194,7 +168,7 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
 };
 
 void describe('Retry FSM', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runnerMap[scenario.shape](scenario);
     });

@@ -18,7 +18,6 @@ export const PERCENTILE_P99 = 99;
 export const PERCENTILE_MAXIMUM = 100;
 export const MINIMUM_SAMPLE_WINDOW = 10;
 export const MINIMUM_ADJUSTMENT_INTERVAL = 100;
-export const MINIMUM_CONCURRENCY_LIMIT = 1;
 export const NO_DELAY_MS = 0;
 export const BUFFER_GROWTH_FACTOR = 2;
 export const LAST_ARRAY_INDEX = -1;

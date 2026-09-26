@@ -1,4 +1,4 @@
-import type { CompiledNodeInterface } from './CompiledNodeInterface.js';
+import type { CompiledNodeInterface } from './CompilerExecutionStateInterface.js';
 
 /** One compiled `patternProperties` entry: its source pattern, the matcher built from it, and its compiled node. */
 export interface PatternApplicatorInterface {

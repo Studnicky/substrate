@@ -32,20 +32,14 @@ import {
   type UnionTypeNode
 } from 'typescript';
 
-import type { TypeContractContext } from './TypeContractContext.js';
+import type { TypeContractContextInterface } from './TypeContractContextInterface.js';
 
+import { type CallabilityClassificationInterface } from './CallabilityClassificationInterface.js';
+import { type CallabilityFlagsInterface } from './CallabilityFlagsInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
 
-// Must stay an `interface`. A PostToolUse formatter has repeatedly rewritten this
-// declaration into a `type` alias, which then trips this repo's own
-// `type-alias-invariants` rule. If you find it as a `type`, restore it.
-interface CallabilityFlagsInterface {
-  readonly 'hasCallable': boolean;
-  readonly 'hasData': boolean;
-}
-
-export class TypeContractCallabilityClassification {
-  public constructor(private readonly context: TypeContractContext) {}
+export class TypeContractCallabilityClassification implements CallabilityClassificationInterface {
+  public constructor(private readonly context: TypeContractContextInterface) {}
 
   // Every function value's own intrinsic properties, per the ECMAScript/TypeScript `Function`
   // interface: `prototype` (constructible functions), `name`, `length`, plus the two

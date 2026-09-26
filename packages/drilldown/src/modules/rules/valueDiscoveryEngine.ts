@@ -12,7 +12,6 @@ import type { SemverGroupValueEntity } from '../../entities/SemverGroupValueEnti
 import type { SequentialGroupValueEntity } from '../../entities/SequentialGroupValueEntity.js';
 import type { SequentialPatternResultEntity } from '../../entities/SequentialPatternResultEntity.js';
 import type { StringGroupValueEntity } from '../../entities/StringGroupValueEntity.js';
-import type { MatcherHandlerInterface } from '../../interfaces/index.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import {
@@ -21,8 +20,9 @@ import {
 } from '../../enums.js';
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import {
+  alphabeticHandler,
   MatcherHandlerLookup,
-  matcherRegistry
+  sequentialHandler
 } from '../matchers/index.js';
 import { datePeriodResolver } from './datePeriodResolver.js';
 
@@ -66,7 +66,7 @@ class AlphabeticValues {
     }
 
     const depth = prefix ?? 1;
-    const handler = matcherRegistry.byType.alphabetic as MatcherHandlerInterface<AlphabeticGroupValueEntity.Type>;
+    const handler = alphabeticHandler;
 
     if (strategy === GroupingStrategy.QUANTILE) {
       const indices = DrilldownUtilities.calculateRangeIndices(itemCount, count);
@@ -568,7 +568,7 @@ class SequentialValues {
 
       return result;
     });
-    const handler = matcherRegistry.byType.sequential as MatcherHandlerInterface<SequentialGroupValueEntity.Type>;
+    const handler = sequentialHandler;
     const result = MatcherHandlerLookup.mergeOverlappingValues(ranges, handler);
 
     return result;

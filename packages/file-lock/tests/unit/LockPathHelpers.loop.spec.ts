@@ -1,24 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { LockPathHelpers } from '../../src/LockPathHelpers.js';
+import { LockPathHelpersScenarioCaseEntity } from './entities/LockPathHelpersScenarioCaseEntity.js';
 import scenarioGroups from './LockPathHelpers.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { value: string };
-      input: { shape: 'basename-bare-relative' | 'basename-nested'; path: string };
-      shape: 'basename-bare-relative' | 'basename-nested';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: string };
-      input: { shape: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory'; path: string };
-      shape: 'dirname-absolute-multi' | 'dirname-absolute-single' | 'dirname-bare-relative' | 'dirname-relative-directory';
-      name: string;
-    };
+type ScenarioCase = LockPathHelpersScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(LockPathHelpersScenarioCaseEntity.Schema, LockPathHelpersScenarioCaseEntity.Node);
 
 const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
   'dirname-bare-relative': (scenarioCase) => {
@@ -46,7 +36,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('LockPathHelpers', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

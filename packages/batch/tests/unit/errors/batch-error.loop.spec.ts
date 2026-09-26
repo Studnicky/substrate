@@ -1,36 +1,12 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { JSONSchema7Type } from 'json-schema';
-
 import { BatchError } from '../../../src/errors/BatchError.js';
+import { BatchErrorScenarioCaseEntity } from './entities/BatchErrorScenarioCaseEntity.js';
 import scenarioGroups from './batch-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        code: string;
-        correlationId?: string;
-        metadata?: Record<string, unknown>;
-        message: string;
-        retryable: boolean;
-      };
-      input: {
-        error: {
-          args?: {
-            cause?: unknown;
-            correlationId?: string;
-            metadata?: Record<string, JSONSchema7Type>;
-            retryable?: boolean;
-          };
-          message: string;
-        };
-      };
-      shape: 'construction';
-      name: string;
-    };
-
+type ScenarioCase = BatchErrorScenarioCaseEntity.Type;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
 
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
@@ -51,8 +27,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(BatchErrorScenarioCaseEntity.Schema, BatchErrorScenarioCaseEntity.Node);
+
 void describe('BatchError', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

@@ -2,12 +2,11 @@ import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
 import type { CompileChildFunctionInterface } from './interfaces/CompileChildFunctionInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
+import type { CompiledNodeInterface, ValidationExecutionContextInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { EvaluatedTrackerInterface } from './interfaces/EvaluatedTrackerInterface.js';
 import type { PatternApplicatorInterface } from './interfaces/PatternApplicatorInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 import type { StructuralApplicatorsInterface } from './interfaces/StructuralApplicatorsInterface.js';
-import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
 
 import { SchemaPointer } from './SchemaPointer.js';
 import { ValidationErrorFactory } from './ValidationErrorFactory.js';

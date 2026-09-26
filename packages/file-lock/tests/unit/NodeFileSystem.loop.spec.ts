@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -5,18 +6,13 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { NodeFileSystem } from '../../src/NodeFileSystem.js';
+import { NodeFileSystemScenarioCaseEntity } from './entities/NodeFileSystemScenarioCaseEntity.js';
 import scenarioGroups from './NodeFileSystem.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: { forwarded: true };
-  input: Record<string, never>;
-  shape: 'forwards-file-system-operations';
-  name: string;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(NodeFileSystemScenarioCaseEntity.Schema, NodeFileSystemScenarioCaseEntity.Node);
 
 void describe('NodeFileSystem', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       assert.strictEqual(scenarioCase.shape, 'forwards-file-system-operations');
 

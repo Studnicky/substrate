@@ -1,24 +1,19 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Retry } from '../../../src/retry/index.js';
+import { RetryStatsScenarioCaseEntity } from '../entities/RetryStatsScenarioCaseEntity.js';
 import scenarioGroups from './retry-stats.scenarios.json' with { type: 'json' };
 
-type RetryClassifierMode = 'default' | 'non-retryable' | 'retryable';
+const fileIntake = ScenarioFileCompiler.compileIntake(RetryStatsScenarioCaseEntity.Schema, RetryStatsScenarioCaseEntity.Node);
 
-type ScenarioShape =
-  | 'failed-requests-increment'
-  | 'initial'
-  | 'reset-stats-accumulates'
-  | 'reset-stats-zero'
-  | 'stats-frozen'
-  | 'successful-requests-increment'
-  | 'total-requests-increments'
-  | 'total-retries-counted';
+type ScenarioCase = RetryStatsScenarioCaseEntity.Type;
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: { calls?: string[]; classifier: RetryClassifierMode; errorMessage?: string; mutatedTotalRequests?: number; result?: string; retry?: { maximumRetries: number } }; shape: ScenarioShape; name: string };
+type RetryClassifierMode = ScenarioCase['input']['classifier'];
+
+type ScenarioShape = ScenarioCase['shape'];
 
 const retryFactoryMap: Record<RetryClassifierMode, (input: ScenarioCase['input']) => Retry> = {
   'default': (input) => Retry.create(input.retry),
@@ -121,7 +116,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
 }
 
 void describe('Retry stats', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

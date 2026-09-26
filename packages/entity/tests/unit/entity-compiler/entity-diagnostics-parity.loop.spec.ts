@@ -20,7 +20,7 @@ interface KeywordCaseInterface {
 /** Own-enumerable `a`, inherited-enumerable `extra`, declared non-enumerable `status`. */
 const buildMixedKeyClassValue = (): Record<string, unknown> => {
   const prototype = { 'extra': 1 };
-  const value = Object.create(prototype) as Record<string, unknown>;
+  const value: Record<string, unknown> = Object.create(prototype);
   Object.defineProperty(value, 'status', { 'configurable': true, 'enumerable': false, 'value': 200, 'writable': true });
   value.a = 'x';
   return value;
@@ -62,7 +62,7 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'type': 'object'
     };
     const prototype = { 'status': 200 };
-    const value = Object.create(prototype) as Record<string, unknown>;
+    const value: Record<string, unknown> = Object.create(prototype);
 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
@@ -156,7 +156,7 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'properties': { 'a': { 'type': 'string' } },
       'type': 'object'
     };
-    const value = Object.setPrototypeOf({ 'a': 'x' }, { 'extra': 1 }) as Record<string, unknown>;
+    const value: Record<string, unknown> = Object.setPrototypeOf({ 'a': 'x' }, { 'extra': 1 });
 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
@@ -172,7 +172,7 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'properties': { 'a': { 'type': 'string' } },
       'type': 'object'
     };
-    const value = Object.setPrototypeOf({ 'a': 'x' }, { 'extra': 1 }) as Record<string, unknown>;
+    const value: Record<string, unknown> = Object.setPrototypeOf({ 'a': 'x' }, { 'extra': 1 });
 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
@@ -190,7 +190,7 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'properties': { 'a': { 'type': 'string' } },
       'type': 'object'
     };
-    const value = Object.setPrototypeOf({ 'a': 'x' }, prototype) as Record<string, unknown>;
+    const value: Record<string, unknown> = Object.setPrototypeOf({ 'a': 'x' }, prototype);
 
     const nodeValidate = NodeEntityCompiler.compile<Record<string, unknown>>(schema);
     const browserValidate = BrowserEntityCompiler.compile<Record<string, unknown>>(schema);
@@ -231,7 +231,7 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
   // An inherited `BAD` is invisible to `Object.keys`, the same own-enumerable projection `JSON.stringify`
   // uses, so neither `propertyNames` nor `unevaluatedProperties` ever sees it to reject.
   void it('agrees propertyNames and unevaluatedProperties are invisible to an inherited enumerable key', () => {
-    const value = Object.setPrototypeOf({ 'a': 'x' }, { 'BAD': 1 }) as Record<string, unknown>;
+    const value: Record<string, unknown> = Object.setPrototypeOf({ 'a': 'x' }, { 'BAD': 1 });
     const propertyNamesSchema = {
       '$id': 'https://studnicky.dev/schemas/entity-diagnostics-parity-inherited-property-names',
       'properties': { 'a': { 'type': 'string' } },

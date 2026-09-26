@@ -43,10 +43,11 @@ import {
   type VariableStatement
 } from 'typescript';
 
-import type { TypeContractContext } from './TypeContractContext.js';
+import type { TypeContractContextInterface } from './TypeContractContextInterface.js';
 import type { TypeContractMetadataEntity } from './TypeContractMetadataEntity.js';
 
 import { type AliasClassificationResultInterface } from './AliasClassificationResultInterface.js';
+import { type AliasResolutionInterface } from './AliasResolutionInterface.js';
 import { CANONICAL_ENTITY_MEMBER_NAMES } from './constants/SchemaDerivationConstants.js';
 import { type ContractEvidenceInterface } from './ContractEvidenceInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
@@ -62,8 +63,8 @@ interface AliasContractProbeInterface {
   readonly 'value': ContractEvidenceInterface | undefined;
 }
 
-export class TypeContractAliasResolution {
-  public constructor(private readonly context: TypeContractContext) {}
+export class TypeContractAliasResolution implements AliasResolutionInterface {
+  public constructor(private readonly context: TypeContractContextInterface) {}
 
   private entityTypeAliasSchemaArgument(declaration: TypeAliasDeclaration): TypeQueryNode | undefined {
     if (

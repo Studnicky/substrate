@@ -57,11 +57,11 @@ export class ConformanceRunner {
   /** Compiles a group's schema, wrapping a synchronous compile-time throw as an always-failing validator. */
   private static compileGroup(
     compile: ConformanceCompileFunctionInterface,
-    schema: unknown,
+    schema: boolean | object,
     remoteSchemas: ReadonlyMap<string, object | boolean> | undefined
   ): EntityValidateFunctionInterface<unknown> | { readonly 'compileError': string } {
     try {
-      const result = compile(schema as object, remoteSchemas);
+      const result = compile(schema, remoteSchemas);
       return result;
     } catch (error) {
       const result = { 'compileError': ConformanceRunner.describeError(error) };

@@ -12,6 +12,7 @@ export namespace BusQueueOptionsEntity {
     'properties': {
       'highWaterMark': HIGH_WATER_MARK_SCHEMA
     },
+    'required': [],
     'type': 'object'
   } as const;
 

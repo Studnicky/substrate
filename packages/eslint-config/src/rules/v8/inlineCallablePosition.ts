@@ -58,7 +58,7 @@ class DefaultParameterReachability {
     const result = readReferences.every((reference: Scope.Reference) => {
       const parent = AstHelpers.getParent(reference.identifier);
 
-      if (parent?.type !== 'CallExpression' || parent.callee !== (reference.identifier as unknown)) {
+      if (parent?.type !== 'CallExpression' || parent.callee !== reference.identifier) {
         return false;
       }
 

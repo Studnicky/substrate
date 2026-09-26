@@ -9,7 +9,7 @@ export namespace BusQueueAbortEventEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'type': { 'const': 'abort', 'type': 'string' }
+      'type': { 'const': 'abort' }
     },
     'required': ['type'],
     'type': 'object'

@@ -6,9 +6,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/basic-processing.ts"
+        "file": "../../examples/basic-processing.ts"
       },
-      "name": "basic-processing"
+      "name": "basic-processing",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed batch example",
@@ -16,9 +17,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/observedBatch.ts"
+        "file": "../../examples/observedBatch.ts"
       },
-      "name": "observed-batch"
+      "name": "observed-batch",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the settled processing example",
@@ -26,9 +28,10 @@
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/settled-processing.ts"
+        "file": "../../examples/settled-processing.ts"
       },
-      "name": "settled-processing"
+      "name": "settled-processing",
+      "shape": "imports-example"
     }
   ]
 }

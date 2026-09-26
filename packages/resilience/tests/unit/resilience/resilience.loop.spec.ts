@@ -959,16 +959,17 @@ const scenarioHandlers = {
   'tb-listener-leak': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     const expected: ScenarioInput = scenarioCase.expected;
     const controller = new AbortController();
-    const signal = controller.signal as AbortSignal & {
-      addEventListener: typeof controller.signal.addEventListener;
-      removeEventListener: typeof controller.signal.removeEventListener;
-    };
+    const { signal } = controller;
     let addCount = 0;
     let removeCount = 0;
     const originalAdd = signal.addEventListener.bind(signal);
     const originalRemove = signal.removeEventListener.bind(signal);
-    signal.addEventListener = ((...args: Parameters<typeof originalAdd>) => { addCount += 1; return originalAdd(...args); }) as typeof signal.addEventListener;
-    signal.removeEventListener = ((...args: Parameters<typeof originalRemove>) => { removeCount += 1; return originalRemove(...args); }) as typeof signal.removeEventListener;
+    Object.defineProperty(signal, 'addEventListener', {
+      'value': (...args: Parameters<typeof originalAdd>): void => { addCount += 1; originalAdd(...args); }
+    });
+    Object.defineProperty(signal, 'removeEventListener', {
+      'value': (...args: Parameters<typeof originalRemove>): void => { removeCount += 1; originalRemove(...args); }
+    });
     let time = 0;
     const bucket = TokenBucket.create(tokenBucketOptions(input, { clock: () => time }));
     bucket.consume();
@@ -1336,7 +1337,7 @@ const scenarioHandlers = {
   },
   'dlqr-missing-dlq': async (_scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {
     assert.throws(() => {
-      DeadLetterQueueRetryGenerator.create({ deadLetterQueue: null as never, intervalMs: numberInput(input, 'intervalMs') });
+      DeadLetterQueueRetryGenerator.create({ deadLetterQueue: null, intervalMs: numberInput(input, 'intervalMs') });
     }, ResilienceConfigError);
   },
   'dlqr-lifecycle': async (scenarioCase: ScenarioCase, input: ScenarioInput): Promise<void> => {

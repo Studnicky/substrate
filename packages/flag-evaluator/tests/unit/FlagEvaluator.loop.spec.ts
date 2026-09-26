@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   beforeEach, describe, it
@@ -6,15 +7,12 @@ import {
 
 import { FlagDefinitionValidationError, FlagEvaluator } from '../../src/index.js';
 import { FlagContextEntity } from '../../src/entities/index.js';
+import { FlagEvaluatorScenarioCaseEntity } from './entities/FlagEvaluatorScenarioCaseEntity.js';
 import scenarioGroups from './FlagEvaluator.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: { flagEvaluator: Record<string, unknown> };
-  shape: string;
-  name: string;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(FlagEvaluatorScenarioCaseEntity.Schema, FlagEvaluatorScenarioCaseEntity.Node);
+
+type ScenarioCase = FlagEvaluatorScenarioCaseEntity.Type;
 
 let evaluator: FlagEvaluator;
 
@@ -23,11 +21,11 @@ void beforeEach(() => {
 });
 
 class ObservedEvaluator extends FlagEvaluator {
-  readonly evaluateCalls: { context: Record<string, unknown>; flag: string; result: boolean }[] = [];
+  readonly evaluateCalls: { context: FlagContextEntity.Type; flag: string; result: boolean }[] = [];
   readonly defaultCalls: string[] = [];
-  readonly ruleMismatchCalls: { flag: string; context: Record<string, unknown> }[] = [];
+  readonly ruleMismatchCalls: { flag: string; context: FlagContextEntity.Type }[] = [];
 
-  protected override onEvaluate(flag: string, context: Record<string, unknown>, result: boolean): void {
+  protected override onEvaluate(flag: string, context: FlagContextEntity.Type, result: boolean): void {
     this.evaluateCalls.push({ context, flag, result });
   }
 
@@ -35,185 +33,206 @@ class ObservedEvaluator extends FlagEvaluator {
     this.defaultCalls.push(flag);
   }
 
-  protected override onRuleMismatch(flag: string, context: Record<string, unknown>): void {
+  protected override onRuleMismatch(flag: string, context: FlagContextEntity.Type): void {
     this.ruleMismatchCalls.push({ context, flag });
   }
 }
 
-function definitionOf(input: Record<string, unknown>): Record<string, unknown> {
-  return input.definition as Record<string, unknown>;
-}
+type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-function contextOf(input: Record<string, unknown>): Record<string, unknown> {
-  return input.context as Record<string, unknown>;
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { shape } = scenarioCase;
-  const input = scenarioCase.input.flagEvaluator;
-  const expected = scenarioCase.expected;
-
-  const runnerMap: Record<ScenarioCase['shape'], () => Promise<void> | void> = {
-    'unregistered-flag': () => {
-    assert.equal(evaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
+  'unregistered-flag': (scenarioCase) => {
+    if (scenarioCase.shape !== 'unregistered-flag') { throw RuntimeError.create('unreachable: expected unregistered-flag shape'); }
+    const { flag, context } = scenarioCase.input.flagEvaluator;
+    assert.equal(evaluator.evaluate(flag, context), scenarioCase.expected.result);
     return;
-    },
+  },
 
-    'disabled-flags': () => {
-    for (const [name, definition] of Object.entries(input.definitions as Record<string, Record<string, unknown>>)) {
-      evaluator.register(name, definition as never);
+  'disabled-flags': (scenarioCase) => {
+    if (scenarioCase.shape !== 'disabled-flags') { throw RuntimeError.create('unreachable: expected disabled-flags shape'); }
+    const { definitions, evaluations } = scenarioCase.input.flagEvaluator;
+    for (const [name, definition] of Object.entries(definitions)) {
+      evaluator.register(name, definition);
     }
 
-    const results = input.evaluations as Array<{ context: Record<string, unknown>; flag: string }>;
-    const expectedResults = expected.results as boolean[];
-    const first = results[0];
-    const second = results[1];
+    const expectedResults = scenarioCase.expected.results;
+    const first = evaluations[0];
+    const second = evaluations[1];
     assert.ok(first !== undefined);
     assert.ok(second !== undefined);
     assert.equal(evaluator.evaluate(first.flag, first.context), expectedResults[0]);
     assert.equal(evaluator.evaluate(second.flag, second.context), expectedResults[1]);
     return;
-    },
+  },
 
-    'implicit-full-rollout': () => {
-    evaluator.register(input.flag as string, definitionOf(input) as never);
-    for (const context of input.contexts as Record<string, unknown>[]) {
-      assert.equal(evaluator.evaluate(input.flag as string, context), expected.result);
+  'implicit-full-rollout': (scenarioCase) => {
+    if (scenarioCase.shape !== 'implicit-full-rollout') { throw RuntimeError.create('unreachable: expected implicit-full-rollout shape'); }
+    const { contexts, definition, flag } = scenarioCase.input.flagEvaluator;
+    evaluator.register(flag, definition);
+    for (const context of contexts) {
+      assert.equal(evaluator.evaluate(flag, context), scenarioCase.expected.result);
     }
     return;
-    },
+  },
 
-    'half-rollout': () => {
-    evaluator.register(input.flag as string, definitionOf(input) as never);
-    const evaluations = input.evaluations as Array<{ context: Record<string, unknown>; result: boolean }>;
+  'half-rollout': (scenarioCase) => {
+    if (scenarioCase.shape !== 'half-rollout') { throw RuntimeError.create('unreachable: expected half-rollout shape'); }
+    const { definition, evaluations, flag } = scenarioCase.input.flagEvaluator;
+    evaluator.register(flag, definition);
     const liveResults: boolean[] = [];
     for (const evaluation of evaluations) {
-      const result = evaluator.evaluate(input.flag as string, evaluation.context);
+      const result = evaluator.evaluate(flag, evaluation.context);
       assert.equal(result, evaluation.result);
       liveResults.push(result);
     }
-    assert.equal(liveResults.some((result) => result === true), expected.hasTrue);
-    assert.equal(liveResults.some((result) => result === false), expected.hasFalse);
+    assert.equal(liveResults.some((result) => result === true), scenarioCase.expected.hasTrue);
+    assert.equal(liveResults.some((result) => result === false), scenarioCase.expected.hasFalse);
     return;
-    },
+  },
 
-    'deterministic-rollout': () => {
-    evaluator.register(input.flag as string, definitionOf(input) as never);
-    const first = evaluator.evaluate(input.flag as string, contextOf(input));
-    const second = evaluator.evaluate(input.flag as string, contextOf(input));
-    assert.equal(first, expected.result);
-    assert.equal(second, expected.result);
+  'deterministic-rollout': (scenarioCase) => {
+    if (scenarioCase.shape !== 'deterministic-rollout') { throw RuntimeError.create('unreachable: expected deterministic-rollout shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
+    evaluator.register(flag, definition);
+    const first = evaluator.evaluate(flag, context);
+    const second = evaluator.evaluate(flag, context);
+    assert.equal(first, scenarioCase.expected.result);
+    assert.equal(second, scenarioCase.expected.result);
     return;
-    },
+  },
 
-    'independent-flags': () => {
-    for (const [name, definition] of Object.entries(input.definitions as Record<string, Record<string, unknown>>)) {
-      evaluator.register(name, definition as never);
+  'independent-flags': (scenarioCase) => {
+    if (scenarioCase.shape !== 'independent-flags') { throw RuntimeError.create('unreachable: expected independent-flags shape'); }
+    const { context, definitions, flags } = scenarioCase.input.flagEvaluator;
+    for (const [name, definition] of Object.entries(definitions)) {
+      evaluator.register(name, definition);
     }
 
-    const context = contextOf(input);
-    const results = Object.fromEntries(
-      (input.flags as string[]).map((flag) => [flag, evaluator.evaluate(flag, context)])
-    );
-    assert.deepStrictEqual(results, expected.results);
+    const results = Object.fromEntries(flags.map((flag) => [flag, evaluator.evaluate(flag, context)]));
+    assert.deepStrictEqual(results, scenarioCase.expected.results);
     return;
-    },
+  },
 
-    'register-has-list-unregister': () => {
-    const definition = definitionOf(input) as never;
-    assert.equal(evaluator.has(input.missingFlag as string), expected.hasBefore);
+  'register-has-list-unregister': (scenarioCase) => {
+    if (scenarioCase.shape !== 'register-has-list-unregister') { throw RuntimeError.create('unreachable: expected register-has-list-unregister shape'); }
+    const { definition, flags, missingFlag, unregisterFlag } = scenarioCase.input.flagEvaluator;
+    const { expected } = scenarioCase;
+    assert.equal(evaluator.has(missingFlag), expected.hasBefore);
     assert.deepStrictEqual(evaluator.list(), expected.listBefore);
 
-    for (const flag of input.flags as string[]) {
+    for (const flag of flags) {
       evaluator.register(flag, definition);
     }
 
-    assert.equal(evaluator.has((input.flags as string[])[0] as string), expected.hasAfterRegister);
+    const firstFlag = flags[0];
+    assert.ok(firstFlag !== undefined);
+    assert.equal(evaluator.has(firstFlag), expected.hasAfterRegister);
     assert.deepStrictEqual(evaluator.list(), expected.listAfterRegister);
 
-    evaluator.unregister(input.unregisterFlag as string);
-    assert.equal(evaluator.has(input.unregisterFlag as string), expected.hasAfterUnregister);
+    evaluator.unregister(unregisterFlag);
+    assert.equal(evaluator.has(unregisterFlag), expected.hasAfterUnregister);
     assert.deepStrictEqual(evaluator.list(), expected.listAfterUnregister);
     return;
-    },
+  },
 
-    're-register-replaces': () => {
-    evaluator.register(input.flag as string, input.firstDefinition as never);
-    assert.equal(evaluator.evaluate(input.flag as string, contextOf(input)), expected.first);
+  're-register-replaces': (scenarioCase) => {
+    if (scenarioCase.shape !== 're-register-replaces') { throw RuntimeError.create('unreachable: expected re-register-replaces shape'); }
+    const { context, firstDefinition, flag, secondDefinition } = scenarioCase.input.flagEvaluator;
+    evaluator.register(flag, firstDefinition);
+    assert.equal(evaluator.evaluate(flag, context), scenarioCase.expected.first);
 
-    evaluator.register(input.flag as string, input.secondDefinition as never);
-    assert.equal(evaluator.evaluate(input.flag as string, contextOf(input)), expected.second);
+    evaluator.register(flag, secondDefinition);
+    assert.equal(evaluator.evaluate(flag, context), scenarioCase.expected.second);
     return;
-    },
+  },
 
-    'register-snapshots-definition': () => {
-    const definition = structuredClone(definitionOf(input)) as Record<string, unknown>;
-    evaluator.register(input.flag as string, definition as never);
-    Object.assign(definition, input.mutatedDefinition as Record<string, unknown>);
-    assert.equal(evaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
+  'register-snapshots-definition': (scenarioCase) => {
+    if (scenarioCase.shape !== 'register-snapshots-definition') { throw RuntimeError.create('unreachable: expected register-snapshots-definition shape'); }
+    const { context, definition, flag, mutatedDefinition } = scenarioCase.input.flagEvaluator;
+    const snapshot = structuredClone(definition);
+    evaluator.register(flag, snapshot);
+    Object.assign(snapshot, mutatedDefinition);
+    assert.equal(evaluator.evaluate(flag, context), scenarioCase.expected.result);
     return;
-    },
+  },
 
-    'invalid-rollout-range': () => {
+  'invalid-rollout-range': (scenarioCase) => {
+    if (scenarioCase.shape !== 'invalid-rollout-range') { throw RuntimeError.create('unreachable: expected invalid-rollout-range shape'); }
+    const { definition, flag } = scenarioCase.input.flagEvaluator;
     assert.throws(() => {
-      evaluator.register(input.flag as string, definitionOf(input) as never);
+      evaluator.register(flag, definition);
     }, FlagDefinitionValidationError);
     return;
-    },
+  },
 
-    'missing-default-value': () => {
+  'missing-default-value': (scenarioCase) => {
+    if (scenarioCase.shape !== 'missing-default-value') { throw RuntimeError.create('unreachable: expected missing-default-value shape'); }
+    const { definition, flag } = scenarioCase.input.flagEvaluator;
+    const { expected } = scenarioCase;
     assert.throws(() => {
-      evaluator.register(input.flag as string, input.definition as never);
-    }, (error: Error) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message as string));
+      // penitence: as-never — `definition` intentionally omits `defaultValue` to exercise
+      // the registration guard; FlagDefinitionEntity.InputType requires it, on purpose.
+      evaluator.register(flag, definition as never);
+    }, (error: Error) => error instanceof FlagDefinitionValidationError && String(error.message).includes(expected.message));
     return;
-    },
+  },
 
-    'valid-definition-still-works': () => {
-    evaluator.register(input.flag as string, definitionOf(input) as never);
-    const result = evaluator.evaluate(input.flag as string, contextOf(input));
-    assert.equal(result, expected.result);
+  'valid-definition-still-works': (scenarioCase) => {
+    if (scenarioCase.shape !== 'valid-definition-still-works') { throw RuntimeError.create('unreachable: expected valid-definition-still-works shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
+    evaluator.register(flag, definition);
+    const result = evaluator.evaluate(flag, context);
+    assert.equal(result, scenarioCase.expected.result);
     return;
-    },
+  },
 
-    'hook-on-default': () => {
+  'hook-on-default': (scenarioCase) => {
+    if (scenarioCase.shape !== 'hook-on-default') { throw RuntimeError.create('unreachable: expected hook-on-default shape'); }
+    const { context, flag } = scenarioCase.input.flagEvaluator;
     const observed = ObservedEvaluator.create();
-    observed.evaluate(input.flag as string, contextOf(input));
-    assert.deepStrictEqual(observed.defaultCalls, expected.defaultCalls);
+    observed.evaluate(flag, context);
+    assert.deepStrictEqual(observed.defaultCalls, scenarioCase.expected.defaultCalls);
     return;
-    },
+  },
 
-    'hook-on-rule-mismatch': () => {
+  'hook-on-rule-mismatch': (scenarioCase) => {
+    if (scenarioCase.shape !== 'hook-on-rule-mismatch') { throw RuntimeError.create('unreachable: expected hook-on-rule-mismatch shape'); }
+    const { definitions, evaluations } = scenarioCase.input.flagEvaluator;
     const observed = ObservedEvaluator.create();
-    for (const [name, definition] of Object.entries(input.definitions as Record<string, Record<string, unknown>>)) {
-      observed.register(name, definition as never);
+    for (const [name, definition] of Object.entries(definitions)) {
+      observed.register(name, definition);
     }
 
-    for (const evaluation of input.evaluations as Array<{ context: Record<string, unknown>; flag: string }>) {
+    for (const evaluation of evaluations) {
       observed.evaluate(evaluation.flag, evaluation.context);
     }
 
-    assert.deepStrictEqual(observed.ruleMismatchCalls.map((entry) => entry.flag), expected.ruleMismatchFlags);
+    assert.deepStrictEqual(observed.ruleMismatchCalls.map((entry) => entry.flag), scenarioCase.expected.ruleMismatchFlags);
     return;
-    },
+  },
 
-    'hook-on-evaluate': () => {
+  'hook-on-evaluate': (scenarioCase) => {
+    if (scenarioCase.shape !== 'hook-on-evaluate') { throw RuntimeError.create('unreachable: expected hook-on-evaluate shape'); }
+    const { definitions, evaluations } = scenarioCase.input.flagEvaluator;
     const observed = ObservedEvaluator.create();
-    for (const [name, definition] of Object.entries(input.definitions as Record<string, Record<string, unknown>>)) {
-      observed.register(name, definition as never);
+    for (const [name, definition] of Object.entries(definitions)) {
+      observed.register(name, definition);
     }
 
-    for (const evaluation of input.evaluations as Array<{ context: Record<string, unknown>; flag: string }>) {
+    for (const evaluation of evaluations) {
       observed.evaluate(evaluation.flag, evaluation.context);
     }
 
     assert.deepStrictEqual(
       observed.evaluateCalls.map((entry) => ({ flag: entry.flag, result: entry.result })),
-      expected.evaluateCalls
+      scenarioCase.expected.evaluateCalls
     );
     return;
-    },
+  },
 
-    'hook-order': () => {
+  'hook-order': (scenarioCase) => {
+    if (scenarioCase.shape !== 'hook-order') { throw RuntimeError.create('unreachable: expected hook-order shape'); }
+    const { definitions, evaluations } = scenarioCase.input.flagEvaluator;
     const order: string[] = [];
     class OrderedEvaluator extends FlagEvaluator {
       protected override onDefault(): void { order.push('default'); }
@@ -222,27 +241,31 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const ordered = OrderedEvaluator.create();
-    for (const [name, definition] of Object.entries(input.definitions as Record<string, Record<string, unknown>>)) {
-      ordered.register(name, definition as never);
+    for (const [name, definition] of Object.entries(definitions)) {
+      ordered.register(name, definition);
     }
 
-    for (const evaluation of input.evaluations as Array<{ context: Record<string, unknown>; flag: string }>) {
+    for (const evaluation of evaluations) {
       ordered.evaluate(evaluation.flag, evaluation.context);
     }
 
-    assert.deepStrictEqual(order, expected.order);
+    assert.deepStrictEqual(order, scenarioCase.expected.order);
     return;
-    },
+  },
 
-    'hook-context-match': () => {
+  'hook-context-match': (scenarioCase) => {
+    if (scenarioCase.shape !== 'hook-context-match') { throw RuntimeError.create('unreachable: expected hook-context-match shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
     const observed = ObservedEvaluator.create();
-    observed.register(input.flag as string, definitionOf(input) as never);
-    observed.evaluate(input.flag as string, contextOf(input));
-    assert.deepStrictEqual(observed.evaluateCalls[0]?.context, expected.context);
+    observed.register(flag, definition);
+    observed.evaluate(flag, context);
+    assert.deepStrictEqual(observed.evaluateCalls[0]?.context, scenarioCase.expected.context);
     return;
-    },
+  },
 
-    'throwing-on-default': () => {
+  'throwing-on-default': (scenarioCase) => {
+    if (scenarioCase.shape !== 'throwing-on-default') { throw RuntimeError.create('unreachable: expected throwing-on-default shape'); }
+    const { context, flag } = scenarioCase.input.flagEvaluator;
     class ThrowingDefaultEvaluator extends FlagEvaluator {
       protected override onDefault(): void {
         throw RuntimeError.create('onDefault boom');
@@ -251,12 +274,14 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     const throwingEvaluator = ThrowingDefaultEvaluator.create();
     assert.doesNotThrow(() => {
-      assert.equal(throwingEvaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
+      assert.equal(throwingEvaluator.evaluate(flag, context), scenarioCase.expected.result);
     });
     return;
-    },
+  },
 
-    'throwing-on-rule-mismatch': () => {
+  'throwing-on-rule-mismatch': (scenarioCase) => {
+    if (scenarioCase.shape !== 'throwing-on-rule-mismatch') { throw RuntimeError.create('unreachable: expected throwing-on-rule-mismatch shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
     class ThrowingMismatchEvaluator extends FlagEvaluator {
       protected override onRuleMismatch(): void {
         throw RuntimeError.create('onRuleMismatch boom');
@@ -264,14 +289,16 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const throwingEvaluator = ThrowingMismatchEvaluator.create();
-    throwingEvaluator.register(input.flag as string, definitionOf(input) as never);
+    throwingEvaluator.register(flag, definition);
     assert.doesNotThrow(() => {
-      assert.equal(throwingEvaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
+      assert.equal(throwingEvaluator.evaluate(flag, context), scenarioCase.expected.result);
     });
     return;
-    },
+  },
 
-    'throwing-on-evaluate': () => {
+  'throwing-on-evaluate': (scenarioCase) => {
+    if (scenarioCase.shape !== 'throwing-on-evaluate') { throw RuntimeError.create('unreachable: expected throwing-on-evaluate shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
     class ThrowingEvaluateEvaluator extends FlagEvaluator {
       protected override onEvaluate(): void {
         throw RuntimeError.create('onEvaluate boom');
@@ -279,14 +306,17 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const throwingEvaluator = ThrowingEvaluateEvaluator.create();
-    throwingEvaluator.register(input.flag as string, definitionOf(input) as never);
+    throwingEvaluator.register(flag, definition);
     assert.doesNotThrow(() => {
-      assert.equal(throwingEvaluator.evaluate(input.flag as string, contextOf(input)), expected.result);
+      assert.equal(throwingEvaluator.evaluate(flag, context), scenarioCase.expected.result);
     });
     return;
-    },
+  },
 
-    'async-on-evaluate-safe': () => {
+  'async-on-evaluate-safe': (scenarioCase) => {
+    if (scenarioCase.shape !== 'async-on-evaluate-safe') { throw RuntimeError.create('unreachable: expected async-on-evaluate-safe shape'); }
+    const { context, definition, flag } = scenarioCase.input.flagEvaluator;
+    const { expected } = scenarioCase;
     class AsyncRejectingEvaluateEvaluator extends FlagEvaluator {
       protected override onEvaluate(): Promise<void> {
         return Promise.reject(RuntimeError.create('onEvaluate async boom'));
@@ -294,14 +324,14 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     }
 
     const asyncEvaluator = AsyncRejectingEvaluateEvaluator.create();
-    asyncEvaluator.register(input.flag as string, definitionOf(input) as never);
+    asyncEvaluator.register(flag, definition);
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     return Promise.resolve()
       .then(() => {
-        const result = asyncEvaluator.evaluate(input.flag as string, contextOf(input));
+        const result = asyncEvaluator.evaluate(flag, context);
         assert.equal(result, expected.result);
       })
       .then(() => new Promise((resolve) => { setImmediate(resolve); }))
@@ -312,32 +342,33 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       .finally(() => {
         process.off('unhandledRejection', onUnhandledRejection);
       });
-    },
+  },
 
-    'flag-context-entity-accepts': () => {
+  'flag-context-entity-accepts': (scenarioCase) => {
+    if (scenarioCase.shape !== 'flag-context-entity-accepts') { throw RuntimeError.create('unreachable: expected flag-context-entity-accepts shape'); }
+    const { values } = scenarioCase.input.flagEvaluator;
     const dynamicContext: FlagContextEntity.Type = { 'cohort': 'beta', 'nested': { 'enabled': true } };
     assert.equal(FlagContextEntity.validate(dynamicContext), true);
-    for (const value of input.values as Record<string, unknown>[]) {
-      assert.equal(FlagContextEntity.validate(value), expected.result);
+    for (const value of values) {
+      assert.equal(FlagContextEntity.validate(value), scenarioCase.expected.result);
     }
     return;
-    },
+  },
 
-    'flag-context-entity-rejects': () => {
-    assert.equal(FlagContextEntity.validate(input.value as Record<string, unknown>), expected.result);
+  'flag-context-entity-rejects': (scenarioCase) => {
+    if (scenarioCase.shape !== 'flag-context-entity-rejects') { throw RuntimeError.create('unreachable: expected flag-context-entity-rejects shape'); }
+    const { value } = scenarioCase.input.flagEvaluator;
+    assert.equal(FlagContextEntity.validate(value), scenarioCase.expected.result);
     return;
-    }
-  };
-
-  const runner = runnerMap[shape];
-  if (runner === undefined) {
-    throw RuntimeError.create(`No runner registered for shape: ${shape}`);
   }
-  await runner();
+};
+
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('FlagEvaluator', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

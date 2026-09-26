@@ -43,16 +43,17 @@ import {
   type VariableStatement
 } from 'typescript';
 
-import type { TypeContractContext } from './TypeContractContext.js';
+import type { TypeContractContextInterface } from './TypeContractContextInterface.js';
 import type { TypeContractMetadataEntity } from './TypeContractMetadataEntity.js';
 
 import { ACCEPTED_SCHEMA_VALUE_NAMES } from './constants/SchemaDerivationConstants.js';
 import { type InterfaceContractEvidenceInterface } from './InterfaceContractEvidenceInterface.js';
 import { type InterfaceContractProbeInterface } from './InterfaceContractProbeInterface.js';
+import { type InterfaceTypeResolutionInterface } from './InterfaceTypeResolutionInterface.js';
 import { MAXIMUM_RECURSION_DEPTH } from './MaximumRecursionDepth.js';
 
-export class TypeContractInterfaceTypeResolution {
-  public constructor(private readonly context: TypeContractContext) {}
+export class TypeContractInterfaceTypeResolution implements InterfaceTypeResolutionInterface {
+  public constructor(private readonly context: TypeContractContextInterface) {}
 
   public findInterfaceTypeContract(
     node: TypeNode,

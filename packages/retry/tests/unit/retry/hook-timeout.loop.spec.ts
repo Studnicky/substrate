@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -6,15 +7,14 @@ import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 
 import { Retry } from '../../../src/retry/index.js';
+import { HookTimeoutScenarioCaseEntity } from '../entities/HookTimeoutScenarioCaseEntity.js';
 import scenarioGroups from './hook-timeout.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; shape: 'enter-call-unset' | 'fast-hook' | 'hung-attempt-with-timeout' | 'hung-attempt-without-timeout' | 'hung-give-up-with-timeout' | 'hung-retry-scheduled'; name: string };
+const fileIntake = ScenarioFileCompiler.compileIntake(HookTimeoutScenarioCaseEntity.Schema, HookTimeoutScenarioCaseEntity.Node);
 
-type RetryScenarioInput = Record<string, unknown> & {
-  batch?: { failureCountBeforeSuccess?: number };
-  retry?: Partial<Pick<RetryConfigInterface, 'hookTimeoutMs' | 'maximumRetries'>>;
-};
+type ScenarioCase = HookTimeoutScenarioCaseEntity.Type;
+
+type RetryScenarioInput = ScenarioCase['input'];
 
 type AttemptOutcome = 'failure' | 'success';
 
@@ -182,7 +182,7 @@ async function runCase(scenario: ScenarioCase): Promise<void> {
 }
 
 void describe('Retry hook timeouts', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

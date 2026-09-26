@@ -1,7 +1,7 @@
 import { Predicates } from '@studnicky/types/browser';
 
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
+import type { CompiledNodeInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
 import { SchemaPointer } from './SchemaPointer.js';

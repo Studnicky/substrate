@@ -186,7 +186,7 @@ export class Compose {
     node: SchemaNodeInterface<TSchema, TStatic>,
     extension: SchemaNodeInterface<TExtensionSchema, TExtensionStatic>
   ): SchemaNodeInterface<ExtendSchemaType<TSchema, TExtensionSchema>, Omit<TStatic, keyof TExtensionStatic> & TExtensionStatic> {
-    /** `TSchema`/`TExtensionSchema` stay unresolved here; the checker can't relate the spread to the generic-indexed target until a caller instantiates them. */
+    /** Structural-equivalence limit: the spread's inferred object type and this generic-indexed intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
     const properties = { ...node.schema.properties, ...extension.schema.properties } as
       NonNullable<TExtensionSchema['properties']> & Omit<NonNullable<TSchema['properties']>, keyof NonNullable<TExtensionSchema['properties']>>;
     const required = [...new Set([...(node.schema.required ?? []), ...(extension.schema.required ?? [])])];

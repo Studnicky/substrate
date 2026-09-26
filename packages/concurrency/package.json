@@ -70,6 +70,7 @@
   "devDependencies": {
     "@studnicky/event-bus": "workspace:*",
     "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*",
     "@studnicky/scheduler": "workspace:*"
   }
 }
