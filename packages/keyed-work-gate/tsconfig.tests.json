@@ -21,10 +21,19 @@
       "path": "../concurrency"
     },
     {
-      "path": "../mutex"
+      "path": "../entity"
+    },
+    {
+      "path": "../errors"
     },
     {
       "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../mutex"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }
