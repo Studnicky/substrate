@@ -1,13 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { NoOpTiming } from '../../src/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { NoOpTimingScenarioCaseEntity } from './entities/NoOpTimingScenarioCaseEntity.js';
 import scenarioGroups from './NoOpTiming.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: { chainResult: true; durationMs: 0; sameInstance: true }; input: { event: Parameters<typeof TimingEvent.create>[0] }; shape: 'create-clear-event-get-events'; name: string }
-  | { description: string; expected: { empty: true; durationMs: 0 }; input: Record<string, never>; shape: 'get-events-empty'; name: string };
+type ScenarioCase = NoOpTimingScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(NoOpTimingScenarioCaseEntity.Schema, NoOpTimingScenarioCaseEntity.Node);
 
 function createTimingEvent(input: Parameters<typeof TimingEvent.create>[0]): ReturnType<typeof TimingEvent.create> {
   return TimingEvent.create(input);
@@ -46,7 +48,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('NoOpTiming', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });
