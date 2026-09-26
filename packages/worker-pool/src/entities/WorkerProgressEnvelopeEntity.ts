@@ -16,7 +16,7 @@ export namespace WorkerProgressEnvelopeEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'percent': SchemaNode.defineNumber({ 'maximum': 100, 'minimum': 0, 'type': 'number' } as const), 'type': SchemaNode.defineEnum(['progress'] as const) }, ['percent', 'type'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'percent': SchemaNode.defineNumber({ 'maximum': 100, 'minimum': 0, 'type': 'number' } as const), 'type': SchemaNode.defineEnum({ 'type': 'string' } as const, ['progress'] as const) }, ['percent', 'type'] as const, { 'additionalProperties': false });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 
