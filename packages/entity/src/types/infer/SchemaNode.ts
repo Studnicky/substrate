@@ -136,11 +136,15 @@ export class SchemaNode {
     ApplyArrayConstraintBrandsType<TSchema, TContains extends SchemaNodeInterface<unknown, unknown> ? NodeStaticType<TContains> : never>
       & NodeStaticType<TItem>[],
     NodeInputType<TItem>[]
-  > {
+  >;
+  public static defineArray(
+    schema: Record<string, unknown>,
+    items: SchemaNodeInterface<unknown, unknown>,
+    contains?: SchemaNodeInterface<unknown, unknown>
+  ): SchemaNodeInterface<unknown, unknown> {
     const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
 
-    /** Structural-equivalence limit: `PickDefined.from`'s mapped return type and this generic intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
-    return { 'schema': combinedSchema as TSchema & { 'contains'?: TContains; 'items': TItem } };
+    return { 'schema': combinedSchema };
   }
 
   public static defineObject<
@@ -167,7 +171,13 @@ export class SchemaNode {
       & InferObjectPropertiesInputType<TProps, TRequired>
       & InferPatternPropertiesInputType<TPatternProps>
     >
-  > {
+  >;
+  public static defineObject(
+    schema: Record<string, unknown>,
+    properties: Record<string, SchemaNodeInterface<unknown, unknown>>,
+    required: readonly string[],
+    options?: DefineObjectOptionsInterface<boolean | SchemaNodeInterface<unknown, unknown>, Record<string, SchemaNodeInterface<unknown, unknown>>>
+  ): SchemaNodeInterface<unknown, unknown> {
     const combinedSchema = PickDefined.from({
       ...schema,
       'additionalProperties': options?.additionalProperties ?? false,
@@ -176,10 +186,7 @@ export class SchemaNode {
       'required': required
     });
 
-    /** Structural-equivalence limit: `PickDefined.from`'s mapped return type and this generic intersection describe the same shape, but the checker cannot reduce two independently-computed generic types to prove it. */
-    return {
-      'schema': combinedSchema as ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] }
-    };
+    return { 'schema': combinedSchema };
   }
 
   public static defineAllOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
