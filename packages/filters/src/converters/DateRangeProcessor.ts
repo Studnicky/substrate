@@ -3,6 +3,8 @@
  * @description Process date range values for comparison
  */
 
+import { Predicates } from '@studnicky/types/browser';
+
 import { DateParser } from './DateParser.js';
 
 /**
@@ -21,7 +23,7 @@ export class DateRangeProcessor {
     const [
       rangeStart,
       rangeEnd
-    ]: unknown[] = Array.isArray(filterValue) ? filterValue as unknown[] : [
+    ]: readonly unknown[] = Predicates.isArray(filterValue) ? filterValue : [
       undefined,
       undefined
     ];

@@ -11,12 +11,25 @@
 
 import { Predicates } from '@studnicky/types/browser';
 
+import type { ComparatorFunctionInterface } from '../../interfaces.js';
+
 import { ErrorCodes } from '../../enums/ErrorCodes.js';
 import { RegexError } from '../../errors/RegexError.js';
 import { HIGH_RISK_REGEX_PATTERNS } from './constants/HighRiskRegexPatterns.js';
 import { QUANTIFIER_CHARACTER_PATTERN } from './constants/QuantifierCharacterPattern.js';
 
 export class DoesValueMatchPattern {
+  /** A pattern is a string in the filter value domain; RegExp is never a valid filter value. */
+  static matchesFilterValue: ComparatorFunctionInterface = (value, filterValue) => {
+    if (typeof filterValue !== 'string') {
+      return false;
+    }
+
+    const result = DoesValueMatchPattern.doesValueMatchPattern(value, filterValue);
+
+    return result;
+  };
+
   /**
    * Checks if a value matches a regular expression pattern with ReDoS protection
    *

@@ -84,7 +84,11 @@ export class ValueOperators {
       return false;
     }
 
-    const result = (filterValue as unknown[]).includes(value);
+    const result = filterValue.some((entry) => {
+      const isMatch = entry === value;
+
+      return isMatch;
+    });
 
     return result;
   }
@@ -126,7 +130,11 @@ export class ValueOperators {
       return false;
     }
 
-    const result = !(filterValue as unknown[]).includes(value);
+    const result = !filterValue.some((entry) => {
+      const isMatch = entry === value;
+
+      return isMatch;
+    });
 
     return result;
   }

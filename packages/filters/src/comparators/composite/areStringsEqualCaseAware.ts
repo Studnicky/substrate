@@ -14,7 +14,7 @@ export class AreStringsEqualCaseAware {
   static areStringsEqualCaseAware(
     value: unknown,
     filterValue: unknown,
-    condition: FilterConditionInterface
+    condition: FilterConditionInterface = {}
   ): boolean {
     if (!Predicates.isString(value) || !Predicates.isString(filterValue)) {
       return false;
