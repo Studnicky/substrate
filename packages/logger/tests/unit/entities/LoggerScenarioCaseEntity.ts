@@ -157,22 +157,20 @@ export namespace LoggerScenarioCaseEntity {
     'additionalProperties': false,
     'properties': {
       'description': { 'minLength': 1, 'type': 'string' },
-      'expectedMessage': { 'minLength': 1, 'type': 'string' },
       'name': { 'minLength': 1, 'type': 'string' },
       'shape': { 'const': 'create-invalid-transports' }
     },
-    'required': ['description', 'expectedMessage', 'name', 'shape'],
+    'required': ['description', 'name', 'shape'],
     'type': 'object'
   } as const;
   const createInvalidTransportsNode = SchemaNode.defineObject(
     { 'type': 'object' } as const,
     {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'shape': SchemaNode.defineConst('create-invalid-transports' as const)
     },
-    ['description', 'expectedMessage', 'name', 'shape'] as const,
+    ['description', 'name', 'shape'] as const,
     { 'additionalProperties': false }
   );
 

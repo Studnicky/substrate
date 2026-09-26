@@ -5,6 +5,7 @@ import type { LogBodyDataEntity } from '../entities/LogBodyDataEntity.js';
 
 import { LogBodyConfigEntity } from '../entities/LogBodyConfigEntity.js';
 import { LogBuildError } from '../errors/LogBuildError.js';
+import { LogBuildErrorMessage } from './LogBuildErrorMessage.js';
 
 /** Constructs immutable normalized log entries from one configuration object. */
 export class LogBody {
@@ -15,17 +16,7 @@ export class LogBody {
       LogBodyConfigEntity.create(config);
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
-        const requiredError = error.errors.find((item) => {
-          const result = item.keyword === 'required';
-          return result;
-        });
-        const missingProperty: unknown = requiredError === undefined
-          ? undefined
-          : Reflect.get(requiredError.parameters, 'missingProperty');
-        const message = typeof missingProperty !== 'string'
-          ? error.message
-          : `LogBody: ${missingProperty} is required${missingProperty === 'context' ? ' (use empty object {} if no context needed)' : ''}`;
-        throw new LogBuildError(message);
+        throw new LogBuildError(LogBuildErrorMessage.resolve('LogBody', error));
       }
       throw error;
     }

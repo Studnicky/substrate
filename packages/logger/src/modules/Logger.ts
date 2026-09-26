@@ -12,6 +12,7 @@ import type { TransportInterface } from '../transports/TransportInterface.js';
 import { LOG_LEVEL } from '../constants/LOG_LEVEL.js';
 import { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
+import { LoggerOptionGuards } from './LoggerOptionGuards.js';
 import { ParseLogLevel } from './parseLogLevel.js';
 
 class TransportErrorHookInvoker extends HookInvoker {
@@ -101,13 +102,13 @@ export class Logger implements LoggerInterface {
   }
 
   static #validateMetadataOption(metadata: LoggerOptionsInterface['metadata']): void {
-    if (metadata !== undefined && !Predicates.isObject(metadata)) {
+    if (!LoggerOptionGuards.isValidMetadata(metadata)) {
       throw new ConfigurationError('metadata must be a plain object');
     }
   }
 
   static #validateTransportsOption(suppliedTransports: unknown): unknown[] {
-    if (suppliedTransports !== undefined && !Predicates.isArray(suppliedTransports)) {
+    if (!LoggerOptionGuards.isValidTransports(suppliedTransports)) {
       throw new ConfigurationError('transports must be an array');
     }
     const result: unknown[] = Predicates.isArray(suppliedTransports) ? [...suppliedTransports] : [];
