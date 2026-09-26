@@ -148,7 +148,6 @@ const runnerMap: RunnerMap = {
     if (scenarioCase.shape !== 'minimum-heap') { throw RuntimeError.create('unreachable: expected minimum-heap shape'); }
     const { expected, input } = scenarioCase;
     const [firstDescriptor, secondDescriptor] = input.scheduler.tasks;
-    assert.ok(firstDescriptor !== undefined && secondDescriptor !== undefined);
     const first = materializeHeapTask(firstDescriptor);
     const second = materializeHeapTask(secondDescriptor);
     const heap = MinimumHeap.create();

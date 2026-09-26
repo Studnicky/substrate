@@ -10,7 +10,6 @@ export namespace FlagContextEntity {
     'properties': {
       'targetingKey': { 'type': 'string' }
     },
-    'required': [],
     'type': 'object'
   } as const;
 

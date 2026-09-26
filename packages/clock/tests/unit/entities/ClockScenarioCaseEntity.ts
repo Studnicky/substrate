@@ -18,7 +18,7 @@ export namespace ClockScenarioCaseEntity {
         'additionalProperties': false,
         'properties': {
           'shape': { 'const': 'options' },
-          'value': { 'additionalProperties': false, 'properties': { 'offsetMs': runtimeNumberSchema }, 'required': [], 'type': 'object' }
+          'value': { 'additionalProperties': false, 'properties': { 'offsetMs': runtimeNumberSchema }, 'type': 'object' }
         },
         'required': ['shape'],
         'type': 'object'
@@ -33,7 +33,7 @@ export namespace ClockScenarioCaseEntity {
         'additionalProperties': false,
         'properties': {
           'shape': { 'const': 'options' },
-          'value': { 'additionalProperties': false, 'properties': { 'startMs': runtimeNumberSchema }, 'required': [], 'type': 'object' }
+          'value': { 'additionalProperties': false, 'properties': { 'startMs': runtimeNumberSchema }, 'type': 'object' }
         },
         'required': ['shape'],
         'type': 'object'
@@ -297,7 +297,7 @@ export namespace ClockScenarioCaseEntity {
         'required': ['ok'],
         'type': 'object'
       },
-          'input': { 'additionalProperties': false, 'properties': {}, 'required': [], 'type': 'object' },
+          'input': { 'additionalProperties': false, 'properties': {}, 'type': 'object' },
           'name': { 'minLength': 1, 'type': 'string' },
           'shape': { 'const': 'clock-error-with-cause' }
         },
@@ -931,7 +931,7 @@ export namespace ClockScenarioCaseEntity {
           'expected': {
         'additionalProperties': false,
         'properties': {
-          'hookCalls': { 'items': { 'type': 'number' }, 'type': 'array' }
+          'hookCalls': { 'prefixItems': [{ 'type': 'number' }, { 'type': 'number' }], 'type': 'array' }
         },
         'required': ['hookCalls'],
         'type': 'object'
@@ -2286,7 +2286,7 @@ export namespace ClockScenarioCaseEntity {
         'expected': SchemaNode.defineObject(
           { 'type': 'object' } as const,
           {
-            'hookCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
+            'hookCalls': SchemaNode.defineTuple({ 'type': 'array' } as const, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)] as const)
           },
           ['hookCalls'] as const,
           { 'additionalProperties': false }

@@ -5,12 +5,11 @@ import { SchemaNode } from '@studnicky/entity/types';
 /** The 12 scenario shapes `VirtualScheduler.loop.spec.ts` exercises. */
 export namespace VirtualSchedulerScenarioCaseEntity {
   const numberArraySchema = { 'items': { 'type': 'number' }, 'type': 'array' } as const;
-  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'type': 'object' } as const;
 
   const heapTaskMutationSchema = {
     'additionalProperties': false,
     'properties': { 'atMs': { 'type': 'number' }, 'id': { 'type': 'string' } },
-    'required': [],
     'type': 'object'
   } as const;
   const heapTaskDescriptorSchema = {
@@ -174,7 +173,7 @@ export namespace VirtualSchedulerScenarioCaseEntity {
             'properties': {
               'scheduler': {
                 'additionalProperties': false,
-                'properties': { 'tasks': { 'items': heapTaskDescriptorSchema, 'type': 'array' } },
+                'properties': { 'tasks': { 'prefixItems': [heapTaskDescriptorSchema, heapTaskDescriptorSchema], 'type': 'array' } },
                 'required': ['tasks'],
                 'type': 'object'
               }
@@ -229,7 +228,6 @@ export namespace VirtualSchedulerScenarioCaseEntity {
               'type': 'object'
             },
             'properties': {},
-            'required': [],
             'type': 'object'
           },
           'input': {
@@ -270,7 +268,7 @@ export namespace VirtualSchedulerScenarioCaseEntity {
         'additionalProperties': false,
         'properties': {
           'description': { 'minLength': 1, 'type': 'string' },
-          'expected': { 'additionalProperties': { 'type': 'number' }, 'properties': {}, 'required': [], 'type': 'object' },
+          'expected': { 'additionalProperties': { 'type': 'number' }, 'properties': {}, 'type': 'object' },
           'input': {
             'additionalProperties': false,
             'properties': {
@@ -741,7 +739,7 @@ export namespace VirtualSchedulerScenarioCaseEntity {
           {
             'scheduler': SchemaNode.defineObject(
               { 'type': 'object' } as const,
-              { 'tasks': SchemaNode.defineArray({ 'type': 'array' } as const, HeapTaskDescriptorNode) },
+              { 'tasks': SchemaNode.defineTuple({ 'type': 'array' } as const, [HeapTaskDescriptorNode, HeapTaskDescriptorNode] as const) },
               ['tasks'] as const,
               { 'additionalProperties': false }
             )

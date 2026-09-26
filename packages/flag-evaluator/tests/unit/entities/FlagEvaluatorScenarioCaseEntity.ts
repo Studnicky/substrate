@@ -7,7 +7,7 @@ import { FlagDefinitionEntity } from '../../../src/entities/FlagDefinitionEntity
 
 /** The 23 scenario shapes `FlagEvaluator.loop.spec.ts` exercises. `values`/`value` in the two `FlagContextEntity` shapes stay fully open bags, since they intentionally exercise invalid contexts; every other context reuses `FlagContextEntity` itself. */
 export namespace FlagEvaluatorScenarioCaseEntity {
-  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'type': 'object' } as const;
   const contextSchema = FlagContextEntity.Schema;
   const definitionSchema = FlagDefinitionEntity.Schema;
   const partialDefinitionSchema = {
@@ -23,7 +23,7 @@ export namespace FlagEvaluatorScenarioCaseEntity {
     'required': ['defaultValue', 'enabled'],
     'type': 'object'
   } as const;
-  const definitionsMapSchema = { 'additionalProperties': definitionSchema, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const definitionsMapSchema = { 'additionalProperties': definitionSchema, 'properties': {}, 'type': 'object' } as const;
   const evaluationSchema = {
     'additionalProperties': false,
     'properties': { 'context': contextSchema, 'flag': { 'type': 'string' } },
@@ -36,7 +36,7 @@ export namespace FlagEvaluatorScenarioCaseEntity {
     'required': ['context', 'result'],
     'type': 'object'
   } as const;
-  const resultsMapSchema = { 'additionalProperties': { 'type': 'boolean' }, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const resultsMapSchema = { 'additionalProperties': { 'type': 'boolean' }, 'properties': {}, 'type': 'object' } as const;
 
   const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
   const ContextNode = FlagContextEntity.Node;

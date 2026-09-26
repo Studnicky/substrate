@@ -4,7 +4,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 
 /** The `RealTimeScheduler.loop.spec.ts` scenario case shape. `expected`/`batch`/`scheduler` stay open bags — each of the 27 shapes reads a different subset via runtime-checked field helpers, never a cast. */
 export namespace RealTimeSchedulerScenarioCaseEntity {
-  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'type': 'object' } as const;
 
   export const Schema = {
     'additionalProperties': false,
