@@ -99,8 +99,8 @@ const STATEFUL = [
 ] as const;
 
 const STATELESS = [
-  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'fetch', 'json',
-  'signal', 'system', 'types'
+  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'example-smoke-kit', 'fetch', 'json',
+  'scenario-kit', 'signal', 'system', 'types'
 ] as const;
 
 const MATCHING_AND_ROUTING = [
