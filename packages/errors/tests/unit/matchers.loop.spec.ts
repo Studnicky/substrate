@@ -1,66 +1,24 @@
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorClassifier, matchers } from '../../src/index.js';
+import { MatchersScenarioCaseEntity } from './entities/MatchersScenarioCaseEntity.js';
 import scenarioGroups from './matchers.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        frozen: boolean;
-        hasClassifierConstants: boolean;
-      };
-      input: Record<string, never>;
-      shape: 'immutable-matcher-route';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        and: boolean;
-        contains: boolean;
-        containsAll: boolean;
-        containsAny: boolean;
-        containsIgnoreCase: boolean;
-        endsWith: boolean;
-        isFalse: boolean;
-        isTrue: boolean;
-        lessThan: boolean;
-        lengthInRange: boolean;
-        lte: boolean;
-        matches: boolean;
-        not: boolean;
-        notEmpty: boolean;
-        oneOf: boolean;
-        or: boolean;
-        startsWith: boolean;
-        startsWithIgnoreCase: boolean;
-      };
-      input: {
-        code: string;
-        errorName: string;
-        numberValue: number;
-        stringValue: string;
-      };
-      shape: 'negative-matcher-route';
-      name: string;
-    }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'array-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'boolean-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'database-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'empty-variadics'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'http-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'logic-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'network-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'number-matchers'; name: string }
-  | { description: string; expected: Record<string, boolean>; input: Record<string, unknown>; shape: 'string-matchers'; name: string };
+type ScenarioCase = MatchersScenarioCaseEntity.Type;
+type RunnableShape = 'array-matchers' | 'boolean-matchers' | 'database-matchers' | 'empty-variadics' | 'http-matchers' | 'immutable-matcher-route' | 'logic-matchers' | 'negative-matcher-route' | 'network-matchers' | 'number-matchers' | 'string-matchers';
+type ScenarioRunner = (scenario: ScenarioCase) => void;
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
+const fileIntake = ScenarioFileCompiler.compileIntake(MatchersScenarioCaseEntity.Schema, MatchersScenarioCaseEntity.Node);
 
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+function requireArray<T>(value: readonly T[] | undefined, label: string): T[] {
+  if (value === undefined) {
+    throw RuntimeError.create(`${label} is required`);
+  }
+  return [...value];
+}
 
 function assertMatcherSurface(): void {
   assert.strictEqual(Object.isFrozen(matchers), true);
@@ -74,9 +32,9 @@ function assertMatcherSurface(): void {
   assert.strictEqual(Object.hasOwn(matchers, 'proto'), false);
 }
 
-const runnerMap: RunnerMap = {
+const runnerMap: Record<RunnableShape, ScenarioRunner> = {
   'array-matchers': (scenario) => {
-    const value = scenario.input.arrayValue as string[];
+    const value = requireArray(scenario.input.arrayValue, 'Scenario input.arrayValue');
     assert.strictEqual(matchers.array.contains('b')(value), scenario.expected.contains);
     assert.strictEqual(matchers.array.containsAll('a', 'b')(value), scenario.expected.containsAll);
     assert.strictEqual(matchers.array.containsAny('z', 'b')(value), scenario.expected.containsAny);
@@ -132,8 +90,8 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(matchers.logic.or(equal, matchers.number.oneOf(429))(value), scenario.expected.or);
   },
   'negative-matcher-route': (scenario) => {
-    const value = scenario.input.numberValue;
-    const stringValue = scenario.input.stringValue;
+    const value = Number(scenario.input.numberValue);
+    const stringValue = String(scenario.input.stringValue);
 
     assert.strictEqual(matchers.number.greaterThan(4)(value), false);
     assert.strictEqual(matchers.number.gte(5)(value), false);
@@ -205,18 +163,19 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
+function isRunnableShape(shape: string): shape is RunnableShape {
+  return Object.hasOwn(runnerMap, shape);
+}
+
+function runCase(scenario: ScenarioCase): void {
+  if (!isRunnableShape(scenario.shape)) { return; }
   assertMatcherSurface();
   runnerMap[scenario.shape](scenario);
 }
 
-function isScenarioCase(scenario: { shape: string }): scenario is ScenarioCase {
-  return Object.hasOwn(runnerMap, scenario.shape);
-}
-
 void describe('matchers', () => {
-  for (const scenario of scenarioGroups.cases as { name: string; shape: string }[]) {
-    if (!isScenarioCase(scenario)) { continue; }
+  for (const scenario of fileIntake(scenarioGroups).cases) {
+    if (!isRunnableShape(scenario.shape)) { continue; }
     void it(scenario.name, () => {
       runCase(scenario);
     });
