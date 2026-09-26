@@ -139,6 +139,7 @@ export class SchemaNode {
   > {
     const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
 
+    /** `TSchema` stays unresolved here; the checker can't relate `PickDefined.from`'s mapped result to it until a caller instantiates it. */
     return { 'schema': combinedSchema as TSchema & { 'contains'?: TContains; 'items': TItem } };
   }
 
@@ -175,6 +176,7 @@ export class SchemaNode {
       'required': required
     });
 
+    /** `TSchema` stays unresolved here; the checker can't relate `PickDefined.from`'s mapped result to it until a caller instantiates it. */
     return {
       'schema': combinedSchema as ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] }
     };
@@ -320,11 +322,19 @@ export class SchemaNode {
   public static defineRecursive<TSchema, TStatic, TInput = TStatic>(
     build: (self: SchemaNodeInterface<TSchema, TStatic, TInput>) => SchemaNodeInterface<TSchema, TStatic, TInput>
   ): SchemaNodeInterface<TSchema, TStatic, TInput> {
-    const placeholder: { 'schema'?: TSchema } = {};
-    const self = placeholder as SchemaNodeInterface<TSchema, TStatic, TInput>;
+    const resolution: { 'schema'?: TSchema } = {};
+    const self: SchemaNodeInterface<TSchema, TStatic, TInput> = {
+      get 'schema'(): TSchema {
+        const resolved = resolution.schema;
+        if (resolved === undefined) {
+          throw new Error('recursive schema node read before its own build() resolved it');
+        }
+        return resolved;
+      }
+    };
     const built = build(self);
 
-    placeholder.schema = built.schema;
+    resolution.schema = built.schema;
 
     return self;
   }

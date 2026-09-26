@@ -13,16 +13,19 @@ import type { RequiredSchemaType } from './RequiredSchemaType.js';
  * `static` type together, transforming both in lockstep at the same level —
  * never recursing into a property's own nested schema.
  *
- * The runtime `properties`/`required` filtering is generic over
- * `ObjectSchemaShapeInterface`, not over the caller's precise branded
- * `TSchema`; the return cast to the branded `SchemaNodeInterface` is the one
- * place per method where that precision is restored, proven correct by the
- * filter/merge operation directly above it.
+ * The private filter helpers are overloaded: a generic signature narrows the
+ * return to the exact `Pick`/`Omit` the caller's branded `TSchema` promises,
+ * while the implementation signature stays loose for the runtime loop.
+ * `extend`'s merge is the one method the checker can't relate this way — see
+ * the cast at its `properties` assignment for why.
  *
  * @module
  */
 export class Compose {
   /** Copies `source`'s own properties whose key is present in `keySet`, preserving insertion order. */
+  private static keepProperties<TProps extends Record<string, unknown>, TKeys extends keyof TProps & string>(
+    source: TProps, keySet: ReadonlySet<TKeys>
+  ): Pick<TProps, TKeys>;
   private static keepProperties(source: Record<string, unknown>, keySet: ReadonlySet<string>): Record<string, unknown> {
     const entries = Object.entries(source);
     const kept: [string, unknown][] = [];
@@ -42,6 +45,9 @@ export class Compose {
   }
 
   /** Copies `source`'s own properties whose key is absent from `keySet`, preserving insertion order. */
+  private static dropProperties<TProps extends Record<string, unknown>, TKeys extends keyof TProps & string>(
+    source: TProps, keySet: ReadonlySet<TKeys>
+  ): Omit<TProps, TKeys>;
   private static dropProperties(source: Record<string, unknown>, keySet: ReadonlySet<string>): Record<string, unknown> {
     const entries = Object.entries(source);
     const kept: [string, unknown][] = [];
@@ -61,6 +67,9 @@ export class Compose {
   }
 
   /** Copies `source`'s own members whose value is present in `keySet`, preserving insertion order. */
+  private static keepValues<TValues extends string, TKeys extends TValues>(
+    source: readonly TValues[], keySet: ReadonlySet<TKeys>
+  ): Extract<TValues, TKeys>[];
   private static keepValues(source: readonly string[], keySet: ReadonlySet<string>): string[] {
     const kept: string[] = [];
     const sourceLength = source.length;
@@ -77,6 +86,9 @@ export class Compose {
   }
 
   /** Copies `source`'s own members whose value is absent from `keySet`, preserving insertion order. */
+  private static dropValues<TValues extends string, TKeys extends TValues>(
+    source: readonly TValues[], keySet: ReadonlySet<TKeys>
+  ): Exclude<TValues, TKeys>[];
   private static dropValues(source: readonly string[], keySet: ReadonlySet<string>): string[] {
     const kept: string[] = [];
     const sourceLength = source.length;
@@ -100,7 +112,7 @@ export class Compose {
     node: SchemaNodeInterface<TSchema, TStatic>,
     keys: readonly TKeys[]
   ): SchemaNodeInterface<PickSchemaType<TSchema, TKeys>, Pick<TStatic, TKeys>> {
-    const keySet = new Set<string>(keys);
+    const keySet = new Set<TKeys>(keys);
     const properties = Compose.keepProperties(node.schema.properties ?? {}, keySet);
     const required = Compose.keepValues(node.schema.required ?? [], keySet);
 
@@ -110,8 +122,8 @@ export class Compose {
     > = {
       'schema': {
         ...node.schema,
-        'properties': properties as Pick<NonNullable<TSchema['properties']>, TKeys>,
-        'required': required as Extract<NonNullable<TSchema['required']>[number], TKeys>[]
+        'properties': properties,
+        'required': required
       }
     };
 
@@ -126,7 +138,7 @@ export class Compose {
     node: SchemaNodeInterface<TSchema, TStatic>,
     keys: readonly TKeys[]
   ): SchemaNodeInterface<OmitSchemaType<TSchema, TKeys>, Omit<TStatic, TKeys>> {
-    const keySet = new Set<string>(keys);
+    const keySet = new Set<TKeys>(keys);
     const properties = Compose.dropProperties(node.schema.properties ?? {}, keySet);
     const required = Compose.dropValues(node.schema.required ?? [], keySet);
 
@@ -136,8 +148,8 @@ export class Compose {
     > = {
       'schema': {
         ...node.schema,
-        'properties': properties as Omit<NonNullable<TSchema['properties']>, TKeys>,
-        'required': required as Exclude<NonNullable<TSchema['required']>[number], TKeys>[]
+        'properties': properties,
+        'required': required
       }
     };
 
@@ -174,7 +186,9 @@ export class Compose {
     node: SchemaNodeInterface<TSchema, TStatic>,
     extension: SchemaNodeInterface<TExtensionSchema, TExtensionStatic>
   ): SchemaNodeInterface<ExtendSchemaType<TSchema, TExtensionSchema>, Omit<TStatic, keyof TExtensionStatic> & TExtensionStatic> {
-    const properties = { ...node.schema.properties, ...extension.schema.properties };
+    /** `TSchema`/`TExtensionSchema` stay unresolved here; the checker can't relate the spread to the generic-indexed target until a caller instantiates them. */
+    const properties = { ...node.schema.properties, ...extension.schema.properties } as
+      NonNullable<TExtensionSchema['properties']> & Omit<NonNullable<TSchema['properties']>, keyof NonNullable<TExtensionSchema['properties']>>;
     const required = [...new Set([...(node.schema.required ?? []), ...(extension.schema.required ?? [])])];
 
     const result: SchemaNodeInterface<
@@ -183,7 +197,7 @@ export class Compose {
     > = {
       'schema': {
         ...node.schema,
-        'properties': properties as NonNullable<TExtensionSchema['properties']> & Omit<NonNullable<TSchema['properties']>, keyof NonNullable<TExtensionSchema['properties']>>,
+        'properties': properties,
         'required': required
       }
     };

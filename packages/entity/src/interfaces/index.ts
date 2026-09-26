@@ -16,4 +16,5 @@ export type { ObjectSchemaShapeInterface } from './ObjectSchemaShapeInterface.js
 export type { SchemaCompilerInterface } from './SchemaCompilerInterface.js';
 export type { SchemaNodeInterface } from './SchemaNodeInterface.js';
 export type { SchemaRegistrySetInterface } from './SchemaRegistrySetInterface.js';
+export type { SchemaResourceIndexConstantsInterface } from './SchemaResourceIndexConstantsInterface.js';
 export type { UniqueItemsBrandInterface } from './UniqueItemsBrandInterface.js';
