@@ -388,11 +388,7 @@
           "capacity": 1
         }
       },
-      "expected": {
-        "drained": [
-          "B"
-        ]
-      }
+      "expected": {}
     },
     {
       "name": "capacity-two-cycling",

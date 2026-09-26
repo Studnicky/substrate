@@ -244,6 +244,13 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/clock:
     dependencies:
@@ -703,6 +710,12 @@ importers:
         specifier: ^7.0.15
         version: 7.0.15
     devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -768,6 +781,13 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      '@studnicky/example-smoke-kit':
+        specifier: workspace:*
+        version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/matching:
     dependencies:
@@ -1194,6 +1214,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/throttle:
     dependencies:
@@ -1360,6 +1383,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/worker-pool:
     dependencies:

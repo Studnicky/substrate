@@ -1,10 +1,9 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
-
-
 
 import type { VisibleRangeCollaboratorsInterface } from '../../src/interfaces/index.js';
 
@@ -14,133 +13,45 @@ import {
   VisibleRangeResolvedConfigEntity
 } from '../../src/entities/index.js';
 import { VisibleRange } from '../../src/index.js';
+import { EntityContractScenarioCaseEntity } from './entities/EntityContractScenarioCaseEntity.js';
+import { FixedModeScenarioCaseEntity } from './entities/FixedModeScenarioCaseEntity.js';
+import { OnRangeChangeScenarioCaseEntity } from './entities/OnRangeChangeScenarioCaseEntity.js';
+import { VariableModeScenarioCaseEntity } from './entities/VariableModeScenarioCaseEntity.js';
 import scenarioGroups from './visible-range.scenarios.json' with { type: 'json' };
 
-type EntityContractShape =
-  | 'config-data-valid'
-  | 'constructor-both-sizes'
-  | 'constructor-invalid-item-size'
-  | 'constructor-missing-size'
-  | 'resolved-config-valid';
+type EntityContractShape = EntityContractScenario['shape'];
+type OnRangeChangeShape = OnRangeChangeScenario['shape'];
+type VariableModeShape = VariableModeScenario['shape'];
 
-type FixedModeShape = 'range' | 'range-end' | 'range-start';
+type EntityContractScenario = EntityContractScenarioCaseEntity.Type;
+type EntityContractInput = EntityContractScenario['input'];
+type EntityValidationInput = NonNullable<EntityContractInput['configData']>;
+type SerializableVisibleRangeConfig = VariableModeScenario['input']['visibleRange'];
 
-type OnRangeChangeShape =
-  | 'async-rejecting-hook'
-  | 'first-call'
-  | 'no-state-change'
-  | 'retained-state-isolated'
-  | 'scroll-moves-range'
-  | 'throwing-hook';
-
-type VariableModeShape =
-  | 'initial-range'
-  | 'interleaved-measure-corrections'
-  | 'measure-corrects-range'
-  | 'measure-noop-fixed-mode'
-  | 'measure-same-size-noop'
-  | 'overscan-applied'
-  | 'variable-boundary-offsets'
-  | 'variable-count-zero';
-
-type SerializableVisibleRangeConfig = {
-  readonly count: number;
-  readonly estimateSizeMode?: 'fractional-boundary';
-  readonly estimateSizeValue?: number;
-  readonly itemSize?: number;
-  readonly overscan?: number;
-};
-
-type EntityValidationInput = {
-  readonly invalid: unknown;
-  readonly valid: unknown;
-};
-
-type EntityContractInput = {
-  readonly configData?: EntityValidationInput;
-  readonly resolvedConfig?: EntityValidationInput;
-  readonly visibleRange?: SerializableVisibleRangeConfig;
-};
-
-type EntityContractScenario = {
-  readonly description: string;
-  readonly input?: EntityContractInput;
-  readonly shape: EntityContractShape;
-  readonly name: string;
-};
-
-type RangeInput = {
-  readonly scrollOffset?: number;
-  readonly viewportSize?: number;
-  readonly visibleRange: SerializableVisibleRangeConfig;
-};
-
-type RangeValueExpectation = {
-  readonly shape: 'corrected-range' | 'range';
-  readonly range: VisibleRangeEntity.Type;
-};
-
-type RangeBoundaryExpectation = {
-  readonly shape: 'range-end' | 'range-start';
-  readonly value: number;
-};
-
+type FixedModeScenario = FixedModeScenarioCaseEntity.Type;
+type RangeInput = VariableModeScenario['input'];
+type RangeBoundaryExpectation = Extract<FixedModeScenario['expect'], { shape: 'range-end' | 'range-start' }>;
+type RangeValueExpectation = Extract<VariableExpectation, { shape: 'corrected-range' | 'range' }>;
 type RangeExpectation = RangeBoundaryExpectation | RangeValueExpectation;
 
-type FixedModeScenario = {
-  readonly description: string;
-  readonly expect: RangeExpectation;
-  readonly input: RangeInput;
-  readonly shape: FixedModeShape;
-  readonly name: string;
-};
+type OnRangeChangeScenario = OnRangeChangeScenarioCaseEntity.Type;
 
-type OnRangeChangeInput = RangeInput & {
-  readonly nextScrollOffset?: number;
-};
+type Measurement = NonNullable<VariableModeInput['measurements']>[number];
+type MeasurementBatch = NonNullable<VariableModeInput['measurementBatch']>;
+type VariableExpectation = VariableModeScenario['expect'];
+type VariableModeInput = VariableModeScenario['input'];
 
-type OnRangeChangeScenario = {
-  readonly description: string;
-  readonly input: OnRangeChangeInput;
-  readonly shape: OnRangeChangeShape;
-  readonly name: string;
-};
+type VariableModeScenario = VariableModeScenarioCaseEntity.Type;
 
-type Measurement = {
-  readonly index: number;
-  readonly readAfter?: boolean;
-  readonly size: number;
-};
+const entityContractsIntake = ScenarioFileCompiler.compileIntake(EntityContractScenarioCaseEntity.Schema, EntityContractScenarioCaseEntity.Node);
+const fixedModeIntake = ScenarioFileCompiler.compileIntake(FixedModeScenarioCaseEntity.Schema, FixedModeScenarioCaseEntity.Node);
+const onRangeChangeIntake = ScenarioFileCompiler.compileIntake(OnRangeChangeScenarioCaseEntity.Schema, OnRangeChangeScenarioCaseEntity.Node);
+const variableModeIntake = ScenarioFileCompiler.compileIntake(VariableModeScenarioCaseEntity.Schema, VariableModeScenarioCaseEntity.Node);
 
-type MeasurementBatch = {
-  readonly endExclusive: number;
-  readonly size: number;
-  readonly start: number;
-};
-
-type VariableExpectation = RangeValueExpectation | {
-  readonly shape: 'unchanged-range';
-};
-
-type VariableModeInput = RangeInput & {
-  readonly finalScrollOffset?: number;
-  readonly finalViewportSize?: number;
-  readonly measurementBatch?: MeasurementBatch;
-  readonly measurements?: readonly Measurement[];
-};
-
-type VariableModeScenario = {
-  readonly description: string;
-  readonly expect: VariableExpectation;
-  readonly input: VariableModeInput;
-  readonly shape: VariableModeShape;
-  readonly name: string;
-};
-
-const entityContractScenarios = scenarioGroups.entityContracts as readonly EntityContractScenario[];
-const fixedModeScenarios = scenarioGroups.fixedMode as readonly FixedModeScenario[];
-const onRangeChangeScenarios = scenarioGroups.onRangeChange as readonly OnRangeChangeScenario[];
-const variableModeScenarios = scenarioGroups.variableMode as readonly VariableModeScenario[];
+const entityContractScenarios = entityContractsIntake({ 'cases': scenarioGroups.entityContracts }).cases;
+const fixedModeScenarios = fixedModeIntake({ 'cases': scenarioGroups.fixedMode }).cases;
+const onRangeChangeScenarios = onRangeChangeIntake({ 'cases': scenarioGroups.onRangeChange }).cases;
+const variableModeScenarios = variableModeIntake({ 'cases': scenarioGroups.variableMode }).cases;
 
 function buildVisibleRangeConfig(config: SerializableVisibleRangeConfig): readonly [unknown, VisibleRangeCollaboratorsInterface] {
   const baseConfig = {

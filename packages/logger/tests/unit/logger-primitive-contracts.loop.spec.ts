@@ -1,5 +1,6 @@
 import { RuntimeError } from '@studnicky/errors/node';
 import { FrozenMutationError, ImmutableSnapshot } from '@studnicky/json/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -25,23 +26,11 @@ import {
 } from '../../src/index.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
+import { LoggerPrimitiveContractsScenarioCaseEntity } from './entities/LoggerPrimitiveContractsScenarioCaseEntity.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
 type ConsoleMethod = 'debug' | 'error' | 'info' | 'trace' | 'warn';
 type ConsoleCapture = Record<ConsoleMethod, Array<{ message: string; record: LogRecordEntity.Type }>>;
-type FaultConfigInput = {
-  cause?: string;
-  component: string;
-  context: Record<string, unknown>;
-  durationMs?: number;
-  message: string;
-  name: string;
-  operation: string;
-  stack?: string;
-  status: LogStatusEntity.Type;
-};
-type PartialFaultConfigInput = Partial<FaultConfigInput>;
-type FaultConfigInputWithoutIdentity = Omit<FaultConfigInput, 'message' | 'name'>;
 type LogBodyFixtureInput = {
   component: string;
   context: Record<string, unknown>;
@@ -49,190 +38,9 @@ type LogBodyFixtureInput = {
   status: LogStatusEntity.Type;
   time: number;
 };
+type ScenarioCase = LoggerPrimitiveContractsScenarioCaseEntity.Type;
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { values: Record<string, number> };
-      input: Record<string, never>;
-      shape: 'level-values';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { ordered: true };
-      input: Record<string, never>;
-      shape: 'level-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resolved: Record<string, number> };
-      input: Record<string, never>;
-      shape: 'level-map';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { values: number[] };
-      input: Record<string, never>;
-      shape: 'parse-numeric';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { values: Record<string, number> };
-      input: Record<string, never>;
-      shape: 'parse-string';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { values: Record<string, number> };
-      input: Record<string, never>;
-      shape: 'parse-invalid-string';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { outputs: string[] };
-      input: Record<string, never>;
-      shape: 'safe-stringify-basic';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { result1Contains: string[]; result2Contains: string[] };
-      input: Record<string, never>;
-      shape: 'safe-stringify-circular';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { contains: string[]; parsed: { array: number[]; boolean: boolean; nested: { key: string }; nullValue: null; number: number; string: string } };
-      input: Record<string, never>;
-      shape: 'safe-stringify-types';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { logDataValid: true; logDataInvalid: false; cloudwatchValid: true; hookShapeValid: true; hookShapeInvalid: false };
-      input: Record<string, never>;
-      shape: 'entity-composition';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        event: string;
-        frozen: true;
-        message: string;
-        nestedAttempt: number;
-        name: string;
-        status: string;
-      };
-      input: { fault: FaultConfigInput };
-      shape: 'log-fault-basic';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        cause: string;
-        durationMs: number;
-        stack: string;
-      };
-      input: { fault: FaultConfigInput };
-      shape: 'log-fault-optional-fields';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        message: string;
-        name: 'LogBuildError';
-      };
-      input: { fault: PartialFaultConfigInput };
-      shape: 'log-fault-missing-field';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        cause: string;
-        event: string;
-        message: string;
-        name: string;
-      };
-      input: {
-        error: { cause: string; message: string; name: string };
-        fault: FaultConfigInputWithoutIdentity;
-      };
-      shape: 'log-fault-from-error-fields';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        calls: Record<ConsoleMethod, string[]>;
-      };
-      input: {
-        body: LogBodyFixtureInput;
-        records: Array<{
-          level: LogLevelEntity.Type;
-          message: string;
-          metadata: Record<string, unknown>;
-          method: ConsoleMethod;
-        }>;
-        transport: {
-          filtered: {
-            level: LogLevelEntity.Type;
-            message: string;
-            minLevel: LogLevelEntity.Type;
-          };
-          level: LogLevelEntity.Type;
-        };
-      };
-      shape: 'console-transport-dispatch';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        message: string;
-        name: 'ConfigurationError';
-      };
-      input: { transport: { level: Record<string, never> } };
-      shape: 'console-transport-invalid-level';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        dateContains: string;
-        emptyArray: string;
-        emptyObject: string;
-        primitives: Record<string, string>;
-        symbolObject: string;
-      };
-      input: Record<string, never>;
-      shape: 'safe-stringify-json-edges';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        code: string;
-        constructors: Array<{
-          message: string;
-          name: string;
-          withCause: boolean;
-        }>;
-      };
-      input: Record<string, never>;
-      shape: 'error-constructors';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(LoggerPrimitiveContractsScenarioCaseEntity.Schema, LoggerPrimitiveContractsScenarioCaseEntity.Node);
 
 const consoleMethods: readonly ConsoleMethod[] = ['debug', 'error', 'info', 'trace', 'warn'];
 
@@ -571,7 +379,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('logger primitive contracts', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

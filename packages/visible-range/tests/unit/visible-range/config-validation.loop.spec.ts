@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
@@ -7,25 +8,14 @@ import {
 import type { VisibleRangeCollaboratorsInterface } from '../../../src/interfaces/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
+import { ConfigValidationScenarioCaseEntity } from './entities/ConfigValidationScenarioCaseEntity.js';
 import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };
 
-type ScenarioShape = 'ambiguous-size' | 'error-args' | 'missing-size' | 'negative-size' | 'zero-size';
+type ScenarioCase = ConfigValidationScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+type SerializableVisibleRangeConfig = ScenarioCase['input']['visibleRange'];
 
-type SerializableVisibleRangeConfig = {
-  readonly count: number;
-  readonly estimateSizeValue?: number;
-  readonly itemSize?: number;
-};
-
-type ScenarioCase = {
-  readonly description: string;
-  readonly expected: { readonly errorName: 'VisibleRangeError' };
-  readonly input: { readonly visibleRange: SerializableVisibleRangeConfig };
-  readonly shape: ScenarioShape;
-  readonly name: string;
-};
-
-const scenarioCases = scenarioGroups.cases as readonly ScenarioCase[];
+const fileIntake = ScenarioFileCompiler.compileIntake(ConfigValidationScenarioCaseEntity.Schema, ConfigValidationScenarioCaseEntity.Node);
 
 function buildConfig(config: SerializableVisibleRangeConfig): readonly [unknown, VisibleRangeCollaboratorsInterface] {
   const data = {
@@ -85,9 +75,9 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('VisibleRange config validation', () => {
-  for (const scenario of scenarioCases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, () => {
+      runCase(scenarioCase);
     });
   }
 });
