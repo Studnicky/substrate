@@ -19,15 +19,10 @@ export namespace BoundaryKitConfigRequiredEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'circuitBreaker': CircuitBreakerOptionsEntity.Node,
       'retry': RetryConfigDescriptorEntity.Node,
       'throttle': ThrottleConfigEntity.Node
-    },
-    ['circuitBreaker', 'retry', 'throttle'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['circuitBreaker', 'retry', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

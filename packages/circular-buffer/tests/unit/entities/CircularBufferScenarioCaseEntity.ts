@@ -10,51 +10,36 @@ const rawOptionsSchema = {
   'type': 'object'
 } as const;
 
-const rawOptionsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'overflow': SchemaNode.defineEnum({ 'type': 'string' } as const, ['overwrite', 'grow'] as const) },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const rawOptionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'overflow': SchemaNode.defineEnum({ 'type': 'string' } as const, ['overwrite', 'grow'] as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-const growOperationNode = SchemaNode.defineOneOf([
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'drainAll': SchemaNode.defineConst(true as const) }, ['drainAll'] as const, { 'additionalProperties': false }),
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'push': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['push'] as const, { 'additionalProperties': false }),
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'shift': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['shift'] as const, { 'additionalProperties': false })
+const growOperationNode = SchemaNode.defineOneOf({}, [
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'drainAll': SchemaNode.defineConst({}, true as const) }, ['drainAll'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'push': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['push'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'shift': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['shift'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 ]);
 
-const batchNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'itemCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
-    'operations': SchemaNode.defineArray({ 'type': 'array' } as const, growOperationNode),
+    'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+    'operations': SchemaNode.defineArray({ 'type': 'array' } as const, growOperationNode, undefined),
     'shiftEveryNth': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
     'startValue': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-const expectedObjectNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const expectedObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'doesNotThrow': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-    'drained': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+    'drained': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
     'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'lengths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)),
+    'lengths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
     'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
     'preservedIdentity': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     'shifted': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'shiftedMatchesPushed': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     'shifts': SchemaNode.defineTuple({ 'type': 'array', 'minItems': 3, 'items': false } as const, [SchemaNode.defineNull({ 'type': 'null' } as const), SchemaNode.defineNull({ 'type': 'null' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)] as const),
-    'value': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+    'value': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-const expectedNode = SchemaNode.defineOneOf([expectedObjectNode, SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))]);
+const expectedNode = SchemaNode.defineOneOf({}, [expectedObjectNode, SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)]);
 
 /** The scenario case shape `CircularBuffer.loop.spec.ts` exercises for `CircularBuffer` core push/shift/grow behavior. */
 export namespace CircularBufferScenarioCaseEntity {
@@ -138,14 +123,12 @@ export namespace CircularBufferScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expected': expectedNode,
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'options': rawOptionsNode }, ['options'] as const, { 'additionalProperties': false }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'options': rawOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'capacity-one-cycling', 'capacity-two-cycling', 'construction-capacity-one-empty', 'construction-custom-capacity-empty',
         'construction-default-empty', 'construction-invalid-capacity', 'fifo-order', 'grow-head-wraparound',
         'grow-multiple-cycles-preserves-order', 'grow-order-preserved-after-grow', 'grow-past-capacity',
@@ -157,10 +140,7 @@ export namespace CircularBufferScenarioCaseEntity {
         'shift-empty-returns-undefined', 'shift-empty-successive-returns-undefined', 'shift-first-item-and-decrements-length',
         'shift-only-item-and-leaves-empty'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
   export type ExpectedObjectType = NodeStaticType<typeof expectedObjectNode>;

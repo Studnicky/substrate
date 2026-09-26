@@ -9,12 +9,7 @@ const CommandOutcomeSchema = {
   'required': [],
   'type': 'object'
 } as const;
-const CommandOutcomeNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'output': SchemaNode.defineString({ 'type': 'string' } as const) },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const CommandOutcomeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'output': SchemaNode.defineString({ 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The single scenario case shape `GpuDetector.loop.spec.ts` exercises. */
 export namespace GpuDetectorScenarioCaseEntity {
@@ -49,35 +44,20 @@ export namespace GpuDetectorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'computeApi': SchemaNode.defineEnum(['cuda', 'metal', 'opencl', 'software'] as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'computeApi': SchemaNode.defineEnum({}, ['cuda', 'metal', 'opencl', 'software'] as const),
           'name': SchemaNode.defineString({ 'type': 'string' } as const),
-          'result': SchemaNode.defineEnum(['gpu', 'null'] as const),
-          'vramMb': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
-        },
-        ['result'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'commands': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': CommandOutcomeNode }),
-          'platform': SchemaNode.defineEnum(['darwin', 'linux', 'win32'] as const)
-        },
-        ['platform'] as const,
-        { 'additionalProperties': false }
-      ),
+          'result': SchemaNode.defineEnum({}, ['gpu', 'null'] as const),
+          'vramMb': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
+        }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'commands': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': CommandOutcomeNode, 'patternProperties': {} }),
+          'platform': SchemaNode.defineEnum({}, ['darwin', 'linux', 'win32'] as const)
+        }, ['platform'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('detect' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'detect' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

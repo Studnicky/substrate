@@ -15,7 +15,7 @@ export namespace BoundedDispatcherStartEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'type': 'object' } as const, { 'phase': SchemaNode.defineConst('start' as const) }, ['phase'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'type': 'object' } as const, { 'phase': SchemaNode.defineConst({}, 'start' as const) }, ['phase'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

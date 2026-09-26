@@ -34,7 +34,7 @@ export namespace MutexStatsEntity {
     'queuedCount',
     'timeout',
     'totalExecuted'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

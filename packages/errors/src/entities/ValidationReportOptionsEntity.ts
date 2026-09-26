@@ -42,7 +42,7 @@ export namespace ValidationReportOptionsEntity {
   } as const), 'type': SchemaNode.defineString({
     'description': "Problem type URI (defaults to 'https://problems.studnicky.dev/validation').",
     'type': 'string'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

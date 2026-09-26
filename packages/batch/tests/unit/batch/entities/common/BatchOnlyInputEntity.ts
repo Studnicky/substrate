@@ -13,11 +13,6 @@ export namespace BatchOnlyInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'batch': BatchConfigEntity.Node },
-    ['batch'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': BatchConfigEntity.Node }, ['batch'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -45,36 +45,29 @@ export namespace BusQueueScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const ItemNode = SchemaNode.defineOneOf([
+  const ItemNode = SchemaNode.defineOneOf({}, [
     SchemaNode.defineNumber({ 'type': 'number' } as const),
     SchemaNode.defineString({ 'type': 'string' } as const)
   ] as const);
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'flushMicrotasks': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'handlerErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'highWaterMark': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'item': ItemNode,
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode),
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined),
           'onErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'options': SchemaNode.defineUnknown({} as const),
           'throwOn': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'total': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+          'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'admission-and-overflow-order', 'admission-hook-on-hook-error', 'abort-initially-cancelled',
         'abort-mid-drain-fires-exactly-once', 'abort-releases-drain-waiter', 'abort-releases-pending',
         'abort-signal-cancels', 'async-on-error-swallowed', 'drain-empty-immediate', 'drain-empties',
@@ -82,9 +75,6 @@ export namespace BusQueueScenarioCaseEntity {
         'on-drop-noop', 'on-enqueue-hook', 'on-error-continues', 'overflow-hook-fires', 'rejecting-enqueue-hook',
         'rejecting-overflow-hook', 'single-drain-loop', 'size-before-drain', 'throwing-dequeue-hook'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

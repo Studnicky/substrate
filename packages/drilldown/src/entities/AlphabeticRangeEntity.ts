@@ -16,7 +16,7 @@ export namespace AlphabeticRangeEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'end': SchemaNode.defineString({ 'type': 'string' } as const), 'start': SchemaNode.defineString({ 'type': 'string' } as const) }, ['end', 'start'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'end': SchemaNode.defineString({ 'type': 'string' } as const), 'start': SchemaNode.defineString({ 'type': 'string' } as const) }, ['end', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

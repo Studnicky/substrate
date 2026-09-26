@@ -16,15 +16,10 @@ export namespace MaxElapsedMsScenarioCaseEntity {
     'type': 'object'
   };
 
-  const retryNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const retryNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'maximumElapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
       'maximumRetries': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -62,41 +57,26 @@ export namespace MaxElapsedMsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'attempts': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'attemptsLessThan': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'elapsedLessThanFactor': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'maximumElapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
           'totalRetries': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'alwaysRetryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
           'retry': retryNode
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

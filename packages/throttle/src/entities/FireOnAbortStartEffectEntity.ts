@@ -28,10 +28,10 @@ export namespace FireOnAbortStartEffectEntity {
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelledCount': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'variant': SchemaNode.defineConst('FireOnAbortStart' as const) }, [
+  } as const), 'variant': SchemaNode.defineConst({}, 'FireOnAbortStart' as const) }, [
     'variant',
     'cancelledCount'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -22,7 +22,7 @@ export namespace EngineContextEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'budget': NodeBudgetEntity.Node, 'granularity': GranularityOptionsEntity.Node, 'maximumDepth': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'maximumNodes': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimumGroupSize': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['budget', 'minimumGroupSize'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'budget': NodeBudgetEntity.Node, 'granularity': GranularityOptionsEntity.Node, 'maximumDepth': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'maximumNodes': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimumGroupSize': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['budget', 'minimumGroupSize'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -21,15 +21,10 @@ export namespace ThrottleConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'adaptive': AdaptiveConfigEntity.Node,
-      'concurrencyLimit': SchemaNode.defineNumber({ 'description': 'Maximum number of concurrent operations.', 'minimum': 1, 'type': 'integer' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'adaptive': AdaptiveConfigEntity.Node,
+    'concurrencyLimit': SchemaNode.defineNumber({ 'description': 'Maximum number of concurrent operations.', 'minimum': 1, 'type': 'integer' } as const)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

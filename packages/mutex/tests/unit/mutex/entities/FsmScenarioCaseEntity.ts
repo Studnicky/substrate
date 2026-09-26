@@ -57,32 +57,17 @@ const transitionSchemaFor = <const From extends string, const To extends string,
   'type': 'object'
 } as const);
 
-const transitionNodeFor = <const From extends string, const To extends string, const Shape extends string>(from: From, to: To, shape: Shape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const transitionNodeFor = <const From extends string, const To extends string, const Shape extends string>(from: From, to: To, shape: Shape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'from': SchemaNode.defineConst(from),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'from': SchemaNode.defineConst({}, from),
         'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'to': SchemaNode.defineConst(to)
-      },
-      ['from', 'key', 'to'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['key'] as const,
-      { 'additionalProperties': false }
-    ),
+        'to': SchemaNode.defineConst({}, to)
+      }, ['from', 'key', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const illegalTransitionSchema = {
   'additionalProperties': false,
@@ -120,58 +105,28 @@ export namespace FsmScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'invalidState': SchemaNode.defineConst(false as const), 'validStates': SchemaNode.defineConst(true as const) },
-          ['invalidState', 'validStates'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'invalidState': SchemaNode.defineConst({}, false as const), 'validStates': SchemaNode.defineConst({}, true as const) }, ['invalidState', 'validStates'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'invalidState': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'states': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum(MUTEX_KEY_STATES))
-          },
-          ['invalidState', 'states'] as const,
-          { 'additionalProperties': false }
-        ),
+            'states': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum({}, MUTEX_KEY_STATES), undefined)
+          }, ['invalidState', 'states'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('validate-states' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
+        'shape': SchemaNode.defineConst({}, 'validate-states' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     transitionNodeFor('unlocked', 'locked', 'unlocked-to-locked'),
     transitionNodeFor('locked', 'queued', 'locked-to-queued'),
     transitionNodeFor('queued', 'locked', 'queued-to-locked'),
     transitionNodeFor('locked', 'unlocked', 'locked-to-unlocked'),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'errorPattern': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['errorPattern'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorPattern': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['errorPattern'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('illegal-transition-throws' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'illegal-transition-throws' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ]);
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -14,7 +14,7 @@ export namespace TimeUnitEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(VALID_TIME_UNITS);
+  export const Node = SchemaNode.defineEnum({}, VALID_TIME_UNITS);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

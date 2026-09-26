@@ -21,17 +21,12 @@ export namespace CloudWatchLogSchemaFieldsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'level': LogLevelEntity.Node,
-      'message': LogBodyDataEntity.Node.schema.properties.message,
-      'service': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'time': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['level', 'message', 'service', 'time'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'level': LogLevelEntity.Node,
+    'message': LogBodyDataEntity.Node.schema.properties.message,
+    'service': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'time': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+  }, ['level', 'message', 'service', 'time'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

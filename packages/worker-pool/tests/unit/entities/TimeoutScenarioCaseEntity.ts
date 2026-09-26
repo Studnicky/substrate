@@ -78,76 +78,41 @@ export namespace TimeoutScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const BatchConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  const BatchConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const WorkerPoolConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const WorkerPoolConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigNode,
       'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'startupTimeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'workerPath': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['workerPath'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['workerPath'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const ItemNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ItemNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'error': SchemaNode.defineString({ 'type': 'string' } as const),
       'exitAfterResult': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'ms': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'value': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['value'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const SignalNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'shape': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['shape'] as const,
-    { 'additionalProperties': true }
-  );
+  const SignalNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineString({ 'type': 'string' } as const) }, ['shape'] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'errorMessageIncludes': SchemaNode.defineString({ 'type': 'string' } as const),
           'excludesMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'messagesAfterCompose': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'messagesAfterRun': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'timedOutIndexes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode), 'signal': SignalNode, 'workerPool': WorkerPoolConfigNode },
-        ['workerPool'] as const,
-        { 'additionalProperties': false }
-      ),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'timedOutIndexes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined), 'signal': SignalNode, 'workerPool': WorkerPoolConfigNode }, ['workerPool'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'worker-timeout', 'signal-already-aborted', 'within-timeout', 'awaits-signal-composition', 'signal-compose-rejects',
         'signal-compose-rejects-string', 'compose-after-exit', 'compose-after-exit-queued', 'startup-timeout'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

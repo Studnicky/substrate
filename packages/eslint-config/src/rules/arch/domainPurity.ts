@@ -40,35 +40,24 @@ namespace DomainPurityOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      ...LayerOptionsEntity.Node.schema.properties,
-      'domainLayerName': SchemaNode.defineString({
-        'default': 'domain',
-        'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
-        'type': 'string'
-      } as const),
-      'forbiddenCalls': SchemaNode.defineArray(
-        {
-          'default': [],
-          'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
-          'type': 'array'
-        } as const,
-        SchemaNode.defineString({ 'type': 'string' } as const)
-      ),
-      'forbiddenImports': SchemaNode.defineArray(
-        {
-          'default': [],
-          'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
-          'type': 'array'
-        } as const,
-        SchemaNode.defineString({ 'type': 'string' } as const)
-      )
-    },
-    LayerOptionsEntity.Node.schema.required,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    ...LayerOptionsEntity.Node.schema.properties,
+    'domainLayerName': SchemaNode.defineString({
+      'default': 'domain',
+      'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
+      'type': 'string'
+    } as const),
+    'forbiddenCalls': SchemaNode.defineArray({
+      'default': [],
+      'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
+      'type': 'array'
+    } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+    'forbiddenImports': SchemaNode.defineArray({
+      'default': [],
+      'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
+      'type': 'array'
+    } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+  }, LayerOptionsEntity.Node.schema.required, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

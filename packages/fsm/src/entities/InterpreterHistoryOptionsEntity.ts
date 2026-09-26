@@ -14,7 +14,7 @@ export namespace InterpreterHistoryOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'machineId': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'machineId': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

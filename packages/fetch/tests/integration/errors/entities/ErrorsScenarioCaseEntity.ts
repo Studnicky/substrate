@@ -10,16 +10,11 @@ export namespace ErrorsScenarioCaseEntity {
     'required': ['url'],
     'type': 'object'
   } as const;
-  const InputNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'signal': SchemaNode.defineConst('abort-after-ms' as const),
+  const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'signal': SchemaNode.defineConst({}, 'abort-after-ms' as const),
       'timeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const),
       'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['url'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const errorExpectedSchema = {
     'additionalProperties': false,
@@ -46,37 +41,17 @@ export namespace ErrorsScenarioCaseEntity {
     ]
   } as const;
 
-  const ErrorExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'error': SchemaNode.defineEnum(['AbortError', 'Error', 'TimeoutError'] as const),
-      'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)),
+  const ErrorExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'error': SchemaNode.defineEnum({}, ['AbortError', 'Error', 'TimeoutError'] as const),
+      'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), undefined),
       'timeoutMs': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const),
       'urlIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['error'] as const,
-    { 'additionalProperties': false }
-  );
-  const StatusExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'ok': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) },
-    ['ok', 'status'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['error'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const StatusExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'ok': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['ok', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': ErrorExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['description', 'expected', 'input', 'name'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': StatusExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['description', 'expected', 'input', 'name'] as const,
-      { 'additionalProperties': false }
-    )
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': ErrorExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': StatusExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

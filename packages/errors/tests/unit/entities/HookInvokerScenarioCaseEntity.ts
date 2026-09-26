@@ -67,13 +67,13 @@ interface JsonValueNodeSchemaInterface {
   readonly 'anyOf': readonly unknown[];
 }
 
-const jsonValueNode = SchemaNode.defineRecursive<JsonValueNodeSchemaInterface, JSONSchema7Type>((self) => SchemaNode.defineAnyOf([
+const jsonValueNode = SchemaNode.defineRecursive<JsonValueNodeSchemaInterface, JSONSchema7Type>((self) => SchemaNode.defineAnyOf({}, [
   SchemaNode.defineNull({ 'type': 'null' } as const),
   SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
   SchemaNode.defineNumber({ 'type': 'number' } as const),
   SchemaNode.defineString({ 'type': 'string' } as const),
-  SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self)),
-  SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self) })
+  SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self), undefined),
+  SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self), 'patternProperties': {} })
 ] as const));
 
 const jsonValueReferenceSchema = { '$ref': JSON_VALUE_REFERENCE } as const;
@@ -87,12 +87,7 @@ const jsonObjectReferenceSchema = {
   'type': 'object'
 } as const;
 
-const jsonObjectReferenceNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {},
-  [] as const,
-  { 'additionalProperties': jsonValueReferenceNode }
-);
+const jsonObjectReferenceNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': jsonValueReferenceNode, 'patternProperties': {} });
 
 const diagnosticsSchema = {
   'additionalProperties': false,
@@ -105,16 +100,11 @@ const diagnosticsSchema = {
   'type': 'object'
 } as const;
 
-const diagnosticsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const diagnosticsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'details': jsonObjectReferenceNode,
-    'items': SchemaNode.defineArray({ 'type': 'array' } as const, jsonValueReferenceNode),
+    'items': SchemaNode.defineArray({ 'type': 'array' } as const, jsonValueReferenceNode, undefined),
     'plain': jsonObjectReferenceNode
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const invokerSchema = {
   'additionalProperties': false,
@@ -137,9 +127,7 @@ const invokerSchema = {
   'type': 'object'
 } as const;
 
-const invokerNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const invokerNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'callEvent': SchemaNode.defineString({ 'type': 'string' } as const),
     'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
     'delayMicrotask': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -153,10 +141,7 @@ const invokerNode = SchemaNode.defineObject(
     'outerHookName': SchemaNode.defineString({ 'type': 'string' } as const),
     'returnValue': jsonValueReferenceNode,
     'thenEvent': SchemaNode.defineString({ 'type': 'string' } as const)
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The scenario case shape `hook-invoker.loop.spec.ts` exercises across `HookInvoker`'s own contract. */
 export namespace HookInvokerScenarioCaseEntity {
@@ -212,24 +197,20 @@ export namespace HookInvokerScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'afterCompletionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'beforeCompletionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'afterCompletionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'beforeCompletionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'callCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-          'causeMessages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'causeMessages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'causeShape': SchemaNode.defineString({ 'type': 'string' } as const),
           'causeTimeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'completion': jsonValueReferenceNode,
           'errorShape': SchemaNode.defineString({ 'type': 'string' } as const),
-          'erroredHookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'erroredHookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'firstCauseMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'firstHookName': SchemaNode.defineString({ 'type': 'string' } as const),
           'hookCompleted': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -238,28 +219,17 @@ export namespace HookInvokerScenarioCaseEntity {
           'hookRan': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'innerHookName': SchemaNode.defineString({ 'type': 'string' } as const),
           'innerRan': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'notHookInvocationError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'outerHookName': SchemaNode.defineString({ 'type': 'string' } as const),
           'outerRan': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'terminalCauseMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'throws': SchemaNode.defineString({ 'type': 'string' } as const),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'invoker': invokerNode },
-        ['invoker'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'invoker': invokerNode }, ['invoker'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

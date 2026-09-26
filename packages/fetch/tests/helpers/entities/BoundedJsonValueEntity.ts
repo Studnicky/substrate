@@ -15,7 +15,7 @@ import { SchemaNode } from '@studnicky/entity/types';
  */
 export namespace BoundedJsonValueEntity {
   const scalarSchema = { 'oneOf': [{ 'type': 'null' }, { 'type': 'boolean' }, { 'type': 'number' }, { 'type': 'string' }] } as const;
-  const ScalarNode = SchemaNode.defineOneOf([
+  const ScalarNode = SchemaNode.defineOneOf({}, [
     SchemaNode.defineNull({ 'type': 'null' } as const),
     SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -29,10 +29,10 @@ export namespace BoundedJsonValueEntity {
       { 'additionalProperties': scalarSchema, 'properties': {}, 'required': [], 'type': 'object' }
     ]
   } as const;
-  const OneNestedNode = SchemaNode.defineOneOf([
+  const OneNestedNode = SchemaNode.defineOneOf({}, [
     ...ScalarNode.schema.oneOf,
-    SchemaNode.defineArray({ 'type': 'array' } as const, ScalarNode),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ScalarNode })
+    SchemaNode.defineArray({ 'type': 'array' } as const, ScalarNode, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ScalarNode, 'patternProperties': {} })
   ] as const);
 
   export const Schema = {
@@ -43,10 +43,10 @@ export namespace BoundedJsonValueEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     ...ScalarNode.schema.oneOf,
-    SchemaNode.defineArray({ 'type': 'array' } as const, OneNestedNode),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': OneNestedNode })
+    SchemaNode.defineArray({ 'type': 'array' } as const, OneNestedNode, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': OneNestedNode, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

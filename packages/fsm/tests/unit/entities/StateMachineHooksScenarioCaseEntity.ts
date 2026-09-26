@@ -46,44 +46,24 @@ export namespace StateMachineHooksScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const TrafficStateNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'variant': SchemaNode.defineEnum(['red', 'green', 'amber'] as const) },
-    ['variant'] as const,
-    { 'additionalProperties': false }
-  );
+  const TrafficStateNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['red', 'green', 'amber'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const TrafficEventNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'type': SchemaNode.defineConst('advance' as const) },
-    ['type'] as const,
-    { 'additionalProperties': false }
-  );
+  const TrafficEventNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineConst({}, 'advance' as const) }, ['type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'event': TrafficEventNode,
           'state': TrafficStateNode,
-          'states': SchemaNode.defineArray({ 'type': 'array' } as const, TrafficStateNode)
-        },
-        ['event'] as const,
-        { 'additionalProperties': false }
-      ),
+          'states': SchemaNode.defineArray({ 'type': 'array' } as const, TrafficStateNode, undefined)
+        }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'transition-hook', 'enter-hook', 'exit-hook', 'hook-order', 'unchanged-no-hooks', 'multiple-transitions',
         'transition-rejected-hook', 'successful-transition-no-rejection', 'throwing-transition-hook',
         'throwing-rejection-hook', 'async-rejection'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -10,12 +10,7 @@ const pollTimeoutConfigSchema = {
   'type': 'object'
 } as const;
 
-const PollTimeoutConfigNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'pollMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['timeoutMs'] as const,
-  { 'additionalProperties': false }
-);
+const PollTimeoutConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'pollMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** `{ path, content }` pair shared by the two hook-isolation instances in `hook-errors-isolated-per-instance`. */
 const pathContentSchema = {
@@ -25,12 +20,7 @@ const pathContentSchema = {
   'type': 'object'
 } as const;
 
-const PathContentNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-  ['content', 'path'] as const,
-  { 'additionalProperties': false }
-);
+const PathContentNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['content', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The single-field expectation recorded per hook-isolation instance. */
 const messageOnlySchema = {
@@ -40,12 +30,7 @@ const messageOnlySchema = {
   'type': 'object'
 } as const;
 
-const MessageOnlyNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-  ['message'] as const,
-  { 'additionalProperties': false }
-);
+const MessageOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The 20 `FileLock.loop.spec.ts` scenario shapes, discriminated by `shape`. */
 export namespace FileLockScenarioCaseEntity {
@@ -539,534 +524,229 @@ export namespace FileLockScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['timedOut'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'fileLock': PollTimeoutConfigNode, 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['path'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fileLock': PollTimeoutConfigNode, 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('timeout-missing-file' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'timeout-missing-file' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'existedAfterRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'existedDuringLock': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['existedDuringLock', 'existedAfterRelease'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['existedDuringLock', 'existedAfterRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('acquire-success-restores-path' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'acquire-success-restores-path' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['timedOut'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'fileLock': PollTimeoutConfigNode,
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('contention-times-out' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'contention-times-out' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['content'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('read-after-create' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'read-after-create' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['content'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'originalContent': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'updatedContent': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'originalContent', 'updatedContent'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'originalContent', 'updatedContent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('write-then-release-restores-new-content' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'write-then-release-restores-new-content' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['releaseCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['releaseCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('release-idempotent' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'release-idempotent' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'existedAfterDispose': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'existedDuringLock': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['existedDuringLock', 'existedAfterDispose'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['existedDuringLock', 'existedAfterDispose'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('symbol-dispose-releases' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'symbol-dispose-releases' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['timedOut'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'fileLock': PollTimeoutConfigNode,
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('poll-and-timeout-options' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'poll-and-timeout-options' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'acquireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'startCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['startCount', 'acquireCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['startCount', 'acquireCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-acquire-start-and-acquire' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-acquire-start-and-acquire' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['releaseCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['releaseCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-release-original-path' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-release-original-path' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['releaseCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['releaseCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-idempotent-release' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-idempotent-release' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['timedOut'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'fileLock': PollTimeoutConfigNode, 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['path'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fileLock': PollTimeoutConfigNode, 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-timeout' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-timeout' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'minimumContentions': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'minimumWaits': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'timeoutCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['minimumContentions', 'minimumWaits', 'timeoutCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['minimumContentions', 'minimumWaits', 'timeoutCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'fileLock': PollTimeoutConfigNode,
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-contention-wait-and-timeout' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-contention-wait-and-timeout' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['order'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['order'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'fileLock': PollTimeoutConfigNode,
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-order' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-order' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'orphaned': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['orphaned'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'orphaned': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['orphaned'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'hookErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content', 'hookErrorMessage'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content', 'hookErrorMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('throwing-onAcquire-does-not-orphan-lock' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'throwing-onAcquire-does-not-orphan-lock' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'hookCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['hookCauseMessage'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['hookCauseMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('async-rejecting-onAcquire-guarded' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'async-rejecting-onAcquire-guarded' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'first': MessageOnlyNode, 'second': MessageOnlyNode },
-          ['first', 'second'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'first': PathContentNode, 'second': PathContentNode },
-          ['first', 'second'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': MessageOnlyNode, 'second': MessageOnlyNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': PathContentNode, 'second': PathContentNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-errors-isolated-per-instance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-errors-isolated-per-instance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['releaseCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['releaseCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('symbol-dispose-hook' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'symbol-dispose-hook' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'existedAfterRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'existedDuringLock': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['existedDuringLock', 'existedAfterRelease'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['existedDuringLock', 'existedAfterRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'fileLock': PollTimeoutConfigNode,
             'filename': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['filename', 'content'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['filename', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('bare-relative-filename-contention' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'bare-relative-filename-contention' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'contendedCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'errorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'errorMessageIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['errorMessageIncludes', 'errorCount', 'contendedCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['errorMessageIncludes', 'errorCount', 'contendedCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'fileLock': PollTimeoutConfigNode,
-            'fileSystemError': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+            'fileSystemError': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
                 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-              },
-              ['code', 'message'] as const,
-              { 'additionalProperties': false }
-            ),
+              }, ['code', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
             'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['path', 'fileSystemError', 'fileLock'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['path', 'fileSystemError', 'fileLock'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('genuine-fs-error-routes-to-onError' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'genuine-fs-error-routes-to-onError' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

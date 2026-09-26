@@ -27,25 +27,15 @@ export namespace ContinueOnHookErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'statuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum(['fulfilled', 'rejected'] as const))
-        },
-        ['hookErrorCount', 'statuses'] as const,
-        { 'additionalProperties': false }
-      ),
+          'statuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum({}, ['fulfilled', 'rejected'] as const), undefined)
+        }, ['hookErrorCount', 'statuses'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': ContinueOnHookErrorInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('continue-on-hook-error' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'continue-on-hook-error' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

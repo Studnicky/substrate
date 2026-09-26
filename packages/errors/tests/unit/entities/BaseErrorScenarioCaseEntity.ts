@@ -33,13 +33,13 @@ interface JsonValueNodeSchemaInterface {
   readonly 'anyOf': readonly unknown[];
 }
 
-const jsonValueNode = SchemaNode.defineRecursive<JsonValueNodeSchemaInterface, JSONSchema7Type>((self) => SchemaNode.defineAnyOf([
+const jsonValueNode = SchemaNode.defineRecursive<JsonValueNodeSchemaInterface, JSONSchema7Type>((self) => SchemaNode.defineAnyOf({}, [
   SchemaNode.defineNull({ 'type': 'null' } as const),
   SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
   SchemaNode.defineNumber({ 'type': 'number' } as const),
   SchemaNode.defineString({ 'type': 'string' } as const),
-  SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self)),
-  SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self) })
+  SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self), undefined),
+  SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self), 'patternProperties': {} })
 ] as const));
 
 const jsonValueReferenceNode = SchemaNode.defineReference(JSON_VALUE_REFERENCE, jsonValueNode);
@@ -90,12 +90,7 @@ const causeDescriptorSchema = {
   'type': 'object'
 } as const;
 
-const causeDescriptorNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineEnum(['base-error', 'native-error'] as const) },
-  ['message', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+const causeDescriptorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineEnum({}, ['base-error', 'native-error'] as const) }, ['message', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const toMessageInputSchema = {
   'additionalProperties': false,
@@ -108,16 +103,11 @@ const toMessageInputSchema = {
   'type': 'object'
 } as const;
 
-const toMessageInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const toMessageInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'message': SchemaNode.defineString({ 'type': 'string' } as const),
-    'shape': SchemaNode.defineEnum(['native-error', 'primitive'] as const),
-    'value': SchemaNode.defineOneOf([SchemaNode.defineBoolean({ 'type': 'boolean' } as const), SchemaNode.defineNull({ 'type': 'null' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)])
-  },
-  ['shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineEnum({}, ['native-error', 'primitive'] as const),
+    'value': SchemaNode.defineOneOf({}, [SchemaNode.defineBoolean({ 'type': 'boolean' } as const), SchemaNode.defineNull({ 'type': 'null' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)])
+  }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The scenario case shape `base-error.loop.spec.ts` exercises across BaseError's own contract. */
 export namespace BaseErrorScenarioCaseEntity {
@@ -149,35 +139,20 @@ export namespace BaseErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'cause': SchemaNode.defineOneOf([causeDescriptorNode, SchemaNode.defineString({ 'type': 'string' } as const)]),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'cause': SchemaNode.defineOneOf({}, [causeDescriptorNode, SchemaNode.defineString({ 'type': 'string' } as const)]),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'depth': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
-          'metadata': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {},
-            [] as const,
-            { 'additionalProperties': jsonValueReferenceNode }
-          ),
+          'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': jsonValueReferenceNode, 'patternProperties': {} }),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'toMessage': toMessageInputNode
-        },
-        ['message'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -10,12 +10,7 @@ const fileSystemSeedEntrySchema = {
   'type': 'object'
 } as const;
 
-const FileSystemSeedEntryNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-  ['path', 'content'] as const,
-  { 'additionalProperties': false }
-);
+const FileSystemSeedEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['path', 'content'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The two `FileLockVirtualFs.loop.spec.ts` scenario shapes, discriminated by `shape`. */
 export namespace FileLockVirtualFsScenarioCaseEntity {
@@ -98,86 +93,41 @@ export namespace FileLockVirtualFsScenarioCaseEntity {
     ]
   } as const;
 
-  const TimeoutOnlyNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['timeoutMs'] as const,
-    { 'additionalProperties': false }
-  );
+  const TimeoutOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const FileSystemSeedNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileSystemSeedEntryNode);
+  const FileSystemSeedNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileSystemSeedEntryNode, undefined);
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'firstAcquire': SchemaNode.defineConst(true as const),
-            'secondAcquireRejected': SchemaNode.defineConst(true as const),
-            'thirdAcquire': SchemaNode.defineConst(true as const)
-          },
-          ['firstAcquire', 'secondAcquireRejected', 'thirdAcquire'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'fileLock': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode, 'third': TimeoutOnlyNode },
-              ['first', 'second', 'third'] as const,
-              { 'additionalProperties': false }
-            ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'firstAcquire': SchemaNode.defineConst({}, true as const),
+            'secondAcquireRejected': SchemaNode.defineConst({}, true as const),
+            'thirdAcquire': SchemaNode.defineConst({}, true as const)
+          }, ['firstAcquire', 'secondAcquireRejected', 'thirdAcquire'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode, 'third': TimeoutOnlyNode }, ['first', 'second', 'third'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
             'fileSystemSeed': FileSystemSeedNode,
             'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['fileLock', 'fileSystemSeed', 'lockPath'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['fileLock', 'fileSystemSeed', 'lockPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-fs-mutual-exclusion' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-fs-mutual-exclusion' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'initialContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['initialContents', 'updatedContents'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'fileLock': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode },
-              ['first', 'second'] as const,
-              { 'additionalProperties': false }
-            ),
+          }, ['initialContents', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
             'fileSystemSeed': FileSystemSeedNode,
             'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['fileLock', 'fileSystemSeed', 'lockPath', 'updatedContents'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['fileLock', 'fileSystemSeed', 'lockPath', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-fs-read-write' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'virtual-fs-read-write' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

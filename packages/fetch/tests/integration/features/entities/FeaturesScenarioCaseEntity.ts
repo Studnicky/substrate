@@ -5,7 +5,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 import { BoundedJsonValueEntity } from '../../../helpers/entities/BoundedJsonValueEntity.js';
 
 const openObjectSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const OpenObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node });
+const OpenObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
 
 const requestSchema = {
   'additionalProperties': false,
@@ -13,12 +13,7 @@ const requestSchema = {
   'required': ['url'],
   'type': 'object'
 } as const;
-const RequestNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'options': OpenObjectNode, 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-  ['url'] as const,
-  { 'additionalProperties': false }
-);
+const RequestNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': OpenObjectNode, 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const caseFields = { 'description': { 'minLength': 1, 'type': 'string' }, 'name': { 'minLength': 1, 'type': 'string' } } as const;
 const caseNodeFields = {
@@ -42,17 +37,12 @@ export namespace FeaturesScenarioCaseEntity {
     } as const;
   }
   function statusBranchNode<TShape extends string>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['status'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false }),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['status'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const paramsWithBaseUrlSchema = {
@@ -66,20 +56,15 @@ export namespace FeaturesScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const ParamsWithBaseUrlNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ParamsWithBaseUrlNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'itemsLengthAtMost': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['itemsLengthAtMost'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('params-apply-defaults-with-baseURL' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'itemsLengthAtMost': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['itemsLengthAtMost'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'params-apply-defaults-with-baseURL' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const queryRecordSchema = { 'additionalProperties': { 'type': 'string' }, 'properties': {}, 'required': [], 'type': 'object' } as const;
-  const QueryRecordNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const) });
+  const QueryRecordNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const), 'patternProperties': {} });
   const paramsWithoutBaseUrlSchema = {
     'additionalProperties': false,
     'properties': {
@@ -91,20 +76,15 @@ export namespace FeaturesScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const ParamsWithoutBaseUrlNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ParamsWithoutBaseUrlNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'query': QueryRecordNode }, ['query'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('params-apply-defaults-without-baseURL' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'query': QueryRecordNode }, ['query'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode, 'request': RequestNode }, ['fetchClient', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'params-apply-defaults-without-baseURL' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const noRequestInputSchema = { 'additionalProperties': false, 'properties': { 'fetchClient': openObjectSchema }, 'required': ['fetchClient'], 'type': 'object' } as const;
-  const NoRequestInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode }, ['fetchClient'] as const, { 'additionalProperties': false });
+  const NoRequestInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchClient': OpenObjectNode }, ['fetchClient'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   function abortBranch<TShape extends string>(shape: TShape) {
     return {
@@ -120,22 +100,12 @@ export namespace FeaturesScenarioCaseEntity {
     } as const;
   }
   function abortBranchNode<TShape extends string>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'abortErrorName': SchemaNode.defineConst('AbortError' as const), 'urlIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['abortErrorName', 'urlIncludes'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'abortErrorName': SchemaNode.defineConst({}, 'AbortError' as const), 'urlIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['abortErrorName', 'urlIncludes'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'input': NoRequestInputNode,
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const timeoutFirstSchema = {
@@ -149,17 +119,12 @@ export namespace FeaturesScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const TimeoutFirstNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const TimeoutFirstNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeoutErrorName': SchemaNode.defineConst('TimeoutError' as const) }, ['timeoutErrorName'] as const, { 'additionalProperties': false }),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeoutErrorName': SchemaNode.defineConst({}, 'TimeoutError' as const) }, ['timeoutErrorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': NoRequestInputNode,
-      'shape': SchemaNode.defineConst('timeout-first' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'timeout-first' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -179,7 +144,7 @@ export namespace FeaturesScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     statusBranchNode('baseURL-prepend-relative'),
     statusBranchNode('baseURL-keep-absolute'),
     statusBranchNode('baseURL-trailing-slash'),

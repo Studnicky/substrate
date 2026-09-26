@@ -60,60 +60,35 @@ export namespace HooksScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const WorkerPoolConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const), 'workerPath': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['workerPath'] as const,
-    { 'additionalProperties': false }
-  );
+  const WorkerPoolConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const), 'workerPath': SchemaNode.defineString({ 'type': 'string' } as const) }, ['workerPath'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const ItemNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'value': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['value'] as const,
-    { 'additionalProperties': false }
-  );
+  const ItemNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'value': SchemaNode.defineString({ 'type': 'string' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'firstHookErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'firstHookErrorName': SchemaNode.defineString({ 'type': 'string' } as const),
-          'firstResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'hookErrorMessages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'rejectionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'firstResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'hookErrorMessages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'rejectionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const), undefined),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'secondHookErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'secondHookErrorName': SchemaNode.defineString({ 'type': 'string' } as const),
-          'secondResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'seenErrors': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'seenTypes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'firstItems': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode),
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode),
-          'secondItems': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode),
+          'secondResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'seenErrors': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'seenTypes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'firstItems': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined),
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined),
+          'secondItems': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined),
           'workerPool': WorkerPoolConfigNode
-        },
-        ['workerPool'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['workerPool'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'on-message-envelopes', 'error-envelope-and-hook', 'throwing-on-message', 'async-rejecting-on-message', 'hook-errors-instance-local'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -16,14 +16,9 @@ export namespace DetachedGetterMutationsEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       all: NestedMutationEntity.Node,
       byId: NestedMutationEntity.Node,
-    },
-    ["all", "byId"] as const,
-    { additionalProperties: false },
-  );
+    }, ["all", "byId"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -41,38 +41,18 @@ export namespace EventEntitiesScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const ValidationCaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'entity': SchemaNode.defineEnum(['BoundedDispatcherErrorEventEntity', 'BoundedDispatcherStartEventEntity', 'BoundedDispatcherSuccessEventEntity'] as const),
+  const ValidationCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'entity': SchemaNode.defineEnum({}, ['BoundedDispatcherErrorEventEntity', 'BoundedDispatcherStartEventEntity', 'BoundedDispatcherSuccessEventEntity'] as const),
       'expected': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'value': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true })
-    },
-    ['entity', 'expected', 'value'] as const,
-    { 'additionalProperties': false }
-  );
+      'value': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} })
+    }, ['entity', 'expected', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const)) },
-        ['validationResults'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, ValidationCaseNode) },
-        ['validations'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined) }, ['validationResults'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, ValidationCaseNode, undefined) }, ['validations'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['entities-reject-invalid', 'entities-valid-phases'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, ['entities-reject-invalid', 'entities-valid-phases'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

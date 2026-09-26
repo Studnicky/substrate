@@ -11,6 +11,6 @@ export namespace ArithmeticScenarioCaseEntity {
     'oneOf': [AddScenarioCaseEntity.Schema, MultiplyScenarioCaseEntity.Schema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([AddScenarioCaseEntity.Node, MultiplyScenarioCaseEntity.Node]);
+  export const Node = SchemaNode.defineOneOf({}, [AddScenarioCaseEntity.Node, MultiplyScenarioCaseEntity.Node]);
   export type Type = NodeStaticType<typeof Node>;
 }

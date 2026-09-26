@@ -66,20 +66,11 @@ export namespace MatchersScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {},
-        [] as const,
-        { 'additionalProperties': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'arrayValue': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'arrayValue': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'booleanValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'code': SchemaNode.defineString({ 'type': 'string' } as const),
           'connectionCode': SchemaNode.defineString({ 'type': 'string' } as const),
@@ -87,20 +78,14 @@ export namespace MatchersScenarioCaseEntity {
           'deadlockCode': SchemaNode.defineString({ 'type': 'string' } as const),
           'errorName': SchemaNode.defineString({ 'type': 'string' } as const),
           'foreignKeyCode': SchemaNode.defineString({ 'type': 'string' } as const),
-          'numberValue': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]),
+          'numberValue': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]),
           'objectValue': SchemaNode.defineUnknown({} as const),
           'prototypeValue': SchemaNode.defineUnknown({} as const),
           'status': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'stringValue': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

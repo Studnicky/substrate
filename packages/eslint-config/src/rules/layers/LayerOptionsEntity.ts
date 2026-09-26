@@ -44,14 +44,14 @@ export namespace LayerOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'allowedImports': SchemaNode.defineObject({ 'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.', 'type': 'object' } as const, {  }, [] as const, { 'patternProperties': { '.*': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) } }), 'bindings': SchemaNode.defineArray({ 'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose unit applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.', 'type': 'array' } as const, LayerBindingEntity.Node), 'layers': SchemaNode.defineArray({ 'description': 'Ordered list of enforced layer names, e.g. ["domain", "ports", "application", "adapters", "infrastructure"].', 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)), 'sourceRoot': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'allowedImports': SchemaNode.defineObject({ 'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': false, 'patternProperties': { '.*': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) } }), 'bindings': SchemaNode.defineArray({ 'description': 'Ordered list of matchers resolving a file path or an import specifier to a layer name -- folder, workspace package, internal module specifier, external dependency, or the Node builtin group. Evaluated in array order; the first binding whose unit applies to the resolution in progress and whose pattern matches wins. There is no implicit fallback: a folder-based project declares its own folder bindings the same as any other project declares its module or dependency bindings.', 'type': 'array' } as const, LayerBindingEntity.Node, undefined), 'layers': SchemaNode.defineArray({ 'description': 'Ordered list of enforced layer names, e.g. ["domain", "ports", "application", "adapters", "infrastructure"].', 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined), 'sourceRoot': SchemaNode.defineString({
     'description': 'Path segment(s) after which a folder/package binding\'s candidate segment appears, e.g. "src" or "packages".',
     'type': 'string'
   } as const) }, [
     'bindings',
     'layers',
     'sourceRoot'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   // `validate` remains a predicate for callers checking the shared base shape inside a wider

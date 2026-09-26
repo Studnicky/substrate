@@ -18,18 +18,13 @@ export namespace NestedMutationEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       profileName: SchemaNode.defineString({
         type: "string",
       } as const),
       role: SchemaNode.defineString({
         type: "string",
       } as const),
-    },
-    ["profileName", "role"] as const,
-    { additionalProperties: false },
-  );
+    }, ["profileName", "role"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

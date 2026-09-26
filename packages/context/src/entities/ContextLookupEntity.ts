@@ -16,15 +16,10 @@ export namespace ContextLookupEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'value': SchemaNode.defineUnknown({} as const)
-    },
-    ['found', 'value'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'value': SchemaNode.defineUnknown({} as const)
+  }, ['found', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

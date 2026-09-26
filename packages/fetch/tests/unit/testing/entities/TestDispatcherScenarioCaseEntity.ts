@@ -19,12 +19,7 @@ export namespace TestDispatcherScenarioCaseEntity {
     'required': ['connections', 'enabled'],
     'type': 'object'
   } as const;
-  const TestDispatcherConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['connections', 'enabled'] as const,
-    { 'additionalProperties': false }
-  );
+  const TestDispatcherConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['connections', 'enabled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -69,47 +64,32 @@ export namespace TestDispatcherScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'body': BoundedJsonValueEntity.Node,
           'errorCode': SchemaNode.defineString({ 'type': 'string' } as const),
           'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-          'headers': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const) }),
+          'headers': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const), 'patternProperties': {} }),
           'longStatus': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'origin': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'queuedErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'queuedErrorName': SchemaNode.defineString({ 'type': 'string' } as const),
           'stats': SocketDispatcherStatsEntity.Node,
           'status': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-        },
-        ['origin'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, ['origin'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'abortAfterMs': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'body': SchemaNode.defineString({ 'type': 'string' } as const),
-          'bodyBuffer': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const)),
-          'init': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node }),
+          'bodyBuffer': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined),
+          'init': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} }),
           'longUrl': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'queuedUrl': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'testDispatcher': TestDispatcherConfigNode,
           'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['testDispatcher'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(shapes)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, shapes)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

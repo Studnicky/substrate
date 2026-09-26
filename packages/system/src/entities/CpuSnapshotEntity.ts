@@ -16,7 +16,7 @@ export namespace CpuSnapshotEntity {
     'title': 'CpuSnapshotType',
     'type': 'object'
   } as const;
-  export const Node = SchemaNode.defineObject({ 'title': 'CpuSnapshotType', 'type': 'object' } as const, { 'logicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'model': SchemaNode.defineString({ 'type': 'string' } as const), 'physicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['logicalCount', 'model', 'physicalCount'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'CpuSnapshotType', 'type': 'object' } as const, { 'logicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'model': SchemaNode.defineString({ 'type': 'string' } as const), 'physicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['logicalCount', 'model', 'physicalCount'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

@@ -32,28 +32,18 @@ export namespace FetchTransportScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineOneOf([
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'init': SchemaNode.defineObject({ 'type': 'object' } as const, { 'method': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['method'] as const, { 'additionalProperties': false }),
+      'expected': SchemaNode.defineOneOf({}, [
+        SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'init': SchemaNode.defineObject({ 'type': 'object' } as const, { 'method': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['method'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
             'input': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          },
-          ['init', 'input'] as const,
-          { 'additionalProperties': false }
-        ),
-        SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseBody': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['responseBody'] as const, { 'additionalProperties': false })
+          }, ['init', 'input'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseBody': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['responseBody'] as const, { 'additionalProperties': false, 'patternProperties': {} })
       ] as const),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'operation': SchemaNode.defineEnum(operations)
-    },
-    ['description', 'expected', 'input', 'name', 'operation'] as const,
-    { 'additionalProperties': false }
-  );
+      'operation': SchemaNode.defineEnum({}, operations)
+    }, ['description', 'expected', 'input', 'name', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

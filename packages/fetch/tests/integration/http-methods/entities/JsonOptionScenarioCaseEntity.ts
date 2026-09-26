@@ -5,7 +5,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 import { BoundedJsonValueEntity } from '../../../helpers/entities/BoundedJsonValueEntity.js';
 
 const jsonObjectSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node });
+const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
 
 const inputSchema = {
   'additionalProperties': false,
@@ -19,22 +19,17 @@ const inputSchema = {
   'required': ['baseURL', 'method', 'path'],
   'type': 'object'
 } as const;
-const InputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
     'body': JsonObjectNode,
     'json': JsonObjectNode,
-    'method': SchemaNode.defineEnum(['PATCH', 'POST', 'PUT'] as const),
+    'method': SchemaNode.defineEnum({}, ['PATCH', 'POST', 'PUT'] as const),
     'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-  },
-  ['baseURL', 'method', 'path'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['baseURL', 'method', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const commonFields = { 'client': { 'enum': ['absolute', 'base'] }, 'description': { 'minLength': 1, 'type': 'string' }, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' } } as const;
 const commonNodeFields = {
-  'client': SchemaNode.defineEnum(['absolute', 'base'] as const),
+  'client': SchemaNode.defineEnum({}, ['absolute', 'base'] as const),
   'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
   'input': InputNode,
   'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
@@ -62,26 +57,16 @@ export namespace JsonOptionScenarioCaseEntity {
     ]
   } as const;
 
-  const BodyExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const BodyExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'body': JsonObjectNode,
       'headerContentType': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const)
-    },
-    ['body', 'status'] as const,
-    { 'additionalProperties': false }
-  );
-  const JsonExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'json': JsonObjectNode, 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) },
-    ['json', 'status'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['body', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const JsonExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'json': JsonObjectNode, 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['json', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': BodyExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': JsonExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false })
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': BodyExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': JsonExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

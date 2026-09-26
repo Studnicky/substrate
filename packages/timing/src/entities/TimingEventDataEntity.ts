@@ -24,7 +24,7 @@ export namespace TimingEventDataEntity {
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({
     'description': "The formatted event name. Format: 'component.operation' or 'component.operation.status'",
     'type': 'string'
-  } as const) }, ['event'] as const, { 'additionalProperties': false });
+  } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

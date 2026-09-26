@@ -13,11 +13,6 @@ export namespace CtxNumberStagesInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'ctx': SchemaNode.defineNumber({ 'type': 'number' } as const), 'stages': SchemaNode.defineArray({ 'type': 'array' } as const, SubclassStageSpecEntity.Node) },
-    ['ctx', 'stages'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'ctx': SchemaNode.defineNumber({ 'type': 'number' } as const), 'stages': SchemaNode.defineArray({ 'type': 'array' } as const, SubclassStageSpecEntity.Node, undefined) }, ['ctx', 'stages'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

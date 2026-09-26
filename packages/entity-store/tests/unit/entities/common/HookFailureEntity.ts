@@ -15,15 +15,10 @@ export namespace HookFailureEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       message: SchemaNode.defineString({
         type: "string",
       } as const),
-    },
-    ["message"] as const,
-    { additionalProperties: false },
-  );
+    }, ["message"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -16,7 +16,7 @@ export namespace OrderRecordEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'category': SchemaNode.defineString({ 'type': 'string' } as const), 'region': SchemaNode.defineString({ 'type': 'string' } as const), 'status': SchemaNode.defineString({ 'type': 'string' } as const) }, ['category', 'region', 'status'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'category': SchemaNode.defineString({ 'type': 'string' } as const), 'region': SchemaNode.defineString({ 'type': 'string' } as const), 'status': SchemaNode.defineString({ 'type': 'string' } as const) }, ['category', 'region', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

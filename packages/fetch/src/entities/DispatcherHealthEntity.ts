@@ -45,7 +45,7 @@ export namespace DispatcherHealthEntity {
   } as const), 'recommendation': SchemaNode.defineString({
     'description': 'Recommendation for improving dispatcher health. Undefined if dispatcher is healthy or doesn\'t exist.',
     'type': 'string'
-  } as const), 'stats': SocketDispatcherStatsEntity.Node }, ['healthy'] as const, { 'additionalProperties': false });
+  } as const), 'stats': SocketDispatcherStatsEntity.Node }, ['healthy'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

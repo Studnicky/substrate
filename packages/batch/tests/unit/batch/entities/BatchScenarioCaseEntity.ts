@@ -34,7 +34,7 @@ export namespace BatchScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     ProcessEmptyScenarioCaseEntity.Node,
     ProcessSingleBatchScenarioCaseEntity.Node,
     ProcessSingleBatchConcurrentScenarioCaseEntity.Node,

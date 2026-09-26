@@ -17,7 +17,7 @@ export namespace ErrorWithStatusEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithStatus', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorWithStatus', 'type': 'object' } as const, { 'status': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['status'] as const, { 'additionalProperties': true });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithStatus', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorWithStatus', 'type': 'object' } as const, { 'status': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['status'] as const, { 'additionalProperties': true, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

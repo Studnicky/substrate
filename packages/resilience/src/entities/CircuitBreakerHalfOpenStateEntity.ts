@@ -16,7 +16,7 @@ export namespace CircuitBreakerHalfOpenStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'successCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'variant': SchemaNode.defineConst('halfOpen' as const) }, ['successCount', 'variant'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'successCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'variant': SchemaNode.defineConst({}, 'halfOpen' as const) }, ['successCount', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

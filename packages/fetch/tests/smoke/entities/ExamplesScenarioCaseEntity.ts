@@ -15,15 +15,10 @@ export namespace ExamplesScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'entrypoint': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['entrypoint'] as const, { 'additionalProperties': false }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'entrypoint': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['entrypoint'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['description', 'input', 'name'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -145,49 +145,30 @@ export namespace DrillDownConfigEntity {
     DrilldownRulesEntity.Node
   );
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'autoGrouping': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'mode': SchemaNode.defineEnum(Schema.properties.autoGrouping.properties.mode.enum),
-          'target': SchemaNode.defineNumber(Schema.properties.autoGrouping.properties.target)
-        },
-        ['mode', 'target'] as const
-      ),
-      'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.excludeProperties.items)),
-      'filter': SchemaNode.defineArray({ 'type': 'array' } as const, DrilldownRulesEntity.FilterRuleNode),
-      'granularity': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'cidr': SchemaNode.defineNumber(Schema.properties.granularity.properties.cidr),
-          'count': SchemaNode.defineNumber(Schema.properties.granularity.properties.count),
-          'date': SchemaNode.defineEnum(Schema.properties.granularity.properties.date.enum),
-          'density': SchemaNode.defineNumber(Schema.properties.granularity.properties.density),
-          'prefix': SchemaNode.defineNumber(Schema.properties.granularity.properties.prefix)
-        },
-        [] as const
-      ),
-      'maximumDepth': SchemaNode.defineNumber(Schema.properties.maximumDepth),
-      'maximumNodes': SchemaNode.defineNumber(Schema.properties.maximumNodes),
-      'minimumGroupSize': SchemaNode.defineNumber(Schema.properties.minimumGroupSize),
-      'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.propertyPriority.items)),
-      'rules': rulesNode,
-      'sort': SchemaNode.defineArray(
-        { 'type': 'array' } as const,
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'direction': SchemaNode.defineEnum(Schema.properties.sort.items.properties.direction.enum),
-            'property': SchemaNode.defineString(Schema.properties.sort.items.properties.property)
-          },
-          ['property', 'direction'] as const
-        )
-      )
-    },
-    [] as const
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'autoGrouping': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'mode': SchemaNode.defineEnum({}, Schema.properties.autoGrouping.properties.mode.enum),
+      'target': SchemaNode.defineNumber(Schema.properties.autoGrouping.properties.target)
+    }, ['mode', 'target'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.excludeProperties.items), undefined),
+    'filter': SchemaNode.defineArray({ 'type': 'array' } as const, DrilldownRulesEntity.FilterRuleNode, undefined),
+    'granularity': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'cidr': SchemaNode.defineNumber(Schema.properties.granularity.properties.cidr),
+      'count': SchemaNode.defineNumber(Schema.properties.granularity.properties.count),
+      'date': SchemaNode.defineEnum({}, Schema.properties.granularity.properties.date.enum),
+      'density': SchemaNode.defineNumber(Schema.properties.granularity.properties.density),
+      'prefix': SchemaNode.defineNumber(Schema.properties.granularity.properties.prefix)
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'maximumDepth': SchemaNode.defineNumber(Schema.properties.maximumDepth),
+    'maximumNodes': SchemaNode.defineNumber(Schema.properties.maximumNodes),
+    'minimumGroupSize': SchemaNode.defineNumber(Schema.properties.minimumGroupSize),
+    'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString(Schema.properties.propertyPriority.items), undefined),
+    'rules': rulesNode,
+    'sort': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'direction': SchemaNode.defineEnum({}, Schema.properties.sort.items.properties.direction.enum),
+      'property': SchemaNode.defineString(Schema.properties.sort.items.properties.property)
+    }, ['property', 'direction'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   /** Type-guard — returns true when `value` is a valid `DrillDownConfigEntity.Type`. */

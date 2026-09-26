@@ -11,7 +11,7 @@ export namespace SortDirectionEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['asc', 'desc'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['asc', 'desc'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

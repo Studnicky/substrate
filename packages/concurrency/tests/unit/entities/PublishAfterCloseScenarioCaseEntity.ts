@@ -27,30 +27,15 @@ export namespace PublishAfterCloseScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'items': SchemaNode.defineArray({ 'maxItems': 0, 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)) },
-        ['items'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'items': SchemaNode.defineArray({ 'maxItems': 0, 'type': 'array' } as const, SchemaNode.defineUnknown({} as const), undefined) }, ['items'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'item': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['item', 'key'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['item', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('publish-after-close' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'publish-after-close' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

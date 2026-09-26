@@ -17,7 +17,7 @@ export namespace FlagDefinitionEntity {
   } as const;
 
   /** The shape registered under a flag name via `FlagEvaluator#register()`. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'defaultValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'rolloutPercent': SchemaNode.defineNumber({ 'maximum': 100, 'minimum': 0, 'type': 'number' } as const) }, ['defaultValue', 'enabled'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'defaultValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'rolloutPercent': SchemaNode.defineNumber({ 'maximum': 100, 'minimum': 0, 'type': 'number' } as const) }, ['defaultValue', 'enabled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

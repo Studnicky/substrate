@@ -24,25 +24,15 @@ export namespace OnBatchCompleteAbortScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'batchCompleteCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'rejectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['batchCompleteCount', 'rejectedMessage'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['batchCompleteCount', 'rejectedMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': BatchItemsErrorInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('on-batch-complete-abort' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'on-batch-complete-abort' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

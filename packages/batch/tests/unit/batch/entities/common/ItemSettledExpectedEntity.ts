@@ -11,14 +11,9 @@ export namespace ItemSettledExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'itemSettledCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'rejectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['itemSettledCount', 'rejectedMessage'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['itemSettledCount', 'rejectedMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

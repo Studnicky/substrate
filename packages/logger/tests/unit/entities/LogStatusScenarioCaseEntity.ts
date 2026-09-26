@@ -23,14 +23,9 @@ export namespace LogStatusScenarioCaseEntity {
     'required': ['values'],
     'type': 'object'
   } as const;
-  const valuesNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'values': SchemaNode.defineArray({ 'type': 'array' } as const, LogStatusEntity.Node) },
-    ['values'] as const,
-    { 'additionalProperties': false }
-  );
+  const valuesNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': SchemaNode.defineArray({ 'type': 'array' } as const, LogStatusEntity.Node, undefined) }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const emptyInputSchema = { 'additionalProperties': false, 'properties': {}, 'required': [], 'type': 'object' } as const;
-  const emptyInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false });
+  const emptyInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -45,17 +40,12 @@ export namespace LogStatusScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
       'expected': valuesNode,
       'input': emptyInputNode,
       'name': nameNode,
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

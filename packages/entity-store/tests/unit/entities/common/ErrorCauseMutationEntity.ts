@@ -18,18 +18,13 @@ export namespace ErrorCauseMutationEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       attempt: SchemaNode.defineNumber({
         type: "number",
       } as const),
       message: SchemaNode.defineString({
         type: "string",
       } as const),
-    },
-    ["attempt", "message"] as const,
-    { additionalProperties: false },
-  );
+    }, ["attempt", "message"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

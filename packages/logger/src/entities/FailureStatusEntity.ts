@@ -11,7 +11,7 @@ export namespace FailureStatusEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['failed', 'timeout', 'invalid', 'not_found', 'unauthorized', 'rate_limited', 'unavailable'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['failed', 'timeout', 'invalid', 'not_found', 'unauthorized', 'rate_limited', 'unavailable'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

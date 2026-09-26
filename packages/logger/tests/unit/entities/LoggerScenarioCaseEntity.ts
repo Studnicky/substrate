@@ -46,41 +46,41 @@ export namespace LoggerScenarioCaseEntity {
   const bareAsyncOnTransportErrorSchema = { 'additionalProperties': false, 'properties': { 'description': nameSchema, 'name': nameSchema, 'shape': { 'const': 'async-onTransportError' } }, 'required': ['description', 'name', 'shape'], 'type': 'object' } as const;
   const bareHookInvocationErrorCauseSchema = { 'additionalProperties': false, 'properties': { 'description': nameSchema, 'name': nameSchema, 'shape': { 'const': 'hook-invocation-error-cause' } }, 'required': ['description', 'name', 'shape'], 'type': 'object' } as const;
   const bareAsyncOnLogUnhandledSchema = { 'additionalProperties': false, 'properties': { 'description': nameSchema, 'name': nameSchema, 'shape': { 'const': 'async-onLog-unhandled' } }, 'required': ['description', 'name', 'shape'], 'type': 'object' } as const;
-  const bareCreateDefaultNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('create-default' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareCreateInvalidMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('create-invalid-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareSnapshotMetadataAndTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('snapshot-metadata-and-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareFanoutMultipleTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('fanout-multiple-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareFanoutTransportThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('fanout-transport-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareFanoutOnTransportErrorThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('fanout-onTransportError-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareChildInheritsMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('child-inherits-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareChildOverridesMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('child-overrides-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareGrandchildMergesMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('grandchild-merges-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareChildSharesTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('child-shares-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareChildSnapshotsMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('child-snapshots-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareChildCreateHookNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('child-create-hook' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareRecordShapeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('record-shape' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareRecordLevelMappingNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('record-level-mapping' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareRecordOnLogThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('record-onLog-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareFunctionTransportBridgeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('function-transport-bridge' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareNoopTransportSilenceNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('noop-transport-silence' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareNoTransportsSilentNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('no-transports-silent' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnLogBeforeTransportNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onLog-before-transport' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnLogAssembledRecordNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onLog-assembled-record' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnDroppedBelowFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onDropped-below-floor' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnDroppedAtFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onDropped-at-floor' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnDroppedTraceDebugNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onDropped-trace-debug' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnDroppedHookErrorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onDropped-hook-error' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnChildCreateHooksNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onChildCreate-hooks' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnChildCreateBindingsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onChildCreate-bindings' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorFiresNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-fires' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorSucceedsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-succeeds' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorEachFailureNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-each-failure' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorIsolationNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-isolation' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorDetachedCauseNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-detached-cause' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareOnTransportErrorFanoutContinuesNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('onTransportError-fanout-continues' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareAsyncOnTransportErrorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('async-onTransportError' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareHookInvocationErrorCauseNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('hook-invocation-error-cause' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
-  const bareAsyncOnLogUnhandledNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst('async-onLog-unhandled' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false });
+  const bareCreateDefaultNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'create-default' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareCreateInvalidMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'create-invalid-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareSnapshotMetadataAndTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'snapshot-metadata-and-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareFanoutMultipleTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'fanout-multiple-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareFanoutTransportThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'fanout-transport-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareFanoutOnTransportErrorThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'fanout-onTransportError-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareChildInheritsMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'child-inherits-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareChildOverridesMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'child-overrides-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareGrandchildMergesMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'grandchild-merges-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareChildSharesTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'child-shares-transports' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareChildSnapshotsMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'child-snapshots-metadata' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareChildCreateHookNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'child-create-hook' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareRecordShapeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'record-shape' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareRecordLevelMappingNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'record-level-mapping' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareRecordOnLogThrowsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'record-onLog-throws' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareFunctionTransportBridgeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'function-transport-bridge' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareNoopTransportSilenceNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'noop-transport-silence' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareNoTransportsSilentNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'no-transports-silent' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnLogBeforeTransportNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onLog-before-transport' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnLogAssembledRecordNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onLog-assembled-record' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnDroppedBelowFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onDropped-below-floor' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnDroppedAtFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onDropped-at-floor' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnDroppedTraceDebugNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onDropped-trace-debug' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnDroppedHookErrorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onDropped-hook-error' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnChildCreateHooksNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onChildCreate-hooks' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnChildCreateBindingsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onChildCreate-bindings' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorFiresNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-fires' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorSucceedsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-succeeds' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorEachFailureNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-each-failure' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorIsolationNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-isolation' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorDetachedCauseNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-detached-cause' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareOnTransportErrorFanoutContinuesNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'onTransportError-fanout-continues' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareAsyncOnTransportErrorNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'async-onTransportError' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareHookInvocationErrorCauseNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'hook-invocation-error-cause' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const bareAsyncOnLogUnhandledNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': nameNode, 'name': nameNode, 'shape': SchemaNode.defineConst({}, 'async-onLog-unhandled' as const) }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createStringLevelSchema = {
     'additionalProperties': false,
@@ -93,17 +93,12 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'level', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const createStringLevelNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const createStringLevelNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'level': SchemaNode.defineConst('debug' as const),
+      'level': SchemaNode.defineConst({}, 'debug' as const),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('create-string-level' as const)
-    },
-    ['description', 'level', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'create-string-level' as const)
+    }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createNumericLevelSchema = {
     'additionalProperties': false,
@@ -116,17 +111,12 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'level', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const createNumericLevelNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const createNumericLevelNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'level': LogLevelEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('create-numeric-level' as const)
-    },
-    ['description', 'level', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'create-numeric-level' as const)
+    }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createWithMetadataSchema = {
     'additionalProperties': false,
@@ -140,18 +130,13 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'level', 'metadata', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const createWithMetadataNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const createWithMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'level': LogLevelEntity.Node,
-      'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
+      'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('create-with-metadata' as const)
-    },
-    ['description', 'level', 'metadata', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'create-with-metadata' as const)
+    }, ['description', 'level', 'metadata', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createInvalidTransportsSchema = {
     'additionalProperties': false,
@@ -164,17 +149,12 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'expectedMessage', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const createInvalidTransportsNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const createInvalidTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('create-invalid-transports' as const)
-    },
-    ['description', 'expectedMessage', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'create-invalid-transports' as const)
+    }, ['description', 'expectedMessage', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const globalFloorSchema = {
     'additionalProperties': false,
@@ -189,19 +169,14 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'expectedCount', 'expectedLevels', 'level', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const globalFloorNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const globalFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expectedCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-      'expectedLevels': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node),
+      'expectedLevels': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
       'level': LogLevelEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('global-floor' as const)
-    },
-    ['description', 'expectedCount', 'expectedLevels', 'level', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'global-floor' as const)
+    }, ['description', 'expectedCount', 'expectedLevels', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const transportFloorWarnSchema = {
     'additionalProperties': false,
@@ -235,38 +210,18 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'expectedCounts', 'expectedLevels', 'loggerLevel', 'name', 'shape', 'transportLevels'],
     'type': 'object'
   } as const;
-  const transportFloorWarnNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const transportFloorWarnNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedCounts': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'all': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'warn': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) },
-        ['all', 'warn'] as const,
-        { 'additionalProperties': false }
-      ),
-      'expectedLevels': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'all': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node),
-          'warn': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node)
-        },
-        ['all', 'warn'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'warn': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'expectedLevels': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'all': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
+          'warn': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined)
+        }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'loggerLevel': LogLevelEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('transport-floor-warn' as const),
-      'transportLevels': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'all': LogLevelEntity.Node, 'warn': LogLevelEntity.Node },
-        ['all', 'warn'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['description', 'expectedCounts', 'expectedLevels', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'transport-floor-warn' as const),
+      'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': LogLevelEntity.Node, 'warn': LogLevelEntity.Node }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['description', 'expectedCounts', 'expectedLevels', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const transportFloorMixedSchema = {
     'additionalProperties': false,
@@ -291,29 +246,14 @@ export namespace LoggerScenarioCaseEntity {
     'required': ['description', 'expectedCounts', 'loggerLevel', 'name', 'shape', 'transportLevels'],
     'type': 'object'
   } as const;
-  const transportFloorMixedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const transportFloorMixedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedCounts': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'debug': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'error': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) },
-        ['debug', 'error'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'error': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'loggerLevel': LogLevelEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('transport-floor-mixed' as const),
-      'transportLevels': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'debug': LogLevelEntity.Node, 'error': LogLevelEntity.Node },
-        ['debug', 'error'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['description', 'expectedCounts', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'transport-floor-mixed' as const),
+      'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': LogLevelEntity.Node, 'error': LogLevelEntity.Node }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['description', 'expectedCounts', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -322,7 +262,7 @@ export namespace LoggerScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     bareCreateDefaultNode, bareCreateInvalidMetadataNode, bareSnapshotMetadataAndTransportsNode, bareFanoutMultipleTransportsNode, bareFanoutTransportThrowsNode, bareFanoutOnTransportErrorThrowsNode, bareChildInheritsMetadataNode, bareChildOverridesMetadataNode, bareGrandchildMergesMetadataNode, bareChildSharesTransportsNode, bareChildSnapshotsMetadataNode, bareChildCreateHookNode, bareRecordShapeNode, bareRecordLevelMappingNode, bareRecordOnLogThrowsNode, bareFunctionTransportBridgeNode, bareNoopTransportSilenceNode, bareNoTransportsSilentNode, bareOnLogBeforeTransportNode, bareOnLogAssembledRecordNode, bareOnDroppedBelowFloorNode, bareOnDroppedAtFloorNode, bareOnDroppedTraceDebugNode, bareOnDroppedHookErrorNode, bareOnChildCreateHooksNode, bareOnChildCreateBindingsNode, bareOnTransportErrorFiresNode, bareOnTransportErrorSucceedsNode, bareOnTransportErrorEachFailureNode, bareOnTransportErrorIsolationNode, bareOnTransportErrorDetachedCauseNode, bareOnTransportErrorFanoutContinuesNode, bareAsyncOnTransportErrorNode, bareHookInvocationErrorCauseNode, bareAsyncOnLogUnhandledNode, createStringLevelNode, createNumericLevelNode, createWithMetadataNode,
     createInvalidTransportsNode, globalFloorNode, transportFloorWarnNode, transportFloorMixedNode
   ]);

@@ -32,7 +32,7 @@ export namespace PipelineScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     EmptyPipelineReturnsInputScenarioCaseEntity.Node,
     SingleAsyncStageAppliesScenarioCaseEntity.Node,
     SingleStageAppliesScenarioCaseEntity.Node,

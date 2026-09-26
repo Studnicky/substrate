@@ -38,43 +38,23 @@ export namespace FlagEvaluatorScenarioCaseEntity {
   } as const;
   const resultsMapSchema = { 'additionalProperties': { 'type': 'boolean' }, 'properties': {}, 'type': 'object' } as const;
 
-  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
   const ContextNode = FlagContextEntity.Node;
   const DefinitionNode = FlagDefinitionEntity.Node;
-  const PartialDefinitionNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const PartialDefinitionNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'defaultValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'rolloutPercent': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['enabled'] as const,
-    { 'additionalProperties': false }
-  );
-  const UnboundedDefinitionNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+    }, ['enabled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const UnboundedDefinitionNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'defaultValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'rolloutPercent': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['defaultValue', 'enabled'] as const,
-    { 'additionalProperties': false }
-  );
-  const DefinitionsMapNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': DefinitionNode });
-  const EvaluationNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['context', 'flag'] as const,
-    { 'additionalProperties': false }
-  );
-  const EvaluationWithResultNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'context': ContextNode, 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['context', 'result'] as const,
-    { 'additionalProperties': false }
-  );
-  const ResultsMapNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) });
+    }, ['defaultValue', 'enabled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const DefinitionsMapNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': DefinitionNode, 'patternProperties': {} });
+  const EvaluationNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const EvaluationWithResultNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['context', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const ResultsMapNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -730,648 +710,250 @@ export namespace FlagEvaluatorScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('unregistered-flag' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'unregistered-flag' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const)) },
-          ['results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode) },
-              ['definitions', 'evaluations'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined) }, ['results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode, undefined) }, ['definitions', 'evaluations'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('disabled-flags' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'disabled-flags' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
-                'contexts': SchemaNode.defineArray({ 'type': 'array' } as const, ContextNode),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                'contexts': SchemaNode.defineArray({ 'type': 'array' } as const, ContextNode, undefined),
                 'definition': DefinitionNode,
                 'flag': SchemaNode.defineString({ 'type': 'string' } as const)
-              },
-              ['contexts', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['contexts', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('implicit-full-rollout' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'implicit-full-rollout' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'hasFalse': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasTrue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['hasFalse', 'hasTrue'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'hasFalse': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasTrue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['hasFalse', 'hasTrue'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'definition': DefinitionNode,
-                'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationWithResultNode),
+                'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationWithResultNode, undefined),
                 'flag': SchemaNode.defineString({ 'type': 'string' } as const)
-              },
-              ['definition', 'evaluations', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['definition', 'evaluations', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('half-rollout' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'half-rollout' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('deterministic-rollout' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'deterministic-rollout' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'results': ResultsMapNode }, ['results'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'results': ResultsMapNode }, ['results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'context': ContextNode,
                 'definitions': DefinitionsMapNode,
-                'flags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
-              },
-              ['context', 'definitions', 'flags'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+                'flags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+              }, ['context', 'definitions', 'flags'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('independent-flags' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'independent-flags' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hasAfterRegister': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'hasAfterUnregister': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'hasBefore': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-            'listAfterRegister': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-            'listAfterUnregister': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-            'listBefore': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
-          },
-          ['hasAfterRegister', 'hasAfterUnregister', 'hasBefore', 'listAfterRegister', 'listAfterUnregister', 'listBefore'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+            'listAfterRegister': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+            'listAfterUnregister': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+            'listBefore': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+          }, ['hasAfterRegister', 'hasAfterUnregister', 'hasBefore', 'listAfterRegister', 'listAfterUnregister', 'listBefore'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'definition': DefinitionNode,
-                'flags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+                'flags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
                 'missingFlag': SchemaNode.defineString({ 'type': 'string' } as const),
                 'unregisterFlag': SchemaNode.defineString({ 'type': 'string' } as const)
-              },
-              ['definition', 'flags', 'missingFlag', 'unregisterFlag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['definition', 'flags', 'missingFlag', 'unregisterFlag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('register-has-list-unregister' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'register-has-list-unregister' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'first': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'second': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['first', 'second'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'second': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'context': ContextNode,
                 'firstDefinition': DefinitionNode,
                 'flag': SchemaNode.defineString({ 'type': 'string' } as const),
                 'secondDefinition': DefinitionNode
-              },
-              ['context', 'firstDefinition', 'flag', 'secondDefinition'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['context', 'firstDefinition', 'flag', 'secondDefinition'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('re-register-replaces' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 're-register-replaces' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'context': ContextNode,
                 'definition': DefinitionNode,
                 'flag': SchemaNode.defineString({ 'type': 'string' } as const),
                 'mutatedDefinition': DefinitionNode
-              },
-              ['context', 'definition', 'flag', 'mutatedDefinition'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['context', 'definition', 'flag', 'mutatedDefinition'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('register-snapshots-definition' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'register-snapshots-definition' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': OpenBagNode,
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definition': UnboundedDefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definition': UnboundedDefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('invalid-rollout-range' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'invalid-rollout-range' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definition': PartialDefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definition': PartialDefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('missing-default-value' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'missing-default-value' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('valid-definition-still-works' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'valid-definition-still-works' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'defaultCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['defaultCalls'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'defaultCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['defaultCalls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-on-default' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-on-default' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'ruleMismatchFlags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['ruleMismatchFlags'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode) },
-              ['definitions', 'evaluations'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'ruleMismatchFlags': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['ruleMismatchFlags'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode, undefined) }, ['definitions', 'evaluations'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-on-rule-mismatch' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-on-rule-mismatch' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'evaluateCalls': SchemaNode.defineArray(
-              { 'type': 'array' } as const,
-              SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                { 'flag': SchemaNode.defineString({ 'type': 'string' } as const), 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-                ['flag', 'result'] as const,
-                { 'additionalProperties': false }
-              )
-            )
-          },
-          ['evaluateCalls'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode) },
-              ['definitions', 'evaluations'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'evaluateCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'flag': SchemaNode.defineString({ 'type': 'string' } as const), 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['flag', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined)
+          }, ['evaluateCalls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode, undefined) }, ['definitions', 'evaluations'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-on-evaluate' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-on-evaluate' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['order'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode) },
-              ['definitions', 'evaluations'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['order'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'definitions': DefinitionsMapNode, 'evaluations': SchemaNode.defineArray({ 'type': 'array' } as const, EvaluationNode, undefined) }, ['definitions', 'evaluations'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-order' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-order' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode }, ['context'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode }, ['context'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hook-context-match' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hook-context-match' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('throwing-on-default' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'throwing-on-default' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('throwing-on-rule-mismatch' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'throwing-on-rule-mismatch' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('throwing-on-evaluate' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'throwing-on-evaluate' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'rejectionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)), 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-          ['rejectionEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) },
-              ['context', 'definition', 'flag'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'rejectionEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const), undefined), 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['rejectionEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'context': ContextNode, 'definition': DefinitionNode, 'flag': SchemaNode.defineString({ 'type': 'string' } as const) }, ['context', 'definition', 'flag'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('async-on-evaluate-safe' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'async-on-evaluate-safe' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'values': SchemaNode.defineArray({ 'type': 'array' } as const, OpenBagNode) },
-              ['values'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': SchemaNode.defineArray({ 'type': 'array' } as const, OpenBagNode, undefined) }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('flag-context-entity-accepts' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'flag-context-entity-accepts' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'flagEvaluator': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'value': OpenBagNode },
-              ['value'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['flagEvaluator'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'flagEvaluator': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': OpenBagNode }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['flagEvaluator'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('flag-context-entity-rejects' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'flag-context-entity-rejects' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

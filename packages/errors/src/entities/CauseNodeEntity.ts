@@ -67,7 +67,7 @@ export namespace CauseNodeEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/CauseNode', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'CauseNode', 'type': 'object' } as const, { 'code': SchemaNode.defineString({
     'description': 'Registered dotted error code, when this node was a `BaseError`.',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Structured metadata carried by this node, when it was a `BaseError`.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'correlationId': SchemaNode.defineString({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Structured metadata carried by this node, when it was a `BaseError`.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'correlationId': SchemaNode.defineString({
     'description': 'Correlation ID carried by this node, when it was a `BaseError`.',
     'type': 'string'
   } as const), 'detail': SchemaNode.defineString({
@@ -88,7 +88,7 @@ export namespace CauseNodeEntity {
     'default': PROBLEM_TYPE_THROWN_NULLISH,
     'description': 'URI reference identifying the problem type. The discriminant.',
     'type': 'string'
-  } as const) }, ['detail', 'title', 'type'] as const, { 'additionalProperties': false });
+  } as const) }, ['detail', 'title', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

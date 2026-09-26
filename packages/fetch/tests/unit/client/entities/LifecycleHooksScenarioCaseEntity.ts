@@ -18,12 +18,7 @@ export namespace LifecycleHooksScenarioCaseEntity {
     'required': [],
     'type': 'object'
   } as const;
-  const DispatcherNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  const DispatcherNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -65,27 +60,18 @@ export namespace LifecycleHooksScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'count': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)),
+          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), undefined),
           'hook': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'hookName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'status': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'timeoutMs': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'abortAfterMs': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'dispatcher': DispatcherNode,
           'hookTimeoutMs': SchemaNode.defineNumber({ 'type': 'integer' } as const),
@@ -94,15 +80,9 @@ export namespace LifecycleHooksScenarioCaseEntity {
           'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'settleMs': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'timeoutMs': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'operation': SchemaNode.defineEnum(operations)
-    },
-    ['description', 'expected', 'input', 'name', 'operation'] as const,
-    { 'additionalProperties': false }
-  );
+      'operation': SchemaNode.defineEnum({}, operations)
+    }, ['description', 'expected', 'input', 'name', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

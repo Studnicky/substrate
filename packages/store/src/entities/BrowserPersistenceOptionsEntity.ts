@@ -20,7 +20,7 @@ export namespace BrowserPersistenceOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'storageTarget': SchemaNode.defineEnum(['indexedDb', 'localStorage', 'memory', 'sessionStorage'] as const) }, ['storageTarget'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'storageTarget': SchemaNode.defineEnum({}, ['indexedDb', 'localStorage', 'memory', 'sessionStorage'] as const) }, ['storageTarget'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

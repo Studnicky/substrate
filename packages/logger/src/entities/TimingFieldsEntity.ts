@@ -30,7 +30,7 @@ export namespace TimingFieldsEntity {
     'description': 'Duration in milliseconds. ALWAYS use this field name for timing.',
     'minimum': 0,
     'type': 'number'
-  } as const) }, ['durationMs'] as const, { 'additionalProperties': false });
+  } as const) }, ['durationMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

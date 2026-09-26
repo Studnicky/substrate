@@ -16,7 +16,7 @@ export namespace TokenBucketOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'burstSize': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'requestsPerSecond': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['burstSize', 'requestsPerSecond'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'burstSize': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'requestsPerSecond': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['burstSize', 'requestsPerSecond'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

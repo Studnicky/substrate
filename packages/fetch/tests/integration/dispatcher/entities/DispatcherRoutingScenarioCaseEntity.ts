@@ -14,16 +14,11 @@ export namespace DispatcherRoutingScenarioCaseEntity {
     'required': ['dispatcher', 'fetchClient', 'path'],
     'type': 'object'
   } as const;
-  const InputNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'dispatcher': SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['connections'] as const, { 'additionalProperties': false }),
-      'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['baseURL'] as const, { 'additionalProperties': false }),
+  const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'dispatcher': SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['connections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['baseURL'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['dispatcher', 'fetchClient', 'path'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['dispatcher', 'fetchClient', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const caseFields = { 'description': { 'minLength': 1, 'type': 'string' }, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' } } as const;
   const caseNodeFields = {
@@ -49,19 +44,9 @@ export namespace DispatcherRoutingScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { ...caseNodeFields, 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'originRecorded': SchemaNode.defineConst(true as const) }, ['originRecorded'] as const, { 'additionalProperties': false }), 'operation': SchemaNode.defineConst('routes-through-configured-dispatcher' as const) },
-      ['description', 'expected', 'input', 'name', 'operation'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { ...caseNodeFields, 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'idleOriginRecorded': SchemaNode.defineConst(false as const) }, ['idleOriginRecorded'] as const, { 'additionalProperties': false }), 'operation': SchemaNode.defineConst('isolates-unrelated-dispatcher' as const) },
-      ['description', 'expected', 'input', 'name', 'operation'] as const,
-      { 'additionalProperties': false }
-    )
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'originRecorded': SchemaNode.defineConst({}, true as const) }, ['originRecorded'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'operation': SchemaNode.defineConst({}, 'routes-through-configured-dispatcher' as const) }, ['description', 'expected', 'input', 'name', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'idleOriginRecorded': SchemaNode.defineConst({}, false as const) }, ['idleOriginRecorded'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'operation': SchemaNode.defineConst({}, 'isolates-unrelated-dispatcher' as const) }, ['description', 'expected', 'input', 'name', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

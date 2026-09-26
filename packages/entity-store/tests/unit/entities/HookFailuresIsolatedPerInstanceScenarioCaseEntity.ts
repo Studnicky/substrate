@@ -73,75 +73,52 @@ export namespace HookFailuresIsolatedPerInstanceScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          first: SchemaNode.defineObject(
-            {
+        } as const, {
+          first: SchemaNode.defineObject({
               type: "object",
-            } as const,
-            {
+            } as const, {
               hookErrorCount: SchemaNode.defineNumber({
                 type: "number",
               } as const),
               message: SchemaNode.defineString({
                 type: "string",
               } as const),
-            },
-            ["hookErrorCount", "message"] as const,
-          ),
+            }, ["hookErrorCount", "message"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           hookName: SchemaNode.defineString({
             type: "string",
           } as const),
-          second: SchemaNode.defineObject(
-            {
+          second: SchemaNode.defineObject({
               type: "object",
-            } as const,
-            {
+            } as const, {
               hookErrorCount: SchemaNode.defineNumber({
                 type: "number",
               } as const),
               message: SchemaNode.defineString({
                 type: "string",
               } as const),
-            },
-            ["hookErrorCount", "message"] as const,
-          ),
-        },
-        ["first", "hookName", "second"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+            }, ["hookErrorCount", "message"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        }, ["first", "hookName", "second"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           failureMessagePrefix: SchemaNode.defineString({
             type: "string",
           } as const),
           first: UserEntity.Node,
           second: UserEntity.Node,
-        },
-        ["failureMessagePrefix", "first", "second"] as const,
-      ),
+        }, ["failureMessagePrefix", "first", "second"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst(
-        "hook-failures-isolated-per-instance" as const,
-      ),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "hook-failures-isolated-per-instance" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

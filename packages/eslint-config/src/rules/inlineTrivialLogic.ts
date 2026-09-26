@@ -40,7 +40,7 @@ namespace InlineTrivialLogicOptionsEntity {
     'default': false,
     'description': 'Allow functions that return a non-this member expression (e.g. obj.prop).',
     'type': 'boolean'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

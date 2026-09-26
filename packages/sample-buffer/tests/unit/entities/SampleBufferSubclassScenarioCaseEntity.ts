@@ -15,18 +15,13 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'required': ['capacity'],
     'type': 'object'
   } as const;
-  const capacityNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['capacity'] as const,
-    { 'additionalProperties': false }
-  );
+  const capacityNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const numberArraySchema = { 'items': { 'type': 'number' }, 'type': 'array' } as const;
-  const numberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const));
+  const numberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
 
   const stringArraySchema = { 'items': { 'type': 'string' }, 'type': 'array' } as const;
-  const stringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const));
+  const stringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
 
   const pushLogEntrySchema = {
     'additionalProperties': false,
@@ -34,14 +29,9 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'required': ['evicted', 'value'],
     'type': 'object'
   } as const;
-  const pushLogEntryNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'evicted': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['evicted', 'value'] as const,
-    { 'additionalProperties': false }
-  );
+  const pushLogEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'evicted': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['evicted', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const pushLogArraySchema = { 'items': pushLogEntrySchema, 'type': 'array' } as const;
-  const pushLogArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, pushLogEntryNode);
+  const pushLogArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, pushLogEntryNode, undefined);
 
   const stateSchema = {
     'additionalProperties': false,
@@ -54,17 +44,12 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'required': ['cacheNull', 'capacity', 'head', 'length'],
     'type': 'object'
   } as const;
-  const stateNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const stateNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'cacheNull': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'head': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'length': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['cacheNull', 'capacity', 'head', 'length'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['cacheNull', 'capacity', 'head', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const percentilesAtEdgesSchema = {
     'additionalProperties': false,
@@ -72,12 +57,7 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'required': ['0', '100'],
     'type': 'object'
   } as const;
-  const percentilesAtEdgesNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { '0': SchemaNode.defineNumber({ 'type': 'number' } as const), '100': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['0', '100'] as const,
-    { 'additionalProperties': false }
-  );
+  const percentilesAtEdgesNode = SchemaNode.defineObject({ 'type': 'object' } as const, { '0': SchemaNode.defineNumber({ 'type': 'number' } as const), '100': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['0', '100'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const percentilesQuartileSchema = {
     'additionalProperties': false,
@@ -85,17 +65,12 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'required': ['0', '100', '25', '50'],
     'type': 'object'
   } as const;
-  const percentilesQuartileNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const percentilesQuartileNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       '0': SchemaNode.defineNumber({ 'type': 'number' } as const),
       '100': SchemaNode.defineNumber({ 'type': 'number' } as const),
       '25': SchemaNode.defineNumber({ 'type': 'number' } as const),
       '50': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['0', '100', '25', '50'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['0', '100', '25', '50'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const emptyTupleSchema = { 'items': false, 'prefixItems': [], 'type': 'array' } as const;
   const emptyTupleNode = SchemaNode.defineTuple({ 'items': false, 'type': 'array' } as const, [] as const);
@@ -128,18 +103,13 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
     const TExpectedRequired extends readonly (keyof TExpectedProps & string)[]
   >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false }),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const num = (): { 'type': 'number' } => ({ 'type': 'number' });
@@ -630,7 +600,7 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     onEvictNode,
     onEvictBeforeOverwriteNode,
     onPushNode,

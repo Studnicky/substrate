@@ -25,20 +25,10 @@ export namespace ErrorWrappingScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const FetchClientNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const FetchClientNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'dispatcher': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-        [] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['baseURL'] as const,
-    { 'additionalProperties': false }
-  );
+      'dispatcher': SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['baseURL'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const expectedSchema = {
     'oneOf': [
@@ -78,40 +68,25 @@ export namespace ErrorWrappingScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const ExpectedNode = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('undefined' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('socket-exhaustion' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'errorName': SchemaNode.defineEnum(['BodyTimeoutError', 'ConnectTimeoutError', 'HeadersTimeoutError', 'SocketError'] as const),
-        'shape': SchemaNode.defineConst('error' as const)
-      },
-      ['errorName', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+  const ExpectedNode = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'undefined' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'socket-exhaustion' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'errorName': SchemaNode.defineEnum({}, ['BodyTimeoutError', 'ConnectTimeoutError', 'HeadersTimeoutError', 'SocketError'] as const),
+        'shape': SchemaNode.defineConst({}, 'error' as const)
+      }, ['errorName', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expected': ExpectedNode,
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'errorCode': SchemaNode.defineString({ 'type': 'string' } as const),
           'fetchClient': FetchClientNode,
           'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['fetchClient', 'url'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['fetchClient', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(shapes)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, shapes)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

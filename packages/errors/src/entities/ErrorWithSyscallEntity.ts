@@ -17,7 +17,7 @@ export namespace ErrorWithSyscallEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithSyscall', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorWithSyscall', 'type': 'object' } as const, { 'syscall': SchemaNode.defineString({ 'type': 'string' } as const) }, ['syscall'] as const, { 'additionalProperties': true });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorWithSyscall', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorWithSyscall', 'type': 'object' } as const, { 'syscall': SchemaNode.defineString({ 'type': 'string' } as const) }, ['syscall'] as const, { 'additionalProperties': true, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

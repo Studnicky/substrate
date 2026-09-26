@@ -21,18 +21,13 @@ function defineCase<
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   };
-  const node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': NonEmptyStringNode,
       'expected': expectedNode,
       'input': inputNode,
       'name': NonEmptyStringNode,
-      'shape': SchemaNode.defineConst(shape)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, shape)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   return { node, schema };
 }
 
@@ -48,12 +43,11 @@ const booleanSchema = { 'type': 'boolean' } as const;
 const NonEmptyStringNode = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
 const nonEmptyStringSchema = { 'minLength': 1, 'type': 'string' } as const;
 
-const StringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, StringNode);
+const StringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, StringNode, undefined);
 const stringArraySchema = { 'items': stringSchema, 'type': 'array' } as const;
 
 const FileEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'path': StringNode }, ['content', 'path'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const fileEntrySchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'path': stringSchema },
@@ -61,12 +55,11 @@ const fileEntrySchema = {
   'type': 'object'
 } as const;
 
-const FileEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileEntryNode);
+const FileEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileEntryNode, undefined);
 const fileEntryArraySchema = { 'items': fileEntrySchema, 'type': 'array' } as const;
 
 const FromToEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': StringNode, 'to': StringNode }, ['from', 'to'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const fromToEntrySchema = {
   'additionalProperties': false,
   'properties': { 'from': stringSchema, 'to': stringSchema },
@@ -74,12 +67,11 @@ const fromToEntrySchema = {
   'type': 'object'
 } as const;
 
-const FromToEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FromToEntryNode);
+const FromToEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FromToEntryNode, undefined);
 const fromToEntryArraySchema = { 'items': fromToEntrySchema, 'type': 'array' } as const;
 
 const ContentPathInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'path': StringNode }, ['content', 'path'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const contentPathInputSchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'path': stringSchema },
@@ -87,12 +79,7 @@ const contentPathInputSchema = {
   'type': 'object'
 } as const;
 
-const FirstPathSecondInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'first': StringNode, 'path': StringNode, 'second': StringNode },
-  ['first', 'path', 'second'] as const,
-  { 'additionalProperties': false }
-);
+const FirstPathSecondInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': StringNode, 'path': StringNode, 'second': StringNode }, ['first', 'path', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const firstPathSecondInputSchema = {
   'additionalProperties': false,
   'properties': { 'first': stringSchema, 'path': stringSchema, 'second': stringSchema },
@@ -100,12 +87,7 @@ const firstPathSecondInputSchema = {
   'type': 'object'
 } as const;
 
-const ContentFromToInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'content': StringNode, 'from': StringNode, 'to': StringNode },
-  ['content', 'from', 'to'] as const,
-  { 'additionalProperties': false }
-);
+const ContentFromToInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'from': StringNode, 'to': StringNode }, ['content', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const contentFromToInputSchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'from': stringSchema, 'to': stringSchema },
@@ -113,12 +95,7 @@ const contentFromToInputSchema = {
   'type': 'object'
 } as const;
 
-const HookNameWrittenExpectedNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'hookName': StringNode, 'written': BooleanNode },
-  ['hookName', 'written'] as const,
-  { 'additionalProperties': false }
-);
+const HookNameWrittenExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode, 'written': BooleanNode }, ['hookName', 'written'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const hookNameWrittenExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'hookName': stringSchema, 'written': booleanSchema },
@@ -129,19 +106,18 @@ const hookNameWrittenExpectedSchema = {
 const onCreateNewFiles = defineCase(
   'onCreate-new-files',
   { 'additionalProperties': false, 'properties': { 'files': fileEntryArraySchema }, 'required': ['files'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   { 'additionalProperties': false, 'properties': { 'createLog': stringArraySchema }, 'required': ['createLog'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'createLog': StringArrayNode }, ['createLog'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'createLog': StringArrayNode }, ['createLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onCreateRecursiveMkdir = defineCase(
   'onCreate-recursive-mkdir',
   { 'additionalProperties': false, 'properties': { 'path': stringSchema }, 'required': ['path'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   { 'additionalProperties': false, 'properties': { 'createLogIncludes': stringArraySchema }, 'required': ['createLogIncludes'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'createLogIncludes': StringArrayNode }, ['createLogIncludes'] as const, {
-    'additionalProperties': false
-  })
+    'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onCreateNoOverwrite = defineCase(
@@ -149,7 +125,7 @@ const onCreateNoOverwrite = defineCase(
   firstPathSecondInputSchema,
   FirstPathSecondInputNode,
   { 'additionalProperties': false, 'properties': { 'createCount': numberSchema }, 'required': ['createCount'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'createCount': NumberNode }, ['createCount'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'createCount': NumberNode }, ['createCount'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onWriteUpdateOnly = defineCase(
@@ -157,7 +133,7 @@ const onWriteUpdateOnly = defineCase(
   firstPathSecondInputSchema,
   FirstPathSecondInputNode,
   { 'additionalProperties': false, 'properties': { 'writeLog': stringArraySchema }, 'required': ['writeLog'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'writeLog': StringArrayNode }, ['writeLog'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'writeLog': StringArrayNode }, ['writeLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onReadReadFileSync = defineCase(
@@ -165,17 +141,16 @@ const onReadReadFileSync = defineCase(
   contentPathInputSchema,
   ContentPathInputNode,
   { 'additionalProperties': false, 'properties': { 'readLog': stringArraySchema }, 'required': ['readLog'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'readLog': StringArrayNode }, ['readLog'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'readLog': StringArrayNode }, ['readLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onReadReaddirSync = defineCase(
   'onRead-readdirSync',
   { 'additionalProperties': false, 'properties': { 'path': stringSchema }, 'required': ['path'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   { 'additionalProperties': false, 'properties': { 'readLogIncludes': stringArraySchema }, 'required': ['readLogIncludes'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'readLogIncludes': StringArrayNode }, ['readLogIncludes'] as const, {
-    'additionalProperties': false
-  })
+    'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onDeleteUnlinkSync = defineCase(
@@ -183,7 +158,7 @@ const onDeleteUnlinkSync = defineCase(
   contentPathInputSchema,
   ContentPathInputNode,
   { 'additionalProperties': false, 'properties': { 'deleteLog': stringArraySchema }, 'required': ['deleteLog'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteLog': StringArrayNode }, ['deleteLog'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteLog': StringArrayNode }, ['deleteLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onDeleteNotBeforeUnlink = defineCase(
@@ -191,7 +166,7 @@ const onDeleteNotBeforeUnlink = defineCase(
   contentPathInputSchema,
   ContentPathInputNode,
   { 'additionalProperties': false, 'properties': { 'deleteCount': numberSchema }, 'required': ['deleteCount'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteCount': NumberNode }, ['deleteCount'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteCount': NumberNode }, ['deleteCount'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const onRenamePaths = defineCase(
@@ -199,7 +174,7 @@ const onRenamePaths = defineCase(
   contentFromToInputSchema,
   ContentFromToInputNode,
   { 'additionalProperties': false, 'properties': { 'renameLog': fromToEntryArraySchema }, 'required': ['renameLog'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'renameLog': FromToEntryArrayNode }, ['renameLog'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'renameLog': FromToEntryArrayNode }, ['renameLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const fullTrace = defineCase(
@@ -210,12 +185,7 @@ const fullTrace = defineCase(
     'required': ['contentA', 'contentB', 'path', 'renamed'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'contentA': StringNode, 'contentB': StringNode, 'path': StringNode, 'renamed': StringNode },
-    ['contentA', 'contentB', 'path', 'renamed'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'contentA': StringNode, 'contentB': StringNode, 'path': StringNode, 'renamed': StringNode }, ['contentA', 'contentB', 'path', 'renamed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': {
@@ -228,36 +198,26 @@ const fullTrace = defineCase(
     'required': ['createLog', 'deleteLog', 'readLog', 'renameCount', 'writeLog'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
       'createLog': StringArrayNode,
       'deleteLog': StringArrayNode,
       'readLog': StringArrayNode,
       'renameCount': NumberNode,
       'writeLog': StringArrayNode
-    },
-    ['createLog', 'deleteLog', 'readLog', 'renameCount', 'writeLog'] as const,
-    { 'additionalProperties': false }
-  )
+    }, ['createLog', 'deleteLog', 'readLog', 'renameCount', 'writeLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const subclassCreateInstance = defineCase(
   'subclass-create-instance',
   { 'additionalProperties': false, 'properties': { 'factory': stringSchema }, 'required': ['factory'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'factory': StringNode }, ['factory'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'factory': StringNode }, ['factory'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'instanceofBase': booleanSchema, 'instanceofSubclass': booleanSchema },
     'required': ['instanceofBase', 'instanceofSubclass'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'instanceofBase': BooleanNode, 'instanceofSubclass': BooleanNode },
-    ['instanceofBase', 'instanceofSubclass'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'instanceofBase': BooleanNode, 'instanceofSubclass': BooleanNode }, ['instanceofBase', 'instanceofSubclass'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const throwingCreateHook = defineCase('throwing-create-hook', contentPathInputSchema, ContentPathInputNode, hookNameWrittenExpectedSchema, HookNameWrittenExpectedNode);
@@ -274,7 +234,7 @@ const throwingReadHook = defineCase(
   contentPathInputSchema,
   ContentPathInputNode,
   { 'additionalProperties': false, 'properties': { 'hookName': stringSchema }, 'required': ['hookName'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode }, ['hookName'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode }, ['hookName'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const throwingRenameHook = defineCase(
@@ -287,12 +247,7 @@ const throwingRenameHook = defineCase(
     'required': ['hookName', 'newContent', 'oldExists'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'hookName': StringNode, 'newContent': StringNode, 'oldExists': BooleanNode },
-    ['hookName', 'newContent', 'oldExists'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode, 'newContent': StringNode, 'oldExists': BooleanNode }, ['hookName', 'newContent', 'oldExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const throwingDeleteHook = defineCase(
@@ -306,8 +261,7 @@ const throwingDeleteHook = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'exists': BooleanNode, 'hookName': StringNode }, ['exists', 'hookName'] as const, {
-    'additionalProperties': false
-  })
+    'additionalProperties': false, 'patternProperties': {} })
 );
 
 const hookCauseChains = defineCase(
@@ -315,7 +269,7 @@ const hookCauseChains = defineCase(
   contentPathInputSchema,
   ContentPathInputNode,
   { 'additionalProperties': false, 'properties': { 'causeMatches': booleanSchema }, 'required': ['causeMatches'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'causeMatches': BooleanNode }, ['causeMatches'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'causeMatches': BooleanNode }, ['causeMatches'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const asyncCreateHook = defineCase(
@@ -328,12 +282,7 @@ const asyncCreateHook = defineCase(
     'required': ['content', 'rejections'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'content': StringNode, 'rejections': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)) },
-    ['content', 'rejections'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'rejections': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const), undefined) }, ['content', 'rejections'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 /** The `VirtualFileSystem.subclass.loop.spec.ts` scenario case shape. Eighteen shapes carry genuinely disjoint required fields, so each is its own `oneOf` branch rather than one shared permissive bag. */
@@ -347,7 +296,7 @@ export namespace VirtualFileSystemSubclassScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     onCreateNewFiles.node, onCreateRecursiveMkdir.node, onCreateNoOverwrite.node, onWriteUpdateOnly.node, onReadReadFileSync.node, onReadReaddirSync.node,
     onDeleteUnlinkSync.node, onDeleteNotBeforeUnlink.node, onRenamePaths.node, fullTrace.node, subclassCreateInstance.node, throwingCreateHook.node,
     throwingWriteHook.node, throwingReadHook.node, throwingRenameHook.node, throwingDeleteHook.node, hookCauseChains.node, asyncCreateHook.node

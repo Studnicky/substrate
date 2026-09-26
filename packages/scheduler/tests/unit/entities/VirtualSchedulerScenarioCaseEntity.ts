@@ -26,28 +26,18 @@ export namespace VirtualSchedulerScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const NumberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const));
-  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+  const NumberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
+  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
-  const HeapTaskMutationNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'id': SchemaNode.defineString({ 'type': 'string' } as const) },
-    [] as const,
-    { 'additionalProperties': false }
-  );
-  export const HeapTaskDescriptorNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const HeapTaskMutationNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'id': SchemaNode.defineString({ 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export const HeapTaskDescriptorNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'fire': SchemaNode.defineConst('noop' as const),
+      'fire': SchemaNode.defineConst({}, 'noop' as const),
       'id': SchemaNode.defineString({ 'type': 'string' } as const),
       'intervalMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'mutation': HeapTaskMutationNode,
-      'variant': SchemaNode.defineEnum(['interval', 'timeout'] as const)
-    },
-    ['atMs', 'fire', 'id', 'intervalMs', 'variant'] as const,
-    { 'additionalProperties': false }
-  );
+      'variant': SchemaNode.defineEnum({}, ['interval', 'timeout'] as const)
+    }, ['atMs', 'fire', 'id', 'intervalMs', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type HeapTaskDescriptor = NodeStaticType<typeof HeapTaskDescriptorNode>;
 
   export const Schema = {
@@ -609,350 +599,143 @@ export namespace VirtualSchedulerScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'finalNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['finalNowMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
-                'counterAdvanceScenarios': SchemaNode.defineArray(
-                  { 'type': 'array' } as const,
-                  SchemaNode.defineObject(
-                    { 'type': 'object' } as const,
-                    {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'finalNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['finalNowMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                'counterAdvanceScenarios': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
                       'advances': NumberArrayNode,
                       'expectedNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'start': SchemaNode.defineNumber({ 'type': 'number' } as const)
-                    },
-                    ['advances', 'expectedNowMs', 'start'] as const,
-                    { 'additionalProperties': false }
-                  )
-                ),
-                'edgeCases': SchemaNode.defineArray(
-                  { 'type': 'array' } as const,
-                  SchemaNode.defineObject(
-                    { 'type': 'object' } as const,
-                    {
+                    }, ['advances', 'expectedNowMs', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined),
+                'edgeCases': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
                       'advance': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'expectedNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'start': SchemaNode.defineNumber({ 'type': 'number' } as const)
-                    },
-                    ['advance', 'expectedNowMs', 'start'] as const,
-                    { 'additionalProperties': false }
-                  )
-                ),
+                    }, ['advance', 'expectedNowMs', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined),
                 'finalCounterAdvances': NumberArrayNode,
                 'finalCounterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'negativeStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              ['counterAdvanceScenarios', 'edgeCases', 'finalCounterAdvances', 'finalCounterStartMs', 'negativeStartMs'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['counterAdvanceScenarios', 'edgeCases', 'finalCounterAdvances', 'finalCounterStartMs', 'negativeStartMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-timecounter' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-timecounter' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': OpenBagNode,
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'scheduler': OpenBagNode },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'scheduler': OpenBagNode }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('invalid-constructor' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'invalid-constructor' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': OpenBagNode,
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'invalidIntervals': NumberArrayNode, 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-              ['invalidIntervals', 'startMs'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, { 'invalidIntervals': NumberArrayNode, 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['invalidIntervals', 'startMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('invalid-interval' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'invalid-interval' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'peekAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'removedMinimum': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+            'removedMinimum': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'id': SchemaNode.defineString({ 'type': 'string' } as const),
                 'intervalMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-                'variant': SchemaNode.defineEnum(['interval', 'timeout'] as const)
-              },
-              ['atMs', 'id', 'intervalMs', 'variant'] as const,
-              { 'additionalProperties': false }
-            ),
+                'variant': SchemaNode.defineEnum({}, ['interval', 'timeout'] as const)
+              }, ['atMs', 'id', 'intervalMs', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
             'secondPeekAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['peekAtMs', 'removedMinimum', 'secondPeekAtMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'tasks': SchemaNode.defineTuple({ 'type': 'array' } as const, [HeapTaskDescriptorNode, HeapTaskDescriptorNode] as const) },
-              ['tasks'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['peekAtMs', 'removedMinimum', 'secondPeekAtMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, { 'tasks': SchemaNode.defineTuple({ 'type': 'array' } as const, [HeapTaskDescriptorNode, HeapTaskDescriptorNode] as const) }, ['tasks'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('minimum-heap' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'minimum-heap' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'drainedAtMs': NumberArrayNode,
-            'drainedIds': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+            'drainedIds': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
             'empty': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['drainedAtMs', 'drainedIds', 'empty'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'tasks': SchemaNode.defineArray({ 'type': 'array' } as const, HeapTaskDescriptorNode) },
-              ['tasks'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['drainedAtMs', 'drainedIds', 'empty'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, { 'tasks': SchemaNode.defineArray({ 'type': 'array' } as const, HeapTaskDescriptorNode, undefined) }, ['tasks'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('minimum-heap-drain-order' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'minimum-heap-drain-order' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {},
-          [] as const,
-          {
-            'additionalProperties': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, {
+            'additionalProperties': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'fired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
                 'idNonEmpty': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-              },
-              ['atMs', 'fired', 'idNonEmpty'] as const,
-              { 'additionalProperties': false }
-            )
-          }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
-                'runs': SchemaNode.defineArray(
-                  { 'type': 'array' } as const,
-                  SchemaNode.defineObject(
-                    { 'type': 'object' } as const,
-                    {
+              }, ['atMs', 'fired', 'idNonEmpty'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                'runs': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
                       'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'expectedKey': SchemaNode.defineString({ 'type': 'string' } as const)
-                    },
-                    ['advanceMs', 'atMs', 'counterStartMs', 'expectedKey'] as const,
-                    { 'additionalProperties': false }
-                  )
-                )
-              },
-              ['runs'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+                    }, ['advanceMs', 'atMs', 'counterStartMs', 'expectedKey'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined)
+              }, ['runs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('scheduleAt' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'scheduleAt' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {},
-          [] as const,
-          { 'additionalProperties': SchemaNode.defineNumber({ 'type': 'number' } as const) }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
-                'runs': SchemaNode.defineArray(
-                  { 'type': 'array' } as const,
-                  SchemaNode.defineObject(
-                    { 'type': 'object' } as const,
-                    {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineNumber({ 'type': 'number' } as const), 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                'runs': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
                       'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'expectedKey': SchemaNode.defineString({ 'type': 'string' } as const),
                       'intervalMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-                    },
-                    ['advanceMs', 'counterStartMs', 'expectedKey', 'intervalMs'] as const,
-                    { 'additionalProperties': false }
-                  )
-                )
-              },
-              ['runs'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+                    }, ['advanceMs', 'counterStartMs', 'expectedKey', 'intervalMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined)
+              }, ['runs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('scheduleEvery' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'scheduleEvery' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelAllFireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'runAllFireCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['cancelAllFireCount', 'runAllFireCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'batch': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+          }, ['cancelAllFireCount', 'runAllFireCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'batch': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'cancelAllTaskCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'runAllTaskCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              ['cancelAllTaskCount', 'runAllTaskCount'] as const,
-              { 'additionalProperties': false }
-            ),
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
-                'cancelAll': SchemaNode.defineObject(
-                  { 'type': 'object' } as const,
-                  {
+              }, ['cancelAllTaskCount', 'runAllTaskCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                'cancelAll': SchemaNode.defineObject({ 'type': 'object' } as const, {
                     'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                     'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                     'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-                  },
-                  ['advanceMs', 'atMs', 'counterStartMs'] as const,
-                  { 'additionalProperties': false }
-                ),
-                'runAll': SchemaNode.defineObject(
-                  { 'type': 'object' } as const,
-                  {
+                  }, ['advanceMs', 'atMs', 'counterStartMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+                'runAll': SchemaNode.defineObject({ 'type': 'object' } as const, {
                     'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                     'taskStepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-                  },
-                  ['counterStartMs', 'taskStepMs'] as const,
-                  { 'additionalProperties': false }
-                )
-              },
-              ['cancelAll', 'runAll'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['batch', 'scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+                  }, ['counterStartMs', 'taskStepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+              }, ['cancelAll', 'runAll'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['batch', 'scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('cancelAll-runAll' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'cancelAll-runAll' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelledFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'cancelledIntervalCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'cancelledTaskAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -962,25 +745,13 @@ export namespace VirtualSchedulerScenarioCaseEntity {
             'runUntilFirstFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'runUntilSecondFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'skippedCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          [
+          }, [
             'cancelledFired', 'cancelledIntervalCount', 'cancelledTaskAtMs', 'emptyRecordCount', 'intervalCount',
             'invalidIntervalErrorCount', 'runUntilFirstFired', 'runUntilSecondFired', 'skippedCount'
-          ] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'batch': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'skipCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-              ['skipCount'] as const,
-              { 'additionalProperties': false }
-            ),
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+          ] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'skipCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['skipCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'cancelledAdvanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'cancelledAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'cancelledIntervalFirstAdvanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -994,45 +765,25 @@ export namespace VirtualSchedulerScenarioCaseEntity {
                 'runUntilFirstAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'runUntilSecondAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'stepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              [
+              }, [
                 'cancelledAdvanceMs', 'cancelledAtMs', 'cancelledIntervalFirstAdvanceMs', 'cancelledIntervalSecondAdvanceMs',
                 'counterStartMs', 'emptyAdvanceMs', 'intervalAdvanceMs', 'intervalMs', 'invalidIntervals', 'runUntilAtMs',
                 'runUntilFirstAtMs', 'runUntilSecondAtMs', 'stepMs'
-              ] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['batch', 'scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+              ] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['batch', 'scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('edge-cases' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'edge-cases' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceCounterNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'advanceFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'cancelledFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'providerNowMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['advanceCounterNowMs', 'advanceFired', 'cancelledFired', 'providerNowMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+          }, ['advanceCounterNowMs', 'advanceFired', 'cancelledFired', 'providerNowMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'advanceCounterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'advanceDeltas': NumberArrayNode,
                 'advanceFiredAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -1044,68 +795,35 @@ export namespace VirtualSchedulerScenarioCaseEntity {
                 'runUntilAdvanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'runUntilCounterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'runUntilRejectAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              [
+              }, [
                 'advanceCounterStartMs', 'advanceDeltas', 'advanceFiredAtMs', 'cancelAtMs', 'cancelledCounterStartMs',
                 'providerNowMs', 'runAllCounterStartMs', 'runAllRejectAtMs', 'runUntilAdvanceMs', 'runUntilCounterStartMs',
                 'runUntilRejectAtMs'
-              ] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+              ] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('unhappy-path' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'unhappy-path' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'errorsPerScheduler': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'firedAfterIntervalFailure': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['errorsPerScheduler', 'firedAfterIntervalFailure'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+          }, ['errorsPerScheduler', 'firedAfterIntervalFailure'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'intervalAdvanceDeltas': NumberArrayNode,
                 'intervalMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              ['atMs', 'counterStartMs', 'intervalAdvanceDeltas', 'intervalMs'] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+              }, ['atMs', 'counterStartMs', 'intervalAdvanceDeltas', 'intervalMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-fire-error-loop' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-fire-error-loop' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'asyncErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'cancelAfterFireCancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -1124,7 +842,7 @@ export namespace VirtualSchedulerScenarioCaseEntity {
             'idlePartialCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'observedCauseMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'observedHookName': SchemaNode.defineString({ 'type': 'string' } as const),
-            'recordedHookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+            'recordedHookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
             'rejectionEventsLength': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'rescheduleAtMs': NumberArrayNode,
             'rescheduleCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -1133,47 +851,25 @@ export namespace VirtualSchedulerScenarioCaseEntity {
             'throwingFireFired': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'throwingRescheduleFireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'throwingScheduleIdNonEmpty': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          [
+          }, [
             'advanceCount', 'asyncErrorCount', 'cancelAfterFireCancelCount', 'cancelAfterFireFireCount', 'cancelAllCount',
             'cancelCheckerCancelled', 'cancelCount', 'cancelRepeatCount', 'cancelRepeatFireCount', 'counterAccessorNowMs',
             'fireCount', 'fireErrorCount', 'heapCreatedCount', 'heapFired', 'idleCount', 'idlePartialCount',
             'observedCauseMessage', 'observedHookName', 'recordedHookNames', 'rejectionEventsLength', 'rescheduleAtMs',
             'rescheduleCount', 'scheduleCount', 'throwingFireErrorCount', 'throwingFireFired', 'throwingRescheduleFireCount',
             'throwingScheduleIdNonEmpty'
-          ] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'batch': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'repeatCancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-              ['repeatCancelCount'] as const,
-              { 'additionalProperties': false }
-            ),
-            'scheduler': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {
+          ] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'repeatCancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['repeatCancelCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+            'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
                 'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-                'auditScenarios': SchemaNode.defineArray(
-                  { 'type': 'array' } as const,
-                  SchemaNode.defineObject(
-                    { 'type': 'object' } as const,
-                    {
-                      'action': SchemaNode.defineEnum(
-                        ['advance', 'schedule', 'schedule-and-advance', 'schedule-and-cancel', 'schedule-and-cancel-all'] as const
-                      ),
+                'auditScenarios': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {
+                      'action': SchemaNode.defineEnum({}, ['advance', 'schedule', 'schedule-and-advance', 'schedule-and-cancel', 'schedule-and-cancel-all'] as const),
                       'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                       'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-                      'expectedKey': SchemaNode.defineEnum(['advanceCount', 'cancelAllCount', 'cancelCount', 'fireCount', 'scheduleCount'] as const)
-                    },
-                    ['action', 'counterStartMs', 'expectedKey'] as const,
-                    { 'additionalProperties': false }
-                  )
-                ),
+                      'expectedKey': SchemaNode.defineEnum({}, ['advanceCount', 'cancelAllCount', 'cancelCount', 'fireCount', 'scheduleCount'] as const)
+                    }, ['action', 'counterStartMs', 'expectedKey'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined),
                 'cancelAfterFireAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'cancelAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'counterStartMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -1186,24 +882,15 @@ export namespace VirtualSchedulerScenarioCaseEntity {
                 'intervalMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'rescheduleAdvanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
                 'scheduleAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-              },
-              [
+              }, [
                 'advanceMs', 'auditScenarios', 'cancelAfterFireAtMs', 'cancelAtMs', 'counterStartMs', 'fireErrorAtMs',
                 'fireRejectAtMs', 'heapAtMs', 'idleAdvanceMs', 'idleAtMs', 'idleSecondAtMs', 'intervalMs',
                 'rescheduleAdvanceMs', 'scheduleAtMs'
-              ] as const,
-              { 'additionalProperties': false }
-            )
-          },
-          ['batch', 'scheduler'] as const,
-          { 'additionalProperties': false }
-        ),
+              ] as const, { 'additionalProperties': false, 'patternProperties': {} })
+          }, ['batch', 'scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('subclass-seams' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'subclass-seams' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

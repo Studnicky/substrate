@@ -17,16 +17,11 @@ export namespace PaginatorHasMoreStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'cursor': SchemaNode.defineUnknown({} as const),
-      'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const)),
-      'variant': SchemaNode.defineConst('hasMore' as const)
-    },
-    ['cursor', 'pages', 'variant'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'cursor': SchemaNode.defineUnknown({} as const),
+    'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineUnknown({} as const), undefined),
+    'variant': SchemaNode.defineConst({}, 'hasMore' as const)
+  }, ['cursor', 'pages', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

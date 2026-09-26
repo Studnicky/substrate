@@ -11,7 +11,7 @@ export namespace DiscoveryStrategyEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['alphabetic', 'distributive', 'quantile', 'sequential'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['alphabetic', 'distributive', 'quantile', 'sequential'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -13,7 +13,7 @@ export namespace ChannelEntryStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['cancelled'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['cancelled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

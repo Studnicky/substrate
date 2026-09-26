@@ -27,18 +27,13 @@ export namespace TimingOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'maximumEvents': SchemaNode.defineOneOf({ 'default': DEFAULT_MAXIMUM_EVENTS } as const, [
-        SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
-        SchemaNode.defineNull({ 'type': 'null' } as const)
-      ]),
-      'precision': SchemaNode.defineAnnotated({ 'default': DEFAULT_DECIMAL_PRECISION } as const, TimingPrecisionEntity.Node)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'maximumEvents': SchemaNode.defineOneOf({ 'default': DEFAULT_MAXIMUM_EVENTS } as const, [
+      SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
+      SchemaNode.defineNull({ 'type': 'null' } as const)
+    ]),
+    'precision': SchemaNode.defineAnnotated({ 'default': DEFAULT_DECIMAL_PRECISION } as const, TimingPrecisionEntity.Node)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

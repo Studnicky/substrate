@@ -16,7 +16,7 @@ export namespace EventComponentEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineEnum({}, [
     'api', 'auth', 'cache', 'dataSource', 'db', 'entity', 'graph', 'llm',
     'ontology', 'queryPlanner', 'queryRouter', 'queryTranslate', 'schema',
     'timing', 'workflow'

@@ -53,52 +53,37 @@ export namespace PredicatesNetworkAndVersioningScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'result': SchemaNode.defineOneOf([
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'result': SchemaNode.defineOneOf({}, [
             SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             SchemaNode.defineNumber({ 'type': 'number' } as const),
             SchemaNode.defineNull({ 'type': 'null' } as const)
           ]),
           'sign': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'boundary': SchemaNode.defineEnum(['closed', 'half-open'] as const),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'boundary': SchemaNode.defineEnum({}, ['closed', 'half-open'] as const),
           'caseSensitive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'cidr': SchemaNode.defineString({ 'type': 'string' } as const),
           'first': SchemaNode.defineString({ 'type': 'string' } as const),
           'ip': SchemaNode.defineString({ 'type': 'string' } as const),
-          'maximum': SchemaNode.defineOneOf([SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
-          'minimum': SchemaNode.defineOneOf([SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
+          'maximum': SchemaNode.defineOneOf({}, [SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
+          'minimum': SchemaNode.defineOneOf({}, [SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
           'nan': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'range': SchemaNode.defineString({ 'type': 'string' } as const),
           'second': SchemaNode.defineString({ 'type': 'string' } as const),
-          'value': SchemaNode.defineOneOf([
+          'value': SchemaNode.defineOneOf({}, [
             SchemaNode.defineString({ 'type': 'string' } as const),
             SchemaNode.defineNumber({ 'type': 'number' } as const),
             SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             SchemaNode.defineNull({ 'type': 'null' } as const)
           ]),
           'version': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

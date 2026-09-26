@@ -17,7 +17,7 @@ export namespace BusQueueOptionsEntity {
   } as const;
 
   /** JSON-serializable options for BusQueue construction. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'highWaterMark': SchemaNode.defineNumber(HIGH_WATER_MARK_SCHEMA) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'highWaterMark': SchemaNode.defineNumber(HIGH_WATER_MARK_SCHEMA) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

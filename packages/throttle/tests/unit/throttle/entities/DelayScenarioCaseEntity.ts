@@ -9,12 +9,7 @@ const timeoutInputSchema = {
   'type': 'object'
 } as const;
 
-const timeoutInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['timeoutMs'] as const,
-  { 'additionalProperties': false }
-);
+const timeoutInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const withResolvedExpectedSchema = <const TShape extends string>(shape: TShape) => ({
   'additionalProperties': false,
@@ -29,18 +24,13 @@ const withResolvedExpectedSchema = <const TShape extends string>(shape: TShape) 
   'type': 'object'
 }) as const;
 
-const withResolvedExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const withResolvedExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': SchemaNode.defineConst(true as const) }, ['resolved'] as const, { 'additionalProperties': false }),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': SchemaNode.defineConst({}, true as const) }, ['resolved'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': timeoutInputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const delayResolvesWithoutSignalSchema = withResolvedExpectedSchema('delay-resolves-without-signal');
 const delayResolvesWithoutSignalNode = withResolvedExpectedNode('delay-resolves-without-signal');
@@ -65,27 +55,17 @@ const withAbortedExpectedSchema = <const TShape extends string>(shape: TShape) =
   'type': 'object'
 }) as const;
 
-const withAbortedExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const withAbortedExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'errorCode': SchemaNode.defineConst('throttle.aborted' as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'errorCode': SchemaNode.defineConst({}, 'throttle.aborted' as const),
         'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-      },
-      ['errorCode', 'errorMessage', 'timeoutMs'] as const,
-      { 'additionalProperties': false }
-    ),
+      }, ['errorCode', 'errorMessage', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': timeoutInputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const delayRejectsAlreadyAbortedSchema = withAbortedExpectedSchema('delay-rejects-already-aborted');
 const delayRejectsAlreadyAbortedNode = withAbortedExpectedNode('delay-rejects-already-aborted');
@@ -110,23 +90,13 @@ const delayRemovesAbortListenerSchema = {
   'type': 'object'
 } as const;
 
-const delayRemovesAbortListenerNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const delayRemovesAbortListenerNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'abortListenerAddCount': SchemaNode.defineConst(1 as const), 'abortListenerRemoveCount': SchemaNode.defineConst(1 as const) },
-      ['abortListenerAddCount', 'abortListenerRemoveCount'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'abortListenerAddCount': SchemaNode.defineConst({}, 1 as const), 'abortListenerRemoveCount': SchemaNode.defineConst({}, 1 as const) }, ['abortListenerAddCount', 'abortListenerRemoveCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': timeoutInputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('delay-removes-abort-listener' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'delay-removes-abort-listener' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The five scenario case shapes `delay.loop.spec.ts` exercises. */
 export namespace DelayScenarioCaseEntity {
@@ -137,7 +107,7 @@ export namespace DelayScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     delayResolvesWithoutSignalNode, delayResolvesWithNeverAbortedSignalNode,
     delayRejectsAlreadyAbortedNode, delayRejectsBeforeTimeoutNode, delayRemovesAbortListenerNode
   ] as const);

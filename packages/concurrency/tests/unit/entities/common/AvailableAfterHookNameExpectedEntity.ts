@@ -11,14 +11,9 @@ export namespace AvailableAfterHookNameExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'availableAfter': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'hookName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['availableAfter', 'hookName'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['availableAfter', 'hookName'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -17,12 +17,7 @@ export namespace ExampleScenarioFileEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'cases': SchemaNode.defineArray({ 'type': 'array' } as const, ExampleScenarioEntity.Node) },
-    ['cases'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cases': SchemaNode.defineArray({ 'type': 'array' } as const, ExampleScenarioEntity.Node, undefined) }, ['cases'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

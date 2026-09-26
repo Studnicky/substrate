@@ -72,13 +72,9 @@ export namespace SystemScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'cached': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'callCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'formula': SchemaNode.defineString({ 'type': 'string' } as const),
@@ -87,36 +83,18 @@ export namespace SystemScenarioCaseEntity {
           'nonEmpty': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'relation': SchemaNode.defineString({ 'type': 'string' } as const),
           'source': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'system': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'detectedGpu': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                {
-                  'computeApi': SchemaNode.defineEnum(['cuda', 'metal', 'opencl', 'software'] as const),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'system': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'detectedGpu': SchemaNode.defineObject({ 'type': 'object' } as const, {
+                  'computeApi': SchemaNode.defineEnum({}, ['cuda', 'metal', 'opencl', 'software'] as const),
                   'name': SchemaNode.defineString({ 'type': 'string' } as const),
-                  'vramMb': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
-                },
-                ['computeApi', 'name', 'vramMb'] as const,
-                { 'additionalProperties': false }
-              )
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['system'] as const,
-        { 'additionalProperties': false }
-      ),
+                  'vramMb': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)])
+                }, ['computeApi', 'name', 'vramMb'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['system'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'cpu-arch-non-empty',
         'cpu-getter-calls-os-cpus-once',
         'cpu-logical-count-matches-os',
@@ -133,9 +111,6 @@ export namespace SystemScenarioCaseEntity {
         'platform-node-version',
         'platform-os-non-empty'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

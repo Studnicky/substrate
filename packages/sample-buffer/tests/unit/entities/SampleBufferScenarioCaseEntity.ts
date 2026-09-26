@@ -11,12 +11,7 @@ export namespace SampleBufferScenarioCaseEntity {
     'required': ['capacity'],
     'type': 'object'
   } as const;
-  const capacityNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['capacity'] as const,
-    { 'additionalProperties': false }
-  );
+  const capacityNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const capacityWithExtraSchema = {
     'additionalProperties': false,
@@ -24,21 +19,16 @@ export namespace SampleBufferScenarioCaseEntity {
     'required': ['capacity'],
     'type': 'object'
   } as const;
-  const capacityWithExtraNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'extra': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['capacity'] as const,
-    { 'additionalProperties': false }
-  );
+  const capacityWithExtraNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'extra': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['capacity'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const numberArraySchema = { 'items': { 'type': 'number' }, 'type': 'array' } as const;
-  const numberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const));
+  const numberArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
 
   const stringArraySchema = { 'items': { 'type': 'string' }, 'type': 'array' } as const;
-  const stringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const));
+  const stringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
 
   const nullableNumberSchema = { 'oneOf': [{ 'type': 'number' }, { 'type': 'null' }] } as const;
-  const nullableNumberNode = SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)] as const);
+  const nullableNumberNode = SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)] as const);
 
   function branchSchema<
     const TShape extends string,
@@ -68,18 +58,13 @@ export namespace SampleBufferScenarioCaseEntity {
     TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
     const TExpectedRequired extends readonly (keyof TExpectedProps & string)[]
   >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false }),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const capacityErrorSchema = branchSchema(
@@ -208,12 +193,7 @@ export namespace SampleBufferScenarioCaseEntity {
     'required': ['sampleCount'],
     'type': 'object'
   } as const;
-  const batchNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'sampleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['sampleCount'] as const,
-    { 'additionalProperties': false }
-  );
+  const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'sampleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sampleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const percentileBatchSchema = branchSchema(
     'percentile-batch' as const,
@@ -292,7 +272,7 @@ export namespace SampleBufferScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     capacityErrorNode,
     clearResetsNode,
     constructionNode,

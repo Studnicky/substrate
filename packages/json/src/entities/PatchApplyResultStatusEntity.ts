@@ -16,12 +16,7 @@ export namespace PatchApplyResultStatusEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'success': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['success'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'error': SchemaNode.defineString({ 'type': 'string' } as const), 'success': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['success'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

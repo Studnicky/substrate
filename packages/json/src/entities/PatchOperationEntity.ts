@@ -46,66 +46,36 @@ export namespace PatchOperationEntity {
 
   // Each branch restates every field it needs (no sibling-schema defineAnyOf overload —
   // its static type is InferUnionOfStaticType alone, with no path to intersect a sibling).
-  export const Node = SchemaNode.defineAnyOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'op': SchemaNode.defineConst('add' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const),
-        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
-      },
-      ['op', 'path', 'value'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'from': SchemaNode.defineString({ 'type': 'string' } as const),
-        'op': SchemaNode.defineConst('copy' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const)
-      },
-      ['from', 'op', 'path'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'from': SchemaNode.defineString({ 'type': 'string' } as const),
-        'op': SchemaNode.defineConst('move' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const)
-      },
-      ['from', 'op', 'path'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'op': SchemaNode.defineConst('remove' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const)
-      },
-      ['op', 'path'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'op': SchemaNode.defineConst('replace' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const),
-        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
-      },
-      ['op', 'path', 'value'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'op': SchemaNode.defineConst('test' as const),
-        'path': SchemaNode.defineString({ 'type': 'string' } as const),
-        'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
-      },
-      ['op', 'path', 'value'] as const,
-      { 'additionalProperties': false }
-    )
+  export const Node = SchemaNode.defineAnyOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'op': SchemaNode.defineConst({}, 'add' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const),
+      'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+    }, ['op', 'path', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'from': SchemaNode.defineString({ 'type': 'string' } as const),
+      'op': SchemaNode.defineConst({}, 'copy' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const)
+    }, ['from', 'op', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'from': SchemaNode.defineString({ 'type': 'string' } as const),
+      'op': SchemaNode.defineConst({}, 'move' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const)
+    }, ['from', 'op', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'op': SchemaNode.defineConst({}, 'remove' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const)
+    }, ['op', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'op': SchemaNode.defineConst({}, 'replace' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const),
+      'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+    }, ['op', 'path', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'op': SchemaNode.defineConst({}, 'test' as const),
+      'path': SchemaNode.defineString({ 'type': 'string' } as const),
+      'value': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode)
+    }, ['op', 'path', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 

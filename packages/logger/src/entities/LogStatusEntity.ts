@@ -16,7 +16,7 @@ export namespace LogStatusEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineEnum({}, [
     'cached', 'complete', 'failed', 'in_progress', 'invalid', 'not_found',
     'partial', 'pending', 'rate_limited', 'retry_exhausted', 'retrying',
     'skipped', 'success', 'timeout', 'unauthorized', 'unavailable'

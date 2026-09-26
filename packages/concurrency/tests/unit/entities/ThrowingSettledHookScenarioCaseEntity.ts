@@ -29,27 +29,17 @@ export namespace ThrowingSettledHookScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expected': InflightAfterExpectedEntity.Node,
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'factoryMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'firstKey': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'secondKey': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'settledMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['factoryMessage', 'firstKey', 'secondKey', 'settledMessage'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['factoryMessage', 'firstKey', 'secondKey', 'settledMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('throwing-settled-hook' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'throwing-settled-hook' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

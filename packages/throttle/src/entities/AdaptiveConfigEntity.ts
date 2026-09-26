@@ -92,7 +92,7 @@ export namespace AdaptiveConfigEntity {
     'description': 'Target latency in milliseconds for p95.',
     'exclusiveMinimum': 0,
     'type': 'number'
-  } as const) }, ['enabled'] as const, { 'additionalProperties': false });
+  } as const) }, ['enabled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -11,11 +11,6 @@ export namespace TraceEntryEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'hook': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'index': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['hook', 'index'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hook': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'index': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['hook', 'index'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

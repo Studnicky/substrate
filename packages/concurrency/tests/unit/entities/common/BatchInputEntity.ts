@@ -18,18 +18,8 @@ export namespace BatchInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'batch': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['itemCount'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['batch'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['itemCount'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['batch'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -53,49 +53,29 @@ export namespace ConfigurationErrorScenariosEntity {
     'type': 'object'
   } as const;
 
-  const ConstructionOutcomeNode = SchemaNode.defineEnum(constructionOutcomeSchema.enum);
-  const ConstructionCaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ConstructionOutcomeNode = SchemaNode.defineEnum({}, constructionOutcomeSchema.enum);
+  const ConstructionCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'outcome': ConstructionOutcomeNode
-    },
-    ['description', 'outcome'] as const,
-    { 'additionalProperties': false }
-  );
-  const DirectOutcomeNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+    }, ['description', 'outcome'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const DirectOutcomeNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
       'code': SchemaNode.defineString({ 'type': 'string' } as const),
       'message': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
-  const DirectShapeNode = SchemaNode.defineEnum(directCaseSchema.properties.shape.enum);
-  const DirectCaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const DirectShapeNode = SchemaNode.defineEnum({}, directCaseSchema.properties.shape.enum);
+  const DirectCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'message': SchemaNode.defineString({ 'type': 'string' } as const),
       'outcome': DirectOutcomeNode,
       'shape': DirectShapeNode
-    },
-    ['description', 'message', 'outcome', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'message', 'outcome', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'construction': SchemaNode.defineArray({ 'type': 'array' } as const, ConstructionCaseNode),
-      'direct': SchemaNode.defineArray({ 'type': 'array' } as const, DirectCaseNode)
-    },
-    ['construction', 'direct'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'construction': SchemaNode.defineArray({ 'type': 'array' } as const, ConstructionCaseNode, undefined),
+      'direct': SchemaNode.defineArray({ 'type': 'array' } as const, DirectCaseNode, undefined)
+    }, ['construction', 'direct'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

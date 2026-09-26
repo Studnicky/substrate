@@ -15,15 +15,10 @@ export namespace RetryClassifierDescriptorEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'reason': SchemaNode.defineString({ 'type': 'string' } as const),
       'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'shape': SchemaNode.defineConst('constant' as const)
-    },
-    ['reason', 'retryable', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'constant' as const)
+    }, ['reason', 'retryable', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

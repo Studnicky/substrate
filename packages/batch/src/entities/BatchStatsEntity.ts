@@ -17,7 +17,7 @@ export namespace BatchStatsEntity {
   } as const;
 
   /** Aggregate completion statistics emitted by the onBatchComplete hook. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'failed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'succeeded': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'total': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['failed', 'succeeded', 'total'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'failed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'succeeded': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'total': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['failed', 'succeeded', 'total'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

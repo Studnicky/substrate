@@ -18,19 +18,14 @@ const componentPrefixesSchema = {
   ],
   'type': 'object'
 } as const;
-const componentPrefixesNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const componentPrefixesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'API': nameNode, 'AUTH': nameNode, 'CACHE': nameNode, 'DATA_SOURCE': nameNode, 'DB': nameNode,
     'ENTITY': nameNode, 'GRAPH': nameNode, 'LLM': nameNode, 'ONTOLOGY': nameNode, 'QUERY_PLANNER': nameNode,
     'QUERY_ROUTER': nameNode, 'QUERY_TRANSLATE': nameNode, 'SCHEMA': nameNode, 'TIMING': nameNode, 'WORKFLOW': nameNode
-  },
-  [
+  }, [
     'API', 'AUTH', 'CACHE', 'DATA_SOURCE', 'DB', 'ENTITY', 'GRAPH', 'LLM', 'ONTOLOGY', 'QUERY_PLANNER',
     'QUERY_ROUTER', 'QUERY_TRANSLATE', 'SCHEMA', 'TIMING', 'WORKFLOW'
-  ] as const,
-  { 'additionalProperties': false }
-);
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 function defineCreateEventBranch<const TShape extends string>(shape: TShape) {
   const schema = {
@@ -50,23 +45,13 @@ function defineCreateEventBranch<const TShape extends string>(shape: TShape) {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
       'expected': nameNode,
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'component': nameNode, 'operation': nameNode },
-        ['component', 'operation'] as const,
-        { 'additionalProperties': false }
-      ),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': nameNode, 'operation': nameNode }, ['component', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': nameNode,
-      'shape': SchemaNode.defineConst(shape)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, shape)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   return { node, schema };
 }
 
@@ -88,23 +73,13 @@ function defineParseEventBranch<const TShape extends string>(shape: TShape) {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'component': nameNode, 'operation': SchemaNode.defineString({ 'type': 'string' } as const) },
-        ['component', 'operation'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': nameNode }, ['event'] as const, { 'additionalProperties': false }),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': nameNode, 'operation': SchemaNode.defineString({ 'type': 'string' } as const) }, ['component', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': nameNode }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': nameNode,
-      'shape': SchemaNode.defineConst(shape)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, shape)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   return { node, schema };
 }
 
@@ -122,18 +97,13 @@ export namespace LogEventNameScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const componentPrefixesCaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const componentPrefixesCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false }),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': nameNode,
-      'shape': SchemaNode.defineConst('component-prefixes' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'component-prefixes' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createConstantComponent = defineCreateEventBranch('create-constant-component' as const);
   const createGraphQuery = defineCreateEventBranch('create-graph-query' as const);
@@ -152,7 +122,7 @@ export namespace LogEventNameScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     componentPrefixesCaseNode,
     createConstantComponent.node, createGraphQuery.node, createQueryPlanner.node,
     parseGraphQuery.node, parseMultipleDots.node, parseQueryPlanner.node, parseStandalone.node

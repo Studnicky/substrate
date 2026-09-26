@@ -18,18 +18,13 @@ export namespace UserEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       id: SchemaNode.defineString({
         type: "string",
       } as const),
       name: SchemaNode.defineString({
         type: "string",
       } as const),
-    },
-    ["id", "name"] as const,
-    { additionalProperties: false },
-  );
+    }, ["id", "name"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

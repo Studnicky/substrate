@@ -23,11 +23,7 @@ type InputIsUnknownCheck = ExpectTrueType<EqualType<AnyValueInputType, unknown>>
 // cleanly `false`, so only a genuine `unknown` derivation type-checks here.
 type NotAssignableToStringCheck = ExpectFalseType<IsAssignableType<AnyValueStaticType, string>>;
 
-const objectWithAnyPropertyNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'value': SchemaNode.defineUnknown({} as const) },
-  ['found', 'value'] as const
-);
+const objectWithAnyPropertyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'value': SchemaNode.defineUnknown({} as const) }, ['found', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type ObjectWithAnyPropertyStaticType = NodeStaticType<typeof objectWithAnyPropertyNode>;
 type ValueFieldIsUnknownCheck = ExpectTrueType<EqualType<ObjectWithAnyPropertyStaticType['value'], unknown>>;
 

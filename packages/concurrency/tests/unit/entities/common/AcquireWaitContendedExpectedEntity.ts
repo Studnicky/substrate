@@ -14,14 +14,9 @@ export namespace AcquireWaitContendedExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'acquireWaitEvents': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'contendedEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-    },
-    ['acquireWaitEvents', 'contendedEvents'] as const,
-    { 'additionalProperties': false }
-  );
+      'contendedEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+    }, ['acquireWaitEvents', 'contendedEvents'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

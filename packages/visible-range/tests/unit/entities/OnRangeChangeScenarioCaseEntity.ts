@@ -14,18 +14,13 @@ const VisibleRangeConfigSchema = {
   'required': ['count'],
   'type': 'object'
 } as const;
-const VisibleRangeConfigNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const VisibleRangeConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'count': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'estimateSizeMode': SchemaNode.defineConst('fractional-boundary' as const),
+    'estimateSizeMode': SchemaNode.defineConst({}, 'fractional-boundary' as const),
     'estimateSizeValue': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'itemSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'overscan': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['count'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['count'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The single scenario case shape `visible-range onRangeChange` exercises. */
 export namespace OnRangeChangeScenarioCaseEntity {
@@ -53,23 +48,16 @@ export namespace OnRangeChangeScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'nextScrollOffset': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'scrollOffset': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'viewportSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'visibleRange': VisibleRangeConfigNode
-        },
-        ['visibleRange'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['visibleRange'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'async-rejecting-hook',
         'first-call',
         'no-state-change',
@@ -77,9 +65,6 @@ export namespace OnRangeChangeScenarioCaseEntity {
         'scroll-moves-range',
         'throwing-hook'
       ] as const)
-    },
-    ['description', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

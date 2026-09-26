@@ -124,12 +124,12 @@ export namespace TypeContractMetadataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'aliasClassification': SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'aliasClassification': SchemaNode.defineEnum({}, [
     'interfaceContract',
     'pureDataCanonical',
     'pureDataInvalid',
     'typeFunction'
-  ] as const), 'aliasReason': SchemaNode.defineEnum([
+  ] as const), 'aliasReason': SchemaNode.defineEnum({}, [
     'any',
     'bigint',
     'brand',
@@ -154,7 +154,7 @@ export namespace TypeContractMetadataEntity {
     'undefined',
     'unknown',
     'unresolvedReference'
-  ] as const), 'canonicalRoot': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'contractReason': SchemaNode.defineEnum([
+  ] as const), 'canonicalRoot': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'contractReason': SchemaNode.defineEnum({}, [
     'any',
     'bigint',
     'brand',
@@ -170,17 +170,17 @@ export namespace TypeContractMetadataEntity {
     'symbol',
     'undefined',
     'unknown'
-  ] as const), 'fixable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasCallable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasData': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceClassification': SchemaNode.defineEnum([
+  ] as const), 'fixable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasCallable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'hasData': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceClassification': SchemaNode.defineEnum({}, [
     'contract',
     'pureData'
-  ] as const), 'interfaceContractReason': SchemaNode.defineEnum([
+  ] as const), 'interfaceContractReason': SchemaNode.defineEnum({}, [
     'brand',
     'callable',
     'classInstance',
     'constructor',
     'nonJson',
     'readonly'
-  ] as const), 'interfaceReason': SchemaNode.defineEnum([
+  ] as const), 'interfaceReason': SchemaNode.defineEnum({}, [
     'brand',
     'callable',
     'classInstance',
@@ -188,7 +188,7 @@ export namespace TypeContractMetadataEntity {
     'nonJson',
     'pureData',
     'readonly'
-  ] as const), 'readonlyReason': SchemaNode.defineEnum([
+  ] as const), 'readonlyReason': SchemaNode.defineEnum({}, [
     'exposedDefault',
     'intrinsicReadonly',
     'readonlyAlias',
@@ -209,7 +209,7 @@ export namespace TypeContractMetadataEntity {
     'interfaceReason',
     'readonlyReason',
     'valid'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

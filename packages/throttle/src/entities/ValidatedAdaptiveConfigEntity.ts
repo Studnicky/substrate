@@ -89,27 +89,17 @@ class SharedFieldNodeBuilder {
   }
 }
 
-const disabledBranch = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
-    ...SharedFieldNodeBuilder.build(),
-    'enabled': SchemaNode.defineConst(false as const),
-    'targetLatencyMs': SchemaNode.defineNumber(disabledBranchSchema.properties.targetLatencyMs)
-  },
-  [...SHARED_REQUIRED, 'enabled', 'targetLatencyMs'] as const,
-  { 'additionalProperties': false }
-);
+const disabledBranch = SchemaNode.defineObject({ 'type': 'object' } as const, {
+  ...SharedFieldNodeBuilder.build(),
+  'enabled': SchemaNode.defineConst({}, false as const),
+  'targetLatencyMs': SchemaNode.defineNumber(disabledBranchSchema.properties.targetLatencyMs)
+}, [...SHARED_REQUIRED, 'enabled', 'targetLatencyMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-const enabledBranch = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
-    ...SharedFieldNodeBuilder.build(),
-    'enabled': SchemaNode.defineConst(true as const),
-    'targetLatencyMs': SchemaNode.defineNumber(enabledBranchSchema.properties.targetLatencyMs)
-  },
-  [...SHARED_REQUIRED, 'enabled', 'targetLatencyMs'] as const,
-  { 'additionalProperties': false }
-);
+const enabledBranch = SchemaNode.defineObject({ 'type': 'object' } as const, {
+  ...SharedFieldNodeBuilder.build(),
+  'enabled': SchemaNode.defineConst({}, true as const),
+  'targetLatencyMs': SchemaNode.defineNumber(enabledBranchSchema.properties.targetLatencyMs)
+}, [...SHARED_REQUIRED, 'enabled', 'targetLatencyMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** Fully defaulted adaptive configuration retained by a throttle instance. Each `anyOf` branch restates every field as a complete `defineObject` — the only way `defineAnyOf`'s derived static type reflects the `enabled`-discriminated refinement, since the sibling-schema overload can't intersect a base shape into a union. */
 export namespace ValidatedAdaptiveConfigEntity {
@@ -117,7 +107,7 @@ export namespace ValidatedAdaptiveConfigEntity {
     'anyOf': [disabledBranchSchema, enabledBranchSchema]
   } as const;
 
-  export const Node = SchemaNode.defineAnyOf([disabledBranch, enabledBranch] as const);
+  export const Node = SchemaNode.defineAnyOf({}, [disabledBranch, enabledBranch] as const);
   export type Type = NodeStaticType<typeof Node>;
   /** Not-yet-validated construction data — the shape a caller assembling a branch by hand supplies to {@link create}. */
   export type InputType = NodeInputType<typeof Node>;

@@ -23,18 +23,14 @@ namespace KnownTypesOutsideAdaptersOptionsEntity {
     }
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      ...LayerOptionsEntity.Node.schema.properties,
-      'adapterLayerName': SchemaNode.defineString({
-        'default': 'adapters',
-        'description': 'Name of the layer exempted from this ban — the layer responsible for converting untyped intake data into known shapes. Defaults to "adapters".',
-        'type': 'string'
-      } as const)
-    },
-    LayerOptionsEntity.Node.schema.required
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    ...LayerOptionsEntity.Node.schema.properties,
+    'adapterLayerName': SchemaNode.defineString({
+      'default': 'adapters',
+      'description': 'Name of the layer exempted from this ban — the layer responsible for converting untyped intake data into known shapes. Defaults to "adapters".',
+      'type': 'string'
+    } as const)
+  }, LayerOptionsEntity.Node.schema.required, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

@@ -15,15 +15,10 @@ const schema = {
 } as const;
 
 // declares an 'age' property the schema above never mentions
-const driftedNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
-    'age': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-  },
-  ['name'] as const,
-  { 'additionalProperties': false }
-);
+const driftedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+  'age': SchemaNode.defineNumber({ 'type': 'number' } as const),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+}, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 assert.throws(() => {
   ScenarioFileCompiler.compileIntake(schema, driftedNode);

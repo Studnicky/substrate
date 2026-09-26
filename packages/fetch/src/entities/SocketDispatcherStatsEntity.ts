@@ -75,7 +75,7 @@ export namespace SocketDispatcherStatsEntity {
     'description': 'Total number of active, pending, or queued requests',
     'minimum': 0,
     'type': 'integer'
-  } as const) }, ['connected', 'free', 'pending', 'queued', 'running', 'size'] as const, { 'additionalProperties': false });
+  } as const) }, ['connected', 'free', 'pending', 'queued', 'running', 'size'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

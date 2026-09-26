@@ -21,7 +21,7 @@ export namespace RetryContextDataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RetryContextData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'RetryContextData', 'type': 'object' } as const, { 'abort': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'attemptNumber': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'elapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['attemptNumber', 'delayMs', 'elapsedMs'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RetryContextData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'RetryContextData', 'type': 'object' } as const, { 'abort': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'attemptNumber': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'elapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['attemptNumber', 'delayMs', 'elapsedMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

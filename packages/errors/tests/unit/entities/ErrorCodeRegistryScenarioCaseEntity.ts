@@ -15,16 +15,11 @@ export namespace ErrorCodeRegistryScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const descriptorNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const descriptorNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-    },
-    ['code', 'description', 'retryable'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['code', 'description', 'retryable'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -53,31 +48,16 @@ export namespace ErrorCodeRegistryScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'messageIncludes': SchemaNode.defineString({ 'type': 'string' } as const),
           'registered': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'descriptor': descriptorNode },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptor': descriptorNode }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['constructor-throws', 'register-duplicate', 'register-unique'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, ['constructor-throws', 'register-duplicate', 'register-unique'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -16,7 +16,7 @@ export namespace DateRangeEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'after': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'before': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['after', 'before'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'after': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'before': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['after', 'before'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

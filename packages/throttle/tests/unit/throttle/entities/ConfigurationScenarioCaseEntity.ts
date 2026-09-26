@@ -3,9 +3,9 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import { SchemaNode } from '@studnicky/entity/types';
 
 const concurrencyLimitSchema = { 'oneOf': [{ 'type': 'number' }, { 'const': 'NaN' }] } as const;
-const concurrencyLimitNode = SchemaNode.defineOneOf([
+const concurrencyLimitNode = SchemaNode.defineOneOf({}, [
   SchemaNode.defineNumber({ 'type': 'number' } as const),
-  SchemaNode.defineConst('NaN' as const)
+  SchemaNode.defineConst({}, 'NaN' as const)
 ] as const);
 
 const throttleInputSchema = {
@@ -15,12 +15,7 @@ const throttleInputSchema = {
   'type': 'object'
 } as const;
 
-const throttleInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'concurrencyLimit': concurrencyLimitNode },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const throttleInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrencyLimit': concurrencyLimitNode }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const inputSchema = {
   'additionalProperties': false,
@@ -29,7 +24,7 @@ const inputSchema = {
   'type': 'object'
 } as const;
 
-const inputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': throttleInputNode }, ['throttle'] as const, { 'additionalProperties': false });
+const inputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': throttleInputNode }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const withConcurrencyLimitExpectedSchema = <const TShape extends string>(shape: TShape) => ({
   'additionalProperties': false,
@@ -49,23 +44,13 @@ const withConcurrencyLimitExpectedSchema = <const TShape extends string>(shape: 
   'type': 'object'
 }) as const;
 
-const withConcurrencyLimitExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const withConcurrencyLimitExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-      ['concurrencyLimit'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['concurrencyLimit'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': inputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const withErrorNameExpectedSchema = <const TShape extends string>(shape: TShape) => ({
   'additionalProperties': false,
@@ -85,23 +70,13 @@ const withErrorNameExpectedSchema = <const TShape extends string>(shape: TShape)
   'type': 'object'
 }) as const;
 
-const withErrorNameExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const withErrorNameExpectedNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'errorName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['errorName'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': inputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const defaultConfigSchema = withConcurrencyLimitExpectedSchema('default-config');
 const defaultConfigNode = withConcurrencyLimitExpectedNode('default-config');
@@ -132,23 +107,13 @@ const acceptsValidConfigurationSchema = {
   'type': 'object'
 } as const;
 
-const acceptsValidConfigurationNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const acceptsValidConfigurationNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'accepted': SchemaNode.defineConst(true as const), 'defaultAccepted': SchemaNode.defineConst(true as const) },
-      ['accepted', 'defaultAccepted'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'accepted': SchemaNode.defineConst({}, true as const), 'defaultAccepted': SchemaNode.defineConst({}, true as const) }, ['accepted', 'defaultAccepted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'input': inputNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('accepts-valid-configuration' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'accepts-valid-configuration' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The six scenario case shapes `configuration.loop.spec.ts` exercises. */
 export namespace ConfigurationScenarioCaseEntity {
@@ -159,7 +124,7 @@ export namespace ConfigurationScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     defaultConfigNode, customConcurrencyLimitNode, missingConcurrencyLimitUsesDefaultNode,
     invalidConcurrencyLimitNode, invalidConcurrencyLimitNanNode, acceptsValidConfigurationNode
   ] as const);

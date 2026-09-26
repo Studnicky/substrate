@@ -20,7 +20,7 @@ export namespace SubclassStageSpecEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     AddStageSpecEntity.Node,
     IdentityStageSpecEntity.Node,
     MulStageSpecEntity.Node,

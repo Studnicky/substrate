@@ -77,85 +77,50 @@ export namespace RunScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const BatchConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  const BatchConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const WorkerPoolConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const WorkerPoolConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigNode,
       'concurrency': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'workerPath': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['concurrency', 'workerPath'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['concurrency', 'workerPath'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const ItemNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ItemNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'awaitResultCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'error': SchemaNode.defineString({ 'type': 'string' } as const),
       'exit': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'ms': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'stateFile': SchemaNode.defineString({ 'type': 'string' } as const),
       'value': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['value'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const BoundedConcurrencyBatchNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const BoundedConcurrencyBatchNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'itemMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'valuePrefix': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['itemCount', 'itemMs', 'valuePrefix'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['itemCount', 'itemMs', 'valuePrefix'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'createdWorkerCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'observedMaxGreaterThanOne': SchemaNode.defineConst(true as const),
-          'observedMaxLessThanOrEqualConcurrency': SchemaNode.defineConst(true as const),
-          'observedResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'observedMaxGreaterThanOne': SchemaNode.defineConst({}, true as const),
+          'observedMaxLessThanOrEqualConcurrency': SchemaNode.defineConst({}, true as const),
+          'observedResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'runRejectedMessageIncludes': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'batch': BoundedConcurrencyBatchNode,
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode),
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, ItemNode, undefined),
           'workerPool': WorkerPoolConfigNode
-        },
-        ['workerPool'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['workerPool'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'result-order', 'bounded-concurrency', 'error-fail-fast', 'exit-retry', 'exit-retry-fails', 'timeout-rejects'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

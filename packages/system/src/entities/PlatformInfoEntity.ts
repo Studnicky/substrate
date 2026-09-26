@@ -16,7 +16,7 @@ export namespace PlatformInfoEntity {
     'title': 'PlatformInfoType',
     'type': 'object'
   } as const;
-  export const Node = SchemaNode.defineObject({ 'title': 'PlatformInfoType', 'type': 'object' } as const, { 'isAppleSilicon': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'nodeVersion': SchemaNode.defineString({ 'type': 'string' } as const), 'os': SchemaNode.defineString({ 'type': 'string' } as const) }, ['isAppleSilicon', 'os'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'PlatformInfoType', 'type': 'object' } as const, { 'isAppleSilicon': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'nodeVersion': SchemaNode.defineString({ 'type': 'string' } as const), 'os': SchemaNode.defineString({ 'type': 'string' } as const) }, ['isAppleSilicon', 'os'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

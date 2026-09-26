@@ -19,7 +19,7 @@ export namespace HookRequestContextEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'elapsed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'headers': SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const) }), 'url': SchemaNode.defineString({ 'type': 'string' } as const) }, ['headers', 'url'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'elapsed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'headers': SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineString({ 'type': 'string' } as const), 'patternProperties': {} }), 'url': SchemaNode.defineString({ 'type': 'string' } as const) }, ['headers', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -22,7 +22,7 @@ export namespace GpuAmdProfileEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'title': 'GpuAmdProfile', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': false, 'patternProperties': { '.*': SchemaNode.defineObject({ 'type': 'object' } as const, { 'VRAM Total Memory (B)': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false }) } });
+  export const Node = SchemaNode.defineObject({ 'minProperties': 1, 'title': 'GpuAmdProfile', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': false, 'patternProperties': { '.*': SchemaNode.defineObject({ 'type': 'object' } as const, { 'VRAM Total Memory (B)': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }) } });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

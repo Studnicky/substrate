@@ -13,7 +13,7 @@ export namespace LogDataEntity {
     'oneOf': [LogBodyDataEntity.Schema, LogFaultDataEntity.Schema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([LogBodyDataEntity.Node, LogFaultDataEntity.Node]);
+  export const Node = SchemaNode.defineOneOf({}, [LogBodyDataEntity.Node, LogFaultDataEntity.Node]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

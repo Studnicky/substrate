@@ -179,19 +179,15 @@ export namespace MutexCoreScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'activeLocksCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'complete': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'completeAfterRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'completed': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))]),
+          'completed': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)]),
           'created': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'drainOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'drainOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'enableCoalescing': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'exclusive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'externalMutationIgnored': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -203,10 +199,10 @@ export namespace MutexCoreScenarioCaseEntity {
           'locked': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'lockedAfterClear': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'lockedAfterRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'lockedKeys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'lockedKeys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'maximumQueueSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'observersNotified': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'queueSize': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))]),
+          'queueSize': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)]),
           'queueSizeAfterClear': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'queueSizeAfterRelease': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'queueSizeAfterTimeout': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -215,12 +211,12 @@ export namespace MutexCoreScenarioCaseEntity {
           'queuedRejected': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'rejected': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'rejects': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'releaseOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'releaseOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'releaseWorks': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'released': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'resolvedImmediately': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'result': SchemaNode.defineOneOf([SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'result': SchemaNode.defineOneOf({}, [SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)]),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'runExclusive': SchemaNode.defineString({ 'type': 'string' } as const),
           'sameRef': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'sameValue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -233,44 +229,28 @@ export namespace MutexCoreScenarioCaseEntity {
           'waitedForAll': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'waitedForQueue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'waitedForRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'acquireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'observerCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'operationCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'overflowCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'queuedCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-              'queuedPerKey': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineNumber({ 'type': 'number' } as const) })
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+              'queuedPerKey': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineNumber({ 'type': 'number' } as const), 'patternProperties': {} })
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'delaysMs': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'delaysMs': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'key': SchemaNode.defineUnknown({} as const),
-          'keys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'mutex': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-          'operations': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'keys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'mutex': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+          'operations': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
-          'value': SchemaNode.defineOneOf([SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)])
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+          'value': SchemaNode.defineOneOf({}, [SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)])
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

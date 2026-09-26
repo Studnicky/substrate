@@ -14,7 +14,7 @@ export namespace RequestInitFieldNameEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineEnum({}, [
     'body', 'cache', 'credentials', 'duplex', 'headers', 'integrity', 'keepalive',
     'method', 'mode', 'redirect', 'referrer', 'referrerPolicy', 'window'
   ] as const);

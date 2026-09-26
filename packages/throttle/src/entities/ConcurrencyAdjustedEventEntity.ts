@@ -36,11 +36,11 @@ export namespace ConcurrencyAdjustedEventEntity {
   } as const), 'previousLimit': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'type': SchemaNode.defineConst('ConcurrencyAdjusted' as const) }, [
+  } as const), 'type': SchemaNode.defineConst({}, 'ConcurrencyAdjusted' as const) }, [
     'type',
     'newLimit',
     'previousLimit'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

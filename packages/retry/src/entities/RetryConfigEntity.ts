@@ -45,7 +45,7 @@ export namespace RetryConfigEntity {
     'hookTimeoutMs': SchemaNode.defineNumber(HOOK_TIMEOUT_MS_SCHEMA),
     'maximumElapsedMs': SchemaNode.defineNumber(MAXIMUM_ELAPSED_MS_SCHEMA),
     'maximumRetries': SchemaNode.defineNumber(MAXIMUM_RETRIES_SCHEMA)
-  }, [] as const, { 'additionalProperties': false });
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

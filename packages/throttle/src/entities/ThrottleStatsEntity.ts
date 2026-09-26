@@ -96,7 +96,7 @@ export namespace ThrottleStatsEntity {
     'maximumConcurrency',
     'minimumConcurrency',
     'targetLatencyMs'
-  ] as const), 'concurrencyLimit': SchemaNode.defineNumber({
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'concurrencyLimit': SchemaNode.defineNumber({
     'description': 'Concurrency limit.',
     'minimum': 1,
     'type': 'integer'
@@ -106,7 +106,7 @@ export namespace ThrottleStatsEntity {
   } as const), 'isDraining': SchemaNode.defineBoolean({
     'description': 'Whether the throttle is in draining mode (rejecting new operations).',
     'type': 'boolean'
-  } as const), 'latency': SchemaNode.defineObject({ 'description': 'Latency statistics from the sliding window buffer. Present when adaptive concurrency is enabled.', 'type': 'object' } as const, { 'p50': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'p95': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'p99': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'sampleCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['sampleCount'] as const), 'queuedCount': SchemaNode.defineNumber({
+  } as const), 'latency': SchemaNode.defineObject({ 'description': 'Latency statistics from the sliding window buffer. Present when adaptive concurrency is enabled.', 'type': 'object' } as const, { 'p50': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'p95': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'p99': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'sampleCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['sampleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'queuedCount': SchemaNode.defineNumber({
     'description': 'Number of operations waiting in queue.',
     'minimum': 0,
     'type': 'integer'
@@ -121,7 +121,7 @@ export namespace ThrottleStatsEntity {
     'isDraining',
     'queuedCount',
     'totalExecuted'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

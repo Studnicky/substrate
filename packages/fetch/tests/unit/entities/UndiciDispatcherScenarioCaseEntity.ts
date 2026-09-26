@@ -18,21 +18,16 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'required': [],
     'type': 'object'
   } as const;
-  const TestDispatcherNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  const TestDispatcherNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const statsBagSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-  const StatsBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node });
+  const StatsBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
 
   const connectionStatsSchema = SocketDispatcherStatsEntity.Schema;
   const ConnectionStatsNode = SocketDispatcherStatsEntity.Node;
 
   const agentOptionsSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-  const AgentOptionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node });
+  const AgentOptionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
 
   const originField = { 'minLength': 1, 'type': 'string' } as const;
   const OriginNode = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
@@ -48,17 +43,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const ConstructorInvalidAgentNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ConstructorInvalidAgentNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineConst('throws' as const) }, ['message', 'shape'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': BoundedJsonValueEntity.Node }, ['agent'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('constructor-invalid-agent' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'throws' as const) }, ['message', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': BoundedJsonValueEntity.Node }, ['agent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'constructor-invalid-agent' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   function healthyStatsBranch<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
     return {
@@ -69,17 +59,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     } as const;
   }
   function healthyStatsBranchNode<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('healthy' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': StatsBagNode }, ['origin'] as const, { 'additionalProperties': false }),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'healthy' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': StatsBagNode }, ['origin'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   function healthBranch<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
@@ -101,26 +86,16 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     } as const;
   }
   function healthBranchNode<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'healthy': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'recommendationIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'shape': SchemaNode.defineConst('health' as const)
-          },
-          ['healthy', 'shape'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': ConnectionStatsNode }, ['origin', 'stats'] as const, { 'additionalProperties': false }),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+            'shape': SchemaNode.defineConst({}, 'health' as const)
+          }, ['healthy', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': ConnectionStatsNode }, ['origin', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const getStatsFreezeSchema = {
@@ -134,17 +109,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const GetStatsFreezeNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const GetStatsFreezeNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('frozen' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ConnectionStatsNode }) }, ['origin', 'stats'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('get-stats-freeze' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'frozen' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ConnectionStatsNode, 'patternProperties': {} }) }, ['origin', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'get-stats-freeze' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   function agentOperationBranch<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
     return {
@@ -160,17 +130,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     } as const;
   }
   function agentOperationBranchNode<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('called' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': AgentOptionsNode, 'timeout': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false }),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': AgentOptionsNode, 'timeout': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const testDispatcherHealthSchema = {
@@ -184,17 +149,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   } as const;
-  const TestDispatcherHealthNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const TestDispatcherHealthNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('healthy' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'testDispatcher': TestDispatcherNode }, ['origin', 'testDispatcher'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('test-dispatcher-health' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'healthy' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'testDispatcher': TestDispatcherNode }, ['origin', 'testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'test-dispatcher-health' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   function testDispatcherCalledBranch<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
     return {
@@ -210,17 +170,12 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     } as const;
   }
   function testDispatcherCalledBranchNode<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('called' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'testDispatcher': TestDispatcherNode }, ['testDispatcher'] as const, { 'additionalProperties': false }),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'testDispatcher': TestDispatcherNode }, ['testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   export const Schema = {
@@ -242,7 +197,7 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     ConstructorInvalidAgentNode,
     healthyStatsBranchNode('health-no-stats'),
     healthyStatsBranchNode('health-invalid-stats'),

@@ -11,7 +11,7 @@ export namespace SemaphoreGrantTransitionTypeEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['finish', 'start'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['finish', 'start'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

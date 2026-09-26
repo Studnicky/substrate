@@ -15,7 +15,7 @@ export namespace LruCacheNodeTimingEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'expiresAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'staleAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['expiresAt', 'staleAt'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'expiresAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'staleAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['expiresAt', 'staleAt'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

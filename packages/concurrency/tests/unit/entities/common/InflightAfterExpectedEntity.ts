@@ -11,11 +11,6 @@ export namespace InflightAfterExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'inflightAfter': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-    ['inflightAfter'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'inflightAfter': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['inflightAfter'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

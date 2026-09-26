@@ -92,7 +92,7 @@ export namespace LayerBindingEntity {
   } as const), 'pattern': SchemaNode.defineString({
     'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
     'type': 'string'
-  } as const), 'unit': SchemaNode.defineEnum([
+  } as const), 'unit': SchemaNode.defineEnum({}, [
     'folder',
     'package',
     'module',
@@ -101,7 +101,7 @@ export namespace LayerBindingEntity {
   ] as const) }, [
     'unit',
     'layer'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   // A binding entry is a closed shape — nothing extends it the way the four `arch/*` rules

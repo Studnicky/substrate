@@ -74,7 +74,7 @@ export namespace EntityStoreScenarioCaseEntity {
     ],
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     AsyncRejectionRoutedNoUnhandledScenarioCaseEntity.Node,
     DeepDetachedGettersScenarioCaseEntity.Node,
     GetAllCacheInvalidatedScenarioCaseEntity.Node,

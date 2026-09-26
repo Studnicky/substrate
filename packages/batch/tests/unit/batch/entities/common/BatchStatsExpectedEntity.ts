@@ -11,15 +11,10 @@ export namespace BatchStatsExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'failed': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'succeeded': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'total': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['failed', 'succeeded', 'total'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['failed', 'succeeded', 'total'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

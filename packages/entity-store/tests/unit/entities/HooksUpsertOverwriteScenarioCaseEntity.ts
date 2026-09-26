@@ -48,49 +48,30 @@ export namespace HooksUpsertOverwriteScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          events: SchemaNode.defineArray(
-            {
+        } as const, {
+          events: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            HookEventEntity.Node,
-          ),
-        },
-        ["events"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+            } as const, HookEventEntity.Node, undefined),
+        }, ["events"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          entities: SchemaNode.defineArray(
-            {
+        } as const, {
+          entities: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
-        },
-        ["entities"] as const,
-      ),
+            } as const, UserEntity.Node, undefined),
+        }, ["entities"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("hooks-upsert-overwrite" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "hooks-upsert-overwrite" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

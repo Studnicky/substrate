@@ -28,7 +28,7 @@ export namespace GroupNodeValueEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([AlphabeticRangeEntity.Node, CidrRangeEntity.Node, DateRangeEntity.Node, OutlierMarkerEntity.Node, RangeEntity.Node, SemverRangeEntity.Node, SequentialRangeEntity.Node, SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)]);
+  export const Node = SchemaNode.defineOneOf({}, [AlphabeticRangeEntity.Node, CidrRangeEntity.Node, DateRangeEntity.Node, OutlierMarkerEntity.Node, RangeEntity.Node, SemverRangeEntity.Node, SequentialRangeEntity.Node, SchemaNode.defineString({ 'type': 'string' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

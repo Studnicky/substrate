@@ -27,25 +27,15 @@ export namespace OnRunStartThrowDoesNotTriggerRunErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
       'rawMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'runErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['rawMessage', 'runErrorCount'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['rawMessage', 'runErrorCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': CtxNumberStagesInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('on-run-start-throw-does-not-trigger-run-error' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'on-run-start-throw-does-not-trigger-run-error' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

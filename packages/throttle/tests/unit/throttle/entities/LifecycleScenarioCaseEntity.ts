@@ -23,19 +23,14 @@ const abortResultSchema = {
   'type': 'object'
 } as const;
 
-const abortResultNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const abortResultNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'cancelled': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'completed': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const numberOrStringSchema = { 'oneOf': [{ 'type': 'number' }, { 'minLength': 1, 'type': 'string' }] } as const;
-const numberOrStringNode = SchemaNode.defineOneOf([
+const numberOrStringNode = SchemaNode.defineOneOf({}, [
   SchemaNode.defineNumber({ 'type': 'number' } as const),
   SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
 ] as const);
@@ -96,13 +91,9 @@ export namespace LifecycleScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'abort': abortResultNode,
           'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'activeResolvedWithUndefined': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -111,43 +102,27 @@ export namespace LifecycleScenarioCaseEntity {
           'drainResolvedBeforeRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'errorName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'isComplete': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)),
+          'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), undefined),
           'queuedCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'queuedResolvedWithUndefined': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'queuedStarted': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'releaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'secondAbort': abortResultNode,
           'totalExecuted': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'abortOptions': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            ['timeout'] as const,
-            { 'additionalProperties': false }
-          ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'abortOptions': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeout'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'activeResult': numberOrStringNode,
           'hookErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'operationErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'queuedResult': numberOrStringNode,
           'settleMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'throttle': ThrottleConfigEntity.Node
-        },
-        ['throttle'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

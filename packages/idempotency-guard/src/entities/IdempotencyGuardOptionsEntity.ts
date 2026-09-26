@@ -16,7 +16,7 @@ export namespace IdempotencyGuardOptionsEntity {
   } as const;
 
   /** Construction options for {@link IdempotencyGuard}. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'ttlMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['capacity', 'ttlMs'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'ttlMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['capacity', 'ttlMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   /** Not-yet-validated construction options for {@link IdempotencyGuard} — the shape callers supply. */
   export type InputType = NodeInputType<typeof Node>;

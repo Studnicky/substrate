@@ -17,7 +17,7 @@ export namespace VisibleRangeConfigDataEntity {
   } as const;
 
   /** Serializable inputs accepted by visible-range configuration. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'count': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'itemSize': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const), 'overscan': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['count'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'count': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'itemSize': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const), 'overscan': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['count'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

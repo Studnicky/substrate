@@ -19,7 +19,7 @@ export namespace GroupingOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)), 'groupCount': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'hideSingleValueGroups': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'maximumDepth': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimumGroupSize': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined), 'groupCount': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'hideSingleValueGroups': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'maximumDepth': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimumGroupSize': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

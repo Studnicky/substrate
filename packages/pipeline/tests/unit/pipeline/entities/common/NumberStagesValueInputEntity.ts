@@ -16,14 +16,9 @@ export namespace NumberStagesValueInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'stages': SchemaNode.defineArray({ 'type': 'array' } as const, NumberStageSpecEntity.Node),
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'stages': SchemaNode.defineArray({ 'type': 'array' } as const, NumberStageSpecEntity.Node, undefined),
       'value': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['stages', 'value'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['stages', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

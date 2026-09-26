@@ -16,7 +16,7 @@ export namespace WorkerTaskDispositionEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'retried': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'settled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['retried', 'settled'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'retried': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'settled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['retried', 'settled'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

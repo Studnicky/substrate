@@ -33,33 +33,18 @@ export namespace QueueSizeExceededErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'maximumQueueSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['code', 'key', 'maximumQueueSize', 'message'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, ['code', 'key', 'maximumQueueSize', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'maximumQueueSize': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['key', 'maximumQueueSize'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['key', 'maximumQueueSize'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['expected', 'input', 'name'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

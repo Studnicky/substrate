@@ -36,11 +36,11 @@ export namespace FireOnAcquireEffectEntity {
   } as const), 'queuedCount': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'variant': SchemaNode.defineConst('FireOnAcquire' as const) }, [
+  } as const), 'variant': SchemaNode.defineConst({}, 'FireOnAcquire' as const) }, [
     'variant',
     'activeCount',
     'queuedCount'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

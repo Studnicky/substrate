@@ -16,14 +16,9 @@ export namespace RetryConfigDescriptorEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'errorClassifier': RetryClassifierDescriptorEntity.Node,
       'maximumRetries': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

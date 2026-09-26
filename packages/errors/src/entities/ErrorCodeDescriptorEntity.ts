@@ -37,7 +37,7 @@ export namespace ErrorCodeDescriptorEntity {
   } as const), 'retryable': SchemaNode.defineBoolean({
     'description': 'Whether errors with this code should be retried.',
     'type': 'boolean'
-  } as const) }, ['code', 'description', 'retryable'] as const, { 'additionalProperties': false });
+  } as const) }, ['code', 'description', 'retryable'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

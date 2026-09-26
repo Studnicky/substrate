@@ -15,7 +15,7 @@ export namespace ChannelKeyVariantEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['open-idle', 'open-subscribed', 'closed-idle', 'closed-subscribed'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['open-idle', 'open-subscribed', 'closed-idle', 'closed-subscribed'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -27,7 +27,7 @@ export namespace TimingStatusEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineEnum({}, [
     TIMING_STATUS.ABORT,
     TIMING_STATUS.ACQUIRED,
     TIMING_STATUS.COMPLETE,

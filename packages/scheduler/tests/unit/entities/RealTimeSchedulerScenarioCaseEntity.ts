@@ -34,21 +34,14 @@ export namespace RealTimeSchedulerScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+  const OpenBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expected': OpenBagNode,
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'batch': OpenBagNode, 'scheduler': OpenBagNode },
-        ['scheduler'] as const,
-        { 'additionalProperties': false }
-      ),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': OpenBagNode, 'scheduler': OpenBagNode }, ['scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'async-onFire-rejection-guarded', 'backend-overrides', 'cancel-after-fire', 'cancel-before-fire',
         'cancelAll-clears-multiple', 'cancelAll-empty', 'cancelAll-interval-task', 'chained-timeout-cancel',
         'chained-timeout-fire', 'custom-id', 'onCancel-called', 'onCancelAll-called', 'onDrift-captured',
@@ -57,9 +50,6 @@ export namespace RealTimeSchedulerScenarioCaseEntity {
         'rejecting-scheduleEvery', 'scheduleAt-returns-task', 'scheduleEvery-async-reject',
         'scheduleEvery-returns-task', 'scheduleEvery-sync-throw', 'unique-task-ids'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

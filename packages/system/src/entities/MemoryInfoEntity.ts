@@ -15,7 +15,7 @@ export namespace MemoryInfoEntity {
     'title': 'MemoryInfoType',
     'type': 'object'
   } as const;
-  export const Node = SchemaNode.defineObject({ 'title': 'MemoryInfoType', 'type': 'object' } as const, { 'freeMb': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalMb': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['freeMb', 'totalMb'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'MemoryInfoType', 'type': 'object' } as const, { 'freeMb': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalMb': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['freeMb', 'totalMb'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

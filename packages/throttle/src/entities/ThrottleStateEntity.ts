@@ -12,7 +12,7 @@ export namespace ThrottleStateEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['aborted', 'active', 'draining', 'idle'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['aborted', 'active', 'draining', 'idle'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -22,15 +22,10 @@ export namespace ValidatedThrottleConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'adaptive': ValidatedAdaptiveConfigEntity.Node,
-      'concurrencyLimit': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const)
-    },
-    ['concurrencyLimit'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'adaptive': ValidatedAdaptiveConfigEntity.Node,
+    'concurrencyLimit': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const)
+  }, ['concurrencyLimit'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   /** Not-yet-validated construction data — the shape a caller assembling a config by hand supplies to {@link create}. */
   export type InputType = NodeInputType<typeof Node>;

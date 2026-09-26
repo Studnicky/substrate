@@ -39,40 +39,20 @@ export namespace UndefinedResultVsAbortScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'abortedRan': SchemaNode.defineConst(false as const),
-          'resultIsUndefined': SchemaNode.defineConst(true as const)
-        },
-        ['abortedRan', 'resultIsUndefined'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'boundaryKit': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'abortedRan': SchemaNode.defineConst({}, false as const),
+          'resultIsUndefined': SchemaNode.defineConst({}, true as const)
+        }, ['abortedRan', 'resultIsUndefined'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'boundaryKit': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'abortConfig': ThrottleOnlyConfigEntity.Node,
               'abortDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-            },
-            ['abortConfig', 'abortDelayMs'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['boundaryKit'] as const,
-        { 'additionalProperties': false }
-      ),
+            }, ['abortConfig', 'abortDelayMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['boundaryKit'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('undefined-result-vs-abort' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'undefined-result-vs-abort' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

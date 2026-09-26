@@ -22,18 +22,13 @@ export namespace ResolutionSiteEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'pattern': SchemaNode.defineString({
-        'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
-        'type': 'string'
-      } as const),
-      'unit': SchemaNode.defineEnum(['folder', 'package', 'module', 'dependency', 'builtin'] as const)
-    },
-    ['unit'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'pattern': SchemaNode.defineString({
+      'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
+      'type': 'string'
+    } as const),
+    'unit': SchemaNode.defineEnum({}, ['folder', 'package', 'module', 'dependency', 'builtin'] as const)
+  }, ['unit'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

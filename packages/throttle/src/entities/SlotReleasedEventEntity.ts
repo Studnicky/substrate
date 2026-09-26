@@ -42,19 +42,19 @@ export namespace SlotReleasedEventEntity {
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'activeCount': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'outcome': SchemaNode.defineEnum([
+  } as const), 'outcome': SchemaNode.defineEnum({}, [
     'became-idle',
     'handoff-granted',
     'still-busy'
   ] as const), 'totalExecuted': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'type': SchemaNode.defineConst('SlotReleased' as const) }, [
+  } as const), 'type': SchemaNode.defineConst({}, 'SlotReleased' as const) }, [
     'type',
     'activeCount',
     'outcome',
     'totalExecuted'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

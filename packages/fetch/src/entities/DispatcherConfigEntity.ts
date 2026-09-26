@@ -122,7 +122,7 @@ export namespace DispatcherConfigEntity {
     'description': 'Body timeout in milliseconds - time between receiving body data chunks. Use 0 to disable',
     'minimum': 0,
     'type': 'number'
-  } as const), 'clientTtl': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'number' } as const), SchemaNode.defineNull({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'null' } as const)]), 'connections': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'null' } as const)]), 'connectTimeout': SchemaNode.defineNumber({
+  } as const), 'clientTtl': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'number' } as const), SchemaNode.defineNull({ 'description': 'Time-to-live for pooled clients in milliseconds', 'minimum': 0, 'type': 'null' } as const)]), 'connections': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Number of connections in the pool (per origin). null means no limit', 'maximum': 1000, 'minimum': 1, 'type': 'null' } as const)]), 'connectTimeout': SchemaNode.defineNumber({
     'description': 'Connection timeout in milliseconds',
     'minimum': 0,
     'type': 'number'
@@ -145,7 +145,7 @@ export namespace DispatcherConfigEntity {
     'description': 'Buffer time subtracted from server keep-alive hints (milliseconds)',
     'minimum': 0,
     'type': 'number'
-  } as const), 'localAddress': SchemaNode.defineAnyOf([SchemaNode.defineString({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'string' } as const), SchemaNode.defineNull({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'null' } as const)]), 'maximumConcurrentStreams': SchemaNode.defineNumber({
+  } as const), 'localAddress': SchemaNode.defineAnyOf({}, [SchemaNode.defineString({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'string' } as const), SchemaNode.defineNull({ 'description': 'Local network address to bind connections to', 'minLength': 1, 'type': 'null' } as const)]), 'maximumConcurrentStreams': SchemaNode.defineNumber({
     'description': 'Maximum concurrent H2 streams per connection',
     'minimum': 1,
     'type': 'integer'
@@ -153,7 +153,7 @@ export namespace DispatcherConfigEntity {
     'description': 'Maximum request header size in bytes',
     'minimum': 1,
     'type': 'integer'
-  } as const), 'maximumOrigins': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'null' } as const)]), 'maximumRequestsPerClient': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'null' } as const)]), 'maximumResponseSize': SchemaNode.defineNumber({
+  } as const), 'maximumOrigins': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of origins (hosts) the Agent can manage', 'minimum': 1, 'type': 'null' } as const)]), 'maximumRequestsPerClient': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'description': 'Maximum number of requests per client connection before rotation', 'minimum': 1, 'type': 'null' } as const)]), 'maximumResponseSize': SchemaNode.defineNumber({
     'description': 'Maximum response body size in bytes (-1 = unlimited)',
     'minimum': -1,
     'type': 'integer'
@@ -165,7 +165,7 @@ export namespace DispatcherConfigEntity {
   } as const), 'strictContentLength': SchemaNode.defineBoolean({
     'description': 'Enforce strict Content-Length header validation',
     'type': 'boolean'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

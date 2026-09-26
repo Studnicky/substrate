@@ -62,61 +62,26 @@ export namespace JobStopCancelsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'afterAdvance': JobStateEntity.Node,
           'afterStop': JobStateEntity.Node,
           'scheduledAtMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['afterAdvance', 'afterStop', 'scheduledAtMs'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'events': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'finish': JobEventEntity.Node, 'start': JobEventEntity.Node },
-            ['finish', 'start'] as const,
-            { 'additionalProperties': false }
-          ),
-          'scheduler': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'counter': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-                ['startMs'] as const,
-                { 'additionalProperties': false }
-              )
-            },
-            ['counter'] as const,
-            { 'additionalProperties': false }
-          ),
-          'timing': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+        }, ['afterAdvance', 'afterStop', 'scheduledAtMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'events': SchemaNode.defineObject({ 'type': 'object' } as const, { 'finish': JobEventEntity.Node, 'start': JobEventEntity.Node }, ['finish', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'scheduler': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'counter': SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['startMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+            }, ['counter'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'timing': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'scheduleDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'stepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-            },
-            ['scheduleDelayMs', 'stepMs'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['events', 'scheduler', 'timing'] as const,
-        { 'additionalProperties': false }
-      ),
+            }, ['scheduleDelayMs', 'stepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['events', 'scheduler', 'timing'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('stop-cancels' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'stop-cancels' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

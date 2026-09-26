@@ -54,7 +54,7 @@ export namespace BatchHooksScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     OnBatchStartScenarioCaseEntity.Node,
     OnItemStartScenarioCaseEntity.Node,
     OnItemSuccessScenarioCaseEntity.Node,

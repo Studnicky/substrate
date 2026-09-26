@@ -34,37 +34,17 @@ export namespace PatchOperationCoreEntityScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-        ['valid'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'operation': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['valid'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'operation': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'op': SchemaNode.defineString({ 'type': 'string' } as const),
               'path': SchemaNode.defineString({ 'type': 'string' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['operation'] as const,
-        { 'additionalProperties': false }
-      ),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['invalid-missing-path', 'invalid-operation-variant', 'valid-operation'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, ['invalid-missing-path', 'invalid-operation-variant', 'valid-operation'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

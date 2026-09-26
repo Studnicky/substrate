@@ -14,13 +14,8 @@ export namespace ThrottleOnlyConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'throttle': ThrottleConfigEntity.Node
-    },
-    ['throttle'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -21,18 +21,13 @@ function defineCase<
     'required': ['description', 'expected', 'input', 'name', 'shape'],
     'type': 'object'
   };
-  const node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': NonEmptyStringNode,
       'expected': expectedNode,
       'input': inputNode,
       'name': NonEmptyStringNode,
-      'shape': SchemaNode.defineConst(shape)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, shape)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   return { node, schema };
 }
 
@@ -48,12 +43,11 @@ const booleanSchema = { 'type': 'boolean' } as const;
 const NonEmptyStringNode = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
 const nonEmptyStringSchema = { 'minLength': 1, 'type': 'string' } as const;
 
-const StringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, StringNode);
+const StringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, StringNode, undefined);
 const stringArraySchema = { 'items': stringSchema, 'type': 'array' } as const;
 
 const FileEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'path': StringNode }, ['content', 'path'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const fileEntrySchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'path': stringSchema },
@@ -61,15 +55,10 @@ const fileEntrySchema = {
   'type': 'object'
 } as const;
 
-const FileEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileEntryNode);
+const FileEntryArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, FileEntryNode, undefined);
 const fileEntryArraySchema = { 'items': fileEntrySchema, 'type': 'array' } as const;
 
-const TextFileInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'content': StringNode, 'encoding': SchemaNode.defineConst('utf8' as const), 'path': StringNode },
-  ['content', 'encoding', 'path'] as const,
-  { 'additionalProperties': false }
-);
+const TextFileInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'path': StringNode }, ['content', 'encoding', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const textFileInputSchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'encoding': { 'const': 'utf8' }, 'path': stringSchema },
@@ -77,15 +66,10 @@ const textFileInputSchema = {
   'type': 'object'
 } as const;
 
-const PathOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false });
+const PathOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const pathOnlySchema = { 'additionalProperties': false, 'properties': { 'path': stringSchema }, 'required': ['path'], 'type': 'object' } as const;
 
-const FirstSecondInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'encoding': SchemaNode.defineConst('utf8' as const), 'firstContent': StringNode, 'path': StringNode, 'secondContent': StringNode },
-  ['encoding', 'firstContent', 'path', 'secondContent'] as const,
-  { 'additionalProperties': false }
-);
+const FirstSecondInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'firstContent': StringNode, 'path': StringNode, 'secondContent': StringNode }, ['encoding', 'firstContent', 'path', 'secondContent'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const firstSecondInputSchema = {
   'additionalProperties': false,
   'properties': { 'encoding': { 'const': 'utf8' }, 'firstContent': stringSchema, 'path': stringSchema, 'secondContent': stringSchema },
@@ -93,12 +77,7 @@ const firstSecondInputSchema = {
   'type': 'object'
 } as const;
 
-const ContentEncodingFromToInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'content': StringNode, 'encoding': SchemaNode.defineConst('utf8' as const), 'from': StringNode, 'to': StringNode },
-  ['content', 'encoding', 'from', 'to'] as const,
-  { 'additionalProperties': false }
-);
+const ContentEncodingFromToInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'from': StringNode, 'to': StringNode }, ['content', 'encoding', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const contentEncodingFromToInputSchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema, 'encoding': { 'const': 'utf8' }, 'from': stringSchema, 'to': stringSchema },
@@ -107,8 +86,7 @@ const contentEncodingFromToInputSchema = {
 } as const;
 
 const ContentExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode }, ['content'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const contentExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'content': stringSchema },
@@ -117,13 +95,11 @@ const contentExpectedSchema = {
 } as const;
 
 const ExistsExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'exists': BooleanNode }, ['exists'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const existsExpectedSchema = { 'additionalProperties': false, 'properties': { 'exists': booleanSchema }, 'required': ['exists'], 'type': 'object' } as const;
 
 const ExistsPathsExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'exists': StringArrayNode }, ['exists'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const existsPathsExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'exists': stringArraySchema },
@@ -132,8 +108,7 @@ const existsPathsExpectedSchema = {
 } as const;
 
 const ErrorCodeExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorCode': StringNode }, ['errorCode'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const errorCodeExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'errorCode': stringSchema },
@@ -142,8 +117,7 @@ const errorCodeExpectedSchema = {
 } as const;
 
 const LogEntryExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'logEntry': StringNode }, ['logEntry'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const logEntryExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'logEntry': stringSchema },
@@ -152,8 +126,7 @@ const logEntryExpectedSchema = {
 } as const;
 
 const EntriesExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'entries': StringArrayNode }, ['entries'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const entriesExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'entries': stringArraySchema },
@@ -161,12 +134,7 @@ const entriesExpectedSchema = {
   'type': 'object'
 } as const;
 
-const IncludedExcludedExpectedNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'excludedEntries': StringArrayNode, 'includedEntries': StringArrayNode },
-  ['excludedEntries', 'includedEntries'] as const,
-  { 'additionalProperties': false }
-);
+const IncludedExcludedExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'excludedEntries': StringArrayNode, 'includedEntries': StringArrayNode }, ['excludedEntries', 'includedEntries'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const includedExcludedExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'excludedEntries': stringArraySchema, 'includedEntries': stringArraySchema },
@@ -175,8 +143,7 @@ const includedExcludedExpectedSchema = {
 } as const;
 
 const MtimeExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mtimeMs': NumberNode }, ['mtimeMs'] as const, {
-  'additionalProperties': false
-});
+  'additionalProperties': false, 'patternProperties': {} });
 const mtimeExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'mtimeMs': numberSchema },
@@ -184,12 +151,7 @@ const mtimeExpectedSchema = {
   'type': 'object'
 } as const;
 
-const IsFileOrDirectoryExpectedNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'isDirectory': BooleanNode, 'isFile': BooleanNode },
-  ['isDirectory', 'isFile'] as const,
-  { 'additionalProperties': false }
-);
+const IsFileOrDirectoryExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'isDirectory': BooleanNode, 'isFile': BooleanNode }, ['isDirectory', 'isFile'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const isFileOrDirectoryExpectedSchema = {
   'additionalProperties': false,
   'properties': { 'isDirectory': booleanSchema, 'isFile': booleanSchema },
@@ -205,12 +167,7 @@ const createClockDeterministic = defineCase(
     'required': ['clockMs', 'content', 'encoding', 'path'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'clockMs': NumberNode, 'content': StringNode, 'encoding': SchemaNode.defineConst('utf8' as const), 'path': StringNode },
-    ['clockMs', 'content', 'encoding', 'path'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'clockMs': NumberNode, 'content': StringNode, 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'path': StringNode }, ['clockMs', 'content', 'encoding', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   mtimeExpectedSchema,
   MtimeExpectedNode
 );
@@ -218,19 +175,14 @@ const createClockDeterministic = defineCase(
 const createSeedEmpty = defineCase(
   'create-seed-empty',
   { 'additionalProperties': false, 'properties': { 'seed': fileEntryArraySchema }, 'required': ['seed'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'seed': FileEntryArrayNode }, ['seed'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'seed': FileEntryArrayNode }, ['seed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'rootEntries': stringArraySchema, 'rootPath': stringSchema },
     'required': ['rootEntries', 'rootPath'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'rootEntries': StringArrayNode, 'rootPath': StringNode },
-    ['rootEntries', 'rootPath'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'rootEntries': StringArrayNode, 'rootPath': StringNode }, ['rootEntries', 'rootPath'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const createSeedPopulates = defineCase(
@@ -241,12 +193,7 @@ const createSeedPopulates = defineCase(
     'required': ['readPath', 'seed'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'readPath': StringNode, 'seed': FileEntryArrayNode },
-    ['readPath', 'seed'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'readPath': StringNode, 'seed': FileEntryArrayNode }, ['readPath', 'seed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   contentExpectedSchema,
   ContentExpectedNode
 );
@@ -276,19 +223,9 @@ const lifecycleOnRename = defineCase(
     'required': ['logEntry'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'logEntry': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'newPath': StringNode, 'oldPath': StringNode },
-        ['newPath', 'oldPath'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['logEntry'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'logEntry': SchemaNode.defineObject({ 'type': 'object' } as const, { 'newPath': StringNode, 'oldPath': StringNode }, ['newPath', 'oldPath'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['logEntry'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const lifecycleOnWrite = defineCase('lifecycle-onWrite', firstSecondInputSchema, FirstSecondInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
@@ -302,10 +239,9 @@ const mkdirExistingDirNoThrow = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode, 'recursive': BooleanNode }, ['path', 'recursive'] as const, {
-    'additionalProperties': false
-  }),
+    'additionalProperties': false, 'patternProperties': {} }),
   { 'additionalProperties': false, 'properties': { 'didThrow': booleanSchema }, 'required': ['didThrow'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'didThrow': BooleanNode }, ['didThrow'] as const, { 'additionalProperties': false })
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'didThrow': BooleanNode }, ['didThrow'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const mkdirExistingDirThrows = defineCase(
@@ -316,12 +252,7 @@ const mkdirExistingDirThrows = defineCase(
     'required': ['existingRecursive', 'path'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'existingRecursive': BooleanNode, 'path': StringNode },
-    ['existingRecursive', 'path'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'existingRecursive': BooleanNode, 'path': StringNode }, ['existingRecursive', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   errorCodeExpectedSchema,
   ErrorCodeExpectedNode
 );
@@ -336,12 +267,7 @@ const mkdirFilePathThrows = defineCase(
     'required': ['errorCode', 'fileContent', 'fileStillExists'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'errorCode': StringNode, 'fileContent': StringNode, 'fileStillExists': BooleanNode },
-    ['errorCode', 'fileContent', 'fileStillExists'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorCode': StringNode, 'fileContent': StringNode, 'fileStillExists': BooleanNode }, ['errorCode', 'fileContent', 'fileStillExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const mkdirRecursiveCreates = defineCase(
@@ -353,8 +279,7 @@ const mkdirRecursiveCreates = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode, 'recursive': BooleanNode }, ['path', 'recursive'] as const, {
-    'additionalProperties': false
-  }),
+    'additionalProperties': false, 'patternProperties': {} }),
   existsPathsExpectedSchema,
   ExistsPathsExpectedNode
 );
@@ -367,12 +292,7 @@ const mkdirRecursiveIntermediateFileThrows = defineCase(
     'required': ['content', 'encoding', 'intermediateFilePath', 'path'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'content': StringNode, 'encoding': SchemaNode.defineConst('utf8' as const), 'intermediateFilePath': StringNode, 'path': StringNode },
-    ['content', 'encoding', 'intermediateFilePath', 'path'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'intermediateFilePath': StringNode, 'path': StringNode }, ['content', 'encoding', 'intermediateFilePath', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   errorCodeExpectedSchema,
   ErrorCodeExpectedNode
 );
@@ -380,12 +300,7 @@ const mkdirRecursiveIntermediateFileThrows = defineCase(
 const readMissingThrows = defineCase(
   'read-missing-throws',
   { 'additionalProperties': false, 'properties': { 'encoding': { 'const': 'utf8' }, 'path': stringSchema }, 'required': ['encoding', 'path'], 'type': 'object' },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'encoding': SchemaNode.defineConst('utf8' as const), 'path': StringNode },
-    ['encoding', 'path'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'path': StringNode }, ['encoding', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   errorCodeExpectedSchema,
   ErrorCodeExpectedNode
 );
@@ -412,9 +327,7 @@ const readdirMixedOperations = defineCase(
     ],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
       'childDirectory': StringNode,
       'directory': StringNode,
       'extraContent': StringNode,
@@ -424,22 +337,14 @@ const readdirMixedOperations = defineCase(
       'removedPath': StringNode,
       'renamedDirectory': StringNode,
       'rootFiles': FileEntryArrayNode
-    },
-    ['childDirectory', 'directory', 'extraContent', 'extraPath', 'leafContent', 'leafPath', 'removedPath', 'renamedDirectory', 'rootFiles'] as const,
-    { 'additionalProperties': false }
-  ),
+    }, ['childDirectory', 'directory', 'extraContent', 'extraPath', 'leafContent', 'leafPath', 'removedPath', 'renamedDirectory', 'rootFiles'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'childEntries': stringArraySchema, 'dirBEntries': stringArraySchema, 'rootEntries': stringArraySchema },
     'required': ['childEntries', 'dirBEntries', 'rootEntries'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'childEntries': StringArrayNode, 'dirBEntries': StringArrayNode, 'rootEntries': StringArrayNode },
-    ['childEntries', 'dirBEntries', 'rootEntries'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'childEntries': StringArrayNode, 'dirBEntries': StringArrayNode, 'rootEntries': StringArrayNode }, ['childEntries', 'dirBEntries', 'rootEntries'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const readdirNoNested = defineCase(
@@ -450,12 +355,7 @@ const readdirNoNested = defineCase(
     'required': ['content', 'directory', 'filePath'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'content': StringNode, 'directory': StringNode, 'filePath': StringNode },
-    ['content', 'directory', 'filePath'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'directory': StringNode, 'filePath': StringNode }, ['content', 'directory', 'filePath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   includedExcludedExpectedSchema,
   IncludedExcludedExpectedNode
 );
@@ -475,31 +375,21 @@ const readdirReflectsDirRename = defineCase(
     'required': ['directories', 'files', 'from', 'missingAfterRename', 'movedSubDirectory', 'to'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
       'directories': StringArrayNode,
       'files': FileEntryArrayNode,
       'from': StringNode,
       'missingAfterRename': StringNode,
       'movedSubDirectory': StringNode,
       'to': StringNode
-    },
-    ['directories', 'files', 'from', 'missingAfterRename', 'movedSubDirectory', 'to'] as const,
-    { 'additionalProperties': false }
-  ),
+    }, ['directories', 'files', 'from', 'missingAfterRename', 'movedSubDirectory', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'movedEntries': stringArraySchema, 'movedSubEntries': stringArraySchema, 'rootEntries': stringArraySchema },
     'required': ['movedEntries', 'movedSubEntries', 'rootEntries'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'movedEntries': StringArrayNode, 'movedSubEntries': StringArrayNode, 'rootEntries': StringArrayNode },
-    ['movedEntries', 'movedSubEntries', 'rootEntries'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'movedEntries': StringArrayNode, 'movedSubEntries': StringArrayNode, 'rootEntries': StringArrayNode }, ['movedEntries', 'movedSubEntries', 'rootEntries'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const readdirReflectsFileRename = defineCase(
@@ -510,12 +400,7 @@ const readdirReflectsFileRename = defineCase(
     'required': ['content', 'directory', 'from', 'to'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'content': StringNode, 'directory': StringNode, 'from': StringNode, 'to': StringNode },
-    ['content', 'directory', 'from', 'to'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'directory': StringNode, 'from': StringNode, 'to': StringNode }, ['content', 'directory', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   includedExcludedExpectedSchema,
   IncludedExcludedExpectedNode
 );
@@ -528,12 +413,7 @@ const readdirReflectsUnlink = defineCase(
     'required': ['keep', 'keepContent', 'removed', 'removedContent'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'keep': StringNode, 'keepContent': StringNode, 'removed': StringNode, 'removedContent': StringNode },
-    ['keep', 'keepContent', 'removed', 'removedContent'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'keep': StringNode, 'keepContent': StringNode, 'removed': StringNode, 'removedContent': StringNode }, ['keep', 'keepContent', 'removed', 'removedContent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   includedExcludedExpectedSchema,
   IncludedExcludedExpectedNode
 );
@@ -541,7 +421,7 @@ const readdirReflectsUnlink = defineCase(
 const readdirRoot = defineCase(
   'readdir-root',
   { 'additionalProperties': false, 'properties': { 'files': fileEntryArraySchema }, 'required': ['files'], 'type': 'object' },
-  SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false }),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   entriesExpectedSchema,
   EntriesExpectedNode
 );
@@ -554,12 +434,7 @@ const readdirScaleScope = defineCase(
     'required': ['target', 'targetFile', 'unrelatedCount'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'target': StringNode, 'targetFile': StringNode, 'unrelatedCount': NumberNode },
-    ['target', 'targetFile', 'unrelatedCount'] as const,
-    { 'additionalProperties': false }
-  ),
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'target': StringNode, 'targetFile': StringNode, 'unrelatedCount': NumberNode }, ['target', 'targetFile', 'unrelatedCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   entriesExpectedSchema,
   EntriesExpectedNode
 );
@@ -573,20 +448,14 @@ const renameDirectory = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode, 'renamedPath': StringNode }, ['path', 'renamedPath'] as const, {
-    'additionalProperties': false
-  }),
+    'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'sourceExists': booleanSchema, 'targetExists': booleanSchema, 'targetIsDirectory': booleanSchema },
     'required': ['sourceExists', 'targetExists', 'targetIsDirectory'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'sourceExists': BooleanNode, 'targetExists': BooleanNode, 'targetIsDirectory': BooleanNode },
-    ['sourceExists', 'targetExists', 'targetIsDirectory'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'sourceExists': BooleanNode, 'targetExists': BooleanNode, 'targetIsDirectory': BooleanNode }, ['sourceExists', 'targetExists', 'targetIsDirectory'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const renameDirectorySubtree = defineCase(
@@ -609,9 +478,7 @@ const renameDirectorySubtree = defineCase(
     ],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
       'childPath': StringNode,
       'fileContent': StringNode,
       'filePath': StringNode,
@@ -621,22 +488,14 @@ const renameDirectorySubtree = defineCase(
       'nestedPath': StringNode,
       'sourcePath': StringNode,
       'targetPath': StringNode
-    },
-    ['childPath', 'fileContent', 'filePath', 'movedFilePath', 'movedNestedPath', 'nestedContent', 'nestedPath', 'sourcePath', 'targetPath'] as const,
-    { 'additionalProperties': false }
-  ),
+    }, ['childPath', 'fileContent', 'filePath', 'movedFilePath', 'movedNestedPath', 'nestedContent', 'nestedPath', 'sourcePath', 'targetPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'movedFileContent': stringSchema, 'movedNestedContent': stringSchema, 'sourceExists': booleanSchema },
     'required': ['movedFileContent', 'movedNestedContent', 'sourceExists'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'movedFileContent': StringNode, 'movedNestedContent': StringNode, 'sourceExists': BooleanNode },
-    ['movedFileContent', 'movedNestedContent', 'sourceExists'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'movedFileContent': StringNode, 'movedNestedContent': StringNode, 'sourceExists': BooleanNode }, ['movedFileContent', 'movedNestedContent', 'sourceExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const renameFileMovesContent = defineCase(
@@ -649,20 +508,14 @@ const renameFileMovesContent = defineCase(
     'required': ['content', 'sourceExists', 'targetExists'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'content': StringNode, 'sourceExists': BooleanNode, 'targetExists': BooleanNode },
-    ['content', 'sourceExists', 'targetExists'] as const,
-    { 'additionalProperties': false }
-  )
+  SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'sourceExists': BooleanNode, 'targetExists': BooleanNode }, ['content', 'sourceExists', 'targetExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
 const renameMissingThrows = defineCase(
   'rename-missing-throws',
   { 'additionalProperties': false, 'properties': { 'from': stringSchema, 'to': stringSchema }, 'required': ['from', 'to'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': StringNode, 'to': StringNode }, ['from', 'to'] as const, {
-    'additionalProperties': false
-  }),
+    'additionalProperties': false, 'patternProperties': {} }),
   errorCodeExpectedSchema,
   ErrorCodeExpectedNode
 );
@@ -685,18 +538,13 @@ const statMtimeClock = defineCase(
     'required': ['advanceMs', 'content', 'encoding', 'initialClockMs', 'path'],
     'type': 'object'
   },
-  SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  SchemaNode.defineObject({ 'type': 'object' } as const, {
       'advanceMs': NumberNode,
       'content': StringNode,
-      'encoding': SchemaNode.defineConst('utf8' as const),
+      'encoding': SchemaNode.defineConst({}, 'utf8' as const),
       'initialClockMs': NumberNode,
       'path': StringNode
-    },
-    ['advanceMs', 'content', 'encoding', 'initialClockMs', 'path'] as const,
-    { 'additionalProperties': false }
-  ),
+    }, ['advanceMs', 'content', 'encoding', 'initialClockMs', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   mtimeExpectedSchema,
   MtimeExpectedNode
 );
@@ -723,7 +571,7 @@ export namespace VirtualFileSystemScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     createClockDeterministic.node, createSeedEmpty.node, createSeedPopulates.node, existsAfterWrite.node, existsMissing.node, existsRoot.node,
     lifecycleOnCreate.node, lifecycleOnDelete.node, lifecycleOnRead.node, lifecycleOnRename.node, lifecycleOnWrite.node, mkdirExistingDirNoThrow.node,
     mkdirExistingDirThrows.node, mkdirFilePathThrows.node, mkdirRecursiveCreates.node, mkdirRecursiveIntermediateFileThrows.node, readMissingThrows.node,

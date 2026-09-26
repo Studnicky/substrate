@@ -17,15 +17,10 @@ export namespace BatchItemsDelayMsInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigEntity.Node,
       'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-    },
-    ['batch', 'delayMs', 'items'] as const,
-    { 'additionalProperties': false }
-  );
+      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+    }, ['batch', 'delayMs', 'items'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

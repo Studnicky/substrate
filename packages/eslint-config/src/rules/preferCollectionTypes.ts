@@ -32,28 +32,23 @@ namespace PreferCollectionTypesOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'checkArrayLiterals': SchemaNode.defineBoolean({
-        'default': true,
-        'description': 'Flag inline array literals used with .includes() (Pattern A) and .includes() inside iteration callbacks (Pattern D).',
-        'type': 'boolean'
-      } as const),
-      'checkFromEntries': SchemaNode.defineBoolean({
-        'default': true,
-        'description': 'Flag Object.fromEntries() results accessed with computed bracket notation (Pattern B).',
-        'type': 'boolean'
-      } as const),
-      'checkModuleScopeArrays': SchemaNode.defineBoolean({
-        'default': true,
-        'description': 'Flag module-scope const arrays used exclusively for .includes() membership tests (Pattern C).',
-        'type': 'boolean'
-      } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'checkArrayLiterals': SchemaNode.defineBoolean({
+      'default': true,
+      'description': 'Flag inline array literals used with .includes() (Pattern A) and .includes() inside iteration callbacks (Pattern D).',
+      'type': 'boolean'
+    } as const),
+    'checkFromEntries': SchemaNode.defineBoolean({
+      'default': true,
+      'description': 'Flag Object.fromEntries() results accessed with computed bracket notation (Pattern B).',
+      'type': 'boolean'
+    } as const),
+    'checkModuleScopeArrays': SchemaNode.defineBoolean({
+      'default': true,
+      'description': 'Flag module-scope const arrays used exclusively for .includes() membership tests (Pattern C).',
+      'type': 'boolean'
+    } as const)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
@@ -73,17 +68,12 @@ namespace PreferCollectionTypesInternalEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'method': SchemaNode.defineString({ 'type': 'string' } as const),
-      'name': SchemaNode.defineString({ 'type': 'string' } as const),
-      'reported': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-    },
-    ['found', 'method', 'name', 'reported'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'method': SchemaNode.defineString({ 'type': 'string' } as const),
+    'name': SchemaNode.defineString({ 'type': 'string' } as const),
+    'reported': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
+  }, ['found', 'method', 'name', 'reported'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }
 

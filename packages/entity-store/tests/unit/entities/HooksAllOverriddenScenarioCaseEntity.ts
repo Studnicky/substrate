@@ -63,70 +63,45 @@ export namespace HooksAllOverriddenScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          events: SchemaNode.defineArray(
-            {
+        } as const, {
+          events: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            SchemaNode.defineEnum(["remove", "replaceAll", "upsert"] as const),
-          ),
-        },
-        ["events"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+            } as const, SchemaNode.defineEnum({}, ["remove", "replaceAll", "upsert"] as const), undefined),
+        }, ["events"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           removeOne: SchemaNode.defineString({
             type: "string",
           } as const),
-          setAll: SchemaNode.defineArray(
-            {
+          setAll: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
-          steps: SchemaNode.defineArray(
-            {
+            } as const, UserEntity.Node, undefined),
+          steps: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            SchemaNode.defineEnum([
+            } as const, SchemaNode.defineEnum({}, [
               "removeOne",
               "setAll",
               "upsertMany",
               "upsertOne",
-            ] as const),
-          ),
-          upsertMany: SchemaNode.defineArray(
-            {
+            ] as const), undefined),
+          upsertMany: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
+            } as const, UserEntity.Node, undefined),
           upsertOne: UserEntity.Node,
-        },
-        ["removeOne", "setAll", "steps", "upsertMany", "upsertOne"] as const,
-      ),
+        }, ["removeOne", "setAll", "steps", "upsertMany", "upsertOne"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("hooks-all-overridden" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "hooks-all-overridden" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

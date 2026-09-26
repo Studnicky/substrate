@@ -20,17 +20,12 @@ export namespace KeyedRateLimiterDefaultOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'burstSize': TokenBucketOptionsEntity.Node.schema.properties.burstSize,
-      'keyIdleTtlMs': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.keyIdleTtlMs,
-      'maximumKeys': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.maximumKeys,
-      'requestsPerSecond': TokenBucketOptionsEntity.Node.schema.properties.requestsPerSecond
-    },
-    TokenBucketOptionsEntity.Node.schema.required,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'burstSize': TokenBucketOptionsEntity.Node.schema.properties.burstSize,
+    'keyIdleTtlMs': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.keyIdleTtlMs,
+    'maximumKeys': KeyedRateLimiterRegistryOptionsEntity.Node.schema.properties.maximumKeys,
+    'requestsPerSecond': TokenBucketOptionsEntity.Node.schema.properties.requestsPerSecond
+  }, TokenBucketOptionsEntity.Node.schema.required, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

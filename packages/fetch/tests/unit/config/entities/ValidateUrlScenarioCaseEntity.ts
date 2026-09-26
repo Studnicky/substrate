@@ -34,32 +34,22 @@ export namespace ValidateUrlScenarioCaseEntity {
 
   const caseNodeFields = {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': BoundedJsonValueEntity.Node }, ['value'] as const, { 'additionalProperties': false }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': BoundedJsonValueEntity.Node }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
   };
 
-  const ValidNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ValidNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('ok' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineConst('valid' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'ok' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineConst({}, 'valid' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const InvalidNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const InvalidNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false }),
-      'shape': SchemaNode.defineEnum(['empty', 'invalid', 'non-string'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'shape': SchemaNode.defineEnum({}, ['empty', 'invalid', 'non-string'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([ValidNode, InvalidNode] as const);
+  export const Node = SchemaNode.defineOneOf({}, [ValidNode, InvalidNode] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

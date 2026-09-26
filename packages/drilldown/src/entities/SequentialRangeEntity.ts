@@ -19,7 +19,7 @@ export namespace SequentialRangeEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximum': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimum': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'padding': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'prefix': SchemaNode.defineString({ 'type': 'string' } as const), 'suffix': SchemaNode.defineString({ 'type': 'string' } as const) }, ['maximum', 'minimum', 'padding', 'prefix'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximum': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimum': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'padding': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'prefix': SchemaNode.defineString({ 'type': 'string' } as const), 'suffix': SchemaNode.defineString({ 'type': 'string' } as const) }, ['maximum', 'minimum', 'padding', 'prefix'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -13,12 +13,7 @@ export namespace FsmScenarioCaseEntity {
     'type': 'object'
   };
 
-  const transitionNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'from': SchemaNode.defineEnum(CALL_STATE_VARIANTS), 'to': SchemaNode.defineEnum(CALL_STATE_VARIANTS) },
-    ['from', 'to'] as const,
-    { 'additionalProperties': false }
-  );
+  const transitionNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': SchemaNode.defineEnum({}, CALL_STATE_VARIANTS), 'to': SchemaNode.defineEnum({}, CALL_STATE_VARIANTS) }, ['from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -66,49 +61,29 @@ export namespace FsmScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'errorMessageIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'errorName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'exhausted': transitionNode,
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
-          'transitions': SchemaNode.defineArray({ 'type': 'array' } as const, transitionNode)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'failureCountBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+          'transitions': SchemaNode.defineArray({ 'type': 'array' } as const, transitionNode, undefined)
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'failureCountBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'maximumElapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'maximumRetries': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'rejectedTransition': transitionNode,
           'result': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        ['maximumRetries'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['maximumRetries'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'aborted-by-hook', 'exhausted-after-max-elapsed', 'exhausted-after-max-retries',
         'illegal-transition', 'immediate-success', 'non-retryable-error', 'retryable-failure-then-success'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

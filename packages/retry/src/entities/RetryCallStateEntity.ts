@@ -15,7 +15,7 @@ export namespace RetryCallStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum(['aborted', 'attempting', 'exhausted', 'failed', 'succeeded', 'waiting'] as const) }, ['variant'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['aborted', 'attempting', 'exhausted', 'failed', 'succeeded', 'waiting'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

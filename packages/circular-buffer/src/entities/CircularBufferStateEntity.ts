@@ -14,7 +14,7 @@ export namespace CircularBufferStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['length'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

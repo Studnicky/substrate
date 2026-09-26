@@ -26,7 +26,7 @@ export namespace MemoryTransportOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/MemoryTransportOptions', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Configuration options for MemoryTransport.', 'title': 'MemoryTransportOptions', 'type': 'object' } as const, { 'level': SchemaNode.defineOneOf([SchemaNode.defineEnum(['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const), SchemaNode.defineEnum([0, 1, 2, 3, 4, 5] as const)]) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/MemoryTransportOptions', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Configuration options for MemoryTransport.', 'title': 'MemoryTransportOptions', 'type': 'object' } as const, { 'level': SchemaNode.defineOneOf({}, [SchemaNode.defineEnum({}, ['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const), SchemaNode.defineEnum({}, [0, 1, 2, 3, 4, 5] as const)]) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

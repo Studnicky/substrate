@@ -11,15 +11,10 @@ export namespace MergeHighVolumeExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'first': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'last': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'length': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['first', 'last', 'length'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['first', 'last', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

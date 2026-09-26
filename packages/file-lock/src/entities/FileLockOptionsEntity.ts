@@ -18,7 +18,7 @@ export namespace FileLockOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'pollMs': SchemaNode.defineNumber({ 'default': DEFAULT_POLL_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'default': DEFAULT_TIMEOUT_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['path'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'pollMs': SchemaNode.defineNumber({ 'default': DEFAULT_POLL_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'default': DEFAULT_TIMEOUT_MS, 'exclusiveMinimum': 0, 'type': 'number' } as const) }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

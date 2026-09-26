@@ -27,7 +27,7 @@ export namespace GpuMetalProfileEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'title': 'GpuMetalProfile', 'type': 'object' } as const, { 'SPDisplaysDataType': SchemaNode.defineArray({ 'minItems': 1, 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'spdisplays_vram': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]), 'sppci_model': SchemaNode.defineAnyOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false })) }, ['SPDisplaysDataType'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'GpuMetalProfile', 'type': 'object' } as const, { 'SPDisplaysDataType': SchemaNode.defineArray({ 'minItems': 1, 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'spdisplays_vram': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]), 'sppci_model': SchemaNode.defineAnyOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined) }, ['SPDisplaysDataType'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

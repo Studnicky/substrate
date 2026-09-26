@@ -17,7 +17,7 @@ export namespace WorkerLifecycleEventEntity {
     'oneOf': [WorkerLifecycleAssignEventEntity.Schema, WorkerLifecycleFreeEventEntity.Schema, WorkerLifecycleKillEventEntity.Schema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([WorkerLifecycleAssignEventEntity.Node, WorkerLifecycleFreeEventEntity.Node, WorkerLifecycleKillEventEntity.Node]);
+  export const Node = SchemaNode.defineOneOf({}, [WorkerLifecycleAssignEventEntity.Node, WorkerLifecycleFreeEventEntity.Node, WorkerLifecycleKillEventEntity.Node]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

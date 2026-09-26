@@ -11,12 +11,7 @@ import { ArithmeticScenarioCaseEntity } from './fixtures/ArithmeticScenarioCaseE
 import { SumScenarioCaseEntity } from './fixtures/SumScenarioCaseEntity.js';
 
 /** `patternProperties` is outside this check's scope — a correctly-authored pair using it must still fail. */
-const patternPropertiesNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {},
-  [] as const,
-  { 'additionalProperties': false, 'patternProperties': { '^.*$': SchemaNode.defineString({ 'type': 'string' } as const) } }
-);
+const patternPropertiesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': { '^.*$': SchemaNode.defineString({ 'type': 'string' } as const) } });
 const patternPropertiesSchema = {
   'additionalProperties': false,
   'patternProperties': { '^.*$': { 'type': 'string' } },
@@ -46,39 +41,34 @@ const matchingPairs = {
   'sum': { 'node': SumScenarioCaseEntity.Node, 'schema': SumScenarioCaseEntity.Schema }
 };
 
-const redundantTypeWithEnumNode = SchemaNode.defineEnum(['aborted', 'active', 'idle'] as const);
+const redundantTypeWithEnumNode = SchemaNode.defineEnum({}, ['aborted', 'active', 'idle'] as const);
 const redundantTypeWithEnumSchema = { 'enum': ['aborted', 'active', 'idle'], 'type': 'string' } as const;
 
-const mixedTypeEnumNode = SchemaNode.defineEnum(['aborted', 1, 'idle'] as const);
+const mixedTypeEnumNode = SchemaNode.defineEnum({}, ['aborted', 1, 'idle'] as const);
 const mixedTypeEnumSchema = { 'enum': ['aborted', 1, 'idle'], 'type': 'string' } as const;
 
-const redundantTypeWithConstNode = SchemaNode.defineConst('idle');
+const redundantTypeWithConstNode = SchemaNode.defineConst({}, 'idle');
 const redundantTypeWithConstSchema = { 'const': 'idle', 'type': 'string' } as const;
 
-const nullableTypeArrayNode = SchemaNode.defineAnyOf([
+const nullableTypeArrayNode = SchemaNode.defineAnyOf({}, [
   SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
   SchemaNode.defineNull({ 'minimum': 0, 'type': 'null' } as const)
 ]);
 const nullableTypeArraySchema = { 'minimum': 0, 'type': ['number', 'null'] } as const;
 
-const emptyPropertiesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+const emptyPropertiesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 const emptyPropertiesSchema = { 'type': 'object' } as const;
 
-const openAdditionalPropertiesNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {},
-  [] as const,
-  { 'additionalProperties': SchemaNode.defineUnknown({} as const) }
-);
+const openAdditionalPropertiesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} });
 const openAdditionalPropertiesSchema = { 'type': 'object' } as const;
 
-const annotationDriftNode = SchemaNode.defineEnum([0, 1] as const);
+const annotationDriftNode = SchemaNode.defineEnum({}, [0, 1] as const);
 const annotationDriftSchema = { 'description': 'Numeric flag.', 'enum': [0, 1], 'title': 'Flag' } as const;
 
-const genuineTypeMismatchNode = SchemaNode.defineEnum(['aborted', 'active', 'idle'] as const);
+const genuineTypeMismatchNode = SchemaNode.defineEnum({}, ['aborted', 'active', 'idle'] as const);
 const genuineTypeMismatchSchema = { 'enum': ['aborted', 'active', 'idle'], 'type': 'number' } as const;
 
-const genuineClosedObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false });
+const genuineClosedObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const genuineOpenObjectSchema = { 'type': 'object' } as const;
 
 const scenarioCases: readonly ScenarioCase[] = [

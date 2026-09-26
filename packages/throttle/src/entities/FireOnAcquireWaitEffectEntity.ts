@@ -28,10 +28,10 @@ export namespace FireOnAcquireWaitEffectEntity {
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'queuedCount': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'variant': SchemaNode.defineConst('FireOnAcquireWait' as const) }, [
+  } as const), 'variant': SchemaNode.defineConst({}, 'FireOnAcquireWait' as const) }, [
     'variant',
     'queuedCount'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

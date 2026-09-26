@@ -80,53 +80,29 @@ export namespace KeyedWorkGateScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'calls': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'coalesceIsInflight': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'completionOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'completionOrder': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'first': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'maxActive': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'mutexIsLocked': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-          'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'rejectedName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'resolved': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'result': SchemaNode.defineUnknown({} as const),
-          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'results': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'runs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'second': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'config': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'coalesce': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-                ['timeout'] as const,
-                { 'additionalProperties': false }
-              ),
-              'mutex': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-                ['timeout'] as const,
-                { 'additionalProperties': false }
-              )
-            },
-            ['coalesce', 'mutex'] as const,
-            { 'additionalProperties': false }
-          ),
+          'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'config': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'coalesce': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeout'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+              'mutex': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeout'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+            }, ['coalesce', 'mutex'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'key1': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
@@ -136,16 +112,10 @@ export namespace KeyedWorkGateScenarioCaseEntity {
           'leaderDelayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'serializedDelayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'waitBeforeSerializedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }
