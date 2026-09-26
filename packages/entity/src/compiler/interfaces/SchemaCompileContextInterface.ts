@@ -1,4 +1,4 @@
-import type { CompiledNodeInterface } from './CompiledNodeInterface.js';
+import type { CompiledNodeInterface } from './CompilerExecutionStateInterface.js';
 import type { SchemaResourceIndexInterface } from './SchemaResourceIndexInterface.js';
 
 /** Compile-time state shared across one schema document's whole compilation. */

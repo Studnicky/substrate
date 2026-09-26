@@ -1,7 +1,6 @@
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
+import type { CompiledNodeInterface, ValidationExecutionContextInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { EvaluatedTrackerInterface } from './interfaces/EvaluatedTrackerInterface.js';
-import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
 
 /** Wraps a resolver so its target compiles at most once, on first validation call — breaks compile-time reference cycles. */
 export class LazyCompiledNode {

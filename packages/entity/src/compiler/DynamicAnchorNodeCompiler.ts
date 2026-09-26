@@ -1,8 +1,6 @@
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
-import type { CompiledNodeInterface } from './interfaces/CompiledNodeInterface.js';
-import type { DynamicScopeFrameInterface } from './interfaces/DynamicScopeFrameInterface.js';
+import type { CompiledNodeInterface, DynamicScopeFrameInterface, ValidationExecutionContextInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { EvaluatedTrackerInterface } from './interfaces/EvaluatedTrackerInterface.js';
-import type { ValidationExecutionContextInterface } from './interfaces/ValidationExecutionContextInterface.js';
 
 /** Wraps a schema resource's compiled node: pushes its `$dynamicAnchor` bookending frame on entry, pops on exit. */
 export class DynamicAnchorNodeCompiler {
