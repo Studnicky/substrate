@@ -191,7 +191,7 @@ const runnerMap = {
 
   'invalid-name': (scenarioCase) => {
     assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
+      () => { Context.assertValidConfig(scenarioCase.input.context); },
       { message: scenarioCase.expected.message }
     );
     return;
@@ -838,7 +838,7 @@ const runnerMap = {
 
   'config-validation': (scenarioCase) => {
     assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
+      () => { Context.assertValidConfig(scenarioCase.input.context); },
       { message: scenarioCase.expected.message }
     );
     return;

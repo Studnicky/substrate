@@ -38,17 +38,20 @@ export interface ContextInterface extends ContextConfigEntity.Type {
   keys(): string[];
 
   /**
-   * Runs an operation in a fresh context scope and returns its result with the final snapshot.
+   * Runs a synchronous operation in a fresh context scope and returns its result with the final snapshot.
    */
-  run<TResult>(
-    initial: Record<string, unknown>,
-    operation: (scope: ContextScopeInterface) => Promise<TResult>
-  ): Promise<ContextRunResultInterface<TResult>>;
-
   run<TResult>(
     initial: Record<string, unknown>,
     operation: (scope: ContextScopeInterface) => TResult
   ): ContextRunResultInterface<TResult>;
+
+  /**
+   * Runs an asynchronous operation in a fresh context scope and returns its resolved result with the final snapshot.
+   */
+  runAsync<TResult>(
+    initial: Record<string, unknown>,
+    operation: (scope: ContextScopeInterface) => Promise<TResult>
+  ): Promise<ContextRunResultInterface<TResult>>;
 
   /**
    * Sets a value in the context.
