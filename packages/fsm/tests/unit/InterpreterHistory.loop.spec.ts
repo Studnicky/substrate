@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -7,101 +8,16 @@ import {
 import { InterpreterHistory } from '../../src/InterpreterHistory.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import { InterpreterHistoryScenarioCaseEntity } from './entities/InterpreterHistoryScenarioCaseEntity.js';
 import scenarioGroups from './InterpreterHistory.scenarios.json' with { type: 'json' };
 
 type ToggleState = { readonly variant: 'a' } | { readonly variant: 'b' };
 type ToggleEvent = { readonly type: 'toggle' };
 type ToggleEffect = { readonly message: string; readonly variant: 'log' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { message: string };
-      input: { capacity: number; machineId: string };
-      shape: 'empty-machine-id';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: { capacity: number; machineId: string };
-      shape: 'non-positive-capacity';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: { capacity: number; machineId: string };
-      shape: 'non-integer-capacity';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { historyLength: 0; initialState: ToggleState };
-      input: { capacity: number; machineId: string };
-      shape: 'history-empty-before-transitions';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        length: number;
-        records: Array<{ from: ToggleState; to: ToggleState }>;
-      };
-      input: { capacity: number; machineId: string; steps: number };
-      shape: 'records-transitions-in-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { historyLength: 0; state: ToggleState };
-      input: { capacity: number; machineId: string };
-      shape: 'no-record-for-unchanged-state';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        length: number;
-        records: Array<{ from: ToggleState; to: ToggleState }>;
-      };
-      input: { capacity: number; machineId: string; steps: number };
-      shape: 'evicts-oldest-when-capacity-exceeded';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { finalLength: number; snapshotLength: number };
-      input: { capacity: number; machineId: string; steps: number };
-      shape: 'snapshot-isolated-from-later-transitions';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { length: number; sameReference: false };
-      input: { capacity: number; machineId: string; steps: number };
-      shape: 'fresh-array-each-call';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { eventValue: number; fromValue: number; toValue: number };
-      input: {
-        capacity: number;
-        eventDetails: { value: number };
-        machineId: string;
-        replacementValues: { event: number; from: number; to: number };
-      };
-      shape: 'deeply-isolated-history-records';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { finalState: ToggleState; initialState: ToggleState; logged: string[] };
-      input: { capacity: number; machineId: string; message: string };
-      shape: 'fully-functional-effect-interpreter';
-      name: string;
-    };
+type ScenarioCase = InterpreterHistoryScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(InterpreterHistoryScenarioCaseEntity.Schema, InterpreterHistoryScenarioCaseEntity.Node);
 
 class ToggleMachine extends StateMachine<ToggleState, ToggleEvent, ToggleEffect> {
   public constructor() { super(); }
@@ -138,17 +54,25 @@ function createSameVariantMachine(): StateMachine<ToggleState, ToggleEvent> {
   return new SameVariantMachine();
 }
 
-const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> } = {
+function requireSteps(scenarioCase: ScenarioCase): number {
+  const { steps } = scenarioCase.input;
+  if (steps === undefined) {
+    throw RuntimeError.create('Expected a scenario step count');
+  }
+  return steps;
+}
+
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'empty-machine-id': async (scenarioCase) => {
     assert.throws(
       () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
-      { message: scenarioCase.expected.message }
+      { message: String(scenarioCase.expected.message) }
     );
   },
   'evicts-oldest-when-capacity-exceeded': async (scenarioCase) => {
     const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
-    await sendToggles(history, scenarioCase.input.steps);
+    await sendToggles(history, requireSteps(scenarioCase));
     const records = history.history();
     assert.equal(records.length, scenarioCase.expected.length);
     assert.deepEqual(records.map((record) => ({ from: record.from, to: record.to })), scenarioCase.expected.records);
@@ -156,7 +80,7 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
   'fresh-array-each-call': async (scenarioCase) => {
     const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
-    await sendToggles(history, scenarioCase.input.steps);
+    await sendToggles(history, requireSteps(scenarioCase));
     const first = history.history();
     const second = history.history();
     assert.notEqual(first, second);
@@ -201,16 +125,21 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
       return new NestedMachine();
     }
 
+    const { eventDetails, replacementValues } = scenarioCase.input;
+    if (eventDetails === undefined || replacementValues === undefined) {
+      throw RuntimeError.create('Expected eventDetails and replacementValues for deeply-isolated-history-records');
+    }
+
     const history = InterpreterHistory.create(createNestedMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
-    await history.send({ details: scenarioCase.input.eventDetails, type: 'toggle' });
+    await history.send({ details: eventDetails, type: 'toggle' });
     const snapshot = history.history()[0];
     if (snapshot === undefined) {
       throw RuntimeError.create('Expected a history snapshot');
     }
-    snapshot.from.details.value = scenarioCase.input.replacementValues.from;
-    snapshot.to.details.value = scenarioCase.input.replacementValues.to;
-    snapshot.event.details.value = scenarioCase.input.replacementValues.event;
+    snapshot.from.details.value = replacementValues.from;
+    snapshot.to.details.value = replacementValues.to;
+    snapshot.event.details.value = replacementValues.event;
 
     const retained = history.history()[0];
     assert.equal(retained?.from.details.value, scenarioCase.expected.fromValue);
@@ -234,19 +163,19 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
   'non-integer-capacity': async (scenarioCase) => {
     assert.throws(
       () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
-      { message: scenarioCase.expected.message }
+      { message: String(scenarioCase.expected.message) }
     );
   },
   'non-positive-capacity': async (scenarioCase) => {
     assert.throws(
       () => InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId }),
-      { message: scenarioCase.expected.message }
+      { message: String(scenarioCase.expected.message) }
     );
   },
   'records-transitions-in-order': async (scenarioCase) => {
     const history = InterpreterHistory.create(createToggleMachine(), { capacity: scenarioCase.input.capacity, machineId: scenarioCase.input.machineId });
     history.start();
-    await sendToggles(history, scenarioCase.input.steps);
+    await sendToggles(history, requireSteps(scenarioCase));
     const records = history.history();
     assert.equal(records.length, scenarioCase.expected.length);
     assert.deepEqual(
@@ -265,16 +194,12 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: Extract<Scenario
   }
 };
 
-function invokeRunner<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return invokeRunner(scenarioCase);
-}
-
 void describe('InterpreterHistory', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

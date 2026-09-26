@@ -617,6 +617,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/health-registry:
     dependencies:
@@ -1013,6 +1016,10 @@ importers:
       '@types/json-schema':
         specifier: ^7.0.15
         version: 7.0.15
+    devDependencies:
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/scenario-kit:
     dependencies:
@@ -1336,6 +1343,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
 packages:
 

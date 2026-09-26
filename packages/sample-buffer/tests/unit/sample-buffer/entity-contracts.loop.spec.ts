@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
@@ -6,37 +7,11 @@ import {
 
 import { SampleBufferStateEntity } from '../../../src/entities/index.js';
 import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
+import { SampleBufferStateScenarioCaseEntity } from '../entities/SampleBufferStateScenarioCaseEntity.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
-type ScenarioDescriptor<K extends string, Input, Expected> = {
-  description: string;
-  expected: Expected;
-  input: Input;
-  shape: K;
-  name: string;
-};
-
-type ValidationScenario = ScenarioDescriptor<
-  'invalid-length' | 'valid-state',
-  { validations: { expected: boolean; value: Record<string, unknown> }[] },
-  { validationResults: boolean[] }
->;
-
-type ErrorArgsScenario = ScenarioDescriptor<
-  'error-args',
-  { causeMessage: string; correlationId: string; message: string; retryable?: boolean },
-  { causeMessage: string; correlationId: string; message: string; retryable: boolean }
->;
-
-type ScenarioCaseMap = {
-  'error-args': ErrorArgsScenario;
-  'invalid-length': ValidationScenario;
-  'valid-state': ValidationScenario;
-};
-
-type ScenarioShape = keyof ScenarioCaseMap;
-type ScenarioCase = ScenarioCaseMap[ScenarioShape];
-type RunnerMap = { [K in ScenarioShape]: (scenarioCase: ScenarioCaseMap[K]) => void };
+type ScenarioShape = SampleBufferStateScenarioCaseEntity.Type['shape'];
+type RunnerMap = { [K in ScenarioShape]: (scenarioCase: SampleBufferStateScenarioCaseEntity.Type & { shape: K }) => void };
 
 const runnerMap: RunnerMap = {
   'error-args': (scenarioCase) => {
@@ -55,15 +30,15 @@ const runnerMap: RunnerMap = {
   'valid-state': runValidationCase
 };
 
-function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: ScenarioCaseMap[K]): void {
+function dispatchCase<K extends ScenarioShape>(shape: K, scenarioCase: SampleBufferStateScenarioCaseEntity.Type & { shape: K }): void {
   runnerMap[shape](scenarioCase);
 }
 
-function runCase<K extends ScenarioShape>(scenarioCase: ScenarioCaseMap[K]): void {
+function runCase(scenarioCase: SampleBufferStateScenarioCaseEntity.Type): void {
   dispatchCase(scenarioCase.shape, scenarioCase);
 }
 
-function runValidationCase(scenarioCase: ValidationScenario): void {
+function runValidationCase(scenarioCase: SampleBufferStateScenarioCaseEntity.Type & { shape: 'invalid-length' | 'valid-state' }): void {
   const results = scenarioCase.input.validations.map((validation) => {
     const result = SampleBufferStateEntity.validate(validation.value);
     assert.equal(result, validation.expected);
@@ -73,10 +48,12 @@ function runValidationCase(scenarioCase: ValidationScenario): void {
   assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(SampleBufferStateScenarioCaseEntity.Schema, SampleBufferStateScenarioCaseEntity.Node);
+
 void describe('SampleBufferStateEntity', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, () => {
+      runCase(scenarioCase);
     });
   }
 });

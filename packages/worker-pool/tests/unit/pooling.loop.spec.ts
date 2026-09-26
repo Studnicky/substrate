@@ -1,36 +1,20 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { PoolingScenarioCaseEntity } from './entities/PoolingScenarioCaseEntity.js';
 import scenarioGroups from './pooling.scenarios.json' with { type: 'json' };
 
 type ItemType = { ms?: number; value: string };
 
-interface WorkerPoolBatchConfigInputInterface {
-  concurrency?: WorkerPoolConfigInterface['batchConcurrency'];
-}
+type ScenarioCase = PoolingScenarioCaseEntity.Type;
+type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
+type WorkloadBatchInputInterface = ScenarioCase['input']['batch'];
 
-interface WorkerPoolInputInterface {
-  batch?: WorkerPoolBatchConfigInputInterface;
-  concurrency: WorkerPoolConfigInterface['concurrency'];
-  workerPath: WorkerPoolConfigInterface['workerPath'];
-}
-
-interface WorkloadBatchInputInterface {
-  itemCount: number;
-  itemMs: number;
-  valuePrefix: string;
-}
-
-type ScenarioCase = {
-  description: string;
-  expected: { distinctThreadIdsLessThanItemCount: boolean; distinctThreadIdsLessThanOrEqualConcurrency: boolean; resultLength: number; results: string[] };
-  input: { batch: WorkloadBatchInputInterface; workerPool: WorkerPoolInputInterface };
-  shape: 'reuses-workers';
-  name: string;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(PoolingScenarioCaseEntity.Schema, PoolingScenarioCaseEntity.Node);
 
 function resolveWorkerPath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
@@ -83,7 +67,7 @@ function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('WorkerPool pooling', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

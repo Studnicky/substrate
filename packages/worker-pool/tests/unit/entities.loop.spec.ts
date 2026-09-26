@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -16,20 +17,13 @@ import {
   WorkerTaskDispositionEntity,
   WorkerTaskIndexEntity
 } from '../../src/entities/index.js';
+import { EntitiesScenarioCaseEntity } from './entities/EntitiesScenarioCaseEntity.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
-type ValidationName =
-  | 'WorkerErrorEnvelopeEntity'
-  | 'WorkerLogEnvelopeEntity'
-  | 'WorkerPoolConfigEntity'
-  | 'WorkerProgressEnvelopeEntity'
-  | 'WorkerTaskDispositionEntity'
-  | 'WorkerTaskIndexEntity';
+type ScenarioCase = EntitiesScenarioCaseEntity.Type;
+type ValidationName = ScenarioCase['input']['validations'][number]['entity'];
 
-type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
-
-type ScenarioCase =
-  | { description: string; expected: { validationResults: boolean[] }; input: { validations: ValidationCase[] }; shape: 'rejects-invalid' | 'validates-everything'; name: string };
+const fileIntake = ScenarioFileCompiler.compileIntake(EntitiesScenarioCaseEntity.Schema, EntitiesScenarioCaseEntity.Node);
 
 const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
   'WorkerErrorEnvelopeEntity': (value) => WorkerErrorEnvelopeEntity.validate(value),
@@ -68,7 +62,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('worker-pool entities', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

@@ -14,7 +14,7 @@
           "third": { "timeoutMs": 1000 }
         },
         "fileSystemSeed": [
-          ["/data.json", "{\"value\":1}"]
+          { "path": "/data.json", "content": "{\"value\":1}" }
         ],
         "lockPath": "/data.json"
       },
@@ -33,7 +33,7 @@
           "second": { "timeoutMs": 1000 }
         },
         "fileSystemSeed": [
-          ["/config.json", "{\"version\":1}"]
+          { "path": "/config.json", "content": "{\"version\":1}" }
         ],
         "lockPath": "/config.json",
         "updatedContents": "{\"version\":2}"
