@@ -1,4 +1,4 @@
-import type { Rule } from 'eslint';
+import type { Rule, Scope } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
 
@@ -122,11 +122,11 @@ class PatternInvariance {
   }
 
   static #isWithinBoundary(declarationNode: unknown, boundaryNode: Rule.Node): boolean {
-    if (!Predicates.isRecord(declarationNode)) {
+    if (!AstHelpers.isNode(declarationNode)) {
       return false;
     }
 
-    const declRange = declarationNode.range as readonly [number, number] | undefined;
+    const declRange = declarationNode.range;
     const boundaryRange = boundaryNode.range;
 
     if (declRange === undefined || boundaryRange === undefined) {
@@ -144,7 +144,7 @@ class PatternInvariance {
     if (name === undefined) {
       return false;
     }
-    let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
+    let scope: Scope.Scope | null = context.sourceCode.getScope(identifierNode);
 
     while (scope !== null) {
       const { variables } = scope;
