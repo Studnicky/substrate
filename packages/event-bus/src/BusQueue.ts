@@ -67,6 +67,11 @@ interface BusQueueShapeInterface {
   drain(): Promise<void>;
 }
 
+/** `handler` typed `unknown` rather than a callback shape — `assertValidHandler` proves callability itself, so this interface asserts nothing about it in advance. */
+interface BusQueueHandlerCandidateInterface {
+  readonly 'handler'?: unknown;
+}
+
 export class BusQueue<T> {
   protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
@@ -108,10 +113,16 @@ export class BusQueue<T> {
     return result;
   }
 
-  protected constructor(options: BusQueueCreateOptionsInterface<T>) {
-    if (!Predicates.isFunction(options.handler)) {
-      throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
+  /** Rejects `options` unless it carries a callable `handler` — the same guard the constructor enforces, exposed so a test can prove rejection through this narrow surface without routing a bad value through the typed constructor. */
+  static assertValidHandler(options: BusQueueHandlerCandidateInterface): void {
+    if (Predicates.isFunction(options.handler)) {
+      return;
     }
+    throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
+  }
+
+  protected constructor(options: BusQueueCreateOptionsInterface<T>) {
+    BusQueue.assertValidHandler(options);
     const hwmOption = options.highWaterMark;
     if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
       throw new BusQueueConfigError('highWaterMark must be a positive integer');

@@ -125,16 +125,33 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     }
   }
 
-  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: true): Set<BusQueue<TTopicMap[K]>>;
-  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: false): Set<BusQueue<TTopicMap[K]>> | undefined;
-  #getTopicSubscriptions(topic: keyof TTopicMap, create: boolean): unknown {
+  /** True when `value` is a `Set` whose every current member is a `BusQueue` instance — the strongest fact about `T` obtainable at runtime, since `T` is erased and no design recovers it. `#store` has exactly one writer (this class), which only ever inserts a `Set<BusQueue<TTopicMap[K]>>` under the matching topic key, so this shape check is sufficient to back the caller's `K`. */
+  #isTopicSubscriptionSet<K extends keyof TTopicMap>(value: unknown): value is Set<BusQueue<TTopicMap[K]>> {
+    if (!(value instanceof Set)) {
+      return false;
+    }
+    for (const item of value) {
+      if (!(item instanceof BusQueue)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  #ensureTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> {
     const existing = this.#store.get(topic);
-    if (existing !== undefined || !create) {
+    if (this.#isTopicSubscriptionSet<K>(existing)) {
       return existing;
     }
-    const fresh = new Set<unknown>();
+    const fresh = new Set<BusQueue<TTopicMap[K]>>();
     this.#store.set(topic, fresh);
     return fresh;
+  }
+
+  #findTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> | undefined {
+    const existing = this.#store.get(topic);
+    const result = this.#isTopicSubscriptionSet<K>(existing) ? existing : undefined;
+    return result;
   }
 
   subscribe<K extends keyof TTopicMap>(
@@ -142,7 +159,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     handler: EventHandlerInterface<TTopicMap[K]>,
     options?: { 'signal'?: AbortSignal }
   ): UnsubscribeInterface {
-    const topicSubscriptions = this.#getTopicSubscriptions(topic, true);
+    const topicSubscriptions = this.#ensureTopicSubscriptions(topic);
     const queueController = new AbortController();
     const callerSignal = options?.signal;
     const queueHandler = async (payload: TTopicMap[K]): Promise<void> => {
@@ -193,7 +210,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   }
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
-    const topicSubscriptions = this.#getTopicSubscriptions(topic, false);
+    const topicSubscriptions = this.#findTopicSubscriptions(topic);
     if (topicSubscriptions === undefined || topicSubscriptions.size === 0) { return; }
     await this.hooks.invokeAsync('onPublish', () => {
       const result = this.onPublish(topic, payload);
