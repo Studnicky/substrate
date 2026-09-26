@@ -176,7 +176,6 @@
   "packages/topic-router-models/examples/mapInferenceToRoute",
   "packages/topic-router/examples/routeTopics",
   "packages/types/examples/fixtures/PredicatesAccessorsFixtures",
-  "packages/types/examples/pickDefined",
   "packages/types/examples/predicates-accessors",
   "packages/virtual-fs/examples/basicVirtualFs",
   "packages/virtual-fs/examples/browserOpfs",
