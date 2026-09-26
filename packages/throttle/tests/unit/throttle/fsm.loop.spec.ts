@@ -1,66 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ThrottleStateEntity } from '../../../src/entities/ThrottleStateEntity.js';
 import { Throttle } from '../../../src/throttle/index.js';
+import { FsmScenarioCaseEntity } from './entities/FsmScenarioCaseEntity.js';
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { invalidState: false; validStates: true };
-      input: { invalidState: string; states: readonly string[] };
-      shape: 'validate-states';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { currentState: 'idle'; transitionCount: 0 };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'starts-idle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { from: 'idle'; to: 'active' };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'idle-to-active';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { currentState: 'idle'; from: 'active'; to: 'idle' };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'active-to-idle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { currentState: 'idle'; from: 'idle'; to: 'draining' };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'idle-to-draining';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { currentState: 'aborted'; to: 'aborted' };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'abort-transitions-to-aborted';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortedTransitionCount: 1 };
-      input: { throttle: { concurrencyLimit: number } };
-      shape: 'double-abort-no-second-transition';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessage: string };
-      input: { illegalFrom: 'idle'; illegalTo: 'active'; throttle: { concurrencyLimit: number } };
-      shape: 'illegal-transition-throws';
-      name: string;
-    };
+type ScenarioCase = FsmScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
 
 import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
 
@@ -188,7 +136,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Throttle FSM', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

@@ -1,19 +1,25 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 
 import { Throttle } from '../../../src/throttle/index.js';
+import { ExecuteSyncThrowScenarioCaseEntity } from './entities/ExecuteSyncThrowScenarioCaseEntity.js';
 import scenarioGroups from './execute-sync-throw.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { name: string; description: string; expected: Record<string, unknown>; input: { errorMessage: string; failureMessage?: string; result?: string; throttle: { concurrencyLimit: number } }; shape: 'sync-throw-releases-slot' | 'sync-throw-reject-hook' };
+type ScenarioCase = ExecuteSyncThrowScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ExecuteSyncThrowScenarioCaseEntity.Schema, ExecuteSyncThrowScenarioCaseEntity.Node);
 
 function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
   assert.equal(error.message.includes(expectedMessage), true);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'sync-throw-releases-slot': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
@@ -59,12 +65,12 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle synchronous throw regression', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

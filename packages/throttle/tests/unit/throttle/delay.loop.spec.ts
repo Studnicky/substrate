@@ -1,46 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Delay } from '../../../src/throttle/Delay.js';
 import { ThrottleAbortedError } from '../../../src/errors/ThrottleAbortedError.js';
+import { DelayScenarioCaseEntity } from './entities/DelayScenarioCaseEntity.js';
 import scenarioGroups from './delay.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { resolved: true };
-      input: { timeoutMs: number };
-      shape: 'delay-resolves-without-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resolved: true };
-      input: { timeoutMs: number };
-      shape: 'delay-resolves-with-never-aborted-signal';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorCode: 'throttle.aborted'; errorMessage: string; timeoutMs: number };
-      input: { timeoutMs: number };
-      shape: 'delay-rejects-already-aborted';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorCode: 'throttle.aborted'; errorMessage: string; timeoutMs: number };
-      input: { timeoutMs: number };
-      shape: 'delay-rejects-before-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { abortListenerAddCount: 1; abortListenerRemoveCount: 1 };
-      input: { timeoutMs: number };
-      shape: 'delay-removes-abort-listener';
-      name: string;
-    };
+type ScenarioCase = DelayScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(DelayScenarioCaseEntity.Schema, DelayScenarioCaseEntity.Node);
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
 type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
@@ -77,14 +46,16 @@ const runnerMap: RunnerMap = {
       let removeCount = 0;
       const originalAdd = controller.signal.addEventListener.bind(controller.signal);
       const originalRemove = controller.signal.removeEventListener.bind(controller.signal);
-      controller.signal.addEventListener = ((...args: Parameters<typeof originalAdd>): void => {
+      const countingAdd = (type: Parameters<typeof originalAdd>[0], listener: Parameters<typeof originalAdd>[1], options: Parameters<typeof originalAdd>[2]): void => {
         addCount += 1;
-        originalAdd(...args);
-      }) as typeof originalAdd;
-      controller.signal.removeEventListener = ((...args: Parameters<typeof originalRemove>): void => {
+        originalAdd(type, listener, options);
+      };
+      const countingRemove = (type: Parameters<typeof originalRemove>[0], listener: Parameters<typeof originalRemove>[1], options: Parameters<typeof originalRemove>[2]): void => {
         removeCount += 1;
-        originalRemove(...args);
-      }) as typeof originalRemove;
+        originalRemove(type, listener, options);
+      };
+      controller.signal.addEventListener = countingAdd;
+      controller.signal.removeEventListener = countingRemove;
       await Delay.for(scenarioCase.input.timeoutMs, controller.signal);
       assert.strictEqual(addCount, scenarioCase.expected.abortListenerAddCount);
       assert.strictEqual(removeCount, scenarioCase.expected.abortListenerRemoveCount);
@@ -105,7 +76,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Throttle delay', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

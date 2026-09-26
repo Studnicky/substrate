@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -5,45 +6,20 @@ import { Batch } from '@studnicky/batch/node';
 
 import { Throttle } from '../../../src/index.js';
 import { ThrottleStatsEntity } from '../../../src/entities/index.js';
-import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
+import { StateManagementScenarioCaseEntity } from './entities/StateManagementScenarioCaseEntity.js';
 import scenarioGroups from './state-management.scenarios.json' with { type: 'json' };
 
-interface BatchInputInterface {
-  itemCount: number;
-  maxConcurrent: number;
-}
+type ScenarioCase = StateManagementScenarioCaseEntity.Type;
+type BatchInputInterface = Extract<ScenarioCase, { shape: 'adaptive-scales-up' }>['input']['batch'];
 
-type ScenarioCase =
-  | {
-      name: string;
-      description: string;
-      expected: Record<string, unknown>;
-      input: {
-        batch?: BatchInputInterface;
-        clock?: ThrottleClockInputInterface;
-        result?: string;
-        throttle: Parameters<typeof Throttle.create>[0];
-      };
-      shape: 'adaptive-latency-stats' | 'adaptive-scales-down' | 'adaptive-scales-up' | 'initial-stats' | 'is-complete-initially';
-    };
-
-function requireBatchInput(input: ScenarioCase['input']): BatchInputInterface {
-  assert.ok(input.batch !== undefined);
-  return input.batch;
-}
-
-function requireClockInput(input: ScenarioCase['input']): ThrottleClockInputInterface {
-  assert.ok(input.clock !== undefined);
-  return input.clock;
-}
+const fileIntake = ScenarioFileCompiler.compileIntake(StateManagementScenarioCaseEntity.Schema, StateManagementScenarioCaseEntity.Node);
 
 function createScenarioBatch<TResult>(input: BatchInputInterface): Batch<TResult> {
   return Batch.create<TResult>(input.maxConcurrent);
 }
 
-async function executeIndexedWork(throttle: VirtualClockThrottle, input: ScenarioCase['input']): Promise<number[]> {
-  const batch = requireBatchInput(input);
+async function executeIndexedWork(throttle: VirtualClockThrottle, batch: BatchInputInterface): Promise<number[]> {
   const items = Array.from({ length: batch.itemCount }, (_unused, index) => index);
   const workload = createScenarioBatch<number | undefined>(batch);
   const results: Array<number | undefined> = [];
@@ -61,56 +37,59 @@ async function executeIndexedWork(throttle: VirtualClockThrottle, input: Scenari
   return results.filter((result): result is number => result !== undefined);
 }
 
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
+type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+
+const runnerMap: RunnerMap = {
   'adaptive-latency-stats': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
 
     const result = await throttle.execute(async () => {
-      return String(input.result);
+      return input.result;
     });
 
-    assert.strictEqual(result, String(expected.result));
+    assert.strictEqual(result, expected.result);
     const stats = throttle.getStats();
     assert.ok(stats.latency !== undefined);
-    assert.strictEqual(stats.latency?.sampleCount, Number(expected.sampleCount));
+    assert.strictEqual(stats.latency?.sampleCount, expected.sampleCount);
   },
   'adaptive-scales-down': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
-    const throttle = VirtualClockThrottle.createWithClock(requireClockInput(input), input.throttle);
-    const results = await executeIndexedWork(throttle, input);
+    const throttle = VirtualClockThrottle.createWithClock(input.clock, input.throttle);
+    const results = await executeIndexedWork(throttle, input.batch);
 
-    assert.strictEqual(results.length, Number(expected.resultCount));
-    assert.strictEqual(throttle.getStats().concurrencyLimit, Number(expected.concurrencyLimit));
+    assert.strictEqual(results.length, expected.resultCount);
+    assert.strictEqual(throttle.getStats().concurrencyLimit, expected.concurrencyLimit);
   },
   'adaptive-scales-up': async (scenarioCase) => {
     const { expected, input } = scenarioCase;
-    const throttle = VirtualClockThrottle.createWithClock(requireClockInput(input), input.throttle);
-    const results = await executeIndexedWork(throttle, input);
+    const throttle = VirtualClockThrottle.createWithClock(input.clock, input.throttle);
+    const results = await executeIndexedWork(throttle, input.batch);
 
-    assert.strictEqual(results.length, Number(expected.resultCount));
-    assert.strictEqual(throttle.getStats().concurrencyLimit, Number(expected.concurrencyLimit));
+    assert.strictEqual(results.length, expected.resultCount);
+    assert.strictEqual(throttle.getStats().concurrencyLimit, expected.concurrencyLimit);
   },
   'initial-stats': (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
     const stats = throttle.getStats();
     assert.deepStrictEqual(stats, expected.stats);
-    assert.strictEqual(ThrottleStatsEntity.validate(stats), Boolean(expected.isComplete));
+    assert.strictEqual(ThrottleStatsEntity.validate(stats), expected.isComplete);
   },
   'is-complete-initially': (scenarioCase) => {
     const { expected, input } = scenarioCase;
     const throttle = Throttle.create(input.throttle);
-    assert.strictEqual(throttle.isComplete(), Boolean(expected.isComplete));
+    assert.strictEqual(throttle.isComplete(), expected.isComplete);
   }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
+async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('Throttle state management', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

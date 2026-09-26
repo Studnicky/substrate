@@ -78,6 +78,7 @@
     "@studnicky/clock": "workspace:*",
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/resilience": "workspace:*",
-    "@studnicky/retry": "workspace:*"
+    "@studnicky/retry": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }
