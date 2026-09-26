@@ -9,7 +9,7 @@ export namespace BusQueueReleaseForAbortEffectEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
-      'variant': { 'const': 'releaseForAbort', 'type': 'string' }
+      'variant': { 'const': 'releaseForAbort' }
     },
     'required': ['variant'],
     'type': 'object'
