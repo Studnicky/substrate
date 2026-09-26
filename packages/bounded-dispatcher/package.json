@@ -76,6 +76,7 @@
   },
   "devDependencies": {
     "@studnicky/clock": "workspace:*",
-    "@studnicky/example-smoke-kit": "workspace:*"
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }
