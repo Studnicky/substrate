@@ -1,8 +1,11 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FetchClient, type QueryParametersInterface, UrlQueryString } from '../../../src/node/index.js';
+
+import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
 import scenarioGroups from './query.scenarios.json' with { type: 'json' };
 
 type RuntimeTag = { shape: 'undefined' };
@@ -87,6 +90,39 @@ function materializeValue(value: RuntimeValue): unknown {
     );
   }
 
+  return value;
+}
+
+const runtimeValueGuard = createRuntimeValueGuard(['undefined'] as const);
+const scenarioShapes = new Set<string>([
+  'buildQueryString-object', 'buildQueryString-string', 'buildQueryString-boolean', 'buildQueryString-array',
+  'buildQueryString-skip-null-undefined', 'buildQueryString-skip-null-array-items', 'buildQueryString-empty-object',
+  'buildQueryString-encode-special-chars', 'buildQueryString-number', 'buildUrl-append-query', 'buildUrl-existing-query',
+  'buildUrl-full-url', 'buildUrl-no-params', 'buildUrl-empty-params', 'buildUrl-nullish-only', 'buildUrl-array-params',
+  'parseQueryString-basic', 'parseQueryString-leading-question-mark', 'parseQueryString-repeated-keys',
+  'parseQueryString-decode-values', 'parseQueryString-empty-string', 'parseQueryString-just-question-mark',
+  'parseQueryString-keys-without-values', 'parseQueryString-mixed-single-and-repeated'
+]);
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  return Predicates.isObject(value)
+    && typeof value.description === 'string'
+    && typeof value.name === 'string'
+    && typeof value.shape === 'string'
+    && scenarioShapes.has(value.shape)
+    && Predicates.isObject(value.expected)
+    && runtimeValueGuard.isRuntimeValue(value.expected.output)
+    && Predicates.isObject(value.input);
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('query.scenarios.json does not match the expected scenario case shape');
+  }
   return value;
 }
 
@@ -232,7 +268,7 @@ void describe('fetch query utils', () => {
       FetchClient.create({ 'parameters': invalidParameters });
     });
   });
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
