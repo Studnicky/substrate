@@ -1,38 +1,29 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { JsonOptionScenarioCaseEntity } from './entities/JsonOptionScenarioCaseEntity.js';
 import scenarioGroups from './json-option.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      client: 'absolute' | 'base';
-      description: string;
-      expected: { body: { [key: string]: unknown }; headerContentType?: string; status: number };
-      input: {
-        baseURL: string;
-        body?: Record<string, unknown>;
-        json?: Record<string, unknown>;
-        method: 'PATCH' | 'POST' | 'PUT';
-        path: string;
-      };
-      name: string;
-    }
-  | {
-      client: 'absolute' | 'base';
-      description: string;
-      expected: { json: { [key: string]: unknown }; status: number };
-      input: {
-        baseURL: string;
-        body?: Record<string, unknown>;
-        json?: Record<string, unknown>;
-        method: 'PATCH' | 'POST' | 'PUT';
-        path: string;
-      };
-      name: string;
-    };
+type ScenarioCase = JsonOptionScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(JsonOptionScenarioCaseEntity.Schema, JsonOptionScenarioCaseEntity.Node);
+
+function requireResponseBody(value: unknown): { body: unknown; headers: Record<string, string> } {
+  if (!Predicates.isObject(value) || !('body' in value) || !('headers' in value) || !Predicates.isObject(value.headers)) {
+    throw RuntimeError.create('Expected an echo response with body/headers');
+  }
+  const headers: Record<string, string> = {};
+  for (const [key, headerValue] of Object.entries(value.headers)) {
+    headers[key] = String(headerValue);
+  }
+  return { 'body': value.body, headers };
+}
 
 const ctx: {
   absoluteClient: FetchClient | undefined;
@@ -88,7 +79,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   assert.strictEqual(response.status, scenarioCase.expected.status);
 
   if ('body' in scenarioCase.expected) {
-    const data = await response.json() as { body: unknown; headers: Record<string, string> };
+    const data = requireResponseBody(await response.json());
     assert.deepStrictEqual(data.body, scenarioCase.expected.body);
     if (scenarioCase.expected.headerContentType !== undefined) {
       assert.strictEqual(data.headers['content-type'], scenarioCase.expected.headerContentType);
@@ -100,7 +91,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('json option', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
