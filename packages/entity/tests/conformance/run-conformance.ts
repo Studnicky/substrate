@@ -43,7 +43,7 @@ function withFormatAssertionDialect(remotes: ReadonlyMap<string, object | boolea
 
 function readBaseline(engineName: string): readonly ConformanceBaselineEntryInterface[] {
   const path = resolve(BASELINE_DIR, `${engineName}-known-failures.json`);
-  const result = JSON.parse(readFileSync(path, 'utf8')) as readonly ConformanceBaselineEntryInterface[];
+  const result: readonly ConformanceBaselineEntryInterface[] = JSON.parse(readFileSync(path, 'utf8'));
   return result;
 }
 
