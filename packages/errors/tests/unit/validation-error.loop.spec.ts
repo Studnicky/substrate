@@ -38,7 +38,8 @@ type ScenarioRunner = (scenario: ScenarioCase, err: ValidationError) => void;
 const SCENARIO_SHAPES: readonly ScenarioShape[] = ['code', 'correlation-id', 'detach-violations', 'instanceof', 'json-excludes-violations', 'json-includes-violations', 'json-roundtrip', 'json-serializes', 'message-with-path', 'retryable', 'user-message-empty-violations', 'user-message-plain', 'user-message-violations', 'violations-absent', 'violations-present', 'violations-present-details', 'violations-complex-details'];
 
 function isScenarioShape(value: unknown): value is ScenarioShape {
-  return typeof value === 'string' && SCENARIO_SHAPES.includes(value as ScenarioShape);
+  const shapes: readonly string[] = SCENARIO_SHAPES;
+  return typeof value === 'string' && shapes.includes(value);
 }
 
 function isOptionalString(value: unknown): value is string | undefined {
@@ -108,7 +109,7 @@ function intakeScenarioCase(raw: unknown): ScenarioCase {
 }
 
 // Validated once, at the fixture-loading edge; every runner below consumes the typed result.
-const scenarios: ScenarioCase[] = (scenarioGroups.cases as unknown[]).map(intakeScenarioCase);
+const scenarios: ScenarioCase[] = scenarioGroups.cases.map(intakeScenarioCase);
 
 const runnerMap = {
   'code': (scenario, err) => {

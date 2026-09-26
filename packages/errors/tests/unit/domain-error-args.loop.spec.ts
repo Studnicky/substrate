@@ -1,4 +1,5 @@
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -6,6 +7,7 @@ import { BaseError } from '../../src/errors/BaseError.js';
 import { DomainErrorArgumentList } from '../../src/errors/DomainErrorArgumentList.js';
 import type { BaseErrorArgumentsInterface } from '../../src/interfaces/BaseErrorArgumentsInterface.js';
 import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
+import { DomainErrorArgsScenarioCaseEntity } from './entities/DomainErrorArgsScenarioCaseEntity.js';
 import scenarioGroups from './domain-error-args.scenarios.json' with { type: 'json' };
 
 abstract class StubFileLockError extends BaseError {
@@ -45,16 +47,10 @@ interface StubFileLockErrorInputInterface {
   options: StubFileLockOptionsInputInterface;
 }
 
-interface ScenarioInputInterface {
-  error: StubFileLockErrorInputInterface;
-}
-
-type ScenarioShape = 'assigns-fields' | 'forwards-code-retryable' | 'includes-optional-fields' | 'message-callback' | 'name-resolves' | 'omits-optional-fields' | 'preserves-instanceof' | 'same-fields-object';
-
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: ScenarioInputInterface; shape: ScenarioShape; name: string };
-
+type ScenarioCase = DomainErrorArgsScenarioCaseEntity.Type;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(DomainErrorArgsScenarioCaseEntity.Schema, DomainErrorArgsScenarioCaseEntity.Node);
 
 function buildStubFileLockOptions(error: StubFileLockErrorInputInterface): DomainErrorOptionsInterface<StubFileLockFieldsInterface> {
   return {
@@ -95,7 +91,7 @@ const runnerMap = {
     assert.strictEqual(args.cause, options.cause);
     assert.strictEqual(args.correlationId, String(expected.correlationId));
     assert.strictEqual(args.retryable, Boolean(expected.retryable));
-    assert.strictEqual(args.metadata?.attempt, (expected.metadata as { attempt: number }).attempt);
+    assert.strictEqual(args.metadata?.attempt, expected.metadata?.attempt);
   },
   'message-callback': (scenario) => {
     const { expected, input } = scenario;
@@ -135,14 +131,14 @@ const runnerMap = {
     });
     assert.strictEqual(received, fields);
   }
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 async function runCase(scenario: ScenarioCase): Promise<void> {
   await runnerMap[scenario.shape](scenario);
 }
 
 void describe('DomainErrorArgumentList.build()', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

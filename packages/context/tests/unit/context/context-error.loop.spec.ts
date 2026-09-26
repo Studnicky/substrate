@@ -1,28 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ContextError } from '../../../src/errors/ContextError.js';
+import { ContextErrorScenarioCaseEntity } from './entities/ContextErrorScenarioCaseEntity.js';
 import scenarioGroups from './context-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        code: string;
-        correlationId?: string;
-        message: string;
-        retryable: boolean;
-      };
-      input: {
-        error: {
-          message: string;
-        };
-      };
-      shape: 'construction';
-      name: string;
-    };
-
+type ScenarioCase = ContextErrorScenarioCaseEntity.Type;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ContextErrorScenarioCaseEntity.Schema, ContextErrorScenarioCaseEntity.Node);
 
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'construction': async (scenarioCase) => {
@@ -39,7 +26,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Context errors', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

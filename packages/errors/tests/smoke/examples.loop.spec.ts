@@ -1,20 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
+import { ExamplesSmokeScenarioCaseEntity } from './entities/ExamplesSmokeScenarioCaseEntity.js';
 import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: {
-    imports: true;
-  };
-  input: {
-    entrypoint: string;
-  };
-  name: string;
-};
+type ScenarioCase = ExamplesSmokeScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ExamplesSmokeScenarioCaseEntity.Schema, ExamplesSmokeScenarioCaseEntity.Node);
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await assert.doesNotReject(async () => {
@@ -23,7 +18,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('examples smoke', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
