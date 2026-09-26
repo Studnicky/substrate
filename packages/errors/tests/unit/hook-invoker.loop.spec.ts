@@ -6,12 +6,22 @@ import {
   mock
 } from 'node:test';
 
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+
+import { Predicates } from '@studnicky/types/node';
+
+import { HookInvokerOptionsEntity } from '../../src/entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from '../../src/errors/HookInvocationError.js';
 import { HookInvoker } from '../../src/errors/HookInvoker.js';
 import { HookTimeoutError } from '../../src/errors/HookTimeoutError.js';
 import { ReentrantHookInvocationError } from '../../src/errors/ReentrantHookInvocationError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
+import { HookInvokerScenarioCaseEntity } from './entities/HookInvokerScenarioCaseEntity.js';
 import scenarioGroups from './hook-invoker.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(
+  HookInvokerScenarioCaseEntity.Schema, HookInvokerScenarioCaseEntity.Node, HookInvokerScenarioCaseEntity.RemoteSchemas
+);
 
 const errorConstructorsByShape: Record<string, new (...args: never[]) => Error> = {
   'HookInvocationError': HookInvocationError,
@@ -85,10 +95,9 @@ class CloneableMarker {
   public readonly nested = { count: 2 };
 }
 
-interface HookInvokerOptionsInputInterface extends ScenarioRecordInterface {
-  detectReentrancy?: boolean;
-  timeoutMs?: number;
-}
+type ScenarioCase = HookInvokerScenarioCaseEntity.Type;
+type ScenarioExpected = ScenarioCase['expected'];
+type ScenarioInvokerInput = ScenarioCase['input']['invoker'];
 
 interface ScenarioRecordInterface {
   readonly [key: string]: ScenarioValue;
@@ -96,48 +105,12 @@ interface ScenarioRecordInterface {
 
 type ScenarioValue = undefined | boolean | number | string | null | ScenarioValue[] | ScenarioRecordInterface;
 
-interface HookDiagnosticsInputInterface {
-  details?: Record<string, ScenarioValue>;
-  items?: ScenarioValue[];
-  plain?: Record<string, ScenarioValue>;
-}
-
-interface HookInvokerInputInterface {
-  callEvent?: string;
-  causeMessage?: string;
-  delayMicrotask?: boolean;
-  delayMs?: number;
-  diagnostics?: HookDiagnosticsInputInterface;
-  hookName?: string;
-  innerHookName?: string;
-  message?: string;
-  observationDelayMs?: number;
-  options?: HookInvokerOptionsInputInterface;
-  outerHookName?: string;
-  returnValue?: ScenarioValue;
-  thenEvent?: string;
-}
-
-interface ScenarioInputInterface {
-  invoker: HookInvokerInputInterface;
-}
-
-type ScenarioShape = 'detectreentrancy-disabled' | 'detectreentrancy-direct' | 'detectreentrancy-no-throw' | 'detectreentrancy-wrapped' | 'diagnostics-async' | 'diagnostics-fallback' | 'diagnostics-null-prototype' | 'diagnostics-rich' | 'diagnostics-structured-clone' | 'diagnostics-sync' | 'invoke-async-reject' | 'invoke-async-success' | 'invoke-fire-and-forget' | 'invoke-swallow-async' | 'invoke-swallow-sync' | 'invoke-sync-success' | 'invoke-sync-throw' | 'invoke-unexpected-async' | 'invokeasync-async-success' | 'invokeasync-async-throw' | 'invokeasync-function-thenable' | 'invokeasync-sync-success' | 'invokeasync-sync-throw' | 'invokeasync-thenable' | 'invokeasync-timeout' | 'onhookerror-async-reject-invoke' | 'onhookerror-async-reject-invokeasync' | 'onhookerror-loop-guard' | 'onhookerror-sync-throw' | 'options-malformed' | 'options-no-options' | 'options-non-positive' | 'timeout-invoke-fire-and-forget' | 'timeout-invokeasync-fast' | 'timeout-no-dangling-timer' | 'timeout-sync-never-applies';
-
-type ScenarioCase = {
-  description: string;
-  expected: ScenarioRecordInterface;
-  input: ScenarioInputInterface;
-  shape: ScenarioShape;
-  name: string;
-};
-
 function materializeInput(value: ScenarioValue): ScenarioValue {
   if (Array.isArray(value)) {
     return value.map((entry) => materializeInput(entry));
   }
   if (value !== null && typeof value === 'object') {
-    const record = value as ScenarioRecordInterface;
+    const record = value;
     if (record.shape === 'undefined') {
       return undefined;
     }
@@ -153,6 +126,15 @@ function materializeInput(value: ScenarioValue): ScenarioValue {
   return value;
 }
 
+/** Parses raw scenario `options` JSON through the entity that actually declares the shape `HookInvoker` accepts; `undefined` passes through untouched. */
+function toHookInvokerOptions(rawOptions: unknown): HookInvokerOptionsEntity.InputType | undefined {
+  return rawOptions === undefined ? undefined : HookInvokerOptionsEntity.intake(rawOptions);
+}
+
+function createNullPrototypeRecord(): Record<string, unknown> {
+  return Object.setPrototypeOf({}, null);
+}
+
 function createDiagnosticsError(message: string): Error {
   const details: { labels: string[]; self?: unknown } = { labels: ['initial'] };
   details.self = details;
@@ -161,7 +143,7 @@ function createDiagnosticsError(message: string): Error {
   return error;
 }
 
-function requireScenarioData(scenario: ScenarioCase): { expected: ScenarioRecordInterface; input: HookInvokerInputInterface } {
+function requireScenarioData(scenario: ScenarioCase): { expected: ScenarioExpected; input: ScenarioInvokerInput } {
   assert.ok(scenario.input.invoker, `Scenario ${scenario.name} is missing invoker input`);
   assert.ok(scenario.expected, `Scenario ${scenario.name} is missing expected`);
   return { expected: scenario.expected, input: scenario.input.invoker };
@@ -187,10 +169,10 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
   }
 }
 
-type ScenarioRunner = (scenario: ScenarioCase, expected: ScenarioRecordInterface, input: HookInvokerInputInterface) => Promise<void> | void;
+type ScenarioRunner = (scenario: ScenarioCase, expected: ScenarioExpected, input: ScenarioInvokerInput) => Promise<void> | void;
 
 const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
-  const invoker = new RecordingInvoker(input.options);
+  const invoker = new RecordingInvoker(toHookInvokerOptions(input.options));
   return captureUnhandledRejections(scenario.name, async () => {
     const completion: void = invoker.invoke(String(input.hookName), () => new Promise(() => {}));
     assert.strictEqual(completion, undefined);
@@ -198,8 +180,9 @@ const runFireAndForgetTimeout: ScenarioRunner = (scenario, expected, input) => {
     assert.deepStrictEqual(invoker.erroredHookNames, expected.erroredHookNames);
     const cause = invoker.causes[0];
     assert.ok(cause instanceof errorConstructorForShape(String(expected.causeShape)));
-    assert.strictEqual((cause as HookTimeoutError).hookName, String((expected.erroredHookNames as unknown[])[0]));
-    assert.strictEqual((cause as HookTimeoutError).timeoutMs, Number(expected.causeTimeoutMs));
+    assert.ok(cause instanceof HookTimeoutError);
+    assert.strictEqual(cause.hookName, String(expected.erroredHookNames?.[0]));
+    assert.strictEqual(cause.timeoutMs, Number(expected.causeTimeoutMs));
   }).then((rejectionEvents) => {
     assert.strictEqual(rejectionEvents.length, Number(expected.unhandledRejections));
   });
@@ -218,7 +201,7 @@ const runnerMap = {
     assert.strictEqual(innerRan, Boolean(expected.innerRan));
   },
   'detectreentrancy-direct': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     let caughtInsideOuter: unknown;
     invoker.invoke(String(input.outerHookName), () => {
       try {
@@ -228,17 +211,17 @@ const runnerMap = {
       }
     });
     assert.ok(caughtInsideOuter instanceof ReentrantHookInvocationError);
-    assert.strictEqual((caughtInsideOuter as ReentrantHookInvocationError).hookName, String(expected.innerHookName));
+    assert.strictEqual(caughtInsideOuter.hookName, String(expected.innerHookName));
   },
   'detectreentrancy-no-throw': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     let callCountLocal = 0;
     invoker.invoke(String(input.outerHookName), () => { callCountLocal += 1; });
     invoker.invoke(String(input.innerHookName), () => { callCountLocal += 1; });
     assert.strictEqual(callCountLocal, Number(expected.callCount));
   },
   'detectreentrancy-wrapped': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     assert.throws(() => {
       invoker.invoke(String(input.outerHookName), () => {
         invoker.invoke(String(input.innerHookName), () => 'never reached');
@@ -281,7 +264,8 @@ const runnerMap = {
     }).then(() => {
       const diagnostic = invoker.getHookErrors()[0];
       assert.ok(diagnostic instanceof HookInvocationError);
-      const cause = diagnostic.cause as Record<string, unknown>;
+      assert.ok(Predicates.isRecord(diagnostic.cause));
+      const cause = diagnostic.cause;
       assert.deepStrictEqual(cause.marker, { label: 'marker' });
       assert.ok('fn' in cause);
       assert.deepStrictEqual(cause.items, input.diagnostics?.items);
@@ -290,7 +274,7 @@ const runnerMap = {
   'diagnostics-null-prototype': (_scenario, _expected, input) => {
     const invoker = new SwallowingInvoker();
     const original = createDiagnosticsError(String(input.message));
-    const details = Object.create(null) as Record<string, unknown>;
+    const details = createNullPrototypeRecord();
     for (const [key, value] of Object.entries(input.diagnostics?.details ?? {})) {
       details[key] = value;
     }
@@ -302,8 +286,8 @@ const runnerMap = {
     }).then(() => {
       const diagnostic = invoker.getHookErrors()[0];
       assert.ok(diagnostic instanceof HookInvocationError);
-      const cause = diagnostic.cause as Record<string, unknown>;
-      assert.deepStrictEqual(cause.details, input.diagnostics?.details);
+      assert.ok(Predicates.isRecord(diagnostic.cause));
+      assert.deepStrictEqual(diagnostic.cause.details, input.diagnostics?.details);
     });
   },
   'diagnostics-rich': (_scenario, expected, input) => {
@@ -341,7 +325,8 @@ const runnerMap = {
     }).then(() => {
       const diagnostic = invoker.getHookErrors()[0];
       assert.ok(diagnostic instanceof HookInvocationError);
-      const cause = diagnostic.cause as Record<string, unknown>;
+      assert.ok(Predicates.isRecord(diagnostic.cause));
+      const cause = diagnostic.cause;
       assert.deepStrictEqual(cause.marker, { label: 'cloneable', nested: { count: 2 } });
       assert.deepStrictEqual(cause.items, input.diagnostics?.items);
     });
@@ -362,7 +347,9 @@ const runnerMap = {
     assert.strictEqual(first.length, Number(expected.hookErrorCount));
     assert.ok(first[0] instanceof HookInvocationError);
     assert.strictEqual(first[0]?.hookName, String(expected.firstHookName));
-    assert.strictEqual((first[0]?.cause as Error | undefined)?.message, String(expected.firstCauseMessage));
+    const cause = first[0]?.cause;
+    assert.ok(cause instanceof Error);
+    assert.strictEqual(cause.message, String(expected.firstCauseMessage));
   },
   'invoke-async-reject': (scenario, expected, input) => {
     const invoker = new RecordingInvoker();
@@ -537,13 +524,13 @@ const runnerMap = {
       events.push('completed');
     };
     const completion: Promise<void> = invoker.invokeAsync(String(input.hookName), unexpectedlyAsyncHook);
-    assert.deepStrictEqual(events, [String((expected.events as unknown[] | undefined)?.[0])]);
+    assert.deepStrictEqual(events, [String(expected.events?.[0])]);
     return completion.then(() => {
       assert.deepStrictEqual(events, expected.events);
     });
   },
   'invokeasync-timeout': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     return assert.rejects(
       invoker.invokeAsync(String(input.hookName), () => new Promise(() => { /* never settles */ })),
       (err) => {
@@ -613,8 +600,8 @@ const runnerMap = {
       });
     }, (err) => {
       assert.ok(err instanceof Error);
-      for (const fragment of (expected.messageIncludes as string[] | undefined) ?? []) {
-        assert.ok(err.message.includes(String(fragment)));
+      for (const fragment of expected.messageIncludes ?? []) {
+        assert.ok(err.message.includes(fragment));
       }
       assert.strictEqual(err instanceof HookInvocationError, !expected.notHookInvocationError);
       return true;
@@ -634,12 +621,12 @@ const runnerMap = {
   },
   'options-non-positive': (_scenario, _expected, input) => {
     assert.throws(() => {
-      new HookInvoker(input.options);
+      Reflect.construct(HookInvoker, [input.options]);
     }, ValidationError);
   },
   'timeout-invoke-fire-and-forget': runFireAndForgetTimeout,
   'timeout-invokeasync-fast': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     let hookCompleted = false;
     const completion = invoker.invokeAsync(String(input.hookName), async () => {
       await new Promise((resolve) => { setTimeout(resolve, Number(input.delayMs)); });
@@ -651,7 +638,7 @@ const runnerMap = {
     });
   },
   'timeout-no-dangling-timer': (scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     const clearTimeoutSpy = mock.method(globalThis, 'clearTimeout');
     return captureUnhandledRejections(scenario.name, async () => {
       const completion = invoker.invokeAsync(String(input.hookName), async () => 'discarded');
@@ -667,7 +654,7 @@ const runnerMap = {
     });
   },
   'timeout-sync-never-applies': (_scenario, expected, input) => {
-    const invoker = new HookInvoker(input.options);
+    const invoker = new HookInvoker(toHookInvokerOptions(input.options));
     let hookRan = false;
     const completion = invoker.invoke(String(input.hookName), () => {
       hookRan = true;
@@ -676,7 +663,7 @@ const runnerMap = {
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
     assert.strictEqual(completion, materializeInput(expected.completion));
   }
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
 function runCase(scenario: ScenarioCase): Promise<void> | void {
   const { expected, input } = requireScenarioData(scenario);
@@ -684,7 +671,8 @@ function runCase(scenario: ScenarioCase): Promise<void> | void {
 }
 
 void describe('HookInvoker', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  const fileData = fileIntake(scenarioGroups);
+  for (const scenario of fileData.cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
