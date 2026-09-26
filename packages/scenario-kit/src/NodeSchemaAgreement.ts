@@ -6,7 +6,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 /** Proves a hand-authored `Schema` and its parallel `Node` describe the same shape. `Node`'s nested entries are `{schema: {...}}` wrapper objects, so this flattens them before comparing. */
 export class NodeSchemaAgreement {
-  private static readonly BRANCH_KEYWORDS = ['allOf', 'anyOf', 'oneOf'] as const;
+  private static readonly SCHEMA_LIST_KEYWORDS = ['allOf', 'anyOf', 'oneOf', 'prefixItems'] as const;
 
   static assertMatches(schema: Record<string, unknown>, node: SchemaNodeInterface<unknown, unknown>): void {
     const nodeSchema = NodeSchemaAgreement.schemaOf(node);
@@ -95,9 +95,9 @@ export class NodeSchemaAgreement {
       JsonObject.write(flattened, 'items', NodeSchemaAgreement.flattenChild(items));
     }
 
-    const keywordCount = NodeSchemaAgreement.BRANCH_KEYWORDS.length;
+    const keywordCount = NodeSchemaAgreement.SCHEMA_LIST_KEYWORDS.length;
     for (let index = 0; index < keywordCount; index += 1) {
-      const keyword = NodeSchemaAgreement.BRANCH_KEYWORDS[index]!;
+      const keyword = NodeSchemaAgreement.SCHEMA_LIST_KEYWORDS[index]!;
       const branches: unknown = Reflect.get(schema, keyword);
       if (Array.isArray(branches) && branches.every(Predicates.isObject)) {
         JsonObject.write(flattened, keyword, NodeSchemaAgreement.flattenBranches(branches));
