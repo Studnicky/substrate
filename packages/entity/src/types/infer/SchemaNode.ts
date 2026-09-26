@@ -1,7 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
 
-import { PickDefined } from '@studnicky/types/browser';
-
 import type { DefineObjectOptionsInterface } from '../../interfaces/DefineObjectOptionsInterface.js';
 import type { ObjectSchemaShapeInterface } from '../../interfaces/ObjectSchemaShapeInterface.js';
 import type { SchemaNodeInterface } from '../../interfaces/SchemaNodeInterface.js';
@@ -35,6 +33,12 @@ import type { InferUnionOfStaticType } from './InferUnionOfStaticType.js';
  * data. No constructor recurses into a child's `schema` — every nested
  * derivation is an indexed read of that child's own precomputed `static`/`input`.
  *
+ * Every constructor has exactly one signature: the parameters an optional
+ * argument used to make are now required (pass `{}`/`undefined`/the full
+ * options object explicitly), so the compiler checks the implementation
+ * body against the same precise return type a caller sees — never a
+ * looser implementation signature standing in between.
+ *
  * @module
  */
 export class SchemaNode {
@@ -62,38 +66,18 @@ export class SchemaNode {
     return { 'schema': schema };
   }
 
-  public static defineConst<const TValue>(value: TValue): SchemaNodeInterface<{ readonly 'const': TValue }, TValue>;
   public static defineConst<const TSchema extends Record<string, unknown>, const TValue>(
     schema: TSchema,
     value: TValue
-  ): SchemaNodeInterface<TSchema & { readonly 'const': TValue }, TValue>;
-  public static defineConst(...argumentList: [value: unknown] | [schema: Record<string, unknown>, value: unknown]): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, value] = argumentList;
-
-      return { 'schema': { ...schema, 'const': value } };
-    }
-    const [value] = argumentList;
-
-    return { 'schema': { 'const': value } };
+  ): SchemaNodeInterface<TSchema & { readonly 'const': TValue }, TValue> {
+    return { 'schema': { ...schema, 'const': value } };
   }
 
-  public static defineEnum<const TValues extends readonly unknown[]>(
-    values: TValues
-  ): SchemaNodeInterface<{ readonly 'enum': TValues }, TValues[number]>;
   public static defineEnum<const TSchema extends Record<string, unknown>, const TValues extends readonly unknown[]>(
     schema: TSchema,
     values: TValues
-  ): SchemaNodeInterface<TSchema & { readonly 'enum': TValues }, TValues[number]>;
-  public static defineEnum(...argumentList: [values: readonly unknown[]] | [schema: Record<string, unknown>, values: readonly unknown[]]): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, values] = argumentList;
-
-      return { 'schema': { ...schema, 'enum': values } };
-    }
-    const [values] = argumentList;
-
-    return { 'schema': { 'enum': values } };
+  ): SchemaNodeInterface<TSchema & { readonly 'enum': TValues }, TValues[number]> {
+    return { 'schema': { ...schema, 'enum': values } };
   }
 
   /** An empty schema (`{}`) matches any JSON value — sound derivation is `unknown`, never `any`, which would silence every consumer's own checking. */
@@ -123,43 +107,44 @@ export class SchemaNode {
     return { 'schema': { ...schema, 'prefixItems': prefixItems } };
   }
 
+  /** `contains` is required — pass `undefined` explicitly when the array has no `contains` constraint. */
   public static defineArray<
     const TSchema extends Record<string, unknown>,
     TItem extends SchemaNodeInterface<unknown, unknown>,
-    TContains extends SchemaNodeInterface<unknown, unknown> | undefined = undefined
+    TContains extends SchemaNodeInterface<unknown, unknown> | undefined
   >(
     schema: TSchema,
     items: TItem,
-    contains?: TContains
+    contains: TContains
   ): SchemaNodeInterface<
     TSchema & { 'contains'?: TContains; 'items': TItem },
-    ApplyArrayConstraintBrandsType<TSchema, TContains extends SchemaNodeInterface<unknown, unknown> ? NodeStaticType<TContains> : never>
-      & NodeStaticType<TItem>[],
+    ApplyArrayConstraintBrandsType<TSchema, TContains extends SchemaNodeInterface<unknown, unknown> ? NodeStaticType<TContains> : never> & NodeStaticType<TItem>[],
     NodeInputType<TItem>[]
-  >;
-  public static defineArray(
-    schema: Record<string, unknown>,
-    items: SchemaNodeInterface<unknown, unknown>,
-    contains?: SchemaNodeInterface<unknown, unknown>
-  ): SchemaNodeInterface<unknown, unknown> {
-    const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
+  > {
+    // `contains` stays out of the emitted schema entirely when absent — an omitted key, not an
+    // own `undefined`-valued one, so a hand-authored JSON Schema with no `contains` at all agrees
+    // with a Node built without one. `'contains'?:` above is honest either way.
+    if (contains !== undefined) {
+      return { 'schema': { ...schema, 'contains': contains, 'items': items } };
+    }
 
-    return { 'schema': combinedSchema };
+    return { 'schema': { ...schema, 'items': items } };
   }
 
+  /** `options` is required in full — pass `{ 'additionalProperties': false, 'patternProperties': {} }` for the closed, no-pattern-properties default. */
   public static defineObject<
     TSchema extends Record<string, unknown>,
     TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
     TRequired extends keyof TProps & string,
-    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown> = false,
-    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>> = Record<never, never>
+    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown>,
+    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
   >(
     schema: TSchema,
     properties: TProps,
     required: readonly TRequired[],
-    options?: DefineObjectOptionsInterface<TAdditional, TPatternProps>
+    options: Required<DefineObjectOptionsInterface<TAdditional, TPatternProps>>
   ): SchemaNodeInterface<
-    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
     IdentityType<
       ApplyObjectConstraintBrandsType<TSchema>
       & InferAdditionalPropertiesStaticType<TAdditional>
@@ -171,103 +156,62 @@ export class SchemaNode {
       & InferObjectPropertiesInputType<TProps, TRequired>
       & InferPatternPropertiesInputType<TPatternProps>
     >
-  >;
-  public static defineObject(
-    schema: Record<string, unknown>,
-    properties: Record<string, SchemaNodeInterface<unknown, unknown>>,
-    required: readonly string[],
-    options?: DefineObjectOptionsInterface<boolean | SchemaNodeInterface<unknown, unknown>, Record<string, SchemaNodeInterface<unknown, unknown>>>
-  ): SchemaNodeInterface<unknown, unknown> {
-    const combinedSchema = PickDefined.from({
-      ...schema,
-      'additionalProperties': options?.additionalProperties ?? false,
-      'patternProperties': options?.patternProperties,
-      'properties': properties,
-      'required': required
-    });
+  > {
+    // `patternProperties` stays out of the emitted schema entirely when empty — an omitted key,
+    // not a no-op `{}` value, so a hand-authored JSON Schema with no `patternProperties` at all
+    // agrees byte-for-byte with a Node built without one. `'patternProperties'?:` above is honest
+    // either way: the type never claims the key is always present.
+    const hasPatternProperties = Object.keys(options.patternProperties).length > 0;
 
-    return { 'schema': combinedSchema };
+    if (hasPatternProperties) {
+      return {
+        'schema': {
+          ...schema,
+          'additionalProperties': options.additionalProperties,
+          'patternProperties': options.patternProperties,
+          'properties': properties,
+          'required': required
+        }
+      };
+    }
+
+    return {
+      'schema': {
+        ...schema,
+        'additionalProperties': options.additionalProperties,
+        'properties': properties,
+        'required': required
+      }
+    };
   }
 
-  public static defineAllOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
-    branches: TItems
-  ): SchemaNodeInterface<{ readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>;
   public static defineAllOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     schema: TSchema,
     branches: TItems
-  ): SchemaNodeInterface<TSchema & { readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>;
-  public static defineAllOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, branches] = argumentList;
-
-      return { 'schema': { ...schema, 'allOf': branches } };
-    }
-    const [branches] = argumentList;
-
-    return { 'schema': { 'allOf': branches } };
+  ): SchemaNodeInterface<TSchema & { readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>> {
+    return { 'schema': { ...schema, 'allOf': branches } };
   }
 
-  public static defineAnyOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
-    branches: TItems
-  ): SchemaNodeInterface<{ readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
   public static defineAnyOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     schema: TSchema,
     branches: TItems
-  ): SchemaNodeInterface<TSchema & { readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
-  public static defineAnyOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, branches] = argumentList;
-
-      return { 'schema': { ...schema, 'anyOf': branches } };
-    }
-    const [branches] = argumentList;
-
-    return { 'schema': { 'anyOf': branches } };
+  ): SchemaNodeInterface<TSchema & { readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
+    return { 'schema': { ...schema, 'anyOf': branches } };
   }
 
-  public static defineOneOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
-    branches: TItems
-  ): SchemaNodeInterface<{ readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
   public static defineOneOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
     schema: TSchema,
     branches: TItems
-  ): SchemaNodeInterface<TSchema & { readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
-  public static defineOneOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, branches] = argumentList;
-
-      return { 'schema': { ...schema, 'oneOf': branches } };
-    }
-    const [branches] = argumentList;
-
-    return { 'schema': { 'oneOf': branches } };
+  ): SchemaNodeInterface<TSchema & { readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
+    return { 'schema': { ...schema, 'oneOf': branches } };
   }
 
   /** `not` has no sound positive representation: TypeScript's type system has no negation operator. */
-  public static defineNot<const TInner extends SchemaNodeInterface<unknown, unknown>>(
-    inner: TInner
-  ): SchemaNodeInterface<{ readonly 'not': TInner }, unknown>;
   public static defineNot<const TSchema extends Record<string, unknown>, const TInner extends SchemaNodeInterface<unknown, unknown>>(
     schema: TSchema,
     inner: TInner
-  ): SchemaNodeInterface<TSchema & { readonly 'not': TInner }, unknown>;
-  public static defineNot(
-    ...argumentList: [inner: SchemaNodeInterface<unknown, unknown>] | [schema: Record<string, unknown>, inner: SchemaNodeInterface<unknown, unknown>]
-  ): SchemaNodeInterface<unknown, unknown> {
-    if (argumentList.length === 2) {
-      const [schema, inner] = argumentList;
-
-      return { 'schema': { ...schema, 'not': inner } };
-    }
-    const [inner] = argumentList;
-
-    return { 'schema': { 'not': inner } };
+  ): SchemaNodeInterface<TSchema & { readonly 'not': TInner }, unknown> {
+    return { 'schema': { ...schema, 'not': inner } };
   }
 
   /**

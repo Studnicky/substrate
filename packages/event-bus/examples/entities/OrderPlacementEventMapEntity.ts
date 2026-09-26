@@ -21,7 +21,7 @@ export namespace OrderPlacementEventMapEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'order:placed': SchemaNode.defineObject({ 'type': 'object' } as const, { 'orderId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['orderId'] as const, { 'additionalProperties': false }) }, ['order:placed'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'order:placed': SchemaNode.defineObject({ 'type': 'object' } as const, { 'orderId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['orderId'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['order:placed'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

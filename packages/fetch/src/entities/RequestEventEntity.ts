@@ -23,7 +23,7 @@ export namespace RequestEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestEvent', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Telemetry event emitted when a request starts.', 'title': 'RequestEvent', 'type': 'object' } as const, { 'method': SchemaNode.defineString({ 'description': 'HTTP method.', 'type': 'string' } as const), 'requestId': SchemaNode.defineString({ 'description': 'Unique identifier for this request.', 'type': 'string' } as const), 'url': SchemaNode.defineString({ 'description': 'Request URL.', 'type': 'string' } as const) }, ['method', 'requestId', 'url'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestEvent', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Telemetry event emitted when a request starts.', 'title': 'RequestEvent', 'type': 'object' } as const, { 'method': SchemaNode.defineString({ 'description': 'HTTP method.', 'type': 'string' } as const), 'requestId': SchemaNode.defineString({ 'description': 'Unique identifier for this request.', 'type': 'string' } as const), 'url': SchemaNode.defineString({ 'description': 'Request URL.', 'type': 'string' } as const) }, ['method', 'requestId', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

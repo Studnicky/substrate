@@ -18,7 +18,7 @@ export namespace BackoffConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/BackoffConfig', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'BackoffConfig', 'type': 'object' } as const, { 'baseDelayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['baseDelayMs'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/BackoffConfig', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'BackoffConfig', 'type': 'object' } as const, { 'baseDelayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['baseDelayMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

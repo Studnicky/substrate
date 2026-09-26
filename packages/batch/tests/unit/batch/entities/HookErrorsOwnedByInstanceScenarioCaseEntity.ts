@@ -29,27 +29,17 @@ export namespace HookErrorsOwnedByInstanceScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'firstCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'firstHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'secondCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'secondHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['firstCauseMessage', 'firstHookErrorCount', 'secondCauseMessage', 'secondHookErrorCount'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['firstCauseMessage', 'firstHookErrorCount', 'secondCauseMessage', 'secondHookErrorCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': FirstSecondItemInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('hook-errors-owned-by-instance' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'hook-errors-owned-by-instance' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

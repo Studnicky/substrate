@@ -16,7 +16,7 @@ const SHAPES = [
 ] as const;
 
 const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const openBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+const openBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
 const batchSchema = {
   'additionalProperties': false,
@@ -25,12 +25,7 @@ const batchSchema = {
   'type': 'object'
 } as const;
 
-const batchNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'maxConcurrent': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['itemCount', 'maxConcurrent'] as const,
-  { 'additionalProperties': false }
-);
+const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'maxConcurrent': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['itemCount', 'maxConcurrent'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const clockSchema = {
   'additionalProperties': false,
@@ -39,16 +34,11 @@ const clockSchema = {
   'type': 'object'
 } as const;
 
-const clockNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const clockNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'operationDurationMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'operationSpacingMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['operationDurationMs', 'operationSpacingMs', 'startMs'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['operationDurationMs', 'operationSpacingMs', 'startMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /**
  * `adaptive-config.loop.spec.ts` exercises a single flat case shape across thirty scenario names:
@@ -112,25 +102,16 @@ export namespace AdaptiveConfigScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'adaptive': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'adaptive': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
               'maximumConcurrency': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'minimumConcurrency': SchemaNode.defineNumber({ 'type': 'number' } as const),
               'targetLatencyMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
-          'adjustmentDirection': SchemaNode.defineEnum(['down', 'none', 'up'] as const),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'adjustmentDirection': SchemaNode.defineEnum({}, ['down', 'none', 'up'] as const),
           'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'enabled': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'error': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
@@ -140,30 +121,19 @@ export namespace AdaptiveConfigScenarioCaseEntity {
           'rejectEnabledTrue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'throttleValidated': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'validated': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'batch': batchNode,
           'clock': clockNode,
           'disabledConfig': openBagNode,
           'hookErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'throttle': openBagNode,
           'value': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'scaleDownThreshold': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'scaleUpThreshold': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

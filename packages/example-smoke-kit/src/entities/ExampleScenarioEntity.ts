@@ -14,7 +14,7 @@ export namespace ExampleScenarioEntity {
     'oneOf': [ImportsExampleScenarioEntity.Schema, BrowserExampleScenarioEntity.Schema, WorkerEntryScenarioEntity.Schema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([ImportsExampleScenarioEntity.Node, BrowserExampleScenarioEntity.Node, WorkerEntryScenarioEntity.Node]);
+  export const Node = SchemaNode.defineOneOf({}, [ImportsExampleScenarioEntity.Node, BrowserExampleScenarioEntity.Node, WorkerEntryScenarioEntity.Node]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -37,7 +37,7 @@ export namespace ValidationViolationEntity {
   } as const), 'path': SchemaNode.defineString({
     'description': "JSON Pointer or field name of the failing field (e.g. '/user/email').",
     'type': 'string'
-  } as const) }, ['keyword', 'message', 'path'] as const, { 'additionalProperties': false });
+  } as const) }, ['keyword', 'message', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

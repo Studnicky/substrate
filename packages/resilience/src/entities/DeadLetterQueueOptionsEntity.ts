@@ -14,7 +14,7 @@ export namespace DeadLetterQueueOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -20,7 +20,7 @@ export namespace DiscoverValuesOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'granularity': GranularityOptionsEntity.Node, 'maximumValues': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'strategy': DiscoveryStrategyEntity.Node, 'type': SchemaNode.defineEnum(['date', 'ip', 'number', 'semver', 'string'] as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'granularity': GranularityOptionsEntity.Node, 'maximumValues': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'strategy': DiscoveryStrategyEntity.Node, 'type': SchemaNode.defineEnum({}, ['date', 'ip', 'number', 'semver', 'string'] as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -35,41 +35,21 @@ export namespace OnPublishDroppedHooksScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'count': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'entry': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+          'entry': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'item': SchemaNode.defineString({ 'type': 'string' } as const),
               'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-            },
-            ['item', 'key'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['count', 'entry'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+            }, ['item', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['count', 'entry'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'item': SchemaNode.defineString({ 'type': 'string' } as const),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['item', 'key'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['item', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('onPublishDropped-hooks' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'onPublishDropped-hooks' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

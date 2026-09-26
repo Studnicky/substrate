@@ -265,319 +265,144 @@ export namespace DelayScenarioCaseEntity {
     ]
   } as const;
 
-  const SchedulerInputNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'counter': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['startMs'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['counter'] as const,
-    { 'additionalProperties': false }
-  );
+  const SchedulerInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'counter': SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['startMs'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['counter'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'elapsedMsAtLeast': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['elapsedMsAtLeast'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'elapsedMsAtLeast': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['elapsedMsAtLeast'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-time-sleep' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-time-sleep' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'resolved': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'virtualSleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['resolved', 'virtualSleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'scheduler': SchedulerInputNode, 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['resolved', 'virtualSleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'scheduler': SchedulerInputNode, 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-sleep' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-sleep' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['cancelCount', 'reasonMessage'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['cancelCount', 'reasonMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'abortMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['abortMs', 'reasonMessage', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['abortMs', 'reasonMessage', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-time-abort' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-time-abort' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'resolved': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['resolved', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'scheduler': SchedulerInputNode, 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['resolved', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'scheduler': SchedulerInputNode, 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-zero' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-zero' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'resolved': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['resolved', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['resolved', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('default-scheduler' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'default-scheduler' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'scheduleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['scheduleCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'scheduleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['scheduleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'scheduler': SchedulerInputNode,
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['reasonMessage', 'scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['reasonMessage', 'scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('pre-aborted' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'pre-aborted' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'fireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'scheduleCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['cancelCount', 'fireCount', 'scheduleCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['cancelCount', 'fireCount', 'scheduleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'scheduler': SchedulerInputNode,
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['reasonMessage', 'scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['reasonMessage', 'scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('abort-during-clock' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'abort-during-clock' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'fireCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'scheduleCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['cancelCount', 'fireCount', 'scheduleCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['cancelCount', 'fireCount', 'scheduleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'scheduler': SchedulerInputNode,
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['reasonMessage', 'scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['reasonMessage', 'scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('abort-during-schedule' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'abort-during-schedule' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'fireCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['cancelCount', 'fireCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['cancelCount', 'fireCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'scheduler': SchedulerInputNode,
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['reasonMessage', 'scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['reasonMessage', 'scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('pending-abort' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'pending-abort' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'cancelCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'fireCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['cancelCount', 'fireCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['cancelCount', 'fireCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'reasonMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'scheduler': SchedulerInputNode,
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['reasonMessage', 'scheduler', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['reasonMessage', 'scheduler', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('late-abort' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'late-abort' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'listenerCountUnchanged': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['errorMessage', 'listenerCountUnchanged'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['errorMessage', 'listenerCountUnchanged'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'schedulerErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
             'sleepMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['schedulerErrorMessage', 'sleepMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['schedulerErrorMessage', 'sleepMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('schedule-failure' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'schedule-failure' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

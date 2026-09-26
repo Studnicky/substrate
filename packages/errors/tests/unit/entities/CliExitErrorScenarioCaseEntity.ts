@@ -11,12 +11,7 @@ const omittedTagSchema = {
   'type': 'object'
 } as const;
 
-const omittedTagNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { '__shape': SchemaNode.defineConst('undefined' as const) },
-  ['__shape'] as const,
-  { 'additionalProperties': false }
-);
+const omittedTagNode = SchemaNode.defineObject({ 'type': 'object' } as const, { '__shape': SchemaNode.defineConst({}, 'undefined' as const) }, ['__shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const exitCodeInputSchema = {
   'additionalProperties': false,
@@ -25,12 +20,7 @@ const exitCodeInputSchema = {
   'type': 'object'
 } as const;
 
-const exitCodeInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'exitCode': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), omittedTagNode]) },
-  ['exitCode'] as const,
-  { 'additionalProperties': false }
-);
+const exitCodeInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'exitCode': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), omittedTagNode]) }, ['exitCode'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The scenario case shape `cli-exit-error.loop.spec.ts` exercises across CliExitError's own contract. */
 export namespace CliExitErrorScenarioCaseEntity {
@@ -71,41 +61,26 @@ export namespace CliExitErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'type': 'string' } as const),
           'exitCode': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'instanceOf': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'instanceOf': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'name': SchemaNode.defineString({ 'type': 'string' } as const),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'type': 'string' } as const),
           'error': exitCodeInputNode,
-          'instanceOf': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'instanceOf': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'name': SchemaNode.defineString({ 'type': 'string' } as const),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

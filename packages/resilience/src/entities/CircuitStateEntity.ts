@@ -11,7 +11,7 @@ export namespace CircuitStateEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['closed', 'halfOpen', 'open'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['closed', 'halfOpen', 'open'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

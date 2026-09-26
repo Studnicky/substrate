@@ -33,17 +33,12 @@ export namespace LogFaultConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'title': 'LogFaultConfig', 'type': 'object' } as const,
-    {
-      ...LogBodyConfigEntity.Node.schema.properties,
-      'cause': SchemaNode.defineString({ 'description': 'Underlying cause message.', 'type': 'string' } as const),
-      'name': SchemaNode.defineString({ 'description': 'Error name or type.', 'type': 'string' } as const),
-      'stack': SchemaNode.defineString({ 'description': 'Error stack trace.', 'type': 'string' } as const)
-    },
-    [...LogBodyConfigEntity.Node.schema.required, 'name'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'title': 'LogFaultConfig', 'type': 'object' } as const, {
+    ...LogBodyConfigEntity.Node.schema.properties,
+    'cause': SchemaNode.defineString({ 'description': 'Underlying cause message.', 'type': 'string' } as const),
+    'name': SchemaNode.defineString({ 'description': 'Error name or type.', 'type': 'string' } as const),
+    'stack': SchemaNode.defineString({ 'description': 'Error stack trace.', 'type': 'string' } as const)
+  }, [...LogBodyConfigEntity.Node.schema.required, 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

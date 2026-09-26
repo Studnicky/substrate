@@ -19,15 +19,11 @@ import scenarioGroups from './subclass-extension.scenarios.json' with { type: 'j
 
 const fileIntake = ScenarioFileCompiler.compileIntake(SubclassExtensionScenarioCaseEntity.Schema, SubclassExtensionScenarioCaseEntity.Node);
 
-const AuditErrorArgumentsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const AuditErrorArgumentsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'auditId': SchemaNode.defineString({ 'type': 'string' } as const),
     'message': SchemaNode.defineString({ 'type': 'string' } as const),
     'policy': SchemaNode.defineString({ 'type': 'string' } as const)
-  },
-  ['auditId', 'message', 'policy'] as const
-);
+  }, ['auditId', 'message', 'policy'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const AuditErrorArgumentsSchema = {
   'properties': {
     'auditId': { 'type': 'string' },

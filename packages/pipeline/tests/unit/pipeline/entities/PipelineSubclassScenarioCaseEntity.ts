@@ -72,7 +72,7 @@ export namespace PipelineSubclassScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     BeforeAfterOrderScenarioCaseEntity.Node,
     NoHooksNoStagesScenarioCaseEntity.Node,
     SingleStageBeforeAfterScenarioCaseEntity.Node,

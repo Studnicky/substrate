@@ -26,24 +26,14 @@ export namespace NoHooksNoStagesScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
       'traceLength': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['traceLength'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['traceLength'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': CtxStringStagesInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('no-hooks-no-stages' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'no-hooks-no-stages' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

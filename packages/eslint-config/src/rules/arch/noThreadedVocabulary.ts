@@ -38,10 +38,10 @@ namespace NoThreadedVocabularyOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolutionSites': SchemaNode.defineArray({ 'default': [], 'description': 'Matchers for the files permitted to receive a closed-vocabulary token and resolve it into an implementation -- the composition roots. Same matcher vocabulary as layer bindings (folder/package/module/dependency/builtin) minus the layer name. Every file not matching one of these is checked. The default, an empty list, exempts nothing.', 'type': 'array' } as const, ResolutionSiteEntity.Node), 'sourceRoot': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolutionSites': SchemaNode.defineArray({ 'default': [], 'description': 'Matchers for the files permitted to receive a closed-vocabulary token and resolve it into an implementation -- the composition roots. Same matcher vocabulary as layer bindings (folder/package/module/dependency/builtin) minus the layer name. Every file not matching one of these is checked. The default, an empty list, exempts nothing.', 'type': 'array' } as const, ResolutionSiteEntity.Node, undefined), 'sourceRoot': SchemaNode.defineString({
     'description': 'Path segment(s) after which a resolution site\'s candidate segment appears, e.g. "src" or "packages".',
     'type': 'string'
-  } as const) }, ['sourceRoot'] as const, { 'additionalProperties': false });
+  } as const) }, ['sourceRoot'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

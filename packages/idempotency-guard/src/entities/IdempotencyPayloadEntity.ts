@@ -11,7 +11,7 @@ export namespace IdempotencyPayloadEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': true });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

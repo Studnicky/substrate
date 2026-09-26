@@ -27,7 +27,7 @@ export namespace JobEffectEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([SchemaNode.defineObject({ 'type': 'object' } as const, { 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'variant': SchemaNode.defineConst('scheduleAdvance' as const) }, ['delayMs', 'variant'] as const, { 'additionalProperties': false }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineConst('requestAck' as const) }, ['variant'] as const, { 'additionalProperties': false })]);
+  export const Node = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ 'type': 'object' } as const, { 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'variant': SchemaNode.defineConst({}, 'scheduleAdvance' as const) }, ['delayMs', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineConst({}, 'requestAck' as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} })]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

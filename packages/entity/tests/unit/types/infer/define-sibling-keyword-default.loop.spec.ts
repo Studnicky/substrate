@@ -16,18 +16,14 @@ type IsOptionalKeyType<T, K extends keyof T> = Record<never, never> extends Pick
 // A `default`-bearing sibling-keyword property must derive PRESENT (required) on
 // the static type and OPTIONAL on the input type — the same asymmetry
 // `InferDefaultBearingKeysType` already gives a `default`-bearing object property.
-const optionsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const optionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'allOf': SchemaNode.defineAllOf({ 'default': 0 } as const, [SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)] as const),
-    'anyOf': SchemaNode.defineAnyOf({ 'default': 'fast' } as const, [SchemaNode.defineConst('fast' as const), SchemaNode.defineConst('slow' as const)] as const),
+    'anyOf': SchemaNode.defineAnyOf({ 'default': 'fast' } as const, [SchemaNode.defineConst({}, 'fast' as const), SchemaNode.defineConst({}, 'slow' as const)] as const),
     'const': SchemaNode.defineConst({ 'default': 'ready' } as const, 'ready' as const),
     'mode': SchemaNode.defineEnum({ 'default': 'structural' } as const, ['any', 'structural', 'typed'] as const),
-    'not': SchemaNode.defineNot({ 'default': 0 } as const, SchemaNode.defineConst(0 as const)),
+    'not': SchemaNode.defineNot({ 'default': 0 } as const, SchemaNode.defineConst({}, 0 as const)),
     'oneOf': SchemaNode.defineOneOf({ 'default': null } as const, [SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)] as const)
-  },
-  [] as const
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 type OptionsStaticType = NodeStaticType<typeof optionsNode>;
 type OptionsInputType = NodeInputType<typeof optionsNode>;
@@ -53,11 +49,7 @@ type ModeStillEnumCheck = ExpectTrueType<IsAssignableType<OptionsStaticType['mod
 type OneOfStillUnionCheck = ExpectTrueType<IsAssignableType<OptionsStaticType['oneOf'], number | null>>;
 
 // A schema with no `default` keeps the property required-only on both sides (unchanged behavior).
-const noDefaultNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'mode': SchemaNode.defineEnum(['any', 'structural'] as const) },
-  ['mode'] as const
-);
+const noDefaultNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mode': SchemaNode.defineEnum({}, ['any', 'structural'] as const) }, ['mode'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type NoDefaultStaticType = NodeStaticType<typeof noDefaultNode>;
 type NoDefaultInputType = NodeInputType<typeof noDefaultNode>;
 type NoDefaultModeRequiredOnStaticCheck = ExpectFalseType<IsOptionalKeyType<NoDefaultStaticType, 'mode'>>;
@@ -76,7 +68,7 @@ void describe('SchemaNode sibling-keyword default composition', () => {
   });
 
   void it('still accepts the pre-existing single-argument call shape', () => {
-    const legacyNode = SchemaNode.defineEnum(['left', 'right'] as const);
+    const legacyNode = SchemaNode.defineEnum({}, ['left', 'right'] as const);
 
     assert.deepEqual(legacyNode.schema, { 'enum': ['left', 'right'] });
   });

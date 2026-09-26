@@ -15,7 +15,7 @@ export namespace StepContextTypeEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'step': SchemaNode.defineNumber({ 'type': 'number' } as const), 'value': SchemaNode.defineString({ 'type': 'string' } as const) }, ['step', 'value'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'step': SchemaNode.defineNumber({ 'type': 'number' } as const), 'value': SchemaNode.defineString({ 'type': 'string' } as const) }, ['step', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

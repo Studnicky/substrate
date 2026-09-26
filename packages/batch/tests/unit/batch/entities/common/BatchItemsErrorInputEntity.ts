@@ -18,16 +18,11 @@ export namespace BatchItemsErrorInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigEntity.Node,
       'errorItem': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-    },
-    ['batch', 'errorItem', 'errorMessage', 'items'] as const,
-    { 'additionalProperties': false }
-  );
+      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+    }, ['batch', 'errorItem', 'errorMessage', 'items'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

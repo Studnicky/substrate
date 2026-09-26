@@ -11,11 +11,6 @@ export namespace ValueStringInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'value': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['value'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineString({ 'type': 'string' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

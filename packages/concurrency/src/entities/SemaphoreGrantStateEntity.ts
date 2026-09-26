@@ -17,7 +17,7 @@ export namespace SemaphoreGrantStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SemaphoreGrantVariantEntity.Node }, ['variant'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SemaphoreGrantVariantEntity.Node }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

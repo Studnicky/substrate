@@ -21,17 +21,12 @@ export namespace HookUpsertEventEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       entity: UserEntity.Node,
-      event: SchemaNode.defineConst("upsert" as const),
+      event: SchemaNode.defineConst({}, "upsert" as const),
       id: SchemaNode.defineString({
         type: "string",
       } as const),
-    },
-    ["entity", "event", "id"] as const,
-    { additionalProperties: false },
-  );
+    }, ["entity", "event", "id"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

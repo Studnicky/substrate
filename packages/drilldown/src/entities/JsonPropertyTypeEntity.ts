@@ -11,7 +11,7 @@ export namespace JsonPropertyTypeEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['array', 'boolean', 'date', 'null', 'number', 'object', 'string'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['array', 'boolean', 'date', 'null', 'number', 'object', 'string'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

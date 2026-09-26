@@ -266,7 +266,7 @@ namespace ExportShapeEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum([
+  export const Node = SchemaNode.defineEnum({}, [
     'const-function',
     'const-value',
     'enum',

@@ -13,7 +13,7 @@ export namespace CacheLookupEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['found'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'found': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['found'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

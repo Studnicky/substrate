@@ -20,7 +20,7 @@ export namespace ProcessKitScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     JobDriveScenarioCaseEntity.Node,
     JobEffectsScenarioCaseEntity.Node,
     JobScheduledScenarioCaseEntity.Node,

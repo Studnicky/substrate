@@ -37,37 +37,22 @@ export namespace EntityContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'badStack': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'missingMessage': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'missingName': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'badStack': SchemaNode.defineUnknown({} as const),
           'missingMessage': SchemaNode.defineUnknown({} as const),
           'missingName': SchemaNode.defineUnknown({} as const),
           'value': SchemaNode.defineUnknown({} as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['aggregate-view-invalid', 'aggregate-view-valid', 'error-classification-invalid', 'error-classification-valid', 'error-code-descriptor-invalid', 'error-code-descriptor-valid', 'error-diagnostic-invalid', 'error-diagnostic-valid', 'error-diagnostic-valid-no-stack', 'error-with-address-invalid', 'error-with-address-valid', 'error-with-code-invalid', 'error-with-code-valid', 'error-with-errno-invalid', 'error-with-errno-valid', 'error-with-hostname-invalid', 'error-with-hostname-valid', 'error-with-port-invalid', 'error-with-port-valid', 'error-with-retry-after-invalid', 'error-with-retry-after-valid', 'error-with-status-code-invalid', 'error-with-status-code-valid', 'error-with-status-invalid', 'error-with-status-valid', 'error-with-syscall-invalid', 'error-with-syscall-valid', 'problem-details-invalid', 'problem-details-invalid-item', 'problem-details-valid', 'problem-details-valid-empty-errors', 'report-options-invalid', 'report-options-valid', 'validation-arguments-invalid-top-level', 'validation-arguments-invalid-violation', 'validation-arguments-valid', 'violation-detail-invalid', 'violation-detail-valid'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, ['aggregate-view-invalid', 'aggregate-view-valid', 'error-classification-invalid', 'error-classification-valid', 'error-code-descriptor-invalid', 'error-code-descriptor-valid', 'error-diagnostic-invalid', 'error-diagnostic-valid', 'error-diagnostic-valid-no-stack', 'error-with-address-invalid', 'error-with-address-valid', 'error-with-code-invalid', 'error-with-code-valid', 'error-with-errno-invalid', 'error-with-errno-valid', 'error-with-hostname-invalid', 'error-with-hostname-valid', 'error-with-port-invalid', 'error-with-port-valid', 'error-with-retry-after-invalid', 'error-with-retry-after-valid', 'error-with-status-code-invalid', 'error-with-status-code-valid', 'error-with-status-invalid', 'error-with-status-valid', 'error-with-syscall-invalid', 'error-with-syscall-valid', 'problem-details-invalid', 'problem-details-invalid-item', 'problem-details-valid', 'problem-details-valid-empty-errors', 'report-options-invalid', 'report-options-valid', 'validation-arguments-invalid-top-level', 'validation-arguments-invalid-violation', 'validation-arguments-valid', 'violation-detail-invalid', 'violation-detail-valid'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

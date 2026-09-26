@@ -18,15 +18,10 @@ export namespace SocketErrorsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const InputWithStatsNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'stats': SocketDispatcherStatsEntity.Node, 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-    ['stats', 'url'] as const,
-    { 'additionalProperties': false }
-  );
+  const InputWithStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'stats': SocketDispatcherStatsEntity.Node, 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['stats', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const inputUrlOnlySchema = { 'additionalProperties': false, 'properties': { 'url': { 'minLength': 1, 'type': 'string' } }, 'required': ['url'], 'type': 'object' } as const;
-  const InputUrlOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['url'] as const, { 'additionalProperties': false });
+  const InputUrlOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['url'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const urlOnlySchema = {
     'additionalProperties': false,
@@ -165,140 +160,80 @@ export namespace SocketErrorsScenarioCaseEntity {
     'oneOf': [urlOnlySchema, withStatsSchema, messageIncludesStatsSchema, catchableSchema, propertyTypesSchema, preserveThroughThrowSchema]
   } as const;
 
-  const UrlOnlyNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const UrlOnlyNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'dispatcherStats': SchemaNode.defineConst('__UNDEFINED__' as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'dispatcherStats': SchemaNode.defineConst({}, '__UNDEFINED__' as const),
           'maximumConnections': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'pendingRequests': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'queuedRequests': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['dispatcherStats', 'maximumConnections', 'pendingRequests', 'queuedRequests', 'url'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['dispatcherStats', 'maximumConnections', 'pendingRequests', 'queuedRequests', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputUrlOnlyNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('url-only' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'url-only' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const WithStatsNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const WithStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'dispatcherStats': SocketDispatcherStatsEntity.Node,
           'maximumConnections': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'pendingRequests': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'queuedRequests': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['dispatcherStats', 'maximumConnections', 'pendingRequests', 'queuedRequests', 'url'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['dispatcherStats', 'maximumConnections', 'pendingRequests', 'queuedRequests', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputWithStatsNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('with-stats' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'with-stats' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const MessageIncludesStatsNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const MessageIncludesStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)) },
-        ['messageIncludes'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), undefined) }, ['messageIncludes'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputWithStatsNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('message-includes-stats' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'message-includes-stats' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const CatchableNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const CatchableNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'caughtName': SchemaNode.defineConst('SocketExhaustionError' as const), 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-        ['caughtName', 'url'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'caughtName': SchemaNode.defineConst({}, 'SocketExhaustionError' as const), 'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['caughtName', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputWithStatsNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('catchable' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'catchable' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const PropertyTypesNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const PropertyTypesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'dispatcherStatsType': SchemaNode.defineConst('object' as const),
-          'freeConnectionsType': SchemaNode.defineConst('number' as const),
-          'maximumConnectionsType': SchemaNode.defineConst('number' as const),
-          'pendingRequestsType': SchemaNode.defineConst('number' as const),
-          'queuedRequestsType': SchemaNode.defineConst('number' as const),
-          'urlType': SchemaNode.defineConst('string' as const)
-        },
-        ['dispatcherStatsType', 'freeConnectionsType', 'maximumConnectionsType', 'pendingRequestsType', 'queuedRequestsType', 'urlType'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'dispatcherStatsType': SchemaNode.defineConst({}, 'object' as const),
+          'freeConnectionsType': SchemaNode.defineConst({}, 'number' as const),
+          'maximumConnectionsType': SchemaNode.defineConst({}, 'number' as const),
+          'pendingRequestsType': SchemaNode.defineConst({}, 'number' as const),
+          'queuedRequestsType': SchemaNode.defineConst({}, 'number' as const),
+          'urlType': SchemaNode.defineConst({}, 'string' as const)
+        }, ['dispatcherStatsType', 'freeConnectionsType', 'maximumConnectionsType', 'pendingRequestsType', 'queuedRequestsType', 'urlType'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputWithStatsNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('property-types' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'property-types' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const PreserveThroughThrowNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const PreserveThroughThrowNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'dispatcherStatsDefined': SchemaNode.defineConst(true as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'dispatcherStatsDefined': SchemaNode.defineConst({}, true as const),
           'freeConnections': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'maximumConnections': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'pendingRequests': SchemaNode.defineNumber({ 'type': 'integer' } as const),
           'url': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['dispatcherStatsDefined', 'freeConnections', 'maximumConnections', 'pendingRequests', 'url'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['dispatcherStatsDefined', 'freeConnections', 'maximumConnections', 'pendingRequests', 'url'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': InputWithStatsNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('preserve-through-throw' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'preserve-through-throw' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     UrlOnlyNode, WithStatsNode, MessageIncludesStatsNode, CatchableNode, PropertyTypesNode, PreserveThroughThrowNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;

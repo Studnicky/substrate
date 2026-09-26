@@ -21,23 +21,15 @@ export namespace StoreCheckpointEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
-      ids: SchemaNode.defineArray(
-        {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
+      ids: SchemaNode.defineArray({
           type: "array",
-        } as const,
-        SchemaNode.defineString({
+        } as const, SchemaNode.defineString({
           type: "string",
-        } as const),
-      ),
+        } as const), undefined),
       size: SchemaNode.defineNumber({
         type: "number",
       } as const),
-    },
-    ["ids", "size"] as const,
-    { additionalProperties: false },
-  );
+    }, ["ids", "size"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

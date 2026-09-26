@@ -13,7 +13,7 @@ export namespace PropertyOrderEntity {
     'type': 'array'
   } as const;
 
-  export const Node = SchemaNode.defineArray({ 'type': 'array' } as const, PropertyPathEntity.Node);
+  export const Node = SchemaNode.defineArray({ 'type': 'array' } as const, PropertyPathEntity.Node, undefined);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

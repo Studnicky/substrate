@@ -32,30 +32,20 @@ export namespace MachineRegistryHooksScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'duplicateId': SchemaNode.defineString({ 'type': 'string' } as const),
           'id': SchemaNode.defineString({ 'type': 'string' } as const),
           'missingId': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'on-register', 'duplicate-no-register-hook', 'on-unregister', 'on-unregister-missing', 'on-resolve-miss',
         'on-resolve-hit-no-hook', 'hook-order', 'throwing-on-register', 'throwing-on-resolve-miss',
         'throwing-on-unregister', 'async-rejecting-register'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

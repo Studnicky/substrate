@@ -19,19 +19,9 @@ export namespace MessageSemaphorePermitsInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'semaphore': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['permits'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['message', 'semaphore'] as const,
-    { 'additionalProperties': false }
-  );
+      'semaphore': SchemaNode.defineObject({ 'type': 'object' } as const, { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['permits'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['message', 'semaphore'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

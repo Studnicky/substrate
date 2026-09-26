@@ -67,7 +67,7 @@ void describe('SchemaNode static types are never incompatible with the real From
 
   void it('const: mutually assignable with FromSchema', () => {
     const schema = { 'const': 'v1' } as const;
-    const node = SchemaNode.defineConst('v1' as const);
+    const node = SchemaNode.defineConst({}, 'v1' as const);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -79,7 +79,7 @@ void describe('SchemaNode static types are never incompatible with the real From
 
   void it('enum: mutually assignable with FromSchema', () => {
     const schema = { 'enum': ['a', 'b', 'c'] } as const;
-    const node = SchemaNode.defineEnum(['a', 'b', 'c'] as const);
+    const node = SchemaNode.defineEnum({}, ['a', 'b', 'c'] as const);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -95,11 +95,7 @@ void describe('SchemaNode static types are never incompatible with the real From
       'properties': { 'name': { 'type': 'string' }, 'age': { 'type': 'number' } },
       'required': ['name']
     } as const;
-    const node = SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'age': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-      ['name'] as const
-    );
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'age': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -111,7 +107,7 @@ void describe('SchemaNode static types are never incompatible with the real From
 
   void it('array of unbranded string: mutually assignable with FromSchema', () => {
     const schema = { 'type': 'array', 'items': { 'type': 'string' } } as const;
-    const node = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const));
+    const node = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -178,9 +174,9 @@ void describe('SchemaNode static types are never incompatible with the real From
     const aSchema = { 'type': 'object', 'properties': { 'a': { 'type': 'string' } }, 'required': ['a'] } as const;
     const bSchema = { 'type': 'object', 'properties': { 'b': { 'type': 'number' } }, 'required': ['b'] } as const;
     const schema = { 'allOf': [aSchema, bSchema] } as const;
-    const aNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'a': SchemaNode.defineString({ 'type': 'string' } as const) }, ['a'] as const);
-    const bNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'b': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['b'] as const);
-    const node = SchemaNode.defineAllOf([aNode, bNode] as const);
+    const aNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'a': SchemaNode.defineString({ 'type': 'string' } as const) }, ['a'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const bNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'b': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['b'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const node = SchemaNode.defineAllOf({}, [aNode, bNode] as const);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -194,7 +190,7 @@ void describe('SchemaNode static types are never incompatible with the real From
     const aSchema = { 'type': 'string' } as const;
     const bSchema = { 'type': 'number' } as const;
     const schema = { 'anyOf': [aSchema, bSchema] } as const;
-    const node = SchemaNode.defineAnyOf([SchemaNode.defineString(aSchema), SchemaNode.defineNumber(bSchema)] as const);
+    const node = SchemaNode.defineAnyOf({}, [SchemaNode.defineString(aSchema), SchemaNode.defineNumber(bSchema)] as const);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -208,7 +204,7 @@ void describe('SchemaNode static types are never incompatible with the real From
     const aSchema = { 'type': 'string' } as const;
     const bSchema = { 'type': 'null' } as const;
     const schema = { 'oneOf': [aSchema, bSchema] } as const;
-    const node = SchemaNode.defineOneOf([SchemaNode.defineString(aSchema), SchemaNode.defineNull(bSchema)] as const);
+    const node = SchemaNode.defineOneOf({}, [SchemaNode.defineString(aSchema), SchemaNode.defineNull(bSchema)] as const);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(
@@ -239,12 +235,8 @@ void describe('SchemaNode static types are never incompatible with the real From
   void it('nested object with array-of-object property, unbranded leaves: mutually assignable with FromSchema', () => {
     const itemSchema = { 'type': 'object', 'properties': { 'id': { 'type': 'string' } }, 'required': ['id'] } as const;
     const schema = { 'type': 'object', 'properties': { 'items': { 'type': 'array', 'items': itemSchema } }, 'required': ['items'] } as const;
-    const itemNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const) }, ['id'] as const);
-    const node = SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'items': SchemaNode.defineArray({ 'type': 'array' } as const, itemNode) },
-      ['items'] as const
-    );
+    const itemNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const) }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'items': SchemaNode.defineArray({ 'type': 'array' } as const, itemNode, undefined) }, ['items'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
     assertMutuallyAssignable<Infer, FS>(

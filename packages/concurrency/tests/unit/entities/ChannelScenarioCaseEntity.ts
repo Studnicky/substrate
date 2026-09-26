@@ -40,7 +40,7 @@ export namespace ChannelScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     BufferedPublishScenarioCaseEntity.Node,
     LiveSubscribeScenarioCaseEntity.Node,
     CloseTerminatesScenarioCaseEntity.Node,

@@ -44,7 +44,7 @@ export namespace CoalesceScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     SharedFactoryScenarioCaseEntity.Node,
     IndependentKeysCoalesceScenarioCaseEntity.Node,
     InflightStateScenarioCaseEntity.Node,

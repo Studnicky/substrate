@@ -14,7 +14,7 @@ export namespace MkdirOptionsEntity {
   } as const;
 
   /** Options controlling directory creation. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'recursive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'recursive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

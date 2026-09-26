@@ -11,14 +11,9 @@ export namespace KeyMessageInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['key', 'message'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['key', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

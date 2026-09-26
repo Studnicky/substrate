@@ -148,15 +148,10 @@ namespace IntakeParseOnlyOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'exemptPackages': SchemaNode.defineArray({ 'default': DEFAULT_EXEMPT_PACKAGES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-      'structuralProperties': SchemaNode.defineArray({ 'default': DEFAULT_STRUCTURAL_PROPERTIES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'exemptPackages': SchemaNode.defineArray({ 'default': DEFAULT_EXEMPT_PACKAGES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+    'structuralProperties': SchemaNode.defineArray({ 'default': DEFAULT_STRUCTURAL_PROPERTIES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

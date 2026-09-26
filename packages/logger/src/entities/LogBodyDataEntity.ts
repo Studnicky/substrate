@@ -49,7 +49,7 @@ export namespace LogBodyDataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized log entry.', 'title': 'LogBodyData', 'type': 'object' } as const, { 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized log entry.', 'title': 'LogBodyData', 'type': 'object' } as const, { 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'
@@ -59,11 +59,11 @@ export namespace LogBodyDataEntity {
   } as const), 'message': SchemaNode.defineString({
     'description': 'Human-readable log message.',
     'type': 'string'
-  } as const), 'status': SchemaNode.defineEnum([
+  } as const), 'status': SchemaNode.defineEnum({}, [
     'cached', 'complete', 'failed', 'in_progress', 'invalid', 'not_found', 'partial',
     'pending', 'rate_limited', 'retry_exhausted', 'retrying', 'skipped', 'success',
     'timeout', 'unauthorized', 'unavailable'
-  ] as const) }, ['context', 'event', 'message', 'status'] as const, { 'additionalProperties': false });
+  ] as const) }, ['context', 'event', 'message', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -9,12 +9,7 @@ const mutexOptionsSchema = {
   'type': 'object'
 } as const;
 
-const mutexOptionsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'enableCoalescing': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const mutexOptionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'enableCoalescing': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const batchSchema = {
   'additionalProperties': false,
@@ -23,12 +18,7 @@ const batchSchema = {
   'type': 'object'
 } as const;
 
-const batchNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'callerCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'perKeyCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'callerCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'perKeyCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The discriminated scenario case shapes `coalescing.loop.spec.ts` exercises. */
 export namespace CoalescingScenarioCaseEntity {
@@ -314,301 +304,116 @@ export namespace CoalescingScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'executionCount': SchemaNode.defineConst(1 as const), 'results': SchemaNode.defineArray({ 'maxItems': 3, 'minItems': 3, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['executionCount', 'results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode, 'result': SchemaNode.defineString({ 'type': 'string' } as const) },
-          ['batch', 'delayMs', 'key', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'executionCount': SchemaNode.defineConst({}, 1 as const), 'results': SchemaNode.defineArray({ 'maxItems': 3, 'minItems': 3, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['executionCount', 'results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode, 'result': SchemaNode.defineString({ 'type': 'string' } as const) }, ['batch', 'delayMs', 'key', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('shares-result' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'shares-result' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'numberResult': SchemaNode.defineNumber({ 'type': 'number' } as const), 'rejectedType': SchemaNode.defineString({ 'type': 'string' } as const) },
-          ['numberResult'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'numberResult': SchemaNode.defineNumber({ 'type': 'number' } as const), 'rejectedType': SchemaNode.defineString({ 'type': 'string' } as const) }, ['numberResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'mutex': mutexOptionsNode,
             'numberResult': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'stringResult': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['delayMs', 'key', 'numberResult', 'stringResult'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['delayMs', 'key', 'numberResult', 'stringResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('validates-each-caller-result' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'validates-each-caller-result' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'executionCount': SchemaNode.defineConst(3 as const), 'results': SchemaNode.defineArray({ 'maxItems': 3, 'minItems': 3, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['executionCount', 'results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['batch', 'delayMs', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'executionCount': SchemaNode.defineConst({}, 3 as const), 'results': SchemaNode.defineArray({ 'maxItems': 3, 'minItems': 3, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['executionCount', 'results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['batch', 'delayMs', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('no-share-by-default' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'no-share-by-default' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'executionCounts': SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              { 'key1': SchemaNode.defineConst(1 as const), 'key2': SchemaNode.defineConst(1 as const) },
-              ['key1', 'key2'] as const,
-              { 'additionalProperties': false }
-            ),
-            'results': SchemaNode.defineArray({ 'maxItems': 4, 'minItems': 4, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))
-          },
-          ['executionCounts', 'results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'executionCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key1': SchemaNode.defineConst({}, 1 as const), 'key2': SchemaNode.defineConst({}, 1 as const) }, ['key1', 'key2'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+            'results': SchemaNode.defineArray({ 'maxItems': 4, 'minItems': 4, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+          }, ['executionCounts', 'results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'batch': batchNode,
             'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'keys': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineEnum(['key1', 'key2'] as const)),
+            'keys': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineEnum({}, ['key1', 'key2'] as const), undefined),
             'mutex': mutexOptionsNode
-          },
-          ['batch', 'delayMs', 'keys'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['batch', 'delayMs', 'keys'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('coalesces-per-key' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'coalesces-per-key' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'executionCount': SchemaNode.defineConst(2 as const), 'results': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)) },
-          ['executionCount', 'results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'executionCount': SchemaNode.defineConst({}, 2 as const), 'results': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined) }, ['executionCount', 'results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('allows-new-execution-after-complete' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'allows-new-execution-after-complete' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'executionCount': SchemaNode.defineConst(1 as const), 'rejectionMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-          ['executionCount', 'rejectionMessage'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'executionCount': SchemaNode.defineConst({}, 1 as const), 'rejectionMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['executionCount', 'rejectionMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'batch': batchNode,
             'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'mutex': mutexOptionsNode
-          },
-          ['batch', 'delayMs', 'errorMessage', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['batch', 'delayMs', 'errorMessage', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('propagates-errors' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'propagates-errors' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'callCount': SchemaNode.defineConst(2 as const), 'result': SchemaNode.defineString({ 'type': 'string' } as const) },
-          ['callCount', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'callCount': SchemaNode.defineConst({}, 2 as const), 'result': SchemaNode.defineString({ 'type': 'string' } as const) }, ['callCount', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'firstErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
             'mutex': mutexOptionsNode,
             'successResult': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['firstErrorMessage', 'key', 'successResult'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['firstErrorMessage', 'key', 'successResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('allows-retry-after-error' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'allows-retry-after-error' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'coalescedCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalExecuted': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['coalescedCount', 'totalExecuted'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['batch', 'delayMs', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'coalescedCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalExecuted': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['coalescedCount', 'totalExecuted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['batch', 'delayMs', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('stats-coalescedCount-enabled' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'stats-coalescedCount-enabled' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'coalescedCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalExecuted': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          ['coalescedCount', 'totalExecuted'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['batch', 'delayMs', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'coalescedCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'totalExecuted': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['coalescedCount', 'totalExecuted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['batch', 'delayMs', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('stats-coalescedCount-disabled' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'stats-coalescedCount-disabled' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'coalescedCount': SchemaNode.defineConst(2 as const) },
-          ['coalescedCount'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['batch', 'delayMs', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'coalescedCount': SchemaNode.defineConst({}, 2 as const) }, ['coalescedCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchNode, 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['batch', 'delayMs', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('stats-coalescedCount-joined' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'stats-coalescedCount-joined' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'firstResult': SchemaNode.defineString({ 'type': 'string' } as const), 'secondResult': SchemaNode.defineString({ 'type': 'string' } as const) },
-          ['firstResult', 'secondResult'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['delayMs', 'key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'firstResult': SchemaNode.defineString({ 'type': 'string' } as const), 'secondResult': SchemaNode.defineString({ 'type': 'string' } as const) }, ['firstResult', 'secondResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['delayMs', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clear-allows-new-operations' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clear-allows-new-operations' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'calls': SchemaNode.defineConst(2 as const), 'results': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) },
-          ['calls', 'results'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode },
-          ['key'] as const,
-          { 'additionalProperties': false }
-        ),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'calls': SchemaNode.defineConst({}, 2 as const), 'results': SchemaNode.defineArray({ 'maxItems': 2, 'minItems': 2, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['calls', 'results'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'mutex': mutexOptionsNode }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clear-resets-coalescing-state' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'clear-resets-coalescing-state' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ]);
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -17,7 +17,7 @@ export namespace SchedulerTaskDataEntity {
   } as const;
 
   /** Serializable scheduling data retained for a pending task. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'intervalMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'variant': SchemaNode.defineEnum(['interval', 'timeout'] as const) }, ['atMs', 'intervalMs', 'variant'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'intervalMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'variant': SchemaNode.defineEnum({}, ['interval', 'timeout'] as const) }, ['atMs', 'intervalMs', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

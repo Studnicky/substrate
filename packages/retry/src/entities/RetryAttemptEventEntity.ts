@@ -19,7 +19,7 @@ export namespace RetryAttemptEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RetryAttemptEvent', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'RetryAttemptEvent', 'type': 'object' } as const, { 'attemptNumber': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'elapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['attemptNumber', 'elapsedMs'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RetryAttemptEvent', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'RetryAttemptEvent', 'type': 'object' } as const, { 'attemptNumber': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'elapsedMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['attemptNumber', 'elapsedMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

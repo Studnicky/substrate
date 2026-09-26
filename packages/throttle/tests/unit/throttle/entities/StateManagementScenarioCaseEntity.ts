@@ -18,19 +18,14 @@ const throttleStatsSchema = {
   'type': 'object'
 } as const;
 
-const throttleStatsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const throttleStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'activeCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
     'concurrencyLimit': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
     'isAborted': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     'isDraining': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     'queuedCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
     'totalExecuted': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
-  },
-  ['activeCount', 'concurrencyLimit', 'isAborted', 'isDraining', 'queuedCount', 'totalExecuted'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['activeCount', 'concurrencyLimit', 'isAborted', 'isDraining', 'queuedCount', 'totalExecuted'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const batchInputSchema = {
   'additionalProperties': false,
@@ -39,12 +34,7 @@ const batchInputSchema = {
   'type': 'object'
 } as const;
 
-const batchInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'maxConcurrent': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['itemCount', 'maxConcurrent'] as const,
-  { 'additionalProperties': false }
-);
+const batchInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'itemCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'maxConcurrent': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['itemCount', 'maxConcurrent'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const clockInputSchema = {
   'additionalProperties': false,
@@ -53,16 +43,11 @@ const clockInputSchema = {
   'type': 'object'
 } as const;
 
-const clockInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const clockInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'operationDurationMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'operationSpacingMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['operationDurationMs', 'operationSpacingMs', 'startMs'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['operationDurationMs', 'operationSpacingMs', 'startMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const initialStatsSchema = {
   'additionalProperties': false,
@@ -87,23 +72,13 @@ const initialStatsSchema = {
   'type': 'object'
 } as const;
 
-const initialStatsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const initialStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'isComplete': SchemaNode.defineConst(true as const), 'stats': throttleStatsNode },
-      ['isComplete', 'stats'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': ThrottleConfigEntity.Node }, ['throttle'] as const, { 'additionalProperties': false }),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'isComplete': SchemaNode.defineConst({}, true as const), 'stats': throttleStatsNode }, ['isComplete', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': ThrottleConfigEntity.Node }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('initial-stats' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'initial-stats' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const isCompleteInitiallySchema = {
   'additionalProperties': false,
@@ -123,18 +98,13 @@ const isCompleteInitiallySchema = {
   'type': 'object'
 } as const;
 
-const isCompleteInitiallyNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const isCompleteInitiallyNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'isComplete': SchemaNode.defineConst(true as const) }, ['isComplete'] as const, { 'additionalProperties': false }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': ThrottleConfigEntity.Node }, ['throttle'] as const, { 'additionalProperties': false }),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'isComplete': SchemaNode.defineConst({}, true as const) }, ['isComplete'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': ThrottleConfigEntity.Node }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('is-complete-initially' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'is-complete-initially' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const adaptiveLatencyStatsSchema = {
   'additionalProperties': false,
@@ -159,28 +129,13 @@ const adaptiveLatencyStatsSchema = {
   'type': 'object'
 } as const;
 
-const adaptiveLatencyStatsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const adaptiveLatencyStatsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'sampleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-      ['result', 'sampleCount'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'throttle': ThrottleConfigEntity.Node },
-      ['result', 'throttle'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'sampleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['result', 'sampleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'throttle': ThrottleConfigEntity.Node }, ['result', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('adaptive-latency-stats' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'adaptive-latency-stats' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const withAdaptiveScaleSchema = <const TShape extends string>(shape: TShape) => ({
   'additionalProperties': false,
@@ -205,28 +160,13 @@ const withAdaptiveScaleSchema = <const TShape extends string>(shape: TShape) => 
   'type': 'object'
 }) as const;
 
-const withAdaptiveScaleNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const withAdaptiveScaleNode = <const TShape extends string>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const), 'resultCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-      ['concurrencyLimit', 'resultCount'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'batch': batchInputNode, 'clock': clockInputNode, 'throttle': ThrottleConfigEntity.Node },
-      ['batch', 'clock', 'throttle'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const), 'resultCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['concurrencyLimit', 'resultCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'batch': batchInputNode, 'clock': clockInputNode, 'throttle': ThrottleConfigEntity.Node }, ['batch', 'clock', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const adaptiveScalesUpSchema = withAdaptiveScaleSchema('adaptive-scales-up');
 const adaptiveScalesUpNode = withAdaptiveScaleNode('adaptive-scales-up');
@@ -239,7 +179,7 @@ export namespace StateManagementScenarioCaseEntity {
     'oneOf': [initialStatsSchema, isCompleteInitiallySchema, adaptiveLatencyStatsSchema, adaptiveScalesUpSchema, adaptiveScalesDownSchema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     initialStatsNode, isCompleteInitiallyNode, adaptiveLatencyStatsNode, adaptiveScalesUpNode, adaptiveScalesDownNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;

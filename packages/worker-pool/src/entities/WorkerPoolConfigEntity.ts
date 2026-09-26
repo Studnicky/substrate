@@ -19,7 +19,7 @@ export namespace WorkerPoolConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'batchConcurrency': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'concurrency': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'startupTimeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'workerPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['workerPath'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'batchConcurrency': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'concurrency': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'startupTimeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'workerPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['workerPath'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

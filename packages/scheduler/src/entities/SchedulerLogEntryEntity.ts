@@ -24,9 +24,9 @@ export namespace SchedulerLogEntryEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/SchedulerLogEntry', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'A single lifecycle event recorded by a logging scheduler.', 'title': 'SchedulerLogEntry', 'type': 'object' } as const, { 'event': SchemaNode.defineEnum(['schedule', 'fire'] as const), 'id': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/SchedulerLogEntry', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'A single lifecycle event recorded by a logging scheduler.', 'title': 'SchedulerLogEntry', 'type': 'object' } as const, { 'event': SchemaNode.defineEnum({}, ['schedule', 'fire'] as const), 'id': SchemaNode.defineString({
     'type': 'string'
-  } as const) }, ['event', 'id'] as const, { 'additionalProperties': false });
+  } as const) }, ['event', 'id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

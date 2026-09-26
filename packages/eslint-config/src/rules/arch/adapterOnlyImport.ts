@@ -28,26 +28,19 @@ namespace AdapterOnlyImportOptionsEntity {
     }
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      ...LayerOptionsEntity.Node.schema.properties,
-      'adapterLayerName': SchemaNode.defineString({
-        'default': 'adapters',
-        'description': 'Name of the layer treated as the adapters layer for exemption purposes. Defaults to "adapters".',
-        'type': 'string'
-      } as const),
-      'adapterOnlyImports': SchemaNode.defineArray(
-        {
-          'default': [],
-          'description': 'Package names/roots restricted to the adapters layer, e.g. ["express", "pg", "axios"].',
-          'type': 'array'
-        } as const,
-        SchemaNode.defineString({ 'type': 'string' } as const)
-      )
-    },
-    LayerOptionsEntity.Node.schema.required
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    ...LayerOptionsEntity.Node.schema.properties,
+    'adapterLayerName': SchemaNode.defineString({
+      'default': 'adapters',
+      'description': 'Name of the layer treated as the adapters layer for exemption purposes. Defaults to "adapters".',
+      'type': 'string'
+    } as const),
+    'adapterOnlyImports': SchemaNode.defineArray({
+      'default': [],
+      'description': 'Package names/roots restricted to the adapters layer, e.g. ["express", "pg", "axios"].',
+      'type': 'array'
+    } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+  }, LayerOptionsEntity.Node.schema.required, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

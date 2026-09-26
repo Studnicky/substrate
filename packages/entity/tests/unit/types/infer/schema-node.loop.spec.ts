@@ -95,13 +95,13 @@ void describe('SchemaNode scalar constructors', () => {
   });
 
   void it('defineConst derives the exact literal', () => {
-    const versionNode = SchemaNode.defineConst('v1' as const);
+    const versionNode = SchemaNode.defineConst({}, 'v1' as const);
     assert.equal(versionNode.schema.const, 'v1');
     assertAssignable<NodeStaticType<typeof versionNode>>('v1');
   });
 
   void it('defineEnum derives the literal union', () => {
-    const colorNode = SchemaNode.defineEnum(['red', 'green', 'blue'] as const);
+    const colorNode = SchemaNode.defineEnum({}, ['red', 'green', 'blue'] as const);
     assert.deepEqual(colorNode.schema.enum, ['red', 'green', 'blue']);
     assertAssignable<NodeStaticType<typeof colorNode>>('green');
   });
@@ -111,7 +111,7 @@ void describe('SchemaNode object constructor', () => {
   const nameNode = SchemaNode.defineString({ 'type': 'string', 'minLength': 1 } as const);
   const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
 
-  const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode, 'age': ageNode }, ['name'] as const);
+  const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode, 'age': ageNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   type UserExpectedType = IdentityType<{ 'age'?: NodeStaticType<typeof ageNode> } & { 'name': NodeStaticType<typeof nameNode> }>;
   type UserBrandCheck = Assert<Equal<NodeStaticType<typeof userNode>, UserExpectedType>>;
 
@@ -121,7 +121,7 @@ void describe('SchemaNode object constructor', () => {
     assert.deepEqual(checks, [true]);
   });
 
-  const bagNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': true });
+  const bagNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': true, 'patternProperties': {} });
   type BagExpectedType = IdentityType<{ 'id': NodeStaticType<typeof nameNode> } & Record<string, unknown>>;
   type BagBrandCheck = Assert<Equal<NodeStaticType<typeof bagNode>, BagExpectedType>>;
 
@@ -132,24 +132,19 @@ void describe('SchemaNode object constructor', () => {
   });
 
   void it('additionalProperties defaults to false at runtime, matching its closed type default', () => {
-    const closedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const);
+    const closedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     assert.equal(closedNode.schema.additionalProperties, false);
   });
 
   void it('minProperties/maxProperties brand the object', () => {
-    const boundedNode = SchemaNode.defineObject(
-      { 'type': 'object', 'minProperties': 1, 'maxProperties': 3 } as const,
-      { 'id': nameNode },
-      ['id'] as const
-    );
+    const boundedNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 1, 'maxProperties': 3 } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     assert.equal(boundedNode.schema.minProperties, 1);
     assert.equal(boundedNode.schema.maxProperties, 3);
   });
 
   const skuNode = SchemaNode.defineNumber({ 'type': 'number' } as const);
   const catalogNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], {
-    'patternProperties': { '^sku-': skuNode }
-  });
+    'patternProperties': { '^sku-': skuNode }, 'additionalProperties': false });
   type CatalogExpectedType = IdentityType<Record<`sku-${string}`, NodeStaticType<typeof skuNode>>>;
   type CatalogBrandCheck = Assert<Equal<NodeStaticType<typeof catalogNode>, CatalogExpectedType>>;
 
@@ -161,8 +156,7 @@ void describe('SchemaNode object constructor', () => {
 
   const anyNode = SchemaNode.defineString({ 'type': 'string' } as const);
   const wildcardNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], {
-    'patternProperties': { '^[a-z]+$': anyNode }
-  });
+    'patternProperties': { '^[a-z]+$': anyNode }, 'additionalProperties': false });
   type WildcardExpectedType = IdentityType<Record<never, never>>;
   type WildcardBrandCheck = Assert<Equal<NodeStaticType<typeof wildcardNode>, WildcardExpectedType>>;
 
@@ -175,9 +169,9 @@ void describe('SchemaNode object constructor', () => {
 void describe('SchemaNode array/tuple constructors', () => {
   const codeNode = SchemaNode.defineString({ 'type': 'string', 'pattern': '^[A-Z]{3}$' } as const);
   const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
-  const versionNode = SchemaNode.defineConst('v1' as const);
+  const versionNode = SchemaNode.defineConst({}, 'v1' as const);
 
-  const tagsNode = SchemaNode.defineArray({ 'type': 'array', 'minItems': 1, 'maxItems': 5 } as const, codeNode);
+  const tagsNode = SchemaNode.defineArray({ 'type': 'array', 'minItems': 1, 'maxItems': 5 } as const, codeNode, undefined);
   type TagsExpectedType = MaximumItemsBrandInterface<5> & MinimumItemsBrandInterface<1> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & NodeStaticType<typeof codeNode>[];
   type TagsBrandCheck = Assert<Equal<NodeStaticType<typeof tagsNode>, TagsExpectedType>>;
 
@@ -187,7 +181,7 @@ void describe('SchemaNode array/tuple constructors', () => {
     assert.deepEqual(checks, [true]);
   });
 
-  const uniqueTagsNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, codeNode);
+  const uniqueTagsNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, codeNode, undefined);
   type UniqueTagsExpectedType = UniqueItemsBrandInterface<true> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & NodeStaticType<typeof codeNode>[];
   type UniqueTagsBrandCheck = Assert<Equal<NodeStaticType<typeof uniqueTagsNode>, UniqueTagsExpectedType>>;
 
@@ -226,9 +220,9 @@ void describe('SchemaNode composition constructors', () => {
   const nullNode = SchemaNode.defineNull({ 'type': 'null' } as const);
 
   void it('defineAllOf intersects branch statics', () => {
-    const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const);
-    const boundedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'age': ageNode }, ['age'] as const);
-    const allOfNode = SchemaNode.defineAllOf([userNode, boundedNode] as const);
+    const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const boundedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'age': ageNode }, ['age'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const allOfNode = SchemaNode.defineAllOf({}, [userNode, boundedNode] as const);
     type AllOfExpectedType = IdentityType<NodeStaticType<typeof boundedNode> & NodeStaticType<typeof userNode>>;
     type AllOfBrandCheck = Assert<Equal<NodeStaticType<typeof allOfNode>, AllOfExpectedType>>;
 
@@ -238,7 +232,7 @@ void describe('SchemaNode composition constructors', () => {
   });
 
   void it('defineAnyOf unions branch statics', () => {
-    const anyOfNode = SchemaNode.defineAnyOf([nameNode, ageNode] as const);
+    const anyOfNode = SchemaNode.defineAnyOf({}, [nameNode, ageNode] as const);
     type AnyOfExpectedType = NodeStaticType<typeof ageNode> | NodeStaticType<typeof nameNode>;
     type AnyOfBrandCheck = Assert<Equal<NodeStaticType<typeof anyOfNode>, AnyOfExpectedType>>;
 
@@ -247,13 +241,13 @@ void describe('SchemaNode composition constructors', () => {
   });
 
   void it('defineOneOf unions branch statics', () => {
-    const oneOfNode = SchemaNode.defineOneOf([flagNode, nullNode] as const);
+    const oneOfNode = SchemaNode.defineOneOf({}, [flagNode, nullNode] as const);
     assertAssignable<NodeStaticType<typeof oneOfNode>>(true);
     assertAssignable<NodeStaticType<typeof oneOfNode>>(null);
   });
 
   void it('defineNot falls back to unknown', () => {
-    const notNode = SchemaNode.defineNot(nameNode);
+    const notNode = SchemaNode.defineNot({}, nameNode);
     assert.deepEqual(notNode.schema.not, nameNode);
     assertAssignable<NodeStaticType<typeof notNode>>('anything');
   });
@@ -280,11 +274,7 @@ void describe('SchemaNode composition constructors', () => {
     type RecursiveTreeNode = ReturnType<typeof SchemaNode.defineRecursive<RecursiveTreeSchema, RecursiveTreeStatic>>;
 
     const treeNode: RecursiveTreeNode = SchemaNode.defineRecursive<RecursiveTreeSchema, RecursiveTreeStatic>((self) => {
-      const built = SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'label': nameNode, 'children': SchemaNode.defineArray({ 'type': 'array' } as const, self) },
-        ['label', 'children'] as const
-      );
+      const built = SchemaNode.defineObject({ 'type': 'object' } as const, { 'label': nameNode, 'children': SchemaNode.defineArray({ 'type': 'array' } as const, self, undefined) }, ['label', 'children'] as const, { 'additionalProperties': false, 'patternProperties': {} });
       return built;
     });
 
@@ -293,8 +283,8 @@ void describe('SchemaNode composition constructors', () => {
   });
 
   void it('$ref by node reuse: the same built node composed twice shares its static type', () => {
-    const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const);
-    const reusedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'primary': userNode, 'secondary': userNode }, ['primary'] as const);
+    const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const reusedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'primary': userNode, 'secondary': userNode }, ['primary'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     type ReusedExpectedType = IdentityType<{ 'primary': NodeStaticType<typeof userNode> } & { 'secondary'?: NodeStaticType<typeof userNode> }>;
     type ReusedBrandCheck = Assert<Equal<NodeStaticType<typeof reusedNode>, ReusedExpectedType>>;
 

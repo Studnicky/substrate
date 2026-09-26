@@ -9,12 +9,7 @@ const throttleInputSchema = {
   'type': 'object'
 } as const;
 
-const throttleInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  [] as const,
-  { 'additionalProperties': false }
-);
+const throttleInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const caseSchema = <const TShape extends string>(shape: TShape, expectedKey: 'concurrencyLimit' | 'result', expectedType: 'number' | 'string') => ({
   'additionalProperties': false,
@@ -39,28 +34,13 @@ const caseSchema = <const TShape extends string>(shape: TShape, expectedKey: 'co
   'type': 'object'
 }) as const;
 
-const caseNode = <const TShape extends string>(shape: TShape, expectedKey: 'concurrencyLimit' | 'result', expectedType: 'number' | 'string') => SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const caseNode = <const TShape extends string>(shape: TShape, expectedKey: 'concurrencyLimit' | 'result', expectedType: 'number' | 'string') => SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { [expectedKey]: expectedType === 'number' ? SchemaNode.defineNumber({ 'type': 'number' } as const) : SchemaNode.defineString({ 'type': 'string' } as const) },
-      [expectedKey] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'throttle': throttleInputNode },
-      ['throttle'] as const,
-      { 'additionalProperties': false }
-    ),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { [expectedKey]: expectedType === 'number' ? SchemaNode.defineNumber({ 'type': 'number' } as const) : SchemaNode.defineString({ 'type': 'string' } as const) }, [expectedKey] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'throttle': throttleInputNode }, ['throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst(shape)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, shape)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const createWithConfigSchema = caseSchema('create-with-config', 'concurrencyLimit', 'number');
 const createWithConfigNode = caseNode('create-with-config', 'concurrencyLimit', 'number');
@@ -81,7 +61,7 @@ export namespace InstantiationScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     createWithConfigNode, createWithDefaultNode, executeCreatedThrottleNode, chainExecuteAfterCreateNode, executeClosureArgumentsNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;

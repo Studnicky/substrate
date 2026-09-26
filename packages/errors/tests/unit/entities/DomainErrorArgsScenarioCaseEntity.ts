@@ -22,12 +22,7 @@ export namespace DomainErrorArgsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const metadataNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'attempt': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-    ['attempt'] as const,
-    { 'additionalProperties': false }
-  );
+  const metadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'attempt': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['attempt'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -93,13 +88,9 @@ export namespace DomainErrorArgsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'hasCause': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -112,49 +103,23 @@ export namespace DomainErrorArgsScenarioCaseEntity {
           'path': SchemaNode.defineString({ 'type': 'string' } as const),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'error': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'fields': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                { 'path': SchemaNode.defineString({ 'type': 'string' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-                ['path', 'timeoutMs'] as const,
-                { 'additionalProperties': false }
-              ),
-              'options': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'error': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'fields': SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'type': 'string' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['path', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+              'options': SchemaNode.defineObject({ 'type': 'object' } as const, {
                   'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
                   'code': SchemaNode.defineString({ 'type': 'string' } as const),
                   'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
                   'message': SchemaNode.defineString({ 'type': 'string' } as const),
-                  'messageTemplate': SchemaNode.defineConst('file-lock-timeout' as const),
+                  'messageTemplate': SchemaNode.defineConst({}, 'file-lock-timeout' as const),
                   'metadata': metadataNode,
                   'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-                },
-                ['code'] as const,
-                { 'additionalProperties': false }
-              )
-            },
-            ['fields', 'options'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['error'] as const,
-        { 'additionalProperties': false }
-      ),
+                }, ['code'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+            }, ['fields', 'options'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['error'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

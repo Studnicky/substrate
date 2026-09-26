@@ -16,7 +16,7 @@ export namespace TransitionRecordEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const), 'from': SchemaNode.defineString({ 'type': 'string' } as const), 'to': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event', 'from', 'to'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const), 'from': SchemaNode.defineString({ 'type': 'string' } as const), 'to': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

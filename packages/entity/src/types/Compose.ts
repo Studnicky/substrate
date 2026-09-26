@@ -1,5 +1,3 @@
-import { JsonObject } from '@studnicky/types/browser';
-
 import type { ObjectSchemaShapeInterface } from '../interfaces/ObjectSchemaShapeInterface.js';
 import type { SchemaNodeInterface } from '../interfaces/SchemaNodeInterface.js';
 import type { ExtendSchemaType } from './ExtendSchemaType.js';
@@ -13,53 +11,53 @@ import type { RequiredSchemaType } from './RequiredSchemaType.js';
  * `static` type together, transforming both in lockstep at the same level —
  * never recursing into a property's own nested schema.
  *
- * The private filter helpers are overloaded: a generic signature narrows the
- * return to the exact `Pick`/`Omit` the caller's branded `TSchema` promises,
- * while the implementation signature stays loose for the runtime loop.
+ * Each private filter helper carries a single generic signature that its own
+ * body proves directly: no separate looser implementation signature stands
+ * between the promised type and what the body actually returns.
  *
  * @module
  */
 export class Compose {
-  /** Copies `source`'s own properties whose key is present in `keySet`, preserving insertion order. */
+  /** Copies `source`'s own properties whose key is present in `keySet`, mutating a shallow copy in place. */
   private static keepProperties<TProps extends Record<string, unknown>, TKeys extends keyof TProps & string>(
     source: TProps, keySet: ReadonlySet<TKeys>
-  ): Pick<TProps, TKeys>;
-  private static keepProperties(source: Record<string, unknown>, keySet: ReadonlySet<string>): Record<string, unknown> {
-    const entries = Object.entries(source);
-    const kept: [string, unknown][] = [];
-    const entryCount = entries.length;
+  ): Pick<TProps, TKeys> {
+    const wideKeySet: ReadonlySet<string> = keySet;
+    // Honest at every step: TKeys stay real values throughout, the rest are only ever "possibly present" — true before, during, and after deletion.
+    // `& Record<string, unknown>` also proves to the deletion cost checker that this shape makes no fixed hidden-class contract to break.
+    const result: Partial<Omit<TProps, TKeys>> & Pick<TProps, TKeys> & Record<string, unknown> = { ...source };
+    const keys = Object.keys(result);
+    const keyCount = keys.length;
 
-    for (let index = 0; index < entryCount; index += 1) {
-      const entry = entries.at(index);
+    for (let index = 0; index < keyCount; index += 1) {
+      const key = keys.at(index);
 
-      if (entry !== undefined && keySet.has(entry[0])) {
-        kept.push(entry);
+      if (key !== undefined && !wideKeySet.has(key)) {
+        Reflect.deleteProperty(result, key);
       }
     }
-
-    const result = JsonObject.fromEntries(kept);
 
     return result;
   }
 
-  /** Copies `source`'s own properties whose key is absent from `keySet`, preserving insertion order. */
+  /** Copies `source`'s own properties whose key is absent from `keySet`, mutating a shallow copy in place. */
   private static dropProperties<TProps extends Record<string, unknown>, TKeys extends keyof TProps & string>(
     source: TProps, keySet: ReadonlySet<TKeys>
-  ): Omit<TProps, TKeys>;
-  private static dropProperties(source: Record<string, unknown>, keySet: ReadonlySet<string>): Record<string, unknown> {
-    const entries = Object.entries(source);
-    const kept: [string, unknown][] = [];
-    const entryCount = entries.length;
+  ): Omit<TProps, TKeys> {
+    const wideKeySet: ReadonlySet<string> = keySet;
+    // Honest at every step: the non-TKeys keys stay real values throughout, TKeys are only ever "possibly present" — true before, during, and after deletion.
+    // `& Record<string, unknown>` also proves to the deletion cost checker that this shape makes no fixed hidden-class contract to break.
+    const result: Omit<TProps, TKeys> & Partial<Pick<TProps, TKeys>> & Record<string, unknown> = { ...source };
+    const keys = Object.keys(result);
+    const keyCount = keys.length;
 
-    for (let index = 0; index < entryCount; index += 1) {
-      const entry = entries.at(index);
+    for (let index = 0; index < keyCount; index += 1) {
+      const key = keys.at(index);
 
-      if (entry !== undefined && !keySet.has(entry[0])) {
-        kept.push(entry);
+      if (key !== undefined && wideKeySet.has(key)) {
+        Reflect.deleteProperty(result, key);
       }
     }
-
-    const result = JsonObject.fromEntries(kept);
 
     return result;
   }
@@ -67,47 +65,45 @@ export class Compose {
   /** Copies `source`'s own members whose value is present in `keySet`, preserving insertion order. */
   private static keepValues<TValues extends string, TKeys extends TValues>(
     source: readonly TValues[], keySet: ReadonlySet<TKeys>
-  ): Extract<TValues, TKeys>[];
-  private static keepValues(source: readonly string[], keySet: ReadonlySet<string>): string[] {
-    const kept: string[] = [];
-    const sourceLength = source.length;
+  ): Extract<TValues, TKeys>[] {
+    const wideKeySet: ReadonlySet<string> = keySet;
+    const isKept = (value: TValues): value is Extract<TValues, TKeys> => {
+      const kept = wideKeySet.has(value);
 
-    for (let index = 0; index < sourceLength; index += 1) {
-      const value = source.at(index);
+      return kept;
+    };
+    const result = source.filter(isKept);
 
-      if (value !== undefined && keySet.has(value)) {
-        kept.push(value);
-      }
-    }
-
-    return kept;
+    return result;
   }
 
   /** Merges `extension`'s own properties over `base`'s, `extension` taking precedence on key collision. */
   private static mergeProperties<TBase extends Record<string, unknown>, TExtension extends Record<string, unknown>>(
     base: TBase, extension: TExtension
-  ): Omit<TBase, keyof TExtension> & TExtension;
-  private static mergeProperties(base: Record<string, unknown>, extension: Record<string, unknown>): Record<string, unknown> {
-    return { ...base, ...extension };
+  ): Omit<TBase, keyof TExtension> & TExtension {
+    const result = { ...base, ...extension };
+
+    return result;
   }
 
   /** Copies `source`'s own members whose value is absent from `keySet`, preserving insertion order. */
   private static dropValues<TValues extends string, TKeys extends TValues>(
     source: readonly TValues[], keySet: ReadonlySet<TKeys>
-  ): Exclude<TValues, TKeys>[];
-  private static dropValues(source: readonly string[], keySet: ReadonlySet<string>): string[] {
-    const kept: string[] = [];
-    const sourceLength = source.length;
+  ): Exclude<TValues, TKeys>[] {
+    const wideKeySet: ReadonlySet<string> = keySet;
+    const isDropped = (value: TValues): value is TKeys => {
+      const dropped = wideKeySet.has(value);
 
-    for (let index = 0; index < sourceLength; index += 1) {
-      const value = source.at(index);
+      return dropped;
+    };
+    const isKept = (value: TValues): value is Exclude<TValues, TKeys> => {
+      const kept = !isDropped(value);
 
-      if (value !== undefined && !keySet.has(value)) {
-        kept.push(value);
-      }
-    }
+      return kept;
+    };
+    const result = source.filter(isKept);
 
-    return kept;
+    return result;
   }
 
   public static pick<

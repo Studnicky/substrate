@@ -20,20 +20,10 @@ export namespace CoalesceTimeoutKeyResultInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'coalesce': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['timeout'] as const,
-        { 'additionalProperties': false }
-      ),
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'coalesce': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeout'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['coalesce', 'key', 'result'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['coalesce', 'key', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -21,7 +21,7 @@ namespace ServerConfigEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': SchemaNode.defineBoolean({ 'default': false, 'type': 'boolean' } as const), 'host': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'maximumRetries': SchemaNode.defineNumber({ 'default': 3, 'minimum': 0, 'type': 'integer' } as const), 'port': SchemaNode.defineNumber({ 'default': 8080, 'maximum': 65_535, 'minimum': 1, 'type': 'integer' } as const) }, ['host'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': SchemaNode.defineBoolean({ 'default': false, 'type': 'boolean' } as const), 'host': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'maximumRetries': SchemaNode.defineNumber({ 'default': 3, 'minimum': 0, 'type': 'integer' } as const), 'port': SchemaNode.defineNumber({ 'default': 8080, 'maximum': 65_535, 'minimum': 1, 'type': 'integer' } as const) }, ['host'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

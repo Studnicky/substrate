@@ -14,7 +14,7 @@ export namespace FilterRuleEntity {
     'oneOf': [DateRangeFilterRuleEntity.Schema, NumericRangeFilterRuleEntity.Schema, ValueFilterRuleEntity.Schema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([DateRangeFilterRuleEntity.Node, NumericRangeFilterRuleEntity.Node, ValueFilterRuleEntity.Node]);
+  export const Node = SchemaNode.defineOneOf({}, [DateRangeFilterRuleEntity.Node, NumericRangeFilterRuleEntity.Node, ValueFilterRuleEntity.Node]);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

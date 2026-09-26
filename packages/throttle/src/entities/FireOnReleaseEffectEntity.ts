@@ -36,11 +36,11 @@ export namespace FireOnReleaseEffectEntity {
   } as const), 'totalExecuted': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'variant': SchemaNode.defineConst('FireOnRelease' as const) }, [
+  } as const), 'variant': SchemaNode.defineConst({}, 'FireOnRelease' as const) }, [
     'variant',
     'activeCount',
     'totalExecuted'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -67,52 +67,28 @@ export namespace ClampedConfigScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const ConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ScenarioJsonValueNode }
-  );
-  const RulesNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ClampRuleEntity.Node }
-  );
-  const InputNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'config': ConfigNode, 'rules': RulesNode },
-    ['config', 'rules'] as const,
-    { 'additionalProperties': false }
-  );
-  const ExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const ConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ScenarioJsonValueNode, 'patternProperties': {} });
+  const RulesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ClampRuleEntity.Node, 'patternProperties': {} });
+  const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'config': ConfigNode, 'rules': RulesNode }, ['config', 'rules'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const ExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'event': ClampEventEntity.Node,
       'eventCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'eventFields': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+      'eventFields': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
       'hookInvoked': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
       'input': ConfigNode,
       'rejectionCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'result': ConfigNode,
       'sameRef': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
-  const CaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const CaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'expected': ExpectedNode,
       'input': InputNode,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(shapeSchema.enum)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, shapeSchema.enum)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'cases': SchemaNode.defineArray({ 'type': 'array' } as const, CaseNode) },
-    ['cases'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cases': SchemaNode.defineArray({ 'type': 'array' } as const, CaseNode, undefined) }, ['cases'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

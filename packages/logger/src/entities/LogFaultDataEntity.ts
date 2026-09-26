@@ -64,7 +64,7 @@ export namespace LogFaultDataEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogFaultData', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Data structure for a normalized error log entry.', 'title': 'LogFaultData', 'type': 'object' } as const, { 'cause': SchemaNode.defineString({
     'description': 'Underlying cause message (for chained errors).',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'
@@ -80,11 +80,11 @@ export namespace LogFaultDataEntity {
   } as const), 'stack': SchemaNode.defineString({
     'description': 'Error stack trace.',
     'type': 'string'
-  } as const), 'status': SchemaNode.defineEnum([
+  } as const), 'status': SchemaNode.defineEnum({}, [
     'cached', 'complete', 'failed', 'in_progress', 'invalid', 'not_found', 'partial',
     'pending', 'rate_limited', 'retry_exhausted', 'retrying', 'skipped', 'success',
     'timeout', 'unauthorized', 'unavailable'
-  ] as const) }, ['context', 'event', 'message', 'name', 'status'] as const, { 'additionalProperties': false });
+  ] as const) }, ['context', 'event', 'message', 'name', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

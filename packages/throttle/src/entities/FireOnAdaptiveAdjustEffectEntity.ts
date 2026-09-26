@@ -36,11 +36,11 @@ export namespace FireOnAdaptiveAdjustEffectEntity {
   } as const), 'previousLimit': SchemaNode.defineNumber({
     'minimum': 0,
     'type': 'integer'
-  } as const), 'variant': SchemaNode.defineConst('FireOnAdaptiveAdjust' as const) }, [
+  } as const), 'variant': SchemaNode.defineConst({}, 'FireOnAdaptiveAdjust' as const) }, [
     'variant',
     'newLimit',
     'previousLimit'
-  ] as const, { 'additionalProperties': false });
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -16,7 +16,7 @@ export namespace SemaphoreOptionsEntity {
   } as const;
 
   /** Construction options for {@link Semaphore}. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximumQueueSize': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'permits': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['permits'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximumQueueSize': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'permits': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['permits'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

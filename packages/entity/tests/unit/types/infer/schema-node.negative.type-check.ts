@@ -31,7 +31,7 @@ type BadNameCheck = Assert<Not<IsAssignable<'plain string', NameType>>>;
 // AgeType's maximum brand differs from PercentType's, so it is not assignable.
 type BadPercentCheck = Assert<Not<IsAssignable<AgeType, PercentType>>>;
 
-const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode, 'age': ageNode }, ['name', 'age'] as const);
+const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode, 'age': ageNode }, ['name', 'age'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type UserType = NodeStaticType<typeof userNode>;
 
 // 'age' is required on UserType but missing from this shape.

@@ -266,7 +266,7 @@ export namespace ThrownValueEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ThrownValue', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ThrownValue', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Bounded, cycle-safe projection of the remainder of the cause chain (excludes this node).', 'maxItems': CAUSE_CHAIN_DEPTH_LIMIT, 'type': 'array' } as const, CauseNodeEntity.Node), 'detail': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ThrownValue', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ThrownValue', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Bounded, cycle-safe projection of the remainder of the cause chain (excludes this node).', 'maxItems': CAUSE_CHAIN_DEPTH_LIMIT, 'type': 'array' } as const, CauseNodeEntity.Node, undefined), 'detail': SchemaNode.defineString({
     'default': '',
     'description': "Human-readable explanation specific to this occurrence — the caught value's message.",
     'type': 'string'
@@ -284,7 +284,7 @@ export namespace ThrownValueEntity {
     'default': PROBLEM_TYPE_THROWN_NULLISH,
     'description': 'URI reference identifying the problem type. The discriminant.',
     'type': 'string'
-  } as const) }, ['detail', 'title', 'type'] as const, { 'additionalProperties': false });
+  } as const) }, ['detail', 'title', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

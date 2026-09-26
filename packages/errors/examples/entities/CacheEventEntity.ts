@@ -15,7 +15,7 @@ export namespace CacheEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineEnum(['hit', 'miss'] as const), 'key': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event', 'key'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineEnum({}, ['hit', 'miss'] as const), 'key': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

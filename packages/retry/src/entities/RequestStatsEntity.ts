@@ -53,7 +53,7 @@ export namespace RequestStatsEntity {
     'description': 'Total number of retry attempts made',
     'minimum': 0,
     'type': 'integer'
-  } as const) }, ['failedRequests', 'successfulRequests', 'totalRequests', 'totalRetries'] as const, { 'additionalProperties': false });
+  } as const) }, ['failedRequests', 'successfulRequests', 'totalRequests', 'totalRetries'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

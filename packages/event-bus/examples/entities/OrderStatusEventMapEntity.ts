@@ -31,7 +31,7 @@ export namespace OrderStatusEventMapEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'order:created': SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const), 'total': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['id', 'total'] as const, { 'additionalProperties': false }), 'order:updated': SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const), 'status': SchemaNode.defineString({ 'type': 'string' } as const) }, ['id', 'status'] as const, { 'additionalProperties': false }) }, ['order:created', 'order:updated'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'order:created': SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const), 'total': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['id', 'total'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'order:updated': SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const), 'status': SchemaNode.defineString({ 'type': 'string' } as const) }, ['id', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['order:created', 'order:updated'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

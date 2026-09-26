@@ -17,15 +17,10 @@ export namespace OperationCheckpointsEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       afterAdd: StoreCheckpointEntity.Node,
       afterBatch: StoreCheckpointEntity.Node,
       initial: StoreCheckpointEntity.Node,
-    },
-    ["afterAdd", "afterBatch", "initial"] as const,
-    { additionalProperties: false },
-  );
+    }, ["afterAdd", "afterBatch", "initial"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

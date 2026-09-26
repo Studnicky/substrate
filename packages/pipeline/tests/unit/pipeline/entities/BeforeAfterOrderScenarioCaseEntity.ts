@@ -27,24 +27,14 @@ export namespace BeforeAfterOrderScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-      'trace': SchemaNode.defineArray({ 'type': 'array' } as const, TraceEntryEntity.Node)
-        },
-        ['trace'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'trace': SchemaNode.defineArray({ 'type': 'array' } as const, TraceEntryEntity.Node, undefined)
+        }, ['trace'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': CtxNumberStagesInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('before-after-order' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'before-after-order' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -19,7 +19,7 @@ export namespace ErrorDiagnosticEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorDiagnostic', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorDiagnostic', 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'stack': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message', 'name'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorDiagnostic', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ErrorDiagnostic', 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'stack': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

@@ -25,7 +25,7 @@ export namespace HealthCheckOptionsEntity {
     'description': "Milliseconds allowed for this check to settle before it is treated as 'unhealthy' with timeout metadata. No default — a check with no timeoutMs runs unbounded.",
     'minimum': 0,
     'type': 'integer'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -5,10 +5,10 @@ import { SchemaNode } from '@studnicky/entity/types';
 import { BoundedJsonValueEntity } from '../../../helpers/entities/BoundedJsonValueEntity.js';
 
 const jsonObjectSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node });
+const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
 
 const bodySchema = { 'oneOf': [jsonObjectSchema, { 'type': 'string' }] } as const;
-const BodyNode = SchemaNode.defineOneOf([JsonObjectNode, SchemaNode.defineString({ 'type': 'string' } as const)] as const);
+const BodyNode = SchemaNode.defineOneOf({}, [JsonObjectNode, SchemaNode.defineString({ 'type': 'string' } as const)] as const);
 
 const methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'] as const;
 const inputSchema = {
@@ -17,12 +17,7 @@ const inputSchema = {
   'required': ['method', 'path'],
   'type': 'object'
 } as const;
-const InputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'body': BodyNode, 'method': SchemaNode.defineEnum(methods), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-  ['method', 'path'] as const,
-  { 'additionalProperties': false }
-);
+const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'body': BodyNode, 'method': SchemaNode.defineEnum({}, methods), 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['method', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The `standalone.loop.spec.ts` scenario case shape: two branches, distinguished by `expected.shape`. */
 export namespace StandaloneScenarioCaseEntity {
@@ -46,37 +41,17 @@ export namespace StandaloneScenarioCaseEntity {
     ]
   } as const;
 
-  const OkExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'shape': SchemaNode.defineConst('ok' as const), 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const), 'text': SchemaNode.defineString({ 'type': 'string' } as const) },
-    ['shape', 'status'] as const,
-    { 'additionalProperties': false }
-  );
-  const JsonExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const OkExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'ok' as const), 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const), 'text': SchemaNode.defineString({ 'type': 'string' } as const) }, ['shape', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const JsonExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'id': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-      'shape': SchemaNode.defineConst('json' as const),
+      'shape': SchemaNode.defineConst({}, 'json' as const),
       'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const),
       'title': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['shape', 'status'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['shape', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': OkExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['description', 'expected', 'input', 'name'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': JsonExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['description', 'expected', 'input', 'name'] as const,
-      { 'additionalProperties': false }
-    )
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': OkExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': JsonExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

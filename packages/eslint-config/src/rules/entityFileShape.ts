@@ -962,17 +962,12 @@ class ConstantsCountCheck {
 }
 
 namespace FileCategorySchema {
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['constants', 'declaration', 'entity', 'none'] as const),
-      'underInterfacesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-    },
-    ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
+    'shape': SchemaNode.defineEnum({}, ['constants', 'declaration', 'entity', 'none'] as const),
+    'underInterfacesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
+  }, ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 }
 
 class FileCategoryResolver {

@@ -28,26 +28,16 @@ export namespace AsyncHookErrorSafeScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'statuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum(['fulfilled', 'rejected'] as const)),
+          'statuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineEnum({}, ['fulfilled', 'rejected'] as const), undefined),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['hookErrorCount', 'statuses', 'unhandledRejections'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['hookErrorCount', 'statuses', 'unhandledRejections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': BatchItemsHookErrorMessageInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('async-hook-error-safe' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'async-hook-error-safe' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -84,20 +84,16 @@ export namespace MemoizeScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'afterExpiry': SchemaNode.defineString({ 'type': 'string' } as const),
           'cachedResult': SchemaNode.defineString({ 'type': 'string' } as const),
           'calls': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'callsAfterExpiry': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           // A dynamic string-keyed map of fixture-chosen cache keys to [string, number] tuples; narrowed per call site via readTupleRecord.
           'coalescedArgs': SchemaNode.defineUnknown({} as const),
-          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'events': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'first': SchemaNode.defineString({ 'type': 'string' } as const),
           'firstErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'followerErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
@@ -105,8 +101,8 @@ export namespace MemoizeScenarioCaseEntity {
           'foundFalse': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'foundTrue': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'leaderResult': SchemaNode.defineString({ 'type': 'string' } as const),
-          'memoAEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'memoBEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'memoAEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'memoBEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           // A dynamic string-keyed map of fixture-chosen cache keys to [string, number] tuples; narrowed per call site via readTupleRecord.
           'missArgs': SchemaNode.defineUnknown({} as const),
           'missingFalse': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
@@ -117,44 +113,23 @@ export namespace MemoizeScenarioCaseEntity {
           'second': SchemaNode.defineString({ 'type': 'string' } as const),
           'third': SchemaNode.defineString({ 'type': 'string' } as const),
           'value': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'callCount': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'number' } as const) },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'callCount': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'failureMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'failuresBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'memoize': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+          'memoize': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'capacity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
-              'keyFnShape': SchemaNode.defineEnum(KEY_FN_SHAPES),
+              'keyFnShape': SchemaNode.defineEnum({}, KEY_FN_SHAPES),
               'staleMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
               'ttlMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'successValue': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['memoize'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['memoize'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

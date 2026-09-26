@@ -39,39 +39,19 @@ export namespace HighWaterMarkScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
-          'overflowDepths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-        },
-        ['items', 'overflowDepths'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'channel': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'highWaterMark': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            ['highWaterMark'] as const,
-            { 'additionalProperties': false }
-          ),
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+          'overflowDepths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+        }, ['items', 'overflowDepths'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'channel': SchemaNode.defineObject({ 'type': 'object' } as const, { 'highWaterMark': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['highWaterMark'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['channel', 'items', 'key'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['channel', 'items', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('high-water-mark' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'high-water-mark' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

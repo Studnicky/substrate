@@ -21,14 +21,10 @@ function assertAssignable<T>(value: T): void {
 // `default`-bearing optional field (`label`), proving the input/static split
 // in one place: `.static` is validated output (branded, default present);
 // `.input` is not-yet-validated data (unbranded, default still optional).
-const recordNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const recordNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'count': SchemaNode.defineNumber({ 'type': 'number', 'minimum': 1 } as const),
     'label': SchemaNode.defineString({ 'type': 'string', 'default': 'x' } as const)
-  },
-  ['count'] as const
-);
+  }, ['count'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type RecordStaticType = NodeStaticType<typeof recordNode>;
 type RecordInputType = NodeInputType<typeof recordNode>;
 

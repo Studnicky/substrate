@@ -15,7 +15,7 @@ export namespace ContextConfigEntity {
   } as const;
 
   /** Configuration options for creating a Context instance. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['name'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

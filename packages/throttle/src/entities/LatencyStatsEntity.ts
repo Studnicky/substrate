@@ -53,7 +53,7 @@ export namespace LatencyStatsEntity {
     'description': 'Number of samples in the buffer.',
     'minimum': 0,
     'type': 'integer'
-  } as const) }, ['sampleCount'] as const, { 'additionalProperties': false });
+  } as const) }, ['sampleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

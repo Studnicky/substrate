@@ -15,7 +15,7 @@ export namespace InterpreterHistoryRecordMetadataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'timestamp': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['timestamp'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'timestamp': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['timestamp'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

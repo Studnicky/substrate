@@ -18,7 +18,7 @@ export namespace PatchOperationCoreEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'title': 'PatchOperationCore', 'type': 'object' } as const, { 'from': SchemaNode.defineString({ 'type': 'string' } as const), 'op': SchemaNode.defineEnum(['add', 'copy', 'move', 'remove', 'replace', 'test'] as const), 'path': SchemaNode.defineString({ 'type': 'string' } as const) }, ['op', 'path'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'PatchOperationCore', 'type': 'object' } as const, { 'from': SchemaNode.defineString({ 'type': 'string' } as const), 'op': SchemaNode.defineEnum({}, ['add', 'copy', 'move', 'remove', 'replace', 'test'] as const), 'path': SchemaNode.defineString({ 'type': 'string' } as const) }, ['op', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

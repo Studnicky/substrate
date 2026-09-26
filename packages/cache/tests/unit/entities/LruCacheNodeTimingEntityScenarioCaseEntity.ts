@@ -13,15 +13,10 @@ const partialTimingSchema = {
   'type': 'object'
 } as const;
 
-const partialTimingNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const partialTimingNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'expiresAt': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'staleAt': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  [] as const,
-  { 'additionalProperties': false }
-);
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const validTimestampsSchema = {
   'additionalProperties': false,
@@ -53,38 +48,18 @@ const validTimestampsSchema = {
   'type': 'object'
 } as const;
 
-const validTimestampsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const validTimestampsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-      ['valid'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'timing': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['valid'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'timing': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'expiresAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
             'staleAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-          },
-          ['expiresAt', 'staleAt'] as const,
-          { 'additionalProperties': false }
-        )
-      },
-      ['timing'] as const,
-      { 'additionalProperties': false }
-    ),
+          }, ['expiresAt', 'staleAt'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      }, ['timing'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('valid-timestamps' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'valid-timestamps' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const invalidTimestampsSchema = {
   'additionalProperties': false,
@@ -109,31 +84,16 @@ const invalidTimestampsSchema = {
   'type': 'object'
 } as const;
 
-const invalidTimestampsNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const invalidTimestampsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'invalidChecks': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const)),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'invalidChecks': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined),
         'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-      },
-      ['invalidChecks', 'valid'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'timing': SchemaNode.defineArray({ 'type': 'array' } as const, partialTimingNode) },
-      ['timing'] as const,
-      { 'additionalProperties': false }
-    ),
+      }, ['invalidChecks', 'valid'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timing': SchemaNode.defineArray({ 'type': 'array' } as const, partialTimingNode, undefined) }, ['timing'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('invalid-timestamps' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'invalid-timestamps' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The two scenario case shapes `LruCacheNodeTimingEntity.loop.spec.ts` exercises. Mutually exclusive by `shape`, so `oneOf` (flattened by `NodeSchemaAgreement`) rather than `anyOf` (not). */
 export namespace LruCacheNodeTimingEntityScenarioCaseEntity {
@@ -141,6 +101,6 @@ export namespace LruCacheNodeTimingEntityScenarioCaseEntity {
     'oneOf': [validTimestampsSchema, invalidTimestampsSchema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([validTimestampsNode, invalidTimestampsNode] as const);
+  export const Node = SchemaNode.defineOneOf({}, [validTimestampsNode, invalidTimestampsNode] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

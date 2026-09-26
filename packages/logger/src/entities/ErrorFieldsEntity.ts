@@ -42,7 +42,7 @@ export namespace ErrorFieldsEntity {
   } as const), 'errorCode': SchemaNode.defineString({
     'description': 'Machine-readable error code.',
     'type': 'string'
-  } as const) }, ['error'] as const, { 'additionalProperties': false });
+  } as const) }, ['error'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

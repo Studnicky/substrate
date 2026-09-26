@@ -24,7 +24,7 @@ export namespace AbortResultEntity {
    * - How many completed before the abort
    * - Whether the grace period timed out
    */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelled': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'completed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['cancelled', 'completed', 'timedOut'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelled': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'completed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['cancelled', 'completed', 'timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

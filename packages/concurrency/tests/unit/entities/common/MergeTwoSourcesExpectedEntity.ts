@@ -11,14 +11,9 @@ export namespace MergeTwoSourcesExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'includes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'includes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
       'length': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['includes', 'length'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['includes', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

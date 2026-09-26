@@ -18,15 +18,10 @@ export namespace CancellableTaskTransitionEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'to': CancellableTaskStateEntity.Node.schema.properties.variant,
-      'type': SchemaNode.defineConst('transitionTo' as const)
-    },
-    ['to', 'type'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'to': CancellableTaskStateEntity.Node.schema.properties.variant,
+    'type': SchemaNode.defineConst({}, 'transitionTo' as const)
+  }, ['to', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

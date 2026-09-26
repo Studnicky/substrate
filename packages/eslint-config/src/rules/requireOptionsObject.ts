@@ -25,7 +25,7 @@ namespace RequireOptionsObjectOptionsEntity {
     'description': 'Minimum number of optional parameters to trigger the rule.',
     'minimum': 2,
     'type': 'number'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

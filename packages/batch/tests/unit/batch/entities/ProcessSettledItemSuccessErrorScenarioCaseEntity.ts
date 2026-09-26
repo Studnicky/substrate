@@ -29,27 +29,17 @@ export namespace ProcessSettledItemSuccessErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'firstErrorIndex': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'itemErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'itemSuccessCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'rejectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['firstErrorIndex', 'itemErrorCount', 'itemSuccessCount', 'rejectedMessage'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['firstErrorIndex', 'itemErrorCount', 'itemSuccessCount', 'rejectedMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': BatchItemsErrorInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('process-settled-item-success-error' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'process-settled-item-success-error' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

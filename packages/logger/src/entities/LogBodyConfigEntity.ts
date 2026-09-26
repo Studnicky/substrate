@@ -46,7 +46,7 @@ export namespace LogBodyConfigEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyConfig', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Configuration for a normalized log entry.', 'title': 'LogBodyConfig', 'type': 'object' } as const, { 'component': SchemaNode.defineString({
     'description': 'Event component prefix.',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'
@@ -56,7 +56,7 @@ export namespace LogBodyConfigEntity {
   } as const), 'operation': SchemaNode.defineString({
     'description': 'Event operation suffix.',
     'type': 'string'
-  } as const), 'status': LogStatusEntity.Node }, ['component', 'context', 'message', 'operation', 'status'] as const, { 'additionalProperties': false });
+  } as const), 'status': LogStatusEntity.Node }, ['component', 'context', 'message', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

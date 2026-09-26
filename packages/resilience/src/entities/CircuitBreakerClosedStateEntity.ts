@@ -16,7 +16,7 @@ export namespace CircuitBreakerClosedStateEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'failureCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'variant': SchemaNode.defineConst('closed' as const) }, ['failureCount', 'variant'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'failureCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'variant': SchemaNode.defineConst({}, 'closed' as const) }, ['failureCount', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

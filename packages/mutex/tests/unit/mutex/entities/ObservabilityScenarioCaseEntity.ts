@@ -106,29 +106,25 @@ export namespace ObservabilityScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'acquireEvents': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const))]),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'acquireEvents': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)]),
           'acquireWaitCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'acquiredCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'acquiredKeys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'afterReleaseEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'afterReleaseEventsAfterDrop': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'afterReleaseEventsAfterHandoff': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'acquiredKeys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'afterReleaseEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'afterReleaseEventsAfterDrop': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'afterReleaseEventsAfterHandoff': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'contentionEvents': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'errorName': SchemaNode.defineString({ 'type': 'string' } as const),
           'holdTimeMsMin': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'hookName': SchemaNode.defineString({ 'type': 'string' } as const),
-          'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'lockedAfterRelease': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'onReleaseCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'onReleaseEventsAfterDrop': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'onReleaseEventsAfterDrop': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'queueContinues': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'queueDrainCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'queueSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -139,38 +135,17 @@ export namespace ObservabilityScenarioCaseEntity {
           'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'waitTimeMsMax': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'pendingCount': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
-          'holdMs': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))]),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'pendingCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'holdMs': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)]),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'keys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'mutex': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+          'keys': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'mutex': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'waitMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

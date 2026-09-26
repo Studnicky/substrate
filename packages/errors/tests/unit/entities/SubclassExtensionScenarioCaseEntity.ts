@@ -20,7 +20,7 @@ const SCENARIO_SHAPES = [
 ] as const;
 
 const contextSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const contextNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true });
+const contextNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
 /** The scenario case shape `subclass-extension.loop.spec.ts` exercises across a `BaseError`/`ModuleError` subclass's own contract. */
 export namespace SubclassExtensionScenarioCaseEntity {
@@ -71,13 +71,9 @@ export namespace SubclassExtensionScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'auditId': SchemaNode.defineString({ 'type': 'string' } as const),
           'baseError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'chainLength': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -95,27 +91,16 @@ export namespace SubclassExtensionScenarioCaseEntity {
           'policy': SchemaNode.defineString({ 'type': 'string' } as const),
           'runtimeError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'status': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'auditId': SchemaNode.defineString({ 'type': 'string' } as const),
           'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'context': contextNode,
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'policy': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SCENARIO_SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SCENARIO_SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

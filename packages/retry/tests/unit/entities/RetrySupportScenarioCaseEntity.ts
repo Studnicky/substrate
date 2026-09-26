@@ -66,55 +66,35 @@ export namespace RetrySupportScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'classifierCalls': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'delay': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'distinctResultsGreaterThan': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'invalid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'maxDelay': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'minDelay': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'overrideDelays': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
-          'recordedDelays': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+          'overrideDelays': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+          'recordedDelays': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
           'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
           'valid': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'attempt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'failureCountBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
               'sampleCount': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'number' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'baseDelay': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
           'retry': SchemaNode.defineUnknown({} as const),
           'value': SchemaNode.defineUnknown({} as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

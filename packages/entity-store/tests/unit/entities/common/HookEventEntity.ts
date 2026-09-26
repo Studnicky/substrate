@@ -16,7 +16,7 @@ export namespace HookEventEntity {
     ],
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     HookUpsertEventEntity.Node,
     HookRemoveEventEntity.Node,
     HookReplaceAllEventEntity.Node,

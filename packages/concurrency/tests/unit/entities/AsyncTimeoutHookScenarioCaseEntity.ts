@@ -35,38 +35,18 @@ export namespace AsyncTimeoutHookScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'hookName': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['hookName', 'unhandledRejections'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'coalesce': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            ['timeout'] as const,
-            { 'additionalProperties': false }
-          ),
+        }, ['hookName', 'unhandledRejections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'coalesce': SchemaNode.defineObject({ 'type': 'object' } as const, { 'timeout': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['timeout'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['coalesce', 'key'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['coalesce', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('async-timeout-hook' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'async-timeout-hook' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

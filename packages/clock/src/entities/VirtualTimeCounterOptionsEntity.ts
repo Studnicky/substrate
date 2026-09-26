@@ -19,7 +19,7 @@ export namespace VirtualTimeCounterOptionsEntity {
   } as const;
 
   /** Construction options for {@link VirtualTimeCounter}. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': SchemaNode.defineNumber({ 'default': 0, 'minimum': 0, 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

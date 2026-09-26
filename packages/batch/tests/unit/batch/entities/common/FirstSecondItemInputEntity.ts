@@ -17,15 +17,10 @@ export namespace FirstSecondItemInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigEntity.Node,
       'firstItem': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'secondItem': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['batch', 'firstItem', 'secondItem'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['batch', 'firstItem', 'secondItem'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

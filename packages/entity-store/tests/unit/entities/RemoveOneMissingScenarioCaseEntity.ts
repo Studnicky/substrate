@@ -43,43 +43,30 @@ export namespace RemoveOneMissingScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           removed: SchemaNode.defineBoolean({
             type: "boolean",
           } as const),
-        },
-        ["removed"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+        }, ["removed"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           id: SchemaNode.defineString({
             type: "string",
           } as const),
-        },
-        ["id"] as const,
-      ),
+        }, ["id"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("remove-one-missing" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "remove-one-missing" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -11,7 +11,7 @@ export namespace SuccessStatusEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['success', 'partial', 'cached', 'skipped'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['success', 'partial', 'cached', 'skipped'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -17,7 +17,7 @@ export namespace DeadLetterQueueEntryMetadataEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'enqueuedAtMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'id': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'reason': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['enqueuedAtMs', 'id', 'reason'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'enqueuedAtMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const), 'id': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'reason': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['enqueuedAtMs', 'id', 'reason'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

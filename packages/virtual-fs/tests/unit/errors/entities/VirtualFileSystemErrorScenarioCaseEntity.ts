@@ -63,63 +63,28 @@ export namespace VirtualFileSystemErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'metadata': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-            ['path'] as const,
-            { 'additionalProperties': false }
-          ),
+          'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        ['code', 'message', 'retryable'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'error': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'args': SchemaNode.defineObject(
-                { 'type': 'object' } as const,
-                {
+        }, ['code', 'message', 'retryable'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'error': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'args': SchemaNode.defineObject({ 'type': 'object' } as const, {
                   'cause': SchemaNode.defineUnknown({} as const),
                   'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
-                  'metadata': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-            ['path'] as const,
-            { 'additionalProperties': false }
-          ),
+                  'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
                   'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-                },
-                [] as const,
-                { 'additionalProperties': false }
-              ),
+                }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
               'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-            },
-            ['message'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['error'] as const,
-        { 'additionalProperties': false }
-      ),
+            }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['error'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('construction' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'construction' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

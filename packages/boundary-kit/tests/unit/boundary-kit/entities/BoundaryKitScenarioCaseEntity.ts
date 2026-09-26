@@ -22,7 +22,7 @@ export namespace BoundaryKitScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     PlainConfigScenarioCaseEntity.Node,
     DefaultRetryScenarioCaseEntity.Node,
     PrebuiltInstancesScenarioCaseEntity.Node,

@@ -11,14 +11,9 @@ export namespace BatchStartExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batchStartCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'total': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['batchStartCount', 'total'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['batchStartCount', 'total'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

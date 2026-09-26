@@ -50,52 +50,33 @@ export namespace SetAllEmptyScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           size: SchemaNode.defineNumber({
             type: "number",
           } as const),
-        },
-        ["size"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+        }, ["size"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          initial: SchemaNode.defineArray(
-            {
+        } as const, {
+          initial: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
-          next: SchemaNode.defineArray(
-            {
+            } as const, UserEntity.Node, undefined),
+          next: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
-        },
-        ["initial", "next"] as const,
-      ),
+            } as const, UserEntity.Node, undefined),
+        }, ["initial", "next"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("set-all-empty" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "set-all-empty" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

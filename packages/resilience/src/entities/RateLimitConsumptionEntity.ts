@@ -16,7 +16,7 @@ export namespace RateLimitConsumptionEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'consumedTokens': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const), 'remainingTokens': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['consumedTokens', 'remainingTokens'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'consumedTokens': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'number' } as const), 'remainingTokens': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, ['consumedTokens', 'remainingTokens'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

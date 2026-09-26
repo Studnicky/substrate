@@ -14,18 +14,13 @@ const VisibleRangeConfigSchema = {
   'required': ['count'],
   'type': 'object'
 } as const;
-const VisibleRangeConfigNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const VisibleRangeConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'count': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'estimateSizeMode': SchemaNode.defineConst('fractional-boundary' as const),
+    'estimateSizeMode': SchemaNode.defineConst({}, 'fractional-boundary' as const),
     'estimateSizeValue': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'itemSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'overscan': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['count'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['count'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const RangeSchema = {
   'additionalProperties': false,
@@ -33,12 +28,7 @@ const RangeSchema = {
   'required': ['end', 'start'],
   'type': 'object'
 } as const;
-const RangeNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'end': SchemaNode.defineNumber({ 'type': 'number' } as const), 'start': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['end', 'start'] as const,
-  { 'additionalProperties': false }
-);
+const RangeNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'end': SchemaNode.defineNumber({ 'type': 'number' } as const), 'start': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['end', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const MeasurementSchema = {
   'additionalProperties': false,
@@ -50,16 +40,11 @@ const MeasurementSchema = {
   'required': ['index', 'size'],
   'type': 'object'
 } as const;
-const MeasurementNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const MeasurementNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'index': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'readAfter': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     'size': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['index', 'size'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['index', 'size'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const MeasurementBatchSchema = {
   'additionalProperties': false,
@@ -71,16 +56,11 @@ const MeasurementBatchSchema = {
   'required': ['endExclusive', 'size', 'start'],
   'type': 'object'
 } as const;
-const MeasurementBatchNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const MeasurementBatchNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'endExclusive': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'size': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'start': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['endExclusive', 'size', 'start'] as const,
-  { 'additionalProperties': false }
-);
+  }, ['endExclusive', 'size', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The single scenario case shape `visible-range variable mode` exercises. */
 export namespace VariableModeScenarioCaseEntity {
@@ -142,46 +122,24 @@ export namespace VariableModeScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expect': SchemaNode.defineOneOf([
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'range': RangeNode, 'shape': SchemaNode.defineConst('corrected-range' as const) },
-          ['range', 'shape'] as const,
-          { 'additionalProperties': false }
-        ),
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'range': RangeNode, 'shape': SchemaNode.defineConst('range' as const) },
-          ['range', 'shape'] as const,
-          { 'additionalProperties': false }
-        ),
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'shape': SchemaNode.defineConst('unchanged-range' as const) },
-          ['shape'] as const,
-          { 'additionalProperties': false }
-        )
+      'expect': SchemaNode.defineOneOf({}, [
+        SchemaNode.defineObject({ 'type': 'object' } as const, { 'range': RangeNode, 'shape': SchemaNode.defineConst({}, 'corrected-range' as const) }, ['range', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        SchemaNode.defineObject({ 'type': 'object' } as const, { 'range': RangeNode, 'shape': SchemaNode.defineConst({}, 'range' as const) }, ['range', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'unchanged-range' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
       ] as const),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'finalScrollOffset': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'finalViewportSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'measurementBatch': MeasurementBatchNode,
-          'measurements': SchemaNode.defineArray({ 'type': 'array' } as const, MeasurementNode),
+          'measurements': SchemaNode.defineArray({ 'type': 'array' } as const, MeasurementNode, undefined),
           'scrollOffset': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'viewportSize': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'visibleRange': VisibleRangeConfigNode
-        },
-        ['visibleRange'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['visibleRange'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'initial-range',
         'interleaved-measure-corrections',
         'measure-corrects-range',
@@ -191,9 +149,6 @@ export namespace VariableModeScenarioCaseEntity {
         'variable-boundary-offsets',
         'variable-count-zero'
       ] as const)
-    },
-    ['description', 'expect', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expect', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

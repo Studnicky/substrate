@@ -42,7 +42,7 @@ export namespace AbortResultEntity {
   } as const), 'timedOut': SchemaNode.defineBoolean({
     'description': 'Whether the grace period timed out (true) or all operations completed naturally (false). Only relevant when a timeout parameter is provided to abort().',
     'type': 'boolean'
-  } as const) }, ['cancelled', 'completed', 'timedOut'] as const, { 'additionalProperties': false });
+  } as const) }, ['cancelled', 'completed', 'timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

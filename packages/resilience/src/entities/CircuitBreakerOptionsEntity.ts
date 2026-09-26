@@ -18,7 +18,7 @@ export namespace CircuitBreakerOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'failureThreshold': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'resetTimeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'successThreshold': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['failureThreshold', 'resetTimeoutMs'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'object' } as const, { 'failureThreshold': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const), 'resetTimeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'successThreshold': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['failureThreshold', 'resetTimeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

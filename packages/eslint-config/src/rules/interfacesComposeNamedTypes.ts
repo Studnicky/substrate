@@ -143,7 +143,7 @@ namespace AncestorInfoEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hasTypeParameterConstraintAncestor': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['hasTypeParameterConstraintAncestor', 'interfaceName'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hasTypeParameterConstraintAncestor': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['hasTypeParameterConstraintAncestor', 'interfaceName'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }
 

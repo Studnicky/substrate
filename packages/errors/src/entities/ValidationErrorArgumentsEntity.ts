@@ -44,7 +44,7 @@ export namespace ValidationErrorArgumentsEntity {
   } as const), 'path': SchemaNode.defineString({
     'description': 'JSON Pointer or field name identifying the invalid value.',
     'type': 'string'
-  } as const), 'violations': SchemaNode.defineArray({ 'description': 'Structured validation violations.', 'type': 'array' } as const, ValidationViolationDetailEntity.Node) }, ['message', 'path'] as const, { 'additionalProperties': false });
+  } as const), 'violations': SchemaNode.defineArray({ 'description': 'Structured validation violations.', 'type': 'array' } as const, ValidationViolationDetailEntity.Node, undefined) }, ['message', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

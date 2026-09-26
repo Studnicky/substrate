@@ -18,18 +18,8 @@ export namespace SemaphorePermitsInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'semaphore': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['permits'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['semaphore'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'semaphore': SchemaNode.defineObject({ 'type': 'object' } as const, { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['permits'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['semaphore'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

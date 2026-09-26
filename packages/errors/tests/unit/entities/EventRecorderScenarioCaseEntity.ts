@@ -19,20 +19,10 @@ export namespace EventRecorderScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const recordedEventNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'nested': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['value'] as const,
-        { 'additionalProperties': false }
-      ),
+  const recordedEventNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'nested': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'shape': SchemaNode.defineString({ 'type': 'string' } as const)
-    },
-    ['nested', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['nested', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -64,34 +54,14 @@ export namespace EventRecorderScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'detachedProjection': recordedEventNode, 'firstProjection': recordedEventNode },
-        ['detachedProjection', 'firstProjection'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'recorder': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'event': recordedEventNode },
-            ['event'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['recorder'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'detachedProjection': recordedEventNode, 'firstProjection': recordedEventNode }, ['detachedProjection', 'firstProjection'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'recorder': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': recordedEventNode }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['recorder'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('detaches-recorded-events' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'detaches-recorded-events' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

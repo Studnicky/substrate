@@ -34,7 +34,7 @@ export namespace AsyncIterScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     MergeEmptyScenarioCaseEntity.Node,
     MergeSingleScenarioCaseEntity.Node,
     MergeTwoSourcesScenarioCaseEntity.Node,

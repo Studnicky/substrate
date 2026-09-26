@@ -56,7 +56,7 @@ export namespace CorrelationFieldsEntity {
   } as const), 'userId': SchemaNode.defineString({
     'description': 'Authenticated user ID.',
     'type': 'string'
-  } as const) }, ['requestId'] as const, { 'additionalProperties': false });
+  } as const) }, ['requestId'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -11,7 +11,7 @@ export namespace SemaphoreGrantVariantEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['idle', 'granting'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['idle', 'granting'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

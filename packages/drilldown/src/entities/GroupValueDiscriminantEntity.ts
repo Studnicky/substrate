@@ -11,7 +11,7 @@ export namespace GroupValueDiscriminantEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['alphabetic', 'cidr', 'date', 'range', 'semver', 'sequential', 'string'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['alphabetic', 'cidr', 'date', 'range', 'semver', 'sequential', 'string'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

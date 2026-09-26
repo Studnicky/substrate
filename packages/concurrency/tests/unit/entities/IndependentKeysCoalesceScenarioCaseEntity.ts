@@ -32,36 +32,21 @@ export namespace IndependentKeysCoalesceScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'callCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'resultA': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'resultB': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['callCount', 'resultA', 'resultB'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, ['callCount', 'resultA', 'resultB'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'keyA': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'keyB': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'valueA': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'valueB': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['keyA', 'keyB', 'valueA', 'valueB'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['keyA', 'keyB', 'valueA', 'valueB'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('independent-keys' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'independent-keys' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

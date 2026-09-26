@@ -19,17 +19,12 @@ export namespace DoubleReleaseSafeScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'availableAfterAcquire': SchemaNode.defineNumber({ 'type': 'number' } as const), 'availableAfterRelease': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['availableAfterAcquire', 'availableAfterRelease'] as const, { 'additionalProperties': false }),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'availableAfterAcquire': SchemaNode.defineNumber({ 'type': 'number' } as const), 'availableAfterRelease': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['availableAfterAcquire', 'availableAfterRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': SemaphorePermitsInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('double-release-safe' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'double-release-safe' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

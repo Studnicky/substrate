@@ -56,16 +56,12 @@ export namespace EventBusScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const TopicNode = SchemaNode.defineEnum(['count', 'order:created', 'order:updated', 'ping', 'x'] as const);
+  const TopicNode = SchemaNode.defineEnum({}, ['count', 'order:created', 'order:updated', 'ping', 'x'] as const);
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'afterClose': SchemaNode.defineString({ 'type': 'string' } as const),
           'beforeClose': SchemaNode.defineString({ 'type': 'string' } as const),
           'bus': BusQueueOptionsEntity.Node,
@@ -75,8 +71,8 @@ export namespace EventBusScenarioCaseEntity {
           'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'first': SchemaNode.defineString({ 'type': 'string' } as const),
           'firstId': SchemaNode.defineString({ 'type': 'string' } as const),
-          'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
-          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+          'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+          'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
           'mutatedBus': BusQueueOptionsEntity.Node,
           'payload': SchemaNode.defineString({ 'type': 'string' } as const),
           'payloadId': SchemaNode.defineString({ 'type': 'string' } as const),
@@ -84,14 +80,11 @@ export namespace EventBusScenarioCaseEntity {
           'second': SchemaNode.defineString({ 'type': 'string' } as const),
           'secondId': SchemaNode.defineString({ 'type': 'string' } as const),
           'topic': TopicNode,
-          'topics': SchemaNode.defineArray({ 'type': 'array' } as const, TopicNode),
+          'topics': SchemaNode.defineArray({ 'type': 'array' } as const, TopicNode, undefined),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'async-owned-queue-hooks', 'async-subscription-hooks', 'close-stops-delivery', 'config-snapshot',
         'default-hwm', 'enqueue-dequeue-hooks', 'forwarded-hwm', 'handler-signal', 'hook-order',
         'multiple-subscribers', 'on-deliver', 'on-dispose', 'on-drop-noop', 'on-handler-error', 'on-publish',
@@ -101,9 +94,6 @@ export namespace EventBusScenarioCaseEntity {
         'throwing-on-deliver', 'throwing-on-publish', 'topic-entry-cleanup', 'topic-entry-kept', 'topics-isolated',
         'unsubscribe-stops'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

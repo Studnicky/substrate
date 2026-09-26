@@ -17,15 +17,10 @@ export namespace SnapshotRetentionMutationsEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       batched: NestedMutationEntity.Node,
       replacement: NestedMutationEntity.Node,
       upserted: NestedMutationEntity.Node,
-    },
-    ["batched", "replacement", "upserted"] as const,
-    { additionalProperties: false },
-  );
+    }, ["batched", "replacement", "upserted"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

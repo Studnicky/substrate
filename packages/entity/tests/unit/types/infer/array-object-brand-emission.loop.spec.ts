@@ -26,8 +26,8 @@ function assertAssignable<T>(value: T): void {
 // resolves unreliably against these deferred generic-alias intersections.
 
 const maxItemsThreeItemNode = SchemaNode.defineString({ 'type': 'string' } as const);
-const maxItemsThreeNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 3 } as const, maxItemsThreeItemNode);
-const maxItemsFourNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 4 } as const, SchemaNode.defineString({ 'type': 'string' } as const));
+const maxItemsThreeNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 3 } as const, maxItemsThreeItemNode, undefined);
+const maxItemsFourNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 4 } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
 type MaxItemsThreeStaticType = NodeStaticType<typeof maxItemsThreeNode>;
 type MaxItemsFourStaticType = NodeStaticType<typeof maxItemsFourNode>;
 
@@ -35,12 +35,12 @@ type MaxItemsFourStaticType = NodeStaticType<typeof maxItemsFourNode>;
 type ArrayBrandExistsCheck = ExpectFalseType<EqualType<MaxItemsThreeStaticType, string[]>>;
 type ArrayBrandCarriesLiteralCheck = ExpectFalseType<IsAssignableType<MaxItemsFourStaticType, MaxItemsThreeStaticType>>;
 
-const uniqueNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, SchemaNode.defineNumber({ 'type': 'number' } as const));
+const uniqueNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
 type UniqueStaticType = NodeStaticType<typeof uniqueNode>;
 type UniqueBrandExistsCheck = ExpectFalseType<EqualType<UniqueStaticType, number[]>>;
 
-const minPropertiesOneNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 1 } as const, {}, [] as const);
-const minPropertiesTwoNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 2 } as const, {}, [] as const);
+const minPropertiesOneNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 1 } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+const minPropertiesTwoNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 2 } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type MinPropertiesOneStaticType = NodeStaticType<typeof minPropertiesOneNode>;
 type MinPropertiesTwoStaticType = NodeStaticType<typeof minPropertiesTwoNode>;
 

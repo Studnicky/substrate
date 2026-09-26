@@ -31,34 +31,22 @@ export namespace NestedUserEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       id: SchemaNode.defineString({
         type: "string",
       } as const),
-      profile: SchemaNode.defineObject(
-        {
+      profile: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           name: SchemaNode.defineString({
             type: "string",
           } as const),
-        },
-        ["name"] as const,
-      ),
-      roles: SchemaNode.defineArray(
-        {
+        }, ["name"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      roles: SchemaNode.defineArray({
           type: "array",
-        } as const,
-        SchemaNode.defineString({
+        } as const, SchemaNode.defineString({
           type: "string",
-        } as const),
-      ),
-    },
-    ["id", "profile", "roles"] as const,
-    { additionalProperties: false },
-  );
+        } as const), undefined),
+    }, ["id", "profile", "roles"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

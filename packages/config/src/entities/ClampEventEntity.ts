@@ -17,7 +17,7 @@ export namespace ClampEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'clamped': SchemaNode.defineNumber({ 'type': 'number' } as const), 'field': SchemaNode.defineString({ 'type': 'string' } as const), 'raw': SchemaNode.defineNumber({ 'type': 'number' } as const), 'reason': SchemaNode.defineString({ 'type': 'string' } as const) }, ['clamped', 'field', 'raw', 'reason'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'clamped': SchemaNode.defineNumber({ 'type': 'number' } as const), 'field': SchemaNode.defineString({ 'type': 'string' } as const), 'raw': SchemaNode.defineNumber({ 'type': 'number' } as const), 'reason': SchemaNode.defineString({ 'type': 'string' } as const) }, ['clamped', 'field', 'raw', 'reason'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

@@ -12,7 +12,7 @@ export namespace LogLevelNameEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(['debug', 'error', 'info', 'silent', 'trace', 'warn'] as const);
+  export const Node = SchemaNode.defineEnum({}, ['debug', 'error', 'info', 'silent', 'trace', 'warn'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

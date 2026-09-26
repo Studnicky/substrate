@@ -20,18 +20,13 @@ export namespace ContinueOnHookErrorInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'batch': BatchConfigEntity.Node,
       'errorHookErrorIndex': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'errorItem': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
       'operationErrorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'successHookErrorIndex': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    },
-    ['batch', 'errorHookErrorIndex', 'errorItem', 'items', 'operationErrorMessage', 'successHookErrorIndex'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['batch', 'errorHookErrorIndex', 'errorItem', 'items', 'operationErrorMessage', 'successHookErrorIndex'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

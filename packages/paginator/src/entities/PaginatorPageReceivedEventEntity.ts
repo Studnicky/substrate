@@ -22,16 +22,11 @@ export namespace PaginatorPageReceivedEventEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'nextCursor': SchemaNode.defineAnyOf([PaginatorAvailableCursorEntity.Node, PaginatorExhaustedCursorEntity.Node]),
-      'page': SchemaNode.defineUnknown({} as const),
-      'type': SchemaNode.defineConst('pageReceived' as const)
-    },
-    ['nextCursor', 'page', 'type'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'nextCursor': SchemaNode.defineAnyOf({}, [PaginatorAvailableCursorEntity.Node, PaginatorExhaustedCursorEntity.Node]),
+    'page': SchemaNode.defineUnknown({} as const),
+    'type': SchemaNode.defineConst({}, 'pageReceived' as const)
+  }, ['nextCursor', 'page', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

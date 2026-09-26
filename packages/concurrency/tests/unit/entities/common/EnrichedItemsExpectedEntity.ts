@@ -21,21 +21,8 @@ export namespace EnrichedItemsExpectedEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'items': SchemaNode.defineArray(
-        { 'type': 'array' } as const,
-        SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'id': SchemaNode.defineNumber({ 'type': 'number' } as const), 'label': SchemaNode.defineString({ 'type': 'string' } as const) },
-          ['id'] as const,
-          { 'additionalProperties': false }
-        )
-      )
-    },
-    ['items'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineNumber({ 'type': 'number' } as const), 'label': SchemaNode.defineString({ 'type': 'string' } as const) }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined)
+    }, ['items'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

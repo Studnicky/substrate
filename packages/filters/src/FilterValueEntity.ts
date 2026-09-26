@@ -56,31 +56,31 @@ export namespace FilterValueEntity {
     SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     SchemaNode.defineNull({ 'type': 'null' } as const)
   ] as const;
-  const level1Node = SchemaNode.defineAnyOf([
+  const level1Node = SchemaNode.defineAnyOf({}, [
     ...leafBranches,
-    SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineAnyOf(leafBranches)),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineAnyOf(leafBranches) })
+    SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineAnyOf({}, leafBranches), undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineAnyOf({}, leafBranches), 'patternProperties': {} })
   ]);
-  const level2Node = SchemaNode.defineAnyOf([
+  const level2Node = SchemaNode.defineAnyOf({}, [
     ...leafBranches,
-    SchemaNode.defineArray({ 'type': 'array' } as const, level1Node),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level1Node })
+    SchemaNode.defineArray({ 'type': 'array' } as const, level1Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level1Node, 'patternProperties': {} })
   ]);
-  const level3Node = SchemaNode.defineAnyOf([
+  const level3Node = SchemaNode.defineAnyOf({}, [
     ...leafBranches,
-    SchemaNode.defineArray({ 'type': 'array' } as const, level2Node),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level2Node })
+    SchemaNode.defineArray({ 'type': 'array' } as const, level2Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level2Node, 'patternProperties': {} })
   ]);
-  const level4Node = SchemaNode.defineAnyOf([
+  const level4Node = SchemaNode.defineAnyOf({}, [
     ...leafBranches,
-    SchemaNode.defineArray({ 'type': 'array' } as const, level3Node),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level3Node })
+    SchemaNode.defineArray({ 'type': 'array' } as const, level3Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level3Node, 'patternProperties': {} })
   ]);
 
-  export const Node = SchemaNode.defineAnyOf([
+  export const Node = SchemaNode.defineAnyOf({}, [
     ...leafBranches,
-    SchemaNode.defineArray({ 'type': 'array' } as const, level4Node),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level4Node })
+    SchemaNode.defineArray({ 'type': 'array' } as const, level4Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level4Node, 'patternProperties': {} })
   ]);
   export type Type = NodeStaticType<typeof Node>;
 

@@ -38,11 +38,11 @@ export namespace LogRecordEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogRecord', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Immutable log record assembled at emit time and passed to each transport.', 'title': 'LogRecord', 'type': 'object' } as const, { 'data': LogDataEntity.Node, 'level': SchemaNode.defineEnum([0, 1, 2, 3, 4, 5] as const), 'metadata': SchemaNode.defineObject({ 'description': 'Metadata object attached to log entries.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': true }), 'time': SchemaNode.defineNumber({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogRecord', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Immutable log record assembled at emit time and passed to each transport.', 'title': 'LogRecord', 'type': 'object' } as const, { 'data': LogDataEntity.Node, 'level': SchemaNode.defineEnum({}, [0, 1, 2, 3, 4, 5] as const), 'metadata': SchemaNode.defineObject({ 'description': 'Metadata object attached to log entries.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': true, 'patternProperties': {} }), 'time': SchemaNode.defineNumber({
     'description': 'Epoch milliseconds timestamp at emit time.',
     'minimum': 0,
     'type': 'number'
-  } as const) }, ['data', 'level', 'metadata', 'time'] as const, { 'additionalProperties': false });
+  } as const) }, ['data', 'level', 'metadata', 'time'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

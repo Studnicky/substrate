@@ -56,60 +56,38 @@ export namespace GetAllCacheInvalidatedScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          idsAfterMutation: SchemaNode.defineArray(
-            {
+        } as const, {
+          idsAfterMutation: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            SchemaNode.defineString({
+            } as const, SchemaNode.defineString({
               type: "string",
-            } as const),
-          ),
-          idsBeforeMutation: SchemaNode.defineArray(
-            {
+            } as const), undefined),
+          idsBeforeMutation: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            SchemaNode.defineString({
+            } as const, SchemaNode.defineString({
               type: "string",
-            } as const),
-          ),
-        },
-        ["idsAfterMutation", "idsBeforeMutation"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+            } as const), undefined),
+        }, ["idsAfterMutation", "idsBeforeMutation"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          entities: SchemaNode.defineArray(
-            {
+        } as const, {
+          entities: SchemaNode.defineArray({
               type: "array",
-            } as const,
-            UserEntity.Node,
-          ),
+            } as const, UserEntity.Node, undefined),
           mutation: UserEntity.Node,
-        },
-        ["entities", "mutation"] as const,
-      ),
+        }, ["entities", "mutation"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("get-all-cache-invalidated" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "get-all-cache-invalidated" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

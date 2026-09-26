@@ -10,17 +10,17 @@ interface JsonValueNodeSchemaInterface {
 
 /** `$defs.JsonValue`, TypeBox `Type.Recursive`-style: the array/object branches `$reference` back to `self`. */
 const jsonValueNode = SchemaNode.defineRecursive<JsonValueNodeSchemaInterface, JSONSchema7Type>((self) => {
-  return SchemaNode.defineAnyOf([
+  return SchemaNode.defineAnyOf({}, [
     SchemaNode.defineNull({ 'type': 'null' } as const),
     SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
     SchemaNode.defineNumber({ 'type': 'number' } as const),
     SchemaNode.defineString({ 'type': 'string' } as const),
-    SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self)),
-    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self) })
+    SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineReference('#/$defs/JsonValue', self), undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', self), 'patternProperties': {} })
   ] as const);
 });
 
-const metadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': jsonValueNode });
+const metadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': jsonValueNode, 'patternProperties': {} });
 const metadataSchema = { 'additionalProperties': jsonValueNode.schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
 
 /** The scenario case shape `CircularBufferError.loop.spec.ts` exercises. */
@@ -67,47 +67,27 @@ export namespace CircularBufferErrorScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'metadata': metadataNode,
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        ['code', 'message', 'retryable'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'args': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
+        }, ['code', 'message', 'retryable'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'args': SchemaNode.defineObject({ 'type': 'object' } as const, {
               'cause': SchemaNode.defineUnknown({} as const),
               'correlationId': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
               'metadata': metadataNode,
               'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        },
-        ['message'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(['default-construction', 'with-args', 'with-cause'] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, ['default-construction', 'with-args', 'with-cause'] as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

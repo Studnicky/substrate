@@ -15,7 +15,7 @@ export namespace VectorSearchOptionsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'limit': SchemaNode.defineNumber({ 'type': 'number' } as const), 'namespace': SchemaNode.defineString({ 'type': 'string' } as const) }, ['limit', 'namespace'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'limit': SchemaNode.defineNumber({ 'type': 'number' } as const), 'namespace': SchemaNode.defineString({ 'type': 'string' } as const) }, ['limit', 'namespace'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

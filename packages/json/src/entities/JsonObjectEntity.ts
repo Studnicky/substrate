@@ -16,12 +16,7 @@ export namespace JsonObjectEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'title': 'JsonObject', 'type': 'object' } as const,
-    {},
-    [] as const,
-    { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode) }
-  );
+  export const Node = SchemaNode.defineObject({ 'title': 'JsonObject', 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineReference('#/$defs/JsonValue', JsonValueNode), 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

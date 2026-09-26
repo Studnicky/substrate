@@ -9,12 +9,7 @@ const throttleInputSchema = {
   'type': 'object'
 } as const;
 
-const throttleInputNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-  ['concurrencyLimit'] as const,
-  { 'additionalProperties': false }
-);
+const throttleInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'concurrencyLimit': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['concurrencyLimit'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const releasesSlotSchema = {
   'additionalProperties': false,
@@ -39,32 +34,17 @@ const releasesSlotSchema = {
   'type': 'object'
 } as const;
 
-const releasesSlotNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const releasesSlotNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'recoveredResult': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
-      ['activeCount', 'recoveredResult'] as const,
-      { 'additionalProperties': false }
-    ),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'recoveredResult': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['activeCount', 'recoveredResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
         'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'throttle': throttleInputNode
-      },
-      ['errorMessage', 'result', 'throttle'] as const,
-      { 'additionalProperties': false }
-    ),
+      }, ['errorMessage', 'result', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('sync-throw-releases-slot' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'sync-throw-releases-slot' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const rejectHookSchema = {
   'additionalProperties': false,
@@ -84,32 +64,22 @@ const rejectHookSchema = {
   'type': 'object'
 } as const;
 
-const rejectHookNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const rejectHookNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false }),
-    'input': SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
         'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'failureMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'throttle': throttleInputNode
-      },
-      ['errorMessage', 'failureMessage', 'throttle'] as const,
-      { 'additionalProperties': false }
-    ),
+      }, ['errorMessage', 'failureMessage', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst('sync-throw-reject-hook' as const)
-  },
-  ['description', 'expected', 'input', 'name', 'shape'] as const,
-  { 'additionalProperties': false }
-);
+    'shape': SchemaNode.defineConst({}, 'sync-throw-reject-hook' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The two scenario case shapes `execute-sync-throw.loop.spec.ts` exercises. */
 export namespace ExecuteSyncThrowScenarioCaseEntity {
   export const Schema = { 'oneOf': [releasesSlotSchema, rejectHookSchema] } as const;
 
-  export const Node = SchemaNode.defineOneOf([releasesSlotNode, rejectHookNode] as const);
+  export const Node = SchemaNode.defineOneOf({}, [releasesSlotNode, rejectHookNode] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -11,14 +11,10 @@ type ExpectFalseType<T extends false> = T;
 type IsOptionalKeyType<T, K extends keyof T> = Record<never, never> extends Pick<T, K> ? true : false;
 
 // The child node this test wraps: an object with two sub-properties, no `default` of its own.
-const childNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  {
+const childNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'end': SchemaNode.defineNumber({ 'type': 'number' } as const),
     'start': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  },
-  ['end', 'start'] as const
-);
+  }, ['end', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type ChildStaticType = NodeStaticType<typeof childNode>;
 type ChildInputType = NodeInputType<typeof childNode>;
 
@@ -30,11 +26,7 @@ type DecoratedInputType = NodeInputType<typeof decoratedNode>;
 type StaticShapeUnchangedCheck = ExpectTrueType<EqualType<DecoratedStaticType, ChildStaticType>>;
 type InputShapeUnchangedCheck = ExpectTrueType<EqualType<DecoratedInputType, ChildInputType>>;
 
-const objectNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'range': decoratedNode },
-  [] as const
-);
+const objectNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'range': decoratedNode }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 type ObjectStaticType = NodeStaticType<typeof objectNode>;
 type ObjectInputType = NodeInputType<typeof objectNode>;
 

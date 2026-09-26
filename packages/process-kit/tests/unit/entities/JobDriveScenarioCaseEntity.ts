@@ -39,35 +39,15 @@ export namespace JobDriveScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'afterFinish': JobStateEntity.Node, 'afterStart': JobStateEntity.Node },
-        ['afterFinish', 'afterStart'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'events': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'finish': JobEventEntity.Node, 'start': JobEventEntity.Node },
-            ['finish', 'start'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['events'] as const,
-        { 'additionalProperties': false }
-      ),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'afterFinish': JobStateEntity.Node, 'afterStart': JobStateEntity.Node }, ['afterFinish', 'afterStart'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'events': SchemaNode.defineObject({ 'type': 'object' } as const, { 'finish': JobEventEntity.Node, 'start': JobEventEntity.Node }, ['finish', 'start'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['events'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('drive' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'drive' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

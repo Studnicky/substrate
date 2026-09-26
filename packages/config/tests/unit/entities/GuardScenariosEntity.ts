@@ -43,21 +43,14 @@ export namespace GuardScenariosEntity {
     'type': 'object'
   } as const;
 
-  const CaseNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const CaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'input': ScenarioJsonValueNode,
       'outcome': ScenarioJsonValueNode
-    },
-    ['description', 'input', 'outcome'] as const,
-    { 'additionalProperties': false }
-  );
-  const GroupNode = SchemaNode.defineArray({ 'type': 'array' } as const, CaseNode);
+    }, ['description', 'input', 'outcome'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const GroupNode = SchemaNode.defineArray({ 'type': 'array' } as const, CaseNode, undefined);
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'asNumber': GroupNode,
       'asRecordArray': GroupNode,
       'asStringOrNull': GroupNode,
@@ -68,10 +61,7 @@ export namespace GuardScenariosEntity {
       'isObject': GroupNode,
       'isPositiveInteger': GroupNode,
       'isString': GroupNode
-    },
-    groupNames,
-    { 'additionalProperties': false }
-  );
+    }, groupNames, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

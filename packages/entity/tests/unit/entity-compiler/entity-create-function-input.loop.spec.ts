@@ -14,11 +14,7 @@ type ExpectFalseType<T extends false> = T;
 // One entity carrying a real constraint (minimum: 0), same shape as the
 // MutexConfigEntity repro that surfaced this: create() must accept an
 // unbranded literal on input and return a branded value on output.
-const configNode = SchemaNode.defineObject(
-  { 'type': 'object' } as const,
-  { 'maximumQueueSize': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) },
-  ['maximumQueueSize'] as const
-);
+const configNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximumQueueSize': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['maximumQueueSize'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const configSchema = {
   'properties': { 'maximumQueueSize': { 'minimum': 0, 'type': 'integer' } },
   'required': ['maximumQueueSize'],

@@ -52,7 +52,7 @@ export namespace SemaphoreScenarioCaseEntity {
     ]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([
+  export const Node = SchemaNode.defineOneOf({}, [
     RejectZeroScenarioCaseEntity.Node,
     RejectFractionalScenarioCaseEntity.Node,
     RejectNegativeScenarioCaseEntity.Node,

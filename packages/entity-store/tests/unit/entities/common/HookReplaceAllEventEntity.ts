@@ -18,16 +18,11 @@ export namespace HookReplaceAllEventEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       count: SchemaNode.defineNumber({
         type: "number",
       } as const),
-      event: SchemaNode.defineConst("replaceAll" as const),
-    },
-    ["count", "event"] as const,
-    { additionalProperties: false },
-  );
+      event: SchemaNode.defineConst({}, "replaceAll" as const),
+    }, ["count", "event"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

@@ -1355,48 +1355,28 @@ export namespace ClockScenarioCaseEntity {
     ]
   } as const;
 
-  export const RuntimeNumberNode = SchemaNode.defineOneOf([
+  export const RuntimeNumberNode = SchemaNode.defineOneOf({}, [
     SchemaNode.defineNumber({ 'type': 'number' } as const),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'shape': SchemaNode.defineEnum(['infinity', 'nan', 'negative-infinity'] as const) },
-      ['shape'] as const,
-      { 'additionalProperties': false }
-    )
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineEnum({}, ['infinity', 'nan', 'negative-infinity'] as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  export const RealTimeClockProviderOptionsNode = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('default' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'shape': SchemaNode.defineConst('options' as const),
-        'value': SchemaNode.defineObject({ 'type': 'object' } as const, { 'offsetMs': RuntimeNumberNode }, [] as const, { 'additionalProperties': false })
-      },
-      ['shape'] as const,
-      { 'additionalProperties': false }
-    )
+  export const RealTimeClockProviderOptionsNode = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'default' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'shape': SchemaNode.defineConst({}, 'options' as const),
+        'value': SchemaNode.defineObject({ 'type': 'object' } as const, { 'offsetMs': RuntimeNumberNode }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  export const VirtualTimeCounterOptionsNode = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('default' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'shape': SchemaNode.defineConst('options' as const),
-        'value': SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': RuntimeNumberNode }, [] as const, { 'additionalProperties': false })
-      },
-      ['shape'] as const,
-      { 'additionalProperties': false }
-    )
+  export const VirtualTimeCounterOptionsNode = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'default' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'shape': SchemaNode.defineConst({}, 'options' as const),
+        'value': SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': RuntimeNumberNode }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  export const ObjectFixtureNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'shape': SchemaNode.defineConst('empty-object' as const) },
-    ['shape'] as const,
-    { 'additionalProperties': false }
-  );
+  export const ObjectFixtureNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'empty-object' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type RuntimeNumber = NodeStaticType<typeof RuntimeNumberNode>;
   export type RuntimeNumberShape = Extract<RuntimeNumber, { shape: string }>['shape'];
@@ -1404,1309 +1384,579 @@ export namespace ClockScenarioCaseEntity {
   export type VirtualTimeCounterOptions = NodeStaticType<typeof VirtualTimeCounterOptionsNode>;
   export type ObjectFixture = NodeStaticType<typeof ObjectFixtureNode>;
 
-  export const Node = SchemaNode.defineOneOf([
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+  export const Node = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('now-returns' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'now-returns' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'ns': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['ns'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['ns'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hrtime-returns' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hrtime-returns' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'positive': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['positive'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['positive'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-hrtime-positive' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-hrtime-positive' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'withinTolerance': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['withinTolerance'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['withinTolerance'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-now-within-range' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-now-within-range' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['message'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('offset-invalid' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'offset-invalid' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['message'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'providerFixture': ObjectFixtureNode
-          },
-          ['providerFixture'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['providerFixture'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clock-invalid-provider' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clock-invalid-provider' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['message'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-invalid-options' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-invalid-options' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['message'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterFixture': ObjectFixtureNode
-          },
-          ['counterFixture'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterFixture'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-invalid-counter' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-invalid-counter' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['message'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-invalid-options' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-invalid-options' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'ok': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['ok'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false }),
+          }, ['ok'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clock-error-with-cause' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clock-error-with-cause' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'monotonic': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['monotonic'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['monotonic'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('now-monotonic-same-instance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'now-monotonic-same-instance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'monotonic': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['monotonic'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['monotonic'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hrtime-monotonic-same-instance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hrtime-monotonic-same-instance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'sameResults': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['sameResults'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['sameResults'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('two-instances-independent' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'two-instances-independent' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'clamped': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['clamped'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['clamped'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode,
             'lowerCounterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions', 'lowerCounterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions', 'lowerCounterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clamp-backwards-provider-values' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clamp-backwards-provider-values' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-advance-reflected' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-advance-reflected' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['nowEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['nowEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hooked-clock-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hooked-clock-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['nowEvents'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['nowEvents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hooked-clock-on-now-clamped' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hooked-clock-on-now-clamped' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['nowEvents'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['nowEvents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hooked-clock-on-now-advanced' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hooked-clock-on-now-advanced' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['hrtimeEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hrtimeEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hooked-clock-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hooked-clock-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['hrtimeEvents'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['hrtimeEvents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('hooked-clock-on-hrtime-repeat' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'hooked-clock-on-hrtime-repeat' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['result', 'unhandledRejections'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['result', 'unhandledRejections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode,
             'message': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['counterOptions', 'message'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clock-async-on-now-rejection-contained' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clock-async-on-now-rejection-contained' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['nowEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['nowEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['nowEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['nowEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-on-now-offset' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-on-now-offset' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['hrtimeEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hrtimeEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-default-options' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-default-options' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['nowEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['nowEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['nowEvents'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'nowEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['nowEvents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-on-now-advance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-on-now-advance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hrtimeEvents': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['hrtimeEvents', 'result'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hrtimeEvents', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-counter-default-options' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-counter-default-options' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-throws-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-throws-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('real-provider-throws-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'real-provider-throws-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-throws-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-throws-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('virtual-provider-throws-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'virtual-provider-throws-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookCalls': SchemaNode.defineTuple({ 'type': 'array' } as const, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNumber({ 'type': 'number' } as const)] as const)
-          },
-          ['hookCalls'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookCalls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-on-advance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-on-advance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hookCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['hookCalls'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'advances': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hookCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['hookCalls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'advances': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advances', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advances', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-on-advance-suppressed' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-on-advance-suppressed' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'hookCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['hookCalls'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'advances': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const)),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'hookCalls': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['hookCalls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'advances': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advances', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advances', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-on-advance-sequence' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-on-advance-sequence' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['values'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-on-now-ms' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-on-now-ms' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
-            'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const))
-          },
-          ['values'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+            'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+          }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-on-now-ms-repeat' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-on-now-ms-repeat' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clock-throws-on-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clock-throws-on-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('clock-throws-on-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'clock-throws-on-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-throws-on-advance' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-throws-on-advance' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hookError': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['hookError'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hookError'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('counter-throws-on-now-ms' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'counter-throws-on-now-ms' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('metered-clock-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'metered-clock-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hrtime': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['hrtime'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hrtime'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'advanceMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'counterOptions': VirtualTimeCounterOptionsNode
-          },
-          ['advanceMs', 'counterOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['advanceMs', 'counterOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('metered-clock-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'metered-clock-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('offset-provider-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'offset-provider-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('offset-provider-offset' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'offset-provider-offset' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'now': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['now'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['now'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode,
             'virtualMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['counterOptions', 'virtualMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions', 'virtualMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('traced-virtual-provider-now' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'traced-virtual-provider-now' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'hrtime': SchemaNode.defineString({ 'type': 'string' } as const)
-          },
-          ['hrtime'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['hrtime'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'counterOptions': VirtualTimeCounterOptionsNode,
             'virtualMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          },
-          ['counterOptions', 'virtualMs'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['counterOptions', 'virtualMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('traced-virtual-provider-hrtime' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+        'shape': SchemaNode.defineConst({}, 'traced-virtual-provider-hrtime' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'precise': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-          },
-          ['precise'] as const,
-          { 'additionalProperties': false }
-        ),
-        'input': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          {
+          }, ['precise'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
             'rawMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
             'realProviderOptions': RealTimeClockProviderOptionsNode
-          },
-          ['rawMs', 'realProviderOptions'] as const,
-          { 'additionalProperties': false }
-        ),
+          }, ['rawMs', 'realProviderOptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst('long-uptime-precision' as const)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+        'shape': SchemaNode.defineConst({}, 'long-uptime-precision' as const)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

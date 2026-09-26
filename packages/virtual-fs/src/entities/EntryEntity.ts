@@ -16,7 +16,7 @@ export namespace EntryEntity {
   } as const;
 
   /** Internal directory/file entry metadata tracked by `VirtualFileSystem`. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mtimeMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'shape': SchemaNode.defineEnum({ 'type': 'string' } as const, ['directory', 'file'] as const) }, ['mtimeMs', 'shape'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mtimeMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'shape': SchemaNode.defineEnum({ 'type': 'string' } as const, ['directory', 'file'] as const) }, ['mtimeMs', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

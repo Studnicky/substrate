@@ -19,15 +19,10 @@ export namespace HookTimeoutScenarioCaseEntity {
     'type': 'object'
   };
 
-  const retryNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const retryNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'hookTimeoutMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
       'maximumRetries': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const)
-    },
-    [] as const,
-    { 'additionalProperties': false }
-  );
+    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -70,46 +65,26 @@ export namespace HookTimeoutScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'attempts': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'elapsedLessThanMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'errorShape': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'raceResult': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'failureCountBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'failureCountBeforeSuccess': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'delayMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'number' } as const),
           'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
           'retry': retryNode
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum(SHAPES)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineEnum({}, SHAPES)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
 }

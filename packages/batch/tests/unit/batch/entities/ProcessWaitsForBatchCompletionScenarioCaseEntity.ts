@@ -24,25 +24,15 @@ export namespace ProcessWaitsForBatchCompletionScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'batchCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'minGapMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['batchCount', 'minGapMs'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['batchCount', 'minGapMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': BatchItemsDelayMsInputEntity.Node,
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('process-waits-for-batch-completion' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'process-waits-for-batch-completion' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

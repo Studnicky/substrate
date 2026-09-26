@@ -20,7 +20,7 @@ export namespace ValueFilterRuleEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'operator': FilterOperatorEntity.Node, 'property': SchemaNode.defineString({ 'type': 'string' } as const), 'type': SchemaNode.defineConst('value' as const), 'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) }, ['operator', 'property', 'type', 'values'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'operator': FilterOperatorEntity.Node, 'property': SchemaNode.defineString({ 'type': 'string' } as const), 'type': SchemaNode.defineConst({}, 'value' as const), 'values': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['operator', 'property', 'type', 'values'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

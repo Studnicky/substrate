@@ -19,20 +19,10 @@ export namespace SampleBufferStateScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const validationEntryNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const validationEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'expected': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'value': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'isFull': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'length': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-        ['isFull', 'length'] as const,
-        { 'additionalProperties': false }
-      )
-    },
-    ['expected', 'value'] as const,
-    { 'additionalProperties': false }
-  );
+      'value': SchemaNode.defineObject({ 'type': 'object' } as const, { 'isFull': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'length': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['isFull', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['expected', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const validationInputSchema = {
     'additionalProperties': false,
@@ -41,12 +31,7 @@ export namespace SampleBufferStateScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const validationInputNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, validationEntryNode) },
-    ['validations'] as const,
-    { 'additionalProperties': false }
-  );
+  const validationInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, validationEntryNode, undefined) }, ['validations'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const validationExpectedSchema = {
     'additionalProperties': false,
@@ -55,12 +40,7 @@ export namespace SampleBufferStateScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const validationExpectedNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const)) },
-    ['validationResults'] as const,
-    { 'additionalProperties': false }
-  );
+  const validationExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined) }, ['validationResults'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const errorArgsSchema = {
     'additionalProperties': false,
@@ -95,38 +75,23 @@ export namespace SampleBufferStateScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const errorArgsNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const errorArgsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        ['causeMessage', 'correlationId', 'message', 'retryable'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, ['causeMessage', 'correlationId', 'message', 'retryable'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'type': 'string' } as const),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-        },
-        ['causeMessage', 'correlationId', 'message'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['causeMessage', 'correlationId', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('error-args' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'error-args' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   function validationBranchSchema<const TShape extends string>(shape: TShape): {
     'additionalProperties': false;
@@ -155,18 +120,13 @@ export namespace SampleBufferStateScenarioCaseEntity {
   }
 
   function validationBranchNode<const TShape extends string>(shape: TShape) {
-    return SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
+    return SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': validationExpectedNode,
         'input': validationInputNode,
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst(shape)
-      },
-      ['description', 'expected', 'input', 'name', 'shape'] as const,
-      { 'additionalProperties': false }
-    );
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   }
 
   const invalidLengthSchema = validationBranchSchema('invalid-length' as const);
@@ -178,6 +138,6 @@ export namespace SampleBufferStateScenarioCaseEntity {
     'oneOf': [errorArgsSchema, invalidLengthSchema, validStateSchema]
   } as const;
 
-  export const Node = SchemaNode.defineOneOf([errorArgsNode, invalidLengthNode, validStateNode] as const);
+  export const Node = SchemaNode.defineOneOf({}, [errorArgsNode, invalidLengthNode, validStateNode] as const);
   export type Type = NodeStaticType<typeof Node>;
 }

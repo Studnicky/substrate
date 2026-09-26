@@ -25,7 +25,7 @@ export namespace ValidationAggregateViewEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationAggregateView', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationAggregateView', 'type': 'object' } as const, { 'count': SchemaNode.defineNumber({ 'type': 'number' } as const), 'keywords': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)), 'paths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)) }, ['count', 'keywords', 'paths'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ValidationAggregateView', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationAggregateView', 'type': 'object' } as const, { 'count': SchemaNode.defineNumber({ 'type': 'number' } as const), 'keywords': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined), 'paths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['count', 'keywords', 'paths'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);

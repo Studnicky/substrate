@@ -49,18 +49,14 @@ export namespace ThrowingOnUpsertPreservesStoreScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           entity: UserEntity.Node,
           hookErrorCount: SchemaNode.defineNumber({
             type: "number",
@@ -68,29 +64,18 @@ export namespace ThrowingOnUpsertPreservesStoreScenarioCaseEntity {
           size: SchemaNode.defineNumber({
             type: "number",
           } as const),
-        },
-        ["entity", "hookErrorCount", "size"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+        }, ["entity", "hookErrorCount", "size"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           entity: UserEntity.Node,
           failure: HookFailureEntity.Node,
-        },
-        ["entity", "failure"] as const,
-      ),
+        }, ["entity", "failure"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst(
-        "throwing-on-upsert-preserves-store" as const,
-      ),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "throwing-on-upsert-preserves-store" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

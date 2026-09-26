@@ -22,7 +22,7 @@ export namespace SystemInfoEntity {
     'title': 'SystemInfoType',
     'type': 'object'
   } as const;
-  export const Node = SchemaNode.defineObject({ 'title': 'SystemInfoType', 'type': 'object' } as const, { 'cpu': CpuInfoEntity.Node, 'gpu': SchemaNode.defineOneOf([GpuInfoEntity.Node, SchemaNode.defineNull({ 'type': 'null' } as const)]), 'memory': MemoryInfoEntity.Node, 'platform': PlatformInfoEntity.Node }, ['cpu', 'gpu', 'memory', 'platform'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'SystemInfoType', 'type': 'object' } as const, { 'cpu': CpuInfoEntity.Node, 'gpu': SchemaNode.defineOneOf({}, [GpuInfoEntity.Node, SchemaNode.defineNull({ 'type': 'null' } as const)]), 'memory': MemoryInfoEntity.Node, 'platform': PlatformInfoEntity.Node }, ['cpu', 'gpu', 'memory', 'platform'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

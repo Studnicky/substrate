@@ -36,39 +36,19 @@ export namespace AsyncOnAcquireReserveScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'availableAfterFirstFailure': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'availableAfterSecondRelease': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        },
-        ['availableAfterFirstFailure', 'availableAfterSecondRelease'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+        }, ['availableAfterFirstFailure', 'availableAfterSecondRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'firstMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'secondMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'semaphore': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-            ['permits'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['firstMessage', 'secondMessage', 'semaphore'] as const,
-        { 'additionalProperties': false }
-      ),
+          'semaphore': SchemaNode.defineObject({ 'type': 'object' } as const, { 'permits': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['permits'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['firstMessage', 'secondMessage', 'semaphore'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('async-onAcquire-reserve' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'async-onAcquire-reserve' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

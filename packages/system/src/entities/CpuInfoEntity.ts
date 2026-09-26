@@ -17,7 +17,7 @@ export namespace CpuInfoEntity {
     'title': 'CpuInfoType',
     'type': 'object'
   } as const;
-  export const Node = SchemaNode.defineObject({ 'title': 'CpuInfoType', 'type': 'object' } as const, { 'arch': SchemaNode.defineString({ 'type': 'string' } as const), 'logicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'model': SchemaNode.defineString({ 'type': 'string' } as const), 'physicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['arch', 'logicalCount', 'model', 'physicalCount'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'title': 'CpuInfoType', 'type': 'object' } as const, { 'arch': SchemaNode.defineString({ 'type': 'string' } as const), 'logicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'model': SchemaNode.defineString({ 'type': 'string' } as const), 'physicalCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['arch', 'logicalCount', 'model', 'physicalCount'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

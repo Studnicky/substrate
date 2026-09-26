@@ -13,11 +13,6 @@ export namespace StagesOnlyInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'stages': SchemaNode.defineArray({ 'type': 'array' } as const, SubclassStageSpecEntity.Node) },
-    ['stages'] as const,
-    { 'additionalProperties': false }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'stages': SchemaNode.defineArray({ 'type': 'array' } as const, SubclassStageSpecEntity.Node, undefined) }, ['stages'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

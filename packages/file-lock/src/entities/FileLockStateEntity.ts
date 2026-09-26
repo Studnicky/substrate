@@ -24,10 +24,7 @@ export namespace FileLockStateEntity {
     'type': 'string'
   } as const;
 
-  export const Node = SchemaNode.defineEnum(
-    { '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'string' } as const,
-    ['acquiring', 'held', 'released'] as const
-  );
+  export const Node = SchemaNode.defineEnum({ '$schema': 'https://json-schema.org/draft/2020-12/schema', 'type': 'string' } as const, ['acquiring', 'held', 'released'] as const);
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

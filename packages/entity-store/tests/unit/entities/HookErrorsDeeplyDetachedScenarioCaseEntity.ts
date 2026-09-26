@@ -86,89 +86,58 @@ export namespace HookErrorsDeeplyDetachedScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          cause: SchemaNode.defineObject(
-            {
+        } as const, {
+          cause: SchemaNode.defineObject({
               type: "object",
-            } as const,
-            {
-              details: SchemaNode.defineObject(
-                {
+            } as const, {
+              details: SchemaNode.defineObject({
                   type: "object",
-                } as const,
-                {
-                  attempts: SchemaNode.defineArray(
-                    {
+                } as const, {
+                  attempts: SchemaNode.defineArray({
                       type: "array",
-                    } as const,
-                    SchemaNode.defineNumber({
+                    } as const, SchemaNode.defineNumber({
                       type: "number",
-                    } as const),
-                  ),
-                },
-                ["attempts"] as const,
-              ),
+                    } as const), undefined),
+                }, ["attempts"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
               message: SchemaNode.defineString({
                 type: "string",
               } as const),
-            },
-            ["details", "message"] as const,
-          ),
+            }, ["details", "message"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           hookErrorCount: SchemaNode.defineNumber({
             type: "number",
           } as const),
           hookName: SchemaNode.defineString({
             type: "string",
           } as const),
-        },
-        ["cause", "hookErrorCount", "hookName"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+        }, ["cause", "hookErrorCount", "hookName"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
-          cause: SchemaNode.defineObject(
-            {
+        } as const, {
+          cause: SchemaNode.defineObject({
               type: "object",
-            } as const,
-            {
-              attempts: SchemaNode.defineArray(
-                {
+            } as const, {
+              attempts: SchemaNode.defineArray({
                   type: "array",
-                } as const,
-                SchemaNode.defineNumber({
+                } as const, SchemaNode.defineNumber({
                   type: "number",
-                } as const),
-              ),
-            },
-            ["attempts"] as const,
-          ),
+                } as const), undefined),
+            }, ["attempts"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           entity: UserEntity.Node,
           failure: HookFailureEntity.Node,
           mutation: ErrorCauseMutationEntity.Node,
-        },
-        ["cause", "entity", "failure", "mutation"] as const,
-      ),
+        }, ["cause", "entity", "failure", "mutation"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("hook-errors-deeply-detached" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "hook-errors-deeply-detached" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

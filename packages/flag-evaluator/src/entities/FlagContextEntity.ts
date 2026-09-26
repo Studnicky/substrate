@@ -13,12 +13,7 @@ export namespace FlagContextEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'targetingKey': SchemaNode.defineString({ 'type': 'string' } as const) },
-    [] as const,
-    { 'additionalProperties': SchemaNode.defineUnknown({} as const) }
-  );
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'targetingKey': SchemaNode.defineString({ 'type': 'string' } as const) }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);

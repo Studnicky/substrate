@@ -52,26 +52,17 @@ export namespace EffectInterpreterScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const DemoEventNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    { 'type': SchemaNode.defineEnum(['activate', 'deactivate'] as const) },
-    ['type'] as const,
-    { 'additionalProperties': false }
-  );
+  const DemoEventNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum({}, ['activate', 'deactivate'] as const) }, ['type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'activateEvent': DemoEventNode,
           'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'deactivateEvent': DemoEventNode,
           'event': DemoEventNode,
-          'events': SchemaNode.defineArray({ 'type': 'array' } as const, DemoEventNode),
+          'events': SchemaNode.defineArray({ 'type': 'array' } as const, DemoEventNode, undefined),
           'initialCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'machineId': SchemaNode.defineString({ 'type': 'string' } as const),
           'mailboxCapacity': SchemaNode.defineNumber({ 'type': 'number' } as const),
@@ -80,12 +71,9 @@ export namespace EffectInterpreterScenarioCaseEntity {
           'postTransitionMutationCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'recoveryEvent': DemoEventNode,
           'rejectedEvent': DemoEventNode
-        },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+        }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'create-empty-machine-id', 'create-default-identity', 'create-non-integer-mailbox-capacity', 'create-non-positive-mailbox-capacity',
         'effect-handler-called-after-transition', 'effect-handler-omitted', 'get-state-before-start', 'handler-dispatches-within-send',
         'mailbox-capacity-bounds-mailbox', 'processes-events-fifo', 'queued-send-resolves-after-own-transition', 'rejected-transition-does-not-wedge',
@@ -93,9 +81,6 @@ export namespace EffectInterpreterScenarioCaseEntity {
         'stop-while-handler-in-flight', 'stop-before-start', 'stop-hook-throws', 'throwing-observer-does-not-block-send',
         'unsubscribe-stops-notifications'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

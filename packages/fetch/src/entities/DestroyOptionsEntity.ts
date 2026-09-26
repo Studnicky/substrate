@@ -28,7 +28,7 @@ export namespace DestroyOptionsEntity {
     'description': 'Maximum time to wait for pending requests before forcefully aborting (ms). Absent or 0 aborts immediately.',
     'minimum': 0,
     'type': 'number'
-  } as const) }, [] as const, { 'additionalProperties': false });
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

@@ -15,7 +15,7 @@ export namespace LockMetricsEntity {
   } as const;
 
   /** Metrics recorded when a lock is acquired. */
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'acquiredAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['acquiredAt'] as const, { 'additionalProperties': false });
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'acquiredAt': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['acquiredAt'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 

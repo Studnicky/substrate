@@ -45,43 +45,30 @@ export namespace UpsertOneOverwritesScenarioCaseEntity {
     type: "object",
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { type: "object" } as const,
-    {
+  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
       description: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      expected: SchemaNode.defineObject(
-        {
+      expected: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           entity: UserEntity.Node,
           size: SchemaNode.defineNumber({
             type: "number",
           } as const),
-        },
-        ["entity", "size"] as const,
-      ),
-      input: SchemaNode.defineObject(
-        {
+        }, ["entity", "size"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      input: SchemaNode.defineObject({
           type: "object",
-        } as const,
-        {
+        } as const, {
           initial: UserEntity.Node,
           next: UserEntity.Node,
-        },
-        ["initial", "next"] as const,
-      ),
+        }, ["initial", "next"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       name: SchemaNode.defineString({
         minLength: 1,
         type: "string",
       } as const),
-      shape: SchemaNode.defineConst("upsert-one-overwrites" as const),
-    },
-    ["description", "expected", "input", "name", "shape"] as const,
-    { additionalProperties: false },
-  );
+      shape: SchemaNode.defineConst({}, "upsert-one-overwrites" as const),
+    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

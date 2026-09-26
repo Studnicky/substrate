@@ -51,37 +51,17 @@ export namespace ErrorTypeGuardsScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) },
-        ['result'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'error': SchemaNode.defineOneOf([
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'result': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'error': SchemaNode.defineOneOf({}, [
             SchemaNode.defineString({ 'type': 'string' } as const),
-            SchemaNode.defineObject(
-              { 'type': 'object' } as const,
-              {},
-              [] as const,
-              { 'additionalProperties': SchemaNode.defineOneOf([SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]) }
-            )
+            SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineString({ 'type': 'string' } as const)]), 'patternProperties': {} })
           ]),
-          'guard': SchemaNode.defineEnum(GUARD_NAMES)
-        },
-        ['error', 'guard'] as const,
-        { 'additionalProperties': false }
-      ),
+          'guard': SchemaNode.defineEnum({}, GUARD_NAMES)
+        }, ['error', 'guard'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['description', 'expected', 'input', 'name'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

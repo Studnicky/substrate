@@ -41,39 +41,19 @@ export namespace CircuitBreakerOpenScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'breakerStateAfterFirst': SchemaNode.defineConst('closed' as const),
-          'breakerStateAfterSecond': SchemaNode.defineConst('open' as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'breakerStateAfterFirst': SchemaNode.defineConst({}, 'closed' as const),
+          'breakerStateAfterSecond': SchemaNode.defineConst({}, 'open' as const),
           'callCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'rejectionName': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        ['breakerStateAfterFirst', 'breakerStateAfterSecond', 'callCount', 'rejectionName'] as const,
-        { 'additionalProperties': false }
-      ),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'boundaryKit': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            { 'config': CircuitBreakerAndRetryConfigEntity.Node },
-            ['config'] as const,
-            { 'additionalProperties': false }
-          )
-        },
-        ['boundaryKit'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['breakerStateAfterFirst', 'breakerStateAfterSecond', 'callCount', 'rejectionName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'boundaryKit': SchemaNode.defineObject({ 'type': 'object' } as const, { 'config': CircuitBreakerAndRetryConfigEntity.Node }, ['config'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+        }, ['boundaryKit'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst('circuit-breaker-open' as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+      'shape': SchemaNode.defineConst({}, 'circuit-breaker-open' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

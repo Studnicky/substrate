@@ -11,14 +11,9 @@ export namespace KeyStringItemsInputEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
-      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
       'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    },
-    ['items', 'key'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['items', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

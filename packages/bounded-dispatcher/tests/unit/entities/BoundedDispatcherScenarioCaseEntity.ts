@@ -101,74 +101,35 @@ export namespace BoundedDispatcherScenarioCaseEntity {
     'type': 'object'
   } as const;
 
-  const BusDescriptorNode = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('default' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'options': BusQueueOptionsEntity.Node, 'shape': SchemaNode.defineConst('options' as const) },
-      ['options', 'shape'] as const,
-      { 'additionalProperties': false }
-    ),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      { 'failureOrdinal': SchemaNode.defineNumber({ 'type': 'number' } as const), 'shape': SchemaNode.defineConst('rejecting' as const) },
-      ['failureOrdinal', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+  const BusDescriptorNode = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'default' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': BusQueueOptionsEntity.Node, 'shape': SchemaNode.defineConst({}, 'options' as const) }, ['options', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'failureOrdinal': SchemaNode.defineNumber({ 'type': 'number' } as const), 'shape': SchemaNode.defineConst({}, 'rejecting' as const) }, ['failureOrdinal', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  const SchedulerDescriptorNode = SchemaNode.defineOneOf([
-    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst('default' as const) }, ['shape'] as const, { 'additionalProperties': false }),
-    SchemaNode.defineObject(
-      { 'type': 'object' } as const,
-      {
-        'counter': SchemaNode.defineObject(
-          { 'type': 'object' } as const,
-          { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) },
-          [] as const,
-          { 'additionalProperties': false }
-        ),
-        'shape': SchemaNode.defineConst('virtual' as const)
-      },
-      ['counter', 'shape'] as const,
-      { 'additionalProperties': false }
-    )
+  const SchedulerDescriptorNode = SchemaNode.defineOneOf({}, [
+    SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'default' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'counter': SchemaNode.defineObject({ 'type': 'object' } as const, { 'startMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, 'virtual' as const)
+      }, ['counter', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
-  const DispatcherConfigNode = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  const DispatcherConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'atMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
       'bus': BusDescriptorNode,
-      'options': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        { 'semaphore': SemaphoreOptionsEntity.Node },
-        [] as const,
-        { 'additionalProperties': false }
-      ),
+      'options': SchemaNode.defineObject({ 'type': 'object' } as const, { 'semaphore': SemaphoreOptionsEntity.Node }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'scheduler': SchedulerDescriptorNode
-    },
-    ['bus', 'options', 'scheduler'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['bus', 'options', 'scheduler'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineObject(
-    { 'type': 'object' } as const,
-    {
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true }),
-      'input': SchemaNode.defineObject(
-        { 'type': 'object' } as const,
-        {
-          'batch': SchemaNode.defineObject(
-            { 'type': 'object' } as const,
-            {
-              'labels': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const)),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+          'batch': SchemaNode.defineObject({ 'type': 'object' } as const, {
+              'labels': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
               'taskCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-            },
-            [] as const,
-            { 'additionalProperties': false }
-          ),
+            }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
           'dispatcher': DispatcherConfigNode,
           'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
           'fireResult': SchemaNode.defineString({ 'type': 'string' } as const),
@@ -177,19 +138,13 @@ export namespace BoundedDispatcherScenarioCaseEntity {
           'publicationCauseValue': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'result': SchemaNode.defineString({ 'type': 'string' } as const),
           'workErrorMessage': SchemaNode.defineString({ 'type': 'string' } as const)
-        },
-        ['dispatcher'] as const,
-        { 'additionalProperties': false }
-      ),
+        }, ['dispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum([
+      'shape': SchemaNode.defineEnum({}, [
         'backpressure-isolation', 'dispatch-concurrency-bound', 'dispatch-error', 'dispatch-serializes', 'dispatch-success',
         'reject-error-publication', 'reject-start-publication', 'reject-success-publication', 'injected-semaphore-abort',
         'injected-semaphore-queue-cap', 'schedule-cancel', 'schedule-fires', 'schedule-uses-dispatch', 'snapshot-hook-failures'
       ] as const)
-    },
-    ['description', 'expected', 'input', 'name', 'shape'] as const,
-    { 'additionalProperties': false }
-  );
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 }

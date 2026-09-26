@@ -94,16 +94,16 @@ export namespace ProblemDetailsEntity {
     'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ProblemDetails', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ProblemDetails', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Extension: bounded, cycle-safe projection of the cause chain, nearest first.', 'type': 'array' } as const, CauseNodeEntity.Node), 'code': SchemaNode.defineString({
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ProblemDetails', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ProblemDetails', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Extension: bounded, cycle-safe projection of the cause chain, nearest first.', 'type': 'array' } as const, CauseNodeEntity.Node, undefined), 'code': SchemaNode.defineString({
     'description': 'Extension: registered dotted error code, e.g. `errors.validationFailed`.',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Extension: structured metadata captured at construction.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'correlationId': SchemaNode.defineString({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Extension: structured metadata captured at construction.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'correlationId': SchemaNode.defineString({
     'description': 'Extension: correlation ID for distributed tracing.',
     'type': 'string'
   } as const), 'detail': SchemaNode.defineString({
     'description': 'Human-readable explanation specific to THIS occurrence of the problem.',
     'type': 'string'
-  } as const), 'errors': SchemaNode.defineArray({ 'description': 'Extension: individual validation violations behind this problem.', 'type': 'array' } as const, ValidationViolationEntity.Node), 'instance': SchemaNode.defineString({
+  } as const), 'errors': SchemaNode.defineArray({ 'description': 'Extension: individual validation violations behind this problem.', 'type': 'array' } as const, ValidationViolationEntity.Node, undefined), 'instance': SchemaNode.defineString({
     'description': 'URI reference identifying this specific occurrence.',
     'type': 'string'
   } as const), 'retryable': SchemaNode.defineBoolean({
@@ -126,7 +126,7 @@ export namespace ProblemDetailsEntity {
   } as const), 'type': SchemaNode.defineString({
     'description': `URI reference identifying the problem type. This is the discriminant. An absent type means '${PROBLEM_TYPE_BLANK}' per RFC 9457 4.2.1; it is not defaulted into the schema, because a member with a default is no longer optional and 3.1 makes every member optional.`,
     'type': 'string'
-  } as const) }, [] as const, { 'additionalProperties': true });
+  } as const) }, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;
 
