@@ -17,6 +17,7 @@ export namespace ThrottleStatsEntity {
         'type': 'integer'
       },
       'adaptive': {
+        'additionalProperties': false,
         'description': 'Adaptive concurrency statistics. Present when adaptive concurrency is enabled.',
         'properties': {
           'adjustmentCount': { 'minimum': 0, 'type': 'integer' },
@@ -50,6 +51,7 @@ export namespace ThrottleStatsEntity {
         'type': 'boolean'
       },
       'latency': {
+        'additionalProperties': false,
         'description': 'Latency statistics from the sliding window buffer. Present when adaptive concurrency is enabled.',
         'properties': {
           'p50': { 'minimum': 0, 'type': 'number' },

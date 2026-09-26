@@ -19,6 +19,7 @@ export namespace LogBodyConfigEntity {
         'type': 'string'
       },
       'context': {
+        'additionalProperties': {},
         'description': 'Freeform application data as a JSON blob.',
         'type': 'object'
       },
@@ -45,7 +46,7 @@ export namespace LogBodyConfigEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/LogBodyConfig', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Configuration for a normalized log entry.', 'title': 'LogBodyConfig', 'type': 'object' } as const, { 'component': SchemaNode.defineString({
     'description': 'Event component prefix.',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const), 'durationMs': SchemaNode.defineNumber({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Freeform application data as a JSON blob.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'durationMs': SchemaNode.defineNumber({
     'description': 'Duration in milliseconds.',
     'minimum': 0,
     'type': 'number'

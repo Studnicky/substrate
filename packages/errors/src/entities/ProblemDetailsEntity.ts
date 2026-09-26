@@ -41,6 +41,7 @@ export namespace ProblemDetailsEntity {
         'type': 'string'
       },
       'context': {
+        'additionalProperties': {},
         'description': 'Extension: structured metadata captured at construction.',
         'type': 'object'
       },
@@ -96,7 +97,7 @@ export namespace ProblemDetailsEntity {
   export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ProblemDetails', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ProblemDetails', 'type': 'object' } as const, { 'causes': SchemaNode.defineArray({ 'description': 'Extension: bounded, cycle-safe projection of the cause chain, nearest first.', 'type': 'array' } as const, CauseNodeEntity.Node), 'code': SchemaNode.defineString({
     'description': 'Extension: registered dotted error code, e.g. `errors.validationFailed`.',
     'type': 'string'
-  } as const), 'context': SchemaNode.defineObject({ 'description': 'Extension: structured metadata captured at construction.', 'type': 'object' } as const, {  }, [] as const), 'correlationId': SchemaNode.defineString({
+  } as const), 'context': SchemaNode.defineObject({ 'description': 'Extension: structured metadata captured at construction.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const) }), 'correlationId': SchemaNode.defineString({
     'description': 'Extension: correlation ID for distributed tracing.',
     'type': 'string'
   } as const), 'detail': SchemaNode.defineString({

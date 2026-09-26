@@ -11,6 +11,7 @@ export namespace LayerOptionsEntity {
     'additionalProperties': false,
     'properties': {
       'allowedImports': {
+        'additionalProperties': false,
         'description': 'Override of the default allow-matrix: source layer name -> list of layers it may import from.',
         'patternProperties': {
           '.*': {
