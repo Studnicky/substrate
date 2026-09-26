@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
+import { GuardScenariosEntity } from '../entities/GuardScenariosEntity.js';
+
 import scenarioGroups from './guard.scenarios.json' with { type: 'json' };
 
 function fixtureFunction(): void {
@@ -100,12 +102,18 @@ const guardGroupNames: readonly GuardGroupName[] = [
   'isPositiveInteger'
 ];
 
-const typedScenarioGroups = scenarioGroups as Record<GuardGroupName, readonly GuardScenario[]>;
+const typedScenarioGroups: Record<GuardGroupName, readonly GuardScenario[]> = GuardScenariosEntity.intake(scenarioGroups);
 
 function isSpecialValue(
   value: { readonly [key: string]: SerializedScenarioValue }
 ): value is { readonly shape: SpecialValueShape } {
   return typeof value.shape === 'string' && Object.hasOwn(specialValueMaterializers, value.shape);
+}
+
+// Excludes the primitive and array members of a recursive union member-wise, so the
+// remaining object branch is a real narrow, not an asserted one.
+function isRecordLikeValue(value: SerializedScenarioValue): value is { readonly [key: string]: SerializedScenarioValue } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function materialize(value: SerializedScenarioValue): unknown {
@@ -115,14 +123,13 @@ function materialize(value: SerializedScenarioValue): unknown {
   if (Array.isArray(value)) {
     return value.map((entry) => materialize(entry));
   }
-  // Array.isArray() above rules out the array branch at runtime, but TypeScript's
-  // narrower can't fold that back into this recursive union — the object shape
-  // is asserted, not assumed.
-  const objectValue = value as { readonly [key: string]: SerializedScenarioValue };
-  if (isSpecialValue(objectValue)) {
-    return specialValueMaterializers[objectValue.shape]();
+  if (isRecordLikeValue(value) && isSpecialValue(value)) {
+    return specialValueMaterializers[value.shape]();
   }
-  return Object.fromEntries(Object.entries(objectValue).map(([key, entry]) => [key, materialize(entry)]));
+  if (isRecordLikeValue(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, materialize(entry)]));
+  }
+  return undefined;
 }
 
 for (const groupName of guardGroupNames) {
