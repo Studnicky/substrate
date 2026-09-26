@@ -11,7 +11,8 @@ export class NodeSchemaAgreement {
   static assertMatches(schema: Record<string, unknown>, node: SchemaNodeInterface<unknown, unknown>): void {
     const nodeSchema = NodeSchemaAgreement.schemaOf(node);
     const flattenedNode = NodeSchemaAgreement.flattenSchema(nodeSchema);
-    if (!isDeepStrictEqual(schema, flattenedNode)) {
+    const flattenedSchema = NodeSchemaAgreement.flattenSchema(schema);
+    if (!isDeepStrictEqual(flattenedSchema, flattenedNode)) {
       const error = RuntimeError.create(
         `Schema and Node disagree.\nSchema: ${JSON.stringify(schema)}\nNode (flattened): ${JSON.stringify(flattenedNode)}`
       );
@@ -66,8 +67,18 @@ export class NodeSchemaAgreement {
     return result;
   }
 
+  /** An empty `required` list and an absent `required` key validate identically, so neither side's choice is a disagreement. */
+  private static dropEmptyRequired(schema: Record<string, unknown>): void {
+    const required = schema.required;
+    if (Array.isArray(required) && required.length === 0) {
+      Reflect.deleteProperty(schema, 'required');
+    }
+  }
+
   private static flattenSchema(schema: Record<string, unknown>): Record<string, unknown> {
     const flattened: Record<string, unknown> = { ...schema };
+
+    NodeSchemaAgreement.dropEmptyRequired(flattened);
 
     const properties = schema.properties;
     if (Predicates.isObject(properties)) {
