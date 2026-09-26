@@ -1,9 +1,12 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
+
+import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
 
 import scenarioGroups from './body-serialization.scenarios.json' with { type: 'json' };
 
@@ -61,6 +64,56 @@ void afterEach(() => {
 const ctx = {
   client: FetchClient.create()
 };
+
+const runtimeValueGuard = createRuntimeValueGuard([
+  'array-buffer', 'bigint', 'buffer', 'circular', 'date',
+  'filled-buffer', 'function-properties', 'symbol-properties',
+  'undefined', 'uint8-array'
+] as const);
+
+function isMessageIncludes(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((fragment) => { return typeof fragment === 'string'; });
+}
+
+function isRequestDefinition(value: unknown): value is RequestDefinition {
+  if (!Predicates.isObject(value) || typeof value.path !== 'string') {
+    return false;
+  }
+  if (value.method !== 'PATCH' && value.method !== 'POST' && value.method !== 'PUT') {
+    return false;
+  }
+  return value.body === undefined || runtimeValueGuard.isRuntimeValue(value.body);
+}
+
+function isScenarioExpectation(value: unknown): value is RejectExpectation | SuccessExpectation {
+  if (!Predicates.isObject(value)) {
+    return false;
+  }
+  if ('messageIncludes' in value) {
+    return value.name === 'TypeError' && isMessageIncludes(value.messageIncludes);
+  }
+  return typeof value.status === 'number' && (value.json === undefined || runtimeValueGuard.isRuntimeValue(value.json));
+}
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  return Predicates.isObject(value)
+    && typeof value.description === 'string'
+    && typeof value.name === 'string'
+    && isScenarioExpectation(value.expected)
+    && Predicates.isObject(value.input)
+    && isRequestDefinition(value.input.request);
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('body-serialization.scenarios.json does not match the expected scenario case shape');
+  }
+  return value;
+}
 
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
   return typeof value === 'object' && value !== null && 'shape' in value;
@@ -131,7 +184,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
   const materialized: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
-    materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
+    materialized[key] = materializeRuntimeValue(entry);
   }
   return materialized;
 }
@@ -142,7 +195,7 @@ function parseJsonBody(body: string): Record<string, unknown> {
   }
 
   try {
-    return JSON.parse(body) as Record<string, unknown>;
+    return JSON.parse(body);
   } catch {
     return {};
   }
@@ -247,7 +300,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('FetchClient Body Serialization', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       globalThis.fetch = bodySerializationFetch;
       await runCase(scenario);
