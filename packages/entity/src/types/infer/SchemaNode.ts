@@ -1,8 +1,8 @@
 import type { JSONSchema7 } from 'json-schema';
 
-import { PickDefined } from '@studnicky/types/browser';
-
+import type { DefineObjectAdditionalOnlyOptionsInterface } from '../../interfaces/DefineObjectAdditionalOnlyOptionsInterface.js';
 import type { DefineObjectOptionsInterface } from '../../interfaces/DefineObjectOptionsInterface.js';
+import type { DefineObjectPatternOnlyOptionsInterface } from '../../interfaces/DefineObjectPatternOnlyOptionsInterface.js';
 import type { ObjectSchemaShapeInterface } from '../../interfaces/ObjectSchemaShapeInterface.js';
 import type { SchemaNodeInterface } from '../../interfaces/SchemaNodeInterface.js';
 import type { IdentityType } from '../IdentityType.js';
@@ -67,7 +67,9 @@ export class SchemaNode {
     schema: TSchema,
     value: TValue
   ): SchemaNodeInterface<TSchema & { readonly 'const': TValue }, TValue>;
-  public static defineConst(...argumentList: [value: unknown] | [schema: Record<string, unknown>, value: unknown]): SchemaNodeInterface<unknown, unknown> {
+  public static defineConst<const TSchema extends Record<string, unknown>, const TValue>(
+    ...argumentList: [value: TValue] | [schema: TSchema, value: TValue]
+  ): SchemaNodeInterface<{ readonly 'const': TValue }, TValue> | SchemaNodeInterface<TSchema & { readonly 'const': TValue }, TValue> {
     if (argumentList.length === 2) {
       const [schema, value] = argumentList;
 
@@ -85,7 +87,9 @@ export class SchemaNode {
     schema: TSchema,
     values: TValues
   ): SchemaNodeInterface<TSchema & { readonly 'enum': TValues }, TValues[number]>;
-  public static defineEnum(...argumentList: [values: readonly unknown[]] | [schema: Record<string, unknown>, values: readonly unknown[]]): SchemaNodeInterface<unknown, unknown> {
+  public static defineEnum<const TSchema extends Record<string, unknown>, const TValues extends readonly unknown[]>(
+    ...argumentList: [values: TValues] | [schema: TSchema, values: TValues]
+  ): SchemaNodeInterface<{ readonly 'enum': TValues }, TValues[number]> | SchemaNodeInterface<TSchema & { readonly 'enum': TValues }, TValues[number]> {
     if (argumentList.length === 2) {
       const [schema, values] = argumentList;
 
@@ -125,41 +129,110 @@ export class SchemaNode {
 
   public static defineArray<
     const TSchema extends Record<string, unknown>,
+    TItem extends SchemaNodeInterface<unknown, unknown>
+  >(
+    schema: TSchema,
+    items: TItem
+  ): SchemaNodeInterface<TSchema & { 'items': TItem }, ApplyArrayConstraintBrandsType<TSchema> & NodeStaticType<TItem>[], NodeInputType<TItem>[]>;
+  public static defineArray<
+    const TSchema extends Record<string, unknown>,
     TItem extends SchemaNodeInterface<unknown, unknown>,
-    TContains extends SchemaNodeInterface<unknown, unknown> | undefined = undefined
+    TContains extends SchemaNodeInterface<unknown, unknown>
+  >(
+    schema: TSchema,
+    items: TItem,
+    contains: TContains
+  ): SchemaNodeInterface<
+    TSchema & { 'contains': TContains; 'items': TItem },
+    ApplyArrayConstraintBrandsType<TSchema, NodeStaticType<TContains>> & NodeStaticType<TItem>[],
+    NodeInputType<TItem>[]
+  >;
+  public static defineArray<
+    const TSchema extends Record<string, unknown>,
+    TItem extends SchemaNodeInterface<unknown, unknown>,
+    TContains extends SchemaNodeInterface<unknown, unknown>
   >(
     schema: TSchema,
     items: TItem,
     contains?: TContains
-  ): SchemaNodeInterface<
-    TSchema & { 'contains'?: TContains; 'items': TItem },
-    ApplyArrayConstraintBrandsType<TSchema, TContains extends SchemaNodeInterface<unknown, unknown> ? NodeStaticType<TContains> : never>
-      & NodeStaticType<TItem>[],
-    NodeInputType<TItem>[]
-  >;
-  public static defineArray(
-    schema: Record<string, unknown>,
-    items: SchemaNodeInterface<unknown, unknown>,
-    contains?: SchemaNodeInterface<unknown, unknown>
-  ): SchemaNodeInterface<unknown, unknown> {
-    const combinedSchema = PickDefined.from({ ...schema, 'contains': contains, 'items': items });
+  ):
+    | SchemaNodeInterface<TSchema & { 'items': TItem }, ApplyArrayConstraintBrandsType<TSchema> & NodeStaticType<TItem>[], NodeInputType<TItem>[]>
+    | SchemaNodeInterface<
+      TSchema & { 'contains': TContains; 'items': TItem },
+      ApplyArrayConstraintBrandsType<TSchema, NodeStaticType<TContains>> & NodeStaticType<TItem>[],
+      NodeInputType<TItem>[]
+    > {
+    if (contains !== undefined) {
+      return { 'schema': { ...schema, 'contains': contains, 'items': items } };
+    }
 
-    return { 'schema': combinedSchema };
+    return { 'schema': { ...schema, 'items': items } };
   }
 
   public static defineObject<
     TSchema extends Record<string, unknown>,
     TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+    TRequired extends keyof TProps & string
+  >(
+    schema: TSchema,
+    properties: TProps,
+    required: readonly TRequired[]
+  ): SchemaNodeInterface<
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': false; 'patternProperties': Record<never, never>; 'properties': TProps; 'required': readonly TRequired[] },
+    IdentityType<ApplyObjectConstraintBrandsType<TSchema> & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>>,
+    IdentityType<InferObjectPropertiesInputType<TProps, TRequired>>
+  >;
+  public static defineObject<
+    TSchema extends Record<string, unknown>,
+    TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
     TRequired extends keyof TProps & string,
-    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown> = false,
-    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>> = Record<never, never>
+    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown>
   >(
     schema: TSchema,
     properties: TProps,
     required: readonly TRequired[],
-    options?: DefineObjectOptionsInterface<TAdditional, TPatternProps>
+    options: DefineObjectAdditionalOnlyOptionsInterface<TAdditional>
   ): SchemaNodeInterface<
-    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties'?: TAdditional; 'patternProperties'?: TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': TAdditional; 'patternProperties': Record<never, never>; 'properties': TProps; 'required': readonly TRequired[] },
+    IdentityType<
+      ApplyObjectConstraintBrandsType<TSchema>
+      & InferAdditionalPropertiesStaticType<TAdditional>
+      & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
+    >,
+    IdentityType<InferAdditionalPropertiesInputType<TAdditional> & InferObjectPropertiesInputType<TProps, TRequired>>
+  >;
+  public static defineObject<
+    TSchema extends Record<string, unknown>,
+    TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+    TRequired extends keyof TProps & string,
+    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
+  >(
+    schema: TSchema,
+    properties: TProps,
+    required: readonly TRequired[],
+    options: DefineObjectPatternOnlyOptionsInterface<TPatternProps>
+  ): SchemaNodeInterface<
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': false; 'patternProperties': TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
+    IdentityType<
+      ApplyObjectConstraintBrandsType<TSchema>
+      & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
+      & InferPatternPropertiesStaticType<TPatternProps>
+    >,
+    IdentityType<InferObjectPropertiesInputType<TProps, TRequired> & InferPatternPropertiesInputType<TPatternProps>>
+  >;
+  public static defineObject<
+    TSchema extends Record<string, unknown>,
+    TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+    TRequired extends keyof TProps & string,
+    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown>,
+    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
+  >(
+    schema: TSchema,
+    properties: TProps,
+    required: readonly TRequired[],
+    options: Required<DefineObjectOptionsInterface<TAdditional, TPatternProps>>
+  ): SchemaNodeInterface<
+    ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': TAdditional; 'patternProperties': TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
     IdentityType<
       ApplyObjectConstraintBrandsType<TSchema>
       & InferAdditionalPropertiesStaticType<TAdditional>
@@ -172,21 +245,69 @@ export class SchemaNode {
       & InferPatternPropertiesInputType<TPatternProps>
     >
   >;
-  public static defineObject(
-    schema: Record<string, unknown>,
-    properties: Record<string, SchemaNodeInterface<unknown, unknown>>,
-    required: readonly string[],
-    options?: DefineObjectOptionsInterface<boolean | SchemaNodeInterface<unknown, unknown>, Record<string, SchemaNodeInterface<unknown, unknown>>>
-  ): SchemaNodeInterface<unknown, unknown> {
-    const combinedSchema = PickDefined.from({
-      ...schema,
-      'additionalProperties': options?.additionalProperties ?? false,
-      'patternProperties': options?.patternProperties,
-      'properties': properties,
-      'required': required
-    });
+  public static defineObject<
+    TSchema extends Record<string, unknown>,
+    TProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+    TRequired extends keyof TProps & string,
+    TAdditional extends boolean | SchemaNodeInterface<unknown, unknown>,
+    TPatternProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
+  >(
+    schema: TSchema,
+    properties: TProps,
+    required: readonly TRequired[],
+    options?: DefineObjectOptionsInterface<TAdditional, TPatternProps>
+  ):
+    | SchemaNodeInterface<
+      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': false; 'patternProperties': Record<never, never>; 'properties': TProps; 'required': readonly TRequired[] },
+      IdentityType<ApplyObjectConstraintBrandsType<TSchema> & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>>,
+      IdentityType<InferObjectPropertiesInputType<TProps, TRequired>>
+    >
+    | SchemaNodeInterface<
+      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': TAdditional; 'patternProperties': Record<never, never>; 'properties': TProps; 'required': readonly TRequired[] },
+      IdentityType<
+        ApplyObjectConstraintBrandsType<TSchema>
+        & InferAdditionalPropertiesStaticType<TAdditional>
+        & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
+      >,
+      IdentityType<InferAdditionalPropertiesInputType<TAdditional> & InferObjectPropertiesInputType<TProps, TRequired>>
+    >
+    | SchemaNodeInterface<
+      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': false; 'patternProperties': TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
+      IdentityType<
+        ApplyObjectConstraintBrandsType<TSchema>
+        & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
+        & InferPatternPropertiesStaticType<TPatternProps>
+      >,
+      IdentityType<InferObjectPropertiesInputType<TProps, TRequired> & InferPatternPropertiesInputType<TPatternProps>>
+    >
+    | SchemaNodeInterface<
+      ObjectSchemaShapeInterface & TSchema & { 'additionalProperties': TAdditional; 'patternProperties': TPatternProps; 'properties': TProps; 'required': readonly TRequired[] },
+      IdentityType<
+        ApplyObjectConstraintBrandsType<TSchema>
+        & InferAdditionalPropertiesStaticType<TAdditional>
+        & InferObjectPropertiesStaticType<TProps, TRequired | InferDefaultBearingKeysType<TProps>>
+        & InferPatternPropertiesStaticType<TPatternProps>
+      >,
+      IdentityType<
+        InferAdditionalPropertiesInputType<TAdditional>
+        & InferObjectPropertiesInputType<TProps, TRequired>
+        & InferPatternPropertiesInputType<TPatternProps>
+      >
+    > {
+    const additionalProperties = options?.additionalProperties;
+    const patternProperties = options?.patternProperties;
 
-    return { 'schema': combinedSchema };
+    if (additionalProperties !== undefined && patternProperties !== undefined) {
+      return { 'schema': { ...schema, 'additionalProperties': additionalProperties, 'patternProperties': patternProperties, 'properties': properties, 'required': required } };
+    }
+    if (additionalProperties !== undefined) {
+      return { 'schema': { ...schema, 'additionalProperties': additionalProperties, 'patternProperties': {}, 'properties': properties, 'required': required } };
+    }
+    if (patternProperties !== undefined) {
+      return { 'schema': { ...schema, 'additionalProperties': false, 'patternProperties': patternProperties, 'properties': properties, 'required': required } };
+    }
+
+    return { 'schema': { ...schema, 'additionalProperties': false, 'patternProperties': {}, 'properties': properties, 'required': required } };
   }
 
   public static defineAllOf<const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
@@ -196,9 +317,11 @@ export class SchemaNode {
     schema: TSchema,
     branches: TItems
   ): SchemaNodeInterface<TSchema & { readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>;
-  public static defineAllOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
+  public static defineAllOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    ...argumentList: [branches: TItems] | [schema: TSchema, branches: TItems]
+  ):
+    | SchemaNodeInterface<{ readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>>
+    | SchemaNodeInterface<TSchema & { readonly 'allOf': TItems }, IdentityType<InferIntersectionOfStaticType<TItems>>, IdentityType<InferIntersectionOfInputType<TItems>>> {
     if (argumentList.length === 2) {
       const [schema, branches] = argumentList;
 
@@ -216,9 +339,11 @@ export class SchemaNode {
     schema: TSchema,
     branches: TItems
   ): SchemaNodeInterface<TSchema & { readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
-  public static defineAnyOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
+  public static defineAnyOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    ...argumentList: [branches: TItems] | [schema: TSchema, branches: TItems]
+  ):
+    | SchemaNodeInterface<{ readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>
+    | SchemaNodeInterface<TSchema & { readonly 'anyOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
     if (argumentList.length === 2) {
       const [schema, branches] = argumentList;
 
@@ -236,9 +361,11 @@ export class SchemaNode {
     schema: TSchema,
     branches: TItems
   ): SchemaNodeInterface<TSchema & { readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>;
-  public static defineOneOf(
-    ...argumentList: [branches: readonly SchemaNodeInterface<unknown, unknown>[]] | [schema: Record<string, unknown>, branches: readonly SchemaNodeInterface<unknown, unknown>[]]
-  ): SchemaNodeInterface<unknown, unknown> {
+  public static defineOneOf<const TSchema extends Record<string, unknown>, const TItems extends readonly SchemaNodeInterface<unknown, unknown>[]>(
+    ...argumentList: [branches: TItems] | [schema: TSchema, branches: TItems]
+  ):
+    | SchemaNodeInterface<{ readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>>
+    | SchemaNodeInterface<TSchema & { readonly 'oneOf': TItems }, InferUnionOfStaticType<TItems>, InferUnionOfInputType<TItems>> {
     if (argumentList.length === 2) {
       const [schema, branches] = argumentList;
 
@@ -257,9 +384,9 @@ export class SchemaNode {
     schema: TSchema,
     inner: TInner
   ): SchemaNodeInterface<TSchema & { readonly 'not': TInner }, unknown>;
-  public static defineNot(
-    ...argumentList: [inner: SchemaNodeInterface<unknown, unknown>] | [schema: Record<string, unknown>, inner: SchemaNodeInterface<unknown, unknown>]
-  ): SchemaNodeInterface<unknown, unknown> {
+  public static defineNot<const TSchema extends Record<string, unknown>, const TInner extends SchemaNodeInterface<unknown, unknown>>(
+    ...argumentList: [inner: TInner] | [schema: TSchema, inner: TInner]
+  ): SchemaNodeInterface<{ readonly 'not': TInner }, unknown> | SchemaNodeInterface<TSchema & { readonly 'not': TInner }, unknown> {
     if (argumentList.length === 2) {
       const [schema, inner] = argumentList;
 
