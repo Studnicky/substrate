@@ -16,6 +16,12 @@
   "references": [
     {
       "path": "./tsconfig.json"
+    },
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

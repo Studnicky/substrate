@@ -1,17 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { MutexKeyTransitionEventEntity, MutexQueueEntryEntity } from '../../src/entities/index.js';
+import { MutexQueueEntryScenarioCaseEntity } from './entities/MutexQueueEntryScenarioCaseEntity.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { validationResults: boolean[] };
-      input: { validations: { expected: boolean; value: Record<string, unknown> }[] };
-      shape: 'negative' | 'non-negative';
-      name: string;
-    };
+type ScenarioCase = MutexQueueEntryScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(MutexQueueEntryScenarioCaseEntity.Schema, MutexQueueEntryScenarioCaseEntity.Node);
 
 function runCase(scenarioCase: ScenarioCase): void {
   const results = scenarioCase.input.validations.map((validation) => {
@@ -33,7 +30,7 @@ void describe('mutex key transition event entity', () => {
 });
 
 void describe('mutex queue entry entity', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

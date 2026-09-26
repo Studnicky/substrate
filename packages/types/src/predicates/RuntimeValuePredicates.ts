@@ -74,17 +74,6 @@ export class RuntimeValuePredicates extends DateSemverPredicates {
     return false;
   }
 
-  /** Reference equality using `Object.is` semantics — correct for `NaN` and `-0`/`+0`. */
-  public static areReferenceEqual(value: unknown, filterValue: unknown): boolean {
-    if (value === filterValue) {
-      const result = value !== 0 || 1 / (value as number) === 1 / (filterValue as number);
-      return result;
-    }
-
-    const result = value !== value && filterValue !== filterValue;
-    return result;
-  }
-
   /** Case-sensitive or case-insensitive string comparison via a supplied `operation`. */
   public static areStringsMatching(
     value: string,

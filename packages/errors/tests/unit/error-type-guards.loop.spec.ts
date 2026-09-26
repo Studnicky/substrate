@@ -1,21 +1,19 @@
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { errorTypeGuards } from '../../src/validation/errorTypeGuards.js';
+import { ErrorTypeGuardsScenarioCaseEntity } from './entities/ErrorTypeGuardsScenarioCaseEntity.js';
 import scenarioGroups from './error-type-guards.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  description: string;
-  expected: { result: boolean };
-  input: { error: ErrorFixture; guard: keyof typeof errorTypeGuards };
-  name: string;
-};
+type ScenarioCase = ErrorTypeGuardsScenarioCaseEntity.Type;
+type ErrorFixture = ScenarioCase['input']['error'];
 
-type ErrorFixture = string | Record<string, number | string>;
+const fileIntake = ScenarioFileCompiler.compileIntake(ErrorTypeGuardsScenarioCaseEntity.Schema, ErrorTypeGuardsScenarioCaseEntity.Node);
 
 function materializeError(error: ErrorFixture): ErrorFixture | Error {
-  if (error !== null && typeof error === 'object' && 'shape' in error && (error as { shape?: string }).shape === 'native-error') {
+  if (error !== null && typeof error === 'object' && 'shape' in error && error.shape === 'native-error') {
     const nativeError = RuntimeError.create('native error');
     Object.assign(nativeError, error);
     Reflect.deleteProperty(nativeError, 'shape');
@@ -32,7 +30,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('error type guards', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });
