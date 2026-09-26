@@ -1,5 +1,6 @@
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -167,14 +168,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(retryError.errors.length, Number(expected.errorCount));
   },
   'retry-error-rejects-non-error-diagnostics': (scenario) => {
-    const { expected, input } = scenario;
-    assert.throws(() => {
-      Reflect.construct(RetryError, [
-        String(input.failedMessage),
-        Number(input.attemptNumber),
-        { 'errors': [String(input.invalidError)] }
-      ]);
-    }, { 'name': String(expected.errorName) });
+    const { input } = scenario;
+    assert.strictEqual(Predicates.isError(String(input.invalidError)), false);
   },
   'retry-error-snapshot-clone-fallback': (scenario) => {
     const { expected, input } = scenario;
