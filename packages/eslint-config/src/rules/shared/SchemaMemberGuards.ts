@@ -412,11 +412,10 @@ export class SchemaMemberGuards {
       return undefined;
     }
 
-    if (Predicates.isRecord(p.name)) {
-      return (p.name).name as string | undefined;
-    }
+    const name = Predicates.isRecord(p.name) ? p.name.name : p.name;
+    const result = typeof name === 'string' ? name : undefined;
 
-    return p.name as string | undefined;
+    return result;
   }
 
   // const validate = (...): candidate is Type => { ... }
@@ -488,7 +487,7 @@ export class SchemaMemberGuards {
     let typeReferenceNode: unknown = predTypeAnnotation;
 
     if (AstHelpers.getNodeType(typeReferenceNode) === 'TSTypeAnnotation') {
-      typeReferenceNode = (typeReferenceNode as Record<string, unknown>).typeAnnotation;
+      typeReferenceNode = AstHelpers.getNodeProperty(typeReferenceNode, 'typeAnnotation');
     }
     if (!Predicates.isRecord(typeReferenceNode) || AstHelpers.getNodeType(typeReferenceNode) !== 'TSTypeReference') {
       return false;
