@@ -29,9 +29,22 @@ class FilterPredicates {
   }
 
   static passesFilter(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    const handler = filterDispatch[filter.type];
+    let result: boolean;
 
-    const result = handler !== undefined ? handler(item, filter) : true;
+    switch (filter.type) {
+      case 'date':
+        result = FilterPredicates.passesDateFilter(item, filter);
+        break;
+      case 'numeric':
+        result = FilterPredicates.passesNumericFilter(item, filter);
+        break;
+      case 'value':
+        result = FilterPredicates.passesValueFilter(item, filter);
+        break;
+      default:
+        result = filter;
+    }
+
     return result;
   }
 
@@ -68,29 +81,6 @@ class FilterPredicates {
     return result;
   }
 }
-
-class FilterDispatchHandlers {
-  static date(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    const result = FilterPredicates.passesDateFilter(item, filter as DateRangeFilterRuleEntity.Type);
-    return result;
-  }
-
-  static numeric(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    const result = FilterPredicates.passesNumericFilter(item, filter as NumericRangeFilterRuleEntity.Type);
-    return result;
-  }
-
-  static value(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    const result = FilterPredicates.passesValueFilter(item, filter as ValueFilterRuleEntity.Type);
-    return result;
-  }
-}
-
-const filterDispatch: Record<string, (item: Record<string, unknown>, filter: FilterRuleEntity.Type) => boolean> = {
-  'date': FilterDispatchHandlers.date,
-  'numeric': FilterDispatchHandlers.numeric,
-  'value': FilterDispatchHandlers.value
-};
 
 /**
  * Provides filter operations for data records.
