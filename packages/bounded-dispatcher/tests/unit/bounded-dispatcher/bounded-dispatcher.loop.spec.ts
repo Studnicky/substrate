@@ -4,76 +4,25 @@ import { describe, it } from 'node:test';
 
 import { VirtualTimeCounter } from '@studnicky/clock/node';
 import { Semaphore, SemaphoreQueueFullError } from '@studnicky/concurrency/node';
-import type { SemaphoreOptionsEntity } from '@studnicky/concurrency/entities';
 import { EventBus } from '@studnicky/event-bus/node';
-import type { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
 import { OperationPipeline } from '@studnicky/pipeline/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { VirtualScheduler } from '@studnicky/scheduler/node';
 
 import type { BoundedDispatcherConfigInterface, BoundedDispatcherOperationContextInterface, BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 import { BoundedDispatcher } from '../../../src/index.js';
-
-type DispatcherBusDescriptor =
-  | { shape: 'default' }
-  | { shape: 'options'; options: BusQueueOptionsEntity.InputType }
-  | { failureOrdinal: number; shape: 'rejecting' };
-
-type DispatcherOptionsDescriptor = {
-  semaphore?: SemaphoreOptionsEntity.InputType;
-};
-
-type DispatcherScenarioConfig = {
-  atMs?: number;
-  bus: DispatcherBusDescriptor;
-  options: DispatcherOptionsDescriptor;
-  scheduler: DispatcherSchedulerDescriptor;
-};
-
-type DispatcherSchedulerDescriptor =
-  | { shape: 'default' }
-  | { counter: { startMs?: number }; shape: 'virtual' };
-
-type BatchInput = {
-  labels?: string[];
-  taskCount?: number;
-};
-
-type ScenarioShape =
-  | 'backpressure-isolation'
-  | 'dispatch-concurrency-bound'
-  | 'dispatch-error'
-  | 'dispatch-serializes'
-  | 'dispatch-success'
-  | 'reject-error-publication'
-  | 'reject-start-publication'
-  | 'reject-success-publication'
-  | 'injected-semaphore-abort'
-  | 'injected-semaphore-queue-cap'
-  | 'schedule-cancel'
-  | 'schedule-fires'
-  | 'schedule-uses-dispatch'
-  | 'snapshot-hook-failures';
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: {
-    batch?: BatchInput;
-    dispatcher: DispatcherScenarioConfig;
-    errorMessage?: string;
-    fireResult?: string;
-    mutatedValue?: number;
-    publicationCauseMessage?: string;
-    publicationCauseValue?: number;
-    result?: string;
-    workErrorMessage?: string;
-  };
-  shape: ScenarioShape;
-  name: string;
-};
-
+import { BoundedDispatcherScenarioCaseEntity } from '../entities/BoundedDispatcherScenarioCaseEntity.js';
 import scenarioGroups from './bounded-dispatcher.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = BoundedDispatcherScenarioCaseEntity.Type;
+type DispatcherBusDescriptor = ScenarioCase['input']['dispatcher']['bus'];
+type DispatcherScenarioConfig = ScenarioCase['input']['dispatcher'];
+type DispatcherSchedulerDescriptor = ScenarioCase['input']['dispatcher']['scheduler'];
+type BatchInput = NonNullable<ScenarioCase['input']['batch']>;
+type ScenarioShape = ScenarioCase['shape'];
+
+const fileIntake = ScenarioFileCompiler.compileIntake(BoundedDispatcherScenarioCaseEntity.Schema, BoundedDispatcherScenarioCaseEntity.Node);
 
 type PublicationCause = Error | { details: { value: number } };
 
@@ -577,7 +526,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('BoundedDispatcher', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

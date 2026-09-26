@@ -1,35 +1,25 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+
 import {
   BoundedDispatcherErrorEventEntity,
   BoundedDispatcherStartEventEntity,
   BoundedDispatcherSuccessEventEntity
 } from '../../src/entities/index.js';
+import { EventEntitiesScenarioCaseEntity } from './entities/EventEntitiesScenarioCaseEntity.js';
 import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
 
-type ValidationName =
-  | 'BoundedDispatcherErrorEventEntity'
-  | 'BoundedDispatcherStartEventEntity'
-  | 'BoundedDispatcherSuccessEventEntity';
+const fileIntake = ScenarioFileCompiler.compileIntake(EventEntitiesScenarioCaseEntity.Schema, EventEntitiesScenarioCaseEntity.Node);
 
-type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
-
-type ScenarioCase = {
-  description: string;
-  expected: { validationResults: boolean[] };
-  input: { validations: ValidationCase[] };
-  shape: 'entities-reject-invalid' | 'entities-valid-phases';
-  name: string;
-};
-
-const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
+const validatorMap: Record<EventEntitiesScenarioCaseEntity.Type['input']['validations'][number]['entity'], (value: Record<string, unknown>) => boolean> = {
   'BoundedDispatcherErrorEventEntity': (value) => BoundedDispatcherErrorEventEntity.validate(value),
   'BoundedDispatcherStartEventEntity': (value) => BoundedDispatcherStartEventEntity.validate(value),
   'BoundedDispatcherSuccessEventEntity': (value) => BoundedDispatcherSuccessEventEntity.validate(value)
 };
 
-function runCase(scenarioCase: ScenarioCase): void {
+function runCase(scenarioCase: EventEntitiesScenarioCaseEntity.Type): void {
   const results = scenarioCase.input.validations.map((validation) => {
     const validator = validatorMap[validation.entity];
     const result = validator(validation.value);
@@ -41,7 +31,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('bounded dispatcher event entities', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

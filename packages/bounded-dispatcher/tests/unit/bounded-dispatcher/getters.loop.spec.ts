@@ -2,17 +2,18 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { EventBus } from '@studnicky/event-bus/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import type { BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 
 import { BoundedDispatcher } from '../../../src/index.js';
-
-type ScenarioCase =
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-default' }
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'getBus-preserves-instance' };
+import { GettersScenarioCaseEntity } from '../entities/GettersScenarioCaseEntity.js';
 
 import scenarioGroups from './getters.scenarios.json' with { type: 'json' };
 
+const fileIntake = ScenarioFileCompiler.compileIntake(GettersScenarioCaseEntity.Schema, GettersScenarioCaseEntity.Node);
+
+type ScenarioCase = GettersScenarioCaseEntity.Type;
 type ScenarioRunner = (scenario: ScenarioCase) => void;
 
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
@@ -38,9 +39,9 @@ function runCase(scenario: ScenarioCase): void {
 }
 
 void describe('BoundedDispatcher getBus()', () => {
-  for (const scenario of scenarioGroups.cases) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
-      runCase(scenario as ScenarioCase);
+      runCase(scenario);
     });
   }
 });
