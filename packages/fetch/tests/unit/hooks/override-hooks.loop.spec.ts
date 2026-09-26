@@ -1,20 +1,37 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
 import { FetchClient } from '../../../src/node/index.js';
+
+import { OverrideHooksScenarioCaseEntity } from './entities/OverrideHooksScenarioCaseEntity.js';
 import scenarioGroups from './override-hooks.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { entries?: string[]; header?: string; messageIncludes?: string[]; status?: number; value?: string | null; count?: number };
-      input: { baseURL: string };
-      name: string;
-      operation: 'base-on-request' | 'request-header-injection' | 'hook-pipeline' | 'url-rewrite' | 'base-on-response' | 'response-wrap' | 'response-reject' | 'metadata';
-    };
+type ScenarioCase = OverrideHooksScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(OverrideHooksScenarioCaseEntity.Schema, OverrideHooksScenarioCaseEntity.Node);
+
+function requireHeadersRecord(value: unknown): { headers: Record<string, string> } {
+  if (!Predicates.isObject(value) || !Predicates.isObject(value.headers)) {
+    throw RuntimeError.create('Expected a JSON response with a headers object');
+  }
+  const headers: Record<string, string> = {};
+  for (const [key, headerValue] of Object.entries(value.headers)) {
+    headers[key] = String(headerValue);
+  }
+  return { headers };
+}
+
+function requireValueRecord(value: unknown): { value: string } {
+  if (!Predicates.isObject(value) || typeof value.value !== 'string') {
+    throw RuntimeError.create('Expected a JSON response with a string value field');
+  }
+  return { 'value': value.value };
+}
 
 const originalFetch = globalThis.fetch;
 
@@ -90,7 +107,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
 
     try {
       const response = await client.get('/echo-headers');
-      const data = await response.json() as { headers: Record<string, string> };
+      const data = requireHeadersRecord(await response.json());
       const headerName = headerInput(scenarioCase).toLowerCase();
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
@@ -126,7 +143,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
 
     try {
       const response = await client.get('/echo-headers');
-      const data = await response.json() as { headers: Record<string, string> };
+      const data = requireHeadersRecord(await response.json());
       const headerName = headerInput(scenarioCase).toLowerCase();
       assert.strictEqual(response.status, 200);
       assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
@@ -190,7 +207,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
 
     try {
       const response = await client.get('/ok');
-      const data = await response.json() as { value: string };
+      const data = requireValueRecord(await response.json());
       assert.strictEqual(response.status, scenarioCase.expected.status);
       assert.strictEqual(data.value, 'original');
       assert.strictEqual(response.headers.get('x-transformed'), null);
@@ -243,7 +260,7 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
 
     try {
       const response = await client.get('/echo-headers');
-      const data = await response.json() as { headers: Record<string, string> };
+      const data = requireHeadersRecord(await response.json());
       assert.deepStrictEqual(log, scenarioCase.expected.entries);
       assert.strictEqual(data.headers['x-pipeline'], 'request-stage');
     } finally {
@@ -257,7 +274,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('hook override behavior', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });
