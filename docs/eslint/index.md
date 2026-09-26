@@ -156,7 +156,7 @@ export default [
 
 ## Configuration rules
 
-27 rules that enforce structural, semantic, and stylistic constraints.
+29 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
@@ -182,7 +182,9 @@ export default [
 | [`@studnicky/no-function-registries`](/eslint/rules/no-function-registries) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
 | [`@studnicky/no-redefined-external-types`](/eslint/rules/no-redefined-external-types) | No | `error` |
+| [`@studnicky/no-reflect-argument-laundering`](/eslint/rules/no-reflect-argument-laundering) | No | `error` |
 | [`@studnicky/no-threaded-vocabulary`](/eslint/rules/no-threaded-vocabulary) | No | `error` |
+| [`@studnicky/no-unchecked-overload-implementation`](/eslint/rules/no-unchecked-overload-implementation) | No | `error` |
 | [`@studnicky/no-unparsed-assertion`](/eslint/rules/no-unparsed-assertion) | No | `error` |
 | [`@studnicky/prefer-collection-types`](/eslint/rules/prefer-collection-types) | No | `warn` |
 | [`@studnicky/require-options-object`](/eslint/rules/require-options-object) | No | `error` |

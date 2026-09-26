@@ -1,0 +1,74 @@
+{
+  "valid": [
+    {
+      "code": "class Base { public static create(this: new (config: { readonly value: string }) => Base, config: { readonly value: string }): unknown { const result: unknown = Reflect.construct(this, [config]); return result; } }",
+      "name": "the subclass-aware create() pattern with a correctly-typed args array bound to an unknown result is valid"
+    },
+    {
+      "code": "class Widget {} declare const widget: unknown; if (widget instanceof Widget) { const value: unknown = Reflect.construct(Widget, []); }",
+      "name": "constructing a no-argument class with an empty argument array bound to unknown is valid"
+    },
+    {
+      "code": "function greet(name: string): string { return name; } const result: unknown = Reflect.apply(greet, undefined, ['world']);",
+      "name": "applying a function with a correctly-typed argument array bound to unknown is valid"
+    },
+    {
+      "code": "function log(message: string): void { return; } function callLog(): unknown { return Reflect.apply(log, undefined, ['hi']); }",
+      "name": "an any-typed result returned from a function whose own return type is unknown is valid"
+    },
+    {
+      "code": "function accept(value: unknown): void { return; } function callAccept(target: (input: string) => void): void { accept(Reflect.apply(target, undefined, ['x'])); }",
+      "name": "an any-typed result passed to a parameter typed unknown is valid"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function greet(name: string): string { return name; } const result: unknown = Reflect.apply(greet, undefined, [42]);",
+      "errors": [
+        {
+          "messageId": "unassignableArguments"
+        }
+      ],
+      "name": "applying a function with a number where its signature declares a string parameter is invalid"
+    },
+    {
+      "code": "class Counter { public constructor(start: number) {} } const value: unknown = Reflect.construct(Counter, ['not-a-number']);",
+      "errors": [
+        {
+          "messageId": "unassignableArguments"
+        }
+      ],
+      "name": "constructing a class with a string where its constructor declares a number parameter is invalid"
+    },
+    {
+      "code": "function greet(name: string): string { return name; } const result = Reflect.apply(greet, undefined, ['world']);",
+      "errors": [
+        {
+          "messageId": "unguardedResult"
+        }
+      ],
+      "name": "a correctly-typed call whose any-typed result is bound without an unknown annotation is invalid"
+    },
+    {
+      "code": "class Counter { public constructor(start: number) {} } console.log(Reflect.construct(Counter, [1]).toString());",
+      "errors": [
+        {
+          "messageId": "unguardedResult"
+        }
+      ],
+      "name": "a correctly-typed construct call whose any-typed result is member-accessed directly is invalid"
+    },
+    {
+      "code": "function greet(name: string): string { return name; } function callGreet(): void { Reflect.apply(greet, undefined, [42]); }",
+      "errors": [
+        {
+          "messageId": "unassignableArguments"
+        },
+        {
+          "messageId": "unguardedResult"
+        }
+      ],
+      "name": "a call with both mismatched arguments and an unguarded expression-statement result reports both violations"
+    }
+  ]
+}
