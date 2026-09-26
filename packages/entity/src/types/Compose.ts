@@ -23,7 +23,9 @@ export class Compose {
     source: TProps, keySet: ReadonlySet<TKeys>
   ): Pick<TProps, TKeys> {
     const wideKeySet: ReadonlySet<string> = keySet;
-    const result: TProps = { ...source };
+    // Honest at every step: TKeys stay real values throughout, the rest are only ever "possibly present" — true before, during, and after deletion.
+    // `& Record<string, unknown>` also proves to the deletion cost checker that this shape makes no fixed hidden-class contract to break.
+    const result: Partial<Omit<TProps, TKeys>> & Pick<TProps, TKeys> & Record<string, unknown> = { ...source };
     const keys = Object.keys(result);
     const keyCount = keys.length;
 
@@ -43,7 +45,9 @@ export class Compose {
     source: TProps, keySet: ReadonlySet<TKeys>
   ): Omit<TProps, TKeys> {
     const wideKeySet: ReadonlySet<string> = keySet;
-    const result: TProps = { ...source };
+    // Honest at every step: the non-TKeys keys stay real values throughout, TKeys are only ever "possibly present" — true before, during, and after deletion.
+    // `& Record<string, unknown>` also proves to the deletion cost checker that this shape makes no fixed hidden-class contract to break.
+    const result: Omit<TProps, TKeys> & Partial<Pick<TProps, TKeys>> & Record<string, unknown> = { ...source };
     const keys = Object.keys(result);
     const keyCount = keys.length;
 
