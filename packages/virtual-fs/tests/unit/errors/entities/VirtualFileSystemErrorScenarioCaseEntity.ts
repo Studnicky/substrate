@@ -14,7 +14,12 @@ export namespace VirtualFileSystemErrorScenarioCaseEntity {
           'code': { 'minLength': 1, 'type': 'string' },
           'correlationId': { 'type': 'string' },
           'message': { 'minLength': 1, 'type': 'string' },
-          'metadata': { 'type': 'object' },
+          'metadata': {
+            'additionalProperties': false,
+            'properties': { 'path': { 'minLength': 1, 'type': 'string' } },
+            'required': ['path'],
+            'type': 'object'
+          },
           'retryable': { 'type': 'boolean' }
         },
         'required': ['code', 'message', 'retryable'],
@@ -31,7 +36,12 @@ export namespace VirtualFileSystemErrorScenarioCaseEntity {
                 'properties': {
                   'cause': {},
                   'correlationId': { 'type': 'string' },
-                  'metadata': { 'type': 'object' },
+                  'metadata': {
+            'additionalProperties': false,
+            'properties': { 'path': { 'minLength': 1, 'type': 'string' } },
+            'required': ['path'],
+            'type': 'object'
+          },
                   'retryable': { 'type': 'boolean' }
                 },
                 'required': [],
@@ -63,7 +73,12 @@ export namespace VirtualFileSystemErrorScenarioCaseEntity {
           'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
           'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
           'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'metadata': SchemaNode.defineUnknown({ 'type': 'object' } as const),
+          'metadata': SchemaNode.defineObject(
+            { 'type': 'object' } as const,
+            { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
+            ['path'] as const,
+            { 'additionalProperties': false }
+          ),
           'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
         },
         ['code', 'message', 'retryable'] as const,
@@ -80,7 +95,12 @@ export namespace VirtualFileSystemErrorScenarioCaseEntity {
                 {
                   'cause': SchemaNode.defineUnknown({} as const),
                   'correlationId': SchemaNode.defineString({ 'type': 'string' } as const),
-                  'metadata': SchemaNode.defineUnknown({ 'type': 'object' } as const),
+                  'metadata': SchemaNode.defineObject(
+            { 'type': 'object' } as const,
+            { 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) },
+            ['path'] as const,
+            { 'additionalProperties': false }
+          ),
                   'retryable': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
                 },
                 [] as const,
