@@ -33,7 +33,8 @@ export class FetchTransport {
     }
 
     const { fetch } = await import('undici');
+    const undiciInit = dispatcher === null ? { ...init, 'dispatcher': undefined } : init;
 
-    return await fetch(url, init);
+    return await fetch(url, undiciInit);
   }
 }
