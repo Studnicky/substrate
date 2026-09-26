@@ -39,9 +39,9 @@ class SpreadBinding {
 export const arraySpreadOutsideLoops: Rule.RuleModule = {
   'create': (context) => {
     const onSpreadElement: NonNullable<Rule.RuleListener['SpreadElement']> = (node) => {
-      const arrayExpression = node.parent as Rule.Node | null;
+      const arrayExpression = node.parent;
 
-      if (arrayExpression?.type !== 'ArrayExpression') {
+      if (arrayExpression.type !== 'ArrayExpression') {
         return;
       }
       if (!SpreadBinding.isBoundArrayLiteral(arrayExpression)) {
