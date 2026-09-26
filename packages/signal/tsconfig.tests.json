@@ -18,10 +18,16 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../clock"
+    },
+    {
       "path": "../errors"
     },
     {
       "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../scheduler"
     }
   ]
 }
