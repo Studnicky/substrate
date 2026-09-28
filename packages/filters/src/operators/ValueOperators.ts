@@ -1,3 +1,5 @@
+import { Predicates } from '@studnicky/types/browser';
+
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 /**
  * @module ValueOperators
@@ -85,8 +87,7 @@ export class ValueOperators {
     }
 
     const result = filterValue.some((entry) => {
-      const isMatch = entry === value;
-
+      const isMatch = Object.is(entry, value) || entry === value;
       return isMatch;
     });
 
@@ -131,8 +132,7 @@ export class ValueOperators {
     }
 
     const result = !filterValue.some((entry) => {
-      const isMatch = entry === value;
-
+      const isMatch = Object.is(entry, value) || entry === value;
       return isMatch;
     });
 
@@ -184,7 +184,16 @@ export class ValueOperators {
       return result;
     }
 
-    const actualType = Reflect.apply(Object.prototype.toString, value, []).slice(8, -1);
+    if (typeof value !== 'object') {
+      const primitiveType = typeof value;
+      const actualType = primitiveType.slice(0, 1).toUpperCase() + primitiveType.slice(1);
+      const result = actualType === filterValue;
+      return result;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+    const constructor = Predicates.isRecord(prototype) ? prototype.constructor : undefined;
+    const actualType = Predicates.isFunction(constructor) ? constructor.name : 'Object';
     const result = actualType === filterValue;
 
     return result;

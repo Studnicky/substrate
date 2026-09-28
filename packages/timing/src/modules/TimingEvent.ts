@@ -1,7 +1,7 @@
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingStatusEntity } from '../entities/TimingStatusEntity.js';
 
-import { TimingBuildError } from '../errors/TimingBuildError.js';
+import { TimingEventInputEntity } from '../entities/TimingEventInputEntity.js';
 
 /**
  * Creates immutable timing event data from one configuration object.
@@ -36,17 +36,10 @@ export class TimingEvent {
     'operation': string;
     'status'?: TimingStatusEntity.Type;
   }>): TimingEventDataEntity.Type {
-    if (config.component === undefined) {
-      throw TimingBuildError.create('TimingEvent requires component');
-    }
-
-    if (config.operation === undefined) {
-      throw TimingBuildError.create('TimingEvent requires operation');
-    }
-
-    const event = config.status === undefined
-      ? `${config.component}.${config.operation}`
-      : `${config.component}.${config.operation}.${config.status}`;
+    const parsed = TimingEventInputEntity.intake(config);
+    const event = parsed.status === undefined
+      ? `${parsed.component}.${parsed.operation}`
+      : `${parsed.component}.${parsed.operation}.${parsed.status}`;
 
     const result: TimingEventDataEntity.Type = Object.freeze({ 'event': event });
     return result;

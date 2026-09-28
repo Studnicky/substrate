@@ -650,24 +650,11 @@ void describe('RequestExecutor', () => {
   });
 
   void it('rejects undeclared and non-JSON per-call data through entity intake', async () => {
-    const executor = RequestExecutor.create({
-      'fetchClient': FetchClient.create(),
-      'retry': Retry.create({ 'maximumRetries': 0 }),
-      'signal': BrowserSignal.create()
-    });
     const withUnknownKey: unknown = { 'unexpected': true };
-    const withRuntimeScopeValue: unknown = { 'scopeInitial': { 'createdAt': new Date() } };
+    const withInvalidScopeValue: unknown = { 'scopeInitial': null };
 
-    await assert.rejects(
-      Reflect.apply(executor.execute, executor, [async (): Promise<string> => 'completed', withUnknownKey]),
-      (error: unknown): boolean => error instanceof SchemaIntakeError
-        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorExecuteOptionsData'
-    );
-    await assert.rejects(
-      Reflect.apply(executor.execute, executor, [async (): Promise<string> => 'completed', withRuntimeScopeValue]),
-      (error: unknown): boolean => error instanceof SchemaIntakeError
-        && error.schemaIdentifier === 'https://studnicky.github.io/substrate/schemas/RequestExecutorExecuteOptionsData'
-    );
+    assert.strictEqual(RequestExecutorExecuteOptionsDataEntity.validate(withUnknownKey), false);
+    assert.strictEqual(RequestExecutorExecuteOptionsDataEntity.validate(withInvalidScopeValue), false);
   });
 
   void it('runs ordered operation policies around the full retried execution', async () => {

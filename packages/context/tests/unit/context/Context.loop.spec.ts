@@ -8,7 +8,7 @@ import { setTimeout } from 'node:timers/promises';
 
 
 import { Context } from '../../../src/node/index.js';
-import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
+import { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
 import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './Context.scenarios.json' with { type: 'json' };
 

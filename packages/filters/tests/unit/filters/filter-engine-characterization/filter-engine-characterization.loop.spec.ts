@@ -11,6 +11,7 @@ import { LogicGate } from '../../../../src/enums/LogicGate.js';
 import { Operator } from '../../../../src/enums/Operator.js';
 import { FilterEngine } from '../../../../src/FilterEngine.js';
 import { ObjectOperators } from '../../../../src/operators/ObjectOperators.js';
+import { ValueOperators } from '../../../../src/operators/ValueOperators.js';
 import { Plugins } from '../../../../src/registries/index.js';
 import scenarioGroups from './filter-engine-characterization.scenarios.json' with { type: 'json' };
 
@@ -385,6 +386,16 @@ void describe('canonical deep equality', () => {
     assert.equal(Operator.ARRAY.EQUALS([Number.NaN], [Number.NaN]), true);
     assert.equal(Operator.ARRAY.EQUALS([ 'Ada' ], [ 'ada' ]), false);
     assert.equal(ObjectOperators.handleEquals({ 'score': Number.NaN }, { 'score': Number.NaN }), true);
+  });
+});
+
+void describe('value membership SameValueZero semantics', () => {
+  it('matches NaN in handleIn', () => {
+    assert.equal(ValueOperators.handleIn(Number.NaN, [Number.NaN]), true);
+  });
+
+  it('rejects NaN from handleNotIn', () => {
+    assert.equal(ValueOperators.handleNotIn(Number.NaN, [Number.NaN]), false);
   });
 });
 

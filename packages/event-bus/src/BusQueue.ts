@@ -18,6 +18,7 @@ import {
   BUS_QUEUE_DEFAULT_HIGH_WATER_MARK,
   BUS_QUEUE_DEFAULT_WAITER_CAPACITY
 } from './constants/index.js';
+import { BusQueueCreateOptionsEntity } from './entities/BusQueueCreateOptionsEntity.js';
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a queue processing loop must not halt because an observer hook threw. */
@@ -67,10 +68,6 @@ interface BusQueueShapeInterface {
   drain(): Promise<void>;
 }
 
-/** `handler` typed `unknown` rather than a callback shape — `assertValidHandler` proves callability itself, so this interface asserts nothing about it in advance. */
-interface BusQueueHandlerCandidateInterface {
-  readonly 'handler'?: unknown;
-}
 
 export class BusQueue<T> {
   protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
@@ -113,20 +110,14 @@ export class BusQueue<T> {
     return result;
   }
 
-  /** Rejects `options` unless it carries a callable `handler` — the same guard the constructor enforces, exposed so a test can prove rejection through this narrow surface without routing a bad value through the typed constructor. */
-  static assertValidHandler(options: BusQueueHandlerCandidateInterface): void {
-    if (Predicates.isFunction(options.handler)) {
-      return;
-    }
-    throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
-  }
-
   protected constructor(options: BusQueueCreateOptionsInterface<T>) {
-    BusQueue.assertValidHandler(options);
-    const hwmOption = options.highWaterMark;
-    if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
-      throw new BusQueueConfigError('highWaterMark must be a positive integer');
+    if (!BusQueueCreateOptionsEntity.validate(options)
+      || !Predicates.isFunction(options.handler)
+      || (options.onError !== undefined && !Predicates.isFunction(options.onError))
+      || (options.signal !== undefined && !(options.signal instanceof AbortSignal))) {
+      throw new BusQueueConfigError('BusQueue.create(options) received invalid options');
     }
+    const hwmOption = options.highWaterMark;
     this.#handler = options.handler;
     this.#hwm = hwmOption ?? BUS_QUEUE_DEFAULT_HIGH_WATER_MARK;
     this.#onError = options.onError;

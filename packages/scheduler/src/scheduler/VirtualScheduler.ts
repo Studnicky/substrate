@@ -1,6 +1,7 @@
 import type { VirtualTimeCounter } from '@studnicky/clock/browser';
 import type { HookInvoker } from '@studnicky/errors/browser';
 
+import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
 import { RuntimeError } from '@studnicky/errors/browser';
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
@@ -55,19 +56,14 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    *                  `VirtualClockProvider` so `Clock.now()` and task fires stay in sync.
    */
   protected constructor(counter: Readonly<VirtualTimeCounter>) {
-    if (!VirtualScheduler.isValidCounter(counter)) {
+    if (!VirtualTimeCounterEntity.validate({ 'advance': counter.advance, 'nowMs': counter.nowMs })) {
       throw new SchedulerError('VirtualScheduler requires a valid VirtualTimeCounter instance with nowMs() and advance() methods');
     }
-    this.#cancelledIds = new Set();
     this.#counter = counter;
+    this.#cancelledIds = new Set();
     this.#idCounter = 0;
     this.#heap = this.createHeap();
     this.#tasks = new Map();
-  }
-
-  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
-    const result = typeof counter.nowMs === 'function' && typeof counter.advance === 'function';
-    return result;
   }
 
   /** Creates a new `VirtualScheduler` with the given options. */

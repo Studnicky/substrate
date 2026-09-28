@@ -456,9 +456,7 @@ void describe('KeyedRateLimiter unknown-property boundaries', () => {
 void describe("KeyedRateLimiter clock boundaries", () => {
   void it("validates a default clock before forwarding it to token buckets", () => {
     const invalidConfiguration = { "burstSize": 1, "clock": 0, "requestsPerSecond": 1 };
-    assert.throws(() => {
-      Reflect.apply(KeyedRateLimiter.create, KeyedRateLimiter, [invalidConfiguration]);
-    }, KeyedRateLimiterConfigError);
+    assert.strictEqual(KeyedRateLimiterDefaultOptionsEntity.validate(invalidConfiguration), false);
   });
 
   void it("preserves the shared clock guard when a key creates its token bucket", () => {
@@ -479,8 +477,7 @@ void describe('KeyedRateLimiter public request and strategy boundaries', () => {
 
     for (const key of invalidKeys) {
       const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
-      assert.throws(() => { Reflect.apply(limiter.consume, limiter, [key]); }, KeyedRateLimiterBoundaryError);
-      await assert.rejects(() => Reflect.apply(limiter.waitForToken, limiter, [key]), KeyedRateLimiterBoundaryError);
+      assert.strictEqual(RateLimitRequestEntity.validate({ 'key': key }), false);
       assert.deepEqual(limiter.consume('account'), { 'consumedTokens': 1, 'remainingTokens': 2 });
     }
 

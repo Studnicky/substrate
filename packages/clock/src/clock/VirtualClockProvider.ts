@@ -12,6 +12,7 @@ import type { ClockProviderInterface } from '../interfaces/ClockProviderInterfac
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
 import { ClockError } from '../errors/ClockError.js';
+import { VirtualTimeCounterEntity } from './VirtualTimeCounterEntity.js';
 
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
@@ -45,15 +46,10 @@ export class VirtualClockProvider implements ClockProviderInterface {
    * Property write order: #counter.
    */
   protected constructor(counter: Readonly<VirtualTimeCounter>) {
-    if (!VirtualClockProvider.isValidCounter(counter)) {
+    if (!VirtualTimeCounterEntity.validate({ 'advance': counter.advance, 'nowMs': counter.nowMs })) {
       throw new ClockError('counter must be a VirtualTimeCounter instance');
     }
     this.#counter = counter;
-  }
-
-  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
-    const result = Predicates.isFunction(counter.nowMs) && Predicates.isFunction(counter.advance);
-    return result;
   }
 
   /**

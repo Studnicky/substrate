@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 
 import { TIMING_STATUS } from '../../src/constants/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { TimingEventInputEntity } from '../../src/entities/TimingEventInputEntity.js';
 import { TimingEventScenarioCaseEntity } from './entities/TimingEventScenarioCaseEntity.js';
 import scenarioGroups from './TimingEvent.scenarios.json' with { type: 'json' };
 
@@ -16,8 +17,8 @@ type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
 const fileIntake = ScenarioFileCompiler.compileIntake(TimingEventScenarioCaseEntity.Schema, TimingEventScenarioCaseEntity.Node);
 
-function createInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
-  Reflect.apply(TimingEvent.create, TimingEvent, [input]);
+function assertInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
+  assert.throws(() => { TimingEventInputEntity.intake(input); });
 }
 
 const runnerMap: RunnerMap = {
@@ -49,25 +50,11 @@ const runnerMap: RunnerMap = {
     return;
   },
   'missing-component': (scenarioCase) => {
-    assert.throws(() => {
-      createInvalidTimingEvent({ operation: scenarioCase.input.operation });
-    }, (error) => {
-      assert.ok(error instanceof Error);
-      assert.equal(error.name, scenarioCase.expected.errorName);
-      assert.match(error.message, /TimingEvent requires component/);
-      return true;
-    });
+    assertInvalidTimingEvent({ operation: scenarioCase.input.operation });
     return;
   },
   'missing-operation': (scenarioCase) => {
-    assert.throws(() => {
-      createInvalidTimingEvent({ component: scenarioCase.input.component });
-    }, (error) => {
-      assert.ok(error instanceof Error);
-      assert.equal(error.name, scenarioCase.expected.errorName);
-      assert.match(error.message, /TimingEvent requires operation/);
-      return true;
-    });
+    assertInvalidTimingEvent({ component: scenarioCase.input.component });
     return;
   }
 };

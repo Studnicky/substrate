@@ -5,10 +5,9 @@ import {
 } from 'node:test';
 
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { Predicates } from '@studnicky/types/node';
 
 import { BusQueue } from '../../src/BusQueue.js';
-import { BusQueueConfigError } from '../../src/errors/BusQueueConfigError.js';
+import { BusQueueCreateOptionsEntity } from '../../src/entities/BusQueueCreateOptionsEntity.js';
 import { BusQueueScenarioCaseEntity } from './entities/BusQueueScenarioCaseEntity.js';
 import scenarioGroups from './BusQueue.scenarios.json' with { type: 'json' };
 
@@ -57,12 +56,6 @@ function expectedNumber(value: unknown, context: string): number {
   return value;
 }
 
-function expectedString(value: unknown, context: string): string {
-  if (typeof value !== 'string') {
-    throw RuntimeError.create(`Scenario expected.${context} must be a string`);
-  }
-  return value;
-}
 
 function expectedStringArray(value: unknown, context: string): string[] {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
@@ -109,19 +102,8 @@ const runnerMap: RunnerMap = {
         assert.strictEqual(queue.size, expected.size);
       });
     },
-    'missing-handler': ({ expected, input }) => {
-      const candidate = input.options ?? {};
-      const message = expectedString(expected.message, 'message');
-      assert.throws(
-        () => {
-          if (Predicates.isRecord(candidate)) {
-            BusQueue.assertValidHandler(candidate);
-            return;
-          }
-          throw new BusQueueConfigError(message);
-        },
-        { message }
-      );
+    'missing-handler': ({ input }) => {
+      assert.throws(() => { BusQueueCreateOptionsEntity.intake(input.options ?? {}); });
       return;
     },
     'size-before-drain': ({ expected, input }) => {
@@ -377,12 +359,9 @@ const runnerMap: RunnerMap = {
           assert.strictEqual(queue.size, expected.size);
         });
     },
-    'high-water-mark-validation': ({ expected, input }) => {
+    'high-water-mark-validation': ({ input }) => {
       for (const value of requireDefined(input.values, 'values')) {
-        assert.throws(
-          () => BusQueue.create<number>({ 'handler': async () => {}, 'highWaterMark': value }),
-          { message: expected.message }
-        );
+        assert.throws(() => { BusQueueCreateOptionsEntity.intake({ 'handler': async () => {}, 'highWaterMark': value }); });
       }
       return;
     },
