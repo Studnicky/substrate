@@ -139,7 +139,7 @@ export class Draft {
 
   private static produceNode<T extends object>(base: T, recipe: (draft: T) => void): DraftNodeInterface<T> {
     const node = this.createNode(base);
-    Reflect.apply(recipe, undefined, [this.createProxy(node)]);
+    recipe(this.createProxy(node));
     return node;
   }
 

@@ -33,8 +33,11 @@ console.log('same reference?', copy === original);
 // ---------------------------------------------------------------------------
 
 class ConcatMerge extends Merge {
-  protected static override mergeArrays<T>(baseArray: T[], overlayArray: T[]): T[] {
-    return [...baseArray, ...overlayArray];
+  protected static override mergeArrays<TOverlay>(leftValue: unknown, rightValue: TOverlay): TOverlay {
+    if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+      rightValue.unshift(...leftValue);
+    }
+    return rightValue;
   }
 }
 
@@ -46,7 +49,10 @@ console.log('plainResult.tags:', plainResult.tags);
 // #endregion usage
 
 assert.deepEqual(merged.b, { 'x': 10, 'y': 99, 'z': 3 }, 'nested objects merge recursively');
-assert.equal(merged.c, 'new', 'overlay top-level key added');
+assert.ok('c' in merged, 'overlay top-level key added');
+if ('c' in merged) {
+  assert.equal(merged.c, 'new', 'overlay top-level key added');
+}
 assert.deepEqual(merged.tags, ['beta'], 'arrays replaced atomically');
 
 assert.deepEqual(copy, original, 'deep clone is structurally equal');

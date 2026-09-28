@@ -35,7 +35,7 @@ export class Merge {
   }
 
   /** Merge two arrays. Default behaviour replaces the base atomically. */
-  protected static mergeArrays<T>(_: T[], overlay: T[]): T[] {
+  protected static mergeArrays<TOverlay>(_: unknown, overlay: TOverlay): TOverlay {
     const result = overlay;
     return result;
   }
@@ -89,10 +89,7 @@ export class Merge {
   }
 
   /** Deeply merge `overlayValue` onto `baseValue` and return a detached result. */
-  public static deep<TBase extends object, TOverlay extends object>(baseValue: TBase, overlayValue: TOverlay): TBase & TOverlay;
-  public static deep<T>(baseValue: T, overlayValue: T): T;
-  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): TBase | TOverlay;
-  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): unknown {
+  public static deep<TBase, TOverlay>(baseValue: TBase, overlayValue: TOverlay): TBase | TOverlay {
     if (overlayValue === undefined) {
       const result = this.snapshot(baseValue);
       return result;

@@ -2,7 +2,7 @@
 
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
 
@@ -90,7 +90,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   };
 
   protected readonly hooks: HookInvoker = new EventBusHookInvoker();
-  readonly #store = new Map<keyof TTopicMap, unknown>();
+  readonly #store: { [K in keyof TTopicMap]?: Set<BusQueue<TTopicMap[K]>> } = {};
   readonly #queues = new Set<DrainableQueueInterface>();
   readonly #busController = new AbortController();
   readonly #config: BusQueueOptionsEntity.Type;
@@ -125,35 +125,20 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     }
   }
 
-  /** True when `value` is a `Set` whose every current member is a `BusQueue` instance — the strongest fact about `T` obtainable at runtime, since `T` is erased and no design recovers it. `#store` has exactly one writer (this class), which only ever inserts a `Set<BusQueue<TTopicMap[K]>>` under the matching topic key, so this shape check is sufficient to back the caller's `K`. */
-  #isTopicSubscriptionSet<K extends keyof TTopicMap>(value: unknown): value is Set<BusQueue<TTopicMap[K]>> {
-    if (!(value instanceof Set)) {
-      return false;
-    }
-    for (const item of value) {
-      if (!(item instanceof BusQueue)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   #ensureTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> {
-    const existing = this.#store.get(topic);
-    if (this.#isTopicSubscriptionSet<K>(existing)) {
+    const existing = this.#store[topic];
+    if (existing !== undefined) {
       return existing;
     }
     const fresh = new Set<BusQueue<TTopicMap[K]>>();
-    this.#store.set(topic, fresh);
+    JsonObject.write(this.#store, topic, fresh);
     return fresh;
   }
 
   #findTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> | undefined {
-    const existing = this.#store.get(topic);
-    const result = this.#isTopicSubscriptionSet<K>(existing) ? existing : undefined;
+    const result = this.#store[topic];
     return result;
   }
-
   subscribe<K extends keyof TTopicMap>(
     topic: K,
     handler: EventHandlerInterface<TTopicMap[K]>,
@@ -183,7 +168,6 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
       unsubscribed = true;
       topicSubscriptions.delete(queue);
       this.#queues.delete(queue);
-      if (topicSubscriptions.size === 0) { this.#store.delete(topic); }
       queueController.abort();
       this.#busController.signal.removeEventListener('abort', unsubscribe);
       callerSignal?.removeEventListener('abort', unsubscribe);
