@@ -1,7 +1,11 @@
-import { BaseError, HookInvoker } from '@studnicky/errors/browser';
+import {
+  BaseError, HookInvoker
+} from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
-import { DEFAULT_BATCH_MAXIMUM_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX } from '../constants/index.js';
+import {
+  DEFAULT_BATCH_MAXIMUM_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX
+} from '../constants/index.js';
 import { BatchError } from '../errors/index.js';
 
 /** Aggregate completion statistics emitted by the onBatchComplete hook. Computed internally from live counters; never externally validated. */
@@ -11,9 +15,8 @@ interface BatchStatsInterface {
   readonly 'total': number;
 }
 
-
-interface ItemProcessingOptionsInterface {
-  readonly 'counters'?: Map<'failed' | 'succeeded', number>;
+interface BatchSubclassInterface<TInstance> extends Function {
+  readonly 'prototype': TInstance;
 }
 
 interface ContinuousProcessingStateInterface<TResult> {
@@ -24,14 +27,27 @@ interface ContinuousProcessingStateInterface<TResult> {
   readonly 'workers': Promise<void>[];
 }
 
+interface ItemProcessingOptionsInterface {
+  readonly 'counters'?: Map<'failed' | 'succeeded', number>;
+}
+
 export class Batch<TResult = unknown> {
   /** Keeps batch processing intact when a lifecycle hook fails. */
   static readonly #OwnedHookInvoker = class BatchHookInvoker extends HookInvoker {
     protected override onHookError(): void {}
   };
 
-  static create<TResult = unknown>(maximumConcurrent?: number): Batch<TResult> {
-    return new this(maximumConcurrent);
+  static create<TResult = unknown, TInstance extends Batch<TResult> = Batch<TResult>>(
+    this: BatchSubclassInterface<TInstance>,
+    maximumConcurrent?: number
+  ): TInstance {
+    const result: unknown = Reflect.construct(this, [maximumConcurrent]);
+
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+      throw new BatchError('Batch.create() must construct a Batch instance');
+    }
+
+    return result;
   }
 
   protected readonly maximumConcurrent: number;
@@ -40,6 +56,7 @@ export class Batch<TResult = unknown> {
 
   protected constructor(maximumConcurrent?: number) {
     const value = maximumConcurrent ?? DEFAULT_BATCH_MAXIMUM_CONCURRENT;
+
     if (value <= 0 || !Number.isInteger(value)) {
       throw new BatchError('maximumConcurrent must be a positive integer');
     }
@@ -48,11 +65,17 @@ export class Batch<TResult = unknown> {
   }
 
   protected onBatchStart(_total: number): void {}
+
   protected onConcurrencySaturated(): void {}
+
   protected onItemStart(_index: number): void {}
+
   protected onItemSuccess(_index: number, _result: TResult): void {}
+
   protected onItemError(_index: number, _error: BaseError): void {}
+
   protected onItemSettled(_index: number): void {}
+
   protected onBatchComplete(_stats: BatchStatsInterface): void {}
 
   async *process<T>(
@@ -84,6 +107,7 @@ export class Batch<TResult = unknown> {
       this.#completeContinuousProcessing(items.length, state)
     ]);
     const result = this.#resolveContinuousResults(outcomes);
+
     return result;
   }
 
@@ -95,33 +119,40 @@ export class Batch<TResult = unknown> {
     const state = await this.#startContinuousProcessing(items, operation);
     const outcomes = await this.#completeContinuousProcessing(items.length, state);
     const result = this.#resolveContinuousOutcomes(outcomes);
+
     return result;
   }
 
-  /**
-   * Drives the concurrency-windowed loop and hook lifecycle shared by
-   * `process()` and `processSettled()`. Yields, per batch, the in-flight
-   * item promises — unaggregated, so each caller settles them with the
-   * aggregation strategy (`Promise.all` vs `Promise.allSettled`) that
-   * defines its own failure semantics.
-   */
+  /** Drives windowed processing and hooks; callers aggregate each batch's item promises. */
   async *#iterateBatches<T>(
     items: readonly T[],
     operation: (item: T) => Promise<TResult>
   ): AsyncGenerator<Promise<TResult>[], void, unknown> {
-    if (items.length === EMPTY_LENGTH) { return; }
+    if (items.length === EMPTY_LENGTH) {
+      return;
+    }
 
     const itemsLength = items.length;
     const counters = new Map<'failed' | 'succeeded', number>([
-      ['failed', 0],
-      ['succeeded', 0]
+      [
+        'failed',
+        0
+      ],
+      [
+        'succeeded',
+        0
+      ]
     ]);
 
-    await this.hooks.invokeAsync('onBatchStart', () => { const result = this.onBatchStart(itemsLength);
-      return result; });
+    await this.hooks.invokeAsync('onBatchStart', () => {
+      const result = this.onBatchStart(itemsLength);
+
+      return result;
+    });
 
     for (let i = FIRST_ARRAY_INDEX; i < itemsLength; i += this.maximumConcurrent) {
       const batch = items.slice(i, i + this.maximumConcurrent);
+
       if (batch.length === this.maximumConcurrent) {
         await this.#notifyConcurrencySaturated();
       }
@@ -135,8 +166,12 @@ export class Batch<TResult = unknown> {
       'succeeded': counters.get('succeeded') ?? 0,
       'total': itemsLength
     };
-    await this.hooks.invokeAsync('onBatchComplete', () => { const result = this.onBatchComplete(stats);
-      return result; });
+
+    await this.hooks.invokeAsync('onBatchComplete', () => {
+      const result = this.onBatchComplete(stats);
+
+      return result;
+    });
   }
 
   async #processItem<T>(
@@ -146,23 +181,29 @@ export class Batch<TResult = unknown> {
     options: ItemProcessingOptionsInterface
   ): Promise<TResult> {
     const counters = options.counters;
+
     await this.hooks.invokeAsync('onItemStart', () => {
       const hookResult = this.onItemStart(globalIndex);
+
       return hookResult;
     });
     try {
       const result = await operation(item);
+
       if (counters !== undefined) {
         counters.set('succeeded', (counters.get('succeeded') ?? 0) + 1);
       }
       await this.hooks.invokeAsync('onItemSuccess', () => {
         const hookResult = this.onItemSuccess(globalIndex, result);
+
         return hookResult;
       });
       await this.hooks.invokeAsync('onItemSettled', () => {
         const hookResult = this.onItemSettled(globalIndex);
+
         return hookResult;
       });
+
       return result;
     } catch (error) {
       if (counters !== undefined) {
@@ -171,12 +212,15 @@ export class Batch<TResult = unknown> {
       const itemError = error instanceof BaseError
         ? error
         : new BatchError(Predicates.isError(error) ? error.message : String(error), { 'cause': error });
+
       await this.hooks.invokeAsync('onItemError', () => {
         const hookResult = this.onItemError(globalIndex, itemError);
+
         return hookResult;
       });
       await this.hooks.invokeAsync('onItemSettled', () => {
         const hookResult = this.onItemSettled(globalIndex);
+
         return hookResult;
       });
       throw error;
@@ -191,19 +235,23 @@ export class Batch<TResult = unknown> {
   ): Promise<TResult>[] {
     const result: Promise<TResult>[] = [];
     const batchLength = batch.length;
+
     for (let batchIndex = FIRST_ARRAY_INDEX; batchIndex < batchLength; batchIndex += 1) {
       const item = batch[batchIndex];
+
       if (item === undefined) {
         continue;
       }
       result.push(this.#processItem(item, batchOffset + batchIndex, operation, { 'counters': counters }));
     }
+
     return result;
   }
 
   async #notifyConcurrencySaturated(): Promise<void> {
     await this.hooks.invokeAsync('onConcurrencySaturated', () => {
       const result = this.onConcurrencySaturated();
+
       return result;
     });
   }
@@ -214,23 +262,38 @@ export class Batch<TResult = unknown> {
   ): Promise<void> {
     let failed = 0;
     let succeeded = 0;
+
     for (let index = FIRST_ARRAY_INDEX; index < settled.length; index += 1) {
       const result = settled[index];
+
       if (result?.status === 'fulfilled') {
         succeeded += 1;
       } else if (result?.status === 'rejected') {
         failed += 1;
       }
     }
-    const stats: BatchStatsInterface = { 'failed': failed, 'succeeded': succeeded, 'total': total };
-    await this.hooks.invokeAsync('onBatchComplete', () => { const result = this.onBatchComplete(stats); return result; });
+    const stats: BatchStatsInterface = {
+      'failed': failed,
+      'succeeded': succeeded,
+      'total': total
+    };
+
+    await this.hooks.invokeAsync('onBatchComplete', () => {
+      const result = this.onBatchComplete(stats);
+
+      return result;
+    });
   }
 
   async #startContinuousProcessing<T>(
     items: readonly T[],
     operation: (item: T) => Promise<TResult>
   ): Promise<ContinuousProcessingStateInterface<TResult>> {
-    await this.hooks.invokeAsync('onBatchStart', () => { const result = this.onBatchStart(items.length); return result; });
+    await this.hooks.invokeAsync('onBatchStart', () => {
+      const result = this.onBatchStart(items.length);
+
+      return result;
+    });
     const state: ContinuousProcessingStateInterface<TResult> = {
       'failure': Promise.withResolvers<PromiseRejectedResult>(),
       'hasFailure': false,
@@ -239,9 +302,11 @@ export class Batch<TResult = unknown> {
       'workers': []
     };
     const workerCount = Math.min(items.length, this.maximumConcurrent);
+
     for (let workerIndex = FIRST_ARRAY_INDEX; workerIndex < workerCount; workerIndex += 1) {
       state.workers.push(this.#processContinuousWorker(items, operation, state));
     }
+
     return state;
   }
 
@@ -251,6 +316,7 @@ export class Batch<TResult = unknown> {
   ): Promise<readonly (PromiseSettledResult<TResult> | undefined)[]> {
     await Promise.all(state.workers);
     await this.#notifyBatchComplete(total, state.outcomes);
+
     return state.outcomes;
   }
 
@@ -261,8 +327,10 @@ export class Batch<TResult = unknown> {
   ): Promise<void> {
     while (state.nextIndex < items.length) {
       const index = state.nextIndex;
+
       state.nextIndex += 1;
       const item = items[index];
+
       if (item === undefined) {
         continue;
       }
@@ -270,6 +338,7 @@ export class Batch<TResult = unknown> {
         await this.#notifyConcurrencySaturated();
       }
       const outcome = await this.#processContinuousItem(item, index, operation);
+
       state.outcomes[index] = outcome;
       this.#rejectOnFirstContinuousFailure(outcome, state);
     }
@@ -282,9 +351,16 @@ export class Batch<TResult = unknown> {
   ): Promise<PromiseSettledResult<TResult>> {
     try {
       const value = await this.#processItem(item, index, operation, {});
-      return { 'status': 'fulfilled', 'value': value };
+
+      return {
+        'status': 'fulfilled',
+        'value': value
+      };
     } catch (reason) {
-      return { 'reason': reason, 'status': 'rejected' };
+      return {
+        'reason': reason,
+        'status': 'rejected'
+      };
     }
   }
 
@@ -303,6 +379,7 @@ export class Batch<TResult = unknown> {
     state: ContinuousProcessingStateInterface<TResult>
   ): Promise<never> {
     const failure = await state.failure.promise;
+
     throw failure.reason;
   }
 
@@ -310,20 +387,25 @@ export class Batch<TResult = unknown> {
     outcomes: readonly (PromiseSettledResult<TResult> | undefined)[]
   ): PromiseSettledResult<TResult>[] {
     const result: PromiseSettledResult<TResult>[] = [];
+
     for (let index = FIRST_ARRAY_INDEX; index < outcomes.length; index += 1) {
       const outcome = outcomes[index];
+
       if (outcome !== undefined) {
         result.push(outcome);
       }
     }
+
     return result;
   }
 
   #resolveContinuousResults(outcomes: readonly (PromiseSettledResult<TResult> | undefined)[]): TResult[] {
     const result: TResult[] = [];
     const settled = this.#resolveContinuousOutcomes(outcomes);
+
     for (let index = FIRST_ARRAY_INDEX; index < settled.length; index += 1) {
       const outcome = settled[index];
+
       if (outcome?.status === 'rejected') {
         throw outcome.reason;
       }
@@ -331,6 +413,7 @@ export class Batch<TResult = unknown> {
         result.push(outcome.value);
       }
     }
+
     return result;
   }
 }
