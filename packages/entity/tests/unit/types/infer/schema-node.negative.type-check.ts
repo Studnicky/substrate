@@ -11,6 +11,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { AnnotationKeywordsInterface } from '../../../../src/interfaces/AnnotationKeywordsInterface.js';
 import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
 import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
 
@@ -59,12 +60,18 @@ type PairType = NodeStaticType<typeof pairNode>;
 type BadPairSlot0Age = [AgeType, AgeType];
 type BadPairCheck = Assert<Not<IsAssignable<BadPairSlot0Age, PairType>>>;
 
+// 'type' is a structural keyword, not an annotation keyword: defineAnnotated's own parameter
+// constraint (schema: TSchema & Record<Exclude<keyof TSchema, keyof AnnotationKeywordsInterface>,
+// never>) rejects it the same way BadClosedCheck's excess key is rejected above.
+type BadAnnotationSchema = { readonly 'type': 'number' };
+type BadAnnotationCheck = Assert<Not<IsAssignable<Exclude<keyof BadAnnotationSchema, keyof AnnotationKeywordsInterface>, never>>>;
+
 void describe('SchemaNode negative assignability', () => {
   void it('rejects the bad shapes above (enforced by tsc -b)', () => {
     const checks: [
-      BadNameCheck, BadPercentCheck, BadUserCheck, BadClosedCheck, BadFormatCheck, BadPairCheck
-    ] = [true, true, true, true, true, true];
+      BadNameCheck, BadPercentCheck, BadUserCheck, BadClosedCheck, BadFormatCheck, BadPairCheck, BadAnnotationCheck
+    ] = [true, true, true, true, true, true, true];
 
-    assert.deepEqual(checks, [true, true, true, true, true, true]);
+    assert.deepEqual(checks, [true, true, true, true, true, true, true]);
   });
 });

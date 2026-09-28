@@ -4,9 +4,10 @@ import { describe, it } from 'node:test';
 import type { FromSchema } from 'json-schema-to-ts';
 
 import type { ApplyArrayConstraintBrandsType } from '../../../../src/types/index.js';
+import type { FormatBrandType, MaximumBrandType, MaximumLengthBrandType, MinimumBrandType, MinimumLengthBrandType, PatternBrandType } from '../../../../src/types/brands/index.js';
 import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
 import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
-import type { Assert, Equal } from './type-level-assert.js';
+import type { Assert, Equal, IsAssignable, Not } from './type-level-assert.js';
 
 /** Compiles only if `Infer` is assignable to the real `FromSchema` output — ours strictly narrower, never incompatible. */
 function assertInferAssignableToFromSchema<TInfer, TFromSchema>(identity: (v: TInfer) => TFromSchema): void {
@@ -22,22 +23,35 @@ function assertAssignable<T>(value: T): void {
   void value;
 }
 
+/** No-op filler standing in for an unset optional brand condition — matches the `Record<never, never>` each `Apply*ConstraintBrandsType` conditional produces when its keyword is absent. */
+type UnsetBrandType = Record<never, never>;
+
 void describe('SchemaNode static types are never incompatible with the real FromSchema', () => {
-  void it('string minLength/maxLength: Infer (branded) assignable to FromSchema', () => {
+  void it('string minLength/maxLength: Infer is FromSchema exactly plus the length brands', () => {
     const schema = { 'type': 'string', 'minLength': 1, 'maxLength': 10 } as const;
     const node = SchemaNode.defineString(schema);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
-    assertInferAssignableToFromSchema<Infer, FS>((v) => v);
+    type ExpectedType = FS & UnsetBrandType & UnsetBrandType & MaximumLengthBrandType<10> & MinimumLengthBrandType<1> & UnsetBrandType;
+    type ExactCheck = Assert<Equal<Infer, ExpectedType>>;
+    // The plain FromSchema shape lacks both length brands, so it must not satisfy Infer.
+    type UnbrandedRejectedCheck = Assert<Not<IsAssignable<FS, Infer>>>;
+    const checks: [ExactCheck, UnbrandedRejectedCheck] = [true, true];
+    assert.deepEqual(checks, [true, true]);
     assert.equal(node.schema.minLength, 1);
   });
 
-  void it('number minimum/maximum: Infer (branded) assignable to FromSchema', () => {
+  void it('number minimum/maximum: Infer is FromSchema exactly plus the range brands', () => {
     const schema = { 'type': 'number', 'minimum': 0, 'maximum': 100 } as const;
     const node = SchemaNode.defineNumber(schema);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
-    assertInferAssignableToFromSchema<Infer, FS>((v) => v);
+    type ExpectedType = FS & UnsetBrandType & UnsetBrandType & MaximumBrandType<100> & MinimumBrandType<0> & UnsetBrandType;
+    type ExactCheck = Assert<Equal<Infer, ExpectedType>>;
+    // The plain FromSchema shape lacks both range brands, so it must not satisfy Infer.
+    type UnbrandedRejectedCheck = Assert<Not<IsAssignable<FS, Infer>>>;
+    const checks: [ExactCheck, UnbrandedRejectedCheck] = [true, true];
+    assert.deepEqual(checks, [true, true]);
     assert.equal(node.schema.maximum, 100);
   });
 
@@ -214,21 +228,31 @@ void describe('SchemaNode static types are never incompatible with the real From
     assert.equal(node.schema.oneOf.length, 2);
   });
 
-  void it('pattern: Infer (branded) assignable to FromSchema', () => {
+  void it('pattern: Infer is FromSchema exactly plus the pattern brand', () => {
     const schema = { 'type': 'string', 'pattern': '^[A-Z]+$' } as const;
     const node = SchemaNode.defineString(schema);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
-    assertInferAssignableToFromSchema<Infer, FS>((v) => v);
+    type ExpectedType = FS & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & PatternBrandType<'^[A-Z]+$'>;
+    type ExactCheck = Assert<Equal<Infer, ExpectedType>>;
+    // The plain FromSchema shape lacks the pattern brand, so it must not satisfy Infer.
+    type UnbrandedRejectedCheck = Assert<Not<IsAssignable<FS, Infer>>>;
+    const checks: [ExactCheck, UnbrandedRejectedCheck] = [true, true];
+    assert.deepEqual(checks, [true, true]);
     assert.equal(node.schema.pattern, '^[A-Z]+$');
   });
 
-  void it('format: Infer (branded) assignable to FromSchema', () => {
+  void it('format: Infer is FromSchema exactly plus the format brand', () => {
     const schema = { 'type': 'string', 'format': 'date-time' } as const;
     const node = SchemaNode.defineString(schema);
     type Infer = NodeStaticType<typeof node>;
     type FS = FromSchema<typeof schema>;
-    assertInferAssignableToFromSchema<Infer, FS>((v) => v);
+    type ExpectedType = FS & UnsetBrandType & UnsetBrandType & FormatBrandType<'date-time'> & UnsetBrandType & UnsetBrandType & UnsetBrandType;
+    type ExactCheck = Assert<Equal<Infer, ExpectedType>>;
+    // The plain FromSchema shape lacks the format brand, so it must not satisfy Infer.
+    type UnbrandedRejectedCheck = Assert<Not<IsAssignable<FS, Infer>>>;
+    const checks: [ExactCheck, UnbrandedRejectedCheck] = [true, true];
+    assert.deepEqual(checks, [true, true]);
     assert.equal(node.schema.format, 'date-time');
   });
 
