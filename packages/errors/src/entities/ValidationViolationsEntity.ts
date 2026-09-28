@@ -17,7 +17,8 @@ export namespace ValidationViolationsEntity {
 
   export const Node = SchemaNode.defineArray(
     { '$id': 'https://studnicky.github.io/substrate/schemas/ValidationViolations', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'title': 'ValidationViolations', 'type': 'array' } as const,
-    ValidationViolationEntity.Node
+    ValidationViolationEntity.Node,
+    undefined
   );
   export type Type = NodeStaticType<typeof Node>;
 
