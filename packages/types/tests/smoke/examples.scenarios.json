@@ -11,16 +11,6 @@
       "name": "predicates-accessors"
     },
     {
-      "description": "Runs the PickDefined example",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "entrypoint": "../../examples/pickDefined.ts"
-      },
-      "name": "pick-defined"
-    },
-    {
       "description": "Runs the hash example",
       "expected": {
         "importsWithoutThrow": true

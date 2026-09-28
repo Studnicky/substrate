@@ -17,7 +17,7 @@ Runtime helpers publish from both `@studnicky/types/node` and `@studnicky/types/
 
 ## Usage
 
-`Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation. `Predicate` composes atomic type guards while preserving their narrowed types: use `and`, `or`, `not`, `field`, `arrayItems`, and `mapEntries` to parse an untrusted value once into a canonical structural shape. `Empty` produces fresh empty collection instances. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `RuntimeValue` validates recursive operands that retain native Date, Map, and Set values. `PickDefined` assembles objects without retaining `undefined` properties.
+`Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation. `Predicate` composes atomic type guards while preserving their narrowed types: use `and`, `or`, `not`, `field`, `arrayItems`, and `mapEntries` to parse an untrusted value once into a canonical structural shape. `Empty` produces fresh empty collection instances. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `RuntimeValue` validates recursive operands that retain native Date, Map, and Set values.
 
 <<< ../../packages/types/examples/predicates-accessors.ts#usage
 
@@ -106,18 +106,6 @@ if (RuntimeValue.is(candidate)) {
 }
 ```
 
-## Assembling options objects (`PickDefined`)
-
-`PickDefined.from` strips `undefined`-valued keys from a record, narrowing each remaining value away from `undefined`. It assembles direct configuration objects from required and optional fields.
-
-<<< ../../packages/types/examples/pickDefined.ts#usage
-
-## Try it (`PickDefined`)
-
-<RunnableExample src="packages/types/examples/pickDefined" title="Assembling configuration with PickDefined" />
-
-The output shows direct configuration with required defaults and an optional `clock` field that is present only when defined.
-
 ## Exports
 
 | Symbol | Purpose | Import path |
@@ -136,7 +124,6 @@ The output shows direct configuration with required defaults and an optional `cl
 | `RuntimeValueRecordInterface` | Native plain-record operand contract. | `@studnicky/types/interfaces` |
 | `Hash` | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values. | `@studnicky/types/node` |
 | `StructuralHash` | Schema hash with metadata-key stripping. | `@studnicky/types/node` |
-| `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types/node` |
 | `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types/node` |
 
 ### Selected `Predicates` static methods

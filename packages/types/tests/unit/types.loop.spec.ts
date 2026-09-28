@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import { Empty } from '../../src/guards/Empty.js';
 import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
-import { PickDefined } from '../../src/objects/PickDefined.js';
 import { Predicates } from '../../src/predicates/Predicates.js';
 
 import scenarioGroups from './types.scenarios.json' with { type: 'json' };
@@ -448,16 +447,6 @@ void describe('JsonValue', () => {
     const execute = getMappedValue(jsonValueExecutors, scenario.method, 'JsonValue scenario method');
     void it(scenario.description, () => {
       execute(scenario);
-    });
-  }
-});
-
-void describe('PickDefined', () => {
-  for (const scenario of scenarioGroups.pickDefined) {
-    void it(scenario.description, () => {
-      const input = materialize(scenario.input);
-      assert.ok(isObjectRecord(input) && !Array.isArray(input));
-      expectOutcome(PickDefined.from(input), scenario.outcome);
     });
   }
 });
