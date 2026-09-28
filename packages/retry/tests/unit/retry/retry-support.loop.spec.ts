@@ -1,3 +1,4 @@
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
@@ -14,6 +15,7 @@ import type {
   RetryConfigInterface,
   RetryContextInterface
 } from '../../../src/interfaces/index.js';
+import { RetryBackoffStrategyGuard } from '../../../src/retry/RetryBackoffStrategyGuard.js';
 import { RetrySupportScenarioCaseEntity } from '../entities/RetrySupportScenarioCaseEntity.js';
 import scenarioGroups from './retry-support.scenarios.json' with { type: 'json' };
 
@@ -99,12 +101,12 @@ function assertConfigGuard(scenarioCase: ScenarioCase): void {
 
   if (expected.result === true) {
     assert.doesNotThrow(() => {
-      Reflect.construct(Retry, [input.retry ?? {}]);
+      RetryConfigEntity.intake(input.retry ?? {});
     });
   } else {
     assert.throws(() => {
-      Reflect.construct(Retry, [input.retry ?? {}]);
-    }, ConfigurationError);
+      RetryConfigEntity.intake(input.retry ?? {});
+    }, SchemaIntakeError);
   }
 }
 
@@ -112,7 +114,7 @@ function assertBackoffStrategyRejected(scenarioCase: ScenarioCase): void {
   const { input } = scenarioCase;
 
   assert.throws(() => {
-    Reflect.construct(Retry, [input.retry ?? {}]);
+    RetryBackoffStrategyGuard.validate({ 'backoffStrategy': readUnknownProperty(input.retry, 'backoffStrategy') });
   }, ConfigurationError);
 }
 

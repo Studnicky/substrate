@@ -22,7 +22,6 @@ import {
   INITIAL_COUNTER,
   NO_DELAY_MS
 } from '../constants/index.js';
-import { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
 import { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import { RetryAttemptEventEntity } from '../entities/RetryAttemptEventEntity.js';
 import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
@@ -32,6 +31,7 @@ import {
   MaximumRetriesExceededError,
   NonRetryableError
 } from '../errors/index.js';
+import { RetryBackoffStrategyGuard } from './RetryBackoffStrategyGuard.js';
 import { RetryCallMachine } from './RetryCallMachine.js';
 
 interface RetryCallFsmInterface {
@@ -143,7 +143,7 @@ export class Retry implements RetryInterface {
    */
   static create<TInstance extends Retry = Retry>(
     this: typeof Retry & { readonly 'prototype': TInstance },
-    config?: RetryConfigInterface
+    config: RetryConfigInterface = {}
   ): TInstance {
     const constructed: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isObjectLike(constructed) || !Predicates.isInstanceOf<TInstance>(constructed, this)) {
@@ -250,20 +250,7 @@ export class Retry implements RetryInterface {
   }
 
   private static validateBackoffStrategy(backoffStrategy: RetryConfigInterface['backoffStrategy']): void {
-    if (backoffStrategy === undefined) {
-      return;
-    }
-    if (!Predicates.isObject(backoffStrategy)) {
-      throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
-    }
-
-    const strategy: unknown = Reflect.get(backoffStrategy, 'strategy');
-    if (!Predicates.isFunction(strategy)) {
-      throw ConfigurationError.create('backoffStrategy.strategy must be a function');
-    }
-
-    const baseDelayMs: unknown = Reflect.get(backoffStrategy, 'baseDelayMs');
-    BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
+    RetryBackoffStrategyGuard.validate({ 'backoffStrategy': backoffStrategy });
   }
 
   private static validateEventSink(eventSink: RetryConfigInterface['eventSink']): void {

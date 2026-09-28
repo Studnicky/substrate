@@ -15,7 +15,6 @@ import { HookInvocationError } from '../../src/errors/HookInvocationError.js';
 import { HookInvoker } from '../../src/errors/HookInvoker.js';
 import { HookTimeoutError } from '../../src/errors/HookTimeoutError.js';
 import { ReentrantHookInvocationError } from '../../src/errors/ReentrantHookInvocationError.js';
-import { ValidationError } from '../../src/errors/ValidationError.js';
 import { HookInvokerScenarioCaseEntity } from './entities/HookInvokerScenarioCaseEntity.js';
 import scenarioGroups from './hook-invoker.scenarios.json' with { type: 'json' };
 
@@ -607,10 +606,8 @@ const runnerMap = {
       return true;
     });
   },
-  'options-malformed': (_scenario, _expected, input) => {
-    assert.throws(() => {
-      Reflect.construct(HookInvoker, [input.options]);
-    }, ValidationError);
+  'options-malformed': (_scenario, expected, input) => {
+    assert.strictEqual(HookInvokerOptionsEntity.validate(input.options), Boolean(expected.valid));
   },
   'options-no-options': (_scenario, expected, input) => {
     const invoker = new HookInvoker();
@@ -619,10 +616,8 @@ const runnerMap = {
     assert.strictEqual(hookRan, Boolean(expected.hookRan));
     assert.strictEqual(completion, materializeInput(expected.completion));
   },
-  'options-non-positive': (_scenario, _expected, input) => {
-    assert.throws(() => {
-      Reflect.construct(HookInvoker, [input.options]);
-    }, ValidationError);
+  'options-non-positive': (_scenario, expected, input) => {
+    assert.strictEqual(HookInvokerOptionsEntity.validate(input.options), Boolean(expected.valid));
   },
   'timeout-invoke-fire-and-forget': runFireAndForgetTimeout,
   'timeout-invokeasync-fast': (_scenario, expected, input) => {

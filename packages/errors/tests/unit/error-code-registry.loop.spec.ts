@@ -14,7 +14,8 @@ const fileIntake = ScenarioFileCompiler.compileIntake(ErrorCodeRegistryScenarioC
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'constructor-throws': (scenario) => {
     assert.throws(() => {
-      Reflect.construct(ErrorCodeRegistry, []);
+      const instance: unknown = Reflect.construct(ErrorCodeRegistry, []);
+      return instance;
     }, (error) => {
       assert.ok(error instanceof Error);
       assert.strictEqual(error.message, String(scenario.expected.message));

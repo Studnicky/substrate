@@ -5,29 +5,15 @@ import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 
 import { LogFaultConfigEntity } from '../entities/LogFaultConfigEntity.js';
 import { LogBuildError } from '../errors/LogBuildError.js';
+import { LogBuildErrorMessage } from './LogBuildErrorMessage.js';
 
 /** Constructs immutable normalized fault entries from one configuration object. */
 export class LogFault {
   private constructor() {}
 
-  static #resolveErrorMessage(error: SchemaIntakeError): string {
-    const requiredError = error.errors.find((item) => {
-      const result = item.keyword === 'required';
-      return result;
-    });
-    const missingProperty: unknown = requiredError === undefined
-      ? undefined
-      : Reflect.get(requiredError.parameters, 'missingProperty');
-    const message = typeof missingProperty !== 'string'
-      ? error.message
-      : `LogFault: ${missingProperty} is required${missingProperty === 'context' ? ' (use empty object {} if no context needed)' : ''}`;
-    return message;
-  }
-
   static #throwBuildError(error: unknown): never {
     if (error instanceof SchemaIntakeError) {
-      const message = LogFault.#resolveErrorMessage(error);
-      throw new LogBuildError(message);
+      throw new LogBuildError(LogBuildErrorMessage.resolve('LogFault', error));
     }
     throw error;
   }

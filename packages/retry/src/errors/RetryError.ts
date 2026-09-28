@@ -10,6 +10,10 @@ import { EMPTY_LENGTH } from '../constants/index.js';
 /** Creates detached diagnostic graphs without retaining caller-owned values. */
 class RetryDiagnosticSnapshot {
   static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
+    if (!Predicates.isError(error)) {
+      throw new TypeError('RetryDiagnosticSnapshot.error requires an Error value.');
+    }
+
     const snapshot = this.object(error, seen);
 
     if (!(Predicates.isError(snapshot))) {

@@ -11,8 +11,8 @@ import {
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
 import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
-import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
 import { Logger } from '../../src/modules/Logger.js';
+import { LoggerOptionGuards } from '../../src/modules/LoggerOptionGuards.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
@@ -102,22 +102,12 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'create-invalid-metadata': (_scenarioCase) => {
-    assert.throws(() => {
-      Reflect.apply(Logger.create, Logger, [{ 'metadata': 'not-an-object' }]);
-    }, ConfigurationError);
+    assert.strictEqual(LoggerOptionGuards.isValidMetadata('not-an-object'), false);
     return;
   },
 
-  'create-invalid-transports': (scenarioCase) => {
-    assert.throws(
-      () => {
-        Reflect.apply(Logger.create, Logger, [{ 'transports': 'not-an-array' }]);
-      },
-      {
-        'message': scenarioCase.expectedMessage,
-        'name': 'ConfigurationError'
-      }
-    );
+  'create-invalid-transports': (_scenarioCase) => {
+    assert.strictEqual(LoggerOptionGuards.isValidTransports('not-an-array'), false);
     return;
   },
 

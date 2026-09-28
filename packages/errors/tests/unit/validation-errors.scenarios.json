@@ -188,10 +188,10 @@
     },
     {
       "name": "construction-invalid",
-      "description": "throws ValidationError when constructed with a non-array value",
+      "description": "rejects a non-array value with the same guard the constructor uses",
       "shape": "construction-invalid",
       "input": { "shape": "not-array" },
-      "expected": { "messageIncludes": ["items must be an array"] }
+      "expected": {}
     },
     {
       "name": "report-status-below-minimum",

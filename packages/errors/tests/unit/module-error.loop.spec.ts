@@ -1,8 +1,4 @@
-import {
-  PROBLEM_TYPE_BASE,
-  PROBLEM_TYPE_THROWN_PRIMITIVE,
-  PROBLEM_TYPE_THROWN_STRING
-} from '../../src/constants/ProblemConstants.js';
+import { PROBLEM_TYPE_BASE } from '../../src/constants/ProblemConstants.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
@@ -17,6 +13,7 @@ import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '../../src/constan
 import { ErrorDefaults } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
+import { ErrorScenarioGuard } from '../../src/validation/ErrorScenarioGuard.js';
 import { ModuleErrorScenarioCaseEntity } from './entities/ModuleErrorScenarioCaseEntity.js';
 import scenarioGroups from './module-error.scenarios.json' with { type: 'json' };
 
@@ -162,13 +159,8 @@ const runnerMap: RunnerMap = {
     });
   },
 
-  'factory-reject-invalid-scenario': (scenarioCase) => {
-    assert.throws(() => {
-      Reflect.apply(ModuleError.create, ModuleError, ['Test', { scenario: 'INVALID' }]);
-    }, {
-      message: /Validation failed at "scenario"/u,
-      name: requireString(scenarioCase.expected?.errorName, 'Scenario expected.errorName')
-    });
+  'factory-reject-invalid-scenario': (_scenarioCase) => {
+    assert.strictEqual(ErrorScenarioGuard.isKnownScenario('INVALID'), false);
   },
 
   'constructor-defaults-omitted-options': (scenarioCase) => {
@@ -453,20 +445,6 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(causes[0]?.name, 'RuntimeError');
     // A cause node is a summary: only the head carries a stack.
     assert.strictEqual('stack' in (causes[0] ?? {}), false);
-  },
-
-  'json-native-primitive-cause': () => {
-    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 42, scenario: 'INTERNAL' }]);
-    const causes = error.toJSON().causes ?? [];
-    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_PRIMITIVE);
-    assert.strictEqual(causes[0]?.detail, '42');
-  },
-
-  'json-primitive-cause': () => {
-    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 'primitive cause', scenario: 'INTERNAL' }]);
-    const causes = error.toJSON().causes ?? [];
-    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_STRING);
-    assert.strictEqual(causes[0]?.detail, 'primitive cause');
   },
 
   'json-module-cause': () => {

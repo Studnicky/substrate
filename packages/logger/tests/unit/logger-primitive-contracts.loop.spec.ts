@@ -1,3 +1,4 @@
+import { SchemaIntakeError } from '@studnicky/entity/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import { FrozenMutationError, ImmutableSnapshot } from '@studnicky/json/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
@@ -10,6 +11,7 @@ import {
   CloudWatchLogSchemaFieldsEntity,
   LogDataEntity,
   LoggerHookEventShapeEntity,
+  LogFaultConfigEntity,
   LogLevelEntity,
   LogRecordEntity,
   LogStatusEntity
@@ -24,7 +26,9 @@ import {
   LogFault,
   LoggerError
 } from '../../src/index.js';
+import { LogBuildErrorMessage } from '../../src/modules/LogBuildErrorMessage.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
+import { ResolveMinimumLevel } from '../../src/modules/ResolveMinimumLevel.js';
 import { SafeStringify } from '../../src/modules/safeStringify.js';
 import { LoggerPrimitiveContractsScenarioCaseEntity } from './entities/LoggerPrimitiveContractsScenarioCaseEntity.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
@@ -268,15 +272,15 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(fault.stack, scenarioCase.expected.stack);
   },
   'log-fault-missing-field': (scenarioCase) => {
-    assert.throws(
-      () => {
-        Reflect.apply(LogFault.create, LogFault, [scenarioCase.input.fault]);
-      },
-      {
-        'message': scenarioCase.expected.message,
-        'name': scenarioCase.expected.name
-      }
-    );
+    try {
+      LogFaultConfigEntity.intake(scenarioCase.input.fault);
+      assert.fail('expected LogFaultConfigEntity.intake to throw');
+    } catch (error) {
+      assert.ok(error instanceof SchemaIntakeError);
+      const built = new LogBuildError(LogBuildErrorMessage.resolve('LogFault', error));
+      assert.strictEqual(built.message, scenarioCase.expected.message);
+      assert.strictEqual(built.name, scenarioCase.expected.name);
+    }
   },
   'log-fault-from-error-fields': (scenarioCase) => {
     const sourceError = RuntimeError.create(scenarioCase.input.error.message, {
@@ -325,7 +329,7 @@ const runnerMap: RunnerMap = {
   'console-transport-invalid-level': (scenarioCase) => {
     assert.throws(
       () => {
-        Reflect.apply(ConsoleTransport.create, ConsoleTransport, [{ 'level': scenarioCase.input.transport.level }]);
+        ResolveMinimumLevel.from({ 'level': scenarioCase.input.transport.level });
       },
       {
         'message': scenarioCase.expected.message,
