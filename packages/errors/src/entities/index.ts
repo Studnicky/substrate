@@ -23,3 +23,4 @@ export { ValidationErrorArgumentsEntity } from './ValidationErrorArgumentsEntity
 export { ValidationReportOptionsEntity } from './ValidationReportOptionsEntity.js';
 export { ValidationViolationDetailEntity } from './ValidationViolationDetailEntity.js';
 export { ValidationViolationEntity } from './ValidationViolationEntity.js';
+export { ValidationViolationsEntity } from './ValidationViolationsEntity.js';

@@ -11,8 +11,8 @@ import {
 } from '../constants/ProblemConstants.js';
 import { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
+import { ValidationViolationsEntity } from '../entities/ValidationViolationsEntity.js';
 import { RuntimeError } from './RuntimeError.js';
-import { ValidationError } from './ValidationError.js';
 
 
 
@@ -34,7 +34,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
   /** Creates a `ValidationErrors` from an array of violations (or the subclass instance when called on a subclass). */
   public static create<TInstance extends ValidationErrors = ValidationErrors>(
     this: ValidationErrorsSubclassInterface<TInstance>,
-    items: readonly ValidationViolationEntity.Type[]
+    items: unknown
   ): TInstance {
     const result: unknown = Reflect.construct(this, [items]);
     if (!Predicates.isInstanceOf<TInstance>(result, this)) {
@@ -104,20 +104,17 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     return result;
   }
 
-  protected constructor(items: readonly ValidationViolationEntity.Type[]) {
-    const typedItems = items;
-    if (!Predicates.isArray(items)) {
-      throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
-    }
-    const snapshot: ValidationViolationEntity.Type[] = [];
-    const length = typedItems.length;
-    for (let index = 0; index < length; index += 1) {
-      const item = typedItems[index];
-      if (item === undefined) {
-        continue;
-      }
-      snapshot.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
-    }
+  protected constructor(items: unknown) {
+    const normalizedItems = ValidationViolationsEntity.intake(items);
+    const snapshot: ValidationViolationEntity.Type[] = normalizedItems.map((item) => {
+      const snapshotItem: ValidationViolationEntity.Type = {
+        'keyword': item.keyword,
+        'message': item.message,
+        'path': item.path
+      };
+
+      return snapshotItem;
+    });
     this.#items = snapshot;
   }
 

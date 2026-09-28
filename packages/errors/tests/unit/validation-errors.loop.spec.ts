@@ -206,7 +206,9 @@ const runnerMap = {
   'construction-empty': runConstruction,
   'construction-invalid': (scenarioCase) => {
     const input = materialize(scenarioCase.input);
-    assert.strictEqual(Predicates.isArray(input), false);
+    assert.throws(() => {
+      ValidationErrors.create(input);
+    });
   },
   'construction-non-empty': runConstruction,
   'create-from-array': (scenarioCase) => {
