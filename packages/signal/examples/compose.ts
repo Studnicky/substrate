@@ -11,7 +11,8 @@ class ComposeDemo {
   /** Case 1: both caller signal + deadlineMs — returns AbortSignal.any composite. */
   static async caseCallerAndDeadline(): Promise<void> {
     const controller = new AbortController();
-    const signal = await signals.compose({ 'deadlineMs': 5000, 'signal': controller.signal });
+    using composed = await signals.compose({ 'deadlineMs': 5000, 'signal': controller.signal });
+    const signal = composed.signal;
 
     assert.ok(signal instanceof AbortSignal, 'composite is an AbortSignal');
     assert.ok(!signal.aborted, 'composite is not yet aborted');
@@ -21,7 +22,8 @@ class ComposeDemo {
   /** Case 2: caller signal only — returns that signal unchanged. */
   static async caseCallerOnly(): Promise<void> {
     const controller = new AbortController();
-    const signal = await signals.compose({ 'signal': controller.signal });
+    using composed = await signals.compose({ 'signal': controller.signal });
+    const signal = composed.signal;
 
     assert.strictEqual(signal, controller.signal, 'returns the caller signal directly');
     assert.ok(!signal.aborted, 'signal is not aborted');
@@ -30,7 +32,8 @@ class ComposeDemo {
 
   /** Case 3: deadlineMs only — returns a timeout signal. */
   static async caseDeadlineOnly(): Promise<void> {
-    const signal = await signals.compose({ 'deadlineMs': 5000 });
+    using composed = await signals.compose({ 'deadlineMs': 5000 });
+    const signal = composed.signal;
 
     assert.ok(signal instanceof AbortSignal, 'returns an AbortSignal');
     assert.ok(!signal.aborted, 'not yet aborted at 5 s');
@@ -39,15 +42,17 @@ class ComposeDemo {
 
   /** Case 4: neither deadline nor signal supplied — returns a never-aborting AbortSignal. */
   static async caseNeither(): Promise<void> {
-    const composed = await signals.compose({});
+    using composed = await signals.compose({});
+    const signal = composed.signal;
 
-    assert.ok(!composed.aborted, 'the composed signal is never aborted');
-    console.log(`caseNeither: isAbortSignal=${composed instanceof AbortSignal}, aborted=${composed.aborted}`);
+    assert.ok(!signal.aborted, 'the composed signal is never aborted');
+    console.log(`caseNeither: isAbortSignal=${signal instanceof AbortSignal}, aborted=${signal.aborted}`);
   }
 
   /** deadlineMs of 0 is valid (non-negative) — AbortSignal.timeout(0) aborts immediately. */
   static async caseZeroDeadline(): Promise<void> {
-    const signal = await signals.compose({ 'deadlineMs': 0 });
+    using composed = await signals.compose({ 'deadlineMs': 0 });
+    const signal = composed.signal;
     assert.ok(signal instanceof AbortSignal, 'zero deadline produces an AbortSignal');
     console.log(`caseZeroDeadline: is AbortSignal=${signal instanceof AbortSignal}`);
   }

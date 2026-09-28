@@ -119,7 +119,8 @@ export class SlidingWindowLimiter {
     options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}
   ): Promise<RateLimitConsumptionInterface> {
     const tokens = this.#resolveTokens(options.tokens);
-    const signal = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    using composed = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    const signal = composed.signal;
     if (tokens > this.#limit) {
       const result = this.consume(tokens);
       return result;

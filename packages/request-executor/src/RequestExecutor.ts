@@ -273,10 +273,11 @@ export class RequestExecutor {
   ): Promise<T> {
     const parsedOptions = RequestExecutor.#intakeExecuteOptions(options);
     const deadlineMs = parsedOptions.data.deadlineMs ?? this.#deadlineMs;
-    const composedSignal = await this.#signal.compose({
+    using composed = await this.#signal.compose({
       ...(deadlineMs !== undefined ? { 'deadlineMs': deadlineMs } : {}),
       ...(parsedOptions.signal !== undefined ? { 'signal': parsedOptions.signal } : {})
     });
+    const composedSignal = composed.signal;
 
     const runObserved = async (): Promise<T> => {
       this.hooks.invoke('onExecuteStart', () => {

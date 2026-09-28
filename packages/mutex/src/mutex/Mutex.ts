@@ -1226,14 +1226,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     reject: (error: Error) => void,
     cancellationController: AbortController
   ): Promise<void> {
-    const deadlineSignal = await this.#signal.compose({
+    const composed = await this.#signal.compose({
       'deadlineMs': this.config.timeout,
       'signal': cancellationController.signal
     });
+    const deadlineSignal = composed.signal;
     const onAbort = (): void => {
       if (!cancellationController.signal.aborted) {
         this.handleAcquisitionTimeout(key, cancellationController, reject);
       }
+      composed.dispose();
     };
 
     if (deadlineSignal.aborted) {

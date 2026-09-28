@@ -23,15 +23,30 @@ const fileIntake = ScenarioFileCompiler.compileIntake(SignalScenarioCaseEntity.S
  * sharing one `VirtualTimeCounter`. `scheduler.advance(ms)` drives it deterministically
  * instead of racing real timers.
  */
-function createVirtualTimers(): { scheduler: VirtualScheduler; timer: DeadlineTimerInterface } {
+function createVirtualTimers(): { scheduler: VirtualScheduler; timer: DeadlineTimerInterface; scheduledCount: () => number } {
   const counter = VirtualTimeCounter.create({ 'startMs': 0 });
   const clock = VirtualClockProvider.create(counter);
   const scheduler = VirtualScheduler.create({ 'counter': counter });
+  let scheduledCount = 0;
   const timer: DeadlineTimerInterface = {
     'now': () => clock.now(),
-    'scheduleAt': (atMs, fire) => scheduler.scheduleAt(atMs, fire)
+    'scheduleAt': (atMs, fire) => {
+      scheduledCount += 1;
+      const handle = scheduler.scheduleAt(atMs, () => {
+        scheduledCount -= 1;
+        fire();
+      });
+      return {
+        'cancel': (): void => {
+          if (scheduledCount > 0) {
+            scheduledCount -= 1;
+          }
+          handle.cancel();
+        }
+      };
+    }
   };
-  return { scheduler, timer };
+  return { scheduler, timer, 'scheduledCount': () => scheduledCount };
 }
 
 type ComposeOptions = { deadlineMs?: number; signal?: AbortSignal };
@@ -83,13 +98,13 @@ async function runOnComposeRecording(
 ): Promise<void> {
   const s = RecordingSignal.create<RecordingSignal>();
   const options = materializeComposeOptions(input.composeOptions);
-  const result = await s.compose(options);
+  using result = await s.compose(options);
   assert.equal(s.calls.length, expected.callCount);
   assert.equal(s.calls[0]?.options, options);
-  assert.equal(s.calls[0]?.result, result);
+  assert.equal(s.calls[0]?.result, result.signal);
   assert.ok(s.calls[0]?.result instanceof AbortSignal);
-  assert.equal(result.aborted, false);
-  assert.equal(result === s.calls[0]?.result, expected.resultMatches);
+  assert.equal(result.signal.aborted, false);
+  assert.equal(result.signal === s.calls[0]?.result, expected.resultMatches);
 }
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
@@ -113,14 +128,16 @@ const runnerMap: RunnerMap = {
   },
 
   'compose-empty-options': async (scenarioCase) => {
-    const sig = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    const sig = composed.signal;
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
 
   'compose-provided-signal': async (scenarioCase) => {
     const runtime = createComposeRuntime();
-    const sig = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    const sig = composed.signal;
     const expectedSignal = composeSignalMap[scenarioCase.input.composeOptions.signalId](runtime);
     assert.equal(sig, expectedSignal);
     assert.equal(sig === expectedSignal, scenarioCase.expected.sameSignal);
@@ -128,7 +145,8 @@ const runnerMap: RunnerMap = {
 
   'compose-signal-deadline-abort': async (scenarioCase) => {
     const runtime = createComposeRuntime();
-    const sig = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    const sig = composed.signal;
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
     runtime.controllers[scenarioCase.input.composeOptions.signalId].abort();
@@ -138,7 +156,8 @@ const runnerMap: RunnerMap = {
   'compose-deadline-fires': async (scenarioCase) => {
     const { scheduler, timer } = createVirtualTimers();
     const options = { ...materializeComposeOptions(scenarioCase.input.composeOptions), timer };
-    const sig = await Signal.create().compose(options);
+    using composed = await Signal.create().compose(options);
+    const sig = composed.signal;
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
     scheduler.advance(scenarioCase.input.waitMs);
@@ -158,7 +177,8 @@ const runnerMap: RunnerMap = {
 
   'instance-empty-options': async (scenarioCase) => {
     const s = Signal.create();
-    const sig = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    const sig = composed.signal;
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
@@ -166,7 +186,8 @@ const runnerMap: RunnerMap = {
   'instance-provided-signal': async (scenarioCase) => {
     const s = Signal.create();
     const runtime = createComposeRuntime();
-    const sig = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
+    const sig = composed.signal;
     const expectedSignal = composeSignalMap[scenarioCase.input.composeOptions.signalId](runtime);
     assert.equal(sig, expectedSignal);
     assert.equal(sig === expectedSignal, scenarioCase.expected.sameSignal);
@@ -247,7 +268,8 @@ const runnerMap: RunnerMap = {
     }
 
     const s = new SwallowingSignal();
-    const sig = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
+    const sig = composed.signal;
     assert.ok(sig instanceof AbortSignal);
     assert.equal(sig.aborted, scenarioCase.expected.aborted);
   },
@@ -310,6 +332,45 @@ void describe('Signal', () => {
   }
 });
 
+
+void describe('Signal composed resource', () => {
+  void it('dispose cancels the deadline timer', async () => {
+    const { timer, scheduledCount } = createVirtualTimers();
+    const composed = await Signal.create().compose({ 'deadlineMs': 100, timer });
+    assert.equal(scheduledCount(), 1);
+    composed.dispose();
+    assert.equal(scheduledCount(), 0);
+  });
+
+  void it('dispose is idempotent', async () => {
+    const { timer, scheduledCount } = createVirtualTimers();
+    const composed = await Signal.create().compose({ 'deadlineMs': 100, timer });
+    composed.dispose();
+    composed.dispose();
+    assert.equal(scheduledCount(), 0);
+  });
+
+  void it('abort automatically disposes the deadline timer', async () => {
+    const { timer, scheduledCount } = createVirtualTimers();
+    const controller = new AbortController();
+    const composed = await Signal.create().compose({ 'deadlineMs': 100, 'signal': controller.signal, timer });
+    assert.equal(scheduledCount(), 1);
+    controller.abort();
+    composed.dispose();
+    assert.equal(scheduledCount(), 0);
+  });
+
+  void it('hook failure disposes the deadline timer', async () => {
+    const { timer, scheduledCount } = createVirtualTimers();
+    class FailingSignal extends Signal {
+      protected override onCompose(): void {
+        throw RuntimeError.create('compose hook failed');
+      }
+    }
+    await assert.rejects(FailingSignal.create().compose({ 'deadlineMs': 100, timer }));
+    assert.equal(scheduledCount(), 0);
+  });
+});
 
 void describe('Signal deadline boundaries', () => {
   const invalidDeadlines = [Number.POSITIVE_INFINITY, 2_147_483_648, 0.5] as const;

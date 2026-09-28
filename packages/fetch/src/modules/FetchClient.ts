@@ -2,6 +2,7 @@
  * Configured HTTP client with subclass-overridable lifecycle hooks
  */
 
+import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
@@ -57,6 +58,7 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
 interface RequestSignalStateInterface {
   'externalSignal': AbortSignal | undefined;
   'requestSignal': AbortSignal | undefined;
+  'requestSignalHandle': ComposedSignalInterface | undefined;
   'timeoutMs': number | undefined;
 }
 
@@ -268,7 +270,7 @@ export class FetchClient implements FetchClientInterface {
     requestId: string
   ): Promise<Response> {
     const startTime = this.clock.now();
-    const state: RequestSignalStateInterface = { 'externalSignal': undefined, 'requestSignal': undefined, 'timeoutMs': undefined };
+    const state: RequestSignalStateInterface = { 'externalSignal': undefined, 'requestSignal': undefined, 'requestSignalHandle': undefined, 'timeoutMs': undefined };
 
     try {
       const requestInit = await this.prepareRequestInit(requestContext, state);
@@ -280,6 +282,8 @@ export class FetchClient implements FetchClientInterface {
     } catch (error) {
       const duration = this.clock.now() - startTime;
       return await this.handleRequestError(error, requestContext, { 'duration': duration, 'method': method, 'requestId': requestId }, state);
+    } finally {
+      state.requestSignalHandle?.dispose();
     }
   }
 
@@ -300,7 +304,8 @@ export class FetchClient implements FetchClientInterface {
     state.externalSignal = configuredSignal ?? undefined;
     if (timeout !== undefined || state.externalSignal !== undefined) {
       state.timeoutMs = timeout;
-      state.requestSignal = await this.composeRequestSignal({ 'externalSignal': state.externalSignal, 'timeout': timeout });
+      state.requestSignalHandle = await this.composeRequestSignal({ 'externalSignal': state.externalSignal, 'timeout': timeout });
+      state.requestSignal = state.requestSignalHandle.signal;
     }
 
     const requestInit: Record<string, unknown> = state.requestSignal === undefined
@@ -321,11 +326,7 @@ export class FetchClient implements FetchClientInterface {
     }
   }
 
-  private async composeRequestSignal(options: ComposeRequestSignalOptionsInterface): Promise<AbortSignal | undefined> {
-    if (options.timeout === undefined && options.externalSignal === undefined) {
-      return undefined;
-    }
-
+  private async composeRequestSignal(options: ComposeRequestSignalOptionsInterface): Promise<ComposedSignalInterface> {
     const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
     if (options.timeout !== undefined) {
       composeOptions.deadlineMs = options.timeout;

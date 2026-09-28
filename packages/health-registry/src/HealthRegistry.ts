@@ -225,7 +225,8 @@ export class HealthRegistry {
   async #runWithTimeout(name: string, check: HealthCheckInterface, timeoutMs: number): Promise<HealthCheckResultInterface> {
     const checkPromise = check();
     const completionController = new AbortController();
-    const timeoutSignal = await this.#signal.compose({ 'deadlineMs': timeoutMs, 'signal': completionController.signal });
+    const composed = await this.#signal.compose({ 'deadlineMs': timeoutMs, 'signal': completionController.signal });
+    const timeoutSignal = composed.signal;
 
     const timeoutPromise = new Promise<HealthCheckResultInterface>((resolve) => {
       const onAbort = (): void => {
@@ -259,6 +260,7 @@ export class HealthRegistry {
       return result;
     } finally {
       completionController.abort();
+      composed.dispose();
     }
   }
 

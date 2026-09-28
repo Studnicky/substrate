@@ -31,14 +31,14 @@ const signals = Signal.create();
 
 // Combine a caller signal with a 5-second deadline — whichever fires first wins
 async function fetchWithDeadline(callerSignal: AbortSignal): Promise<Response> {
-  const signal = await signals.compose({ signal: callerSignal, deadlineMs: 5000 });
-  return fetch('https://api.example.com/data', { signal });
+  using composed = await signals.compose({ signal: callerSignal, deadlineMs: 5000 });
+  return fetch('https://api.example.com/data', { signal: composed.signal });
 }
 
 // Timeout only — no caller signal available
 async function fetchWithTimeout(): Promise<Response> {
-  const signal = await signals.compose({ deadlineMs: 10_000 });
-  return fetch('https://api.example.com/data', { signal });
+  using composed = await signals.compose({ deadlineMs: 10_000 });
+  return fetch('https://api.example.com/data', { signal: composed.signal });
 }
 
 // Never-aborting signal — useful as a safe default
@@ -73,7 +73,8 @@ class ObservedSignal extends Signal {
 }
 
 const signals = new ObservedSignal();
-await signals.compose({ deadlineMs: 5000 }); // logs the composed signal
+using composed = await signals.compose({ deadlineMs: 5000 }); // logs the composed signal
+composed.dispose();
 ```
 
 ## Documentation
