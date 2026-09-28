@@ -43,7 +43,7 @@ export class Batch<TResult = unknown> {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [maximumConcurrent]);
 
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw new BatchError('Batch.create() must construct a Batch instance');
     }
 
